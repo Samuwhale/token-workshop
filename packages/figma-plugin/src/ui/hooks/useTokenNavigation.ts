@@ -21,6 +21,26 @@ export function useTokenNavigation(
   const [createFromEmpty, setCreateFromEmpty] = useState(false);
   const [navHistory, setNavHistory] = useState<NavHistoryEntry[]>([]);
 
+  const navigateToAliasTarget = useCallback(
+    (aliasPath: string) => {
+      const targetSet = pathToSet[aliasPath];
+      if (!targetSet) {
+        onAliasNotFound?.(aliasPath);
+        return;
+      }
+
+      if (targetSet === activeSet) {
+        setHighlightedToken(aliasPath);
+        return;
+      }
+
+      setPendingHighlight(aliasPath);
+      setPendingHighlightSet(targetSet);
+      setActiveSet(targetSet);
+    },
+    [activeSet, onAliasNotFound, pathToSet, setActiveSet],
+  );
+
   // Reset createFromEmpty when switching sets
   useEffect(() => {
     setCreateFromEmpty(false);
@@ -40,19 +60,12 @@ export function useTokenNavigation(
   const handleNavigateToAlias = useCallback((aliasPath: string, fromPath?: string) => {
     // Push current position to history before navigating
     setNavHistory(prev => [...prev, { path: fromPath ?? null, set: activeSet }]);
+    navigateToAliasTarget(aliasPath);
+  }, [activeSet, navigateToAliasTarget]);
 
-    if (pathToSet[aliasPath]) {
-      const targetSet = pathToSet[aliasPath];
-      if (targetSet === activeSet) {
-        setHighlightedToken(aliasPath);
-      } else {
-        setPendingHighlight(aliasPath);
-        setActiveSet(targetSet);
-      }
-    } else {
-      onAliasNotFound?.(aliasPath);
-    }
-  }, [pathToSet, activeSet, setActiveSet, onAliasNotFound]);
+  const handleNavigateToAliasWithoutHistory = useCallback((aliasPath: string) => {
+    navigateToAliasTarget(aliasPath);
+  }, [navigateToAliasTarget]);
 
   const handleNavigateBack = useCallback(() => {
     if (navHistory.length === 0) return;
@@ -71,6 +84,24 @@ export function useTokenNavigation(
     }
   }, [navHistory, activeSet, setActiveSet]);
 
+  const consumeNavigateBack = useCallback(() => {
+    if (navHistory.length === 0) return null;
+    const entry = navHistory[navHistory.length - 1];
+    setNavHistory((prev) => prev.slice(0, -1));
+
+    if (entry.set !== activeSet) {
+      if (entry.path) {
+        setPendingHighlight(entry.path);
+        setPendingHighlightSet(entry.set);
+      }
+      setActiveSet(entry.set);
+    } else {
+      setHighlightedToken(entry.path);
+    }
+
+    return entry;
+  }, [navHistory, activeSet, setActiveSet]);
+
   // Use this when navigating to a token in a specific set (not derived from pathToSet)
   const setPendingHighlightForSet = useCallback((path: string, targetSet: string) => {
     setPendingHighlight(path);
@@ -86,7 +117,9 @@ export function useTokenNavigation(
     createFromEmpty,
     setCreateFromEmpty,
     handleNavigateToAlias,
+    handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
+    consumeNavigateBack,
     navHistory,
   };
 }

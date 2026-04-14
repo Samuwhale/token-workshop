@@ -61,7 +61,9 @@ export interface EditorContextValue {
   setPendingHighlight: Dispatch<SetStateAction<string | null>>;
   setPendingHighlightForSet: (path: string, targetSet: string) => void;
   handleNavigateToAlias: (path: string, fromPath?: string) => void;
+  handleNavigateToAliasWithoutHistory: (path: string) => void;
   handleNavigateBack: () => void;
+  consumeNavigateBack: () => { path: string | null; set: string } | null;
   navHistoryLength: number;
   showTokensCompare: boolean;
   setShowTokensCompare: Dispatch<SetStateAction<boolean>>;
@@ -139,7 +141,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     createFromEmpty,
     setCreateFromEmpty,
     handleNavigateToAlias,
+    handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
+    consumeNavigateBack,
     navHistory,
   } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens, handleAliasNotFound);
 
@@ -226,7 +230,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setPendingHighlight,
     setPendingHighlightForSet,
     handleNavigateToAlias,
+    handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
+    consumeNavigateBack,
     navHistoryLength: navHistory.length,
     showTokensCompare,
     setShowTokensCompare,
@@ -254,7 +260,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setPendingHighlight,
     setPendingHighlightForSet,
     handleNavigateToAlias,
+    handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
+    consumeNavigateBack,
     navHistory.length,
     showTokensCompare,
     setShowTokensCompare,

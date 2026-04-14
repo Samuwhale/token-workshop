@@ -5,6 +5,7 @@ import {
   NoticeCountBadge,
   NoticeFieldMessage,
 } from "../../shared/noticeSystem";
+import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 import { ThemeOptionRail } from "./ThemeOptionRail";
 import { ThemeOptionWorkspace } from "./ThemeOptionWorkspace";
@@ -23,7 +24,7 @@ interface ThemeAxisCardProps {
 }
 
 function resolveIssueTargetSet(issue: {
-  preferredSetName?: string;
+  preferredSetName?: string | null;
   affectedSetNames?: string[];
 }) {
   return issue.preferredSetName ?? issue.affectedSetNames?.[0] ?? null;
@@ -103,16 +104,6 @@ export function ThemeAxisCard({
       ? `${selectedOptionIssues.length} issue${selectedOptionIssues.length === 1 ? "" : "s"} on ${selectedOption}`
       : `${dimension.options.length} value${dimension.options.length === 1 ? "" : "s"} in this mode`
     : collapsedSummary;
-
-  const handleIssueNavigation = (issue: {
-    preferredSetName?: string;
-    affectedSetNames?: string[];
-  }) => {
-    const targetSet = resolveIssueTargetSet(issue);
-    if (targetSet && ctx.onNavigateToTokenSet) {
-      ctx.onNavigateToTokenSet(targetSet);
-    }
-  };
 
   return (
     <div
@@ -468,7 +459,7 @@ export function ThemeAxisCard({
               }}
               onExecuteRenameOption={ctx.executeRenameOption}
               onCancelRenameOption={ctx.cancelRenameOption}
-              onResolveIssue={(issue) => {
+              onResolveIssue={(issue: ThemeIssueSummary) => {
                 const targetSet = resolveIssueTargetSet(issue);
                 if (targetSet && ctx.onNavigateToTokenSet) {
                   ctx.onNavigateToTokenSet(targetSet);
@@ -476,7 +467,7 @@ export function ThemeAxisCard({
               }}
               onViewTokens={
                 ctx.onNavigateToTokenSet
-                  ? (issue) => {
+                  ? (issue: ThemeIssueSummary) => {
                       const targetSet = resolveIssueTargetSet(issue);
                       if (targetSet) ctx.onNavigateToTokenSet!(targetSet);
                     }

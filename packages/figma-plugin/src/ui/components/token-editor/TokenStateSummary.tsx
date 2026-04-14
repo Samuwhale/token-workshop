@@ -106,7 +106,6 @@ export function TokenStateSummary({
       : FIGMA_SCOPE_OPTIONS[tokenType]?.length
         ? "All scopes"
         : null;
-  const hasGeneratedState = Boolean(generatedRecipe || sourceRecipes.length > 0);
   const hasContent = Boolean(
     aliasPath ||
       extendsPath ||
@@ -117,6 +116,7 @@ export function TokenStateSummary({
       sourceRecipes.length > 0 ||
       (typeof usageCount === "number" && usageCount > 0),
   );
+  const sourceRecipesLabel = sourceRecipes.length === 1 ? "Recipe" : "Recipes";
 
   if (!hasContent) return null;
 
@@ -126,7 +126,7 @@ export function TokenStateSummary({
     >
       <dl className="grid grid-cols-[84px_minmax(0,1fr)] gap-x-3 gap-y-1.5">
         {aliasPath && (
-          <SummaryRow label="Alias">
+          <SummaryRow label="Alias of">
             {onNavigateToPath ? (
               <button
                 type="button"
@@ -145,7 +145,7 @@ export function TokenStateSummary({
         )}
 
         {extendsPath && (
-          <SummaryRow label="Inherits">
+          <SummaryRow label="Extends">
             {onNavigateToPath ? (
               <button
                 type="button"
@@ -176,7 +176,7 @@ export function TokenStateSummary({
         )}
 
         {provenanceLabel && (
-          <SummaryRow label="Provenance">
+          <SummaryRow label="Origin">
             <span>{provenanceLabel}</span>
           </SummaryRow>
         )}
@@ -199,7 +199,7 @@ export function TokenStateSummary({
         )}
 
         {sourceRecipes.length > 0 && (
-          <SummaryRow label={hasGeneratedState ? "Linked recipes" : "Recipes"}>
+          <SummaryRow label={sourceRecipesLabel}>
             <RecipeLinks
               recipes={sourceRecipes}
               onNavigateToRecipe={onNavigateToRecipe}

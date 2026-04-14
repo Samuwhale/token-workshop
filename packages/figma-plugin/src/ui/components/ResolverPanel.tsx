@@ -7,7 +7,11 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import type { ResolverFile } from '@tokenmanager/core';
-import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
+import type {
+  ResolverMeta,
+  ResolverModifierMeta,
+  ResolverSelectionOrigin,
+} from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
 import { apiFetch } from '../shared/apiFetch';
 import { Spinner } from './Spinner';
@@ -23,6 +27,7 @@ export interface ResolverContentProps {
   resolvers: ResolverMeta[];
   resolverLoadErrors?: Record<string, { message: string; at: string }>;
   activeResolver: string | null;
+  selectionOrigin?: ResolverSelectionOrigin;
   setActiveResolver: (name: string | null) => void;
   resolverInput: Record<string, string>;
   setResolverInput: (input: Record<string, string>) => void;
@@ -63,6 +68,7 @@ function ResolverInner({
   resolvers,
   resolverLoadErrors = {},
   activeResolver,
+  selectionOrigin = 'none',
   setActiveResolver,
   resolverInput,
   setResolverInput,
@@ -258,10 +264,10 @@ function ResolverInner({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                Outputs
+                Output setup
               </div>
               <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Create an output manually or generate one from modes.
+                Choose an output, confirm how mode values map, and preview the resolved tokens.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -340,7 +346,7 @@ function ResolverInner({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-              Current output
+              {currentResolver ? 'Editing output' : 'Choose output'}
             </div>
             {currentResolver ? (
               <>
@@ -349,7 +355,7 @@ function ResolverInner({
                     {currentResolver.name}
                   </span>
                   <span className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
-                    Selected
+                    {selectionOrigin === 'restored' ? 'Restored' : 'Selected'}
                   </span>
                 </div>
                 {currentResolver.description && (
@@ -357,6 +363,11 @@ function ResolverInner({
                     {currentResolver.description}
                   </p>
                 )}
+                <p className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-tertiary)]">
+                  {selectionOrigin === 'restored'
+                    ? 'Restored from your previous session. You can keep it or reset and choose a different output.'
+                    : 'This is the output currently driving the preview below.'}
+                </p>
                 <div className="mt-1 text-[9px] text-[var(--color-figma-text-tertiary)]">
                   {formatCountLabel(Object.keys(currentResolver.modifiers).length, 'mode')}
                   {` · ${currentResolverStatusLabel}`}
@@ -396,7 +407,7 @@ function ResolverInner({
                 onClick={() => setActiveResolver(null)}
                 className="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                Clear selection
+                {selectionOrigin === 'restored' ? 'Reset selection' : 'Clear selection'}
               </button>
             </div>
           ) : !showHeader ? (
@@ -437,6 +448,11 @@ function ResolverInner({
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
+        {resolvers.length > 0 && (
+          <div className="border-b border-[var(--color-figma-border)] px-3 py-1.5 text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+            Available outputs
+          </div>
+        )}
         {resolversLoading && resolvers.length === 0 && !creating && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
             <Spinner size="md" />

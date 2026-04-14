@@ -29,7 +29,10 @@ import {
   type ThemeManagerView,
   type ThemeWorkspaceShellState,
 } from "../shared/themeWorkflow";
-import { WorkflowStageIndicators } from "../shared/WorkflowStageIndicators";
+import {
+  WorkflowStageIndicators,
+  type WorkflowStageTone,
+} from "../shared/WorkflowStageIndicators";
 import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
 import { ThemeResolverScreen } from "./theme-manager/ThemeResolverScreen";
 import {
@@ -479,14 +482,28 @@ const ThemeManagerWorkspace = React.forwardRef<
     [coverage, dimensions, missingOverrides, setTokenCounts, sets],
   );
   const themeHeaderStatus = useMemo(() => {
-    if (activeView === "compare") return "Compare values";
-    if (activeView === "resolver") return "Configure output";
-    if (authoringMode === "preview") return "Preview resolved tokens";
-    return "Theme setup";
+    if (activeView === "compare") return "Theme setup / Compare";
+    if (activeView === "resolver") return "Theme setup / Output setup";
+    if (authoringMode === "preview") return "Theme setup / Preview";
+    return "Theme setup / Modes";
   }, [activeView, authoringMode]);
   const themeHeaderSummary = useMemo(() => {
     if (dimensions.length === 0) {
       return "Create the modes your team switches between, then map each value to the right token sets.";
+    }
+
+    if (activeView === "compare") {
+      return "Review how token values change across mode values before you publish or continue mapping sets.";
+    }
+
+    if (activeView === "resolver") {
+      return resolverAuthoringContext
+        ? resolverAuthoringContext.setupSummary
+        : "Choose the output file that should represent this theme, then confirm how each mode maps.";
+    }
+
+    if (authoringMode === "preview") {
+      return "Inspect the resolved token result for the currently selected mode values.";
     }
 
     if (themeWorkflowSummary.currentStage === "options") {
@@ -504,8 +521,15 @@ const ThemeManagerWorkspace = React.forwardRef<
     }
 
     return "Theme setup is ready to review. Preview resolved tokens, compare values, or configure an output file.";
-  }, [dimensions.length, themeWorkflowSummary]);
+  }, [
+    activeView,
+    authoringMode,
+    dimensions.length,
+    resolverAuthoringContext,
+    themeWorkflowSummary,
+  ]);
   const workflowStages = useMemo(() => {
+    const asTone = (value: WorkflowStageTone) => value;
     const stageIsCurrent = (stage: ThemeAuthoringStage) =>
       activeView === "authoring" &&
       (stage === "preview"
@@ -515,40 +539,40 @@ const ThemeManagerWorkspace = React.forwardRef<
 
     const modesTone =
       dimensions.length === 0
-        ? "current"
+        ? asTone("current")
         : stageIsCurrent("axes")
-          ? "current"
-          : "complete";
+          ? asTone("current")
+          : asTone("complete");
     const optionsTone =
       dimensions.length === 0
-        ? "blocked"
+        ? asTone("blocked")
         : themeWorkflowSummary.optionCount === 0 ||
             themeWorkflowSummary.axesMissingOptionsCount > 0
           ? stageIsCurrent("options")
-            ? "current"
-            : "pending"
-          : "complete";
+            ? asTone("current")
+            : asTone("pending")
+          : asTone("complete");
     const mappingsNeedAttention =
       themeWorkflowSummary.unmappedOptionCount > 0 ||
       themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0;
     const mappingsTone =
       dimensions.length === 0 || themeWorkflowSummary.optionCount === 0
-        ? "blocked"
+        ? asTone("blocked")
         : mappingsNeedAttention
           ? stageIsCurrent("set-roles")
-            ? "current"
-            : "pending"
+            ? asTone("current")
+            : asTone("pending")
           : themeWorkflowSummary.optionsWithCoverageIssuesCount > 0
-            ? "pending"
-            : "complete";
+            ? asTone("pending")
+            : asTone("complete");
     const previewTone =
       !themeWorkflowSummary.previewReady
-        ? "blocked"
+        ? asTone("blocked")
         : stageIsCurrent("preview")
-          ? "current"
+          ? asTone("current")
           : themeWorkflowSummary.currentStage === "preview"
-            ? "complete"
-            : "pending";
+            ? asTone("complete")
+            : asTone("pending");
 
     return [
       {
@@ -635,7 +659,7 @@ const ThemeManagerWorkspace = React.forwardRef<
 
   return (
     <ThemeManagerModalsProvider value={modalContextValue}>
-      <div className="flex flex-col h-full">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
         {feedback.error && (
           <div className="mx-3 mt-2">
             <NoticeInlineAlert
@@ -687,7 +711,7 @@ const ThemeManagerWorkspace = React.forwardRef<
           />
         </div>
 
-        <>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {activeView === "compare" ? (
             <ThemeCompareScreen
               compareFocusDimension={compareFocusDimension}
@@ -812,7 +836,7 @@ const ThemeManagerWorkspace = React.forwardRef<
               resolverAuthoringContext={resolverAuthoringContext}
             />
           )}
-        </>
+        </div>
 
         <ThemeManagerModals />
       </div>

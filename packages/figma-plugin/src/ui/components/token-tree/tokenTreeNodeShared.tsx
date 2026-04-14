@@ -155,6 +155,23 @@ function formatRecipeRunAt(lastRunAt?: string): string {
   return RECIPE_RUN_AT_FORMATTER.format(date);
 }
 
+export function formatRecipeSummaryTitle(recipe: TokenRecipe): string {
+  return [
+    `Recipe: ${recipe.name}`,
+    recipe.sourceToken ? `Source token: ${recipe.sourceToken}` : null,
+    recipe.isStale ? "Source changed" : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function formatThemeOptionLabel(
+  themeDimension: string,
+  themeOption: string,
+): string {
+  return `Theme ${themeDimension} / ${themeOption}`;
+}
+
 function getRecipeManagedPaths(recipe: TokenRecipe): Set<string> {
   return new Set(
     getRecipeManagedOutputs(recipe).map((output) => output.path),
@@ -197,7 +214,7 @@ export function RecipeSummaryRow({
   onDetach?: () => Promise<void> | void;
   onNavigateToSourceToken?: (path: string) => void;
 }) {
-  const sourceLabel = recipe.sourceToken || "standalone";
+  const sourceLabel = recipe.sourceToken || "Standalone";
   const typeLabel = getRecipeTypeLabel(recipe.type);
   const lastRunLabel = formatRecipeRunAt(recipe.lastRunAt);
 
@@ -212,19 +229,25 @@ export function RecipeSummaryRow({
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-bg)] px-1.5 py-0.5 font-medium text-[var(--color-figma-text)]">
+            <span className="inline-flex items-center gap-1 font-medium text-[var(--color-figma-text)]">
               <RecipeGlyph />
-              Recipe
+              <span>Recipe</span>
+            </span>
+            <span aria-hidden="true" className="text-[var(--color-figma-text-tertiary)]/70">
+              ·
+            </span>
+            <span className="truncate font-medium text-[var(--color-figma-text)]" title={recipe.name}>
+              {recipe.name}
             </span>
             {recipe.isStale && (
-              <span className="rounded-full border border-amber-500/60 bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-600">
+              <span className="font-medium text-amber-600">
                 Source changed
               </span>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span>
-              Source{" "}
+              Source token{" "}
               {recipe.sourceToken && onNavigateToSourceToken ? (
                 <button
                   type="button"
@@ -256,10 +279,9 @@ export function RecipeSummaryRow({
             </span>
           </div>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            These {managedTokenCount} token
-            {managedTokenCount === 1 ? "" : "s"} are managed by this
-            recipe. Edit the recipe to change them, or detach them first
-            to make manual edits stick.
+            This recipe owns {managedTokenCount} token
+            {managedTokenCount === 1 ? "" : "s"}. Edit the recipe to change
+            them, or detach them first to make manual edits stick.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">

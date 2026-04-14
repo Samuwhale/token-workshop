@@ -32,6 +32,8 @@ export interface ResolverModifierMeta {
   default?: string;
 }
 
+export type ResolverSelectionOrigin = 'none' | 'restored' | 'manual';
+
 function buildResolverInput(
   meta: ResolverMeta,
   currentInput: Record<string, string> = {},
@@ -48,10 +50,14 @@ function buildResolverInput(
 // ---------------------------------------------------------------------------
 
 export function useResolvers(serverUrl: string, connected: boolean) {
+  const initialActiveResolver = lsGet(STORAGE_KEYS.ACTIVE_RESOLVER) ?? null;
   const [resolvers, setResolvers] = useState<ResolverMeta[]>([]);
   const [resolverLoadErrors, setResolverLoadErrors] = useState<Record<string, { message: string; at: string }>>({});
   const [activeResolver, setActiveResolverState] = useState<string | null>(
-    () => lsGet(STORAGE_KEYS.ACTIVE_RESOLVER) ?? null,
+    () => initialActiveResolver,
+  );
+  const [selectionOrigin, setSelectionOrigin] = useState<ResolverSelectionOrigin>(
+    () => (initialActiveResolver ? 'restored' : 'none'),
   );
   const [resolverInput, setResolverInput] = useState<Record<string, string>>(
     () => lsGetJson<Record<string, string>>(STORAGE_KEYS.RESOLVER_INPUT, {}),
@@ -108,6 +114,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
           const activeMeta = nextResolvers.find(resolver => resolver.name === activeResolver);
           if (!activeMeta) {
             setActiveResolverState(null);
+            setSelectionOrigin('none');
             setResolverInput({});
             setResolvedTokens(null);
             setResolverError(null);
@@ -137,6 +144,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // -----------------------------------------------------------------------
   const setActiveResolver = useCallback((name: string | null) => {
     setActiveResolverState(name);
+    setSelectionOrigin(name ? 'manual' : 'none');
     if (name) {
       // Set default inputs from the resolver metadata
       const meta = resolvers.find(r => r.name === name);
@@ -279,6 +287,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     resolvers,
     resolverLoadErrors,
     activeResolver,
+    selectionOrigin,
     setActiveResolver,
     resolverInput,
     setResolverInput,
@@ -297,6 +306,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     resolvers,
     resolverLoadErrors,
     activeResolver,
+    selectionOrigin,
     setActiveResolver,
     resolverInput,
     setResolverInput,

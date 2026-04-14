@@ -153,6 +153,7 @@ export function PanelRouter(): ReactNode {
     activeSubTab,
     activeSecondarySurface,
     navigateTo,
+    openSecondarySurface,
     setSubTab,
     beginHandoff,
     closeSecondarySurface,
@@ -171,7 +172,9 @@ export function PanelRouter(): ReactNode {
     setPendingHighlight,
     setPendingHighlightForSet,
     handleNavigateToAlias,
+    handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
+    consumeNavigateBack,
     navHistoryLength,
     showTokensCompare,
     setShowTokensCompare,
@@ -337,6 +340,46 @@ export function PanelRouter(): ReactNode {
     ],
   );
 
+  const openLinkedTokenSurface = useCallback(
+    (options: {
+      path: string;
+      fromPath?: string;
+      surface: "token-editor" | "token-preview";
+    }) => {
+      const targetSet = pathToSet[options.path];
+      if (options.surface === "token-editor") {
+        handleNavigateToAlias(options.path, options.fromPath);
+      } else {
+        handleNavigateToAliasWithoutHistory(options.path);
+      }
+      if (!targetSet) return;
+
+      switchContextualSurface(
+        options.surface === "token-editor"
+          ? {
+              surface: "token-editor",
+              token: {
+                path: options.path,
+                set: targetSet,
+              },
+            }
+          : {
+              surface: "token-preview",
+              token: {
+                path: options.path,
+                set: targetSet,
+              },
+            },
+      );
+    },
+    [
+      handleNavigateToAlias,
+      handleNavigateToAliasWithoutHistory,
+      pathToSet,
+      switchContextualSurface,
+    ],
+  );
+
   const openRecipeEditor = useCallback(
     (target: TokensLibraryRecipeEditorTarget) => {
       setShowPreviewSplit(false);
@@ -377,6 +420,16 @@ export function PanelRouter(): ReactNode {
   );
 
   const handleTokenEditorBack = useCallback(() => {
+    if (!editingToken?.isCreate && navHistoryLength > 0) {
+      const previousEntry = consumeNavigateBack();
+      if (previousEntry?.path) {
+        setEditingToken({
+          path: previousEntry.path,
+          set: previousEntry.set,
+        });
+        return;
+      }
+    }
     if (editingToken?.isCreate) {
       setCreateFromEmpty(false);
     }
@@ -384,6 +437,8 @@ export function PanelRouter(): ReactNode {
     refreshAll();
   }, [
     editingToken?.isCreate,
+    navHistoryLength,
+    consumeNavigateBack,
     setCreateFromEmpty,
     setEditingToken,
     refreshAll,
@@ -556,6 +611,10 @@ export function PanelRouter(): ReactNode {
     onOpenCommandPaletteWithQuery: controller.openCommandPaletteWithQuery,
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
+    onOpenSetSwitcher: controller.toggleSetSwitcher,
+    onOpenSetManager: () => openSecondarySurface("sets"),
+    onNavigateToRecipesWorkspace: () => navigateTo("recipes", "recipes"),
+    onNavigateToThemesWorkspace: () => navigateTo("themes", "themes"),
     onOpenStartHere: controller.onOpenStartHere,
     onTogglePreviewSplit: () => controller.setShowPreviewSplit((v) => !v),
     onTokenDragStart: controller.onTokenDragStart,
@@ -591,7 +650,12 @@ export function PanelRouter(): ReactNode {
           controller.setFlowPanelInitialPath(path);
           navigateTo("sync", "health");
         },
-        onNavigateToToken: handleNavigateToAlias,
+        onNavigateToToken: (path: string) =>
+          openLinkedTokenSurface({
+            path,
+            fromPath: editingToken.path,
+            surface: "token-editor",
+          }),
         onNavigateToRecipe: controller.handleNavigateToRecipe,
         onOpenRecipeEditor: openRecipeEditor,
         onNavigateToThemes: () => navigateTo("themes", "themes"),
@@ -757,7 +821,13 @@ export function PanelRouter(): ReactNode {
               serverUrl={serverUrl}
               onEdit={controller.handlePreviewEdit}
               onClose={controller.handlePreviewClose}
-              onNavigateToAlias={handleNavigateToAlias}
+              onNavigateToAlias={(path: string, fromPath?: string) =>
+                openLinkedTokenSurface({
+                  path,
+                  fromPath,
+                  surface: "token-preview",
+                })
+              }
               onNavigateToRecipe={controller.handleNavigateToRecipe}
             />
           ),
@@ -1000,39 +1070,41 @@ export function PanelRouter(): ReactNode {
     ),
     import: () => (
       <ErrorBoundary panelName="Import" onReset={closeSecondarySurface}>
-        <div className="flex h-full flex-col overflow-hidden">
-          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
             <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">
               Import tokens
             </h2>
           </div>
-          <ImportPanel
-            serverUrl={serverUrl}
-            connected={connected}
-            onImported={refreshTokens}
-            onImportComplete={(result) => {
-              const nextWorkspaceStep = getImportResultNextStepRecommendations(
-                result,
-              ).find(
-                (recommendation) => recommendation.target.kind === "workspace",
-              );
-              controller.onImportComplete(result, nextWorkspaceStep ?? null);
-              if (nextWorkspaceStep) {
-                openImportNextStep(result, nextWorkspaceStep, {
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <ImportPanel
+              serverUrl={serverUrl}
+              connected={connected}
+              onImported={refreshTokens}
+              onImportComplete={(result) => {
+                const nextWorkspaceStep = getImportResultNextStepRecommendations(
+                  result,
+                ).find(
+                  (recommendation) => recommendation.target.kind === "workspace",
+                );
+                controller.onImportComplete(result, nextWorkspaceStep ?? null);
+                if (nextWorkspaceStep) {
+                  openImportNextStep(result, nextWorkspaceStep, {
+                    preserveSecondarySurface: true,
+                  });
+                  return;
+                }
+
+                navigateTo("tokens", "tokens", {
                   preserveSecondarySurface: true,
                 });
-                return;
+              }}
+              onOpenImportNextStep={(result, recommendation) =>
+                openImportNextStep(result, recommendation)
               }
-
-              navigateTo("tokens", "tokens", {
-                preserveSecondarySurface: true,
-              });
-            }}
-            onOpenImportNextStep={(result, recommendation) =>
-              openImportNextStep(result, recommendation)
-            }
-            onPushUndo={controller.pushUndo}
-          />
+              onPushUndo={controller.pushUndo}
+            />
+          </div>
         </div>
       </ErrorBoundary>
     ),
@@ -1109,7 +1181,7 @@ export function PanelRouter(): ReactNode {
 
   if (segments && segments.length > 1) {
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <div className="flex shrink-0 items-center gap-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
           {segments.map((seg) => {
             const isActive = seg.id === activeSubTab;
@@ -1131,7 +1203,7 @@ export function PanelRouter(): ReactNode {
             );
           })}
         </div>
-        <div className="flex-1 overflow-y-auto">{panelContent}</div>
+        <div className="min-h-0 flex-1 overflow-hidden">{panelContent}</div>
       </div>
     );
   }
@@ -1328,8 +1400,8 @@ export function PanelRouter(): ReactNode {
 
   function renderDefineThemes(): ReactNode {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
-        <div className="flex-1 overflow-hidden">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
             panelName="Themes"
             onReset={() => navigateTo("tokens", "tokens")}
@@ -1395,6 +1467,7 @@ export function PanelRouter(): ReactNode {
                 resolvers: resolverState.resolvers,
                 resolverLoadErrors: resolverState.resolverLoadErrors,
                 activeResolver: resolverState.activeResolver,
+                selectionOrigin: resolverState.selectionOrigin,
                 setActiveResolver: resolverState.setActiveResolver,
                 resolverInput: resolverState.resolverInput,
                 setResolverInput: resolverState.setResolverInput,

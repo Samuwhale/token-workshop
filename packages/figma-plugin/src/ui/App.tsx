@@ -2252,7 +2252,7 @@ export function App() {
     dimensions.length > 0 &&
     !showExpandedTokenThemeBar;
   return (
-    <div className="relative flex flex-col h-screen">
+    <div className="relative flex h-screen min-h-0 flex-col overflow-hidden">
       {/* Workspace shell — single compact row */}
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
         <div className="flex items-center gap-1 px-2 py-1">
@@ -2370,8 +2370,8 @@ export function App() {
 
       <WorkspaceControllerProvider value={workspaceControllers}>
         <ErrorBoundary>
-          <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <>
                 {showCollapsedTokenThemeBar && (
                   <button
@@ -2707,7 +2707,7 @@ export function App() {
                     ) : null}
                   </div>
                 )}
-                <div className="flex-1 overflow-y-auto">
+                <div className="min-h-0 flex-1 overflow-hidden">
                   {/* Panels — routed by (activeTopTab, activeSubTab) and activeSecondarySurface */}
                   <PanelRouter />
                 </div>
@@ -2902,10 +2902,6 @@ export function App() {
             });
           }}
           onClose={() => setShowSetSwitcher(false)}
-          onManageSets={() => {
-            setShowSetSwitcher(false);
-            openSecondaryPanel("sets");
-          }}
           dimensions={dimensions}
         />
       )}

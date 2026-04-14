@@ -21,11 +21,11 @@ export function ThemeResolverContextBanner({
     : 'All connected';
   const issueLabel =
     context.issueAxisCount > 0
-      ? `${formatCountLabel(context.issueAxisCount, 'axis')} need attention`
+      ? `${formatCountLabel(context.issueAxisCount, 'mode')} need attention`
       : null;
   const modifierLabel =
     context.unmatchedModifierCount > 0
-      ? `${formatCountLabel(context.unmatchedModifierCount, 'extra modifier')}`
+      ? `${formatCountLabel(context.unmatchedModifierCount, 'unused switch')}`
       : null;
 
   return (
@@ -37,14 +37,19 @@ export function ThemeResolverContextBanner({
         <div className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
           {context.resolverName}
         </div>
+        <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+          {context.selectionOriginLabel}
+        </div>
         {context.resolverDescription && (
           <div className="mt-0.5 truncate text-[9px] text-[var(--color-figma-text-secondary)]">
             {context.resolverDescription}
           </div>
         )}
+        <div className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
+          {context.setupSummary}
+        </div>
         <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
           {[
-            context.autoSelected ? 'Auto-selected' : 'Pinned selection',
             connectionLabel,
             issueLabel,
             modifierLabel,
@@ -61,7 +66,11 @@ export function ThemeResolverContextBanner({
         >
           {actionLabel}
         </button>
-      ) : null}
+      ) : (
+        <div className="shrink-0 rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+          {context.recommendedActionLabel}
+        </div>
+      )}
     </div>
   );
 }

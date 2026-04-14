@@ -194,6 +194,10 @@ export function TokenList({
     onOpenCommandPaletteWithQuery,
     onShowPasteModal,
     onOpenImportPanel,
+    onOpenSetSwitcher,
+    onOpenSetManager,
+    onNavigateToRecipesWorkspace,
+    onNavigateToThemesWorkspace,
     onTokenDragStart,
     onTokenDragEnd,
     onOpenStartHere,
@@ -754,6 +758,11 @@ export function TokenList({
 
   // --- Custom hooks for extracted state groups ---
   const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
+  const totalLeafCount = useMemo(() => flattenLeafNodes(tokens).length, [tokens]);
+  const activeThemeSelectionCount = useMemo(
+    () => Object.values(activeThemes).filter(Boolean).length,
+    [activeThemes],
+  );
 
   const { handleOpenCreateSibling } = useTokenCreate({
     selectedNodes,
@@ -1068,6 +1077,7 @@ export function TokenList({
     if (inspectMode) count += 1;
     if (crossSetSearch) count += 1;
     if (multiModeEnabled) count += 1;
+    if (themeLensEnabled) count += 1;
     if (condensedView) count += 1;
     if (showPreviewSplit) count += 1;
     if (showFlatSearchResults) count += 1;
@@ -1078,6 +1088,7 @@ export function TokenList({
     crossSetSearch,
     inspectMode,
     multiModeEnabled,
+    themeLensEnabled,
     showFlatSearchResults,
     showPreviewSplit,
     sortOrder,
@@ -1123,18 +1134,20 @@ export function TokenList({
     if (multiModeEnabled) {
       items.push(
         multiModeDimensionName
-          ? `Mode columns: ${multiModeDimensionName}`
-          : "Mode columns",
+          ? `Theme options: ${multiModeDimensionName}`
+          : "Theme options",
       );
     }
     if (condensedView) items.push("Condensed rows");
-    if (showPreviewSplit) items.push("Preview split");
+    if (themeLensEnabled) items.push("Active theme values");
+    if (showPreviewSplit) items.push("Preview pane");
     if (showFlatSearchResults) items.push("Flat search results");
     return items;
   }, [
     condensedView,
     multiModeDimensionName,
     multiModeEnabled,
+    themeLensEnabled,
     showFlatSearchResults,
     showPreviewSplit,
   ]);
@@ -1161,7 +1174,7 @@ export function TokenList({
       chips.push({
         key: `sort:${sortOrder}`,
         label: sortOrder === "alpha-asc" ? "Sorted A to Z" : "Sorted by type",
-        tone: "filter",
+        tone: "view",
         onRemove: () => setSortOrder("default"),
       });
     }
@@ -1229,10 +1242,18 @@ export function TokenList({
         key: "view:modes",
         label:
           multiModeDimensionName
-            ? `Mode columns: ${multiModeDimensionName}`
-            : "Mode columns",
+            ? `Theme options: ${multiModeDimensionName}`
+            : "Theme options",
         tone: "view",
         onRemove: toggleMultiMode,
+      });
+    }
+    if (themeLensEnabled) {
+      chips.push({
+        key: "view:theme-values",
+        label: "Active theme values",
+        tone: "view",
+        onRemove: () => setThemeLensEnabled(false),
       });
     }
     if (condensedView) {
@@ -1246,7 +1267,7 @@ export function TokenList({
     if (showPreviewSplit && onTogglePreviewSplit) {
       chips.push({
         key: "view:split",
-        label: "Preview split",
+        label: "Preview pane",
         tone: "view",
         onRemove: onTogglePreviewSplit,
       });
@@ -1288,42 +1309,72 @@ export function TokenList({
     showRecentlyTouched,
     sortOrder,
     structuredFilterChips,
+    themeLensEnabled,
     toggleMultiMode,
     typeFilter,
   ]);
 
   const contextSummary = useMemo(() => {
-    const contextParts = [`Set ${setName}`];
-    if (zoomRootPath) {
-      contextParts.push(`Scoped to ${zoomRootPath}`);
-    } else if (showFlatSearchResults) {
-      contextParts.push("Showing matching tokens");
-    }
-    if (searchQuery.trim()) {
-      contextParts.push(`Query “${searchQuery.trim()}”`);
-    }
-    if (crossSetSearch) {
-      contextParts.push("Searching across sets");
-    }
     if (viewMode === "json") {
-      contextParts.push("JSON view");
-    } else {
-      const count =
-        crossSetResults !== null
-          ? crossSetResults.length
-          : displayedLeafNodes.length;
-      contextParts.push(
-        `${count} token${count === 1 ? "" : "s"} visible`,
-      );
+      return `Location: ${setName}. View: raw token JSON.`;
     }
-    return contextParts.join(" · ");
+
+    const locationLabel = crossSetSearch
+      ? "all sets"
+      : zoomRootPath
+        ? `${setName} / ${zoomRootPath}`
+        : setName;
+    const viewLabels: string[] = [];
+    if (crossSetSearch) {
+      viewLabels.push("cross-set search results");
+    } else if (zoomRootPath) {
+      viewLabels.push("focused group");
+    }
+    if (!crossSetSearch && !zoomRootPath && !showFlatSearchResults) {
+      viewLabels.push("full group tree");
+    }
+    if (showFlatSearchResults) {
+      viewLabels.push("flat search results");
+    }
+    if (multiModeEnabled) {
+      viewLabels.push(
+        multiModeDimensionName
+          ? `theme options in ${multiModeDimensionName}`
+          : "theme options",
+      );
+    } else if (themeLensEnabled) {
+      viewLabels.push("active theme values");
+    }
+    if (inspectMode) {
+      viewLabels.push("selection-related tokens");
+    }
+
+    const summaryParts = [
+      `Location: ${locationLabel}.`,
+      `View: ${viewLabels.join(" + ")}.`,
+    ];
+
+    if (searchQuery.trim()) {
+      summaryParts.push(`Search: “${searchQuery.trim()}”.`);
+    }
+
+    const count =
+      crossSetResults !== null ? crossSetResults.length : displayedLeafNodes.length;
+    summaryParts.push(
+      `${count} token${count === 1 ? "" : "s"} visible.`,
+    );
+    return summaryParts.join(" ");
   }, [
     crossSetResults,
     crossSetSearch,
     displayedLeafNodes.length,
+    inspectMode,
+    multiModeDimensionName,
+    multiModeEnabled,
     searchQuery,
     setName,
     showFlatSearchResults,
+    themeLensEnabled,
     viewMode,
     zoomRootPath,
   ]);
@@ -2367,14 +2418,23 @@ export function TokenList({
 
   const clearViewModes = useCallback(() => {
     if (multiModeEnabled) toggleMultiMode();
+    if (themeLensEnabled) setThemeLensEnabled(false);
     if (condensedView) setCondensedView(false);
     if (showPreviewSplit) onTogglePreviewSplit?.();
+    if (showFlatSearchResults) setSearchResultPresentation("grouped");
+    if (sortOrder !== "default") setSortOrder("default");
   }, [
     condensedView,
     multiModeEnabled,
     onTogglePreviewSplit,
     setCondensedView,
+    setSearchResultPresentation,
+    setSortOrder,
+    setThemeLensEnabled,
     showPreviewSplit,
+    showFlatSearchResults,
+    sortOrder,
+    themeLensEnabled,
     toggleMultiMode,
   ]);
 
@@ -3716,10 +3776,19 @@ export function TokenList({
 
 
         {/* Compact toolbar — single row: [back?] [search (filter badge)] [+] [...] */}
-        {!selectMode && viewMode === "tree" && (
+        {!selectMode && (
           <TokenListToolbar
             onNavigateBack={onNavigateBack}
             navHistoryLength={navHistoryLength}
+            setName={setName}
+            totalTokenCount={totalLeafCount}
+            visibleTokenCount={
+              crossSetResults !== null ? crossSetResults.length : displayedLeafNodes.length
+            }
+            groupCount={allGroupPaths.length}
+            staleRecipeCount={staleRecipesForSet.length}
+            activeThemeSelectionCount={activeThemeSelectionCount}
+            zoomRootPath={zoomRootPath}
             searchRef={searchRef}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -3736,17 +3805,26 @@ export function TokenList({
             contextSummary={contextSummary}
             hasStructuredFilters={hasStructuredFilters}
             clearFilters={clearFilters}
+            clearViewModes={clearViewModes}
             connected={connected}
             hasTokens={tokens.length > 0}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
             onCreateNew={onCreateNew}
             openTableCreate={openTableCreate}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
+            onOpenSetSwitcher={onOpenSetSwitcher}
+            onOpenSetManager={onOpenSetManager}
+            onNavigateToRecipesWorkspace={onNavigateToRecipesWorkspace}
+            onNavigateToThemesWorkspace={onNavigateToThemesWorkspace}
             onCreateRecipe={onNavigateToNewRecipe}
             hasDimensions={dimensions.length > 0}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
+            themeLensEnabled={themeLensEnabled}
+            onToggleThemeLens={() => setThemeLensEnabled((value) => !value)}
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}

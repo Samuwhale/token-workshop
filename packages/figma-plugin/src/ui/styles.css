@@ -88,6 +88,13 @@
   --color-depth-5: rgba(170, 100, 240, 0.55);
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 0;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -95,7 +102,7 @@ body {
   font-size: 11px;
   background: var(--color-figma-bg);
   color: var(--color-figma-text);
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 * {

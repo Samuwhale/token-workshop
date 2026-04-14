@@ -79,10 +79,10 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
 
   return (
     <div
-      className="flex flex-col h-full relative"
+      className="relative flex h-full min-h-0 flex-col overflow-hidden"
       {...intakeDragHandlers}
     >
-      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
         {error && (
           <FeedbackPlaceholder
             variant="error"
@@ -111,8 +111,8 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
         {showTokenList && <ImportTokenListView />}
       </div>
 
-      {showVariables && <ImportVariablesFooter />}
-      {showTokenList && <ImportStylesFooter />}
+      {showVariables && <div className="shrink-0"><ImportVariablesFooter /></div>}
+      {showTokenList && <div className="shrink-0"><ImportStylesFooter /></div>}
     </div>
   );
 }

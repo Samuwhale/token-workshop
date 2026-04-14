@@ -22,7 +22,11 @@ import { useConnectionContext } from './ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
 import { useThemeSwitcher } from '../hooks/useThemeSwitcher';
 import { useResolvers } from '../hooks/useResolvers';
-import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
+import type {
+  ResolverMeta,
+  ResolverModifierMeta,
+  ResolverSelectionOrigin,
+} from '../hooks/useResolvers';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension, ResolverFile } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
@@ -36,6 +40,7 @@ export interface ResolverState {
   resolvers: ResolverMeta[];
   resolverLoadErrors: Record<string, { message: string; at: string }>;
   activeResolver: string | null;
+  selectionOrigin: ResolverSelectionOrigin;
   setActiveResolver: (name: string | null) => void;
   resolverInput: Record<string, string>;
   setResolverInput: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -114,6 +119,7 @@ function ResolverProvider({ children, serverUrl, connected }: {
       resolvers: resolverState.resolvers,
       resolverLoadErrors: resolverState.resolverLoadErrors,
       activeResolver: resolverState.activeResolver,
+      selectionOrigin: resolverState.selectionOrigin,
       setActiveResolver: resolverState.setActiveResolver,
       resolverInput: resolverState.resolverInput,
       setResolverInput: resolverState.setResolverInput,
@@ -133,6 +139,7 @@ function ResolverProvider({ children, serverUrl, connected }: {
       resolverState.resolvers,
       resolverState.resolverLoadErrors,
       resolverState.activeResolver,
+      resolverState.selectionOrigin,
       resolverState.setActiveResolver,
       resolverState.resolverInput,
       resolverState.setResolverInput,

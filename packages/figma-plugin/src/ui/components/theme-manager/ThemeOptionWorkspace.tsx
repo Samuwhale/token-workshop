@@ -1,5 +1,5 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 import {
   THEME_ROLE_STATES,
@@ -41,7 +41,7 @@ function AssignmentSection({
   title: string;
   description: string;
   count: number;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">

@@ -155,10 +155,10 @@ export function ThemePreviewScreen({
         onClick={() => onNavigateToToken?.(token.path, token.set)}
         title={`${token.path}\nRaw: ${formatValue(token.rawValue)}\nFrom: ${token.set} (${token.layer})`}
       >
-        <td className="max-w-[140px] truncate px-2.5 py-0.75 font-mono text-[var(--color-figma-text)]">
+        <td className="max-w-[140px] truncate px-2.5 py-[3px] font-mono text-[var(--color-figma-text)]">
           {token.path}
         </td>
-        <td className="px-2.5 py-0.75">
+        <td className="px-2.5 py-[3px]">
           <span className="flex items-center gap-1.5">
             <ValuePreview type={token.type} value={token.resolvedValue} size={14} />
             <span className="truncate font-mono text-[var(--color-figma-text-secondary)]">
@@ -167,7 +167,7 @@ export function ThemePreviewScreen({
           </span>
         </td>
         <td
-          className="max-w-[90px] truncate px-2.5 py-0.75 text-right text-[var(--color-figma-text-tertiary)]"
+          className="max-w-[90px] truncate px-2.5 py-[3px] text-right text-[var(--color-figma-text-tertiary)]"
           title={token.layer}
         >
           {token.set}
@@ -199,7 +199,7 @@ export function ThemePreviewScreen({
             >
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Modes
+            Theme setup
           </button>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">

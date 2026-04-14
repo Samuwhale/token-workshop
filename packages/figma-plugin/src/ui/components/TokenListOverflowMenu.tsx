@@ -209,7 +209,7 @@ export function ViewMenu(props: ViewMenuProps) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="View options"
-        className={`inline-flex items-center justify-center rounded p-1 transition-colors ${
+        className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-[10px] font-medium transition-colors ${
           open
             ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
             : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -232,6 +232,7 @@ export function ViewMenu(props: ViewMenuProps) {
           <rect x="3" y="14" width="7" height="7" rx="1" />
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
+        <span>View</span>
       </button>
 
       {open && (
@@ -244,10 +245,10 @@ export function ViewMenu(props: ViewMenuProps) {
             <MenuItem
               label={
                 props.sortOrder === "default"
-                  ? "Default order"
+                  ? "Sort: default order"
                   : props.sortOrder === "alpha-asc"
-                    ? "A → Z"
-                    : "By type"
+                    ? "Sort: A to Z"
+                    : "Sort: by type"
               }
               onClick={() =>
                 runAndClose(() => {
@@ -263,7 +264,7 @@ export function ViewMenu(props: ViewMenuProps) {
             />
             {props.hasGroups && (
               <MenuItem
-                label="Toggle groups"
+                label={groupsExpanded ? "Collapse groups" : "Expand groups"}
                 onClick={() =>
                   runAndClose(() => {
                     if (groupsExpanded) {
@@ -277,7 +278,11 @@ export function ViewMenu(props: ViewMenuProps) {
               />
             )}
             <MenuItem
-              label={props.density === "compact" ? "Compact" : "Comfortable"}
+              label={
+                props.density === "compact"
+                  ? "Density: compact"
+                  : "Density: comfortable"
+              }
               onClick={() =>
                 runAndClose(() =>
                   props.onDensityChange(
@@ -287,7 +292,7 @@ export function ViewMenu(props: ViewMenuProps) {
               }
             />
             <MenuItem
-              label="Condensed"
+              label="Condense rows"
               checked={props.condensedView}
               onClick={() =>
                 runAndClose(() =>
@@ -297,20 +302,20 @@ export function ViewMenu(props: ViewMenuProps) {
             />
             {props.hasDimensions && (
               <MenuItem
-                label="Modes"
+                label="Theme options columns"
                 checked={props.multiModeEnabled}
                 onClick={() => runAndClose(props.onToggleMultiMode)}
               />
             )}
             {props.hasDimensions && (
               <MenuItem
-                label="Theme lens"
+                label="Active theme values"
                 checked={props.themeLensEnabled}
                 onClick={() => runAndClose(props.onToggleThemeLens)}
               />
             )}
             <MenuItem
-              label="Split"
+              label="Preview pane"
               checked={props.showPreviewSplit}
               onClick={() =>
                 runAndClose(() => props.onTogglePreviewSplit?.())
@@ -355,7 +360,7 @@ export function FilterMenu(props: FilterMenuProps) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Filter options"
-        className={`inline-flex items-center justify-center rounded p-1 transition-colors ${
+        className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-[10px] font-medium transition-colors ${
           open || props.activeCount > 0
             ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
             : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -375,11 +380,8 @@ export function FilterMenu(props: FilterMenuProps) {
         >
           <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
         </svg>
-        {props.activeCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[8px] font-bold leading-none text-white">
-            {props.activeCount}
-          </span>
-        )}
+        <span>Filter</span>
+        {props.activeCount > 0 && <span>{props.activeCount}</span>}
       </button>
 
       {open && (
@@ -391,7 +393,7 @@ export function FilterMenu(props: FilterMenuProps) {
           <div className="max-h-[420px] overflow-y-auto">
             {props.lintCount > 0 && (
               <MenuItem
-                label="Issues"
+                label="Only tokens with issues"
                 checked={props.showIssuesOnly}
                 suffix={`${props.lintCount}`}
                 onClick={() =>
@@ -401,7 +403,7 @@ export function FilterMenu(props: FilterMenuProps) {
             )}
             {props.recentlyTouchedCount > 0 && (
               <MenuItem
-                label="Recent"
+                label="Recently touched"
                 checked={props.showRecentlyTouched}
                 suffix={`${props.recentlyTouchedCount}`}
                 onClick={() =>
@@ -410,13 +412,13 @@ export function FilterMenu(props: FilterMenuProps) {
               />
             )}
             <MenuItem
-              label="Selection"
+              label="Related to selection"
               checked={props.inspectMode}
               onClick={() => runAndClose(props.onToggleInspectMode)}
             />
             {props.hasMultipleSets && (
               <MenuItem
-                label="All sets"
+                label="Search across all sets"
                 checked={props.crossSetSearch}
                 onClick={() => runAndClose(props.onToggleCrossSetSearch)}
               />
@@ -424,10 +426,10 @@ export function FilterMenu(props: FilterMenuProps) {
             <MenuItem
               label={
                 props.refFilter === "all"
-                  ? "All"
+                  ? "Reference mode: all tokens"
                   : props.refFilter === "aliases"
-                    ? "Aliases"
-                    : "Direct"
+                    ? "Reference mode: alias tokens"
+                    : "Reference mode: direct values"
               }
               onClick={() =>
                 runAndClose(() => {
@@ -445,7 +447,7 @@ export function FilterMenu(props: FilterMenuProps) {
               checked={props.refFilter !== "all"}
             />
             <MenuItem
-              label="Duplicates"
+              label="Duplicate values only"
               checked={props.showDuplicates}
               onClick={() => runAndClose(props.onToggleDuplicates)}
             />
