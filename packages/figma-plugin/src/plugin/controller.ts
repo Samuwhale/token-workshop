@@ -4,13 +4,14 @@ import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, scanTokenVariableBindings, revertVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
-import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode } from './selectionHandling.js';
+import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode, setSelectionDeepInspectEnabled } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 import { scanConsistency } from './consistencyScanner.js';
 
 figma.showUI(__html__, { width: 420, height: 640, themeColors: true });
 
 let deepInspectEnabled = false;
+setSelectionDeepInspectEnabled(false);
 
 // ---------------------------------------------------------------------------
 // Sync operation mutex
@@ -381,7 +382,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'get-selection':
       try {
-        await getSelection(deepInspectEnabled);
+        await getSelection();
       } catch (e) {
         reportError('get-selection', e);
       }
@@ -389,7 +390,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'set-deep-inspect':
       try {
         deepInspectEnabled = msg.enabled;
-        await getSelection(deepInspectEnabled);
+        setSelectionDeepInspectEnabled(msg.enabled);
+        await getSelection();
       } catch (e) {
         reportError('set-deep-inspect', e);
       }
@@ -644,7 +646,7 @@ function sampleSelectionColor() {
 
 // Listen for selection changes — store the handler so it can be removed on close
 function _onSelectionChange() {
-  getSelection(deepInspectEnabled);
+  getSelection();
 }
 figma.on('selectionchange', _onSelectionChange);
 

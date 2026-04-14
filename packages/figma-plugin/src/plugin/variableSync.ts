@@ -10,6 +10,10 @@ import type {
   VarSnapshot,
 } from '../shared/types.js';
 
+function isTokenManagerManagedVariable(variable: Variable): boolean {
+  return variable.getPluginData('tokenPath').trim().length > 0;
+}
+
 export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, renames?: Array<{ oldPath: string; newPath: string }>, correlationId?: string) {
   // Rollback tracking — populated before any mutations occur
   interface VariableSnapshot {
@@ -460,6 +464,7 @@ async function deleteResolverOrphanVariables(
       for (const varId of collection.variableIds) {
         const variable = variableById.get(varId);
         if (!variable) continue;
+        if (!isTokenManagerManagedVariable(variable)) continue;
         if (getVariablePath(variable) !== target.path) continue;
         toDelete.set(variable.id, variable);
       }
@@ -514,6 +519,7 @@ export async function deleteOrphanVariables(
       for (const varId of collection.variableIds) {
         const variable = variableById.get(varId);
         if (!variable) continue;
+        if (!isTokenManagerManagedVariable(variable)) continue;
         const path = getVariablePath(variable);
         if (!knownSet.has(path)) {
           toDelete.push(variable);

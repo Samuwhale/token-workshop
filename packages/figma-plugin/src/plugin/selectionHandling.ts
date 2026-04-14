@@ -4,8 +4,14 @@ import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
-import { resolveStyleForWeight, fontStyleToWeight } from './fontLoading.js';
+import { resolveFontStyle, fontStyleToWeight } from './fontLoading.js';
 import { walkNodes } from './walkNodes.js';
+
+let selectionDeepInspectEnabled = false;
+
+export function setSelectionDeepInspectEnabled(enabled: boolean): void {
+  selectionDeepInspectEnabled = enabled;
+}
 
 // Apply a resolved token value to a specific node property
 export async function applyTokenValue(node: SceneNode, property: string, value: ResolvedTokenValue, tokenType: string) {
@@ -32,8 +38,8 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
           if ('strokeWeight' in node && borderVal.width != null) {
             (node as unknown as Record<string, unknown>)['strokeWeight'] = parseDimValue(borderVal.width);
           }
-          if ('dashPattern' in node && borderVal.style === 'dashed') {
-            (node as unknown as Record<string, unknown>)['dashPattern'] = [8, 8];
+          if ('dashPattern' in node) {
+            (node as unknown as Record<string, unknown>)['dashPattern'] = borderVal.style === 'dashed' ? [8, 8] : [];
           }
         } else {
           const colorVal = value as (Record<string, unknown> | string | null);
@@ -105,10 +111,13 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
         const val = value as TypographyValue;
         try {
           const family = (Array.isArray(val.fontFamily) ? val.fontFamily[0] : val.fontFamily) || 'Inter';
-          const style = val.fontWeight ? await resolveStyleForWeight(family, val.fontWeight) : (val.fontStyle || 'Regular');
+          const style = await resolveFontStyle(family, {
+            weight: val.fontWeight,
+            fontStyle: val.fontStyle,
+          });
           await figma.loadFontAsync({ family, style });
           textNode.fontName = { family, style };
-          if (val.fontSize) textNode.fontSize = typeof val.fontSize === 'object' ? val.fontSize.value : val.fontSize;
+          if (val.fontSize != null) textNode.fontSize = typeof val.fontSize === 'object' ? val.fontSize.value : val.fontSize;
           if (val.lineHeight != null) {
             if (typeof val.lineHeight === 'number') {
               // DTCG spec: unitless lineHeight is a multiplier (1.5 = 150%)
@@ -197,7 +206,7 @@ export async function applyToSelection(tokenPath: string, tokenType: string, tar
     figma.notify(`Applied ${tokenPath} to ${applied} layer(s)`);
   }
   figma.ui.postMessage({ type: 'applied-to-selection', count: applied, errors, targetProperty });
-  await getSelection(false);
+  await getSelection();
 }
 
 // Remove a token binding from selected nodes
@@ -216,7 +225,7 @@ export async function removeBinding(property: string) {
   if (errors.length > 0) {
     figma.notify(`Failed to remove binding: ${errors[0]}`, { error: true });
   }
-  await getSelection(false);
+  await getSelection();
 }
 
 // Remove all token bindings from selected nodes
@@ -236,7 +245,7 @@ export async function clearAllBindings() {
   if (errors.length > 0) {
     figma.notify(`Failed to clear some bindings: ${errors[0]}`, { error: true });
   }
-  await getSelection(false);
+  await getSelection();
 }
 
 // Get node capabilities for UI filtering
@@ -321,7 +330,7 @@ function collectDescendantsWithBindings(node: SceneNode, depth: number): Selecti
   return results;
 }
 
-export async function getSelection(deepInspectEnabled: boolean) {
+export async function getSelection(deepInspectEnabled = selectionDeepInspectEnabled) {
   const selection = figma.currentPage.selection;
   const info: SelectionNodeInfo[] = selection.map(node => ({
     id: node.id,
@@ -1064,9 +1073,18 @@ export async function applyToNodes(
     const id = nodeIds[i];
     try {
       const node = await figma.getNodeByIdAsync(id);
-      if (!node || !('parent' in node)) continue;
+      if (!node || !('parent' in node)) {
+        errors.push('Layer not found');
+        continue;
+      }
       const sceneNode = node as SceneNode;
-      await applyTokenValue(sceneNode, targetProperty, resolvedValue, tokenType);
+      const snapshot = captureNodeProps(sceneNode, [targetProperty]);
+      try {
+        await applyTokenValue(sceneNode, targetProperty, resolvedValue, tokenType);
+      } catch (error) {
+        await restoreNodeProps(sceneNode, snapshot);
+        throw error;
+      }
       sceneNode.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
       applied++;
     } catch (err) {
@@ -1085,7 +1103,7 @@ export async function applyToNodes(
 
   figma.ui.postMessage({ type: 'applied-to-nodes', count: applied, errors });
   // Refresh selection so bindings show correctly
-  await getSelection(false);
+  await getSelection();
 }
 
 // Remove a token binding from a specific node by ID (without changing the current selection)
@@ -1104,5 +1122,5 @@ export async function removeBindingFromNode(nodeId: string, property: string) {
     figma.notify(`Failed to remove binding: ${msg}`, { error: true });
     figma.ui.postMessage({ type: 'removed-binding-from-node', success: false, error: msg });
   }
-  await getSelection(false);
+  await getSelection();
 }

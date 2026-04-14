@@ -19,23 +19,17 @@ export async function scanComponentCoverage(correlationId?: string, signal?: { a
         return;
       }
 
-      const bound = (node as SceneNode & { boundVariables?: Record<string, unknown> }).boundVariables ?? {};
-      const boundProps = new Set(Object.keys(bound).filter(k => {
-        const v = bound[k];
-        return v && (typeof v === 'object') && ('id' in v || (Array.isArray(v) && v.length > 0));
-      }));
+      const applicableProps = collectApplicableBindableProperties(node, CHECKABLE_PROPS);
+      const boundProps = collectBoundBindableProperties(node);
 
-      // Count hardcoded: props that exist on node but aren't bound
       let hardcodedCount = 0;
-      for (const prop of CHECKABLE_PROPS) {
-        if (prop in node) {
-          const val = (node as unknown as Record<string, unknown>)[prop];
-          const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
-          if (hasValue && !boundProps.has(prop)) hardcodedCount++;
+      for (const property of applicableProps) {
+        if (!boundProps.has(property)) {
+          hardcodedCount++;
         }
       }
 
-      if (boundProps.size > 0 && hardcodedCount === 0) {
+      if (applicableProps.size > 0 && hardcodedCount === 0) {
         tokenized++;
       } else {
         untokenized.push({ id: node.id, name: node.name, hardcodedCount });
@@ -110,6 +104,62 @@ const CHECKABLE_TO_BINDABLE: Record<string, BindableProperty> = {
   paddingLeft:   'paddingLeft',
   itemSpacing:   'itemSpacing',
 };
+
+function hasBoundVariableReference(value: unknown): boolean {
+  return value !== null
+    && typeof value === 'object'
+    && ('id' in value || (Array.isArray(value) && value.length > 0));
+}
+
+function collectBoundBindableProperties(node: SceneNode): Set<BindableProperty> {
+  const bound = new Set<BindableProperty>();
+  const figmaBound = (node as SceneNode & { boundVariables?: Record<string, unknown> }).boundVariables ?? {};
+
+  for (const [property, value] of Object.entries(figmaBound)) {
+    if (!hasBoundVariableReference(value)) continue;
+    const bindable = CHECKABLE_TO_BINDABLE[property];
+    if (bindable) {
+      bound.add(bindable);
+    }
+  }
+
+  for (const property of ALL_BINDABLE_PROPERTIES) {
+    const tokenPath = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, property);
+    if (tokenPath && tokenPath.trim()) {
+      bound.add(property);
+    }
+  }
+
+  for (const [legacyKey, bindable] of Object.entries(LEGACY_KEY_MAP)) {
+    const tokenPath = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
+    if (tokenPath && tokenPath.trim()) {
+      bound.add(bindable);
+    }
+  }
+
+  return bound;
+}
+
+function collectApplicableBindableProperties(
+  node: SceneNode,
+  checkableProps: string[],
+): Set<BindableProperty> {
+  const applicable = new Set<BindableProperty>();
+
+  for (const property of checkableProps) {
+    if (!(property in node)) continue;
+    const value = (node as unknown as Record<string, unknown>)[property];
+    const hasValue = Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null;
+    if (!hasValue) continue;
+
+    const bindable = CHECKABLE_TO_BINDABLE[property];
+    if (bindable) {
+      applicable.add(bindable);
+    }
+  }
+
+  return applicable;
+}
 
 function toDimensionValue(value: number): ResolvedTokenValue {
   return {
@@ -216,39 +266,12 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
 
       const node = nodes[i];
 
-      // Figma variable bindings
-      const figmaBound = (node as SceneNode & { boundVariables?: Record<string, unknown> }).boundVariables ?? {};
-      const figmaBoundProps = new Set<string>(
-        Object.keys(figmaBound).filter(k => {
-          const v = figmaBound[k];
-          return v && (typeof v === 'object') && ('id' in v || (Array.isArray(v) && v.length > 0));
-        })
-      );
-
-      // Our plugin data bindings
-      let pluginBoundCount = 0;
-      for (const prop of ALL_BINDABLE_PROPERTIES) {
-        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
-        if (val && val.trim()) pluginBoundCount++;
-      }
-
-      // Count applicable Figma properties that have non-empty values
-      let totalCheckable = 0;
-      let figmaBoundMatchCount = 0;
-      for (const prop of CHECKABLE_FIGMA_PROPS) {
-        if (prop in node) {
-          const val = (node as unknown as Record<string, unknown>)[prop];
-          const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
-          if (hasValue) {
-            totalCheckable++;
-            if (figmaBoundProps.has(prop)) figmaBoundMatchCount++;
-          }
-        }
-      }
-
-      const boundCount = figmaBoundMatchCount + pluginBoundCount;
+      const applicableProperties = collectApplicableBindableProperties(node, CHECKABLE_FIGMA_PROPS);
+      const boundProperties = collectBoundBindableProperties(node);
+      const totalCheckable = applicableProperties.size;
+      const boundCount = [...applicableProperties].filter((property) => boundProperties.has(property)).length;
       let status: HeatmapStatus;
-      if (totalCheckable === 0 && pluginBoundCount === 0) {
+      if (totalCheckable === 0 && boundProperties.size === 0) {
         status = 'red';
         redCount++;
       } else if (boundCount > 0 && boundCount >= totalCheckable) {
@@ -265,23 +288,12 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
       // Collect bindable properties that have values but no binding (figma variable or plugin data).
       const missingProperties: BindableProperty[] = [];
       const missingValueEntries: { property: BindableProperty; value: ResolvedTokenValue }[] = [];
-      const seenBindable = new Set<BindableProperty>();
-      for (const prop of CHECKABLE_FIGMA_PROPS) {
-        if (!(prop in node)) continue;
-        const val = (node as unknown as Record<string, unknown>)[prop];
-        const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
-        if (!hasValue) continue;
-        if (figmaBoundProps.has(prop)) continue;
-        const bindable = CHECKABLE_TO_BINDABLE[prop];
-        if (!bindable) continue;
-        if (seenBindable.has(bindable)) continue;
-        const pluginVal = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, bindable);
-        if (pluginVal && pluginVal.trim()) continue;
-        seenBindable.add(bindable);
-        missingProperties.push(bindable);
-        const tokenValue = readHeatmapTokenValue(node, bindable);
+      for (const property of applicableProperties) {
+        if (boundProperties.has(property)) continue;
+        missingProperties.push(property);
+        const tokenValue = readHeatmapTokenValue(node, property);
         if (tokenValue !== null) {
-          missingValueEntries.push({ property: bindable, value: tokenValue });
+          missingValueEntries.push({ property, value: tokenValue });
         }
       }
 

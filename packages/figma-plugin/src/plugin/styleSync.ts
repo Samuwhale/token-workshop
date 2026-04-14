@@ -1,6 +1,6 @@
 import type { ColorValue, GradientValue, TypographyValue, ShadowValue, DimensionValue } from '@tokenmanager/core';
 import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
-import { fontStyleToWeight, resolveStyleForWeight } from './fontLoading.js';
+import { fontStyleToWeight, resolveFontStyle } from './fontLoading.js';
 import { getErrorMessage } from '../shared/utils.js';
 import type { StyleSnapshotEntry, StyleSnapshot } from '../shared/types.js';
 
@@ -291,17 +291,20 @@ async function applyTextStyle(token: TypographyStyleToken, cache: StyleCache): P
   const val = token.$value;
   if (val.fontFamily) {
     const family = Array.isArray(val.fontFamily) ? val.fontFamily[0] : val.fontFamily;
-    const fontStyle = val.fontWeight ? await resolveStyleForWeight(family, val.fontWeight) : 'Regular';
+    const fontStyle = await resolveFontStyle(family, {
+      weight: val.fontWeight,
+      fontStyle: val.fontStyle,
+    });
     await figma.loadFontAsync({ family, style: fontStyle });
     style.fontName = { family, style: fontStyle };
-  } else if (val.fontSize || val.lineHeight || val.letterSpacing) {
+  } else if (val.fontSize != null || val.lineHeight != null || val.letterSpacing != null) {
     // Must load the existing font before modifying any text style properties
     await figma.loadFontAsync(style.fontName);
   }
-  if (val.fontSize) {
+  if (val.fontSize != null) {
     style.fontSize = typeof val.fontSize === 'object' ? (val.fontSize as DimensionValue).value : val.fontSize;
   }
-  if (val.lineHeight) {
+  if (val.lineHeight != null) {
     if (typeof val.lineHeight === 'number') {
       // DTCG spec: unitless lineHeight is a multiplier (1.5 = 150%)
       style.lineHeight = { unit: 'PERCENT', value: val.lineHeight * 100 };
@@ -311,7 +314,7 @@ async function applyTextStyle(token: TypographyStyleToken, cache: StyleCache): P
       style.lineHeight = { unit: 'PERCENT', value: val.lineHeight.value };
     }
   }
-  if (val.letterSpacing) {
+  if (val.letterSpacing != null) {
     style.letterSpacing = {
       unit: 'PIXELS',
       value: typeof val.letterSpacing === 'object' ? (val.letterSpacing as DimensionValue).value : val.letterSpacing,

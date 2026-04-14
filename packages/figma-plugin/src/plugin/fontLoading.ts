@@ -1,5 +1,14 @@
+function normalizeFontStyleName(style: string): string {
+  return style.toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+export function styleHasItalic(style: string): boolean {
+  const normalized = normalizeFontStyleName(style);
+  return normalized.includes('italic') || normalized.includes('oblique');
+}
+
 export function fontStyleToWeight(style: string): number {
-  const s = style.toLowerCase();
+  const s = normalizeFontStyleName(style);
   if (s.includes('thin') || s.includes('hairline')) return 100;
   if (s.includes('extralight') || s.includes('ultralight')) return 200;
   if (s.includes('light')) return 300;
@@ -12,16 +21,20 @@ export function fontStyleToWeight(style: string): number {
   return 400;
 }
 
-function weightToFontStyleFallback(weight: number): string {
-  if (weight <= 100) return 'Thin';
-  if (weight <= 200) return 'ExtraLight';
-  if (weight <= 300) return 'Light';
-  if (weight <= 400) return 'Regular';
-  if (weight <= 500) return 'Medium';
-  if (weight <= 600) return 'SemiBold';
-  if (weight <= 700) return 'Bold';
-  if (weight <= 800) return 'ExtraBold';
-  return 'Black';
+function weightToFontStyleFallback(weight: number, italic = false): string {
+  let base = 'Regular';
+  if (weight <= 100) base = 'Thin';
+  else if (weight <= 200) base = 'Extra Light';
+  else if (weight <= 300) base = 'Light';
+  else if (weight <= 400) base = 'Regular';
+  else if (weight <= 500) base = 'Medium';
+  else if (weight <= 600) base = 'Semi Bold';
+  else if (weight <= 700) base = 'Bold';
+  else if (weight <= 800) base = 'Extra Bold';
+  else base = 'Black';
+
+  if (!italic) return base;
+  return base === 'Regular' ? 'Italic' : `${base} Italic`;
 }
 
 let cachedFontsPromise: Promise<Font[]> | null = null;
@@ -70,27 +83,64 @@ export async function getAvailableFontData(): Promise<{ families: string[]; weig
   return { families, weightsByFamily };
 }
 
-export async function resolveStyleForWeight(family: string, weight: number | string): Promise<string> {
-  const targetWeight = typeof weight === 'number' ? weight : parseInt(weight, 10);
+export async function resolveFontStyle(
+  family: string,
+  options: { weight?: number | string; fontStyle?: string } = {},
+): Promise<string> {
+  const requestedStyle = options.fontStyle?.trim();
+  const hasRequestedStyle = typeof requestedStyle === 'string' && requestedStyle.length > 0;
+  const parsedWeight = options.weight == null
+    ? fontStyleToWeight(requestedStyle ?? 'Regular')
+    : typeof options.weight === 'number'
+      ? options.weight
+      : Number.parseInt(options.weight, 10);
+  const targetWeight = Number.isFinite(parsedWeight) ? parsedWeight : 400;
+  const preferItalic = hasRequestedStyle ? styleHasItalic(requestedStyle!) : false;
+
   try {
     const allFonts = await getAvailableFonts();
-    const familyFonts = allFonts.filter(f => f.fontName.family === family);
-    if (familyFonts.length === 0) return weightToFontStyleFallback(targetWeight);
-    // Map each available style to its weight, find the closest
-    let bestStyle = familyFonts[0].fontName.style;
-    let bestDist = Infinity;
-    for (const f of familyFonts) {
-      const w = fontStyleToWeight(f.fontName.style);
-      const dist = Math.abs(w - targetWeight);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestStyle = f.fontName.style;
-        if (dist === 0) break;
+    const familyFonts = allFonts.filter((font) => font.fontName.family === family);
+    if (familyFonts.length === 0) {
+      return hasRequestedStyle
+        ? requestedStyle!
+        : weightToFontStyleFallback(targetWeight, preferItalic);
+    }
+
+    if (hasRequestedStyle) {
+      const exactMatch = familyFonts.find(
+        (font) => normalizeFontStyleName(font.fontName.style) === normalizeFontStyleName(requestedStyle!),
+      );
+      if (exactMatch) {
+        return exactMatch.fontName.style;
       }
     }
+
+    let bestStyle = familyFonts[0].fontName.style;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (const font of familyFonts) {
+      const style = font.fontName.style;
+      const weightScore = Math.abs(fontStyleToWeight(style) - targetWeight);
+      const italicPenalty = hasRequestedStyle && styleHasItalic(style) !== preferItalic ? 1000 : 0;
+      const score = italicPenalty + weightScore;
+
+      if (score < bestScore) {
+        bestScore = score;
+        bestStyle = style;
+        if (score === 0) break;
+      }
+    }
+
     return bestStyle;
   } catch (e) {
     console.debug('[fontLoading] font style lookup failed, using fallback:', e);
-    return weightToFontStyleFallback(targetWeight);
+    if (hasRequestedStyle) {
+      return requestedStyle!;
+    }
+    return weightToFontStyleFallback(targetWeight, preferItalic);
   }
+}
+
+export async function resolveStyleForWeight(family: string, weight: number | string): Promise<string> {
+  return resolveFontStyle(family, { weight });
 }
