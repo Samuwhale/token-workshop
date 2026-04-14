@@ -116,11 +116,6 @@ export function StepWhere({
               !targetGroup.trim() ? 'border-[var(--color-figma-error)]/50' : 'border-[var(--color-figma-border)]'
             }`}
           />
-          {targetGroup.trim() && (
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
-              <span className="font-mono text-[var(--color-figma-text)]">{targetGroup}.<span className="text-[var(--color-figma-accent)]">{'{'}</span>step<span className="text-[var(--color-figma-accent)]">{'}'}</span></span>
-            </p>
-          )}
         </div>
         <div className={AUTHORING.recipeFieldStack}>
           <label htmlFor="step-where-recipe-name" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Recipe name</label>

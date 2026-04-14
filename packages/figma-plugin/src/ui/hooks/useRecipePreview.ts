@@ -69,6 +69,17 @@ export interface RecipePreviewAnalysis {
   diff: RecipePreviewDiff;
 }
 
+/** True when the analysis contains risks that warrant user review before saving. */
+export function hasPreviewRisks(analysis: RecipePreviewAnalysis | null): boolean {
+  if (!analysis) return true;
+  return (
+    analysis.nonRecipeOverwrites.length > 0 ||
+    analysis.manualEditConflicts.length > 0 ||
+    analysis.deletedOutputs.length > 0 ||
+    analysis.detachedOutputs.length > 0
+  );
+}
+
 export interface RecipePreviewResponse {
   count: number;
   tokens: GeneratedTokenResult[];

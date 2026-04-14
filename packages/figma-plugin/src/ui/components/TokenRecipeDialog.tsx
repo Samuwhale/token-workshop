@@ -10,6 +10,7 @@ import {
   type RecipeDialogInitialDraft,
 } from "../hooks/useRecipeDialog";
 import type { RecipeSaveSuccessInfo } from "../hooks/useRecipeSave";
+import { hasPreviewRisks } from "../hooks/useRecipePreview";
 import { StepIntent } from "./recipe-steps/StepIntent";
 import { StepSource } from "./recipe-steps/StepSource";
 import type { StepWhereProps } from "./recipe-steps/StepWhere";
@@ -272,7 +273,11 @@ export function TokenRecipeDialog({
               className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
             >
               {dialog.saving && <Spinner size="sm" className="text-white" />}
-              {dialog.overwriteCheckLoading ? "Checking\u2026" : "Review"}
+              {dialog.overwriteCheckLoading
+                ? "Checking\u2026"
+                : hasPreviewRisks(dialog.previewAnalysis)
+                  ? "Review"
+                  : dialog.isEditing ? "Save" : "Create"}
             </button>
           </div>
         </div>

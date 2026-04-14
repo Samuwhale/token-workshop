@@ -14,6 +14,7 @@ import type {
 } from "./useRecipes";
 import {
   requestRecipePreview,
+  hasPreviewRisks,
   type RecipePreviewAnalysis,
 } from "./useRecipePreview";
 
@@ -397,12 +398,33 @@ export function useRecipeSave({
     targetSetTemplate,
   ]);
 
-  /** Step 1: Validate inputs and show the confirmation preview.
-   *  Save captures the reviewed preview fingerprint so confirm can detect staleness.
+  /** Step 1: Validate inputs and either commit directly (no risks) or show
+   *  the confirmation preview. Captures the reviewed preview fingerprint so
+   *  confirm can detect staleness.
    */
   const handleSave = useCallback(async () => {
     if (!validateBeforeSave()) return false;
+
     setReviewedPreviewFingerprint(previewFingerprint);
+
+    // No risks — skip confirmation and commit directly
+    if (!hasPreviewRisks(previewAnalysis)) {
+      const revalidated = await revalidatePreview();
+      if (revalidated) {
+        return commitSave(
+          semanticEnabled,
+          semanticPrefix,
+          semanticMappings,
+          targetGroup.trim(),
+          targetSet,
+        );
+      }
+      // Revalidation revealed issues — show confirmation so user can review
+      setShowConfirmation(true);
+      return false;
+    }
+
+    // Has risks — show confirmation screen
     setPreviewReviewStale(false);
     setOverwritePendingPaths(
       previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
@@ -410,7 +432,18 @@ export function useRecipeSave({
     setOverwriteCheckError("");
     setShowConfirmation(true);
     return false;
-  }, [previewAnalysis, previewFingerprint, validateBeforeSave]);
+  }, [
+    commitSave,
+    previewAnalysis,
+    previewFingerprint,
+    revalidatePreview,
+    semanticEnabled,
+    semanticMappings,
+    semanticPrefix,
+    targetGroup,
+    targetSet,
+    validateBeforeSave,
+  ]);
 
   const handleQuickSave = useCallback(async () => {
     if (!validateBeforeSave()) return false;
