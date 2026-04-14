@@ -49,7 +49,9 @@ export function useFigmaMessage<
         if (entry) {
           pendingRef.current.delete(cid);
           clearTimeout(entry.timer);
-          entry.resolve(extractResponse ? extractResponse(msg) : msg);
+          entry.resolve(
+            extractResponse ? extractResponse(msg) : (msg as unknown as TResponse),
+          );
         }
       }
 

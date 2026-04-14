@@ -268,6 +268,11 @@ export function GraphPanel({
     [onRefresh, serverUrl],
   );
 
+  const runMenuAction = useCallback((action: () => void) => {
+    setActionsMenuOpen(false);
+    action();
+  }, []);
+
   const staleGenerators = useMemo(
     () => setGenerators.filter((generator) => getGeneratorDashboardStatus(generator) === "stale"),
     [setGenerators],
@@ -409,7 +414,7 @@ export function GraphPanel({
           size="section"
           className="w-full max-w-[320px]"
           title="No recipes yet"
-          description="Create one recipe and the editor will guide the type, source, destination, and save review in a single flow."
+          description="Create a recipe to generate tokens from a source."
         />
         <button
           type="button"
@@ -421,7 +426,7 @@ export function GraphPanel({
         </button>
         {!connected && (
           <p className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            Connect to the server to create recipes.
+            Connect to create recipes.
           </p>
         )}
       </div>
@@ -560,7 +565,11 @@ export function GraphPanel({
                 {staleGenerators.length > 0 && (
                   <button
                     role="menuitem"
-                    onClick={() => runMenuAction(() => void runGenerators("stale", staleGenerators))}
+                    onClick={() =>
+                      runMenuAction(() => {
+                        void runGenerators("stale", staleGenerators);
+                      })
+                    }
                     disabled={runningAction !== null}
                     className="w-full px-3 py-2 text-left text-[10px] text-[var(--color-figma-warning,#f59e0b)] transition-colors hover:bg-[var(--color-figma-warning,#f59e0b)]/10 disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -570,7 +579,11 @@ export function GraphPanel({
                 {failedGenerators.length > 0 && (
                   <button
                     role="menuitem"
-                    onClick={() => runMenuAction(() => void runGenerators("failed", failedGenerators))}
+                    onClick={() =>
+                      runMenuAction(() => {
+                        void runGenerators("failed", failedGenerators);
+                      })
+                    }
                     disabled={runningAction !== null}
                     className="w-full px-3 py-2 text-left text-[10px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -579,7 +592,11 @@ export function GraphPanel({
                 )}
                 <button
                   role="menuitem"
-                  onClick={() => runMenuAction(() => void runGenerators("all", setGenerators))}
+                  onClick={() =>
+                    runMenuAction(() => {
+                      void runGenerators("all", setGenerators);
+                    })
+                  }
                   disabled={runningAction !== null}
                   className="w-full px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
@@ -682,7 +699,7 @@ export function GraphPanel({
               variant="no-results"
               size="full"
               title="No recipes match"
-              description="Try a different search term or clear the active filter."
+              description="Try a different search or clear filters."
               secondaryAction={
                 searchQuery || typeFilter
                   ? {

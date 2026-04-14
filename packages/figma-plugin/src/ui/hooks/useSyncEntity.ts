@@ -5,7 +5,9 @@ import { useTokenSyncBase, extractSyncApplyResult, type SyncProgress, type DiffR
 import type { DTCGToken } from '@tokenmanager/core';
 import type {
   SyncApplyResult,
+  SyncApplyResultBase,
   SyncRevertResult,
+  SyncSnapshot,
 } from '../shared/syncWorkflow';
 
 export type { SyncProgress, DiffRowBase };
@@ -25,7 +27,7 @@ export interface SyncMessages<
   TSnapshot,
   TReadResponse extends unknown[],
   TReadMessage extends SyncMessageBase,
-  TApplyMessage extends SyncMessageBase,
+  TApplyMessage extends SyncMessageBase & Partial<SyncApplyResultBase>,
 > {
   readSendType: string;
   readResponseType: string;
@@ -49,27 +51,25 @@ export interface SyncMessages<
 // ── Dynamic config ────────────────────────────────────────────────────────
 // Stored in a ref inside the hook — safe to recreate each render.
 
-export interface SyncEntityConfig<TRow extends DiffRowBase, TSnapshot> {
+export interface SyncEntityConfig<
+  TRow extends DiffRowBase,
+  TSnapshot,
+  TLocal = unknown,
+  TFigma = unknown,
+> {
   progressEventType: string;
-  buildFigmaMap: (tokens: unknown[]) => Map<string, unknown>;
-  buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, unknown>;
-  buildLocalOnlyRow: (path: string, local: unknown) => TRow;
-  buildFigmaOnlyRow: (path: string, figma: unknown) => TRow;
-  buildConflictRow: (path: string, local: unknown, figma: unknown) => TRow;
-  isConflict: (local: unknown, figma: unknown) => boolean;
+  buildFigmaMap: (tokens: unknown[]) => Map<string, TFigma>;
+  buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, TLocal>;
+  buildLocalOnlyRow: (path: string, local: TLocal) => TRow;
+  buildFigmaOnlyRow: (path: string, figma: TFigma) => TRow;
+  buildConflictRow: (path: string, local: TLocal, figma: TFigma) => TRow;
+  isConflict: (local: TLocal, figma: TFigma) => boolean;
   loadSnapshot?: (params: {
     serverUrl: string;
     activeSet: string;
     signal?: AbortSignal;
     readFigmaTokens: () => Promise<unknown[]>;
-  }) => Promise<{
-    localTokens: Map<string, DTCGToken>;
-    figmaTokens: unknown[];
-    localMap: Map<string, unknown>;
-    figmaMap: Map<string, unknown>;
-    rows: TRow[];
-    dirs: Record<string, 'push' | 'pull' | 'skip'>;
-  }>;
+  }) => Promise<SyncSnapshot<TLocal, TFigma, TRow>>;
   buildApplyPayload: (rows: TRow[]) => Record<string, unknown>;
   buildPullPayload: (row: TRow) => { $type: string; $value: unknown };
   buildRevertPayload: (snapshot: TSnapshot) => Record<string, unknown>;
@@ -93,13 +93,15 @@ export function useSyncEntity<
   TSnapshot,
   TReadResponse extends unknown[],
   TReadMessage extends SyncMessageBase,
-  TApplyMessage extends SyncMessageBase,
+  TApplyMessage extends SyncMessageBase & Partial<SyncApplyResultBase>,
+  TLocal = unknown,
+  TFigma = unknown,
 >(
   serverUrl: string,
   activeSet: string,
   connected: boolean,
   messages: SyncMessages<TSnapshot, TReadResponse, TReadMessage, TApplyMessage>,
-  config: SyncEntityConfig<TRow, TSnapshot>,
+  config: SyncEntityConfig<TRow, TSnapshot, TLocal, TFigma>,
 ) {
   const [snapshot, setSnapshot] = useState<TSnapshot | null>(null);
   const [reverting, setReverting] = useState(false);
@@ -153,10 +155,11 @@ export function useSyncEntity<
     readFigmaTokens,
     buildFigmaMap: (tokens: unknown[]) => configRef.current.buildFigmaMap(tokens),
     buildLocalMap: (tokens: Map<string, DTCGToken>) => configRef.current.buildLocalMap(tokens),
-    buildLocalOnlyRow: (path: string, local: unknown): TRow => configRef.current.buildLocalOnlyRow(path, local),
-    buildFigmaOnlyRow: (path: string, figma: unknown): TRow => configRef.current.buildFigmaOnlyRow(path, figma),
-    buildConflictRow: (path: string, local: unknown, figma: unknown): TRow => configRef.current.buildConflictRow(path, local, figma),
-    isConflict: (local: unknown, figma: unknown) => configRef.current.isConflict(local, figma),
+    buildLocalOnlyRow: (path: string, local: TLocal): TRow => configRef.current.buildLocalOnlyRow(path, local),
+    buildFigmaOnlyRow: (path: string, figma: TFigma): TRow => configRef.current.buildFigmaOnlyRow(path, figma),
+    buildConflictRow: (path: string, local: TLocal, figma: TFigma): TRow =>
+      configRef.current.buildConflictRow(path, local, figma),
+    isConflict: (local: TLocal, figma: TFigma) => configRef.current.isConflict(local, figma),
     loadSnapshot: configRef.current.loadSnapshot,
     executePush: async (rows: TRow[]) => {
       const cfg = configRef.current;
@@ -174,7 +177,11 @@ export function useSyncEntity<
     applyErrorLabel: configRef.current.applyErrorLabel,
   };
 
-  const base = useTokenSyncBase<TRow>(serverUrl, activeSet, tokenSyncConfig);
+  const base = useTokenSyncBase<TRow, TLocal, TFigma>(
+    serverUrl,
+    activeSet,
+    tokenSyncConfig,
+  );
   const { computeDiff } = base;
 
   // Auto-trigger diff computation when connection + set become available.

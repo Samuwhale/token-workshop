@@ -92,7 +92,10 @@ import {
 import type {
   VariableDiffPendingState,
 } from "../shared/tokenListModalTypes";
-import type { VariablesReadMessage } from "../../shared/types";
+import type {
+  StylesAppliedMessage,
+  VariablesReadMessage,
+} from "../../shared/types";
 
 const TOKEN_TYPE_COLORS: Record<string, string> = {
   color: "var(--color-token-type-color)",
@@ -267,7 +270,8 @@ export function TokenList({
     count: number;
     total: number;
     failures: { path: string; error: string }[];
-  }>({
+    skipped: Array<{ path: string; $type: string }>;
+  }, StylesAppliedMessage>({
     responseType: "styles-applied",
     errorType: "styles-apply-error",
     timeout: 15000,
@@ -3775,7 +3779,7 @@ export function TokenList({
                   variant="no-results"
                   size="section"
                   title="No tokens found across all sets"
-                  description="Try a broader search, or switch back to the current set to keep working in context."
+                  description="Try a broader search or switch to a specific set."
                 />
                 {searchQuery &&
                   (() => {
@@ -3878,7 +3882,7 @@ export function TokenList({
             <FeedbackPlaceholder
               variant="empty"
               title="Select a layer to inspect"
-              description="Tokens bound to the selected layer will appear here."
+              description="Bound tokens will appear here."
               icon={
                 <svg
                   width="18"
@@ -3934,13 +3938,8 @@ export function TokenList({
                   </svg>
                 }
                 title="This set is empty"
-                description="Use the Create menu above for single tokens, bulk create, groups, paste, or import."
+                description="Use the Create menu to add tokens."
               />
-              <p className="max-w-[260px] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Guided setup and foundation templates still live in the shared
-                start flow and View options, but the visible create entry point
-                stays in one place.
-              </p>
             </div>
           ) : displayedTokens.length === 0 && filtersActive ? (
             <TokenListFilteredEmptyState
@@ -4095,7 +4094,7 @@ export function TokenList({
                   ))}
                   <button
                     className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/breadcrumb:opacity-100 group-focus-within/breadcrumb:opacity-100 transition-opacity text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
-                    title="Collapse all groups below and jump to this group"
+                    title="Collapse and jump to group"
                     onClick={() =>
                       handleCollapseBelow(
                         breadcrumbSegments[breadcrumbSegments.length - 1].path,

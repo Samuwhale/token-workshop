@@ -5,6 +5,10 @@ import { apiFetch } from '../shared/apiFetch';
 import { createTokenBody, updateToken } from '../shared/tokenMutations';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
+import type {
+  StylesAppliedMessage,
+  VariablesAppliedMessage,
+} from '../../shared/types';
 import { useFigmaMessage } from './useFigmaMessage';
 import { extractSyncApplyResult } from './useTokenSyncBase';
 
@@ -81,14 +85,14 @@ export function useFigmaSync(
     return () => window.removeEventListener('message', handler);
   }, [setSyncGroupProgress, setSyncGroupStylesProgress]);
 
-  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }>({
+  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }, StylesAppliedMessage>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
     timeout: 15000,
     extractResponse: extractSyncApplyResult,
   });
 
-  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }>({
+  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }, VariablesAppliedMessage>({
     responseType: 'variables-applied',
     errorType: 'apply-variables-error',
     timeout: 30000,

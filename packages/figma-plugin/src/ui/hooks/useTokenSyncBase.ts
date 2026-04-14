@@ -35,7 +35,11 @@ export interface SyncProgress {
 
 // ── Configuration callbacks ──
 
-export interface TokenSyncConfig<TRow extends DiffRowBase> {
+export interface TokenSyncConfig<
+  TRow extends DiffRowBase,
+  TLocal = unknown,
+  TFigma = unknown,
+> {
   /** Plugin message type that reports incremental progress (e.g. 'variable-sync-progress') */
   progressEventType: string;
 
@@ -46,25 +50,25 @@ export interface TokenSyncConfig<TRow extends DiffRowBase> {
    * Build a map from Figma token array.
    * Key = token path, Value = arbitrary entry used by buildRow/isConflict.
    */
-  buildFigmaMap: (tokens: unknown[]) => Map<string, unknown>;
+  buildFigmaMap: (tokens: unknown[]) => Map<string, TFigma>;
 
   /**
    * Build a map from local (server) flattened tokens.
    * Key = token path, Value = arbitrary entry used by buildRow/isConflict.
    */
-  buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, unknown>;
+  buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, TLocal>;
 
   /** Create a diff row for a token that exists only locally */
-  buildLocalOnlyRow: (path: string, local: unknown) => TRow;
+  buildLocalOnlyRow: (path: string, local: TLocal) => TRow;
 
   /** Create a diff row for a token that exists only in Figma */
-  buildFigmaOnlyRow: (path: string, figma: unknown) => TRow;
+  buildFigmaOnlyRow: (path: string, figma: TFigma) => TRow;
 
   /** Create a diff row for a conflicting token */
-  buildConflictRow: (path: string, local: unknown, figma: unknown) => TRow;
+  buildConflictRow: (path: string, local: TLocal, figma: TFigma) => TRow;
 
   /** Return true when local and figma entries differ */
-  isConflict: (local: unknown, figma: unknown) => boolean;
+  isConflict: (local: TLocal, figma: TFigma) => boolean;
 
   /** Optional custom snapshot loader for compare flows that do not map 1:1 to the active set. */
   loadSnapshot?: (params: {
@@ -72,7 +76,7 @@ export interface TokenSyncConfig<TRow extends DiffRowBase> {
     activeSet: string;
     signal?: AbortSignal;
     readFigmaTokens: () => Promise<unknown[]>;
-  }) => Promise<SyncSnapshot<unknown, unknown, TRow>>;
+  }) => Promise<SyncSnapshot<TLocal, TFigma, TRow>>;
 
   /**
    * Execute push (local → Figma).
@@ -112,10 +116,14 @@ export interface TokenSyncReturn<TRow extends DiffRowBase> {
 
 // ── Hook ──
 
-export function useTokenSyncBase<TRow extends DiffRowBase>(
+export function useTokenSyncBase<
+  TRow extends DiffRowBase,
+  TLocal = unknown,
+  TFigma = unknown,
+>(
   serverUrl: string,
   activeSet: string,
-  config: TokenSyncConfig<TRow>,
+  config: TokenSyncConfig<TRow, TLocal, TFigma>,
 ): TokenSyncReturn<TRow> {
   const [rows, setRows] = useState<TRow[]>([]);
   const [dirs, setDirs] = useState<Record<string, SyncDirection>>({});

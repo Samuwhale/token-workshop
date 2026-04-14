@@ -1,4 +1,4 @@
-import type { ColorModifierOp } from '@tokenmanager/core';
+import type { ColorModifierOp, TokenValue } from '@tokenmanager/core';
 
 export type TokenEditorValue = unknown;
 
@@ -19,16 +19,36 @@ export interface TokenEditorSnapshot {
   extendsPath: string;
 }
 
-export interface TokenEditorDraftData extends TokenEditorSnapshot {
+export interface TokenEditorDraftData {
   tokenType: string;
+  value: TokenEditorValue;
+  description: string;
+  reference: string;
+  scopes: string[];
+  colorModifiers: ColorModifierOp[];
+  modeValues: TokenEditorModeValues;
+  extensionsJsonText: string;
+  lifecycle: TokenEditorLifecycle;
+  extendsPath: string;
   savedAt: number;
 }
 
+export interface TokenEditorServerExtensions {
+  'com.figma.scopes'?: string[];
+  tokenmanager?: {
+    colorModifier?: ColorModifierOp[];
+    modes?: TokenEditorModeValues;
+    lifecycle?: TokenEditorLifecycle;
+    extends?: string;
+  };
+  [key: string]: unknown;
+}
+
 export interface TokenEditorServerToken {
-  $value?: TokenEditorValue;
+  $value?: TokenValue;
   $type?: string;
   $description?: string;
-  $extensions?: Record<string, unknown>;
+  $extensions?: TokenEditorServerExtensions;
   $scopes?: string[];
 }
 

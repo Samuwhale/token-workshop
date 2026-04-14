@@ -20,7 +20,17 @@ import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../h
 import { useNavigationContext } from '../contexts/NavigationContext';
 import { useResolverContext } from '../contexts/ThemeContext';
 import { apiFetch } from '../shared/apiFetch';
-import type { VarSnapshot, StyleSnapshot, VariableSyncToken, VariablesAppliedMessage, StylesAppliedMessage, VariablesReadMessage, StylesReadMessage } from '../../shared/types';
+import type {
+  ReadStyleToken,
+  ReadVariableCollection,
+  StyleSnapshot,
+  StylesAppliedMessage,
+  StylesReadMessage,
+  VariablesAppliedMessage,
+  VariablesReadMessage,
+  VariableSyncToken,
+  VarSnapshot,
+} from '../../shared/types';
 import { FIGMA_SCOPES } from './MetadataEditor';
 import {
   buildVariablePublishFigmaMap,
@@ -31,6 +41,7 @@ import {
   variablePublishDiffConfig,
   type VariablePublishCompareMode,
   type PublishDiffRow as DiffRow,
+  type PublishSyncEntry,
   type PublishPreflightActionId,
   type PublishPreflightStage,
   type SyncWorkflowStage,
@@ -38,7 +49,12 @@ import {
 
 // ── Static message configs (stable module-level refs required by useFigmaMessage) ──
 
-const VAR_MESSAGES: SyncMessages<VarSnapshot> = {
+const VAR_MESSAGES: SyncMessages<
+  VarSnapshot,
+  ReadVariableCollection[],
+  VariablesReadMessage,
+  VariablesAppliedMessage
+> = {
   readSendType: 'read-variables', readResponseType: 'variables-read', readTimeout: 10000,
   extractReadResponse: (msg: VariablesReadMessage) => msg.collections ?? [],
   applySendType: 'apply-variables', applyResponseType: 'variables-applied', applyErrorType: 'apply-variables-error', applyTimeout: 30000,
@@ -46,7 +62,12 @@ const VAR_MESSAGES: SyncMessages<VarSnapshot> = {
   revertSendType: 'revert-variables', revertResponseType: 'variables-reverted', revertTimeout: 30000,
 };
 
-const STYLE_MESSAGES: SyncMessages<StyleSnapshot> = {
+const STYLE_MESSAGES: SyncMessages<
+  StyleSnapshot,
+  ReadStyleToken[],
+  StylesReadMessage,
+  StylesAppliedMessage
+> = {
   readSendType: 'read-styles', readResponseType: 'styles-read', readErrorType: 'styles-read-error', readTimeout: 10000,
   extractReadResponse: (msg: StylesReadMessage) => msg.tokens ?? [],
   applySendType: 'apply-styles', applyResponseType: 'styles-applied', applyErrorType: 'styles-apply-error', applyTimeout: 15000,
@@ -259,7 +280,7 @@ export function PublishPanel({
     skipped: Array<{ path: string; $type: string }>;
     created?: number;
     overwritten?: number;
-  }>({
+  }, VariablesAppliedMessage>({
     responseType: 'variables-applied',
     errorType: 'apply-variables-error',
     timeout: 30000,
@@ -424,7 +445,15 @@ export function PublishPanel({
 
 
   // ── Extracted hooks ──
-  const varSync = useSyncEntity<DiffRow, VarSnapshot>(serverUrl, activeSet, connected, VAR_MESSAGES, {
+  const varSync = useSyncEntity<
+    DiffRow,
+    VarSnapshot,
+    ReadVariableCollection[],
+    VariablesReadMessage,
+    VariablesAppliedMessage,
+    PublishSyncEntry,
+    PublishSyncEntry
+  >(serverUrl, activeSet, connected, VAR_MESSAGES, {
     progressEventType: 'variable-sync-progress',
     ...variablePublishDiffConfig,
     loadSnapshot: ({ signal, readFigmaTokens }) =>
@@ -467,7 +496,15 @@ export function PublishPanel({
     revertSuccessMessage: 'Variable sync reverted', revertErrorMessage: 'Failed to revert variable sync',
   });
 
-  const styleSync = useSyncEntity<DiffRow, StyleSnapshot>(serverUrl, activeSet, connected, STYLE_MESSAGES, {
+  const styleSync = useSyncEntity<
+    DiffRow,
+    StyleSnapshot,
+    ReadStyleToken[],
+    StylesReadMessage,
+    StylesAppliedMessage,
+    PublishSyncEntry,
+    PublishSyncEntry
+  >(serverUrl, activeSet, connected, STYLE_MESSAGES, {
     progressEventType: 'style-sync-progress',
     ...stylePublishDiffConfig,
     buildPullPayload: buildPublishPullPayload,
@@ -803,10 +840,10 @@ export function PublishPanel({
       }
 
       if (actionId === 'add-token-descriptions') {
-        dispatchToast('Descriptions are edited in the Tokens workspace. Add them there, then return to re-run preflight.', 'success');
+        dispatchToast('Add descriptions in Tokens, then re-run preflight.', 'success');
         beginHandoff({
           reason:
-            'Add the missing token descriptions in Tokens, then return to Sync.',
+            'Add descriptions in Tokens, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
         navigateTo('define', 'tokens', { preserveHandoff: true });
@@ -959,7 +996,7 @@ export function PublishPanel({
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
-        Connect to server to sync tokens with Figma
+        Connect to server to sync with Figma
       </div>
     );
   }
@@ -972,7 +1009,7 @@ export function PublishPanel({
       {help.expanded && (
         <PanelHelpBanner
           title="Figma Sync"
-          description="Run preflight first, then compare local tokens against Figma variables and styles, then apply the destinations you choose."
+          description="Preflight, compare, then apply."
           onDismiss={help.dismiss}
         />
       )}
@@ -1129,7 +1166,7 @@ export function PublishPanel({
                     {hasFigmaSyncChanges && (
                       <button
                         onClick={quickSync}
-                        title="Apply all changes to Figma without opening the review modal."
+                        title="Apply all changes without review"
                         className="rounded-md border border-[var(--color-figma-accent)]/35 px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
                       >
                         Sync now
@@ -1197,7 +1234,7 @@ export function PublishPanel({
     {orphanConfirm && (
       <ConfirmModal
         title={`Delete ${orphanConfirm.orphanPaths.length} orphan variable${orphanConfirm.orphanPaths.length !== 1 ? 's' : ''}?`}
-        description="These Figma variables have no matching token in the local token set. Deletion is permanent and may break references in other design files."
+        description="These variables have no matching local token. Deletion may break references in other files."
         confirmLabel="Delete"
         danger
         wide
@@ -1287,7 +1324,7 @@ function ResolverModePublishCard({
 
       {!activeResolver ? (
         <div className="mt-3 rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-          Select a resolver in the Resolver workspace to unlock context-to-mode mapping here.
+          Select a resolver to configure context-to-mode mapping.
         </div>
       ) : loading ? (
         <div className="mt-3 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1423,7 +1460,7 @@ function PublishAllPreviewModal({
             Review Figma sync
           </h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review each Figma target before you sync it.
+            Review before syncing.
           </p>
         </div>
 
@@ -1431,7 +1468,7 @@ function PublishAllPreviewModal({
           {/* All in sync — shown when auto-compare found no pending changes */}
           {!hasAnyChanges && (
             <div className="py-3 text-[10px] text-[var(--color-figma-text-secondary)] text-center">
-              Everything is already in sync — nothing to apply.
+              Everything in sync.
             </div>
           )}
 
@@ -1495,7 +1532,7 @@ function PublishAllPreviewModal({
             <button
               onClick={handleConfirm}
               disabled={busy || !anySelected}
-              title={!anySelected ? 'Select at least one destination to sync' : undefined}
+              title={!anySelected ? 'Select at least one target' : undefined}
               className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}

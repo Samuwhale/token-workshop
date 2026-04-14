@@ -14,6 +14,7 @@ import type {
   TokenEditorDraftData,
   TokenEditorLifecycle,
   TokenEditorModeValues,
+  TokenEditorServerExtensions,
   TokenEditorTokenResponse,
   TokenEditorValue,
 } from '../shared/tokenEditorTypes';
@@ -119,25 +120,26 @@ export function useTokenEditorLoad({
       try {
         const data = await apiFetch<TokenEditorTokenResponse>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { signal: controller.signal });
         const token = data.token;
+        const extensions: TokenEditorServerExtensions = token?.$extensions ?? {};
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
         setDescription(token?.$description || '');
-        const savedScopes = token?.$extensions?.['com.figma.scopes'] ?? token?.$scopes;
+        const savedScopes = extensions['com.figma.scopes'] ?? token?.$scopes;
         setScopes(Array.isArray(savedScopes) ? savedScopes : []);
-        const savedModifiers = token?.$extensions?.tokenmanager?.colorModifier;
+        const savedModifiers = extensions.tokenmanager?.colorModifier;
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
         setColorModifiers(loadedModifiers);
-        const savedModes = token?.$extensions?.tokenmanager?.modes;
+        const savedModes = extensions.tokenmanager?.modes;
         const rawModes: Record<string, unknown> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, unknown> : {};
         const loadedModes = migrateModeValues(rawModes, dimensions);
         setModeValues(loadedModes);
-        const savedLifecycle = token?.$extensions?.tokenmanager?.lifecycle;
+        const savedLifecycle = extensions.tokenmanager?.lifecycle;
         const loadedLifecycle: TokenEditorLifecycle = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
         setLifecycle(loadedLifecycle);
-        const savedExtends = token?.$extensions?.tokenmanager?.extends;
+        const savedExtends = extensions.tokenmanager?.extends;
         const loadedExtends = typeof savedExtends === 'string' ? savedExtends : '';
         setExtendsPath(loadedExtends);
-        const ext = token?.$extensions ?? {};
+        const ext = extensions;
         const knownExtKeys = new Set([
           'com.figma.scopes',
           'tokenmanager',
