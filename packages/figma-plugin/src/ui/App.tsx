@@ -1951,7 +1951,7 @@ export function App() {
 
           {/* Theme mode controls — globally available when dimensions exist */}
           {!themesError && dimensions.length > 0 && (
-            <div ref={dimDropdownRef} className="flex items-center gap-1.5 ml-1.5">
+            <div ref={dimDropdownRef} className="flex items-center gap-1 ml-1.5">
               {dimensions.map((dim) => {
                 const activeOption = activeThemes[dim.id];
                 const previewOption = previewThemes[dim.id];
@@ -1969,25 +1969,6 @@ export function App() {
                       }}
                     >
                       <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)] divide-x divide-[var(--color-figma-border)]">
-                        <button
-                          onClick={() => {
-                            const next = { ...activeThemes };
-                            delete next[dim.id];
-                            setActiveThemes(next);
-                          }}
-                          onMouseEnter={() => {
-                            const next = { ...previewThemes };
-                            delete next[dim.id];
-                            setPreviewThemes(next);
-                          }}
-                          className={`px-1.5 py-0.5 text-[10px] transition-colors ${
-                            !activeOption && !previewOption
-                              ? "bg-[var(--color-figma-accent)] text-white font-medium"
-                              : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                          }`}
-                        >
-                          —
-                        </button>
                         {dim.options.map((opt: { name: string }) => {
                           const isActive = activeOption === opt.name;
                           const isPreviewing = previewOption === opt.name && previewOption !== activeOption;
@@ -1995,13 +1976,19 @@ export function App() {
                             <button
                               key={opt.name}
                               onClick={() => {
-                                setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
+                                if (isActive) {
+                                  const next = { ...activeThemes };
+                                  delete next[dim.id];
+                                  setActiveThemes(next);
+                                } else {
+                                  setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
+                                }
                                 const next = { ...previewThemes };
                                 delete next[dim.id];
                                 setPreviewThemes(next);
                               }}
                               onMouseEnter={() => setPreviewThemes({ ...previewThemes, [dim.id]: opt.name })}
-                              title={isActive ? `${dim.name}: ${opt.name} (active)` : `Preview ${dim.name}: ${opt.name}`}
+                              title={isActive ? `${dim.name}: ${opt.name} (active — click to deselect)` : `Preview ${dim.name}: ${opt.name}`}
                               className={`px-1.5 py-0.5 text-[10px] transition-colors ${
                                 isActive
                                   ? "bg-[var(--color-figma-accent)] text-white font-medium"
@@ -2028,7 +2015,7 @@ export function App() {
                           : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                       }`}
                     >
-                      {activeOption || "—"}
+                      {activeOption || dim.name}
                       <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>
                         <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
@@ -2452,31 +2439,23 @@ export function App() {
       />
 
       {/* Status footer */}
-      <div className="flex items-center gap-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px]">
-        <div className="flex min-w-0 flex-1 items-center gap-1.5">
-          <span
-            className={`h-1.5 w-1.5 shrink-0 rounded-full ${checking ? "bg-[var(--color-figma-accent)]" : connected ? "bg-emerald-500" : "bg-[var(--color-figma-error)]"}`}
-            title={utilitiesStatusLabel}
-            aria-hidden="true"
-          />
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <button onClick={executeUndo} disabled={!canUndo} className="h-6 w-6 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
+      <div className="flex items-center justify-end gap-1 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px]">
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button onClick={executeUndo} disabled={!canUndo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
           </button>
-          <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-6 w-6 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
+          <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
           </button>
-          <div className="mx-0.5 h-3 w-px bg-[var(--color-figma-border)]" aria-hidden="true" />
           <div className="relative shrink-0" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="relative h-6 w-6 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="relative h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               aria-label="Settings"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6.8 1.6h2.4l.3 1.8.9.4 1.5-1 1.7 1.7-1 1.5.4.9 1.8.3v2.4l-1.8.3-.4.9 1 1.5-1.7 1.7-1.5-1-.9.4-.3 1.8H6.8l-.3-1.8-.9-.4-1.5 1-1.7-1.7 1-1.5-.4-.9-1.8-.3V6.8l1.8-.3.4-.9-1-1.5L4.1 2.4l1.5 1 .9-.4z" />
                 <circle cx="8" cy="8" r="2" />
               </svg>
@@ -2505,8 +2484,7 @@ export function App() {
                   )}
                 </div>
                 {shellMenuSurfaces.length > 0 && (
-                  <div className="py-1">
-                    <div className="px-3 pb-1 text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">Settings</div>
+                  <div className="py-0.5">
                     {shellMenuSurfaces.map((surface) => (
                       <button key={surface.id} role="menuitem" tabIndex={-1} onClick={() => { setMenuOpen(false); toggleSecondarySurface(surface.id); }} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={surface.transition.usage}>
                         <span>{surface.label}</span>
@@ -2516,8 +2494,7 @@ export function App() {
                   </div>
                 )}
                 {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section) => (
-                  <div key={section.id} className="border-t border-[var(--color-figma-border)] py-1">
-                    <div className="px-3 pb-1 text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">{section.label}</div>
+                  <div key={section.id} className="border-t border-[var(--color-figma-border)] py-0.5">
                     {section.actions.map((action) => (
                       <button key={action.id} role="menuitem" tabIndex={-1} onClick={() => handleUtilityAction(action.id)} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={action.transition?.usage ?? action.description}>
                         <span>{action.id === "window-size" ? isExpanded ? "Restore window" : "Expand window" : action.label}</span>

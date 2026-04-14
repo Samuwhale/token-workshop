@@ -34,29 +34,24 @@ interface ThemeOptionWorkspaceProps {
 
 function AssignmentSection({
   title,
-  description,
   count,
   children,
 }: {
   title: string;
-  description: string;
   count: number;
   children: ReactNode;
 }) {
   return (
     <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 px-3 py-1.5">
-        <div className="min-w-0">
-          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            {title}
-          </div>
-          <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-            {description}
-          </div>
+      <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 px-3 py-1.5">
+        <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+          {title}
         </div>
-        <div className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
-          {count}
-        </div>
+        {count > 0 && (
+          <div className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
+            {count}
+          </div>
+        )}
       </div>
       {children}
     </section>
@@ -89,15 +84,6 @@ export function ThemeOptionWorkspace({
   const hasAssigned = overrideSets.length > 0 || foundationSets.length > 0;
   const [notUsedCollapsed, setNotUsedCollapsed] = useState(hasAssigned);
 
-  const overrideTokenTotal = overrideSets.reduce(
-    (sum, setName) => sum + (setTokenCounts[setName] ?? 0),
-    0,
-  );
-  const foundationTokenTotal = foundationSets.reduce(
-    (sum, setName) => sum + (setTokenCounts[setName] ?? 0),
-    0,
-  );
-
   return (
     <div
       ref={(element) => {
@@ -119,11 +105,7 @@ export function ThemeOptionWorkspace({
                 </span>
               )}
             </div>
-            {hasAssigned && (
-              <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                {foundationSets.length} base set{foundationSets.length === 1 ? "" : "s"} · {overrideSets.length} override{overrideSets.length === 1 ? "" : "s"}
-              </p>
-            )}
+            {/* Set counts are visible in the section headers below */}
           </div>
           {fillableCount > 0 && (
             <button
@@ -199,66 +181,47 @@ export function ThemeOptionWorkspace({
       <div className="space-y-2 px-3 py-2">
         {!hasAssigned && sets.length > 0 && (
           <div className="rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            This value is not connected yet. Add a base set to establish the default,
-            then use overrides where this value needs to diverge.
+            Assign base sets, then add overrides where this value diverges.
           </div>
         )}
 
-        <AssignmentSection
-          title="Override sets"
-          description="Only included for this value."
-          count={overrideSets.length}
-        >
+        <AssignmentSection title="Overrides" count={overrideSets.length}>
           {overrideSets.length === 0 ? (
             <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-              No overrides yet.
+              No overrides yet
             </div>
           ) : (
-            <>
-              <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                {overrideTokenTotal} token{overrideTokenTotal === 1 ? "" : "s"}
-              </div>
-              {overrideSets.map((setName) => (
-                <ThemeSetRoleRow
-                  key={setName}
-                  setName={setName}
-                  status="enabled"
-                  isSaving={false}
-                  tokenCount={setTokenCounts[setName] ?? null}
-                  roleStates={THEME_ROLE_STATES}
-                  onChangeState={(nextState) => onHandleSetState(setName, nextState)}
-                />
-              ))}
-            </>
+            overrideSets.map((setName) => (
+              <ThemeSetRoleRow
+                key={setName}
+                setName={setName}
+                status="enabled"
+                isSaving={false}
+                tokenCount={setTokenCounts[setName] ?? null}
+                roleStates={THEME_ROLE_STATES}
+                onChangeState={(nextState) => onHandleSetState(setName, nextState)}
+              />
+            ))
           )}
         </AssignmentSection>
 
-        <AssignmentSection
-          title="Base sets"
-          description="Always included for this value."
-          count={foundationSets.length}
-        >
+        <AssignmentSection title="Base sets" count={foundationSets.length}>
           {foundationSets.length === 0 ? (
             <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-              No base sets assigned.
+              No base sets assigned
             </div>
           ) : (
-            <>
-              <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                {foundationTokenTotal} token{foundationTokenTotal === 1 ? "" : "s"}
-              </div>
-              {foundationSets.map((setName) => (
-                <ThemeSetRoleRow
-                  key={setName}
-                  setName={setName}
-                  status="source"
-                  isSaving={false}
-                  tokenCount={setTokenCounts[setName] ?? null}
-                  roleStates={THEME_ROLE_STATES}
-                  onChangeState={(nextState) => onHandleSetState(setName, nextState)}
-                />
-              ))}
-            </>
+            foundationSets.map((setName) => (
+              <ThemeSetRoleRow
+                key={setName}
+                setName={setName}
+                status="source"
+                isSaving={false}
+                tokenCount={setTokenCounts[setName] ?? null}
+                roleStates={THEME_ROLE_STATES}
+                onChangeState={(nextState) => onHandleSetState(setName, nextState)}
+              />
+            ))
           )}
         </AssignmentSection>
 
@@ -281,13 +244,8 @@ export function ThemeOptionWorkspace({
               >
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
-              <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                  Off
-                </div>
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                  Excluded from this value.
-                </div>
+              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                Off
               </div>
               <div className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
                 {disabledSets.length}
@@ -310,7 +268,7 @@ export function ThemeOptionWorkspace({
 
         {sets.length === 0 && (
           <div className="rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            No token sets are available yet. Create token sets first in the Tokens tab.
+            Create token sets first in the Tokens tab.
           </div>
         )}
       </div>

@@ -102,7 +102,7 @@ export function ThemeAxisCard({
   const headerSummary = option
     ? selectedOptionIssues.length > 0
       ? `${selectedOptionIssues.length} issue${selectedOptionIssues.length === 1 ? "" : "s"} on ${selectedOption}`
-      : `${dimension.options.length} value${dimension.options.length === 1 ? "" : "s"} in this mode`
+      : collapsedSummary
     : collapsedSummary;
 
   return (
@@ -203,15 +203,15 @@ export function ThemeAxisCard({
                 ref={axisMenu.triggerRef}
                 type="button"
                 onClick={axisMenu.toggle}
-                className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/30 hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                className="inline-flex h-6 w-6 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                 title="Manage this mode"
                 aria-label="Manage this mode"
                 aria-expanded={axisMenu.open}
                 aria-haspopup="menu"
               >
                 <svg
-                  width="10"
-                  height="10"
+                  width="12"
+                  height="12"
                   viewBox="0 0 16 16"
                   fill="currentColor"
                   aria-hidden="true"
@@ -220,7 +220,6 @@ export function ThemeAxisCard({
                   <circle cx="8" cy="8" r="1.5" />
                   <circle cx="8" cy="13" r="1.5" />
                 </svg>
-                Manage
               </button>
               {axisMenu.open && (
                 <div

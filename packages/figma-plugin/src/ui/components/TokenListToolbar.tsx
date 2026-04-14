@@ -312,9 +312,10 @@ export function TokenListToolbar({
               {createToolsMenuOpen && (
                 <div
                   ref={createToolsMenuRef}
-                  className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
+                  className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
                   role="menu"
                 >
+                  {/* Create */}
                   <button
                     role="menuitem"
                     onClick={() => runCreateToolsAction(() => onCreateNew?.())}
@@ -350,7 +351,10 @@ export function TokenListToolbar({
                     </button>
                   )}
                   {(onSelectTokens || onBulkEdit || onFindReplace || onFoundationTemplates) && (
-                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                    <>
+                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                      <div className="px-2.5 pb-0.5 pt-1.5 text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">Edit</div>
+                    </>
                   )}
                   {onSelectTokens && (
                     <button
@@ -390,6 +394,7 @@ export function TokenListToolbar({
                     </button>
                   )}
                   <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                  <div className="px-2.5 pb-0.5 pt-1.5 text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">Import</div>
                   <button
                     role="menuitem"
                     onClick={() =>
@@ -411,7 +416,10 @@ export function TokenListToolbar({
                     Import tokens
                   </button>
                   {(onApplyVariables || onApplyStyles) && (
-                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                    <>
+                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                      <div className="px-2.5 pb-0.5 pt-1.5 text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">Sync to Figma</div>
+                    </>
                   )}
                   {onApplyVariables && (
                     <button
@@ -538,7 +546,7 @@ export function TokenListToolbar({
                       setHintIndex(0);
                     }
                   }}
-                  placeholder="Search tokens, groups, scopes, recipes, themes…"
+                  placeholder="Search…"
                   title={searchTooltip}
                   className={`flex-1 min-w-[40px] bg-transparent py-1 pl-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${
                     searchQuery ? "pr-5" : "pr-2"

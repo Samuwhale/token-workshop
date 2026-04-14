@@ -3056,16 +3056,6 @@ const TokenLeafNode = memo(
                     <span className="flex-1">Copy path</span>
                     <span className={MENU_SHORTCUT_CLASS}>C</span>
                   </button>
-                  <button
-                    role="menuitem"
-                    tabIndex={-1}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { handleCopyValue(); closeTokenMenus(); }}
-                    className={MENU_ITEM_CLASS}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M20 6L9 17l-5-5" /></svg>
-                    <span className="flex-1">Copy value</span>
-                  </button>
                   {!selectMode &&
                     node.$type &&
                     (TOKEN_PROPERTY_MAP[node.$type]?.length > 0 ||
@@ -3127,7 +3117,16 @@ const TokenLeafNode = memo(
                     <span className="flex-1">Back</span>
                   </button>
                   <div role="separator" className={MENU_SEPARATOR_CLASS} />
-                  {/* Section 3: Advanced */}
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { handleCopyValue(); closeTokenMenus(); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M20 6L9 17l-5-5" /></svg>
+                    <span className="flex-1">Copy value</span>
+                  </button>
                   {onRequestMoveToken && (
                     <button
                       role="menuitem"

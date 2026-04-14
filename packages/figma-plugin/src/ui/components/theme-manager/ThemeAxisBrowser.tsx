@@ -2,15 +2,11 @@ import React from "react";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 
 interface ThemeAxisBrowserProps {
-  dimensionsCount: number;
-  valueCount: number;
   issueCount: number;
   onCreateMode: () => void;
 }
 
 export function ThemeAxisBrowser({
-  dimensionsCount,
-  valueCount,
   issueCount,
   onCreateMode,
 }: ThemeAxisBrowserProps) {
@@ -18,14 +14,6 @@ export function ThemeAxisBrowser({
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-3 py-2">
-      <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-        <span>{dimensionsCount} mode{dimensionsCount === 1 ? "" : "s"}</span>
-        <span aria-hidden="true">•</span>
-        <span>{valueCount} value{valueCount === 1 ? "" : "s"}</span>
-        <span aria-hidden="true">•</span>
-        <span>{issueCount > 0 ? `${issueCount} need attention` : "No setup issues"}</span>
-      </div>
-
       <div className="flex gap-2">
         <div className="relative min-w-0 flex-1">
           <svg
@@ -54,7 +42,7 @@ export function ThemeAxisBrowser({
                 dimSearchRef.current?.blur();
               }
             }}
-            placeholder={`Search ${dimensionsCount} mode${dimensionsCount === 1 ? "" : "s"}…`}
+            placeholder="Search modes…"
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 pl-6 pr-6 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
           />
           {dimSearch && (
@@ -92,6 +80,11 @@ export function ThemeAxisBrowser({
           Add mode
         </button>
       </div>
+      {issueCount > 0 && (
+        <div className="mt-1.5 text-[9px] text-[var(--color-figma-warning)]">
+          {issueCount} {issueCount === 1 ? "issue" : "issues"} need attention
+        </div>
+      )}
     </div>
   );
 }

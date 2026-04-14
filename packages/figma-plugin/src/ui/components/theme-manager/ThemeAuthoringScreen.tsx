@@ -166,33 +166,12 @@ function InlineTokenOutputSection({
           className={`mt-1 h-2 w-2 shrink-0 rounded-full ${hasIssues ? "bg-amber-500" : "bg-[var(--color-figma-success,#18a058)]"}`}
         />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
-              {context.resolverName}
-            </span>
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-              {context.selectionOriginLabel}
-            </span>
-          </div>
+          <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
+            {context.resolverName}
+          </span>
           <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
             {context.setupSummary}
           </p>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-            <span>{connectedCount} connected</span>
-            <span aria-hidden="true">•</span>
-            <span>
-              {context.axes.length} mode{context.axes.length === 1 ? "" : "s"}
-            </span>
-            {context.unmatchedModifierCount > 0 ? (
-              <>
-                <span aria-hidden="true">•</span>
-                <span>
-                  {context.unmatchedModifierCount} unused switch
-                  {context.unmatchedModifierCount === 1 ? "" : "es"}
-                </span>
-              </>
-            ) : null}
-          </div>
         </div>
         <span className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)] transition-colors group-hover:border-[var(--color-figma-accent)]/35 group-hover:text-[var(--color-figma-accent)]">
           {context.recommendedActionLabel}
@@ -222,38 +201,20 @@ function CreateModePanel({
   const presetNames = ["Light / Dark", "Brand", "Density"];
 
   return (
-    <section className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-            New mode
-          </h3>
-          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            Start with a common axis like Light / Dark, Brand, or Density.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+    <section className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5">
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {presetNames.map((name) => (
             <button
               key={name}
               type="button"
               onClick={() => openCreateDim(name)}
-              className="rounded-full border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+              className="rounded-full border border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
             >
               {name}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={() => openCreateDim()}
-            className="rounded-full border border-dashed border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text-secondary)]"
-          >
-            Custom
-          </button>
         </div>
-      </div>
-
-      <div className="mt-3 flex flex-col gap-2">
         <input
           type="text"
           value={newDimName}
@@ -387,10 +348,6 @@ export const ThemeAuthoringScreen = forwardRef<
   const totalIssueCount = useMemo(
     () => Object.values(optionIssues).reduce((sum, issues) => sum + issues.length, 0),
     [optionIssues],
-  );
-  const totalValueCount = useMemo(
-    () => dimensions.reduce((sum, dimension) => sum + dimension.options.length, 0),
-    [dimensions],
   );
 
   const scrollToDimension = (dimId: string | null | undefined) => {
@@ -618,8 +575,6 @@ export const ThemeAuthoringScreen = forwardRef<
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto">
           <ThemeAxisBrowser
-            dimensionsCount={dimensions.length}
-            valueCount={totalValueCount}
             issueCount={totalIssueCount}
             onCreateMode={() => openCreateDim()}
           />
@@ -671,13 +626,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 />
               );
             })}
-            {dimSearch &&
-              filteredDimensions.length > 0 &&
-              filteredDimensions.length < dimensions.length && (
-                <div className="px-3 py-1 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-                  Showing {filteredDimensions.length} of {dimensions.length}
-                </div>
-              )}
+            {/* Search results are implicitly visible from the filtered list */}
           </div>
 
           {resolverAuthoringContext && (
@@ -693,15 +642,11 @@ export const ThemeAuthoringScreen = forwardRef<
     <div className="flex-1" />
   ) : (
     <div className="flex flex-1 items-center justify-center px-4 py-8">
-      <div className="w-full max-w-[260px] rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 px-4 py-4">
-        <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-          Start with a mode
-        </h3>
-        <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-figma-text-secondary)]">
-          Create the first mode axis to define how this theme changes across
-          contexts.
+      <div className="flex w-full max-w-[240px] flex-col items-center gap-3">
+        <p className="text-center text-[11px] leading-snug text-[var(--color-figma-text-secondary)]">
+          Define how tokens change across contexts
         </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap justify-center gap-1.5">
           {(["Light / Dark", "Brand", "Density"] as const).map((name) => (
             <button
               key={name}

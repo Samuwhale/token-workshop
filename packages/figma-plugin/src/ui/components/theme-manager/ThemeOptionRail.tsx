@@ -166,15 +166,15 @@ export function ThemeOptionRail({
               ref={valueMenu.triggerRef}
               type="button"
               onClick={valueMenu.toggle}
-              className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/30 hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-              title="Manage the selected value"
-              aria-label="Manage the selected value"
+              className="inline-flex h-6 w-6 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
+              title="Manage value"
+              aria-label="Manage value"
               aria-expanded={valueMenu.open}
               aria-haspopup="menu"
             >
               <svg
-                width="10"
-                height="10"
+                width="12"
+                height="12"
                 viewBox="0 0 16 16"
                 fill="currentColor"
                 aria-hidden="true"
@@ -183,7 +183,6 @@ export function ThemeOptionRail({
                 <circle cx="8" cy="8" r="1.5" />
                 <circle cx="8" cy="13" r="1.5" />
               </svg>
-              Manage
             </button>
             {valueMenu.open && (
               <div
@@ -200,7 +199,7 @@ export function ThemeOptionRail({
                   }}
                   className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                 >
-                  Rename value
+                  Rename
                 </button>
                 {onDuplicateOption && (
                   <button
@@ -212,7 +211,7 @@ export function ThemeOptionRail({
                     }}
                     className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                   >
-                    Duplicate value
+                    Duplicate
                   </button>
                 )}
                 {copySourceOptions &&
@@ -248,7 +247,7 @@ export function ThemeOptionRail({
                       }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
                     >
-                      Delete value
+                      Delete
                     </button>
                   </>
                 )}
