@@ -7,7 +7,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1.5 overflow-y-auto px-2 py-2 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-2 overflow-y-auto px-4 py-4 text-center">
       <FeedbackPlaceholder
         variant={connected ? "empty" : "disconnected"}
         size="section"

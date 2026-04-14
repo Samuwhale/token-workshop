@@ -37,36 +37,6 @@ export function getRecipeTypeLabel(type: RecipeType): string {
   }
 }
 
-/** Short label for the compact type pill */
-function getRecipeTypeShortLabel(type: RecipeType): string {
-  switch (type) {
-    case "colorRamp":
-      return "Color";
-    case "spacingScale":
-      return "Spacing";
-    case "typeScale":
-      return "Type";
-    case "opacityScale":
-      return "Opacity";
-    case "borderRadiusScale":
-      return "Radius";
-    case "zIndexScale":
-      return "Z-index";
-    case "shadowScale":
-      return "Shadow";
-    case "customScale":
-      return "Custom";
-    case "contrastCheck":
-      return "Contrast";
-    case "accessibleColorPair":
-      return "A11y pair";
-    case "darkModeInversion":
-      return "Dark mode";
-    default:
-      return type;
-  }
-}
-
 type DashboardStatus = ReturnType<typeof getRecipeDashboardStatus>;
 
 function formatRelativeTimestamp(value?: string): string | null {
@@ -249,14 +219,13 @@ export function RecipePipelineCard({
   const statusLabel = getStatusLabel(status, isPaused);
   const statusDetail = getRecipeStatusDetail(recipe, status);
   const lastRunAt = formatRelativeTimestamp(recipe.lastRunSummary?.at);
-  const shortType = getRecipeTypeShortLabel(recipe.type);
 
   const tooltipText = useMemo(() => {
-    const parts = [statusLabel];
+    const parts = [getRecipeTypeLabel(recipe.type), statusLabel];
     if (lastRunAt) parts.push(`Last run: ${lastRunAt}`);
     if (statusDetail) parts.push(statusDetail);
     return parts.join(" \u00b7 ");
-  }, [statusLabel, lastRunAt, statusDetail]);
+  }, [recipe.type, statusLabel, lastRunAt, statusDetail]);
 
   const getViewTokensToastAction = useCallback(
     (info: RecipeSaveSuccessInfo): ToastAction | undefined =>
@@ -367,7 +336,8 @@ export function RecipePipelineCard({
           e.preventDefault();
           onContextMenu?.(e, recipe);
         }}
-        className={`flex h-9 items-center gap-2 rounded-md px-2 transition-colors cursor-pointer ${
+        title={tooltipText}
+        className={`flex h-8 items-center gap-2 rounded-md px-2 transition-colors cursor-pointer ${
           isPaused ? "opacity-50" : ""
         }${
           isFocused
@@ -378,15 +348,11 @@ export function RecipePipelineCard({
         <StatusDot
           simpleStatus={simpleStatus}
           isPaused={isPaused}
-          title={tooltipText}
+          title={statusLabel}
         />
 
         <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-[var(--color-figma-text)]">
           {recipe.name}
-        </span>
-
-        <span className="shrink-0 rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-          {shortType}
         </span>
 
         <button

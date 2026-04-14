@@ -9,7 +9,6 @@ import type { RecipeDialogInitialDraft } from "../hooks/useRecipeDialog";
 import type { RecipeTemplate } from "../hooks/useRecipes";
 
 export type TopTab = "tokens" | "themes" | "inspect" | "sync";
-export type TokensSection = "library" | "recipes";
 type TokensSubTab = "tokens";
 type ThemesSubTab = "themes";
 type InspectSubTab = "inspect" | "canvas-analysis";

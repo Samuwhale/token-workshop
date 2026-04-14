@@ -238,7 +238,7 @@ select:focus-visible,
 
 .tm-authoring-surface__header {
   min-block-size: 40px;
-  padding: 8px 12px;
+  padding: 10px 16px;
   background: var(--color-figma-bg-secondary);
 }
 
@@ -256,8 +256,8 @@ select:focus-visible,
 .tm-authoring-body-stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 16px;
+  padding: 16px;
 }
 
 .tm-authoring-surface__footer {
@@ -271,7 +271,7 @@ select:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 10px 16px;
 }
 
 .tm-authoring-footer__meta {
@@ -468,19 +468,19 @@ select:focus-visible,
   gap: 0;
 }
 
-@container authoring-surface (min-width: 320px) {
+@container authoring-surface (min-width: 480px) {
   .tm-authoring-surface__header {
     min-block-size: 44px;
-    padding: 10px 16px;
+    padding: 12px 20px;
   }
 
   .tm-authoring-body-stack {
-    gap: 16px;
-    padding: 16px;
+    gap: 20px;
+    padding: 20px;
   }
 
   .tm-authoring-footer {
-    padding: 10px 16px;
+    padding: 12px 20px;
   }
 }
 

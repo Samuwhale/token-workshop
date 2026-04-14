@@ -38,7 +38,15 @@ import {
 
 type HealthStatus = "healthy" | "warning" | "critical";
 
-
+type PriorityIssueAction =
+  | { kind: "lint" }
+  | { kind: "recipe"; recipeId: string | null }
+  | { kind: "validation-scroll" }
+  | { kind: "alias-opportunities-scroll" }
+  | { kind: "deprecated-scroll" }
+  | { kind: "duplicates-scroll" }
+  | { kind: "canvas" }
+  | { kind: "unused-scroll" };
 
 interface PriorityIssue {
   severity: "critical" | "warning" | "info";
@@ -46,16 +54,7 @@ interface PriorityIssue {
   message: string;
   count: number;
   ctaLabel: string;
-  /** Stable string key describing the action — resolved to a handler in JSX */
-  action:
-    | "lint"
-    | "recipes"
-    | "validation-scroll"
-    | "alias-opportunities-scroll"
-    | "deprecated-scroll"
-    | "duplicates-scroll"
-    | "canvas"
-    | "unused-scroll";
+  action: PriorityIssueAction;
 }
 
 
@@ -247,8 +246,8 @@ export interface HealthPanelProps {
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
   onNavigateTo: (topTab: "tokens" | "themes" | "inspect" | "sync", subTab?: string) => void;
-  onSetTokensSection?: (section: "library" | "recipes") => void;
   onNavigateToToken?: (path: string, set: string) => void;
+  onNavigateToRecipe?: (recipeId: string) => void;
   onTriggerHeatmap: () => void;
   /** Shared validation cache — avoids re-fetching when switching from Analytics tab */
   validationIssues: ValidationIssue[] | null;
@@ -274,8 +273,8 @@ export function HealthPanel({
   tokenUsageCounts,
   heatmapResult,
   onNavigateTo,
-  onSetTokensSection,
   onNavigateToToken,
+  onNavigateToRecipe,
   onTriggerHeatmap,
   validationIssues: validationIssuesProp,
   validationSummary,
@@ -733,15 +732,6 @@ export function HealthPanel({
       : activeIssues.filter((i) => i.severity === severityFilter)
     : null;
 
-  const severityCounts = activeIssues
-    ? {
-        all: activeIssues.length,
-        error: activeIssues.filter((i) => i.severity === "error").length,
-        warning: activeIssues.filter((i) => i.severity === "warning").length,
-        info: activeIssues.filter((i) => i.severity === "info").length,
-      }
-    : null;
-
   useEffect(() => {
     if (validationIssuesProp === null) return;
     setValidationReportExpanded((activeIssues?.length ?? 0) > 0);
@@ -966,7 +956,7 @@ export function HealthPanel({
         message: `${formatCount(lintErrors, "lint error")} in the current set`,
         count: lintErrors,
         ctaLabel: "Review lint",
-        action: "lint",
+        action: { kind: "lint" },
       });
     }
 
@@ -987,7 +977,7 @@ export function HealthPanel({
           message: `${formatCount(count, "token")} affected`,
           count,
           ctaLabel: getValidationPriorityCtaLabel(rule),
-          action: "validation-scroll",
+          action: { kind: "validation-scroll" },
         });
       }
     }
@@ -999,7 +989,7 @@ export function HealthPanel({
         message: `${formatCount(errorRecipes.length, "recipe")} failed`,
         count: errorRecipes.length,
         ctaLabel: "Inspect recipes",
-        action: "recipes",
+        action: { kind: "recipe", recipeId: errorRecipes[0]?.id ?? null },
       });
     }
 
@@ -1011,7 +1001,7 @@ export function HealthPanel({
         message: `${formatCount(lintWarnings, "lint warning")} in the current set`,
         count: lintWarnings,
         ctaLabel: "Review lint",
-        action: "lint",
+        action: { kind: "lint" },
       });
     }
 
@@ -1032,7 +1022,7 @@ export function HealthPanel({
           message: `${formatCount(count, "token")} affected`,
           count,
           ctaLabel: getValidationPriorityCtaLabel(rule),
-          action: "validation-scroll",
+          action: { kind: "validation-scroll" },
         });
       }
     }
@@ -1044,7 +1034,7 @@ export function HealthPanel({
         message: `${formatCount(totalDuplicateAliases, "redundant value")} detected`,
         count: totalDuplicateAliases,
         ctaLabel: "Review duplicates",
-        action: "duplicates-scroll",
+        action: { kind: "duplicates-scroll" },
       });
     }
 
@@ -1055,7 +1045,7 @@ export function HealthPanel({
         message: `${formatCount(staleRecipes.length, "recipe")} stale`,
         count: staleRecipes.length,
         ctaLabel: "Run recipes",
-        action: "recipes",
+        action: { kind: "recipe", recipeId: staleRecipes[0]?.id ?? null },
       });
     }
 
@@ -1066,7 +1056,7 @@ export function HealthPanel({
         message: `${formatCount(heatmapResult.red, "unbound layer")} on canvas`,
         count: heatmapResult.red,
         ctaLabel: "Fix bindings",
-        action: "canvas",
+        action: { kind: "canvas" },
       });
     }
 
@@ -1078,7 +1068,7 @@ export function HealthPanel({
         message: `${formatCount(aliasOpportunityGroups.length, "shared-alias opportunity", "shared-alias opportunities")} detected`,
         count: aliasOpportunityGroups.length,
         ctaLabel: "Promote aliases",
-        action: "alias-opportunities-scroll",
+        action: { kind: "alias-opportunities-scroll" },
       });
     }
 
@@ -1089,33 +1079,28 @@ export function HealthPanel({
         message: `${formatCount(unusedCount, "unused token")} ready for cleanup`,
         count: unusedCount,
         ctaLabel: "Review unused",
-        action: "unused-scroll",
+        action: { kind: "unused-scroll" },
       });
     }
 
     return items;
   })();
 
-  const summaryCounts = priorityIssues.reduce(
-    (counts, issue) => {
-      counts[issue.severity] += issue.count;
-      return counts;
-    },
-    { critical: 0, warning: 0, info: 0 },
-  );
-
   const totalAllIssues = priorityIssues
     .filter((i) => i.severity !== "info")
     .reduce((sum, i) => sum + i.count, 0);
 
-  const resolveIssueAction = (action: PriorityIssue["action"]) => {
-    switch (action) {
+  const resolveIssueAction = (action: PriorityIssueAction) => {
+    switch (action.kind) {
       case "lint":
         return () => onNavigateTo("tokens", "tokens");
-      case "recipes":
+      case "recipe":
         return () => {
+          if (action.recipeId && onNavigateToRecipe) {
+            onNavigateToRecipe(action.recipeId);
+            return;
+          }
           onNavigateTo("tokens", "tokens");
-          onSetTokensSection?.("recipes");
         };
       case "canvas":
         return () => {
@@ -1163,7 +1148,7 @@ export function HealthPanel({
     <div className="flex flex-col h-full overflow-hidden">
       {/* Body */}
       <div
-        className="flex-1 overflow-y-auto px-2 py-2"
+        className="flex-1 overflow-y-auto px-3 py-3"
         style={{ scrollbarWidth: "thin" }}
       >
         {!connected ? (
@@ -1221,23 +1206,7 @@ export function HealthPanel({
                     <NoticePill severity="info">Auditing…</NoticePill>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {summaryCounts.critical > 0 && (
-                    <NoticePill severity="error">
-                      {summaryCounts.critical} critical
-                    </NoticePill>
-                  )}
-                  {summaryCounts.warning > 0 && (
-                    <NoticePill severity="warning">
-                      {summaryCounts.warning} warning
-                    </NoticePill>
-                  )}
-                  {summaryCounts.info > 0 && (
-                    <NoticePill severity="info">
-                      {summaryCounts.info} info
-                    </NoticePill>
-                  )}
-                </div>
+                {/* Issue counts communicated via priority list below */}
               </div>
 
               {priorityIssues.length > 0 && (
@@ -1264,11 +1233,9 @@ export function HealthPanel({
                           }
                         />
                       </span>
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 min-w-0 truncate">
-                        {issue.category}
-                        <span className="font-normal text-[var(--color-figma-text-secondary)]">
-                          {" \u2014 "}{issue.message}
-                        </span>
+                      <span className="text-[10px] text-[var(--color-figma-text)] flex-1 min-w-0 truncate">
+                        <span className="font-medium">{issue.category}</span>
+                        <span className="text-[var(--color-figma-text-secondary)]">{" · "}{issue.message}</span>
                       </span>
                       <button
                         onClick={resolveIssueAction(issue.action)}
@@ -1313,17 +1280,9 @@ export function HealthPanel({
                       >
                         <path d="M2 1l4 3-4 3V1z" />
                       </svg>
-                      <div className="flex min-w-0 flex-1 items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                          Audit report
-                        </span>
-                        {validationIsStale && (
-                          <NoticePill severity="stale">Stale</NoticePill>
-                        )}
-                        {(activeIssues?.length ?? 0) === 0 ? (
-                          <NoticePill severity="success">All clear</NoticePill>
-                        ) : null}
-                      </div>
+                      <span className="text-[11px] font-semibold text-[var(--color-figma-text)] min-w-0 flex-1">
+                        Audit report
+                      </span>
                     </button>
                     <div className="flex flex-wrap items-center justify-end gap-1.5">
                       {lastRefreshed ? (
@@ -1335,21 +1294,17 @@ export function HealthPanel({
                         const filterSeverity: NoticeSeverity =
                           f === "all" ? "info" : f;
                         const isActive = severityFilter === f;
-                        const label =
-                          severityCounts && f !== "all"
-                            ? `${f} (${severityCounts[f]})`
-                            : f;
                         return (
                           <button
                             key={f}
                             onClick={() => setSeverityFilter(f)}
-                            className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                            className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
                               isActive
-                                ? `${severityStyles(filterSeverity).pill} border-current/20`
-                                : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                ? `${severityStyles(filterSeverity).pill} font-medium`
+                                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                             }`}
                           >
-                            {label}
+                            {f}
                           </button>
                         );
                       })}

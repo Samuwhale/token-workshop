@@ -6,7 +6,6 @@ import {
   useTokenFlatMapContext,
   useTokenSetsContext,
 } from "../contexts/TokenDataContext";
-import { useTokensWorkspaceController } from "../contexts/WorkspaceControllerContext";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 
 type InboxFilter = "all" | "blocker" | "attention" | "success";
@@ -25,7 +24,6 @@ type ActionTarget =
         | "export"
         | "history"
         | "health";
-      tokensSection?: "library" | "recipes";
     }
   | { kind: "surface"; surface: "import" | "settings" };
 
@@ -129,8 +127,8 @@ function inferWorkspaceAction(message: string): InboxAction {
   }
   if (lower.includes("recipe")) {
     return {
-      label: "Open recipes",
-      target: { kind: "workspace", topTab: "tokens", subTab: "tokens", tokensSection: "recipes" },
+      label: "Open tokens",
+      target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },
     };
   }
   if (
@@ -282,7 +280,6 @@ export function NotificationsPanel({
   const { activeSet, setActiveSet } = useTokenSetsContext();
   const { pathToSet } = useTokenFlatMapContext();
   const { setHighlightedToken, setPendingHighlightForSet } = useEditorContext();
-  const { setActiveTokensSection } = useTokensWorkspaceController();
 
   const inbox = useMemo(() => {
     const deduped = new Map<string, InboxItem>();
@@ -323,16 +320,6 @@ export function NotificationsPanel({
     [filter, inbox],
   );
 
-  const counts = useMemo(
-    () => ({
-      all: inbox.length,
-      blocker: inbox.filter((item) => item.severity === "blocker").length,
-      attention: inbox.filter((item) => item.severity === "attention").length,
-      success: inbox.filter((item) => item.severity === "success").length,
-    }),
-    [inbox],
-  );
-
   const openAction = (action: InboxAction | null) => {
     if (!action) return;
     const actionName = action.label.replace(/^Open\s+/i, "").toLowerCase();
@@ -364,9 +351,6 @@ export function NotificationsPanel({
     navigateTo(action.target.topTab, action.target.subTab, {
       preserveHandoff: true,
     });
-    if (action.target.tokensSection) {
-      setActiveTokensSection(action.target.tokensSection);
-    }
   };
 
   return (
@@ -402,8 +386,7 @@ export function NotificationsPanel({
                         : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                     }`}
                   >
-                    {FILTER_LABELS[value]}{" "}
-                    {counts[value] > 0 ? `(${counts[value]})` : ""}
+                    {FILTER_LABELS[value]}
                   </button>
                 );
               })}
@@ -428,7 +411,7 @@ export function NotificationsPanel({
           }}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto px-2">
+        <div className="flex-1 overflow-y-auto px-3">
           {visibleItems.map((item) => (
             <NotificationCard
               key={item.dedupeKey}
@@ -457,11 +440,6 @@ function NotificationCard({
             <span className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
               {item.title}
             </span>
-            {item.occurrences > 1 && (
-              <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                {item.occurrences}x
-              </span>
-            )}
             <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]" title={formatTime(item.latestTimestamp)}>
               {timeAgo(item.latestTimestamp)}
             </span>

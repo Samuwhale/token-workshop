@@ -177,7 +177,6 @@ export const STORAGE_KEYS = {
   ACTIVE_RESOLVER:          'tm_active_resolver',
   RESOLVER_INPUT:           'tm_resolver_input',
   EDITOR_WIDTH:             'tm_editor_width',
-  ACTIVE_TOKENS_SECTION:    'tm_tokens_section',
 } as const;
 
 /** Per-set dynamic key builders */
@@ -203,7 +202,6 @@ const WORKSPACE_RECOVERY_RESET_KEYS = [
   STORAGE_KEYS.ACTIVE_TOP_TAB,
   STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
   STORAGE_KEYS.ACTIVE_SUB_TAB_THEMES,
-  STORAGE_KEYS.ACTIVE_TOKENS_SECTION,
   STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
   STORAGE_KEYS.ANALYTICS_CANONICAL,

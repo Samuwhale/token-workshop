@@ -62,7 +62,6 @@ export interface TokenListToolbarProps {
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
   onOpenSetSwitcher?: () => void;
-  hasDimensions: boolean;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
   themeLensEnabled: boolean;
@@ -77,54 +76,6 @@ export interface TokenListToolbarProps {
   applyingOrLoading?: boolean;
   tokensExist?: boolean;
   overflowMenuProps: TokenListOverflowMenuProps | null;
-}
-
-function ToolbarSummaryLine({
-  label,
-  items,
-}: {
-  label: string;
-  items: ToolbarStateChip[];
-}) {
-  if (items.length === 0) return null;
-
-  return (
-    <div className="flex min-w-0 items-start gap-1.5 text-[9px] leading-tight">
-      <span className="shrink-0 text-[var(--color-figma-text-tertiary)]">
-        {label}
-      </span>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
-        {items.map((item, index) => (
-          <span
-            key={item.key}
-            className="inline-flex min-w-0 items-center gap-1"
-          >
-            <button
-              type="button"
-              onClick={item.onRemove}
-              disabled={!item.onRemove}
-              className={`truncate ${
-                item.tone === "filter"
-                  ? "text-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)]"
-                  : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-              } disabled:cursor-default`}
-              title={item.onRemove ? `Remove ${item.label}` : item.label}
-            >
-              {item.label}
-            </button>
-            {index < items.length - 1 && (
-              <span
-                aria-hidden="true"
-                className="text-[var(--color-figma-text-tertiary)]/60"
-              >
-                ·
-              </span>
-            )}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function getCurrentLibraryViewMode({
@@ -160,7 +111,7 @@ export function TokenListToolbar({
   qualifierHintsRef,
   structuredFilterChips,
   toolbarStateChips,
-  contextSummary,
+  contextSummary: _contextSummary,
   hasStructuredFilters,
   clearFilters,
   clearViewModes,
@@ -174,7 +125,6 @@ export function TokenListToolbar({
   onShowPasteModal,
   onOpenImportPanel,
   onOpenSetSwitcher,
-  hasDimensions,
   multiModeEnabled,
   onToggleMultiMode,
   themeLensEnabled,
@@ -194,69 +144,41 @@ export function TokenListToolbar({
   const createToolsMenuContainerRef = useRef<HTMLDivElement>(null);
   const createToolsMenuButtonRef = useRef<HTMLButtonElement>(null);
   const createToolsMenuRef = useRef<HTMLDivElement>(null);
-  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
-  const toolsMenuContainerRef = useRef<HTMLDivElement>(null);
-  const toolsMenuButtonRef = useRef<HTMLButtonElement>(null);
-  const toolsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!createToolsMenuOpen && !toolsMenuOpen) return;
+    if (!createToolsMenuOpen) return;
     const onMouseDown = (event: MouseEvent) => {
-      if (
-        createToolsMenuContainerRef.current?.contains(event.target as Node) ||
-        toolsMenuContainerRef.current?.contains(event.target as Node)
-      ) {
+      if (createToolsMenuContainerRef.current?.contains(event.target as Node)) {
         return;
       }
       setCreateToolsMenuOpen(false);
-      setToolsMenuOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
         setCreateToolsMenuOpen(false);
-        setToolsMenuOpen(false);
-        if (createToolsMenuOpen) {
-          createToolsMenuButtonRef.current?.focus();
-          return;
-        }
-        if (toolsMenuOpen) {
-          toolsMenuButtonRef.current?.focus();
-          return;
-        }
+        createToolsMenuButtonRef.current?.focus();
+        return;
       }
-      if (createToolsMenuOpen && createToolsMenuRef.current) {
+      if (createToolsMenuRef.current) {
         handleMenuArrowKeys(event, createToolsMenuRef.current);
-        return;
-      }
-      if (toolsMenuOpen && toolsMenuRef.current) {
-        handleMenuArrowKeys(event, toolsMenuRef.current);
-        return;
       }
     };
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKeyDown);
     window.requestAnimationFrame(() => {
-      if (createToolsMenuOpen && createToolsMenuRef.current) {
+      if (createToolsMenuRef.current) {
         getMenuItems(createToolsMenuRef.current)[0]?.focus();
-      }
-      if (toolsMenuOpen && toolsMenuRef.current) {
-        getMenuItems(toolsMenuRef.current)[0]?.focus();
       }
     });
     return () => {
       document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [createToolsMenuOpen, toolsMenuOpen]);
+  }, [createToolsMenuOpen]);
 
   const runCreateToolsAction = useCallback((action: () => void) => {
     setCreateToolsMenuOpen(false);
-    action();
-  }, []);
-
-  const runToolsAction = useCallback((action: () => void) => {
-    setToolsMenuOpen(false);
     action();
   }, []);
 
@@ -308,7 +230,7 @@ export function TokenListToolbar({
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-      <div className="flex flex-col gap-2 px-2 py-2">
+      <div className="flex flex-col gap-2 px-3 py-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1">
@@ -365,15 +287,12 @@ export function TokenListToolbar({
               <button
                 ref={createToolsMenuButtonRef}
                 type="button"
-                onClick={() => {
-                  setToolsMenuOpen(false);
-                  setCreateToolsMenuOpen((open) => !open);
-                }}
+                onClick={() => setCreateToolsMenuOpen((open) => !open)}
                 disabled={!connected}
                 aria-expanded={createToolsMenuOpen}
                 aria-haspopup="menu"
-                className="inline-flex min-h-[24px] items-center gap-1 rounded bg-[var(--color-figma-bg)] px-2 text-[10px] font-medium text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                title="Create or import"
+                className="inline-flex h-[24px] w-[24px] items-center justify-center rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                title="Add, import, or edit"
               >
                 <svg
                   width="10"
@@ -381,14 +300,13 @@ export function TokenListToolbar({
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   aria-hidden="true"
                 >
                   <path d="M12 5v14M5 12h14" />
                 </svg>
-                <span>Create</span>
               </button>
 
               {createToolsMenuOpen && (
@@ -431,6 +349,46 @@ export function TokenListToolbar({
                       New recipe
                     </button>
                   )}
+                  {(onSelectTokens || onBulkEdit || onFindReplace || onFoundationTemplates) && (
+                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                  )}
+                  {onSelectTokens && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onSelectTokens)}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      Select tokens
+                    </button>
+                  )}
+                  {onBulkEdit && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onBulkEdit)}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      Bulk edit
+                    </button>
+                  )}
+                  {onFindReplace && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onFindReplace)}
+                      disabled={!connected}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Find and replace
+                    </button>
+                  )}
+                  {onFoundationTemplates && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onFoundationTemplates)}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      Templates
+                    </button>
+                  )}
                   <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
                   <button
                     role="menuitem"
@@ -452,102 +410,32 @@ export function TokenListToolbar({
                   >
                     Import tokens
                   </button>
+                  {(onApplyVariables || onApplyStyles) && (
+                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                  )}
+                  {onApplyVariables && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onApplyVariables)}
+                      disabled={applyingOrLoading || !tokensExist}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Push variables
+                    </button>
+                  )}
+                  {onApplyStyles && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onApplyStyles)}
+                      disabled={applyingOrLoading || !tokensExist}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Push styles
+                    </button>
+                  )}
                 </div>
               )}
             </div>
-
-            {(onSelectTokens ||
-              onBulkEdit ||
-              onFindReplace ||
-              onFoundationTemplates ||
-              onApplyVariables ||
-              onApplyStyles) && (
-              <div className="relative shrink-0" ref={toolsMenuContainerRef}>
-                <button
-                  ref={toolsMenuButtonRef}
-                  type="button"
-                  onClick={() => {
-                    setCreateToolsMenuOpen(false);
-                    setToolsMenuOpen((open) => !open);
-                  }}
-                  aria-expanded={toolsMenuOpen}
-                  aria-haspopup="menu"
-                  className="inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                  title="Tools"
-                >
-                  <span>Tools</span>
-                </button>
-
-                {toolsMenuOpen && (
-                  <div
-                    ref={toolsMenuRef}
-                    className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
-                    role="menu"
-                  >
-                    {onSelectTokens && (
-                      <button
-                        role="menuitem"
-                        onClick={() => runToolsAction(onSelectTokens)}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                      >
-                        Select tokens
-                      </button>
-                    )}
-                    {onBulkEdit && (
-                      <button
-                        role="menuitem"
-                        onClick={() => runToolsAction(onBulkEdit)}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                      >
-                        Bulk edit
-                      </button>
-                    )}
-                    {onFindReplace && (
-                      <button
-                        role="menuitem"
-                        onClick={() => runToolsAction(onFindReplace)}
-                        disabled={!connected}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        Find and replace
-                      </button>
-                    )}
-                    {onFoundationTemplates && (
-                      <button
-                        role="menuitem"
-                        onClick={() => runToolsAction(onFoundationTemplates)}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                      >
-                        Templates
-                      </button>
-                    )}
-                    {(onApplyVariables || onApplyStyles) && (
-                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                    )}
-                    {onApplyVariables && (
-                      <button
-                        role="menuitem"
-                        onClick={() => runToolsAction(onApplyVariables)}
-                        disabled={applyingOrLoading || !tokensExist}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        Push variables
-                      </button>
-                    )}
-                    {onApplyStyles && (
-                      <button
-                        role="menuitem"
-                        onClick={() => runToolsAction(onApplyStyles)}
-                        disabled={applyingOrLoading || !tokensExist}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        Push styles
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
 
             {overflowMenuProps && (
               <>
@@ -737,38 +625,42 @@ export function TokenListToolbar({
           </div>
         )}
 
-        {(contextSummary || filterItems.length > 0 || viewItems.length > 0) && (
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1 space-y-0.5">
-              {contextSummary && (
-                <div className="text-[9px] leading-tight text-[var(--color-figma-text-secondary)]">
-                  {contextSummary}
-                </div>
-              )}
-              <ToolbarSummaryLine label="Filters" items={filterItems} />
-              <ToolbarSummaryLine label="View" items={viewItems} />
+        {(filterItems.length > 0 || viewItems.length > 0) && (
+          <div className="flex items-center gap-1.5">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5 text-[9px] leading-tight">
+              {filterItems.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={item.onRemove}
+                  disabled={!item.onRemove}
+                  className="truncate text-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:cursor-default"
+                  title={item.onRemove ? `Remove ${item.label}` : item.label}
+                >
+                  {item.label}
+                </button>
+              ))}
+              {viewItems.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={item.onRemove}
+                  disabled={!item.onRemove}
+                  className="truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:cursor-default"
+                  title={item.onRemove ? `Remove ${item.label}` : item.label}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
             {(canClearFilters || canClearView) && (
-              <div className="flex shrink-0 items-center gap-2">
-                {canClearFilters && (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Reset filters
-                  </button>
-                )}
-                {canClearView && (
-                  <button
-                    type="button"
-                    onClick={clearViewModes}
-                    className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Reset view
-                  </button>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => { clearFilters(); clearViewModes(); }}
+                className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+              >
+                Clear
+              </button>
             )}
           </div>
         )}

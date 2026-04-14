@@ -3779,7 +3779,6 @@ export function TokenList({
             onOpenImportPanel={onOpenImportPanel}
             onOpenSetSwitcher={onOpenSetSwitcher}
             onCreateRecipe={onNavigateToNewRecipe}
-            hasDimensions={dimensions.length > 0}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
             themeLensEnabled={themeLensEnabled}

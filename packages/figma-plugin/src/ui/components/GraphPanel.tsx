@@ -463,15 +463,15 @@ export function GraphPanel({
             )}
           </div>
 
-          {/* Conditional batch action buttons */}
+          {/* Batch actions */}
           {staleRecipes.length > 0 && (
             <button
               type="button"
               onClick={() => void runRecipes("stale", staleRecipes)}
               disabled={runningAction !== null || !connected}
-              className="shrink-0 rounded-md border border-[var(--color-figma-warning,#f59e0b)]/40 bg-[var(--color-figma-warning,#f59e0b)]/10 px-2 py-1.5 text-[10px] font-medium text-[var(--color-figma-warning,#f59e0b)] transition-colors hover:bg-[var(--color-figma-warning,#f59e0b)]/20 disabled:cursor-not-allowed disabled:opacity-40"
+              className="shrink-0 px-1.5 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {runningAction === "stale" ? "Running…" : `Re-run (${staleRecipes.length})`}
+              {runningAction === "stale" ? "Running…" : "Run stale"}
             </button>
           )}
           {failedRecipes.length > 0 && (
@@ -479,18 +479,18 @@ export function GraphPanel({
               type="button"
               onClick={() => void runRecipes("failed", failedRecipes)}
               disabled={runningAction !== null || !connected}
-              className="shrink-0 rounded-md border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/20 disabled:cursor-not-allowed disabled:opacity-40"
+              className="shrink-0 px-1.5 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {runningAction === "failed" ? "Retrying…" : `Retry (${failedRecipes.length})`}
+              {runningAction === "failed" ? "Retrying…" : "Retry failed"}
             </button>
           )}
 
-          {/* New recipe button */}
+          {/* New recipe button — outlined */}
           <button
             type="button"
             onClick={() => setShowCreateDialog(true)}
             disabled={!connected}
-            className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="shrink-0 rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             New
           </button>
@@ -498,7 +498,7 @@ export function GraphPanel({
       </div>
 
       {/* Recipe list */}
-      <div className="flex-1 overflow-y-auto px-1 py-1">
+      <div className="flex-1 overflow-y-auto px-3 py-2">
         {filteredRecipes.length > 0 ? (
           <div className="flex flex-col">
             {filteredRecipes.map((recipe) => (

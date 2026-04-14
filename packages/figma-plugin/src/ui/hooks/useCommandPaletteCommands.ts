@@ -52,8 +52,12 @@ export function useCommandPaletteCommands(): {
     useNavigationContext();
   const { dimensions } = useThemeSwitcherContext();
   const { selectedNodes } = useSelectionContext();
-  const { highlightedToken, setHighlightedToken, setEditingToken } =
-    useEditorContext();
+  const {
+    highlightedToken,
+    setHighlightedToken,
+    setEditingToken,
+    switchContextualSurface,
+  } = useEditorContext();
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
   const themes = useThemeWorkspaceController();
@@ -256,8 +260,10 @@ export function useCommandPaletteCommands(): {
         category: "Recipes" as const,
         handler: () => {
           navigateTo("tokens");
-          tokens.setActiveTokensSection("recipes");
-          tokens.setPendingGraphTemplate(template.id);
+          switchContextualSurface({
+            surface: "recipe-editor",
+            recipe: { mode: "create", template },
+          });
         },
       })),
       {
@@ -329,6 +335,7 @@ export function useCommandPaletteCommands(): {
     selectedNodes.length,
     setEditingToken,
     shell,
+    switchContextualSurface,
     closeSecondarySurface,
     tokens,
     themes,

@@ -78,7 +78,7 @@ interface SetManagerProps {
   activeSet: string;
   onClose: () => void;
   onOpenQuickSwitch?: () => void;
-  onOpenRecipes?: (setName: string) => void;
+  onCreateRecipe?: (setName: string) => void;
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
@@ -247,7 +247,7 @@ function ThemeStatusBadge({ status }: { status: ThemeSetStatus }) {
         : "border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]";
   return (
     <span
-      className={`rounded px-1.5 py-0.5 text-[9px] uppercase tracking-[0.08em] ${className}`}
+      className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.06em] ${className}`}
     >
       {formatThemeStatus(status)}
     </span>
@@ -982,7 +982,7 @@ export function SetManager({
   activeSet,
   onClose,
   onOpenQuickSwitch,
-  onOpenRecipes,
+  onCreateRecipe,
   onRename,
   onDuplicate,
   onDelete,
@@ -1312,7 +1312,7 @@ export function SetManager({
               setTokenCounts={setTokenCounts}
               setDescriptions={setDescriptions}
               setThemeLabels={setThemeLabels}
-              onOpenRecipes={onOpenRecipes}
+              onCreateRecipe={onCreateRecipe}
               onRename={onRename}
               onDuplicate={onDuplicate}
               onDelete={onDelete}
@@ -1390,7 +1390,7 @@ interface ManageViewProps {
   setTokenCounts: Record<string, number>;
   setDescriptions: Record<string, string>;
   setThemeLabels: Record<string, SetThemeLabel[]>;
-  onOpenRecipes?: (setName: string) => void;
+  onCreateRecipe?: (setName: string) => void;
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
@@ -1423,7 +1423,7 @@ function ManageView({
   setTokenCounts,
   setDescriptions,
   setThemeLabels,
-  onOpenRecipes,
+  onCreateRecipe,
   onRename,
   onDuplicate,
   onDelete,
@@ -2155,11 +2155,11 @@ function ManageView({
                         <path d="M5 8L1 3H9L5 8Z" />
                       </IconButton>
                     )}
-                    {onOpenRecipes && (
+                    {onCreateRecipe && (
                       <StrokeIconButton
                         title="Create recipe"
                         ariaLabel="Create recipe"
-                        onClick={() => onOpenRecipes(set)}
+                        onClick={() => onCreateRecipe(set)}
                       >
                         <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
                       </StrokeIconButton>

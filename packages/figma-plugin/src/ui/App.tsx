@@ -30,9 +30,6 @@ import { useWindowExpand } from "./hooks/useWindowExpand";
 import { useWindowResize } from "./hooks/useWindowResize";
 import type {
   SecondarySurfaceId,
-  SubTab,
-  TokensSection,
-  TopTab,
   UtilityActionId,
 } from "./shared/navigationTypes";
 import {
@@ -79,7 +76,6 @@ import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
 import { useAnalyticsState } from "./hooks/useAnalyticsState";
 import { useValidationCache } from "./hooks/useValidationCache";
-import { useGraphState } from "./hooks/useGraphState";
 import { useSettingsListener } from "./components/SettingsPanel";
 import {
   WorkspaceControllerProvider,
@@ -115,7 +111,6 @@ export function App() {
     openSecondarySurface,
     closeSecondarySurface,
     activeHandoff,
-    beginHandoff,
     clearHandoff,
     returnFromHandoff,
   } = useNavigationContext();
@@ -187,11 +182,8 @@ export function App() {
     setPreviewThemes,
     openDimDropdown,
     setOpenDimDropdown,
-    dimBarExpanded,
-    setDimBarExpanded,
     dimDropdownRef,
     themesError,
-    retryThemes,
   } = useThemeSwitcherContext();
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
@@ -357,22 +349,6 @@ export function App() {
   );
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
-  const {
-    pendingGraphTemplate,
-    setPendingGraphTemplate,
-    pendingGraphFromGroup,
-    setPendingGraphFromGroup,
-    focusRecipeId,
-    setFocusRecipeId,
-    pendingOpenPicker,
-    setPendingOpenPicker,
-  } = useGraphState();
-  const [activeTokensSection, setActiveTokensSection] = useState<TokensSection>(
-    () => (lsGet(STORAGE_KEYS.ACTIVE_TOKENS_SECTION) as TokensSection) || "library",
-  );
-  useEffect(() => {
-    lsSet(STORAGE_KEYS.ACTIVE_TOKENS_SECTION, activeTokensSection);
-  }, [activeTokensSection]);
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
@@ -395,14 +371,8 @@ export function App() {
   const activeWorkspace = activeWorkspaceSummary.workspace;
   const activeWorkspaceSection = activeWorkspaceSummary.section;
   const activeWorkspaceId = activeWorkspace.id;
-  const shellShortcutSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
-    (surface) => surface.access === "shell-shortcut",
-  );
   const shellMenuSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
     (surface) => surface.access === "shell-menu",
-  );
-  const notificationSurface = APP_SHELL_NAVIGATION.secondarySurfaces.find(
-    (surface) => surface.access === "attention-bell",
   );
   const themeSetTokenCounts = useMemo(() => {
     const counts: Record<string, number | null> = {};
@@ -755,10 +725,12 @@ export function App() {
   const handleNavigateToRecipe = useCallback(
     (recipeId: string) => {
       navigateTo("tokens", "tokens");
-      setActiveTokensSection("recipes");
-      setFocusRecipeId(recipeId);
+      switchContextualSurface({
+        surface: "recipe-editor",
+        recipe: { mode: "edit", id: recipeId },
+      });
     },
-    [navigateTo, setFocusRecipeId],
+    [navigateTo, switchContextualSurface],
   );
   const { showIssuesOnly, setShowIssuesOnly } = useAnalyticsState();
   const {
@@ -1589,14 +1561,6 @@ export function App() {
       handleNavigateToRecipe,
       flowPanelInitialPath,
       setFlowPanelInitialPath,
-      pendingGraphTemplate,
-      setPendingGraphTemplate,
-      pendingGraphFromGroup,
-      setPendingGraphFromGroup,
-      focusRecipeId,
-      setFocusRecipeId,
-      pendingOpenPicker,
-      setPendingOpenPicker,
       tokenListCompareRef,
       tokenListSelection,
       onTokenDragStart: (paths: string[], fromSet: string) =>
@@ -1611,8 +1575,6 @@ export function App() {
       requestPaletteDelete: (paths: string[], label: string) =>
         setPaletteDeleteConfirm({ paths, label }),
       handlePaletteDeleteToken,
-      activeTokensSection,
-      setActiveTokensSection,
     },
     themes: {
       themeManagerHandleRef,
@@ -1658,11 +1620,14 @@ export function App() {
         closeSecondarySurface();
         setShowSetSwitcher(true);
       },
-      onOpenRecipes: (set: string) => {
+      onCreateRecipe: (set: string) => {
         guardEditorAction(() => {
           setActiveSet(set);
+          switchContextualSurface({
+            surface: "recipe-editor",
+            recipe: { mode: "create" },
+          });
           navigateTo("tokens", "tokens");
-          setActiveTokensSection("recipes");
           closeSecondarySurface();
         });
       },
@@ -1895,11 +1860,6 @@ export function App() {
   }, [activeHandoff, activeSecondarySurface, activeSubTab, activeTopTab]);
   const shellPrimaryAction =
     activeSecondarySurface === null ? workspacePrimaryAction : null;
-  const isTokenWorkspacePrimarySurface =
-    activeTopTab === "tokens" &&
-    activeSubTab === "tokens" &&
-    activeSecondarySurface === null;
-
   const handleUtilityAction = useCallback(
     (actionId: UtilityActionId) => {
       setMenuOpen(false);
@@ -1946,43 +1906,13 @@ export function App() {
       ? `Connected to ${serverUrl}`
       : `Server offline · ${serverUrl}`;
   const notificationCount = notificationHistory.length;
-  const showNotificationButton =
-    notificationCount > 0 || activeSecondarySurface === "notifications";
-  const tokenThemePreviewEntries = useMemo(
-    () =>
-      dimensions
-        .filter(
-          (dimension) =>
-            previewThemes[dimension.id] &&
-            previewThemes[dimension.id] !== activeThemes[dimension.id],
-        )
-        .map(
-          (dimension) => `${dimension.name}: ${previewThemes[dimension.id]}`,
-        ),
-    [activeThemes, dimensions, previewThemes],
-  );
-  const tokenThemeSelectionSummary = useMemo(() => {
-    const activeEntries = dimensions
-      .map((dimension) => activeThemes[dimension.id])
-      .filter(Boolean);
-    return activeEntries.join(" · ") || "No mode applied";
-  }, [activeThemes, dimensions]);
-  const showExpandedTokenThemeBar =
-    isTokenWorkspacePrimarySurface &&
-    (dimBarExpanded ||
-      themesError !== null ||
-      tokenThemePreviewEntries.length > 0);
-  const showCollapsedTokenThemeBar =
-    isTokenWorkspacePrimarySurface &&
-    dimensions.length > 0 &&
-    !showExpandedTokenThemeBar;
   return (
     <div className="relative flex h-screen min-h-0 flex-col overflow-hidden">
       {/* Workspace shell — single compact row */}
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-        <div className="flex items-center gap-1 px-2 py-1">
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5">
           <div
-            className="flex shrink-0 items-center gap-0.5"
+            className="flex shrink-0 items-center gap-1"
             role="tablist"
             aria-label="Workspaces"
           >
@@ -2009,7 +1939,152 @@ export function App() {
                 </button>
               );
             })}
+            {visibleHandoff && returnFromHandoff && (
+              <button
+                onClick={returnFromHandoff}
+                className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                &larr; {visibleHandoff.returnLabel}
+              </button>
+            )}
           </div>
+
+          {/* Theme mode controls — globally available when dimensions exist */}
+          {!themesError && dimensions.length > 0 && (
+            <div ref={dimDropdownRef} className="flex items-center gap-1.5 ml-1.5">
+              {dimensions.map((dim) => {
+                const activeOption = activeThemes[dim.id];
+                const previewOption = previewThemes[dim.id];
+                const isOpen = openDimDropdown === dim.id;
+                if (dim.options.length <= 3) {
+                  return (
+                    <div
+                      key={dim.id}
+                      className="flex items-center"
+                      title={dim.name}
+                      onMouseLeave={() => {
+                        const next = { ...previewThemes };
+                        delete next[dim.id];
+                        setPreviewThemes(next);
+                      }}
+                    >
+                      <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)] divide-x divide-[var(--color-figma-border)]">
+                        <button
+                          onClick={() => {
+                            const next = { ...activeThemes };
+                            delete next[dim.id];
+                            setActiveThemes(next);
+                          }}
+                          onMouseEnter={() => {
+                            const next = { ...previewThemes };
+                            delete next[dim.id];
+                            setPreviewThemes(next);
+                          }}
+                          className={`px-1.5 py-0.5 text-[10px] transition-colors ${
+                            !activeOption && !previewOption
+                              ? "bg-[var(--color-figma-accent)] text-white font-medium"
+                              : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                          }`}
+                        >
+                          —
+                        </button>
+                        {dim.options.map((opt: { name: string }) => {
+                          const isActive = activeOption === opt.name;
+                          const isPreviewing = previewOption === opt.name && previewOption !== activeOption;
+                          return (
+                            <button
+                              key={opt.name}
+                              onClick={() => {
+                                setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
+                                const next = { ...previewThemes };
+                                delete next[dim.id];
+                                setPreviewThemes(next);
+                              }}
+                              onMouseEnter={() => setPreviewThemes({ ...previewThemes, [dim.id]: opt.name })}
+                              title={isActive ? `${dim.name}: ${opt.name} (active)` : `Preview ${dim.name}: ${opt.name}`}
+                              className={`px-1.5 py-0.5 text-[10px] transition-colors ${
+                                isActive
+                                  ? "bg-[var(--color-figma-accent)] text-white font-medium"
+                                  : isPreviewing
+                                    ? "bg-[var(--color-figma-accent)] text-white opacity-60"
+                                    : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                              }`}
+                            >
+                              {opt.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={dim.id} className="relative flex items-center" title={dim.name}>
+                    <button
+                      onClick={() => setOpenDimDropdown(isOpen ? null : dim.id)}
+                      className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+                        activeOption
+                          ? "bg-[var(--color-figma-accent)] text-white font-medium"
+                          : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                      }`}
+                    >
+                      {activeOption || "—"}
+                      <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>
+                        <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    {isOpen && (
+                      <div
+                        className="absolute left-0 top-full z-50 mt-1 min-w-[90px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
+                        onMouseLeave={() => {
+                          const next = { ...previewThemes };
+                          delete next[dim.id];
+                          setPreviewThemes(next);
+                        }}
+                      >
+                        <button
+                          onClick={() => {
+                            const next = { ...activeThemes };
+                            delete next[dim.id];
+                            setActiveThemes(next);
+                            setOpenDimDropdown(null);
+                          }}
+                          onMouseEnter={() => {
+                            const next = { ...previewThemes };
+                            delete next[dim.id];
+                            setPreviewThemes(next);
+                          }}
+                          className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
+                            !activeOption ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
+                          }`}
+                        >
+                          None
+                        </button>
+                        {dim.options.map((opt: { name: string }) => (
+                          <button
+                            key={opt.name}
+                            onClick={() => {
+                              setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
+                              setOpenDimDropdown(null);
+                              const next = { ...previewThemes };
+                              delete next[dim.id];
+                              setPreviewThemes(next);
+                            }}
+                            onMouseEnter={() => setPreviewThemes({ ...previewThemes, [dim.id]: opt.name })}
+                            className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
+                              activeOption === opt.name ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
+                            }`}
+                          >
+                            {opt.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex shrink-0 items-center gap-1 ml-auto">
             {shellPrimaryAction && (
@@ -2021,35 +2096,17 @@ export function App() {
                 {shellPrimaryAction.label}
               </button>
             )}
-            {shellShortcutSurfaces.map((surface) => (
+            {notificationCount > 0 && (
               <button
-                key={surface.id}
-                onClick={() => toggleSecondarySurface(surface.id)}
-                className={shellControlClass({
-                  active: activeSecondarySurface === surface.id,
-                  size: "xs",
-                  shape: "rounded",
-                })}
-                aria-pressed={activeSecondarySurface === surface.id}
-                title={surface.transition.usage}
-              >
-                {surface.label}
-              </button>
-            ))}
-            {showNotificationButton && notificationSurface && (
-              <button
-                onClick={() => toggleSecondarySurface(notificationSurface.id)}
-                className={`relative h-5 w-5 inline-flex items-center justify-center rounded transition-colors ${activeSecondarySurface === notificationSurface.id ? "text-[var(--color-figma-text)] bg-[var(--color-figma-accent)]/12" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
-                aria-label={`Notifications (${notificationCount})`}
-                aria-pressed={activeSecondarySurface === notificationSurface.id}
+                onClick={() => toggleSecondarySurface("notifications")}
+                className={`h-6 w-6 inline-flex items-center justify-center rounded transition-colors ${activeSecondarySurface === "notifications" ? "text-[var(--color-figma-text)] bg-[var(--color-figma-accent)]/12" : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                aria-label="Notifications"
+                aria-pressed={activeSecondarySurface === "notifications"}
               >
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M8 2.5a3 3 0 0 0-3 3v1.1c0 .8-.23 1.58-.67 2.23L3.2 10.5h9.6l-1.13-1.67A4 4 0 0 1 11 6.6V5.5a3 3 0 0 0-3-3Z" />
                   <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
                 </svg>
-                <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[12px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-0.5 text-[7px] font-semibold leading-3 text-white">
-                  {notificationCount > 99 ? "99+" : notificationCount}
-                </span>
               </button>
             )}
           </div>
@@ -2057,362 +2114,10 @@ export function App() {
 
       </div>
 
-      {visibleHandoff && returnFromHandoff && (
-        <div className="absolute right-2 top-[36px] z-30">
-          <button
-            onClick={returnFromHandoff}
-            className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] shadow-sm transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            &larr; {visibleHandoff.returnLabel}
-          </button>
-        </div>
-      )}
-
       <WorkspaceControllerProvider value={workspaceControllers}>
         <ErrorBoundary>
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <>
-                {showCollapsedTokenThemeBar && (
-                  <button
-                    onClick={() => setDimBarExpanded(true)}
-                    className="flex shrink-0 items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-left"
-                  >
-                    <svg
-                      width="9"
-                      height="9"
-                      viewBox="0 0 10 10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.2"
-                      strokeLinecap="round"
-                      aria-hidden="true"
-                    >
-                      <circle cx="3.5" cy="5" r="2.5" />
-                      <circle cx="6.5" cy="5" r="2.5" />
-                    </svg>
-                    <span className="truncate text-[10px] text-[var(--color-figma-text)]">
-                      {tokenThemeSelectionSummary}
-                    </span>
-                    <svg
-                      width="7"
-                      height="7"
-                      viewBox="0 0 8 8"
-                      fill="none"
-                      className="shrink-0 text-[var(--color-figma-text-tertiary)]"
-                    >
-                      <path
-                        d="M1 3l3 3 3-3"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                )}
-
-                {showExpandedTokenThemeBar && (
-                  <div
-                    ref={dimDropdownRef}
-                    className="flex shrink-0 flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5"
-                  >
-                    <span className="flex shrink-0 items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      <svg
-                        width="9"
-                        height="9"
-                        viewBox="0 0 10 10"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                        strokeLinecap="round"
-                        aria-hidden="true"
-                      >
-                        <circle cx="3.5" cy="5" r="2.5" />
-                        <circle cx="6.5" cy="5" r="2.5" />
-                      </svg>
-                    </span>
-                    {themesError ? (
-                      <span className="flex items-center gap-1 text-[10px] text-[var(--color-figma-danger)]">
-                        Could not load themes
-                        <button
-                          onClick={retryThemes}
-                          className="underline transition-colors hover:text-[var(--color-figma-text)]"
-                        >
-                          Retry
-                        </button>
-                      </span>
-                    ) : dimensions.length > 0 ? (
-                      <>
-                        {dimensions.map((dim) => {
-                          const activeOption = activeThemes[dim.id];
-                          const previewOption = previewThemes[dim.id];
-                          const isOpen = openDimDropdown === dim.id;
-                          if (dim.options.length <= 3) {
-                            return (
-                              <div
-                                key={dim.id}
-                                className="flex items-center gap-1"
-                                onMouseLeave={() => {
-                                  const next = { ...previewThemes };
-                                  delete next[dim.id];
-                                  setPreviewThemes(next);
-                                }}
-                              >
-                                <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                                  {dim.name}:
-                                </span>
-                                <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)]">
-                                  <button
-                                    onClick={() => {
-                                      const next = { ...activeThemes };
-                                      delete next[dim.id];
-                                      setActiveThemes(next);
-                                    }}
-                                    onMouseEnter={() => {
-                                      const next = { ...previewThemes };
-                                      delete next[dim.id];
-                                      setPreviewThemes(next);
-                                    }}
-                                    className={`border-r border-[var(--color-figma-border)] px-2 py-0.5 text-[10px] transition-colors ${
-                                      !activeOption && !previewOption
-                                        ? "bg-[var(--color-figma-accent)] text-white font-medium"
-                                        : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                                    }`}
-                                  >
-                                    None
-                                  </button>
-                                  {dim.options.map(
-                                    (opt: { name: string }, index: number) => {
-                                      const isActive =
-                                        activeOption === opt.name;
-                                      const isPreviewing =
-                                        previewOption === opt.name &&
-                                        previewOption !== activeOption;
-                                      return (
-                                        <button
-                                          key={opt.name}
-                                          onClick={() => {
-                                            setActiveThemes({
-                                              ...activeThemes,
-                                              [dim.id]: opt.name,
-                                            });
-                                            const next = { ...previewThemes };
-                                            delete next[dim.id];
-                                            setPreviewThemes(next);
-                                          }}
-                                          onMouseEnter={() =>
-                                            setPreviewThemes({
-                                              ...previewThemes,
-                                              [dim.id]: opt.name,
-                                            })
-                                          }
-                                          title={
-                                            isActive
-                                              ? `${opt.name} (active)`
-                                              : `Preview ${opt.name} — click to apply`
-                                          }
-                                          className={`px-2 py-0.5 text-[10px] transition-colors ${
-                                            index < dim.options.length - 1
-                                              ? "border-r border-[var(--color-figma-border)]"
-                                              : ""
-                                          } ${
-                                            isActive
-                                              ? "bg-[var(--color-figma-accent)] text-white font-medium"
-                                              : isPreviewing
-                                                ? "bg-[var(--color-figma-accent)] text-white opacity-60"
-                                                : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                                          }`}
-                                        >
-                                          {opt.name}
-                                        </button>
-                                      );
-                                    },
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          }
-                          return (
-                            <div
-                              key={dim.id}
-                              className="relative flex items-center gap-1"
-                            >
-                              <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                                {dim.name}:
-                              </span>
-                              <button
-                                onClick={() =>
-                                  setOpenDimDropdown(isOpen ? null : dim.id)
-                                }
-                                className={`flex items-center gap-1 rounded px-2 py-0.5 text-[10px] transition-colors ${
-                                  activeOption
-                                    ? "bg-[var(--color-figma-accent)] text-white font-medium"
-                                    : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                                }`}
-                              >
-                                {activeOption || "None"}
-                                <svg
-                                  width="8"
-                                  height="8"
-                                  viewBox="0 0 8 8"
-                                  fill="none"
-                                  className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
-                                >
-                                  <path
-                                    d="M1 3l3 3 3-3"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                              {isOpen && (
-                                <div
-                                  className="absolute left-0 top-full z-50 mt-1 min-w-[120px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg"
-                                  onMouseLeave={() => {
-                                    const next = { ...previewThemes };
-                                    delete next[dim.id];
-                                    setPreviewThemes(next);
-                                  }}
-                                >
-                                  <button
-                                    onClick={() => {
-                                      const next = { ...activeThemes };
-                                      delete next[dim.id];
-                                      setActiveThemes(next);
-                                      setOpenDimDropdown(null);
-                                    }}
-                                    onMouseEnter={() => {
-                                      const next = { ...previewThemes };
-                                      delete next[dim.id];
-                                      setPreviewThemes(next);
-                                    }}
-                                    className={`w-full px-3 py-1.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
-                                      !activeOption
-                                        ? "text-[var(--color-figma-accent)] font-medium"
-                                        : "text-[var(--color-figma-text)]"
-                                    }`}
-                                  >
-                                    None
-                                  </button>
-                                  {dim.options.map((opt: { name: string }) => (
-                                    <button
-                                      key={opt.name}
-                                      onClick={() => {
-                                        setActiveThemes({
-                                          ...activeThemes,
-                                          [dim.id]: opt.name,
-                                        });
-                                        setOpenDimDropdown(null);
-                                        const next = { ...previewThemes };
-                                        delete next[dim.id];
-                                        setPreviewThemes(next);
-                                      }}
-                                      onMouseEnter={() =>
-                                        setPreviewThemes({
-                                          ...previewThemes,
-                                          [dim.id]: opt.name,
-                                        })
-                                      }
-                                      title={
-                                        activeOption === opt.name
-                                          ? `${opt.name} (active)`
-                                          : `Preview ${opt.name} — click to apply`
-                                      }
-                                      className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
-                                        activeOption === opt.name
-                                          ? "text-[var(--color-figma-accent)] font-medium"
-                                          : "text-[var(--color-figma-text)]"
-                                      }`}
-                                    >
-                                      {opt.name}
-                                      {previewThemes[dim.id] === opt.name &&
-                                        activeOption !== opt.name && (
-                                          <span className="ml-2 text-[8px] text-[var(--color-figma-text-tertiary)] opacity-70">
-                                            preview
-                                          </span>
-                                        )}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {tokenThemePreviewEntries.length > 0 && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-medium text-amber-700">
-                            <svg
-                              width="8"
-                              height="8"
-                              viewBox="0 0 8 8"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.2"
-                              strokeLinecap="round"
-                              aria-hidden="true"
-                            >
-                              <circle cx="4" cy="4" r="3" />
-                              <path d="M4 2.5v2M4 5.5v.5" />
-                            </svg>
-                            Previewing {tokenThemePreviewEntries.join(" · ")}
-                          </span>
-                        )}
-                        <button
-                          onClick={() => navigateTo("themes", "themes")}
-                          className="ml-auto px-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)]"
-                          title="Manage themes"
-                          aria-label="Manage themes"
-                        >
-                          <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 10 10"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                            strokeLinecap="round"
-                            aria-hidden="true"
-                          >
-                            <circle cx="5" cy="2" r="1" />
-                            <circle cx="5" cy="5" r="1" />
-                            <circle cx="5" cy="8" r="1" />
-                          </svg>
-                        </button>
-                        {dimensions.length > 0 && (
-                          <button
-                            onClick={() => setDimBarExpanded(false)}
-                            className="px-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text)]"
-                            title="Collapse mode controls"
-                            aria-label="Collapse mode controls"
-                          >
-                            <svg
-                              width="8"
-                              height="8"
-                              viewBox="0 0 8 8"
-                              fill="none"
-                            >
-                              <path
-                                d="M1 5l3-3 3 3"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
-                        )}
-                      </>
-                    ) : null}
-                  </div>
-                )}
-                <div className="min-h-0 flex-1 overflow-hidden">
-                  {/* Panels — routed by (activeTopTab, activeSubTab) and activeSecondarySurface */}
-                  <PanelRouter />
-                </div>
-              </>
-            </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <PanelRouter />
           </div>
         </ErrorBoundary>
       </WorkspaceControllerProvider>
@@ -2747,40 +2452,26 @@ export function App() {
       />
 
       {/* Status footer */}
-      <div className="flex items-center gap-1 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px]">
+      <div className="flex items-center gap-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px]">
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
           <span
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${checking ? "bg-[var(--color-figma-accent)]" : connected ? "bg-emerald-500" : "bg-[var(--color-figma-error)]"}`}
             title={utilitiesStatusLabel}
             aria-hidden="true"
           />
-          {activeTopTab === "tokens" && activeSubTab === "tokens" && activeSecondarySurface === null && sets.length > 1 ? (
-            <button
-              onClick={() => setShowSetSwitcher(true)}
-              className="min-w-0 truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-              aria-label="Switch set"
-            >
-              <span className="truncate">{activeSet}</span>
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="ml-0.5 inline-block text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
-                <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          ) : activeTopTab === "tokens" && activeSubTab === "tokens" && activeSecondarySurface === null ? (
-            <span className="truncate text-[var(--color-figma-text-tertiary)]">{activeSet}</span>
-          ) : null}
         </div>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <button onClick={executeUndo} disabled={!canUndo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+        <div className="flex shrink-0 items-center gap-1">
+          <button onClick={executeUndo} disabled={!canUndo} className="h-6 w-6 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
           </button>
-          <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+          <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-6 w-6 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
           </button>
           <div className="mx-0.5 h-3 w-px bg-[var(--color-figma-border)]" aria-hidden="true" />
           <div className="relative shrink-0" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="relative h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="relative h-6 w-6 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               aria-label="Settings"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -2794,8 +2485,8 @@ export function App() {
               )}
             </button>
             {menuOpen && (
-              <div className="absolute right-0 bottom-full z-50 mb-1 w-48 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
-                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5">
+              <div className="absolute right-0 bottom-full z-50 mb-1 w-52 overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
+                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
                   <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
                   {!connected && (
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -2814,10 +2505,10 @@ export function App() {
                   )}
                 </div>
                 {shellMenuSurfaces.length > 0 && (
-                  <div>
-                    <div className="px-2.5 py-1"><div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Settings</div></div>
+                  <div className="py-1">
+                    <div className="px-3 pb-1 text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">Settings</div>
                     {shellMenuSurfaces.map((surface) => (
-                      <button key={surface.id} role="menuitem" tabIndex={-1} onClick={() => { setMenuOpen(false); toggleSecondarySurface(surface.id); }} className="mx-1 mb-1 flex w-[calc(100%-0.5rem)] items-center justify-between rounded-[10px] border border-transparent px-2.5 py-1.5 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out outline-none hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-border)] focus-visible:bg-[var(--color-figma-bg-secondary)] focus-visible:text-[var(--color-figma-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px active:bg-[var(--color-figma-bg-hover)]" title={surface.transition.usage}>
+                      <button key={surface.id} role="menuitem" tabIndex={-1} onClick={() => { setMenuOpen(false); toggleSecondarySurface(surface.id); }} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={surface.transition.usage}>
                         <span>{surface.label}</span>
                         <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}</span>
                       </button>
@@ -2825,11 +2516,10 @@ export function App() {
                   </div>
                 )}
                 {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section) => (
-                  <div key={section.id}>
-                    <div className="border-t border-[var(--color-figma-border)]" />
-                    <div className="px-2.5 py-1"><div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{section.label}</div></div>
+                  <div key={section.id} className="border-t border-[var(--color-figma-border)] py-1">
+                    <div className="px-3 pb-1 text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">{section.label}</div>
                     {section.actions.map((action) => (
-                      <button key={action.id} role="menuitem" tabIndex={-1} onClick={() => handleUtilityAction(action.id)} className="mx-1 mb-1 flex w-[calc(100%-0.5rem)] items-center justify-between rounded-[10px] border border-transparent px-2.5 py-1.5 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 ease-out outline-none hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-border)] focus-visible:bg-[var(--color-figma-bg-secondary)] focus-visible:text-[var(--color-figma-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px active:bg-[var(--color-figma-bg-hover)]" title={action.transition?.usage ?? action.description}>
+                      <button key={action.id} role="menuitem" tabIndex={-1} onClick={() => handleUtilityAction(action.id)} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={action.transition?.usage ?? action.description}>
                         <span>{action.id === "window-size" ? isExpanded ? "Restore window" : "Expand window" : action.label}</span>
                         <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{utilityActionDetail(action.id)}</span>
                       </button>

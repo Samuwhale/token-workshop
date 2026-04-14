@@ -25,7 +25,6 @@ import type { NotificationEntry } from "../hooks/useToastStack";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import type {
   SurfaceTransition,
-  TokensSection,
 } from "../shared/navigationTypes";
 import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
 
@@ -94,16 +93,6 @@ export interface TokensWorkspaceController {
   handleNavigateToRecipe: (recipeId: string) => void;
   flowPanelInitialPath: string | null;
   setFlowPanelInitialPath: (path: string | null) => void;
-  pendingGraphTemplate: string | null;
-  setPendingGraphTemplate: (templateId: string | null) => void;
-  pendingGraphFromGroup: { groupPath: string; tokenType: string | null } | null;
-  setPendingGraphFromGroup: (
-    value: { groupPath: string; tokenType: string | null } | null,
-  ) => void;
-  focusRecipeId: string | null;
-  setFocusRecipeId: (recipeId: string | null) => void;
-  pendingOpenPicker: boolean;
-  setPendingOpenPicker: (value: boolean) => void;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
   tokenListSelection: string[];
   onTokenDragStart: (paths: string[], fromSet: string) => void;
@@ -116,8 +105,6 @@ export interface TokensWorkspaceController {
   handlePaletteMove: (path: string) => void;
   requestPaletteDelete: (paths: string[], label: string) => void;
   handlePaletteDeleteToken: (path: string) => void;
-  activeTokensSection: TokensSection;
-  setActiveTokensSection: (section: TokensSection) => void;
 }
 
 export interface ThemeWorkspaceController {
@@ -168,7 +155,7 @@ export interface SyncWorkspaceController {
 
 export interface SetManagerWorkspaceController {
   onOpenQuickSwitch: () => void;
-  onOpenRecipes: (setName: string) => void;
+  onCreateRecipe: (setName: string) => void;
   onRename: (setName: string) => void;
   onDuplicate: (setName: string) => void;
   onDelete: (setName: string) => void;

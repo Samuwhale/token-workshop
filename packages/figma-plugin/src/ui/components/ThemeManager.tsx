@@ -18,6 +18,7 @@ import {
 } from "./ThemeManagerContext";
 import {
   NoticeInlineAlert,
+  NoticeCountBadge,
 } from "../shared/noticeSystem";
 import {
   summarizeThemeWorkflow,
@@ -27,7 +28,6 @@ import {
   type ThemeWorkspaceShellState,
 } from "../shared/themeWorkflow";
 import {
-  WorkflowStageIndicators,
   type WorkflowStageTone,
 } from "../shared/WorkflowStageIndicators";
 import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
@@ -466,11 +466,6 @@ const ThemeManagerWorkspace = React.forwardRef<
       }),
     [coverage, dimensions, missingOverrides, setTokenCounts, sets],
   );
-  const themeHeaderStatus = useMemo(() => {
-    if (activeView === "compare") return "Theme setup / Compare";
-    if (activeView === "output") return "Theme setup / Output";
-    return "Theme setup";
-  }, [activeView]);
   const workflowStages = useMemo(() => {
     const asTone = (value: WorkflowStageTone) => value;
     const stageIsCurrent = (stage: ThemeAuthoringStage) =>
@@ -610,55 +605,73 @@ const ThemeManagerWorkspace = React.forwardRef<
   return (
     <ThemeManagerModalsProvider value={modalContextValue}>
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        {feedback.error && (
-          <div className="mx-3 mt-2">
-            <NoticeInlineAlert
-              severity="error"
-              onDismiss={feedback.clearError}
-            >
-              {feedback.error}
-            </NoticeInlineAlert>
+        {/* Stage navigation — compact sub-tab strip */}
+        <div className="flex shrink-0 items-center gap-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
+          <div className="flex min-w-0 flex-1 items-center gap-0.5">
+            {workflowStages.map((stage) => (
+              <button
+                key={stage.id}
+                type="button"
+                onClick={() => focusAuthoringStage(stage.id)}
+                disabled={stage.disabled}
+                title={stage.detail}
+                className={`flex shrink-0 items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                  stage.tone === "current"
+                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                    : stage.tone === "complete"
+                      ? "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      : stage.tone === "pending"
+                        ? "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                        : "text-[var(--color-figma-text-tertiary)] opacity-60"
+                } ${stage.disabled ? "cursor-not-allowed opacity-50" : ""}`}
+              >
+                {stage.label}
+                {stage.badge && stage.badge.count > 0 && (
+                  <NoticeCountBadge
+                    severity={stage.badge.severity}
+                    count={stage.badge.count}
+                    title={`${stage.badge.count} issue${stage.badge.count === 1 ? "" : "s"}`}
+                  />
+                )}
+              </button>
+            ))}
           </div>
-        )}
-        {fetchWarnings && (
-          <div className="mx-3 mt-2">
-            <NoticeInlineAlert
-              severity="warning"
-              onDismiss={clearFetchWarnings}
-            >
-              {fetchWarnings}
-            </NoticeInlineAlert>
-          </div>
-        )}
-
-        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="px-3 py-2">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                  {themeHeaderStatus}
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                  {themeWorkflowSummary.axisCount} mode
-                  {themeWorkflowSummary.axisCount === 1 ? "" : "s"}
-                </div>
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                  {themeWorkflowSummary.optionCount} value
-                  {themeWorkflowSummary.optionCount === 1 ? "" : "s"}
-                </div>
-              </div>
+          {workflowActions.length > 0 && (
+            <div className="flex shrink-0 items-center gap-0.5 border-l border-[var(--color-figma-border)] pl-1.5 ml-0.5">
+              {workflowActions.map((action) => (
+                <button
+                  key={action.label}
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                  className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                    action.active
+                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  {action.label}
+                </button>
+              ))}
             </div>
-          </div>
-          <WorkflowStageIndicators
-            stages={workflowStages}
-            onSelectStage={focusAuthoringStage}
-            actions={workflowActions}
-          />
+          )}
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {/* Alerts inside scrollable content */}
+          {feedback.error && (
+            <div className="mx-3 mt-2 shrink-0">
+              <NoticeInlineAlert severity="error" onDismiss={feedback.clearError}>
+                {feedback.error}
+              </NoticeInlineAlert>
+            </div>
+          )}
+          {fetchWarnings && (
+            <div className="mx-3 mt-2 shrink-0">
+              <NoticeInlineAlert severity="warning" onDismiss={clearFetchWarnings}>
+                {fetchWarnings}
+              </NoticeInlineAlert>
+            </div>
+          )}
           {activeView === "compare" ? (
             <ThemeCompareScreen
               compareFocusDimension={compareFocusDimension}
