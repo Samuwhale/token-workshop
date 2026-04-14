@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { NoticeBanner } from "../shared/noticeSystem";
-import { TokenGeneratorDialog } from "./TokenGeneratorDialog";
+import { TokenRecipeDialog } from "./TokenRecipeDialog";
 import { QuickStartWizard } from "./QuickStartWizard";
 
 export type StartHereBranch =
@@ -400,7 +400,7 @@ export function WelcomePrompt({
           {branch === "import" && renderImport()}
           {branch === "template-library" && (
             <div className="h-full">
-              <TokenGeneratorDialog
+              <TokenRecipeDialog
                 serverUrl={serverUrl}
                 activeSet={activeSet}
                 allSets={allSets}

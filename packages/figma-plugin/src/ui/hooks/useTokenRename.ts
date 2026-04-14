@@ -1,17 +1,17 @@
 import { useState, useCallback, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
-import type { TokenGenerator } from './useGenerators';
+import type { TokenRecipe } from './useRecipes';
 import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
-import { computeGeneratorImpacts, computeThemeImpacts } from '../shared/tokenImpact';
-import type { GeneratorImpact, ThemeImpact } from '../components/tokenListTypes';
+import { computeRecipeImpacts, computeThemeImpacts } from '../shared/tokenImpact';
+import type { RecipeImpact, ThemeImpact } from '../components/tokenListTypes';
 
 export interface UseTokenRenameParams {
   connected: boolean;
   serverUrl: string;
   setName: string;
-  generators?: TokenGenerator[];
+  recipes?: TokenRecipe[];
   dimensions?: ThemeDimension[];
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
   allTokensFlat?: Record<string, TokenMapEntry>;
@@ -26,7 +26,7 @@ export function useTokenRename({
   connected,
   serverUrl,
   setName,
-  generators,
+  recipes,
   dimensions,
   perSetFlat,
   allTokensFlat,
@@ -41,7 +41,7 @@ export function useTokenRename({
     newPath: string;
     depCount: number;
     deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>;
-    generatorImpacts: GeneratorImpact[];
+    recipeImpacts: RecipeImpact[];
     themeImpacts: ThemeImpact[];
   } | null>(null);
   const [pendingRenameToken, setPendingRenameToken] = useState<string | null>(null);
@@ -128,21 +128,21 @@ export function useTokenRename({
     }
     const targetPaths = new Set([oldPath]);
     const source = perSetFlat ?? (allTokensFlat ? { '': allTokensFlat } : {});
-    const generatorImpacts = computeGeneratorImpacts(targetPaths, generators ?? []);
+    const recipeImpacts = computeRecipeImpacts(targetPaths, recipes ?? []);
     const themeImpacts = computeThemeImpacts(targetPaths, dimensions ?? [], source);
-    if (data.count > 0 || generatorImpacts.length > 0 || themeImpacts.length > 0) {
+    if (data.count > 0 || recipeImpacts.length > 0 || themeImpacts.length > 0) {
       setRenameTokenConfirm({
         oldPath,
         newPath,
         depCount: data.count,
         deps: data.changes.map(c => ({ path: c.tokenPath, setName: c.setName, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })),
-        generatorImpacts,
+        recipeImpacts,
         themeImpacts,
       });
     } else {
       await executeTokenRename(oldPath, newPath);
     }
-  }, [connected, serverUrl, setName, generators, dimensions, perSetFlat, allTokensFlat, executeTokenRename, onError]);
+  }, [connected, serverUrl, setName, recipes, dimensions, perSetFlat, allTokensFlat, executeTokenRename, onError]);
 
   return {
     renameTokenConfirm,

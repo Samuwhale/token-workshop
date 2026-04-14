@@ -1,7 +1,7 @@
 /**
  * CIELAB color math (sRGB ↔ XYZ D65 ↔ CIELAB).
  *
- * Shared module used by both the generator engine and color modifier.
+ * Shared module used by both the recipe engine and color modifier.
  */
 
 /** sRGB → linear (IEC 61966-2-1). */

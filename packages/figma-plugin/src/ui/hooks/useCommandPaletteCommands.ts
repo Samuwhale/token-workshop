@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { createGeneratorOwnershipKey } from "@tokenmanager/core";
+import { createRecipeOwnershipKey } from "@tokenmanager/core";
 import type { Command, TokenEntry } from "../components/CommandPalette";
 import { GRAPH_TEMPLATES } from "../components/graph-templates";
 import { inferTypeFromValue } from "../components/tokenListHelpers";
@@ -17,7 +17,7 @@ import { dispatchToast } from "../shared/toastBus";
 import {
   useTokenSetsContext,
   useTokenFlatMapContext,
-  useGeneratorContext,
+  useRecipeContext,
 } from "../contexts/TokenDataContext";
 import { useThemeSwitcherContext } from "../contexts/ThemeContext";
 import { useSelectionContext } from "../contexts/InspectContext";
@@ -47,7 +47,7 @@ export function useCommandPaletteCommands(): {
   const { sets, activeSet, setActiveSet, setTokenCounts } =
     useTokenSetsContext();
   const { allTokensFlat, pathToSet, perSetFlat } = useTokenFlatMapContext();
-  const { derivedTokenPaths } = useGeneratorContext();
+  const { derivedTokenPaths } = useRecipeContext();
   const { navigateTo, openSecondarySurface, closeSecondarySurface } =
     useNavigationContext();
   const { dimensions } = useThemeSwitcherContext();
@@ -246,7 +246,7 @@ export function useCommandPaletteCommands(): {
         category: "Tokens",
         handler: () => {
           goToTokens();
-          shell.openColorScaleGenerator();
+          shell.openColorScaleRecipe();
         },
       },
       ...GRAPH_TEMPLATES.map((template) => ({
@@ -255,7 +255,7 @@ export function useCommandPaletteCommands(): {
         description: template.description,
         category: "Recipes" as const,
         handler: () => {
-          navigateTo("define", "generators");
+          navigateTo("define", "recipes");
           tokens.setPendingGraphTemplate(template.id);
         },
       })),
@@ -617,8 +617,8 @@ export function useCommandPaletteCommands(): {
           : JSON.stringify(entry.$value),
       set: activeSet,
       isAlias: isAlias(entry.$value),
-      generatorName:
-        derivedTokenPaths.get(createGeneratorOwnershipKey(activeSet, path))
+      recipeName:
+        derivedTokenPaths.get(createRecipeOwnershipKey(activeSet, path))
           ?.name,
     }));
   }, [activeSet, derivedTokenPaths, perSetFlat]);

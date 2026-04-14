@@ -53,6 +53,11 @@ export interface TokenListToolbarProps {
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
 
+  // Modes toggle
+  hasDimensions: boolean;
+  multiModeEnabled: boolean;
+  onToggleMultiMode: () => void;
+
   // Overflow menu (pass-through)
   overflowMenuProps: TokenListOverflowMenuProps | null;
 }
@@ -84,6 +89,9 @@ export function TokenListToolbar({
   handleOpenNewGroupDialog,
   onShowPasteModal,
   onOpenImportPanel,
+  hasDimensions,
+  multiModeEnabled,
+  onToggleMultiMode,
   overflowMenuProps,
 }: TokenListToolbarProps) {
   // --- Create menu state (internal) ---
@@ -322,6 +330,23 @@ export function TokenListToolbar({
           </div>
         )}
       </div>
+
+      {hasDimensions && (
+        <button
+          onClick={onToggleMultiMode}
+          className={`shrink-0 inline-flex items-center justify-center rounded p-1 transition-colors ${multiModeEnabled ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
+          title={multiModeEnabled ? "Hide modes" : "Show modes"}
+          aria-label={multiModeEnabled ? "Hide modes" : "Show modes"}
+          aria-pressed={multiModeEnabled}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+        </button>
+      )}
 
       {overflowMenuProps && <TokenListOverflowMenu {...overflowMenuProps} />}
       </div>

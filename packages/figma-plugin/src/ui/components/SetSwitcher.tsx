@@ -78,7 +78,7 @@ interface SetManagerProps {
   activeSet: string;
   onClose: () => void;
   onOpenQuickSwitch?: () => void;
-  onOpenGenerators?: (setName: string) => void;
+  onOpenRecipes?: (setName: string) => void;
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
@@ -265,7 +265,7 @@ function SetPreflightCard({
     impact.themeOptions.length > 0 ||
     impact.resolverRefs.length > 0 ||
     impact.generatedOwnership.length > 0 ||
-    impact.generatorTargets.length > 0 ||
+    impact.recipeTargets.length > 0 ||
     !!impact.metadata.description ||
     !!impact.metadata.collectionName ||
     !!impact.metadata.modeName;
@@ -353,12 +353,12 @@ function SetPreflightCard({
               <div className="flex flex-col gap-1.5">
                 {impact.generatedOwnership.map((ownership) => (
                   <div
-                    key={ownership.generatorId}
+                    key={ownership.recipeId}
                     className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-[var(--color-figma-text)]">
-                        {ownership.generatorName}
+                        {ownership.recipeName}
                       </span>
                       <span>
                         {ownership.tokenCount} token
@@ -380,20 +380,20 @@ function SetPreflightCard({
               </div>
             </div>
           )}
-          {impact.generatorTargets.length > 0 && (
+          {impact.recipeTargets.length > 0 && (
             <div className="flex flex-col gap-1">
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Recipe targets ({impact.generatorTargets.length})
+                Recipe targets ({impact.recipeTargets.length})
               </div>
               <div className="flex flex-col gap-1">
-                {impact.generatorTargets.map((generator) => (
+                {impact.recipeTargets.map((recipe) => (
                   <div
-                    key={generator.generatorId}
+                    key={recipe.recipeId}
                     className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]"
                   >
-                    <span className="truncate">{generator.generatorName}</span>
+                    <span className="truncate">{recipe.recipeName}</span>
                     <span className="truncate font-mono text-[9px]">
-                      {generator.targetGroup}
+                      {recipe.targetGroup}
                     </span>
                   </div>
                 ))}
@@ -982,7 +982,7 @@ export function SetManager({
   activeSet,
   onClose,
   onOpenQuickSwitch,
-  onOpenGenerators,
+  onOpenRecipes,
   onRename,
   onDuplicate,
   onDelete,
@@ -1312,7 +1312,7 @@ export function SetManager({
               setTokenCounts={setTokenCounts}
               setDescriptions={setDescriptions}
               setThemeLabels={setThemeLabels}
-              onOpenGenerators={onOpenGenerators}
+              onOpenRecipes={onOpenRecipes}
               onRename={onRename}
               onDuplicate={onDuplicate}
               onDelete={onDelete}
@@ -1390,7 +1390,7 @@ interface ManageViewProps {
   setTokenCounts: Record<string, number>;
   setDescriptions: Record<string, string>;
   setThemeLabels: Record<string, SetThemeLabel[]>;
-  onOpenGenerators?: (setName: string) => void;
+  onOpenRecipes?: (setName: string) => void;
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
@@ -1423,7 +1423,7 @@ function ManageView({
   setTokenCounts,
   setDescriptions,
   setThemeLabels,
-  onOpenGenerators,
+  onOpenRecipes,
   onRename,
   onDuplicate,
   onDelete,
@@ -2155,11 +2155,11 @@ function ManageView({
                         <path d="M5 8L1 3H9L5 8Z" />
                       </IconButton>
                     )}
-                    {onOpenGenerators && (
+                    {onOpenRecipes && (
                       <StrokeIconButton
                         title="Create recipe"
                         ariaLabel="Create recipe"
-                        onClick={() => onOpenGenerators(set)}
+                        onClick={() => onOpenRecipes(set)}
                       >
                         <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
                       </StrokeIconButton>

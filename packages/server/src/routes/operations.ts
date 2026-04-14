@@ -203,7 +203,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
               themesStore: fastify.dimensionsStore,
               resolverLock: fastify.resolverLock,
               resolverStore: fastify.resolverStore,
-              generatorService: fastify.generatorService,
+              recipeService: fastify.recipeService,
             },
           );
           return { ok: true, ...result };

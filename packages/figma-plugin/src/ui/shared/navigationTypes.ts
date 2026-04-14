@@ -5,11 +5,11 @@
  */
 
 import { STORAGE_KEYS } from "./storage";
-import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratorDialog";
-import type { GeneratorTemplate } from "../hooks/useGenerators";
+import type { RecipeDialogInitialDraft } from "../hooks/useRecipeDialog";
+import type { RecipeTemplate } from "../hooks/useRecipes";
 
 export type TopTab = "define" | "apply" | "sync";
-type DefineSubTab = "tokens" | "themes" | "generators";
+type DefineSubTab = "tokens" | "themes" | "recipes";
 type ApplySubTab = "inspect" | "canvas-analysis" | "dependencies";
 type SyncSubTab = "publish" | "export" | "history" | "health";
 export type SubTab = DefineSubTab | ApplySubTab | SyncSubTab;
@@ -40,13 +40,13 @@ export type SurfaceCloseBehavior =
 export type TokensLibraryContextualSurface =
   | "compare"
   | "token-editor"
-  | "generator-editor"
+  | "recipe-editor"
   | "token-preview";
 export type TokensLibrarySurfaceSlot =
   | "library-body"
   | "contextual-panel"
   | "split-preview";
-export type TokensLibraryGeneratorEditorTarget =
+export type TokensLibraryRecipeEditorTarget =
   | {
       mode: "edit";
       id: string;
@@ -57,8 +57,8 @@ export type TokensLibraryGeneratorEditorTarget =
       sourceTokenName?: string;
       sourceTokenType?: string;
       sourceTokenValue?: unknown;
-      initialDraft?: GeneratorDialogInitialDraft;
-      template?: GeneratorTemplate;
+      initialDraft?: RecipeDialogInitialDraft;
+      template?: RecipeTemplate;
     };
 
 export interface SurfaceTransition {
@@ -84,7 +84,7 @@ export const TOP_TABS: {
     subTabs: [
       { id: "tokens", label: "Tokens" },
       { id: "themes", label: "Themes" },
-      { id: "generators", label: "Recipes" },
+      { id: "recipes", label: "Recipes" },
     ],
   },
   {
@@ -401,7 +401,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         label: "Token editor",
         usage: "Edit or create a token.",
       },
-      "generator-editor": {
+      "recipe-editor": {
         label: "Recipe editor",
         usage: "Adjust a recipe.",
       },
@@ -462,16 +462,16 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         transition: workspaceTransition("Browse and edit tokens."),
       },
       {
-        id: "generators",
+        id: "recipes",
         label: "Recipes",
         summaryTitle: "Recipes",
         topTab: "define",
-        subTab: "generators",
+        subTab: "recipes",
         transition: workspaceTransition("Create and adjust recipes."),
 
       },
     ],
-    matchRoutes: [route("define", "tokens"), route("define", "generators")],
+    matchRoutes: [route("define", "tokens"), route("define", "recipes")],
   },
   {
     id: "themes",

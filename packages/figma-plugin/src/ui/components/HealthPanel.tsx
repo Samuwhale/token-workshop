@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import type { LintViolation } from "../hooks/useLint";
-import type { TokenGenerator } from "../hooks/useGenerators";
+import type { TokenRecipe } from "../hooks/useRecipes";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { HeatmapResult } from "./HeatmapPanel";
 import type { TokenMapEntry } from "../../shared/types";
@@ -49,7 +49,7 @@ interface PriorityIssue {
   /** Stable string key describing the action — resolved to a handler in JSX */
   action:
     | "lint"
-    | "generators"
+    | "recipes"
     | "validation-scroll"
     | "alias-opportunities-scroll"
     | "deprecated-scroll"
@@ -238,7 +238,7 @@ export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
   activeSet: string;
-  generators: TokenGenerator[];
+  recipes: TokenRecipe[];
   lintViolations: LintViolation[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
@@ -265,7 +265,7 @@ export function HealthPanel({
   serverUrl,
   connected,
   activeSet,
-  generators,
+  recipes,
   lintViolations,
   allTokensFlat,
   pathToSet,
@@ -925,8 +925,8 @@ export function HealthPanel({
   const validationErrors = validationSummary?.errors ?? 0;
   const validationWarnings = validationSummary?.warnings ?? 0;
 
-  const staleGenerators = generators.filter((g) => g.isStale);
-  const errorGenerators = generators.filter(
+  const staleRecipes = recipes.filter((g) => g.isStale);
+  const errorRecipes = recipes.filter(
     (g) => g.lastRunError && !g.lastRunError.blockedBy,
   );
   const hasUsageData = Object.keys(tokenUsageCounts).length > 0;
@@ -941,11 +941,11 @@ export function HealthPanel({
   );
 
   const overallStatus: HealthStatus =
-    lintErrors > 0 || validationErrors > 0 || errorGenerators.length > 0
+    lintErrors > 0 || validationErrors > 0 || errorRecipes.length > 0
       ? "critical"
       : lintWarnings > 0 ||
           validationWarnings > 0 ||
-          staleGenerators.length > 0 ||
+          staleRecipes.length > 0 ||
           totalDuplicateAliases > 0 ||
           (heatmapResult?.red ?? 0) > 0
         ? "warning"
@@ -990,14 +990,14 @@ export function HealthPanel({
       }
     }
 
-    if (errorGenerators.length > 0) {
+    if (errorRecipes.length > 0) {
       items.push({
         severity: "critical",
         category: "Recipes",
-        message: `${formatCount(errorGenerators.length, "recipe")} failed`,
-        count: errorGenerators.length,
+        message: `${formatCount(errorRecipes.length, "recipe")} failed`,
+        count: errorRecipes.length,
         ctaLabel: "Inspect recipes",
-        action: "generators",
+        action: "recipes",
       });
     }
 
@@ -1046,14 +1046,14 @@ export function HealthPanel({
       });
     }
 
-    if (staleGenerators.length > 0) {
+    if (staleRecipes.length > 0) {
       items.push({
         severity: "warning",
         category: "Recipes",
-        message: `${formatCount(staleGenerators.length, "recipe")} stale`,
-        count: staleGenerators.length,
+        message: `${formatCount(staleRecipes.length, "recipe")} stale`,
+        count: staleRecipes.length,
         ctaLabel: "Run recipes",
-        action: "generators",
+        action: "recipes",
       });
     }
 
@@ -1110,8 +1110,8 @@ export function HealthPanel({
     switch (action) {
       case "lint":
         return () => onNavigateTo("define", "tokens");
-      case "generators":
-        return () => onNavigateTo("define", "generators");
+      case "recipes":
+        return () => onNavigateTo("define", "recipes");
       case "canvas":
         return () => {
           onNavigateTo("apply", "canvas-analysis");
@@ -2060,7 +2060,7 @@ export function HealthPanel({
 /** Computes a single health issue count for use in status badges outside the panel. */
 export function computeHealthIssueCount(
   lintViolations: LintViolation[],
-  generators: TokenGenerator[],
+  recipes: TokenRecipe[],
   validationSummary?: ValidationSummary | null,
 ): number {
   const lintCount = lintViolations.filter(
@@ -2069,7 +2069,7 @@ export function computeHealthIssueCount(
   const validationCount = validationSummary
     ? validationSummary.errors + validationSummary.warnings
     : 0;
-  const genIssues = generators.filter(
+  const genIssues = recipes.filter(
     (g) => g.isStale || g.lastRunError,
   ).length;
   return lintCount + validationCount + genIssues;

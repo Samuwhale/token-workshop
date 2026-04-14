@@ -16,7 +16,7 @@ import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
 import type {
   TokensLibraryContextualSurface,
-  TokensLibraryGeneratorEditorTarget,
+  TokensLibraryRecipeEditorTarget,
 } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
@@ -33,11 +33,11 @@ export type EditingToken = {
 };
 
 export type PreviewingToken = { path: string; name?: string; set: string };
-export type EditingGenerator = TokensLibraryGeneratorEditorTarget;
+export type EditingRecipe = TokensLibraryRecipeEditorTarget;
 export type EditorContextualSurfaceTarget =
   | { surface: null }
   | { surface: 'token-editor'; token: EditingToken }
-  | { surface: 'generator-editor'; generator: EditingGenerator }
+  | { surface: 'recipe-editor'; recipe: EditingRecipe }
   | { surface: 'token-preview'; token: PreviewingToken }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshThemeOptions?: boolean }
   | { surface: 'compare'; mode: 'cross-theme'; path: string; refreshThemeOptions?: boolean };
@@ -50,8 +50,8 @@ export interface TokensContextualSurfaceState {
 export interface EditorContextValue {
   editingToken: EditingToken | null;
   setEditingToken: Dispatch<SetStateAction<EditingToken | null>>;
-  editingGenerator: EditingGenerator | null;
-  setEditingGenerator: Dispatch<SetStateAction<EditingGenerator | null>>;
+  editingRecipe: EditingRecipe | null;
+  setEditingRecipe: Dispatch<SetStateAction<EditingRecipe | null>>;
   previewingToken: PreviewingToken | null;
   setPreviewingToken: Dispatch<SetStateAction<PreviewingToken | null>>;
   highlightedToken: string | null;
@@ -105,7 +105,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const { pathToSet } = useTokenFlatMapContext();
 
   const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
-  const [editingGenerator, setEditingGenerator] = useState<EditingGenerator | null>(null);
+  const [editingRecipe, setEditingRecipe] = useState<EditingRecipe | null>(null);
   const [previewingToken, setPreviewingToken] = useState<PreviewingToken | null>(null);
   const [showTokensCompare, setShowTokensCompare] = useState(false);
   const {
@@ -145,14 +145,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!showTokensCompare) return;
-    if (editingToken || editingGenerator || previewingToken) {
+    if (editingToken || editingRecipe || previewingToken) {
       setShowTokensCompare(false);
     }
-  }, [showTokensCompare, editingToken, editingGenerator, previewingToken]);
+  }, [showTokensCompare, editingToken, editingRecipe, previewingToken]);
 
   const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
     setEditingToken(null);
-    setEditingGenerator(null);
+    setEditingRecipe(null);
     setPreviewingToken(null);
     setShowTokensCompare(false);
 
@@ -163,8 +163,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (target.surface === 'generator-editor') {
-      setEditingGenerator(target.generator);
+    if (target.surface === 'recipe-editor') {
+      setEditingRecipe(target.recipe);
       return;
     }
 
@@ -189,7 +189,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     setShowTokensCompare(true);
   }, [
-    setEditingGenerator,
+    setEditingRecipe,
     setEditingToken,
     setPreviewingToken,
     setShowTokensCompare,
@@ -201,11 +201,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   const activeSurface = useMemo<TokensLibraryContextualSurface | null>(() => {
     if (editingToken) return 'token-editor';
-    if (editingGenerator) return 'generator-editor';
+    if (editingRecipe) return 'recipe-editor';
     if (previewingToken) return 'token-preview';
     if (showTokensCompare) return 'compare';
     return null;
-  }, [editingToken, editingGenerator, previewingToken, showTokensCompare]);
+  }, [editingToken, editingRecipe, previewingToken, showTokensCompare]);
 
   const tokensContextualSurfaceState = useMemo<TokensContextualSurfaceState>(() => ({
     activeSurface,
@@ -215,8 +215,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const value = useMemo<EditorContextValue>(() => ({
     editingToken,
     setEditingToken,
-    editingGenerator,
-    setEditingGenerator,
+    editingRecipe,
+    setEditingRecipe,
     previewingToken,
     setPreviewingToken,
     highlightedToken,
@@ -245,7 +245,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setAliasNotFoundHandler,
   }), [
     editingToken,
-    editingGenerator,
+    editingRecipe,
     previewingToken,
     highlightedToken,
     createFromEmpty,

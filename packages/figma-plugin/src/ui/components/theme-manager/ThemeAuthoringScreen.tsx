@@ -17,10 +17,7 @@ import type {
   ThemeOptionRoleSummary,
   ThemeRoleState,
 } from "../themeManagerTypes";
-import type {
-  ThemeIssueSummary,
-  ThemeRoleNavigationTarget,
-} from "../../shared/themeWorkflow";
+import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 import {
   ThemeAuthoringProvider,
   type ThemeAuthoringContextValue,

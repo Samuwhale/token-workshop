@@ -36,10 +36,10 @@ export function SkeletonTimelineRow({ titleWidth = 'w-2/3' }: { titleWidth?: str
 }
 
 /**
- * Skeleton for a generator pipeline card (GraphPanel style):
+ * Skeleton for a recipe pipeline card (GraphPanel style):
  * badge | name | toggle — then source → name → target row
  */
-export function SkeletonGeneratorCard() {
+export function SkeletonRecipeCard() {
   return (
     <div
       className="p-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"

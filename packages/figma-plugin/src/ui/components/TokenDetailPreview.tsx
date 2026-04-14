@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import { createGeneratorOwnershipKey, type ThemeDimension } from "@tokenmanager/core";
-import type { TokenGenerator } from "../hooks/useGenerators";
+import { createRecipeOwnershipKey, type ThemeDimension } from "@tokenmanager/core";
+import type { TokenRecipe } from "../hooks/useRecipes";
 import type { LintViolation } from "../hooks/useLint";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import { ValuePreview } from "./ValuePreview";
@@ -25,9 +25,9 @@ interface TokenDetailPreviewProps {
   dimensions?: ThemeDimension[];
   activeThemes?: Record<string, string>;
   tokenUsageCounts?: Record<string, number>;
-  generators?: TokenGenerator[];
-  generatorsBySource?: Map<string, TokenGenerator[]>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
+  recipes?: TokenRecipe[];
+  recipesBySource?: Map<string, TokenRecipe[]>;
+  derivedTokenPaths?: Map<string, TokenRecipe>;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
   /** Server URL for fetching token value history. When omitted, history section is hidden. */
@@ -35,22 +35,22 @@ interface TokenDetailPreviewProps {
   onEdit: () => void;
   onClose: () => void;
   onNavigateToAlias?: (path: string) => void;
-  onNavigateToGenerator?: (generatorId: string) => void;
+  onNavigateToRecipe?: (recipeId: string) => void;
 }
 
-function GeneratorReferenceChip({
-  generator,
-  onNavigateToGenerator,
+function RecipeReferenceChip({
+  recipe,
+  onNavigateToRecipe,
 }: {
-  generator: TokenGenerator;
-  onNavigateToGenerator?: (generatorId: string) => void;
+  recipe: TokenRecipe;
+  onNavigateToRecipe?: (recipeId: string) => void;
 }) {
   const className =
     "inline-flex items-center gap-1 rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)]";
 
-  if (!onNavigateToGenerator) {
+  if (!onNavigateToRecipe) {
     return (
-      <span className={className} title={generator.name}>
+      <span className={className} title={recipe.name}>
         <svg
           className="shrink-0"
           width="7"
@@ -66,7 +66,7 @@ function GeneratorReferenceChip({
           <circle cx="8" cy="8" r="1.5" />
           <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
         </svg>
-        <span className="truncate">{generator.name}</span>
+        <span className="truncate">{recipe.name}</span>
       </span>
     );
   }
@@ -74,9 +74,9 @@ function GeneratorReferenceChip({
   return (
     <button
       type="button"
-      onClick={() => onNavigateToGenerator(generator.id)}
+      onClick={() => onNavigateToRecipe(recipe.id)}
       className={`${className} text-[var(--color-figma-accent)] hover:underline`}
-      title={generator.name}
+      title={recipe.name}
     >
       <svg
         className="shrink-0"
@@ -93,7 +93,7 @@ function GeneratorReferenceChip({
         <circle cx="8" cy="8" r="1.5" />
         <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
       </svg>
-      <span className="truncate">{generator.name}</span>
+      <span className="truncate">{recipe.name}</span>
     </button>
   );
 }
@@ -107,8 +107,8 @@ export function TokenDetailPreview({
   dimensions,
   activeThemes,
   tokenUsageCounts,
-  generators,
-  generatorsBySource,
+  recipes,
+  recipesBySource,
   derivedTokenPaths,
   lintViolations = [],
   syncSnapshot,
@@ -116,7 +116,7 @@ export function TokenDetailPreview({
   onEdit,
   onClose,
   onNavigateToAlias,
-  onNavigateToGenerator,
+  onNavigateToRecipe,
 }: TokenDetailPreviewProps) {
   const entry = allTokensFlat[tokenPath];
   const name = tokenName ?? tokenPath.split(".").pop() ?? tokenPath;
@@ -188,14 +188,14 @@ export function TokenDetailPreview({
     typeof tokenManagerExt?.extends === "string"
       ? tokenManagerExt.extends
       : null;
-  const sourceGenerators = useMemo(() => {
-    if (generatorsBySource) return generatorsBySource.get(tokenPath) ?? [];
-    return (generators ?? []).filter(
-      (generator) => generator.sourceToken === tokenPath,
+  const sourceRecipes = useMemo(() => {
+    if (recipesBySource) return recipesBySource.get(tokenPath) ?? [];
+    return (recipes ?? []).filter(
+      (recipe) => recipe.sourceToken === tokenPath,
     );
-  }, [generatorsBySource, generators, tokenPath]);
-  const derivedGenerator =
-    derivedTokenPaths?.get(createGeneratorOwnershipKey(tokenSet, tokenPath));
+  }, [recipesBySource, recipes, tokenPath]);
+  const derivedRecipe =
+    derivedTokenPaths?.get(createRecipeOwnershipKey(tokenSet, tokenPath));
   const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
   const syncChanged = useMemo(() => {
     if (!syncSnapshot || !(tokenPath in syncSnapshot)) return false;
@@ -382,8 +382,8 @@ export function TokenDetailPreview({
           lifecycle ||
           provenanceLabel ||
           extendsPath ||
-          sourceGenerators.length > 0 ||
-          derivedGenerator ||
+          sourceRecipes.length > 0 ||
+          derivedRecipe ||
           usageCount > 0) && (
           <div className="px-3 pt-3 pb-2">
             <div className="flex flex-col gap-2">
@@ -406,24 +406,24 @@ export function TokenDetailPreview({
                   </button>
                 </div>
               )}
-              {sourceGenerators.length > 0 && (
+              {sourceRecipes.length > 0 && (
                 <div>
                   <div className="flex flex-wrap gap-1">
-                    {sourceGenerators.map((generator) => (
-                      <GeneratorReferenceChip
-                        key={generator.id}
-                        generator={generator}
-                        onNavigateToGenerator={onNavigateToGenerator}
+                    {sourceRecipes.map((recipe) => (
+                      <RecipeReferenceChip
+                        key={recipe.id}
+                        recipe={recipe}
+                        onNavigateToRecipe={onNavigateToRecipe}
                       />
                     ))}
                   </div>
                 </div>
               )}
-              {derivedGenerator && (
+              {derivedRecipe && (
                 <div>
-                  <GeneratorReferenceChip
-                    generator={derivedGenerator}
-                    onNavigateToGenerator={onNavigateToGenerator}
+                  <RecipeReferenceChip
+                    recipe={derivedRecipe}
+                    onNavigateToRecipe={onNavigateToRecipe}
                   />
                 </div>
               )}

@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import type { TokenGenerator } from '../../hooks/useGenerators';
+import type { TokenRecipe } from '../../hooks/useRecipes';
 import type { UndoSlot } from '../../hooks/useUndo';
 import type {
   NodeGraphState,
   GraphNode,
 } from './nodeGraphTypes';
-import { generatorsToGraph } from './nodeGraphTypes';
+import { recipesToGraph } from './nodeGraphTypes';
 import { lsGetJson, lsSetJson } from '../../shared/storage';
 
 // ---------------------------------------------------------------------------
@@ -36,18 +36,18 @@ export interface UseNodeGraphResult {
   pushMoveUndo: (nodeId: string, fromX: number, fromY: number) => void;
   selectedNodeId: string | null;
   setSelectedNodeId: (id: string | null) => void;
-  /** The TokenGenerator corresponding to the selected node, or null. */
-  selectedGenerator: TokenGenerator | null;
+  /** The TokenRecipe corresponding to the selected node, or null. */
+  selectedRecipe: TokenRecipe | null;
   persistPositions: () => void;
 }
 
 export function useNodeGraph(
-  generators: TokenGenerator[],
+  recipes: TokenRecipe[],
   activeSet: string,
   onPushUndo?: (slot: UndoSlot) => void,
 ): UseNodeGraphResult {
   const initialGraph = useMemo(() => {
-    const base = generatorsToGraph(generators);
+    const base = recipesToGraph(recipes);
     const saved = loadPositions(activeSet);
     for (const node of base.nodes) {
       if (saved[node.id]) {
@@ -56,7 +56,7 @@ export function useNodeGraph(
       }
     }
     return base;
-  }, [generators, activeSet]);
+  }, [recipes, activeSet]);
 
   const [graph, setGraph] = useState<NodeGraphState>(initialGraph);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -68,12 +68,12 @@ export function useNodeGraph(
   const activeSetRef = useRef(activeSet);
   activeSetRef.current = activeSet;
 
-  // Keep graph in sync when generators change
-  const prevGenIdsRef = useRef<string>(generators.map(g => g.id).join(','));
-  const currentGenIds = generators.map(g => g.id).join(',');
+  // Keep graph in sync when recipes change
+  const prevGenIdsRef = useRef<string>(recipes.map(g => g.id).join(','));
+  const currentGenIds = recipes.map(g => g.id).join(',');
   if (currentGenIds !== prevGenIdsRef.current) {
     prevGenIdsRef.current = currentGenIds;
-    const base = generatorsToGraph(generators);
+    const base = recipesToGraph(recipes);
     const saved = loadPositions(activeSet);
     for (const node of base.nodes) {
       const existing = graph.nodes.find(n => n.id === node.id);
@@ -88,12 +88,12 @@ export function useNodeGraph(
     setGraph(base);
   }
 
-  const selectedGenerator = useMemo(() => {
+  const selectedRecipe = useMemo(() => {
     if (!selectedNodeId) return null;
     const node = graph.nodes.find(n => n.id === selectedNodeId);
     if (!node) return null;
-    return generators.find(g => g.id === node.generatorId) ?? null;
-  }, [selectedNodeId, graph.nodes, generators]);
+    return recipes.find(g => g.id === node.recipeId) ?? null;
+  }, [selectedNodeId, graph.nodes, recipes]);
 
   const moveNode = useCallback((id: string, x: number, y: number) => {
     setGraph(prev => ({
@@ -138,7 +138,7 @@ export function useNodeGraph(
     pushMoveUndo,
     selectedNodeId,
     setSelectedNodeId,
-    selectedGenerator,
+    selectedRecipe,
     persistPositions,
   };
 }

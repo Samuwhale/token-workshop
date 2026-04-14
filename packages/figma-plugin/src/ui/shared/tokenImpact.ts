@@ -1,13 +1,13 @@
-import type { TokenGenerator } from '../hooks/useGenerators';
+import type { TokenRecipe } from '../hooks/useRecipes';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
-import type { GeneratorImpact, ThemeImpact } from '../components/tokenListTypes';
+import type { RecipeImpact, ThemeImpact } from '../components/tokenListTypes';
 
 /**
- * Returns all $tokenRefs entries from a generator's config as a flat
- * Record<fieldName, tokenPath>. Handles all GeneratorConfig variants.
+ * Returns all $tokenRefs entries from a recipe's config as a flat
+ * Record<fieldName, tokenPath>. Handles all RecipeConfig variants.
  */
-function extractTokenRefs(config: TokenGenerator['config']): Record<string, string> {
+function extractTokenRefs(config: TokenRecipe['config']): Record<string, string> {
   const refs = (config as unknown as { $tokenRefs?: Record<string, string | undefined> }).$tokenRefs;
   if (!refs) return {};
   const out: Record<string, string> = {};
@@ -18,20 +18,20 @@ function extractTokenRefs(config: TokenGenerator['config']): Record<string, stri
 }
 
 /**
- * Compute which generators reference any of the given token paths (directly
+ * Compute which recipes reference any of the given token paths (directly
  * via `sourceToken` or via a `$tokenRefs` config field).
  */
-export function computeGeneratorImpacts(
+export function computeRecipeImpacts(
   targetPaths: Set<string>,
-  generators: TokenGenerator[],
-): GeneratorImpact[] {
-  const impacts: GeneratorImpact[] = [];
-  for (const gen of generators) {
+  recipes: TokenRecipe[],
+): RecipeImpact[] {
+  const impacts: RecipeImpact[] = [];
+  for (const gen of recipes) {
     if (gen.sourceToken && targetPaths.has(gen.sourceToken)) {
       impacts.push({
-        generatorId: gen.id,
-        generatorName: gen.name,
-        generatorType: gen.type,
+        recipeId: gen.id,
+        recipeName: gen.name,
+        recipeType: gen.type,
         role: 'source',
       });
     }
@@ -39,9 +39,9 @@ export function computeGeneratorImpacts(
     for (const [field, path] of Object.entries(refs)) {
       if (targetPaths.has(path)) {
         impacts.push({
-          generatorId: gen.id,
-          generatorName: gen.name,
-          generatorType: gen.type,
+          recipeId: gen.id,
+          recipeName: gen.name,
+          recipeType: gen.type,
           role: 'config-ref',
           configField: field,
         });

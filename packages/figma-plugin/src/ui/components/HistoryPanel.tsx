@@ -93,8 +93,8 @@ function formatSnapshotWorkspaceCounts(snapshot: SnapshotSummary) {
   if (snapshot.resolverCount > 0) {
     parts.push(`${snapshot.resolverCount} ${snapshot.resolverCount === 1 ? 'resolver' : 'resolvers'}`);
   }
-  if (snapshot.generatorCount > 0) {
-    parts.push(`${snapshot.generatorCount} ${snapshot.generatorCount === 1 ? 'recipe' : 'recipes'}`);
+  if (snapshot.recipeCount > 0) {
+    parts.push(`${snapshot.recipeCount} ${snapshot.recipeCount === 1 ? 'recipe' : 'recipes'}`);
   }
   return parts.join(' · ');
 }

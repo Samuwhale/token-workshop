@@ -131,7 +131,7 @@ const THEME_ISSUE_GROUP_COPY: Record<
   "stale-set": {
     title: "Deleted token sources",
     description:
-      "These variants still point at sets that no longer exist. Open advanced setup to remove or replace those assignments.",
+      "These variants still point at sets that no longer exist. Expand All Sets to remove or replace those assignments.",
   },
   "empty-override": {
     title: "Empty variant sets",
@@ -184,12 +184,6 @@ export function sortThemeIssuesByPriority(
     }
     return left.optionName.localeCompare(right.optionName);
   });
-}
-
-export function themeIssueRequiresAdvancedSetup(
-  issue: ThemeIssueSummary,
-): boolean {
-  return issue.kind === "stale-set" || issue.kind === "empty-override";
 }
 
 export function summarizeThemeIssueHealth(
@@ -286,8 +280,8 @@ export function collectThemeOptionIssues({
       title: "Deleted token sources",
       summary: `${summary.staleSetCount} assigned token source${summary.staleSetCount === 1 ? "" : "s"} no longer exist for this variant.`,
       recommendedNextAction:
-        "Open advanced setup, then remove or replace the deleted assignments before previewing this variant.",
-      actionLabel: "Open advanced setup",
+        "Remove or replace the deleted set assignments using All Sets below.",
+      actionLabel: "View set",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: summary.staleSetNames,
     });
@@ -304,8 +298,8 @@ export function collectThemeOptionIssues({
       title: "Empty variant sets",
       summary: `${summary.emptyOverrideCount} variant-specific set${summary.emptyOverrideCount === 1 ? "" : "s"} are assigned but currently contain no tokens.`,
       recommendedNextAction:
-        "Open advanced setup, then add tokens to the empty variant set or move it back to the shared layer.",
-      actionLabel: "Open advanced setup",
+        "Add tokens to the empty variant set, or move it back to the shared layer.",
+      actionLabel: "View set",
       preferredSetName: pickPreferredSetName(
         orderedSets,
         availableSets,
@@ -430,10 +424,10 @@ export function summarizeThemeWorkflow(
         recommendedNextAction: summary.isUnmapped
           ? "Assign at least one shared or variant-specific set so this variant can contribute tokens."
           : (topIssue?.recommendedNextAction ??
-            "Open advanced setup and resolve the outstanding issue."),
+            "Resolve the outstanding issue using All Sets below."),
         actionLabel: summary.isUnmapped
           ? "Assign token sources"
-          : (topIssue?.actionLabel ?? "Edit advanced setup"),
+          : (topIssue?.actionLabel ?? "View set"),
         preferredSetName: summary.isUnmapped
           ? pickPreferredSetName(availableSets, availableSets)
           : (topIssue?.preferredSetName ??

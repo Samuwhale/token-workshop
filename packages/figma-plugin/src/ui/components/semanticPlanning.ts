@@ -1,4 +1,4 @@
-import type { GeneratorType } from '../hooks/useGenerators';
+import type { RecipeType } from '../hooks/useRecipes';
 import type { SemanticStarter } from './graph-templates';
 import { SEMANTIC_PATTERNS } from '../shared/semanticPatterns';
 
@@ -48,7 +48,7 @@ export function createEmptySemanticMapping(
 }
 
 export function getSemanticSuggestions(
-  selectedType: GeneratorType,
+  selectedType: RecipeType,
   availableSteps: string[],
   templateStarter?: SemanticStarter,
 ): SemanticSuggestion[] {

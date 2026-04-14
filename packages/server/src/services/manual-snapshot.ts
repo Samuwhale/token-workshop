@@ -6,12 +6,12 @@ import type {
   ResolverFile,
   ThemeDimension,
   Token,
-  TokenGenerator,
+  TokenRecipe,
   TokenGroup,
 } from "@tokenmanager/core";
 import type { TokenStore } from "./token-store.js";
 import type { ResolverStore } from "./resolver-store.js";
-import type { GeneratorService } from "./generator-service.js";
+import type { RecipeService } from "./recipe-service.js";
 import type { DimensionsStore } from "../routes/themes.js";
 import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError } from "../errors.js";
@@ -28,18 +28,18 @@ export interface ManualSnapshotToken {
 
 type SnapshotTokenSets = Record<string, Record<string, ManualSnapshotToken>>;
 type SnapshotResolvers = Record<string, ResolverFile>;
-type SnapshotGenerators = Record<string, TokenGenerator>;
+type SnapshotRecipes = Record<string, TokenRecipe>;
 
 type ManualSnapshotComparableState = Pick<
   ManualSnapshotEntry,
-  "data" | "dimensions" | "resolvers" | "generators"
+  "data" | "dimensions" | "resolvers" | "recipes"
 >;
 
 interface RestoreWorkspaceState {
   setNames: string[];
   dimensions: ThemeDimension[];
   resolvers: SnapshotResolvers;
-  generators: SnapshotGenerators;
+  recipes: SnapshotRecipes;
 }
 
 interface RestorePlanStepBase {
@@ -66,11 +66,11 @@ type RestorePlanStep =
       name: string;
     })
   | (RestorePlanStepBase & {
-      kind: "restore-generator";
-      generator: TokenGenerator;
+      kind: "restore-recipe";
+      recipe: TokenRecipe;
     })
   | (RestorePlanStepBase & {
-      kind: "delete-generator";
+      kind: "delete-recipe";
       id: string;
     })
   | (RestorePlanStepBase & {
@@ -84,10 +84,10 @@ interface RestorePlan {
   data: SnapshotTokenSets;
   dimensions: ThemeDimension[];
   resolvers: SnapshotResolvers;
-  generators: SnapshotGenerators;
+  recipes: SnapshotRecipes;
   deleteSetNames: string[];
   deleteResolverNames: string[];
-  deleteGeneratorIds: string[];
+  deleteRecipeIds: string[];
   rollbackSteps: RollbackStep[];
   steps: RestorePlanStep[];
 }
@@ -106,7 +106,7 @@ export interface ManualSnapshotEntry {
   data: SnapshotTokenSets;
   dimensions: ThemeDimension[];
   resolvers: SnapshotResolvers;
-  generators: SnapshotGenerators;
+  recipes: SnapshotRecipes;
 }
 
 export interface ManualSnapshotSummary {
@@ -117,7 +117,7 @@ export interface ManualSnapshotSummary {
   setCount: number;
   dimensionCount: number;
   resolverCount: number;
-  generatorCount: number;
+  recipeCount: number;
 }
 
 export interface TokenDiff {
@@ -129,7 +129,7 @@ export interface TokenDiff {
 }
 
 export interface WorkspaceDiff {
-  kind: "themes" | "resolver" | "generator";
+  kind: "themes" | "resolver" | "recipe";
   id: string;
   label: string;
   status: "added" | "modified" | "removed";
@@ -165,8 +165,8 @@ function cloneResolvers(resolvers: SnapshotResolvers): SnapshotResolvers {
   return structuredClone(resolvers);
 }
 
-function cloneGenerators(generators: SnapshotGenerators): SnapshotGenerators {
-  return structuredClone(generators);
+function cloneRecipes(recipes: SnapshotRecipes): SnapshotRecipes {
+  return structuredClone(recipes);
 }
 
 function cloneRollbackSteps(steps: RollbackStep[]): RollbackStep[] {
@@ -185,12 +185,12 @@ function buildDeleteResolverStepId(name: string): string {
   return `delete-resolver:${name}`;
 }
 
-function buildRestoreGeneratorStepId(id: string): string {
-  return `restore-generator:${id}`;
+function buildRestoreRecipeStepId(id: string): string {
+  return `restore-recipe:${id}`;
 }
 
-function buildDeleteGeneratorStepId(id: string): string {
-  return `delete-generator:${id}`;
+function buildDeleteRecipeStepId(id: string): string {
+  return `delete-recipe:${id}`;
 }
 
 function buildDeleteSetStepId(setName: string): string {
@@ -228,8 +228,8 @@ function normalizeSnapshotEntry(raw: unknown): ManualSnapshotEntry {
     resolvers: isRecord(raw.resolvers)
       ? cloneResolvers(raw.resolvers as SnapshotResolvers)
       : {},
-    generators: isRecord(raw.generators)
-      ? cloneGenerators(raw.generators as SnapshotGenerators)
+    recipes: isRecord(raw.recipes)
+      ? cloneRecipes(raw.recipes as SnapshotRecipes)
       : {},
   };
 }
@@ -249,8 +249,8 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
   const resolvers = isRecord(raw.resolvers)
     ? cloneResolvers(raw.resolvers as SnapshotResolvers)
     : {};
-  const generators = isRecord(raw.generators)
-    ? cloneGenerators(raw.generators as SnapshotGenerators)
+  const recipes = isRecord(raw.recipes)
+    ? cloneRecipes(raw.recipes as SnapshotRecipes)
     : {};
   const deleteSetNames = Array.isArray(raw.deleteSetNames)
     ? structuredClone(raw.deleteSetNames as string[])
@@ -258,8 +258,8 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
   const deleteResolverNames = Array.isArray(raw.deleteResolverNames)
     ? structuredClone(raw.deleteResolverNames as string[])
     : [];
-  const deleteGeneratorIds = Array.isArray(raw.deleteGeneratorIds)
-    ? structuredClone(raw.deleteGeneratorIds as string[])
+  const deleteRecipeIds = Array.isArray(raw.deleteRecipeIds)
+    ? structuredClone(raw.deleteRecipeIds as string[])
     : [];
 
   if (Array.isArray(raw.completedStepIds) || isRecord(raw.failedStepAttempts)) {
@@ -269,10 +269,10 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
       data,
       dimensions,
       resolvers,
-      generators,
+      recipes,
       deleteSetNames,
       deleteResolverNames,
-      deleteGeneratorIds,
+      deleteRecipeIds,
       rollbackSteps: Array.isArray(raw.rollbackSteps)
         ? cloneRollbackSteps(raw.rollbackSteps as RollbackStep[])
         : [],
@@ -304,15 +304,15 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
     : []) {
     completedStepIds.add(buildDeleteResolverStepId(name));
   }
-  for (const id of Array.isArray(raw.completedGenerators)
-    ? (raw.completedGenerators as string[])
+  for (const id of Array.isArray(raw.completedRecipes)
+    ? (raw.completedRecipes as string[])
     : []) {
-    completedStepIds.add(buildRestoreGeneratorStepId(id));
+    completedStepIds.add(buildRestoreRecipeStepId(id));
   }
-  for (const id of Array.isArray(raw.completedGeneratorDeletes)
-    ? (raw.completedGeneratorDeletes as string[])
+  for (const id of Array.isArray(raw.completedRecipeDeletes)
+    ? (raw.completedRecipeDeletes as string[])
     : []) {
-    completedStepIds.add(buildDeleteGeneratorStepId(id));
+    completedStepIds.add(buildDeleteRecipeStepId(id));
   }
   const completedSetDeletes = Array.isArray(raw.completedSetDeletes)
     ? (raw.completedSetDeletes as string[])
@@ -357,17 +357,17 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
   );
   addRestoreFailedAttempts(
     failedStepAttempts,
-    isRecord(raw.failedGenerators)
-      ? (raw.failedGenerators as Record<string, number>)
+    isRecord(raw.failedRecipes)
+      ? (raw.failedRecipes as Record<string, number>)
       : {},
-    buildRestoreGeneratorStepId,
+    buildRestoreRecipeStepId,
   );
   addRestoreFailedAttempts(
     failedStepAttempts,
-    isRecord(raw.failedGeneratorDeletes)
-      ? (raw.failedGeneratorDeletes as Record<string, number>)
+    isRecord(raw.failedRecipeDeletes)
+      ? (raw.failedRecipeDeletes as Record<string, number>)
       : {},
-    buildDeleteGeneratorStepId,
+    buildDeleteRecipeStepId,
   );
 
   return {
@@ -376,10 +376,10 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
     data,
     dimensions,
     resolvers,
-    generators,
+    recipes,
     deleteSetNames,
     deleteResolverNames,
-    deleteGeneratorIds,
+    deleteRecipeIds,
     rollbackSteps: [],
     completedStepIds: [...completedStepIds],
     failedStepAttempts,
@@ -441,8 +441,8 @@ function listTokenDiffs(
 }
 
 function listWorkspaceDiffs(
-  before: Pick<ManualSnapshotComparableState, "dimensions" | "resolvers" | "generators">,
-  after: Pick<ManualSnapshotComparableState, "dimensions" | "resolvers" | "generators">,
+  before: Pick<ManualSnapshotComparableState, "dimensions" | "resolvers" | "recipes">,
+  after: Pick<ManualSnapshotComparableState, "dimensions" | "resolvers" | "recipes">,
 ): WorkspaceDiff[] {
   const diffs: WorkspaceDiff[] = [];
 
@@ -499,27 +499,27 @@ function listWorkspaceDiffs(
     }
   }
 
-  const generatorIds = new Set([
-    ...Object.keys(before.generators),
-    ...Object.keys(after.generators),
+  const recipeIds = new Set([
+    ...Object.keys(before.recipes),
+    ...Object.keys(after.recipes),
   ]);
-  for (const id of generatorIds) {
-    const beforeGenerator = before.generators[id];
-    const afterGenerator = after.generators[id];
+  for (const id of recipeIds) {
+    const beforeRecipe = before.recipes[id];
+    const afterRecipe = after.recipes[id];
     const label =
-      beforeGenerator?.name ?? afterGenerator?.name ?? `Generator ${id}`;
-    if (!beforeGenerator && afterGenerator) {
+      beforeRecipe?.name ?? afterRecipe?.name ?? `Recipe ${id}`;
+    if (!beforeRecipe && afterRecipe) {
       diffs.push({
-        kind: "generator",
+        kind: "recipe",
         id,
         label,
         status: "added",
       });
       continue;
     }
-    if (beforeGenerator && !afterGenerator) {
+    if (beforeRecipe && !afterRecipe) {
       diffs.push({
-        kind: "generator",
+        kind: "recipe",
         id,
         label,
         status: "removed",
@@ -527,12 +527,12 @@ function listWorkspaceDiffs(
       continue;
     }
     if (
-      beforeGenerator &&
-      afterGenerator &&
-      stableStringify(beforeGenerator) !== stableStringify(afterGenerator)
+      beforeRecipe &&
+      afterRecipe &&
+      stableStringify(beforeRecipe) !== stableStringify(afterRecipe)
     ) {
       diffs.push({
-        kind: "generator",
+        kind: "recipe",
         id,
         label,
         status: "modified",
@@ -561,15 +561,15 @@ function compareSnapshotStates(
 function buildSnapshotRestoreRollbackSteps({
   currentDimensions,
   currentResolvers,
-  currentGenerators,
+  currentRecipes,
   snapshotResolvers,
-  snapshotGenerators,
+  snapshotRecipes,
 }: {
   currentDimensions: ThemeDimension[];
   currentResolvers: SnapshotResolvers;
-  currentGenerators: SnapshotGenerators;
+  currentRecipes: SnapshotRecipes;
   snapshotResolvers: SnapshotResolvers;
-  snapshotGenerators: SnapshotGenerators;
+  snapshotRecipes: SnapshotRecipes;
 }): RollbackStep[] {
   const steps: RollbackStep[] = [
     { action: "write-themes", dimensions: structuredClone(currentDimensions) },
@@ -589,16 +589,16 @@ function buildSnapshotRestoreRollbackSteps({
     }
   }
 
-  for (const generator of Object.values(currentGenerators)) {
+  for (const recipe of Object.values(currentRecipes)) {
     steps.push({
-      action: "create-generator",
-      generator: structuredClone(generator),
+      action: "create-recipe",
+      recipe: structuredClone(recipe),
     });
   }
 
-  for (const generatorId of Object.keys(snapshotGenerators)) {
-    if (!(generatorId in currentGenerators)) {
-      steps.push({ action: "delete-generator", id: generatorId });
+  for (const recipeId of Object.keys(snapshotRecipes)) {
+    if (!(recipeId in currentRecipes)) {
+      steps.push({ action: "delete-recipe", id: recipeId });
     }
   }
 
@@ -699,16 +699,16 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    generatorService: GeneratorService,
+    recipeService: RecipeService,
   ): Promise<ManualSnapshotEntry> {
-    const [data, dimensions, resolvers, generators] = await Promise.all([
+    const [data, dimensions, resolvers, recipes] = await Promise.all([
       this.captureTokenSets(tokenStore),
       dimensionsStore.withLock(async (dims) => ({
         dims,
         result: structuredClone(dims),
       })),
       this.captureCurrentResolvers(resolverStore),
-      generatorService.getAllById(),
+      recipeService.getAllById(),
     ]);
 
     return {
@@ -718,7 +718,7 @@ export class ManualSnapshotStore {
       data,
       dimensions,
       resolvers,
-      generators,
+      recipes,
     };
   }
 
@@ -727,7 +727,7 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    generatorService: GeneratorService,
+    recipeService: RecipeService,
   ): Promise<ManualSnapshotEntry> {
     return this.lock.withLock(async () => {
       await this.ensureLoaded();
@@ -736,7 +736,7 @@ export class ManualSnapshotStore {
         tokenStore,
         dimensionsStore,
         resolverStore,
-        generatorService,
+        recipeService,
       );
 
       const entry: ManualSnapshotEntry = {
@@ -746,7 +746,7 @@ export class ManualSnapshotStore {
         data: current.data,
         dimensions: current.dimensions,
         resolvers: current.resolvers,
-        generators: current.generators,
+        recipes: current.recipes,
       };
 
       this.snapshots.push(entry);
@@ -777,7 +777,7 @@ export class ManualSnapshotStore {
         setCount: Object.keys(snapshot.data).length,
         dimensionCount: snapshot.dimensions.length,
         resolverCount: Object.keys(snapshot.resolvers).length,
-        generatorCount: Object.keys(snapshot.generators).length,
+        recipeCount: Object.keys(snapshot.recipes).length,
       }));
   }
 
@@ -846,18 +846,18 @@ export class ManualSnapshotStore {
       });
     }
 
-    for (const generator of Object.values(source.generators)) {
+    for (const recipe of Object.values(source.recipes)) {
       steps.push({
-        stepId: buildRestoreGeneratorStepId(generator.id),
-        kind: "restore-generator",
-        generator,
+        stepId: buildRestoreRecipeStepId(recipe.id),
+        kind: "restore-recipe",
+        recipe,
       });
     }
 
-    for (const id of source.deleteGeneratorIds) {
+    for (const id of source.deleteRecipeIds) {
       steps.push({
-        stepId: buildDeleteGeneratorStepId(id),
-        kind: "delete-generator",
+        stepId: buildDeleteRecipeStepId(id),
+        kind: "delete-recipe",
         id,
       });
     }
@@ -887,22 +887,22 @@ export class ManualSnapshotStore {
       data: snapshot.data,
       dimensions: structuredClone(snapshot.dimensions),
       resolvers: cloneResolvers(snapshot.resolvers),
-      generators: cloneGenerators(snapshot.generators),
+      recipes: cloneRecipes(snapshot.recipes),
       deleteSetNames: currentWorkspaceState.setNames.filter(
         (setName) => !(setName in snapshot.data),
       ),
       deleteResolverNames: Object.keys(currentWorkspaceState.resolvers).filter(
         (name) => !(name in snapshot.resolvers),
       ),
-      deleteGeneratorIds: Object.keys(currentWorkspaceState.generators).filter(
-        (id) => !(id in snapshot.generators),
+      deleteRecipeIds: Object.keys(currentWorkspaceState.recipes).filter(
+        (id) => !(id in snapshot.recipes),
       ),
       rollbackSteps: buildSnapshotRestoreRollbackSteps({
         currentDimensions: currentWorkspaceState.dimensions,
         currentResolvers: currentWorkspaceState.resolvers,
-        currentGenerators: currentWorkspaceState.generators,
+        currentRecipes: currentWorkspaceState.recipes,
         snapshotResolvers: snapshot.resolvers,
-        snapshotGenerators: snapshot.generators,
+        snapshotRecipes: snapshot.recipes,
       }),
     });
   }
@@ -916,10 +916,10 @@ export class ManualSnapshotStore {
       data: journal.data,
       dimensions: structuredClone(journal.dimensions),
       resolvers: cloneResolvers(journal.resolvers),
-      generators: cloneGenerators(journal.generators),
+      recipes: cloneRecipes(journal.recipes),
       deleteSetNames: structuredClone(journal.deleteSetNames),
       deleteResolverNames: structuredClone(journal.deleteResolverNames),
-      deleteGeneratorIds: structuredClone(journal.deleteGeneratorIds),
+      deleteRecipeIds: structuredClone(journal.deleteRecipeIds),
       rollbackSteps: cloneRollbackSteps(journal.rollbackSteps),
     });
   }
@@ -933,10 +933,10 @@ export class ManualSnapshotStore {
       data: plan.data,
       dimensions: structuredClone(plan.dimensions),
       resolvers: cloneResolvers(plan.resolvers),
-      generators: cloneGenerators(plan.generators),
+      recipes: cloneRecipes(plan.recipes),
       deleteSetNames: structuredClone(plan.deleteSetNames),
       deleteResolverNames: structuredClone(plan.deleteResolverNames),
-      deleteGeneratorIds: structuredClone(plan.deleteGeneratorIds),
+      deleteRecipeIds: structuredClone(plan.deleteRecipeIds),
       rollbackSteps: cloneRollbackSteps(plan.rollbackSteps),
       completedStepIds: [],
       failedStepAttempts: {},
@@ -949,8 +949,8 @@ export class ManualSnapshotStore {
     restoredThemes: boolean;
     restoredResolvers: string[];
     deletedResolvers: string[];
-    restoredGenerators: string[];
-    deletedGenerators: string[];
+    restoredRecipes: string[];
+    deletedRecipes: string[];
     rollbackSteps: RollbackStep[];
   } {
     return {
@@ -959,10 +959,10 @@ export class ManualSnapshotStore {
       restoredThemes: true,
       restoredResolvers: Object.keys(plan.resolvers),
       deletedResolvers: structuredClone(plan.deleteResolverNames),
-      restoredGenerators: Object.values(plan.generators).map(
-        (generator) => generator.id,
+      restoredRecipes: Object.values(plan.recipes).map(
+        (recipe) => recipe.id,
       ),
-      deletedGenerators: structuredClone(plan.deleteGeneratorIds),
+      deletedRecipes: structuredClone(plan.deleteRecipeIds),
       rollbackSteps: cloneRollbackSteps(plan.rollbackSteps),
     };
   }
@@ -986,7 +986,7 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    generatorService: GeneratorService,
+    recipeService: RecipeService,
   ): Promise<ManualSnapshotDiff> {
     await this.ensureLoaded();
     const snapshot = this.snapshots.find((entry) => entry.id === id);
@@ -998,7 +998,7 @@ export class ManualSnapshotStore {
       tokenStore,
       dimensionsStore,
       resolverStore,
-      generatorService,
+      recipeService,
     );
 
     return compareSnapshotStates(snapshot, current);
@@ -1039,34 +1039,34 @@ export class ManualSnapshotStore {
     await resolverStore.create(name, file);
   }
 
-  private async restoreGenerator(
-    generatorService: GeneratorService,
-    generator: TokenGenerator,
+  private async restoreRecipe(
+    recipeService: RecipeService,
+    recipe: TokenRecipe,
   ): Promise<void> {
-    await generatorService.restore(generator);
+    await recipeService.restore(recipe);
   }
 
   private async captureRestoreWorkspaceState(
     tokenStore: TokenStore,
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    generatorService: GeneratorService,
+    recipeService: RecipeService,
   ): Promise<RestoreWorkspaceState> {
-    const [setNames, dimensions, resolvers, generators] = await Promise.all([
+    const [setNames, dimensions, resolvers, recipes] = await Promise.all([
       tokenStore.getSets(),
       dimensionsStore.withLock(async (dims) => ({
         dims,
         result: structuredClone(dims),
       })),
       this.captureCurrentResolvers(resolverStore),
-      generatorService.getAllById(),
+      recipeService.getAllById(),
     ]);
 
     return {
       setNames,
       dimensions,
       resolvers,
-      generators,
+      recipes,
     };
   }
 
@@ -1088,10 +1088,10 @@ export class ManualSnapshotStore {
         return `restore resolver "${step.name}"`;
       case "delete-resolver":
         return `delete resolver "${step.name}"`;
-      case "restore-generator":
-        return `restore generator "${step.generator.id}"`;
-      case "delete-generator":
-        return `delete generator "${step.id}"`;
+      case "restore-recipe":
+        return `restore recipe "${step.recipe.id}"`;
+      case "delete-recipe":
+        return `delete recipe "${step.id}"`;
       case "delete-set":
         return `delete set "${step.setName}"`;
     }
@@ -1102,7 +1102,7 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    generatorService: GeneratorService,
+    recipeService: RecipeService,
   ): Promise<void> {
     switch (step.kind) {
       case "restore-set":
@@ -1123,11 +1123,11 @@ export class ManualSnapshotStore {
           await resolverStore.delete(step.name);
         });
         return;
-      case "restore-generator":
-        await this.restoreGenerator(generatorService, step.generator);
+      case "restore-recipe":
+        await this.restoreRecipe(recipeService, step.recipe);
         return;
-      case "delete-generator":
-        await generatorService.delete(step.id);
+      case "delete-recipe":
+        await recipeService.delete(step.id);
         return;
       case "delete-set":
         await tokenStore.deleteSet(step.setName);
@@ -1141,7 +1141,7 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    generatorService: GeneratorService,
+    recipeService: RecipeService,
     options: { recoveryMode: boolean },
   ): Promise<boolean> {
     let allResolved = true;
@@ -1165,7 +1165,7 @@ export class ManualSnapshotStore {
           tokenStore,
           dimensionsStore,
           resolverStore,
-          generatorService,
+          recipeService,
         );
         journal.completedStepIds.push(step.stepId);
         delete journal.failedStepAttempts[step.stepId];
@@ -1194,7 +1194,7 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    generatorService: GeneratorService,
+    recipeService: RecipeService,
     currentWorkspaceState?: RestoreWorkspaceState,
   ): Promise<{
     restoredSets: string[];
@@ -1202,8 +1202,8 @@ export class ManualSnapshotStore {
     restoredThemes: boolean;
     restoredResolvers: string[];
     deletedResolvers: string[];
-    restoredGenerators: string[];
-    deletedGenerators: string[];
+    restoredRecipes: string[];
+    deletedRecipes: string[];
     rollbackSteps: RollbackStep[];
   }> {
     return this.lock.withLock(async () => {
@@ -1219,7 +1219,7 @@ export class ManualSnapshotStore {
           tokenStore,
           dimensionsStore,
           resolverStore,
-          generatorService,
+          recipeService,
         ));
       const plan = this.buildRestorePlanFromSnapshot(snapshot, baseline);
       const journal = this.createRestoreJournal(plan);
@@ -1231,7 +1231,7 @@ export class ManualSnapshotStore {
         tokenStore,
         dimensionsStore,
         resolverStore,
-        generatorService,
+        recipeService,
         { recoveryMode: false },
       );
 
@@ -1245,7 +1245,7 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     dimensionsStore: DimensionsStore,
     resolverStore: ResolverStore,
-    generatorService: GeneratorService,
+    recipeService: RecipeService,
   ): Promise<void> {
     let journal: RestoreJournal;
     try {
@@ -1275,7 +1275,7 @@ export class ManualSnapshotStore {
       tokenStore,
       dimensionsStore,
       resolverStore,
-      generatorService,
+      recipeService,
       { recoveryMode: true },
     );
 

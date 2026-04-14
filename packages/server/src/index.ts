@@ -24,9 +24,9 @@ import { lintRoutes } from "./routes/lint.js";
 import { docsRoutes } from "./routes/docs.js";
 import { TokenStore } from "./services/token-store.js";
 import { GitSync } from "./services/git-sync.js";
-import { GeneratorService } from "./services/generator-service.js";
+import { RecipeService } from "./services/recipe-service.js";
 import { OperationLog } from "./services/operation-log.js";
-import { generatorRoutes } from "./routes/generators.js";
+import { recipeRoutes } from "./routes/recipes.js";
 import { operationRoutes } from "./routes/operations.js";
 import { resolverRoutes } from "./routes/resolvers.js";
 import { ResolverStore } from "./services/resolver-store.js";
@@ -102,8 +102,8 @@ export async function startServer(config: ServerConfig) {
 
   const gitSync = new GitSync(config.tokenDir);
 
-  const generatorService = new GeneratorService(config.tokenDir);
-  await generatorService.initialize();
+  const recipeService = new RecipeService(config.tokenDir);
+  await recipeService.initialize();
 
   const operationLog = new OperationLog(config.tokenDir);
 
@@ -122,7 +122,7 @@ export async function startServer(config: ServerConfig) {
     tokenStore,
     dimensionsStore,
     resolverStore,
-    generatorService,
+    recipeService,
   );
 
   // Event bus for SSE with sequence IDs and replay support
@@ -131,15 +131,15 @@ export async function startServer(config: ServerConfig) {
 
   const emitWorkspaceFileEvent = (
     type: "workspace-file-changed" | "workspace-file-removed",
-    resourceType: "themes" | "generators" | "resolver",
+    resourceType: "themes" | "recipes" | "resolver",
     setName: string,
   ) => {
     eventBus.push({ type, resourceType, setName });
   };
 
-  const generatorsFilePath = path.join(config.tokenDir, "$generators.json");
+  const recipesFilePath = path.join(config.tokenDir, "$recipes.json");
   const workspaceWatcher = watch(
-    [dimensionsStore.filePath, generatorsFilePath],
+    [dimensionsStore.filePath, recipesFilePath],
     {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200 },
@@ -165,31 +165,31 @@ export async function startServer(config: ServerConfig) {
     }
   };
 
-  const reloadGeneratorsFromDisk = async () => {
+  const reloadRecipesFromDisk = async () => {
     try {
-      const result = await generatorService.reloadFromDisk();
+      const result = await recipeService.reloadFromDisk();
       if (result === "changed") {
         emitWorkspaceFileEvent(
           "workspace-file-changed",
-          "generators",
-          "$generators",
+          "recipes",
+          "$recipes",
         );
       } else if (result === "removed") {
         emitWorkspaceFileEvent(
           "workspace-file-removed",
-          "generators",
-          "$generators",
+          "recipes",
+          "$recipes",
         );
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.warn(
-        "[GeneratorService] Failed to reload generators from disk:",
+        "[RecipeService] Failed to reload recipes from disk:",
         err,
       );
       tokenStore.emitEvent({
         type: "file-load-error",
-        setName: "$generators",
+        setName: "$recipes",
         message,
       });
     }
@@ -201,9 +201,9 @@ export async function startServer(config: ServerConfig) {
       void reloadThemesFromDisk();
       return;
     }
-    if (filePath === generatorsFilePath) {
-      if (generatorService.consumeWriteGuard(filePath)) return;
-      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
+    if (filePath === recipesFilePath) {
+      if (recipeService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadRecipesFromDisk());
     }
   });
 
@@ -213,9 +213,9 @@ export async function startServer(config: ServerConfig) {
       void reloadThemesFromDisk();
       return;
     }
-    if (filePath === generatorsFilePath) {
-      if (generatorService.consumeWriteGuard(filePath)) return;
-      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
+    if (filePath === recipesFilePath) {
+      if (recipeService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadRecipesFromDisk());
     }
   });
 
@@ -225,9 +225,9 @@ export async function startServer(config: ServerConfig) {
       void reloadThemesFromDisk();
       return;
     }
-    if (filePath === generatorsFilePath) {
-      if (generatorService.consumeWriteGuard(filePath)) return;
-      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
+    if (filePath === recipesFilePath) {
+      if (recipeService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadRecipesFromDisk());
     }
   });
 
@@ -241,7 +241,7 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate("resolverLock", resolverStore.lock);
   fastify.decorate("dimensionsStore", dimensionsStore);
   fastify.decorate("gitSync", gitSync);
-  fastify.decorate("generatorService", generatorService);
+  fastify.decorate("recipeService", recipeService);
   fastify.decorate("operationLog", operationLog);
   fastify.decorate("resolverStore", resolverStore);
   fastify.decorate("manualSnapshots", manualSnapshots);
@@ -263,9 +263,9 @@ export async function startServer(config: ServerConfig) {
     );
   });
 
-  // Auto-run generators when a source token is updated.
-  // Wrapped in tokenLock.withLock() so generator writes are serialized against
-  // route-handler mutations — without it, concurrent route writes and generator
+  // Auto-run recipes when a source token is updated.
+  // Wrapped in tokenLock.withLock() so recipe writes are serialized against
+  // route-handler mutations — without it, concurrent route writes and recipe
   // writes race on tokenStore state and operation-log snapshots.
   // Safe to call withLock() from inside a synchronous emit that itself fires
   // inside an active lock: the promise-chain mutex simply queues this run after
@@ -275,21 +275,21 @@ export async function startServer(config: ServerConfig) {
       const tokenPath = event.tokenPath;
       tokenLock
         .withLock(() =>
-          generatorService.runForSourceToken(tokenPath, tokenStore),
+          recipeService.runForSourceToken(tokenPath, tokenStore),
         )
         .catch((err) => {
           const message = err instanceof Error ? err.message : String(err);
-          console.warn("[Generator] Auto-run failed:", err);
+          console.warn("[Recipe] Auto-run failed:", err);
           tokenStore.emitEvent({
-            type: "generator-error",
+            type: "recipe-error",
             setName: "",
             message,
           });
           // Record the failure persistently so clients connecting later can see it
           operationLog
             .record({
-              type: "generator-auto-run-error",
-              description: `Generator auto-run failed for "${tokenPath}": ${message}`,
+              type: "recipe-auto-run-error",
+              description: `Recipe auto-run failed for "${tokenPath}": ${message}`,
               setName: "",
               affectedPaths: [tokenPath],
               beforeSnapshot: {},
@@ -297,7 +297,7 @@ export async function startServer(config: ServerConfig) {
             })
             .catch((logErr) => {
               console.error(
-                "[OperationLog] Failed to record generator error:",
+                "[OperationLog] Failed to record recipe error:",
                 logErr,
               );
             });
@@ -330,7 +330,7 @@ export async function startServer(config: ServerConfig) {
     prefix: "/api",
     tokenDir: config.tokenDir,
   });
-  await fastify.register(generatorRoutes, { prefix: "/api" });
+  await fastify.register(recipeRoutes, { prefix: "/api" });
   await fastify.register(operationRoutes, { prefix: "/api" });
   await fastify.register(resolverRoutes, { prefix: "/api" });
   await fastify.register(snapshotRoutes, { prefix: "/api" });
@@ -357,7 +357,7 @@ declare module "fastify" {
     tokenLock: PromiseChainLock;
     resolverLock: PromiseChainLock;
     gitSync: GitSync;
-    generatorService: GeneratorService;
+    recipeService: RecipeService;
     operationLog: OperationLog;
     resolverStore: ResolverStore;
     manualSnapshots: ManualSnapshotStore;

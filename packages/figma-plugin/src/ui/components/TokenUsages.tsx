@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Spinner } from './Spinner';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenGenerator } from '../hooks/useGenerators';
+import type { TokenRecipe } from '../hooks/useRecipes';
 import { useThemeSwitcherContext, useResolverContext } from '../contexts/ThemeContext';
 
 interface BoundLayer {
@@ -33,16 +33,16 @@ interface TokenUsagesProps {
   /** Maps each token path to its owning set name. */
   pathToSet: Record<string, string>;
   initialValue: any;
-  /** Generator that produces this token (if any). */
-  producingGenerator: TokenGenerator | null;
-  /** Generators that use this token as their source. */
-  sourceGenerators: TokenGenerator[];
+  /** Recipe that produces this token (if any). */
+  producingRecipe: TokenRecipe | null;
+  /** Recipes that use this token as their source. */
+  sourceRecipes: TokenRecipe[];
   /** Navigate to a token by path in the token list */
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   /** Open the dependency graph focused on a token */
   onShowReferences?: (path: string) => void;
-  /** Navigate to a generator in GraphPanel */
-  onNavigateToGenerator?: (generatorId: string) => void;
+  /** Navigate to a recipe in GraphPanel */
+  onNavigateToRecipe?: (recipeId: string) => void;
 }
 
 const NODE_TYPE_ICONS: Record<string, string> = {
@@ -73,7 +73,7 @@ function formatDiffValue(val: any, type: string): string {
   return String(val);
 }
 
-const GENERATOR_TYPE_STYLES: Record<string, { label: string; classes: string }> = {
+const RECIPE_TYPE_STYLES: Record<string, { label: string; classes: string }> = {
   colorRamp: { label: 'Color Ramp', classes: 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' },
   typeScale: { label: 'Type Scale', classes: 'bg-purple-500/15 text-purple-600' },
   spacingScale: { label: 'Spacing', classes: 'bg-green-500/15 text-green-600' },
@@ -83,7 +83,7 @@ const GENERATOR_TYPE_STYLES: Record<string, { label: string; classes: string }> 
 export function TokenUsages({
   dependents, dependentsLoading, setName, tokenPath, tokenType, value,
   isDirty, aliasMode, allTokensFlat, colorFlatMap, pathToSet, initialValue,
-  producingGenerator, sourceGenerators, onNavigateToToken, onShowReferences, onNavigateToGenerator,
+  producingRecipe, sourceRecipes, onNavigateToToken, onShowReferences, onNavigateToRecipe,
 }: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -212,10 +212,10 @@ export function TokenUsages({
   }, [tokenPath]);
 
   // Count
-  const generatorCount = (producingGenerator ? 1 : 0) + sourceGenerators.length;
+  const recipeCount = (producingRecipe ? 1 : 0) + sourceRecipes.length;
   const variableCount = variablesScanned ? variables.length : 0;
   const layerCount = layersScanned ? layersTotal : 0;
-  const knownTotal = dependents.length + variableCount + layerCount + generatorCount +
+  const knownTotal = dependents.length + variableCount + layerCount + recipeCount +
     themeAssignments.length + resolverAssignments.length;
   const hasUnscannedSections = !layersScanned || !variablesScanned;
 
@@ -234,7 +234,7 @@ export function TokenUsages({
   const oldColorHex = tokenType === 'color' && typeof initialValue === 'string' ? initialValue.slice(0, 7) : null;
   const newColorHex = tokenType === 'color' && typeof value === 'string' ? value.slice(0, 7) : null;
 
-  const hasAnyContent = dependents.length > 0 || generatorCount > 0 || themeAssignments.length > 0 ||
+  const hasAnyContent = dependents.length > 0 || recipeCount > 0 || themeAssignments.length > 0 ||
     resolverAssignments.length > 0 || (variablesScanned && variables.length > 0) || (layersScanned && layers.length > 0);
   const nothingFound = !dependentsLoading && !layersLoading && !variablesLoading &&
     layersScanned && variablesScanned && !hasAnyContent;
@@ -441,50 +441,50 @@ export function TokenUsages({
             </>
           ) : null}
 
-          {/* Generator references */}
-          {generatorCount > 0 && (
+          {/* Recipe references */}
+          {recipeCount > 0 && (
             <>
               <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                Generators ({generatorCount})
+                Recipes ({recipeCount})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
-                {producingGenerator && (
+                {producingRecipe && (
                   <div className="px-3 py-1.5 flex items-center gap-2">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Managed by</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                      GENERATOR_TYPE_STYLES[producingGenerator.type]?.classes ?? 'bg-gray-500/15 text-gray-600'
+                      RECIPE_TYPE_STYLES[producingRecipe.type]?.classes ?? 'bg-gray-500/15 text-gray-600'
                     }`}>
-                      {GENERATOR_TYPE_STYLES[producingGenerator.type]?.label ?? producingGenerator.type}
+                      {RECIPE_TYPE_STYLES[producingRecipe.type]?.label ?? producingRecipe.type}
                     </span>
-                    {onNavigateToGenerator ? (
+                    {onNavigateToRecipe ? (
                       <button
                         type="button"
                         className="flex-1 min-w-0 text-left text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline truncate"
-                        title={`Open recipe "${producingGenerator.name}" in Graph panel`}
-                        onClick={() => onNavigateToGenerator(producingGenerator.id)}
+                        title={`Open recipe "${producingRecipe.name}" in Graph panel`}
+                        onClick={() => onNavigateToRecipe(producingRecipe.id)}
                       >
-                        {producingGenerator.name}
+                        {producingRecipe.name}
                       </button>
                     ) : (
-                      <span className="flex-1 text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={producingGenerator.name}>
-                        {producingGenerator.name}
+                      <span className="flex-1 text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={producingRecipe.name}>
+                        {producingRecipe.name}
                       </span>
                     )}
                   </div>
                 )}
-                {sourceGenerators.map(gen => (
+                {sourceRecipes.map(gen => (
                   <div key={gen.id} className="px-3 py-1.5 flex items-center gap-2">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Source for</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                      GENERATOR_TYPE_STYLES[gen.type]?.classes ?? 'bg-gray-500/15 text-gray-600'
+                      RECIPE_TYPE_STYLES[gen.type]?.classes ?? 'bg-gray-500/15 text-gray-600'
                     }`}>
-                      {GENERATOR_TYPE_STYLES[gen.type]?.label ?? gen.type}
+                      {RECIPE_TYPE_STYLES[gen.type]?.label ?? gen.type}
                     </span>
                     <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={gen.targetGroup}>
                       {gen.targetGroup}

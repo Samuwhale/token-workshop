@@ -603,7 +603,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.gitSync.applyDiffChoices(choices, {
           tokenStore: fastify.tokenStore,
           dimensionsStore: fastify.dimensionsStore,
-          generatorService: fastify.generatorService,
+          recipeService: fastify.recipeService,
           resolverStore: fastify.resolverStore,
         });
         const hasFailures =

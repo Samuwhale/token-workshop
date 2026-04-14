@@ -3,7 +3,7 @@ import type { NoticeSeverity } from './noticeSystem';
 import { LONG_TEXT_CLASSES } from './longTextStyles';
 
 /**
- * Unified authoring surface classes for all token/generator creation and editing screens.
+ * Unified authoring surface classes for all token/recipe creation and editing screens.
  * Single source of truth for form controls, labels, sections, summaries, and footer buttons.
  */
 export const AUTHORING = {
@@ -66,28 +66,28 @@ export const AUTHORING = {
   previewSurface:
     'rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2.5',
 
-  // --- Generator authoring (CSS-class based for container-query responsive grids) ---
-  /** Root wrapper — sets up container query context. Apply on the outermost generator content element. */
-  generatorRoot: 'tm-generator-authoring',
-  generatorSection: 'tm-generator-authoring__section',
-  generatorSectionCard: 'tm-generator-authoring__section-card',
-  generatorTitleBlock: 'tm-generator-authoring__title-block',
-  generatorTitle: 'tm-generator-authoring__title',
-  generatorDescription: 'tm-generator-authoring__description',
-  generatorFieldStack: 'tm-generator-authoring__field-stack',
-  generatorFieldGrid: 'tm-generator-authoring__field-grid',
-  generatorButtonGrid: 'tm-generator-authoring__button-grid',
-  generatorControl: 'tm-generator-authoring__control',
-  generatorControlMono: 'tm-generator-authoring__control tm-generator-authoring__control--mono',
-  generatorSummaryCard: 'tm-generator-authoring__summary-card',
-  generatorSummaryRow: 'tm-generator-authoring__summary-row',
-  generatorSummaryLabel: 'tm-generator-authoring__summary-label',
-  generatorSummaryValue: 'tm-generator-authoring__summary-value',
-  generatorSummaryMono: 'tm-generator-authoring__summary-mono',
-  generatorMetricGrid: 'tm-generator-authoring__metric-grid',
-  generatorMetricCard: 'tm-generator-authoring__metric-card',
-  generatorMetricValue: 'tm-generator-authoring__metric-value',
-  generatorCardList: 'tm-generator-authoring__card-list',
+  // --- Recipe authoring (CSS-class based for container-query responsive grids) ---
+  /** Root wrapper — sets up container query context. Apply on the outermost recipe content element. */
+  recipeRoot: 'tm-recipe-authoring',
+  recipeSection: 'tm-recipe-authoring__section',
+  recipeSectionCard: 'tm-recipe-authoring__section-card',
+  recipeTitleBlock: 'tm-recipe-authoring__title-block',
+  recipeTitle: 'tm-recipe-authoring__title',
+  recipeDescription: 'tm-recipe-authoring__description',
+  recipeFieldStack: 'tm-recipe-authoring__field-stack',
+  recipeFieldGrid: 'tm-recipe-authoring__field-grid',
+  recipeButtonGrid: 'tm-recipe-authoring__button-grid',
+  recipeControl: 'tm-recipe-authoring__control',
+  recipeControlMono: 'tm-recipe-authoring__control tm-recipe-authoring__control--mono',
+  recipeSummaryCard: 'tm-recipe-authoring__summary-card',
+  recipeSummaryRow: 'tm-recipe-authoring__summary-row',
+  recipeSummaryLabel: 'tm-recipe-authoring__summary-label',
+  recipeSummaryValue: 'tm-recipe-authoring__summary-value',
+  recipeSummaryMono: 'tm-recipe-authoring__summary-mono',
+  recipeMetricGrid: 'tm-recipe-authoring__metric-grid',
+  recipeMetricCard: 'tm-recipe-authoring__metric-card',
+  recipeMetricValue: 'tm-recipe-authoring__metric-value',
+  recipeCardList: 'tm-recipe-authoring__card-list',
 } as const;
 
 // Backward-compatible aliases — used by 26+ value editor files

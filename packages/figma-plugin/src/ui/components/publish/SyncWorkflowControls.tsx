@@ -17,8 +17,6 @@ export function SyncWorkflowControls({
 }: SyncWorkflowControlsProps) {
   return (
     <WorkflowStageIndicators
-      title="Sync workflow"
-      description="Preflight, compare, then apply."
       stages={stages}
       onSelectStage={onSelectStage}
     />

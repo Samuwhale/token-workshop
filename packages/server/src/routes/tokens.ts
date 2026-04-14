@@ -239,7 +239,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             {
               tokenStore: fastify.tokenStore,
               operationLog: fastify.operationLog,
-              generatorService: fastify.generatorService,
+              recipeService: fastify.recipeService,
             },
             {
               setName: set,
@@ -278,7 +278,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             {
               tokenStore: fastify.tokenStore,
               operationLog: fastify.operationLog,
-              generatorService: fastify.generatorService,
+              recipeService: fastify.recipeService,
             },
             {
               fromSet: set,
@@ -312,7 +312,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             {
               tokenStore: fastify.tokenStore,
               operationLog: fastify.operationLog,
-              generatorService: fastify.generatorService,
+              recipeService: fastify.recipeService,
             },
             {
               fromSet: set,
@@ -488,7 +488,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           beforeSnapshot: before,
           afterSnapshot: after,
         });
-        await fastify.generatorService.updateBulkTokenPaths(find, replace, isRegex ?? false);
+        await fastify.recipeService.updateBulkTokenPaths(find, replace, isRegex ?? false);
         return { ok: true, ...result };
       } catch (err) {
         return handleRouteError(reply, err);
@@ -717,7 +717,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           {
             tokenStore: fastify.tokenStore,
             operationLog: fastify.operationLog,
-            generatorService: fastify.generatorService,
+            recipeService: fastify.recipeService,
           },
           {
             setName: set,
@@ -754,7 +754,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           {
             tokenStore: fastify.tokenStore,
             operationLog: fastify.operationLog,
-            generatorService: fastify.generatorService,
+            recipeService: fastify.recipeService,
           },
           {
             fromSet: set,
@@ -791,7 +791,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           {
             tokenStore: fastify.tokenStore,
             operationLog: fastify.operationLog,
-            generatorService: fastify.generatorService,
+            recipeService: fastify.recipeService,
           },
           {
             fromSet: set,
@@ -1130,7 +1130,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             {
               tokenStore: fastify.tokenStore,
               operationLog: fastify.operationLog,
-              generatorService: fastify.generatorService,
+              recipeService: fastify.recipeService,
             },
             {
               setName: set,
@@ -1165,7 +1165,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             {
               tokenStore: fastify.tokenStore,
               operationLog: fastify.operationLog,
-              generatorService: fastify.generatorService,
+              recipeService: fastify.recipeService,
             },
             {
               fromSet: set,
@@ -1199,7 +1199,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             {
               tokenStore: fastify.tokenStore,
               operationLog: fastify.operationLog,
-              generatorService: fastify.generatorService,
+              recipeService: fastify.recipeService,
             },
             {
               fromSet: set,

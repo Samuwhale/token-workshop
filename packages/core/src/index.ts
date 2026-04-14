@@ -21,7 +21,7 @@ export type { DimensionUnit, StrokeStyleKeyword } from './constants.js';
 // Types
 export type {
   TokenManagerExtensions,
-  TokenManagerGeneratorExtension,
+  TokenManagerRecipeExtension,
   TokenExtensions,
   ColorModifierOp,
   ColorValue,
@@ -147,10 +147,10 @@ export type { ExternalFileLoader, ResolverDiagnostic, ResolverResult } from './d
 export { TokenValidator } from './validator.js';
 export type { ValidationResult } from './validator.js';
 
-// Generator types & engine
+// Recipe types & engine
 export type {
-  GeneratorType,
-  GeneratorManagedOutput,
+  RecipeType,
+  RecipeManagedOutput,
   ColorRampConfig,
   TypeScaleStep,
   TypeScaleConfig,
@@ -168,22 +168,22 @@ export type {
   DarkModeInversionConfig,
   ContrastCheckStep,
   ContrastCheckConfig,
-  GeneratorConfig,
-  GeneratorSemanticLayer,
+  RecipeConfig,
+  RecipeSemanticLayer,
   SemanticTokenMapping,
-  TokenGenerator,
+  TokenRecipe,
   GeneratedTokenResult,
   InputTableRow,
   InputTable,
-} from './generator-types.js';
+} from './recipe-types.js';
 export {
-  createGeneratorOwnershipKey,
-  getGeneratorManagedOutputPaths,
-  getGeneratorManagedOutputs,
-  getGeneratorOutputSetNames,
-  getGeneratorStepNames,
+  createRecipeOwnershipKey,
+  getRecipeManagedOutputPaths,
+  getRecipeManagedOutputs,
+  getRecipeOutputSetNames,
+  getRecipeStepNames,
   validateStepName,
-} from './generator-types.js';
+} from './recipe-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
@@ -196,20 +196,20 @@ export {
   DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG,
   DEFAULT_DARK_MODE_INVERSION_CONFIG,
   DEFAULT_CONTRAST_CHECK_CONFIG,
-} from './generator-types.js';
+} from './recipe-types.js';
 
-// Generator engine
+// Recipe engine
 export {
-  runColorRampGenerator,
-  runTypeScaleGenerator,
-  runSpacingScaleGenerator,
-  runOpacityScaleGenerator,
-  runBorderRadiusScaleGenerator,
-  runZIndexScaleGenerator,
-  runShadowScaleGenerator,
-  runCustomScaleGenerator,
-  runAccessibleColorPairGenerator,
-  runDarkModeInversionGenerator,
-  runContrastCheckGenerator,
+  runColorRampRecipe,
+  runTypeScaleRecipe,
+  runSpacingScaleRecipe,
+  runOpacityScaleRecipe,
+  runBorderRadiusScaleRecipe,
+  runZIndexScaleRecipe,
+  runShadowScaleRecipe,
+  runCustomScaleRecipe,
+  runAccessibleColorPairRecipe,
+  runDarkModeInversionRecipe,
+  runContrastCheckRecipe,
   applyOverrides,
-} from './generator-engine.js';
+} from './recipe-engine.js';

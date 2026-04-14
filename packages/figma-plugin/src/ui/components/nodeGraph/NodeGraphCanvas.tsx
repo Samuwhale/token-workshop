@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
-import type { TokenGenerator } from '../../hooks/useGenerators';
+import type { TokenRecipe } from '../../hooks/useRecipes';
 import type { UndoSlot } from '../../hooks/useUndo';
 import { portInPosition, portOutPosition, FIXED_NODE_HEIGHT } from './nodeGraphTypes';
 import { useNodeGraph } from './useNodeGraph';
@@ -25,7 +25,7 @@ function formatRelativeTime(value?: string): string | null {
 }
 
 interface DetailPopoverProps {
-  generator: TokenGenerator;
+  recipe: TokenRecipe;
   nodeScreenX: number;
   nodeScreenY: number;
   nodeWidth: number;
@@ -40,7 +40,7 @@ const POPOVER_W = 224; // w-56
 const POPOVER_MAX_H = 240;
 
 function DetailPopover({
-  generator,
+  recipe,
   nodeScreenX,
   nodeScreenY,
   nodeWidth,
@@ -50,8 +50,8 @@ function DetailPopover({
   onEdit,
   onViewTokens,
 }: DetailPopoverProps) {
-  const lastRun = formatRelativeTime(generator.lastRunAt);
-  const hasError = !!generator.lastRunError;
+  const lastRun = formatRelativeTime(recipe.lastRunAt);
+  const hasError = !!recipe.lastRunError;
 
   // Position to the right of the node; flip left if it would overflow
   const rightEdge = nodeScreenX + nodeWidth + 8 + POPOVER_W;
@@ -73,9 +73,9 @@ function DetailPopover({
     >
       {/* Source → Target */}
       <div className="mb-1.5 font-mono text-[var(--color-figma-text-secondary)] break-all">
-        {generator.sourceToken || 'standalone'}
+        {recipe.sourceToken || 'standalone'}
         <span className="mx-1 text-[var(--color-figma-text-tertiary)]">&rarr;</span>
-        {generator.targetGroup}.*{generator.targetSet ? ` (${generator.targetSet})` : ''}
+        {recipe.targetGroup}.*{recipe.targetSet ? ` (${recipe.targetSet})` : ''}
       </div>
 
       {/* Last run */}
@@ -88,26 +88,26 @@ function DetailPopover({
       {/* Error */}
       {hasError && (
         <div className="mb-1.5 px-1.5 py-1 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] break-words">
-          {generator.lastRunError!.message}
+          {recipe.lastRunError!.message}
         </div>
       )}
 
       {/* Actions */}
       <div className="flex items-center gap-1 mt-2 pt-1.5 border-t border-[var(--color-figma-border)]">
         <button
-          onClick={() => onRun(generator.id)}
+          onClick={() => onRun(recipe.id)}
           className="flex-1 py-1 rounded text-center bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
         >
           Run
         </button>
         <button
-          onClick={() => onEdit(generator.id)}
+          onClick={() => onEdit(recipe.id)}
           className="flex-1 py-1 rounded text-center border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
           Edit
         </button>
         <button
-          onClick={() => onViewTokens(generator.targetGroup, generator.targetSet)}
+          onClick={() => onViewTokens(recipe.targetGroup, recipe.targetSet)}
           className="flex-1 py-1 rounded text-center border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
           Tokens
@@ -122,22 +122,22 @@ function DetailPopover({
 // ---------------------------------------------------------------------------
 
 export interface NodeGraphCanvasProps {
-  generators: TokenGenerator[];
+  recipes: TokenRecipe[];
   activeSet: string;
   onPushUndo?: (slot: UndoSlot) => void;
   searchQuery?: string;
-  onEditGenerator?: (generatorId: string) => void;
-  onRunGenerator?: (generatorId: string) => void;
+  onEditRecipe?: (recipeId: string) => void;
+  onRunRecipe?: (recipeId: string) => void;
   onViewTokens?: (targetGroup: string, targetSet: string) => void;
 }
 
 export function NodeGraphCanvas({
-  generators,
+  recipes,
   activeSet,
   onPushUndo,
   searchQuery = '',
-  onEditGenerator,
-  onRunGenerator,
+  onEditRecipe,
+  onRunRecipe,
   onViewTokens,
 }: NodeGraphCanvasProps) {
   const {
@@ -146,9 +146,9 @@ export function NodeGraphCanvas({
     pushMoveUndo,
     selectedNodeId,
     setSelectedNodeId,
-    selectedGenerator,
+    selectedRecipe,
     persistPositions,
-  } = useNodeGraph(generators, activeSet, onPushUndo);
+  } = useNodeGraph(recipes, activeSet, onPushUndo);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -172,7 +172,7 @@ export function NodeGraphCanvas({
           n.label.toLowerCase().includes(q) ||
           (n.sourceToken ?? '').toLowerCase().includes(q) ||
           (n.targetGroup ?? '').toLowerCase().includes(q) ||
-          (n.generatorType ?? '').toLowerCase().includes(q),
+          (n.recipeType ?? '').toLowerCase().includes(q),
         )
         .map(n => n.id),
     );
@@ -310,7 +310,7 @@ export function NodeGraphCanvas({
       ) {
         // Double-click → edit
         lastClickRef.current = null;
-        if (onEditGenerator) onEditGenerator(node.generatorId);
+        if (onEditRecipe) onEditRecipe(node.recipeId);
         return;
       }
       lastClickRef.current = { nodeId, time: now };
@@ -324,7 +324,7 @@ export function NodeGraphCanvas({
         nodeY: node.y,
       };
     },
-    [graph.nodes, setSelectedNodeId, onEditGenerator],
+    [graph.nodes, setSelectedNodeId, onEditRecipe],
   );
 
   // ---------------------------------------------------------------------------
@@ -428,8 +428,8 @@ export function NodeGraphCanvas({
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {/* Dependency edges */}
           {graph.dependencyEdges.map(dep => {
-            const fromNode = graph.nodes.find(n => n.id === `gen-${dep.fromGeneratorId}`);
-            const toNode = graph.nodes.find(n => n.id === `gen-${dep.toGeneratorId}`);
+            const fromNode = graph.nodes.find(n => n.id === `gen-${dep.fromRecipeId}`);
+            const toNode = graph.nodes.find(n => n.id === `gen-${dep.toRecipeId}`);
             if (!fromNode || !toNode) return null;
 
             const from = portOutPosition(fromNode);
@@ -500,8 +500,8 @@ export function NodeGraphCanvas({
                 isHighlighted={matchedNodeIds.size > 0 && matchedNodeIds.has(node.id)}
                 isHovered={hoveredNodeId === node.id}
                 onSelect={setSelectedNodeId}
-                onRun={onRunGenerator}
-                onEdit={onEditGenerator}
+                onRun={onRunRecipe}
+                onEdit={onEditRecipe}
               />
             </g>
           ))}
@@ -521,16 +521,16 @@ export function NodeGraphCanvas({
       </button>
 
       {/* Detail popover */}
-      {selectedGenerator && popoverPos && onEditGenerator && onRunGenerator && onViewTokens && (
+      {selectedRecipe && popoverPos && onEditRecipe && onRunRecipe && onViewTokens && (
         <DetailPopover
-          generator={selectedGenerator}
+          recipe={selectedRecipe}
           nodeScreenX={popoverPos.x}
           nodeScreenY={popoverPos.y}
           nodeWidth={popoverPos.width}
           containerWidth={containerSize.w}
           containerHeight={containerSize.h}
-          onRun={onRunGenerator}
-          onEdit={onEditGenerator}
+          onRun={onRunRecipe}
+          onEdit={onEditRecipe}
           onViewTokens={onViewTokens}
         />
       )}

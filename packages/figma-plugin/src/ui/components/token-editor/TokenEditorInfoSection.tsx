@@ -4,7 +4,7 @@ import type {
   TokenDependencyNode,
   TokenDependencySnapshot,
 } from "../TokenFlowPanel";
-import type { TokenGenerator } from "../../hooks/useGenerators";
+import type { TokenRecipe } from "../../hooks/useRecipes";
 import { TokenUsages } from "../TokenUsages";
 import { TokenHistorySection } from "../TokenHistorySection";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
@@ -27,8 +27,8 @@ export interface TokenEditorInfoSectionProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   initialValue: any | undefined;
-  activeProducingGenerator: TokenGenerator | null;
-  existingGeneratorsForToken: TokenGenerator[];
+  activeProducingRecipe: TokenRecipe | null;
+  existingRecipesForToken: TokenRecipe[];
   // UI state
   infoTab: 'dependencies' | 'usage' | 'history' | null;
   onInfoTabChange: (tab: 'dependencies' | 'usage' | 'history') => void;
@@ -37,7 +37,7 @@ export interface TokenEditorInfoSectionProps {
   // Navigation
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  onNavigateToGenerator?: (generatorId: string) => void;
+  onNavigateToRecipe?: (recipeId: string) => void;
 }
 
 export function TokenEditorInfoSection({
@@ -57,15 +57,15 @@ export function TokenEditorInfoSection({
   allTokensFlat,
   pathToSet,
   initialValue,
-  activeProducingGenerator,
-  existingGeneratorsForToken,
+  activeProducingRecipe,
+  existingRecipesForToken,
   infoTab,
   onInfoTabChange,
   refsExpanded,
   onRefsExpandedChange,
   onShowReferences,
   onNavigateToToken,
-  onNavigateToGenerator,
+  onNavigateToRecipe,
 }: TokenEditorInfoSectionProps) {
   return (
     <div className="mt-1 border-t border-[var(--color-figma-border)] pt-2">
@@ -368,11 +368,11 @@ export function TokenEditorInfoSection({
             colorFlatMap={colorFlatMap}
             pathToSet={pathToSet}
             initialValue={initialValue}
-            producingGenerator={activeProducingGenerator}
-            sourceGenerators={existingGeneratorsForToken}
+            producingRecipe={activeProducingRecipe}
+            sourceRecipes={existingRecipesForToken}
             onNavigateToToken={onNavigateToToken}
             onShowReferences={onShowReferences}
-            onNavigateToGenerator={onNavigateToGenerator}
+            onNavigateToRecipe={onNavigateToRecipe}
           />
         </div>
       )}

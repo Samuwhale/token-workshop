@@ -13,17 +13,17 @@ export interface SetResolverImpact {
   name: string;
 }
 
-export interface SetGeneratorOwnershipImpact {
-  generatorId: string;
-  generatorName: string;
+export interface SetRecipeOwnershipImpact {
+  recipeId: string;
+  recipeName: string;
   targetGroup: string;
   tokenCount: number;
   samplePaths: string[];
 }
 
-export interface SetGeneratorTargetImpact {
-  generatorId: string;
-  generatorName: string;
+export interface SetRecipeTargetImpact {
+  recipeId: string;
+  recipeName: string;
   targetGroup: string;
 }
 
@@ -37,21 +37,21 @@ export interface SetPreflightImpact {
   };
   themeOptions: SetThemeImpact[];
   resolverRefs: SetResolverImpact[];
-  generatedOwnership: SetGeneratorOwnershipImpact[];
-  generatorTargets: SetGeneratorTargetImpact[];
+  generatedOwnership: SetRecipeOwnershipImpact[];
+  recipeTargets: SetRecipeTargetImpact[];
 }
 
 export interface SetPreflightBlocker {
   id: string;
   code:
     | "generated-token-ownership"
-    | "generator-target-set"
+    | "recipe-target-set"
     | "resolver-set-ref"
     | "theme-option-set";
   setName: string;
   message: string;
-  generatorId?: string;
-  generatorName?: string;
+  recipeId?: string;
+  recipeName?: string;
 }
 
 export interface SetMergeConflict {

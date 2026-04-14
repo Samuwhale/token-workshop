@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { createGeneratorOwnershipKey, getGeneratorManagedOutputs } from '@tokenmanager/core';
+import { createRecipeOwnershipKey, getRecipeManagedOutputs } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { ApiError } from '../shared/apiFetch';
@@ -10,7 +10,7 @@ import {
   updateToken,
 } from '../shared/tokenMutations';
 import { apiFetch } from '../shared/apiFetch';
-import type { TokenGenerator } from './useGenerators';
+import type { TokenRecipe } from './useRecipes';
 
 export interface UseTokenSaveParams {
   connected: boolean;
@@ -18,11 +18,11 @@ export interface UseTokenSaveParams {
   setName: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
-  generators?: TokenGenerator[];
+  recipes?: TokenRecipe[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRecordTouch: (path: string) => void;
-  onRefreshGenerators?: () => void;
+  onRefreshRecipes?: () => void;
   onError?: (msg: string) => void;
 }
 
@@ -38,11 +38,11 @@ export function useTokenSave({
   setName,
   allTokensFlat,
   perSetFlat,
-  generators,
+  recipes,
   onRefresh,
   onPushUndo,
   onRecordTouch,
-  onRefreshGenerators,
+  onRefreshRecipes,
   onError,
 }: UseTokenSaveParams) {
   const setNameRef = useRef(setName);
@@ -213,20 +213,20 @@ export function useTokenSave({
     });
   }, [connected, serverUrl, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
-  const handleDetachFromGenerator = useCallback(async (path: string) => {
+  const handleDetachFromRecipe = useCallback(async (path: string) => {
     if (!connected) return;
     try {
-      const derivedGenerator = generators?.find((generator) =>
-        getGeneratorManagedOutputs(generator).some(
+      const derivedRecipe = recipes?.find((recipe) =>
+        getRecipeManagedOutputs(recipe).some(
           (output) =>
-            output.key === createGeneratorOwnershipKey(setName, path),
+            output.key === createRecipeOwnershipKey(setName, path),
         ),
       );
-      if (!derivedGenerator) {
+      if (!derivedRecipe) {
         onError?.('Detach failed: recipe ownership not found');
         return;
       }
-      await apiFetch(`${serverUrl}/api/generators/${derivedGenerator.id}/detach`, {
+      await apiFetch(`${serverUrl}/api/recipes/${derivedRecipe.id}/detach`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope: 'token', path }),
@@ -236,13 +236,13 @@ export function useTokenSave({
       return;
     }
     onRefresh();
-    onRefreshGenerators?.();
-  }, [connected, generators, onError, onRefresh, onRefreshGenerators, serverUrl, setName]);
+    onRefreshRecipes?.();
+  }, [connected, recipes, onError, onRefresh, onRefreshRecipes, serverUrl, setName]);
 
   return {
     handleInlineSave,
     handleDescriptionSave,
     handleMultiModeInlineSave,
-    handleDetachFromGenerator,
+    handleDetachFromRecipe,
   };
 }

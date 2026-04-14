@@ -5,7 +5,7 @@ import { flattenTokenGroup, type Token } from "@tokenmanager/core";
 import { BadRequestError, GitTimeoutError } from "../errors.js";
 import type { TokenStore } from "./token-store.js";
 import type { DimensionsStore } from "../routes/themes.js";
-import type { GeneratorService } from "./generator-service.js";
+import type { RecipeService } from "./recipe-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { stableStringify } from "./stable-stringify.js";
@@ -947,7 +947,7 @@ export class GitSync {
     stores?: {
       tokenStore?: TokenStore;
       dimensionsStore?: DimensionsStore;
-      generatorService?: GeneratorService;
+      recipeService?: RecipeService;
       resolverStore?: ResolverStore;
     },
   ): Promise<ApplyDiffResult> {
@@ -982,10 +982,10 @@ export class GitSync {
             stores.dimensionsStore.startWriteGuard(absolutePath);
           }
           if (
-            stores?.generatorService &&
-            path.basename(file) === "$generators.json"
+            stores?.recipeService &&
+            path.basename(file) === "$recipes.json"
           ) {
-            stores.generatorService.startWriteGuard(absolutePath);
+            stores.recipeService.startWriteGuard(absolutePath);
           }
           if (stores?.resolverStore && file.endsWith(".resolver.json")) {
             stores.resolverStore.startWriteGuard(absolutePath);
@@ -1017,10 +1017,10 @@ export class GitSync {
               stores.dimensionsStore.endWriteGuard(absolutePath);
             }
             if (
-              stores?.generatorService &&
-              path.basename(file) === "$generators.json"
+              stores?.recipeService &&
+              path.basename(file) === "$recipes.json"
             ) {
-              stores.generatorService.endWriteGuard(absolutePath);
+              stores.recipeService.endWriteGuard(absolutePath);
             }
             if (stores?.resolverStore && file.endsWith(".resolver.json")) {
               stores.resolverStore.endWriteGuard(absolutePath);
@@ -1058,10 +1058,10 @@ export class GitSync {
               ) {
                 await stores.dimensionsStore.reloadFromDisk();
               } else if (
-                stores?.generatorService &&
-                path.basename(file) === "$generators.json"
+                stores?.recipeService &&
+                path.basename(file) === "$recipes.json"
               ) {
-                await stores.generatorService.reloadFromDisk();
+                await stores.recipeService.reloadFromDisk();
               } else if (
                 stores?.resolverStore &&
                 file.endsWith(".resolver.json")

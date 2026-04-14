@@ -17,8 +17,6 @@ export interface WorkflowStageIndicatorAction {
 }
 
 interface WorkflowStageIndicatorsProps<StageId extends string> {
-  title: string;
-  description: string;
   stages: WorkflowStageIndicatorItem<StageId>[];
   onSelectStage: (stage: StageId) => void;
   actions?: WorkflowStageIndicatorAction[];

@@ -6,10 +6,10 @@ import type {
   TokenMapEntry,
 } from "../../shared/types";
 import type { UndoSlot } from "../hooks/useUndo";
-import type { TokenGenerator } from "../hooks/useGenerators";
+import type { TokenRecipe } from "../hooks/useRecipes";
 import type { LintViolation } from "../hooks/useLint";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
-import type { TokensLibraryGeneratorEditorTarget } from "../shared/navigationTypes";
+import type { TokensLibraryRecipeEditorTarget } from "../shared/navigationTypes";
 import type { StartHereBranch } from "./WelcomePrompt";
 import type { ThemeDimension } from "@tokenmanager/core";
 
@@ -94,9 +94,9 @@ export interface TokenListData {
   allTokensFlat: Record<string, TokenMapEntry>;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
-  generators?: TokenGenerator[];
-  generatorsByTargetGroup?: Map<string, TokenGenerator>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
+  recipes?: TokenRecipe[];
+  recipesByTargetGroup?: Map<string, TokenRecipe>;
+  derivedTokenPaths?: Map<string, TokenRecipe>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
   tokenUsageCounts?: Record<string, number>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
@@ -134,7 +134,7 @@ export interface TokenListActions {
     groupPath: string,
     tokenType: string | null,
   ) => void;
-  onRefreshGenerators?: () => void;
+  onRefreshRecipes?: () => void;
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToSet?: (setName: string, tokenPath: string) => void;
@@ -144,9 +144,9 @@ export interface TokenListActions {
   starredPaths?: Set<string>;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
-  onEditGenerator?: (generatorId: string) => void;
-  onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
-  onNavigateToGenerator?: (generatorId: string) => void;
+  onEditRecipe?: (recipeId: string) => void;
+  onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
+  onNavigateToRecipe?: (recipeId: string) => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
@@ -220,10 +220,10 @@ export interface AffectedRef {
   setName: string;
 }
 
-export interface GeneratorImpact {
-  generatorId: string;
-  generatorName: string;
-  generatorType: string;
+export interface RecipeImpact {
+  recipeId: string;
+  recipeName: string;
+  recipeType: string;
   /** 'source' = sourceToken match; 'config-ref' = $tokenRefs match */
   role: "source" | "config-ref";
   /** The config field key that references the token (only when role === 'config-ref') */
@@ -242,7 +242,7 @@ export type DeleteConfirm =
       path: string;
       orphanCount: number;
       affectedRefs: AffectedRef[];
-      generatorImpacts: GeneratorImpact[];
+      recipeImpacts: RecipeImpact[];
       themeImpacts: ThemeImpact[];
     }
   | {
@@ -252,7 +252,7 @@ export type DeleteConfirm =
       tokenCount: number;
       orphanCount: number;
       affectedRefs: AffectedRef[];
-      generatorImpacts: GeneratorImpact[];
+      recipeImpacts: RecipeImpact[];
       themeImpacts: ThemeImpact[];
     }
   | {
@@ -260,7 +260,7 @@ export type DeleteConfirm =
       paths: string[];
       orphanCount: number;
       affectedRefs: AffectedRef[];
-      generatorImpacts: GeneratorImpact[];
+      recipeImpacts: RecipeImpact[];
       themeImpacts: ThemeImpact[];
     };
 
@@ -345,7 +345,7 @@ export interface TokenTreeGroupStateContextType {
   dragOverGroup?: string | null;
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
-  generatorsByTargetGroup?: Map<string, TokenGenerator>;
+  recipesByTargetGroup?: Map<string, TokenRecipe>;
   /** Pre-computed theme coverage per group: groupPath → { themed, total } */
   themeCoverage?: Map<string, { themed: number; total: number }>;
   /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
@@ -377,14 +377,14 @@ export interface TokenTreeGroupActionsContextType {
   onZoomIntoGroup?: (groupPath: string) => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
-  onEditGenerator?: (generatorId: string) => void;
-  /** One-click regenerate a specific generator (by id) — runs POST /api/generators/:id/run */
-  onRegenerateGenerator?: (generatorId: string) => Promise<void>;
-  onDetachGeneratorGroup?: (
-    generatorId: string,
+  onEditRecipe?: (recipeId: string) => void;
+  /** One-click regenerate a specific recipe (by id) — runs POST /api/recipes/:id/run */
+  onRegenerateRecipe?: (recipeId: string) => Promise<void>;
+  onDetachRecipeGroup?: (
+    recipeId: string,
     groupPath: string,
   ) => Promise<void>;
-  /** Navigate to a token by path (used for generator source token navigation) */
+  /** Navigate to a token by path (used for recipe source token navigation) */
   onNavigateToToken?: (path: string) => void;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
@@ -403,7 +403,7 @@ export interface TokenTreeLeafStateContextType {
   previewedPath: string | null;
   inspectMode?: boolean;
   syncSnapshot?: Record<string, string>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
+  derivedTokenPaths?: Map<string, TokenRecipe>;
   /** Parsed highlight terms from search query */
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   /** Selected Figma nodes — used for quick-bind scope narrowing */
@@ -448,7 +448,7 @@ export interface TokenTreeLeafActionsContextType {
   onRequestMoveToken?: (tokenPath: string) => void;
   onRequestCopyToken?: (tokenPath: string) => void;
   onDuplicateToken?: (path: string) => void;
-  onDetachFromGenerator?: (path: string) => Promise<void>;
+  onDetachFromRecipe?: (path: string) => Promise<void>;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
   onHoverToken?: (path: string) => void;
   onFilterByType?: (type: string) => void;
@@ -483,7 +483,7 @@ export interface TokenTreeLeafActionsContextType {
     targetSet: string,
     previousState?: { type?: string; value: unknown },
   ) => void;
-  onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
+  onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
   /** Toggle starred (cross-set favorites) for the current token */
   onToggleStar?: (path: string) => void;
   /** Clear the pending rename (called by the node once it activates rename mode) */

@@ -5,14 +5,14 @@ import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import { apiFetch } from "../shared/apiFetch";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
+import { createRecipeOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { ThemeDimension } from "@tokenmanager/core";
 import { useThemeSwitcherContext } from "../contexts/ThemeContext";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
-import type { TokenGenerator } from "../hooks/useGenerators";
+import type { TokenRecipe } from "../hooks/useRecipes";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { AliasPicker } from "./AliasPicker";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
@@ -31,14 +31,14 @@ import { useTokenAliasEditor } from "../hooks/useTokenAliasEditor";
 import { useTokenTypeParsing } from "../hooks/useTokenTypeParsing";
 import { useTokenEditorUIState } from "../hooks/useTokenEditorUIState";
 import { useTokenEditorSave } from "../hooks/useTokenEditorSave";
-import { useTokenEditorGenerators } from "../hooks/useTokenEditorGenerators";
+import { useTokenEditorRecipes } from "../hooks/useTokenEditorRecipes";
 import {
   clearEditorDraft,
   saveEditorDraft,
   formatDraftAge,
 } from "../hooks/useTokenEditorUtils";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
-import type { TokensLibraryGeneratorEditorTarget } from "../shared/navigationTypes";
+import type { TokensLibraryRecipeEditorTarget } from "../shared/navigationTypes";
 import { lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
@@ -57,7 +57,7 @@ interface TokenEditorProps {
   onBack: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
-  generators?: TokenGenerator[];
+  recipes?: TokenRecipe[];
   isCreateMode?: boolean;
   initialType?: string;
   /** When alias-shaped (e.g. "{color.primary}"), alias mode activates automatically. */
@@ -72,11 +72,11 @@ interface TokenEditorProps {
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
+  derivedTokenPaths?: Map<string, TokenRecipe>;
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  onNavigateToGenerator?: (generatorId: string) => void;
-  onOpenGeneratorEditor?: (target: TokensLibraryGeneratorEditorTarget) => void;
+  onNavigateToRecipe?: (recipeId: string) => void;
+  onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
   onNavigateToThemes?: () => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
@@ -89,7 +89,7 @@ export function TokenEditor({
   onBack,
   allTokensFlat = {},
   pathToSet = {},
-  generators = [],
+  recipes = [],
   isCreateMode = false,
   initialType,
   initialValue,
@@ -103,8 +103,8 @@ export function TokenEditor({
   derivedTokenPaths,
   onShowReferences,
   onNavigateToToken,
-  onNavigateToGenerator,
-  onOpenGeneratorEditor,
+  onNavigateToRecipe,
+  onOpenRecipeEditor,
   onNavigateToThemes,
   pushUndo,
 }: TokenEditorProps) {
@@ -364,38 +364,38 @@ export function TokenEditor({
     lsSet('tm_last_token_type', tokenType);
   }, [isCreateMode, tokenType]);
 
-  const generators$ = useTokenEditorGenerators({
+  const recipes$ = useTokenEditorRecipes({
     tokenPath,
     tokenType,
-    generators,
+    recipes,
   });
   const {
-    existingGeneratorsForToken,
-    canBeGeneratorSource,
-  } = generators$;
-  const producingGenerator =
-    derivedTokenPaths?.get(createGeneratorOwnershipKey(setName, tokenPath)) ??
+    existingRecipesForToken,
+    canBeRecipeSource,
+  } = recipes$;
+  const producingRecipe =
+    derivedTokenPaths?.get(createRecipeOwnershipKey(setName, tokenPath)) ??
     null;
-  const [detachedFromGenerator, setDetachedFromGenerator] = useState(false);
-  const [detachingGeneratorOwnership, setDetachingGeneratorOwnership] =
+  const [detachedFromRecipe, setDetachedFromRecipe] = useState(false);
+  const [detachingRecipeOwnership, setDetachingRecipeOwnership] =
     useState(false);
-  const activeProducingGenerator =
-    detachedFromGenerator ? null : producingGenerator;
+  const activeProducingRecipe =
+    detachedFromRecipe ? null : producingRecipe;
 
-  const openGeneratorEditor = useCallback((target: TokensLibraryGeneratorEditorTarget) => {
-    onOpenGeneratorEditor?.(target);
-  }, [onOpenGeneratorEditor]);
+  const openRecipeEditor = useCallback((target: TokensLibraryRecipeEditorTarget) => {
+    onOpenRecipeEditor?.(target);
+  }, [onOpenRecipeEditor]);
 
   useEffect(() => {
-    setDetachedFromGenerator(false);
-  }, [tokenPath, producingGenerator?.id]);
+    setDetachedFromRecipe(false);
+  }, [tokenPath, producingRecipe?.id]);
 
-  const handleDetachGeneratorOwnership = useCallback(async () => {
-    if (!producingGenerator) return;
-    setDetachingGeneratorOwnership(true);
+  const handleDetachRecipeOwnership = useCallback(async () => {
+    if (!producingRecipe) return;
+    setDetachingRecipeOwnership(true);
     try {
       setError(null);
-      await apiFetch(`${serverUrl}/api/generators/${producingGenerator.id}/detach`, {
+      await apiFetch(`${serverUrl}/api/recipes/${producingRecipe.id}/detach`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -412,7 +412,7 @@ export function TokenEditor({
           } | null;
           if (snapshot?.$extensions) {
             const nextExtensions = { ...snapshot.$extensions };
-            delete nextExtensions["com.tokenmanager.generator"];
+            delete nextExtensions["com.tokenmanager.recipe"];
             initialServerSnapshotRef.current = JSON.stringify({
               ...snapshot,
               $extensions:
@@ -420,21 +420,21 @@ export function TokenEditor({
             });
           }
         } catch (err) {
-          console.debug("[TokenEditor] failed to update detached generator snapshot:", err);
+          console.debug("[TokenEditor] failed to update detached recipe snapshot:", err);
         }
       }
-      setDetachedFromGenerator(true);
+      setDetachedFromRecipe(true);
       onRefresh?.();
       dispatchToast(
-        `Detached "${tokenPath}" from "${producingGenerator.name}"`,
+        `Detached "${tokenPath}" from "${producingRecipe.name}"`,
         "success",
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to detach token from recipe");
     } finally {
-      setDetachingGeneratorOwnership(false);
+      setDetachingRecipeOwnership(false);
     }
-  }, [initialServerSnapshotRef, onRefresh, producingGenerator, serverUrl, tokenPath]);
+  }, [initialServerSnapshotRef, onRefresh, producingRecipe, serverUrl, tokenPath]);
 
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
@@ -982,42 +982,42 @@ export function TokenEditor({
           </div>
         )}
 
-        {activeProducingGenerator && !isCreateMode && (
+        {activeProducingRecipe && !isCreateMode && (
           <div className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[10px]">
             <span className="min-w-0 flex-1 truncate text-[var(--color-figma-text)]">
-              Managed by <span className="font-medium">{activeProducingGenerator.name}</span> — edits overwritten on re-run
+              Managed by <span className="font-medium">{activeProducingRecipe.name}</span> — edits overwritten on re-run
             </span>
             <div className="flex shrink-0 items-center gap-1">
-              {(onOpenGeneratorEditor || onNavigateToGenerator) && (
+              {(onOpenRecipeEditor || onNavigateToRecipe) && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (onOpenGeneratorEditor) {
-                      openGeneratorEditor({
+                    if (onOpenRecipeEditor) {
+                      openRecipeEditor({
                         mode: "edit",
-                        id: activeProducingGenerator.id,
+                        id: activeProducingRecipe.id,
                       });
                       return;
                     }
-                    onNavigateToGenerator?.(activeProducingGenerator.id);
+                    onNavigateToRecipe?.(activeProducingRecipe.id);
                   }}
                   className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
                 >
                   Edit
                 </button>
               )}
-              {(onOpenGeneratorEditor || onNavigateToGenerator) && (
+              {(onOpenRecipeEditor || onNavigateToRecipe) && (
                 <span className="text-[var(--color-figma-border)]">·</span>
               )}
               <button
                 type="button"
                 onClick={() => {
-                  void handleDetachGeneratorOwnership();
+                  void handleDetachRecipeOwnership();
                 }}
-                disabled={detachingGeneratorOwnership}
+                disabled={detachingRecipeOwnership}
                 className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
               >
-                {detachingGeneratorOwnership ? "Detaching…" : "Detach"}
+                {detachingRecipeOwnership ? "Detaching…" : "Detach"}
               </button>
             </div>
           </div>
@@ -1456,15 +1456,15 @@ export function TokenEditor({
           </div>
         </Collapsible>
 
-        {/* Generator groups */}
-        {canBeGeneratorSource && !aliasMode && (
+        {/* Recipe groups */}
+        {canBeRecipeSource && !aliasMode && (
           <TokenEditorDerivedGroups
             tokenPath={tokenPath}
             tokenName={tokenName}
             tokenType={tokenType}
             value={value}
-            existingGeneratorsForToken={existingGeneratorsForToken}
-            openGeneratorEditor={openGeneratorEditor}
+            existingRecipesForToken={existingRecipesForToken}
+            openRecipeEditor={openRecipeEditor}
           />
         )}
 
@@ -1487,15 +1487,15 @@ export function TokenEditor({
             allTokensFlat={allTokensFlat}
             pathToSet={pathToSet}
             initialValue={initialRef.current?.value}
-            activeProducingGenerator={activeProducingGenerator}
-            existingGeneratorsForToken={existingGeneratorsForToken}
+            activeProducingRecipe={activeProducingRecipe}
+            existingRecipesForToken={existingRecipesForToken}
             infoTab={infoTab}
             onInfoTabChange={handleInfoTab}
             refsExpanded={refsExpanded}
             onRefsExpandedChange={setRefsExpanded}
             onShowReferences={onShowReferences}
             onNavigateToToken={onNavigateToToken}
-            onNavigateToGenerator={onNavigateToGenerator}
+            onNavigateToRecipe={onNavigateToRecipe}
           />
         )}
       </EditorShell>

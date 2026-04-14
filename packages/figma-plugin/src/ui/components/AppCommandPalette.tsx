@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { createGeneratorOwnershipKey } from "@tokenmanager/core";
+import { createRecipeOwnershipKey } from "@tokenmanager/core";
 import { CommandPalette, type TokenEntry } from "./CommandPalette";
 import { useCommandPaletteCommands } from "../hooks/useCommandPaletteCommands";
 import {
   useTokenSetsContext,
   useTokenFlatMapContext,
-  useGeneratorContext,
+  useRecipeContext,
 } from "../contexts/TokenDataContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
@@ -22,7 +22,7 @@ export function AppCommandPalette({
 }) {
   const { activeSet, setActiveSet } = useTokenSetsContext();
   const { allTokensFlat, pathToSet } = useTokenFlatMapContext();
-  const { derivedTokenPaths } = useGeneratorContext();
+  const { derivedTokenPaths } = useRecipeContext();
   const { navigateTo } = useNavigationContext();
   const { setEditingToken, setHighlightedToken, setPendingHighlight } =
     useEditorContext();
@@ -40,8 +40,8 @@ export function AppCommandPalette({
           ? entry.$value
           : JSON.stringify(entry.$value),
       isAlias: isAlias(entry.$value),
-      generatorName: derivedTokenPaths.get(
-        createGeneratorOwnershipKey(pathToSet[path] ?? "", path),
+      recipeName: derivedTokenPaths.get(
+        createRecipeOwnershipKey(pathToSet[path] ?? "", path),
       )?.name,
     }));
   }, [allTokensFlat, derivedTokenPaths, pathToSet]);

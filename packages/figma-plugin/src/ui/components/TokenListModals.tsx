@@ -4,7 +4,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { ValuePreview } from './ValuePreview';
 import { isAlias } from '../../shared/resolveAlias';
 import type { TokenMapEntry } from '../../shared/types';
-import type { DeleteConfirm, PromoteRow, AffectedRef, GeneratorImpact, ThemeImpact } from './tokenListTypes';
+import type { DeleteConfirm, PromoteRow, AffectedRef, RecipeImpact, ThemeImpact } from './tokenListTypes';
 import { useTokenListModals } from './TokenListModalsContext';
 import { FieldMessage } from '../shared/FieldMessage';
 import { NoticePill } from '../shared/noticeSystem';
@@ -22,7 +22,7 @@ export interface TokenListModalsProps {
 
   // Delete confirmation modal
   deleteConfirm: DeleteConfirm | null;
-  modalProps: { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[]; generatorImpacts?: GeneratorImpact[]; themeImpacts?: ThemeImpact[] } | null;
+  modalProps: { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[]; recipeImpacts?: RecipeImpact[]; themeImpacts?: ThemeImpact[] } | null;
   executeDelete: () => void;
   onSetDeleteConfirm: (v: DeleteConfirm | null) => void;
 
@@ -36,9 +36,9 @@ export interface TokenListModalsProps {
   onSetNewGroupDialogParent: (v: string | null) => void;
 
   // Rename token confirmation modal
-  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] } | null;
+  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>; recipeImpacts: RecipeImpact[]; themeImpacts: ThemeImpact[] } | null;
   executeTokenRename: (oldPath: string, newPath: string, updateAliases?: boolean) => void;
-  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>; generatorImpacts: GeneratorImpact[]; themeImpacts: ThemeImpact[] } | null) => void;
+  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>; recipeImpacts: RecipeImpact[]; themeImpacts: ThemeImpact[] } | null) => void;
 
   // Rename group confirmation modal
   renameGroupConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null;
@@ -161,13 +161,13 @@ export interface TokenListModalsProps {
   handleBatchCopyToSet: () => void;
 }
 
-function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, generatorImpacts, themeImpacts, onConfirm, onCancel }: {
+function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, recipeImpacts, themeImpacts, onConfirm, onCancel }: {
   kind: 'token' | 'group';
   oldPath: string;
   newPath: string;
   depCount: number;
   deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>;
-  generatorImpacts?: GeneratorImpact[];
+  recipeImpacts?: RecipeImpact[];
   themeImpacts?: ThemeImpact[];
   onConfirm: (updateAliases: boolean) => void;
   onCancel: () => void;
@@ -183,7 +183,7 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
     return () => document.removeEventListener('keydown', handler);
   }, [onCancel]);
 
-  const hasGeneratorImpacts = generatorImpacts && generatorImpacts.length > 0;
+  const hasRecipeImpacts = recipeImpacts && recipeImpacts.length > 0;
   const hasThemeImpacts = themeImpacts && themeImpacts.length > 0;
 
   return (
@@ -217,15 +217,15 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
               ))}
             </div>
           )}
-          {hasGeneratorImpacts && (
+          {hasRecipeImpacts && (
             <div className="mt-2">
               <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Affected recipes ({generatorImpacts.length}) — references will not be auto-updated:
+                Affected recipes ({recipeImpacts.length}) — references will not be auto-updated:
               </div>
               <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {generatorImpacts.map((impact, i) => (
-                  <div key={i} className="px-2 py-0.5 text-[10px] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.generatorName} (${impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})`}>
-                    <span className="font-medium text-[var(--color-figma-text)]">{impact.generatorName}</span>
+                {recipeImpacts.map((impact, i) => (
+                  <div key={i} className="px-2 py-0.5 text-[10px] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.recipeName} (${impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})`}>
+                    <span className="font-medium text-[var(--color-figma-text)]">{impact.recipeName}</span>
                     <span className="text-[var(--color-figma-text-tertiary)] ml-1">
                       ({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})
                     </span>
@@ -250,7 +250,7 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
               </div>
             </div>
           )}
-          {depCount === 0 && !hasGeneratorImpacts && !hasThemeImpacts && (
+          {depCount === 0 && !hasRecipeImpacts && !hasThemeImpacts && (
             <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               No alias references found. The token will be renamed.
             </p>
@@ -444,12 +444,12 @@ function ExtractToAliasModal() {
 function DeleteImpactDetails({
   pathList,
   affectedRefs,
-  generatorImpacts,
+  recipeImpacts,
   themeImpacts,
 }: {
   pathList?: string[];
   affectedRefs?: AffectedRef[];
-  generatorImpacts?: GeneratorImpact[];
+  recipeImpacts?: RecipeImpact[];
   themeImpacts?: ThemeImpact[];
 }) {
   const [tokensOpen, setTokensOpen] = useState(false);
@@ -459,7 +459,7 @@ function DeleteImpactDetails({
 
   const tokenCount = pathList?.length ?? 0;
   const refCount = affectedRefs?.length ?? 0;
-  const genCount = generatorImpacts?.length ?? 0;
+  const genCount = recipeImpacts?.length ?? 0;
   const themeCount = themeImpacts?.length ?? 0;
 
   const hasSideEffects = refCount > 0 || genCount > 0 || themeCount > 0;
@@ -481,7 +481,7 @@ function DeleteImpactDetails({
         )}
         {genCount > 0 && (
           <NoticePill severity="warning">
-            {genCount} generator{genCount !== 1 ? 's' : ''}
+            {genCount} recipe{genCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
         {themeCount > 0 && (
@@ -529,7 +529,7 @@ function DeleteImpactDetails({
         </CollapsibleSection>
       )}
 
-      {/* Collapsible: generator impacts */}
+      {/* Collapsible: recipe impacts */}
       {genCount > 0 && (
         <CollapsibleSection
           open={gensOpen}
@@ -537,9 +537,9 @@ function DeleteImpactDetails({
           label={`Affected recipes (${genCount})`}
         >
           <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            {generatorImpacts!.map((impact, i) => (
+            {recipeImpacts!.map((impact, i) => (
               <div key={i} className="px-2 py-0.5 text-[10px] border-b border-[var(--color-figma-border)] last:border-b-0 truncate">
-                <span className="font-medium text-[var(--color-figma-text)]">{impact.generatorName}</span>
+                <span className="font-medium text-[var(--color-figma-text)]">{impact.recipeName}</span>
                 <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})</span>
               </div>
             ))}
@@ -664,14 +664,14 @@ export function TokenListModals() {
           description={modalProps.description}
           confirmLabel={modalProps.confirmLabel}
           danger
-          wide={!!(modalProps.pathList || modalProps.affectedRefs || modalProps.generatorImpacts?.length || modalProps.themeImpacts?.length)}
+          wide={!!(modalProps.pathList || modalProps.affectedRefs || modalProps.recipeImpacts?.length || modalProps.themeImpacts?.length)}
           onConfirm={executeDelete}
           onCancel={() => onSetDeleteConfirm(null)}
         >
           <DeleteImpactDetails
             pathList={modalProps.pathList}
             affectedRefs={modalProps.affectedRefs}
-            generatorImpacts={modalProps.generatorImpacts}
+            recipeImpacts={modalProps.recipeImpacts}
             themeImpacts={modalProps.themeImpacts}
           />
         </ConfirmModal>
@@ -733,7 +733,7 @@ export function TokenListModals() {
           newPath={renameTokenConfirm.newPath}
           depCount={renameTokenConfirm.depCount}
           deps={renameTokenConfirm.deps}
-          generatorImpacts={renameTokenConfirm.generatorImpacts}
+          recipeImpacts={renameTokenConfirm.recipeImpacts}
           themeImpacts={renameTokenConfirm.themeImpacts}
           onConfirm={(updateAliases) => executeTokenRename(renameTokenConfirm.oldPath, renameTokenConfirm.newPath, updateAliases)}
           onCancel={() => onSetRenameTokenConfirm(null)}

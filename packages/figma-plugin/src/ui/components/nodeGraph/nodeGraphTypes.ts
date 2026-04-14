@@ -1,15 +1,15 @@
 import type {
-  GeneratorDashboardStatus,
-  TokenGenerator,
-} from '../../hooks/useGenerators';
-import { getGeneratorDashboardStatus } from '../../hooks/useGenerators';
-import { TYPE_LABELS } from '../generators/generatorUtils';
+  RecipeDashboardStatus,
+  TokenRecipe,
+} from '../../hooks/useRecipes';
+import { getRecipeDashboardStatus } from '../../hooks/useRecipes';
+import { TYPE_LABELS } from '../recipes/recipeUtils';
 
 // ---------------------------------------------------------------------------
-// Nodes — single unified node per generator
+// Nodes — single unified node per recipe
 // ---------------------------------------------------------------------------
 
-export type NodeKind = 'generator';
+export type NodeKind = 'recipe';
 
 export interface GraphNode {
   id: string;
@@ -19,15 +19,15 @@ export interface GraphNode {
   y: number;
   width: number;
   height: number;
-  // Generator identity
-  generatorId: string;
-  generatorType: string;
+  // Recipe identity
+  recipeId: string;
+  recipeType: string;
   // Source and target
   sourceToken: string | null;
   targetGroup: string;
   targetSet: string;
   // Status
-  status: GeneratorDashboardStatus;
+  status: RecipeDashboardStatus;
   enabled: boolean;
   lastRunAt?: string;
   errorMessage?: string;
@@ -43,27 +43,27 @@ export interface GraphNode {
 }
 
 // ---------------------------------------------------------------------------
-// Cross-generator dependency edges
+// Cross-recipe dependency edges
 // ---------------------------------------------------------------------------
 
 export interface DependencyEdge {
   id: string;
-  fromGeneratorId: string;
-  toGeneratorId: string;
+  fromRecipeId: string;
+  toRecipeId: string;
   label: string;
 }
 
-export function computeDependencyEdges(generators: TokenGenerator[]): DependencyEdge[] {
+export function computeDependencyEdges(recipes: TokenRecipe[]): DependencyEdge[] {
   const deps: DependencyEdge[] = [];
-  for (const downstream of generators) {
+  for (const downstream of recipes) {
     if (!downstream.sourceToken) continue;
-    for (const upstream of generators) {
+    for (const upstream of recipes) {
       if (upstream.id === downstream.id) continue;
       if (downstream.sourceToken.startsWith(upstream.targetGroup + '.')) {
         deps.push({
           id: `dep-${upstream.id}-${downstream.id}`,
-          fromGeneratorId: upstream.id,
-          toGeneratorId: downstream.id,
+          fromRecipeId: upstream.id,
+          toRecipeId: downstream.id,
           label: downstream.sourceToken,
         });
         break;
@@ -116,22 +116,22 @@ export function portOutPosition(node: GraphNode): { x: number; y: number } {
 }
 
 // ---------------------------------------------------------------------------
-// Generator → graph conversion
+// Recipe → graph conversion
 // ---------------------------------------------------------------------------
 
-function topoSortGenerators(generators: TokenGenerator[]): TokenGenerator[] {
-  const n = generators.length;
-  if (n <= 1) return [...generators];
+function topoSortRecipes(recipes: TokenRecipe[]): TokenRecipe[] {
+  const n = recipes.length;
+  if (n <= 1) return [...recipes];
 
   const adj: number[][] = Array.from({ length: n }, () => []);
   const inDegree = new Array<number>(n).fill(0);
 
   for (let j = 0; j < n; j++) {
-    const gen = generators[j];
+    const gen = recipes[j];
     if (!gen.sourceToken) continue;
     for (let i = 0; i < n; i++) {
       if (i === j) continue;
-      if (gen.sourceToken.startsWith(generators[i].targetGroup + '.')) {
+      if (gen.sourceToken.startsWith(recipes[i].targetGroup + '.')) {
         adj[i].push(j);
         inDegree[j]++;
         break;
@@ -159,22 +159,22 @@ function topoSortGenerators(generators: TokenGenerator[]): TokenGenerator[] {
     if (!inSortedSet.has(i)) sorted.push(i);
   }
 
-  return sorted.map(i => generators[i]);
+  return sorted.map(i => recipes[i]);
 }
 
-function getStepCount(gen: TokenGenerator): number {
+function getStepCount(gen: TokenRecipe): number {
   const cfg = gen.config as unknown as Record<string, unknown>;
   if (Array.isArray(cfg.steps)) return (cfg.steps as unknown[]).length;
   return 0;
 }
 
 /**
- * Compute the depth of each generator in the dependency DAG.
- * Depth 0 = no upstream generators, depth N = max upstream chain length.
+ * Compute the depth of each recipe in the dependency DAG.
+ * Depth 0 = no upstream recipes, depth N = max upstream chain length.
  */
-function computeDepths(generators: TokenGenerator[]): Map<string, number> {
+function computeDepths(recipes: TokenRecipe[]): Map<string, number> {
   const depths = new Map<string, number>();
-  const byId = new Map(generators.map(g => [g.id, g]));
+  const byId = new Map(recipes.map(g => [g.id, g]));
 
   function getDepth(id: string): number {
     if (depths.has(id)) return depths.get(id)!;
@@ -185,7 +185,7 @@ function computeDepths(generators: TokenGenerator[]): Map<string, number> {
     }
     // Find upstream
     let maxUpstream = -1;
-    for (const other of generators) {
+    for (const other of recipes) {
       if (other.id === id) continue;
       if (gen.sourceToken.startsWith(other.targetGroup + '.')) {
         maxUpstream = Math.max(maxUpstream, getDepth(other.id));
@@ -197,15 +197,15 @@ function computeDepths(generators: TokenGenerator[]): Map<string, number> {
     return d;
   }
 
-  for (const gen of generators) getDepth(gen.id);
+  for (const gen of recipes) getDepth(gen.id);
   return depths;
 }
 
-export function generatorsToGraph(generators: TokenGenerator[]): NodeGraphState {
+export function recipesToGraph(recipes: TokenRecipe[]): NodeGraphState {
   const nodes: GraphNode[] = [];
-  const sortedGenerators = topoSortGenerators(generators);
-  const depthMap = computeDepths(generators);
-  const dependencyEdges = computeDependencyEdges(generators);
+  const sortedRecipes = topoSortRecipes(recipes);
+  const depthMap = computeDepths(recipes);
+  const dependencyEdges = computeDependencyEdges(recipes);
 
   const COL_X = 40;
   const DEPTH_INDENT = 40;
@@ -214,24 +214,24 @@ export function generatorsToGraph(generators: TokenGenerator[]): NodeGraphState 
 
   const h = FIXED_NODE_HEIGHT;
 
-  sortedGenerators.forEach((gen, i) => {
+  sortedRecipes.forEach((gen, i) => {
     const depth = depthMap.get(gen.id) ?? 0;
     const rowY = TOP_PAD + i * (h + ROW_GAP);
     const nodeId = `gen-${gen.id}`;
 
     const stepCount = getStepCount(gen);
-    const status = getGeneratorDashboardStatus(gen);
+    const status = getRecipeDashboardStatus(gen);
 
     nodes.push({
       id: nodeId,
-      kind: 'generator',
+      kind: 'recipe',
       label: gen.name || TYPE_LABELS[gen.type as keyof typeof TYPE_LABELS] || gen.type,
       x: COL_X + depth * DEPTH_INDENT,
       y: rowY,
       width: NODE_WIDTH,
       height: h,
-      generatorId: gen.id,
-      generatorType: gen.type,
+      recipeId: gen.id,
+      recipeType: gen.type,
       sourceToken: gen.sourceToken ?? null,
       targetGroup: gen.targetGroup,
       targetSet: gen.targetSet,
@@ -240,9 +240,9 @@ export function generatorsToGraph(generators: TokenGenerator[]): NodeGraphState 
       lastRunAt: gen.lastRunAt,
       errorMessage: gen.lastRunError?.message,
       stepCount,
-      upstreamCount: gen.upstreamGenerators?.length ?? 0,
-      downstreamCount: gen.downstreamGenerators?.length ?? 0,
-      blockedBy: gen.blockedByGenerators?.map(d => d.name) ?? [],
+      upstreamCount: gen.upstreamRecipes?.length ?? 0,
+      downstreamCount: gen.downstreamRecipes?.length ?? 0,
+      blockedBy: gen.blockedByRecipes?.map(d => d.name) ?? [],
       depth,
     });
   });

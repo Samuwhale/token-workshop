@@ -1144,10 +1144,10 @@ describe('TokenStore — getTokenDefinitions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Generator ID helpers
+// Recipe ID helpers
 // ---------------------------------------------------------------------------
 
-describe('TokenStore — findTokensByGeneratorId / deleteTokensByGeneratorId', () => {
+describe('TokenStore — findTokensByRecipeId / deleteTokensByRecipeId', () => {
   let dir: string;
   let store: TokenStore;
 
@@ -1159,19 +1159,19 @@ describe('TokenStore — findTokensByGeneratorId / deleteTokensByGeneratorId', (
         100: {
           $value: '#ffeedd',
           $type: 'color',
-          $extensions: { 'com.tokenmanager.generator': { generatorId: 'gen-1' } },
+          $extensions: { 'com.tokenmanager.recipe': { recipeId: 'gen-1' } },
         },
         200: {
           $value: '#ffddcc',
           $type: 'color',
-          $extensions: { 'com.tokenmanager.generator': { generatorId: 'gen-1' } },
+          $extensions: { 'com.tokenmanager.recipe': { recipeId: 'gen-1' } },
         },
       },
       other: {
         tok: {
           $value: '#aabbcc',
           $type: 'color',
-          $extensions: { 'com.tokenmanager.generator': { generatorId: 'gen-2' } },
+          $extensions: { 'com.tokenmanager.recipe': { recipeId: 'gen-2' } },
         },
       },
     });
@@ -1182,26 +1182,26 @@ describe('TokenStore — findTokensByGeneratorId / deleteTokensByGeneratorId', (
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it('findTokensByGeneratorId returns matching tokens', () => {
-    const found = store.findTokensByGeneratorId('gen-1');
+  it('findTokensByRecipeId returns matching tokens', () => {
+    const found = store.findTokensByRecipeId('gen-1');
     expect(found.length).toBe(2);
-    expect(found.every(f => f.generatorId === 'gen-1')).toBe(true);
+    expect(found.every(f => f.recipeId === 'gen-1')).toBe(true);
   });
 
-  it('findTokensByGeneratorId with wildcard returns all generator tokens', () => {
-    const found = store.findTokensByGeneratorId('*');
+  it('findTokensByRecipeId with wildcard returns all recipe tokens', () => {
+    const found = store.findTokensByRecipeId('*');
     expect(found.length).toBe(3);
   });
 
-  it('deleteTokensByGeneratorId deletes tagged tokens and returns count', async () => {
-    const count = await store.deleteTokensByGeneratorId('gen-1');
+  it('deleteTokensByRecipeId deletes tagged tokens and returns count', async () => {
+    const count = await store.deleteTokensByRecipeId('gen-1');
     expect(count).toBe(2);
     expect(await store.getToken('base', 'ramp.100')).toBeUndefined();
     expect(await store.getToken('base', 'other.tok')).toBeDefined(); // gen-2 untouched
   });
 
-  it('deleteTokensByGeneratorId returns 0 when no match', async () => {
-    const count = await store.deleteTokensByGeneratorId('gen-99');
+  it('deleteTokensByRecipeId returns 0 when no match', async () => {
+    const count = await store.deleteTokensByRecipeId('gen-99');
     expect(count).toBe(0);
   });
 });
@@ -1295,8 +1295,8 @@ describe('TokenStore — onChange events', () => {
   it('emitEvent emits arbitrary events to listeners', () => {
     const events: string[] = [];
     store.onChange(e => events.push(e.type));
-    store.emitEvent({ type: 'generator-error', setName: 'base', generatorId: 'gen-1', message: 'boom' });
-    expect(events).toContain('generator-error');
+    store.emitEvent({ type: 'recipe-error', setName: 'base', recipeId: 'gen-1', message: 'boom' });
+    expect(events).toContain('recipe-error');
   });
 });
 

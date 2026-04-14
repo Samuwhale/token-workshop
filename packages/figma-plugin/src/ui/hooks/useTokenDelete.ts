@@ -3,13 +3,13 @@ import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import type { DeleteConfirm, AffectedRef } from '../components/tokenListTypes';
-import type { TokenGenerator } from './useGenerators';
+import type { TokenRecipe } from './useRecipes';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
-import { computeGeneratorImpacts, computeThemeImpacts } from '../shared/tokenImpact';
+import { computeRecipeImpacts, computeThemeImpacts } from '../shared/tokenImpact';
 
 export interface UseTokenDeleteParams {
   connected: boolean;
@@ -18,7 +18,7 @@ export interface UseTokenDeleteParams {
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
-  generators?: TokenGenerator[];
+  recipes?: TokenRecipe[];
   dimensions?: ThemeDimension[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -35,7 +35,7 @@ export function useTokenDelete({
   tokens,
   allTokensFlat,
   perSetFlat,
-  generators,
+  recipes,
   dimensions,
   onRefresh,
   onPushUndo,
@@ -65,10 +65,10 @@ export function useTokenDelete({
       }
     }
     const targetPaths = new Set([path]);
-    const generatorImpacts = computeGeneratorImpacts(targetPaths, generators ?? []);
+    const recipeImpacts = computeRecipeImpacts(targetPaths, recipes ?? []);
     const themeImpacts = computeThemeImpacts(targetPaths, dimensions ?? [], source);
-    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, themeImpacts });
-  }, [connected, allTokensFlat, perSetFlat, generators, dimensions]);
+    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, themeImpacts });
+  }, [connected, allTokensFlat, perSetFlat, recipes, dimensions]);
 
   const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
     if (!connected) return;
@@ -93,10 +93,10 @@ export function useTokenDelete({
         }
       }
     }
-    const generatorImpacts = computeGeneratorImpacts(groupPaths, generators ?? []);
+    const recipeImpacts = computeRecipeImpacts(groupPaths, recipes ?? []);
     const themeImpacts = computeThemeImpacts(groupPaths, dimensions ?? [], source);
-    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, themeImpacts });
-  }, [connected, allTokensFlat, perSetFlat, generators, dimensions]);
+    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, themeImpacts });
+  }, [connected, allTokensFlat, perSetFlat, recipes, dimensions]);
 
   const requestBulkDelete = useCallback((selectedPaths: Set<string>) => {
     if (!connected || selectedPaths.size === 0) return;
@@ -114,10 +114,10 @@ export function useTokenDelete({
         }
       }
     }
-    const generatorImpacts = computeGeneratorImpacts(selectedPaths, generators ?? []);
+    const recipeImpacts = computeRecipeImpacts(selectedPaths, recipes ?? []);
     const themeImpacts = computeThemeImpacts(selectedPaths, dimensions ?? [], source);
-    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, themeImpacts });
-  }, [connected, allTokensFlat, perSetFlat, generators, dimensions]);
+    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, themeImpacts });
+  }, [connected, allTokensFlat, perSetFlat, recipes, dimensions]);
 
   const executeDelete = useCallback(async () => {
     if (!deleteConfirm) return;

@@ -534,7 +534,7 @@ describe('GET /api/operations/path-renames', () => {
 });
 
 describe('DELETE /api/data', () => {
-  it('clears tokens, themes, generators, resolvers, operation history, and manual snapshots', async () => {
+  it('clears tokens, themes, recipes, resolvers, operation history, and manual snapshots', async () => {
     const nestedSetName = 'reset/base';
     const resolverName = 'reset/resolver';
 
@@ -576,12 +576,12 @@ describe('DELETE /api/data', () => {
     const themesBefore = await themesBeforeRes.json();
     expect(themesBefore.dimensions).toHaveLength(1);
 
-    const generatorRes = await fetch(url('/api/generators'), {
+    const recipeRes = await fetch(url('/api/recipes'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type: 'opacityScale',
-        name: 'Reset generator',
+        name: 'Reset recipe',
         targetSet: nestedSetName,
         targetGroup: 'generated.opacity',
         config: {
@@ -589,7 +589,7 @@ describe('DELETE /api/data', () => {
         },
       }),
     });
-    expect(generatorRes.status).toBe(201);
+    expect(recipeRes.status).toBe(201);
 
     const resolverRes = await fetch(url('/api/resolvers'), {
       method: 'POST',
@@ -642,9 +642,9 @@ describe('DELETE /api/data', () => {
     expect(themesAfterRes.ok).toBe(true);
     expect(await themesAfterRes.json()).toEqual({ dimensions: [] });
 
-    const generatorsAfterRes = await fetch(url('/api/generators'));
-    expect(generatorsAfterRes.ok).toBe(true);
-    expect(await generatorsAfterRes.json()).toEqual([]);
+    const recipesAfterRes = await fetch(url('/api/recipes'));
+    expect(recipesAfterRes.ok).toBe(true);
+    expect(await recipesAfterRes.json()).toEqual([]);
 
     const resolversAfterRes = await fetch(url('/api/resolvers'));
     expect(resolversAfterRes.ok).toBe(true);
@@ -660,7 +660,7 @@ describe('DELETE /api/data', () => {
 
     expect(fs.existsSync(path.join(tokenDir, `${nestedSetName}.tokens.json`))).toBe(false);
     expect(fs.existsSync(path.join(tokenDir, '$themes.json'))).toBe(false);
-    expect(fs.existsSync(path.join(tokenDir, '$generators.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tokenDir, '$recipes.json'))).toBe(false);
     expect(fs.existsSync(path.join(tokenDir, `${resolverName}.resolver.json`))).toBe(false);
     expect(fs.existsSync(path.join(tokenDir, '$rename-pending.json'))).toBe(false);
     expect(fs.existsSync(path.join(tokenDir, '.tokenmanager', 'operations.json'))).toBe(false);

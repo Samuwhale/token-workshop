@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
-import type { GeneratedTokenResult, GeneratorType } from '../hooks/useGenerators';
+import type { GeneratedTokenResult, RecipeType } from '../hooks/useRecipes';
 import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
-import { TokenGeneratorDialog } from './TokenGeneratorDialog';
+import { TokenRecipeDialog } from './TokenRecipeDialog';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { apiFetch } from '../shared/apiFetch';
-import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratorDialog';
+import { createRecipeDraftFromTemplate } from '../hooks/useRecipeDialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,7 +19,7 @@ interface SemanticData {
   tokens: GeneratedTokenResult[];
   targetGroup: string;
   targetSet: string;
-  generatorType: GeneratorType;
+  recipeType: RecipeType;
 }
 
 interface QuickStartWizardProps {
@@ -431,7 +431,7 @@ export function QuickStartWizard({
   const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(null);
   const [showSemanticDialog, setShowSemanticDialog] = useState(false);
 
-  // Track whether semantic intercept fired during current generator session
+  // Track whether semantic intercept fired during current recipe session
   const semanticInterceptFired = useRef(false);
 
   const markCompleted = useCallback((task: TaskId) => {
@@ -552,12 +552,12 @@ export function QuickStartWizard({
 
   if (selectedTemplate) {
     return (
-      <TokenGeneratorDialog
+      <TokenRecipeDialog
         serverUrl={serverUrl}
         activeSet={effectiveActiveSet}
         allSets={allSets}
         template={selectedTemplate}
-        initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
+        initialDraft={createRecipeDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
         onBack={handleTemplateBack}
         onClose={onClose}
         onInterceptSemanticMapping={handleFoundationsInterceptSemantic}
@@ -571,7 +571,7 @@ export function QuickStartWizard({
       <SemanticMappingDialog
         serverUrl={serverUrl}
         generatedTokens={semanticData.tokens}
-        generatorType={semanticData.generatorType}
+        recipeType={semanticData.recipeType}
         targetGroup={semanticData.targetGroup}
         targetSet={semanticData.targetSet}
         onClose={handleSemanticsClose}

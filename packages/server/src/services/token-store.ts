@@ -1238,33 +1238,33 @@ export class TokenStore {
   }
 
   /**
-   * Find tokens tagged with a generatorId.
-   * Pass '*' to find ALL tokens that have any generatorId.
+   * Find tokens tagged with a recipeId.
+   * Pass '*' to find ALL tokens that have any recipeId.
    */
-  findTokensByGeneratorId(
-    generatorId: string,
-  ): Array<{ setName: string; path: string; generatorId: string }> {
-    const matchAll = generatorId === "*";
+  findTokensByRecipeId(
+    recipeId: string,
+  ): Array<{ setName: string; path: string; recipeId: string }> {
+    const matchAll = recipeId === "*";
     const results: Array<{
       setName: string;
       path: string;
-      generatorId: string;
+      recipeId: string;
     }> = [];
     for (const [tokenPath, entries] of this.flatTokens) {
       for (const { token, setName } of entries) {
-        const ext = token.$extensions?.["com.tokenmanager.generator"];
-        const gid = ext?.generatorId;
-        if (typeof gid === "string" && (matchAll || gid === generatorId)) {
-          results.push({ setName, path: tokenPath, generatorId: gid });
+        const ext = token.$extensions?.["com.tokenmanager.recipe"];
+        const gid = ext?.recipeId;
+        if (typeof gid === "string" && (matchAll || gid === recipeId)) {
+          results.push({ setName, path: tokenPath, recipeId: gid });
         }
       }
     }
     return results;
   }
 
-  /** Delete all tokens tagged with a given generatorId. Returns count of deleted tokens. */
-  async deleteTokensByGeneratorId(generatorId: string): Promise<number> {
-    const tokens = this.findTokensByGeneratorId(generatorId);
+  /** Delete all tokens tagged with a given recipeId. Returns count of deleted tokens. */
+  async deleteTokensByRecipeId(recipeId: string): Promise<number> {
+    const tokens = this.findTokensByRecipeId(recipeId);
     if (tokens.length === 0) return 0;
 
     const setsToSave = new Set<string>();
@@ -2446,7 +2446,7 @@ export class TokenStore {
     }
   }
 
-  /** Emit an arbitrary event to all SSE listeners (e.g. generator-error). */
+  /** Emit an arbitrary event to all SSE listeners (e.g. recipe-error). */
   emitEvent(event: ChangeEvent): void {
     this.emit(event);
   }
@@ -2467,13 +2467,13 @@ export interface ChangeEvent {
     | "set-updated"
     | "set-removed"
     | "token-updated"
-    | "generator-error"
+    | "recipe-error"
     | "file-load-error"
     | "workspace-file-changed"
     | "workspace-file-removed";
   setName: string;
   tokenPath?: string;
-  generatorId?: string;
+  recipeId?: string;
   message?: string;
-  resourceType?: "themes" | "generators" | "resolver";
+  resourceType?: "themes" | "recipes" | "resolver";
 }

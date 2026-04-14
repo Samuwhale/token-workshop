@@ -11,7 +11,7 @@ import { fuzzyScore } from '../shared/fuzzyMatch';
 // ---------------------------------------------------------------------------
 
 const RECENT_MAX = 5;
-const COMMAND_SECTION_ORDER = ['Tokens', 'Generators', 'Sets', 'Views', 'Apply', 'Modes', 'Audit', 'History', 'Export'] as const;
+const COMMAND_SECTION_ORDER = ['Tokens', 'Recipes', 'Sets', 'Views', 'Apply', 'Modes', 'Audit', 'History', 'Export'] as const;
 
 interface RecentEntry { id: string; label: string }
 
@@ -45,7 +45,7 @@ export interface TokenEntry {
   set?: string;
   isAlias?: boolean;
   description?: string;
-  generatorName?: string;
+  recipeName?: string;
 }
 
 export interface GroupEntry {
@@ -98,7 +98,7 @@ function leafName(path: string): string {
 }
 
 // Matches the last qualifier:partial at the end of the query (no trailing space)
-const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|generator|gen|group):(\S*)$/i;
+const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|recipe|gen|group):(\S*)$/i;
 
 /** If the query ends with a qualifier:partial pattern, return it for autocomplete. */
 function detectActiveQualifier(q: string): { qualifier: string; partial: string } | null {
@@ -120,7 +120,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
       if ((h === 'alias' || h === 'ref') && !t.isAlias) return false;
       if (h === 'direct' && t.isAlias) return false;
       if ((h === 'description' || h === 'desc') && !t.description) return false;
-      if ((h === 'generated' || h === 'gen') && !t.generatorName) return false;
+      if ((h === 'generated' || h === 'gen') && !t.recipeName) return false;
     }
     // value: qualifier
     if (parsed.values.length > 0) {
@@ -137,11 +137,11 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
       const ln = leafName(t.path).toLowerCase();
       if (!parsed.names.some(n => ln.includes(n))) return false;
     }
-    // generator: qualifier
-    if (parsed.generators.length > 0) {
-      if (!t.generatorName) return false;
-      const gn = t.generatorName.toLowerCase();
-      if (!parsed.generators.some(g => gn === g || gn.includes(g))) return false;
+    // recipe: qualifier
+    if (parsed.recipes.length > 0) {
+      if (!t.recipeName) return false;
+      const gn = t.recipeName.toLowerCase();
+      if (!parsed.recipes.some(g => gn === g || gn.includes(g))) return false;
     }
     return true;
   });
@@ -222,7 +222,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
   const hasQualifiers = parsedTokenQuery.types.length > 0 || parsedTokenQuery.has.length > 0
     || parsedTokenQuery.values.length > 0 || parsedTokenQuery.paths.length > 0
     || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0
-    || parsedTokenQuery.generators.length > 0;
+    || parsedTokenQuery.recipes.length > 0;
 
   // Qualifier value autocomplete — detect qualifier:partial at end of query
   const activeQualifier = useMemo(() => (isTokenMode ? detectActiveQualifier(query) : null), [isTokenMode, query]);
@@ -571,7 +571,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                 { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
                 { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
                 { qual: 'group:colors', desc: 'Navigate directly to a token group', insert: '>group:' },
-                { qual: 'generator:color-ramp', desc: 'Tokens produced by a specific recipe', insert: '>generator:' },
+                { qual: 'recipe:color-ramp', desc: 'Tokens produced by a specific recipe', insert: '>recipe:' },
               ].map(({ qual, desc, insert }) => (
                 <button
                   key={qual}

@@ -1,26 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TokenGenerator, GeneratorType } from "../hooks/useGenerators";
-import { getGeneratorDashboardStatus } from "../hooks/useGenerators";
+import type { TokenRecipe, RecipeType } from "../hooks/useRecipes";
+import { getRecipeDashboardStatus } from "../hooks/useRecipes";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenMapEntry } from "../../shared/types";
 import { NodeGraphCanvas } from "./nodeGraph/NodeGraphCanvas";
 import { apiFetch } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
 import type { ToastAction } from "../shared/toastBus";
-import { TokenGeneratorDialog } from "./TokenGeneratorDialog";
+import { TokenRecipeDialog } from "./TokenRecipeDialog";
 import { GRAPH_TEMPLATES, templateIdForTokenType, type GraphTemplate } from "./graph-templates";
-import { createGeneratorDraftFromTemplate } from "../hooks/useGeneratorDialog";
-import { GeneratorPipelineCard, getGeneratorTypeLabel } from "./GeneratorPipelineCard";
+import { createRecipeDraftFromTemplate } from "../hooks/useRecipeDialog";
+import { RecipePipelineCard, getRecipeTypeLabel } from "./RecipePipelineCard";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
-import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
-import { SkeletonGeneratorCard } from "./Skeleton";
+import type { RecipeSaveSuccessInfo } from "../hooks/useRecipeSave";
+import { SkeletonRecipeCard } from "./Skeleton";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 
 type GraphEditingState =
   | { kind: "none" }
-  | { kind: "editing"; generatorId: string };
+  | { kind: "editing"; recipeId: string };
 
-function exportGraphAsSVG(generators: TokenGenerator[], activeSet: string): void {
+function exportGraphAsSVG(recipes: TokenRecipe[], activeSet: string): void {
   const css = (name: string, fallback: string) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
   const colorBg = css("--color-figma-bg", "#ffffff");
@@ -40,8 +40,8 @@ function exportGraphAsSVG(generators: TokenGenerator[], activeSet: string): void
   const svgH =
     padY +
     titleH +
-    generators.length * (cardH + rowGap) -
-    (generators.length > 0 ? rowGap : 0) +
+    recipes.length * (cardH + rowGap) -
+    (recipes.length > 0 ? rowGap : 0) +
     padY;
 
   const esc = (value: string) =>
@@ -53,14 +53,14 @@ function exportGraphAsSVG(generators: TokenGenerator[], activeSet: string): void
   const trunc = (value: string, length: number) =>
     value.length > length ? `${value.slice(0, length - 1)}…` : value;
 
-  const rows = generators
-    .map((generator, index) => {
+  const rows = recipes
+    .map((recipe, index) => {
       const y = padY + titleH + index * (cardH + rowGap);
-      const name = trunc(generator.name || getGeneratorTypeLabel(generator.type), 28);
-      const source = generator.sourceToken
-        ? `← ${trunc(generator.sourceToken, 30)}`
+      const name = trunc(recipe.name || getRecipeTypeLabel(recipe.type), 28);
+      const source = recipe.sourceToken
+        ? `← ${trunc(recipe.sourceToken, 30)}`
         : "← standalone";
-      const target = `→ ${trunc(`${generator.targetGroup}.*`, 30)}`;
+      const target = `→ ${trunc(`${recipe.targetGroup}.*`, 30)}`;
       return [
         `<rect x="${padX}" y="${y}" width="${cardW}" height="${cardH}" rx="${cardR}" fill="${colorBgSecondary}" stroke="${colorAccent}" stroke-width="1"/>`,
         `<text x="${padX + 10}" y="${y + 18}" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="${colorAccent}">${esc(name)}</text>`,
@@ -90,7 +90,7 @@ export interface GraphPanelProps {
   serverUrl: string;
   activeSet: string;
   allSets: string[];
-  generators: TokenGenerator[];
+  recipes: TokenRecipe[];
   loading?: boolean;
   connected: boolean;
   onRefresh: () => void;
@@ -100,8 +100,8 @@ export interface GraphPanelProps {
   pendingGroupPath?: string | null;
   pendingGroupTokenType?: string | null;
   onClearPendingGroup?: () => void;
-  focusGeneratorId?: string | null;
-  onClearFocusGenerator?: () => void;
+  focusRecipeId?: string | null;
+  onClearFocusRecipe?: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   onViewTokens?: (targetGroup: string, targetSet: string) => void;
   openCreateDialog?: boolean;
@@ -111,7 +111,7 @@ export function GraphPanel({
   serverUrl,
   activeSet,
   allSets,
-  generators,
+  recipes,
   loading = false,
   connected,
   onRefresh,
@@ -121,15 +121,15 @@ export function GraphPanel({
   pendingGroupPath,
   pendingGroupTokenType,
   onClearPendingGroup,
-  focusGeneratorId,
-  onClearFocusGenerator,
+  focusRecipeId,
+  onClearFocusRecipe,
   allTokensFlat,
   onViewTokens,
   openCreateDialog = false,
 }: GraphPanelProps) {
-  const setGenerators = useMemo(
-    () => generators.filter((generator) => generator.targetSet === activeSet),
-    [activeSet, generators],
+  const setRecipes = useMemo(
+    () => recipes.filter((recipe) => recipe.targetSet === activeSet),
+    [activeSet, recipes],
   );
   const focusRef = useRef<HTMLDivElement>(null);
   const suggestedTemplateId = pendingGroupPath
@@ -147,9 +147,9 @@ export function GraphPanel({
     Boolean(openCreateDialog || suggestedTemplateId),
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<GeneratorType | null>(null);
+  const [typeFilter, setTypeFilter] = useState<RecipeType | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "graph">("list");
-  const [highlightedGeneratorId, setHighlightedGeneratorId] = useState<string | null>(null);
+  const [highlightedRecipeId, setHighlightedRecipeId] = useState<string | null>(null);
   const [runningAction, setRunningAction] = useState<"all" | "stale" | "failed" | null>(null);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [graphEditing, setGraphEditing] = useState<GraphEditingState>({ kind: "none" });
@@ -162,16 +162,16 @@ export function GraphPanel({
   }, [openCreateDialog, suggestedTemplateId]);
 
   useEffect(() => {
-    if (!focusGeneratorId) return;
-    setHighlightedGeneratorId(focusGeneratorId);
+    if (!focusRecipeId) return;
+    setHighlightedRecipeId(focusRecipeId);
     setViewMode("list");
-    onClearFocusGenerator?.();
+    onClearFocusRecipe?.();
     requestAnimationFrame(() => {
       focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-    const timer = window.setTimeout(() => setHighlightedGeneratorId(null), 2000);
+    const timer = window.setTimeout(() => setHighlightedRecipeId(null), 2000);
     return () => window.clearTimeout(timer);
-  }, [focusGeneratorId, onClearFocusGenerator]);
+  }, [focusRecipeId, onClearFocusRecipe]);
 
   useEffect(() => {
     if (!actionsMenuOpen) return;
@@ -221,29 +221,29 @@ export function GraphPanel({
     dispatchToast("Recipe created — tokens are generating", "success");
   }, [clearPendingState, onRefresh]);
 
-  const runGenerators = useCallback(
-    async (action: "all" | "stale" | "failed", selectedGenerators: TokenGenerator[]) => {
-      if (selectedGenerators.length === 0) return;
+  const runRecipes = useCallback(
+    async (action: "all" | "stale" | "failed", selectedRecipes: TokenRecipe[]) => {
+      if (selectedRecipes.length === 0) return;
       setRunningAction(action);
       let successCount = 0;
       let totalTokens = 0;
       const errors: string[] = [];
 
-      const generatorsToRun = [...selectedGenerators].sort(
+      const recipesToRun = [...selectedRecipes].sort(
         (left, right) =>
-          (left.upstreamGenerators?.length ?? 0) - (right.upstreamGenerators?.length ?? 0),
+          (left.upstreamRecipes?.length ?? 0) - (right.upstreamRecipes?.length ?? 0),
       );
 
-      for (const generator of generatorsToRun) {
+      for (const recipe of recipesToRun) {
         try {
           const result = await apiFetch<{ count: number }>(
-            `${serverUrl}/api/generators/${generator.id}/run`,
+            `${serverUrl}/api/recipes/${recipe.id}/run`,
             { method: "POST" },
           );
           successCount += 1;
           totalTokens += result.count ?? 0;
         } catch {
-          errors.push(generator.name);
+          errors.push(recipe.name);
         }
       }
 
@@ -273,39 +273,39 @@ export function GraphPanel({
     action();
   }, []);
 
-  const staleGenerators = useMemo(
-    () => setGenerators.filter((generator) => getGeneratorDashboardStatus(generator) === "stale"),
-    [setGenerators],
+  const staleRecipes = useMemo(
+    () => setRecipes.filter((recipe) => getRecipeDashboardStatus(recipe) === "stale"),
+    [setRecipes],
   );
-  const failedGenerators = useMemo(
-    () => setGenerators.filter((generator) => getGeneratorDashboardStatus(generator) === "failed"),
-    [setGenerators],
+  const failedRecipes = useMemo(
+    () => setRecipes.filter((recipe) => getRecipeDashboardStatus(recipe) === "failed"),
+    [setRecipes],
   );
 
-  const filteredGenerators = useMemo(() => {
+  const filteredRecipes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return setGenerators.filter((generator) => {
-      if (typeFilter && generator.type !== typeFilter) return false;
+    return setRecipes.filter((recipe) => {
+      if (typeFilter && recipe.type !== typeFilter) return false;
       if (!query) return true;
       return (
-        generator.name.toLowerCase().includes(query) ||
-        (generator.sourceToken ?? "").toLowerCase().includes(query) ||
-        generator.targetGroup.toLowerCase().includes(query) ||
-        getGeneratorTypeLabel(generator.type).toLowerCase().includes(query)
+        recipe.name.toLowerCase().includes(query) ||
+        (recipe.sourceToken ?? "").toLowerCase().includes(query) ||
+        recipe.targetGroup.toLowerCase().includes(query) ||
+        getRecipeTypeLabel(recipe.type).toLowerCase().includes(query)
       );
     });
-  }, [searchQuery, setGenerators, typeFilter]);
+  }, [searchQuery, setRecipes, typeFilter]);
 
-  const presentTypes = useMemo<GeneratorType[]>(() => {
-    const seen = new Set<GeneratorType>();
-    for (const generator of setGenerators) seen.add(generator.type);
+  const presentTypes = useMemo<RecipeType[]>(() => {
+    const seen = new Set<RecipeType>();
+    for (const recipe of setRecipes) seen.add(recipe.type);
     return Array.from(seen).sort((left, right) =>
-      getGeneratorTypeLabel(left).localeCompare(getGeneratorTypeLabel(right)),
+      getRecipeTypeLabel(left).localeCompare(getRecipeTypeLabel(right)),
     );
-  }, [setGenerators]);
+  }, [setRecipes]);
 
   const getViewTokensToastAction = useCallback(
-    (info: GeneratorSaveSuccessInfo): ToastAction | undefined =>
+    (info: RecipeSaveSuccessInfo): ToastAction | undefined =>
       onViewTokens
         ? {
             label: "View tokens",
@@ -318,7 +318,7 @@ export function GraphPanel({
   const initialDraft = useMemo(
     () =>
       pendingTemplate
-        ? createGeneratorDraftFromTemplate(pendingTemplate, activeSet, {
+        ? createRecipeDraftFromTemplate(pendingTemplate, activeSet, {
             sourceTokenPath: pendingGroupPath ?? undefined,
           })
         : undefined,
@@ -337,10 +337,10 @@ export function GraphPanel({
   }, [onRefresh]);
 
   const handleGraphRun = useCallback(
-    async (generatorId: string) => {
+    async (recipeId: string) => {
       try {
         const result = await apiFetch<{ count: number }>(
-          `${serverUrl}/api/generators/${generatorId}/run`,
+          `${serverUrl}/api/recipes/${recipeId}/run`,
           { method: "POST" },
         );
         dispatchToast(
@@ -356,14 +356,14 @@ export function GraphPanel({
   );
 
   if (graphEditing.kind === "editing") {
-    const generator = setGenerators.find((item) => item.id === graphEditing.generatorId);
-    if (generator) {
+    const recipe = setRecipes.find((item) => item.id === graphEditing.recipeId);
+    if (recipe) {
       return (
-        <TokenGeneratorDialog
+        <TokenRecipeDialog
           serverUrl={serverUrl}
           allSets={allSets}
           activeSet={activeSet}
-          existingGenerator={generator}
+          existingRecipe={recipe}
           onBack={handleGraphEditClose}
           onClose={handleGraphEditClose}
           onSaved={handleGraphEditSaved}
@@ -377,7 +377,7 @@ export function GraphPanel({
 
   if (showCreateDialog) {
     return (
-      <TokenGeneratorDialog
+      <TokenRecipeDialog
         serverUrl={serverUrl}
         allSets={allSets}
         activeSet={activeSet}
@@ -396,17 +396,17 @@ export function GraphPanel({
     );
   }
 
-  if (loading && setGenerators.length === 0) {
+  if (loading && setRecipes.length === 0) {
     return (
       <div className="flex flex-col gap-2 overflow-y-auto p-3" aria-busy="true" aria-label="Loading recipes">
-        <SkeletonGeneratorCard />
-        <SkeletonGeneratorCard />
-        <SkeletonGeneratorCard />
+        <SkeletonRecipeCard />
+        <SkeletonRecipeCard />
+        <SkeletonRecipeCard />
       </div>
     );
   }
 
-  if (setGenerators.length === 0) {
+  if (setRecipes.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-3 py-3 text-center">
         <FeedbackPlaceholder
@@ -562,39 +562,39 @@ export function GraphPanel({
                     View dependency graph
                   </button>
                 )}
-                {staleGenerators.length > 0 && (
+                {staleRecipes.length > 0 && (
                   <button
                     role="menuitem"
                     onClick={() =>
                       runMenuAction(() => {
-                        void runGenerators("stale", staleGenerators);
+                        void runRecipes("stale", staleRecipes);
                       })
                     }
                     disabled={runningAction !== null}
                     className="w-full px-3 py-2 text-left text-[10px] text-[var(--color-figma-warning,#f59e0b)] transition-colors hover:bg-[var(--color-figma-warning,#f59e0b)]/10 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Re-run stale ({staleGenerators.length})
+                    Re-run stale ({staleRecipes.length})
                   </button>
                 )}
-                {failedGenerators.length > 0 && (
+                {failedRecipes.length > 0 && (
                   <button
                     role="menuitem"
                     onClick={() =>
                       runMenuAction(() => {
-                        void runGenerators("failed", failedGenerators);
+                        void runRecipes("failed", failedRecipes);
                       })
                     }
                     disabled={runningAction !== null}
                     className="w-full px-3 py-2 text-left text-[10px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Retry failed ({failedGenerators.length})
+                    Retry failed ({failedRecipes.length})
                   </button>
                 )}
                 <button
                   role="menuitem"
                   onClick={() =>
                     runMenuAction(() => {
-                      void runGenerators("all", setGenerators);
+                      void runRecipes("all", setRecipes);
                     })
                   }
                   disabled={runningAction !== null}
@@ -607,7 +607,7 @@ export function GraphPanel({
                   role="menuitem"
                   onClick={() =>
                     runMenuAction(() => {
-                      exportGraphAsSVG(setGenerators, activeSet);
+                      exportGraphAsSVG(setRecipes, activeSet);
                     })
                   }
                   className="w-full px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
@@ -643,7 +643,7 @@ export function GraphPanel({
                     : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
                 }`}
               >
-                {getGeneratorTypeLabel(type)}
+                {getRecipeTypeLabel(type)}
               </button>
             ))}
           </div>
@@ -665,24 +665,24 @@ export function GraphPanel({
             </button>
           </div>
           <NodeGraphCanvas
-            generators={filteredGenerators}
+            recipes={filteredRecipes}
             activeSet={activeSet}
             onPushUndo={onPushUndo}
             searchQuery={searchQuery}
-            onEditGenerator={(generatorId) => setGraphEditing({ kind: "editing", generatorId })}
-            onRunGenerator={handleGraphRun}
+            onEditRecipe={(recipeId) => setGraphEditing({ kind: "editing", recipeId })}
+            onRunRecipe={handleGraphRun}
             onViewTokens={onViewTokens}
           />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-3">
-          {filteredGenerators.length > 0 ? (
+          {filteredRecipes.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {filteredGenerators.map((generator) => (
-                <GeneratorPipelineCard
-                  key={generator.id}
-                  generator={generator}
-                  isFocused={generator.id === highlightedGeneratorId}
+              {filteredRecipes.map((recipe) => (
+                <RecipePipelineCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  isFocused={recipe.id === highlightedRecipeId}
                   focusRef={focusRef}
                   serverUrl={serverUrl}
                   allSets={allSets}

@@ -14,7 +14,7 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
 
   const themeCount = workspaceDiffs.filter(diff => diff.kind === 'themes').length;
   const resolverCount = workspaceDiffs.filter(diff => diff.kind === 'resolver').length;
-  const generatorCount = workspaceDiffs.filter(diff => diff.kind === 'generator').length;
+  const recipeCount = workspaceDiffs.filter(diff => diff.kind === 'recipe').length;
   const parts: string[] = [];
 
   if (themeCount > 0) {
@@ -23,8 +23,8 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
   if (resolverCount > 0) {
     parts.push(`${resolverCount} resolver ${resolverCount === 1 ? 'change' : 'changes'}`);
   }
-  if (generatorCount > 0) {
-    parts.push(`${generatorCount} generator ${generatorCount === 1 ? 'change' : 'changes'}`);
+  if (recipeCount > 0) {
+    parts.push(`${recipeCount} recipe ${recipeCount === 1 ? 'change' : 'changes'}`);
   }
 
   return `${workspaceDiffs.length} workspace ${workspaceDiffs.length === 1 ? 'change' : 'changes'} (${parts.join(', ')})`;
@@ -625,7 +625,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
               <polyline points="7 3 7 8 15 8" />
             </svg>
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              Save your current workspace before making changes. Come back to compare or restore token sets, themes, resolvers, and generators anytime.
+              Save your current workspace before making changes. Come back to compare or restore token sets, themes, resolvers, and recipes anytime.
             </p>
           </div>
         )}
@@ -643,10 +643,10 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                     </p>
                     <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
                       {formatRelativeTime(new Date(s.timestamp))}{ticker >= 0 ? '' : ''} · {s.tokenCount} tokens · {s.setCount} {s.setCount === 1 ? 'set' : 'sets'}
-                      {(s.dimensionCount + s.resolverCount + s.generatorCount) > 0 ? ` · ${[
+                      {(s.dimensionCount + s.resolverCount + s.recipeCount) > 0 ? ` · ${[
                         s.dimensionCount > 0 ? `${s.dimensionCount} theme ${s.dimensionCount === 1 ? 'dimension' : 'dimensions'}` : '',
                         s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',
-                        s.generatorCount > 0 ? `${s.generatorCount} ${s.generatorCount === 1 ? 'recipe' : 'recipes'}` : '',
+                        s.recipeCount > 0 ? `${s.recipeCount} ${s.recipeCount === 1 ? 'recipe' : 'recipes'}` : '',
                       ].filter(Boolean).join(' · ')}` : ''}
                     </p>
                   </div>

@@ -1,7 +1,7 @@
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
-import type { TokenGenerator } from './useGenerators';
+import type { TokenRecipe } from './useRecipes';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { useTokenRelocate } from './useTokenRelocate';
 import { useTokenRename } from './useTokenRename';
@@ -17,11 +17,11 @@ export interface UseTokenCrudParams {
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
-  generators?: TokenGenerator[];
+  recipes?: TokenRecipe[];
   dimensions?: ThemeDimension[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
-  onRefreshGenerators?: () => void;
+  onRefreshRecipes?: () => void;
   onSetOperationLoading: (msg: string | null) => void;
   onSetLocallyDeletedPaths: (paths: Set<string>) => void;
   onRecordTouch: (path: string) => void;
@@ -33,8 +33,8 @@ export interface UseTokenCrudParams {
 export function useTokenCrud(params: UseTokenCrudParams) {
   const {
     connected, serverUrl, setName, sets, tokens, allTokensFlat, perSetFlat,
-    generators, dimensions,
-    onRefresh, onPushUndo, onRefreshGenerators, onSetOperationLoading,
+    recipes, dimensions,
+    onRefresh, onPushUndo, onRefreshRecipes, onSetOperationLoading,
     onSetLocallyDeletedPaths, onRecordTouch, onRenamePath, onClearSelection, onError,
   } = params;
 
@@ -43,13 +43,13 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     copy: useTokenRelocate({ mode: 'copy', connected, serverUrl, setName, sets, perSetFlat, onRefresh, onError }),
   };
 
-  const rename = useTokenRename({ connected, serverUrl, setName, generators, dimensions, perSetFlat, allTokensFlat, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError });
+  const rename = useTokenRename({ connected, serverUrl, setName, recipes, dimensions, perSetFlat, allTokensFlat, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError });
 
-  const del = useTokenDelete({ connected, serverUrl, setName, tokens, allTokensFlat, perSetFlat, generators, dimensions, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError });
+  const del = useTokenDelete({ connected, serverUrl, setName, tokens, allTokensFlat, perSetFlat, recipes, dimensions, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError });
 
   const dup = useTokenDuplicate({ connected, serverUrl, setName, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
 
-  const save = useTokenSave({ connected, serverUrl, setName, allTokensFlat, perSetFlat, generators, onRefresh, onPushUndo, onRecordTouch, onRefreshGenerators, onError });
+  const save = useTokenSave({ connected, serverUrl, setName, allTokensFlat, perSetFlat, recipes, onRefresh, onPushUndo, onRecordTouch, onRefreshRecipes, onError });
 
   return {
     // Rename state + callbacks
@@ -74,7 +74,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     handleInlineSave: save.handleInlineSave,
     handleDescriptionSave: save.handleDescriptionSave,
     handleMultiModeInlineSave: save.handleMultiModeInlineSave,
-    handleDetachFromGenerator: save.handleDetachFromGenerator,
+    handleDetachFromRecipe: save.handleDetachFromRecipe,
     // Move state + callbacks
     movingToken: relocate.move.relocatingToken,
     setMovingToken: relocate.move.setRelocatingToken,

@@ -20,8 +20,6 @@ export function ThemeStageModelControls({
 }: ThemeStageModelControlsProps) {
   return (
     <WorkflowStageIndicators
-      title=""
-      description=""
       stages={stages}
       onSelectStage={onSelectStage}
       actions={actions}

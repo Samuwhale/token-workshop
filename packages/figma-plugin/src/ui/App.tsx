@@ -16,7 +16,7 @@ import {
   WelcomePrompt,
   type StartHereBranch,
 } from "./components/WelcomePrompt";
-import { ColorScaleGenerator } from "./components/ColorScaleGenerator";
+import { ColorScaleRecipe } from "./components/ColorScaleRecipe";
 import { AppCommandPalette } from "./components/AppCommandPalette";
 import { SetSwitcher } from "./components/SetSwitcher";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
@@ -67,7 +67,7 @@ import { useConnectionContext } from "./contexts/ConnectionContext";
 import {
   useTokenSetsContext,
   useTokenFlatMapContext,
-  useGeneratorContext,
+  useRecipeContext,
 } from "./contexts/TokenDataContext";
 import {
   useThemeSwitcherContext,
@@ -265,8 +265,8 @@ export function App() {
   const {
     editingToken,
     setEditingToken,
-    editingGenerator,
-    setEditingGenerator,
+    editingRecipe,
+    setEditingRecipe,
     previewingToken,
     setPreviewingToken,
     setHighlightedToken,
@@ -319,10 +319,10 @@ export function App() {
   const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount } =
     useTokenFlatMapContext();
   const {
-    generators,
-    refreshGenerators,
-    generatorsBySource,
-  } = useGeneratorContext();
+    recipes,
+    refreshRecipes,
+    recipesBySource,
+  } = useRecipeContext();
   const {
     dimensions,
     activeThemes,
@@ -575,10 +575,10 @@ export function App() {
       setResolverPushUndo(undefined);
     };
   }, [pushUndo, setResolverPushUndo]);
-  const onGeneratorError = useCallback(
-    ({ generatorId, message }: { generatorId?: string; message: string }) => {
-      const label = generatorId
-        ? `Recipe "${generatorId}" failed`
+  const onRecipeError = useCallback(
+    ({ recipeId, message }: { recipeId?: string; message: string }) => {
+      const label = recipeId
+        ? `Recipe "${recipeId}" failed`
         : "Recipe auto-run failed";
       setErrorToast(`${label}: ${message}`);
     },
@@ -598,8 +598,8 @@ export function App() {
     setPendingGraphTemplate,
     pendingGraphFromGroup,
     setPendingGraphFromGroup,
-    focusGeneratorId,
-    setFocusGeneratorId,
+    focusRecipeId,
+    setFocusRecipeId,
     pendingOpenPicker,
     setPendingOpenPicker,
   } = useGraphState();
@@ -615,12 +615,12 @@ export function App() {
   const refreshAll = useCallback(() => {
     refreshTokens();
     setLintKey((k) => k + 1);
-    refreshGenerators();
+    refreshRecipes();
     setTokenChangeKey((k) => k + 1);
-  }, [refreshTokens, refreshGenerators]);
-  const staleGeneratorCount = useMemo(
-    () => generators.filter((g) => g.isStale).length,
-    [generators],
+  }, [refreshTokens, refreshRecipes]);
+  const staleRecipeCount = useMemo(
+    () => recipes.filter((g) => g.isStale).length,
+    [recipes],
   );
   const activeWorkspaceSummary = useMemo(
     () => resolveWorkspaceSummary(activeTopTab, activeSubTab),
@@ -678,7 +678,7 @@ export function App() {
   useServerEvents(
     serverUrl,
     connected,
-    onGeneratorError,
+    onRecipeError,
     refreshAllExternal,
     onServiceError,
   );
@@ -863,21 +863,21 @@ export function App() {
   const handlePreviewClose = useCallback(() => {
     setPreviewingToken(null);
   }, [setPreviewingToken]);
-  const editingGeneratorData =
-    editingGenerator?.mode === "edit"
-      ? (generators.find((generator) => generator.id === editingGenerator.id) ??
+  const editingRecipeData =
+    editingRecipe?.mode === "edit"
+      ? (recipes.find((recipe) => recipe.id === editingRecipe.id) ??
         null)
       : null;
   useEffect(() => {
     if (
-      !editingGenerator ||
-      editingGenerator.mode !== "edit" ||
-      editingGeneratorData
+      !editingRecipe ||
+      editingRecipe.mode !== "edit" ||
+      editingRecipeData
     ) {
       return;
     }
-    setEditingGenerator(null);
-  }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
+    setEditingRecipe(null);
+  }, [editingRecipe, editingRecipeData, setEditingRecipe]);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   // Imperative handle to TokenList compare actions — populated by TokenList via compareHandle prop
@@ -890,7 +890,7 @@ export function App() {
   const handleOpenCrossThemeCompare = useCallback(
     (path: string) => {
       setEditingToken(null);
-      setEditingGenerator(null);
+      setEditingRecipe(null);
       setPreviewingToken(null);
       setTokensCompareMode("cross-theme");
       setTokensComparePath(path);
@@ -900,7 +900,7 @@ export function App() {
     },
     [
       navigateTo,
-      setEditingGenerator,
+      setEditingRecipe,
       setEditingToken,
       setPreviewingToken,
       setShowTokensCompare,
@@ -932,7 +932,7 @@ export function App() {
     (savedPath: string) => {
       setHighlightedToken(savedPath);
       setEditingToken(null);
-      const affectedGens = generatorsBySource.get(savedPath) ?? [];
+      const affectedGens = recipesBySource.get(savedPath) ?? [];
       refreshAll();
       if (affectedGens.length > 0) {
         const n = affectedGens.length;
@@ -944,14 +944,14 @@ export function App() {
             onClick: async () => {
               for (const id of genIds) {
                 try {
-                  await apiFetch(`${serverUrl}/api/generators/${id}/run`, {
+                  await apiFetch(`${serverUrl}/api/recipes/${id}/run`, {
                     method: "POST",
                   });
                 } catch {
                   /* ignore */
                 }
               }
-              refreshGenerators();
+              refreshRecipes();
             },
           },
         );
@@ -961,10 +961,10 @@ export function App() {
       refreshAll,
       setHighlightedToken,
       setEditingToken,
-      generatorsBySource,
+      recipesBySource,
       pushActionToast,
       serverUrl,
-      refreshGenerators,
+      refreshRecipes,
     ],
   );
   const handleEditorSaveAndCreateAnother = useCallback(
@@ -995,12 +995,12 @@ export function App() {
     },
     [activeSet, setHighlightedToken, setPendingHighlightForSet, setActiveSet],
   );
-  const handleNavigateToGenerator = useCallback(
-    (generatorId: string) => {
-      navigateTo("define", "generators");
-      setFocusGeneratorId(generatorId);
+  const handleNavigateToRecipe = useCallback(
+    (recipeId: string) => {
+      navigateTo("define", "recipes");
+      setFocusRecipeId(recipeId);
     },
-    [navigateTo, setFocusGeneratorId],
+    [navigateTo, setFocusRecipeId],
   );
   const { showIssuesOnly, setShowIssuesOnly } = useAnalyticsState();
   const {
@@ -1014,8 +1014,8 @@ export function App() {
   } = useValidationCache({ serverUrl, connected, tokenChangeKey });
   const healthIssueCount = useMemo(
     () =>
-      computeHealthIssueCount(lintViolations, generators, validationSummary),
-    [lintViolations, generators, validationSummary],
+      computeHealthIssueCount(lintViolations, recipes, validationSummary),
+    [lintViolations, recipes, validationSummary],
   );
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<
     string | null
@@ -1035,7 +1035,7 @@ export function App() {
   }, []);
   const useSidePanel =
     windowWidth >= CONTEXTUAL_PANEL_MIN_WIDTH &&
-    !!(editingToken || editingGeneratorData || previewingToken) &&
+    !!(editingToken || editingRecipeData || previewingToken) &&
     activeSecondarySurface === null &&
     activeTopTab === "define" &&
     activeSubTab === "tokens" &&
@@ -1806,7 +1806,7 @@ export function App() {
       },
       openPasteModal: () => setShowPasteModal(true),
       openImportPanel: () => openSecondaryPanel("import"),
-      openColorScaleGenerator: () => setShowColorScaleGen(true),
+      openColorScaleRecipe: () => setShowColorScaleGen(true),
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
       toggleSetSwitcher: () => setShowSetSwitcher((visible) => !visible),
       openStartHere: (branch?: StartHereBranch) => openStartHere(branch),
@@ -1857,15 +1857,15 @@ export function App() {
       setErrorToast,
       setSuccessToast,
       handleNavigateToSet,
-      handleNavigateToGenerator,
+      handleNavigateToRecipe,
       flowPanelInitialPath,
       setFlowPanelInitialPath,
       pendingGraphTemplate,
       setPendingGraphTemplate,
       pendingGraphFromGroup,
       setPendingGraphFromGroup,
-      focusGeneratorId,
-      setFocusGeneratorId,
+      focusRecipeId,
+      setFocusRecipeId,
       pendingOpenPicker,
       setPendingOpenPicker,
       tokenListCompareRef,
@@ -1927,10 +1927,10 @@ export function App() {
         closeSecondarySurface();
         setShowSetSwitcher(true);
       },
-      onOpenGenerators: (set: string) => {
+      onOpenRecipes: (set: string) => {
         guardEditorAction(() => {
           setActiveSet(set);
-          navigateTo("define", "generators");
+          navigateTo("define", "recipes");
           closeSecondarySurface();
         });
       },
@@ -2007,9 +2007,9 @@ export function App() {
             label: `${lintViolations.length} issues`,
             tone: "warning",
           });
-        if (staleGeneratorCount > 0)
+        if (staleRecipeCount > 0)
           pills.push({
-            label: `${staleGeneratorCount} stale`,
+            label: `${staleRecipeCount} stale`,
             tone: "stale",
           });
         break;
@@ -2085,7 +2085,7 @@ export function App() {
     publishPreflightState.canProceed,
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
-    staleGeneratorCount,
+    staleRecipeCount,
     themeGapCount,
     validationLoading,
     validationSummary,
@@ -2330,7 +2330,7 @@ export function App() {
         themeShellState.authoringMode === "preview"
       ) {
         return {
-          label: "Back to themes",
+          label: "Back",
           onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
         };
       }
@@ -3781,9 +3781,9 @@ export function App() {
         />
       )}
 
-      {/* Color Scale Generator */}
+      {/* Color Scale Recipe */}
       {showColorScaleGen && (
-        <ColorScaleGenerator
+        <ColorScaleRecipe
           serverUrl={serverUrl}
           activeSet={activeSet}
           existingPaths={

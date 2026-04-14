@@ -19,7 +19,7 @@ import {
   PROPERTY_LABELS,
 } from "../../shared/types";
 import type { BindableProperty } from "../../shared/types";
-import { createGeneratorOwnershipKey } from "@tokenmanager/core";
+import { createRecipeOwnershipKey } from "@tokenmanager/core";
 import {
   isAlias,
   extractAliasPath,
@@ -74,14 +74,14 @@ import {
   CondensedAncestorBreadcrumb,
   DepthBar,
   EMPTY_LINT_VIOLATIONS,
-  GeneratorGlyph,
-  GeneratorSummaryRow,
-  getBrowseMetaForGenerator,
+  RecipeGlyph,
+  RecipeSummaryRow,
+  getBrowseMetaForRecipe,
   getBrowseMetaForReference,
   getIncomingRefs,
-  getManagedGeneratorLeafCount,
-  getQuickGeneratorActionLabel,
-  getQuickGeneratorTypeForToken,
+  getManagedRecipeLeafCount,
+  getQuickRecipeActionLabel,
+  getQuickRecipeTypeForToken,
   getTokenRowStatus,
   INTERACTIVE_BADGE_HIT_AREA_CLASS,
   MENU_DANGER_ITEM_CLASS,
@@ -108,6 +108,7 @@ function MultiModeCell({
   isTabPending,
   onTabActivated,
   onTab,
+  onEdit,
 }: {
   tokenPath: string;
   tokenType: string | undefined;
@@ -124,6 +125,7 @@ function MultiModeCell({
   isTabPending?: boolean;
   onTabActivated?: () => void;
   onTab?: (direction: 1 | -1) => void;
+  onEdit?: () => void;
 }) {
   const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
   const [editing, setEditing] = useState(false);
@@ -148,7 +150,6 @@ function MultiModeCell({
   const canCreate =
     !value &&
     !!tokenType &&
-    INLINE_SIMPLE_TYPES.has(tokenType) &&
     !!targetSet &&
     !!onSave;
 
@@ -271,6 +272,13 @@ function MultiModeCell({
                 setEditing(true);
               }
             }}
+          >
+            +
+          </span>
+        ) : onEdit ? (
+          <span
+            className="text-[10px] text-[var(--color-figma-text-tertiary)] cursor-pointer hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
           >
             +
           </span>
@@ -444,7 +452,7 @@ const TokenGroupNode = memo(
       dragOverGroup,
       dragOverGroupIsInvalid,
       dragSource,
-      generatorsByTargetGroup,
+      recipesByTargetGroup,
       themeCoverage,
       condensedView = false,
       rovingFocusPath: groupRovingFocusPath,
@@ -467,9 +475,9 @@ const TokenGroupNode = memo(
       onZoomIntoGroup,
       onDragOverGroup,
       onDropOnGroup,
-      onEditGenerator,
-      onRegenerateGenerator,
-      onDetachGeneratorGroup,
+      onEditRecipe,
+      onRegenerateRecipe,
+      onDetachRecipeGroup,
       onNavigateToToken,
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
@@ -546,14 +554,14 @@ const TokenGroupNode = memo(
 
     const isCategoryHeader = depth === 0;
     const leafCount = countLeaves(node);
-    const targetGenerator =
-      generatorsByTargetGroup?.get(
-        createGeneratorOwnershipKey(setName, node.path),
+    const targetRecipe =
+      recipesByTargetGroup?.get(
+        createRecipeOwnershipKey(setName, node.path),
       ) ?? null;
-    const managedGeneratorLeafCount = useMemo(() => {
-      if (!targetGenerator) return 0;
-      return getManagedGeneratorLeafCount(node, targetGenerator);
-    }, [node, targetGenerator]);
+    const managedRecipeLeafCount = useMemo(() => {
+      if (!targetRecipe) return 0;
+      return getManagedRecipeLeafCount(node, targetRecipe);
+    }, [node, targetRecipe]);
     const themeCoverageSummary = themeCoverage?.get(node.path) ?? null;
     const groupSummary =
       leafCount === 0
@@ -784,13 +792,13 @@ const TokenGroupNode = memo(
               {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
             </span>
           )}
-          {!renamingGroup && targetGenerator && (
+          {!renamingGroup && targetRecipe && (
             <span
-              className={`ml-1 inline-flex shrink-0 items-center justify-center ${targetGenerator.isStale ? "rounded-full px-1.5 py-0.5 bg-amber-500/15 text-amber-600 ring-1 ring-inset ring-amber-500/40" : "text-[var(--color-figma-text-tertiary)]"}`}
-              title={`Managed by ${targetGenerator.name}${targetGenerator.isStale ? " — source changed" : ""}`}
-              aria-label={`Managed by ${targetGenerator.name}`}
+              className={`ml-1 inline-flex shrink-0 items-center justify-center ${targetRecipe.isStale ? "rounded-full px-1.5 py-0.5 bg-amber-500/15 text-amber-600 ring-1 ring-inset ring-amber-500/40" : "text-[var(--color-figma-text-tertiary)]"}`}
+              title={`Managed by ${targetRecipe.name}${targetRecipe.isStale ? " — source changed" : ""}`}
+              aria-label={`Managed by ${targetRecipe.name}`}
             >
-              <GeneratorGlyph size={7} className="shrink-0" />
+              <RecipeGlyph size={7} className="shrink-0" />
             </span>
           )}
           {!renamingGroup && (
@@ -815,8 +823,8 @@ const TokenGroupNode = memo(
           {!renamingGroup &&
             isGroupActive &&
             (() => {
-              if (!targetGenerator) return null;
-              const canEdit = Boolean(onEditGenerator);
+              if (!targetRecipe) return null;
+              const canEdit = Boolean(onEditRecipe);
               const Tag = canEdit ? "button" : "span";
               return (
                 <Tag
@@ -825,19 +833,19 @@ const TokenGroupNode = memo(
                         type: "button" as const,
                         onClick: (e: React.MouseEvent) => {
                           e.stopPropagation();
-                          onEditGenerator?.(targetGenerator.id);
+                          onEditRecipe?.(targetRecipe.id);
                         },
                       }
                     : {})}
                   title={
                     canEdit
-                      ? `${managedGeneratorLeafCount} managed token${managedGeneratorLeafCount === 1 ? "" : "s"} — edit ${targetGenerator.name}`
-                      : `${managedGeneratorLeafCount} managed token${managedGeneratorLeafCount === 1 ? "" : "s"}`
+                      ? `${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"} — edit ${targetRecipe.name}`
+                      : `${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"}`
                   }
                   className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded ${BADGE_TEXT_CLASS} font-medium shrink-0 bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-tertiary)]${canEdit ? ` ${INTERACTIVE_BADGE_HIT_AREA_CLASS} cursor-pointer hover:bg-[var(--color-figma-accent)]/20 hover:text-[var(--color-figma-accent)]` : ""}`}
                 >
-                  <GeneratorGlyph size={6} className="shrink-0" />
-                  {managedGeneratorLeafCount}
+                  <RecipeGlyph size={6} className="shrink-0" />
+                  {managedRecipeLeafCount}
                 </Tag>
               );
             })()}
@@ -1176,21 +1184,21 @@ const TokenGroupNode = memo(
           </div>
         )}
 
-        {!props.skipChildren && isExpanded && targetGenerator && (
-          <GeneratorSummaryRow
+        {!props.skipChildren && isExpanded && targetRecipe && (
+          <RecipeSummaryRow
             depth={depth}
             condensedView={condensedView}
-            generator={targetGenerator}
-            managedTokenCount={managedGeneratorLeafCount}
+            recipe={targetRecipe}
+            managedTokenCount={managedRecipeLeafCount}
             running={regenerating}
             detaching={detachingGroup}
             onRun={
-              targetGenerator.id && onRegenerateGenerator
+              targetRecipe.id && onRegenerateRecipe
                 ? async () => {
                     if (regenerating) return;
                     setRegenerating(true);
                     try {
-                      await onRegenerateGenerator(targetGenerator.id);
+                      await onRegenerateRecipe(targetRecipe.id);
                     } finally {
                       setRegenerating(false);
                     }
@@ -1198,12 +1206,12 @@ const TokenGroupNode = memo(
                 : undefined
             }
             onEdit={
-              targetGenerator.id && onEditGenerator
-                ? () => onEditGenerator(targetGenerator.id)
+              targetRecipe.id && onEditRecipe
+                ? () => onEditRecipe(targetRecipe.id)
                 : undefined
             }
             onDetach={
-              targetGenerator.id && onDetachGeneratorGroup
+              targetRecipe.id && onDetachRecipeGroup
                 ? () => {
                     setShowDetachGroupConfirm(true);
                   }
@@ -1213,20 +1221,20 @@ const TokenGroupNode = memo(
           />
         )}
 
-        {showDetachGroupConfirm && targetGenerator && (
+        {showDetachGroupConfirm && targetRecipe && (
           <ConfirmModal
             title="Detach Group From Recipe?"
-            description={`Convert ${managedGeneratorLeafCount} recipe-managed token${managedGeneratorLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetGenerator.name}" will stop updating them.`}
+            description={`Convert ${managedRecipeLeafCount} recipe-managed token${managedRecipeLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetRecipe.name}" will stop updating them.`}
             confirmLabel="Detach group"
             onCancel={() => setShowDetachGroupConfirm(false)}
             onConfirm={async () => {
-              if (!targetGenerator.id || !onDetachGeneratorGroup) {
+              if (!targetRecipe.id || !onDetachRecipeGroup) {
                 setShowDetachGroupConfirm(false);
                 return;
               }
               setDetachingGroup(true);
               try {
-                await onDetachGeneratorGroup(targetGenerator.id, node.path);
+                await onDetachRecipeGroup(targetRecipe.id, node.path);
                 setShowDetachGroupConfirm(false);
               } finally {
                 setDetachingGroup(false);
@@ -1326,7 +1334,7 @@ const TokenLeafNode = memo(
       onRequestMoveToken,
       onRequestCopyToken,
       onDuplicateToken,
-      onDetachFromGenerator,
+      onDetachFromRecipe,
       onExtractToAlias,
       onHoverToken,
       onFilterByType,
@@ -1344,7 +1352,7 @@ const TokenLeafNode = memo(
       clearPendingRename,
       clearPendingTabEdit,
       onTabToNext,
-      onOpenGeneratorEditor,
+      onOpenRecipeEditor,
       onRovingFocus,
     } = useTokenTreeLeafActions();
 
@@ -1410,9 +1418,9 @@ const TokenLeafNode = memo(
     const renameTokenInputRef = useRef<HTMLInputElement>(null);
     const tokenMenuRef = useRef<HTMLDivElement>(null);
     const booleanInlineEditRef = useRef<HTMLDivElement>(null);
-    const quickGeneratorType = useMemo(
+    const quickRecipeType = useMemo(
       () =>
-        getQuickGeneratorTypeForToken(
+        getQuickRecipeTypeForToken(
           node.path,
           node.name,
           node.$type,
@@ -1467,20 +1475,20 @@ const TokenLeafNode = memo(
       setContextMenuPos(null);
     }, []);
 
-    const openQuickGenerator = useCallback(() => {
-      if (!quickGeneratorType || !onOpenGeneratorEditor) return;
+    const openQuickRecipe = useCallback(() => {
+      if (!quickRecipeType || !onOpenRecipeEditor) return;
       closeTokenMenus();
-      onOpenGeneratorEditor({
+      onOpenRecipeEditor({
         mode: "create",
         sourceTokenPath: node.path,
         sourceTokenName: node.name,
         sourceTokenType: node.$type,
         sourceTokenValue: node.$value,
         initialDraft: {
-          selectedType: quickGeneratorType,
+          selectedType: quickRecipeType,
         },
       });
-    }, [closeTokenMenus, node.$type, node.$value, node.name, node.path, onOpenGeneratorEditor, quickGeneratorType]);
+    }, [closeTokenMenus, node.$type, node.$value, node.name, node.path, onOpenRecipeEditor, quickRecipeType]);
 
     // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
     useEffect(() => {
@@ -1588,8 +1596,8 @@ const TokenLeafNode = memo(
       ? String(node.$value).slice(1, -1)
       : null;
     const isFavorite = starredPaths?.has(node.path) ?? false;
-    const producingGenerator =
-      derivedTokenPaths?.get(createGeneratorOwnershipKey(setName, node.path)) ??
+    const producingRecipe =
+      derivedTokenPaths?.get(createRecipeOwnershipKey(setName, node.path)) ??
       null;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
@@ -1654,14 +1662,14 @@ const TokenLeafNode = memo(
         previousState?: { type?: string; value: unknown },
         afterSave?: () => void,
       ) => {
-        if (!producingGenerator) {
+        if (!producingRecipe) {
           commitInlineValueChange(nextValue, previousState, afterSave);
           return;
         }
         setPendingGeneratedSave({ nextValue, previousState, afterSave });
         setShowGeneratedEditWarning(true);
       },
-      [commitInlineValueChange, producingGenerator],
+      [commitInlineValueChange, producingRecipe],
     );
 
     // Inline quick-edit eligibility
@@ -1837,52 +1845,52 @@ const TokenLeafNode = memo(
             : "text-[var(--color-figma-text-tertiary)]",
         }
       : null;
-    const generatorRowMeta: TokenRowBrowseMeta | null = producingGenerator
+    const recipeRowMeta: TokenRowBrowseMeta | null = producingRecipe
       ? {
-          ...(producingGenerator.sourceToken
-            ? getBrowseMetaForGenerator(
-                producingGenerator.sourceToken,
+          ...(producingRecipe.sourceToken
+            ? getBrowseMetaForRecipe(
+                producingRecipe.sourceToken,
                 showExpandedMeta,
               )
             : {
-                kind: "generator" as const,
-                compactLabel: producingGenerator.name,
-                expandedLabel: `Managed by ${producingGenerator.name}`,
-                title: `Managed by ${producingGenerator.name}`,
+                kind: "recipe" as const,
+                compactLabel: producingRecipe.name,
+                expandedLabel: `Managed by ${producingRecipe.name}`,
+                title: `Managed by ${producingRecipe.name}`,
                 toneClass: "text-[var(--color-figma-text-tertiary)]",
               }),
-          compactLabel: producingGenerator.name,
-          expandedLabel: `Managed by ${producingGenerator.name}`,
+          compactLabel: producingRecipe.name,
+          expandedLabel: `Managed by ${producingRecipe.name}`,
           title: [
-            `Managed by ${producingGenerator.name}`,
-            producingGenerator.sourceToken
-              ? `Source: ${producingGenerator.sourceToken}`
+            `Managed by ${producingRecipe.name}`,
+            producingRecipe.sourceToken
+              ? `Source: ${producingRecipe.sourceToken}`
               : null,
-            producingGenerator.isStale
+            producingRecipe.isStale
               ? "Source changed — re-run to update"
               : null,
           ]
             .filter(Boolean)
             .join("\n"),
-          toneClass: producingGenerator.isStale
+          toneClass: producingRecipe.isStale
             ? "text-amber-600"
             : "text-[var(--color-figma-text-tertiary)]",
-          interactive: Boolean(onOpenGeneratorEditor),
-          onClick: onOpenGeneratorEditor
+          interactive: Boolean(onOpenRecipeEditor),
+          onClick: onOpenRecipeEditor
             ? (e: React.MouseEvent<HTMLButtonElement>) => {
                 e.stopPropagation();
-                onOpenGeneratorEditor({
+                onOpenRecipeEditor({
                   mode: "edit",
-                  id: producingGenerator.id,
+                  id: producingRecipe.id,
                 });
               }
             : undefined,
         }
       : null;
-    const primaryBrowseMeta = aliasRowMeta ?? generatorRowMeta;
+    const primaryBrowseMeta = aliasRowMeta ?? recipeRowMeta;
     const secondaryBrowseMeta =
-      showExpandedMeta && aliasRowMeta && generatorRowMeta
-        ? generatorRowMeta
+      showExpandedMeta && aliasRowMeta && recipeRowMeta
+        ? recipeRowMeta
         : null;
 
     const applyWithProperty = useCallback(
@@ -3110,21 +3118,21 @@ const TokenLeafNode = memo(
                   <span className={MENU_SHORTCUT_CLASS}>E</span>
                 </button>
               )}
-              {!isAlias(node.$value) && quickGeneratorType && onOpenGeneratorEditor && (
+              {!isAlias(node.$value) && quickRecipeType && onOpenRecipeEditor && (
                 <button
                   role="menuitem"
                   tabIndex={-1}
                   data-accel="g"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={openQuickGenerator}
+                  onClick={openQuickRecipe}
                   className={MENU_ITEM_CLASS}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
-                  <span className="flex-1">{getQuickGeneratorActionLabel(quickGeneratorType)}</span>
+                  <span className="flex-1">{getQuickRecipeActionLabel(quickRecipeType)}</span>
                   <span className={MENU_SHORTCUT_CLASS}>G</span>
                 </button>
               )}
-              {producingGenerator && onDetachFromGenerator && (
+              {producingRecipe && onDetachFromRecipe && (
                 <button
                   role="menuitem"
                   tabIndex={-1}
@@ -3320,10 +3328,10 @@ const TokenLeafNode = memo(
             </div>
           )}
 
-          {showGeneratedEditWarning && producingGenerator && pendingGeneratedSave && (
+          {showGeneratedEditWarning && producingRecipe && pendingGeneratedSave && (
             <ConfirmModal
               title="Edit Managed Token?"
-              description={`"${node.path}" is managed by "${producingGenerator.name}". This manual change will be overwritten the next time the recipe runs unless you detach the token first.`}
+              description={`"${node.path}" is managed by "${producingRecipe.name}". This manual change will be overwritten the next time the recipe runs unless you detach the token first.`}
               confirmLabel="Save anyway"
               onCancel={() => {
                 setShowGeneratedEditWarning(false);
@@ -3345,14 +3353,14 @@ const TokenLeafNode = memo(
             </ConfirmModal>
           )}
 
-          {showDetachTokenConfirm && producingGenerator && onDetachFromGenerator && (
+          {showDetachTokenConfirm && producingRecipe && onDetachFromRecipe && (
             <ConfirmModal
               title="Detach Token?"
-              description={`Convert "${node.path}" to manual. "${producingGenerator.name}" will stop updating it.`}
+              description={`Convert "${node.path}" to manual. "${producingRecipe.name}" will stop updating it.`}
               confirmLabel="Detach token"
               onCancel={() => setShowDetachTokenConfirm(false)}
               onConfirm={async () => {
-                await onDetachFromGenerator(node.path);
+                await onDetachFromRecipe(node.path);
                 setShowDetachTokenConfirm(false);
               }}
             />
@@ -3404,6 +3412,7 @@ const TokenLeafNode = memo(
                   }
                   onTabActivated={clearPendingTabEdit}
                   onTab={(dir) => onTabToNext(node.path, mv.optionName, dir)}
+                  onEdit={() => onEdit(node.path, node.name)}
                 />
               ))}
             </div>

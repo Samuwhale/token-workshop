@@ -35,7 +35,7 @@ interface SetResolverMeta {
   referencedSets: string[];
 }
 
-interface SetGeneratorMeta {
+interface SetRecipeMeta {
   id: string;
   name: string;
   targetSet: string;
@@ -53,17 +53,17 @@ interface SetResolverImpact {
   name: string;
 }
 
-interface SetGeneratorOwnershipImpact {
-  generatorId: string;
-  generatorName: string;
+interface SetRecipeOwnershipImpact {
+  recipeId: string;
+  recipeName: string;
   targetGroup: string;
   tokenCount: number;
   samplePaths: string[];
 }
 
-interface SetGeneratorTargetImpact {
-  generatorId: string;
-  generatorName: string;
+interface SetRecipeTargetImpact {
+  recipeId: string;
+  recipeName: string;
   targetGroup: string;
 }
 
@@ -77,13 +77,13 @@ interface SetPreflightImpact {
   };
   themeOptions: SetThemeImpact[];
   resolverRefs: SetResolverImpact[];
-  generatedOwnership: SetGeneratorOwnershipImpact[];
-  generatorTargets: SetGeneratorTargetImpact[];
+  generatedOwnership: SetRecipeOwnershipImpact[];
+  recipeTargets: SetRecipeTargetImpact[];
 }
 
 type SetPreflightBlockerCode =
   | "generated-token-ownership"
-  | "generator-target-set"
+  | "recipe-target-set"
   | "resolver-set-ref"
   | "theme-option-set";
 
@@ -92,8 +92,8 @@ interface SetPreflightBlocker {
   code: SetPreflightBlockerCode;
   setName: string;
   message: string;
-  generatorId?: string;
-  generatorName?: string;
+  recipeId?: string;
+  recipeName?: string;
 }
 
 interface SetMergeConflict {
@@ -127,15 +127,15 @@ interface LoadedSetDependencyData {
 interface SetDependencySnapshot {
   dimensions: ThemeDimension[];
   resolvers: SetResolverMeta[];
-  generators: SetGeneratorMeta[];
-  allOwnedTokens: Array<{ setName: string; path: string; generatorId: string }>;
+  recipes: SetRecipeMeta[];
+  allOwnedTokens: Array<{ setName: string; path: string; recipeId: string }>;
   setsByName: Map<string, LoadedSetDependencyData>;
   impactsBySet: Map<string, SetPreflightImpact>;
 }
 
 const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 const FOLDER_ITEM_SUFFIX = "/";
-const GENERATOR_EXTENSION_KEY = "com.tokenmanager.generator";
+const RECIPE_EXTENSION_KEY = "com.tokenmanager.recipe";
 
 interface FolderSetRename {
   from: string;
@@ -277,16 +277,16 @@ function buildThemeImpacts(
 
 function buildGeneratedOwnershipImpacts(
   setName: string,
-  allOwnedTokens: Array<{ setName: string; path: string; generatorId: string }>,
-  generatorById: Map<string, SetGeneratorMeta>,
-): SetGeneratorOwnershipImpact[] {
+  allOwnedTokens: Array<{ setName: string; path: string; recipeId: string }>,
+  recipeById: Map<string, SetRecipeMeta>,
+): SetRecipeOwnershipImpact[] {
   const grouped = new Map<
     string,
     { tokenCount: number; samplePaths: string[] }
   >();
   for (const token of allOwnedTokens) {
     if (token.setName !== setName) continue;
-    const entry = grouped.get(token.generatorId) ?? {
+    const entry = grouped.get(token.recipeId) ?? {
       tokenCount: 0,
       samplePaths: [],
     };
@@ -294,34 +294,34 @@ function buildGeneratedOwnershipImpacts(
     if (entry.samplePaths.length < 5) {
       entry.samplePaths.push(token.path);
     }
-    grouped.set(token.generatorId, entry);
+    grouped.set(token.recipeId, entry);
   }
   return [...grouped.entries()]
-    .map(([generatorId, ownership]) => {
-      const generator = generatorById.get(generatorId);
+    .map(([recipeId, ownership]) => {
+      const recipe = recipeById.get(recipeId);
       return {
-        generatorId,
-        generatorName: generator?.name ?? "Unknown generator",
-        targetGroup: generator?.targetGroup ?? "",
+        recipeId,
+        recipeName: recipe?.name ?? "Unknown recipe",
+        targetGroup: recipe?.targetGroup ?? "",
         tokenCount: ownership.tokenCount,
         samplePaths: ownership.samplePaths.sort((a, b) => a.localeCompare(b)),
       };
     })
-    .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
+    .sort((a, b) => a.recipeName.localeCompare(b.recipeName));
 }
 
-function buildGeneratorTargets(
+function buildRecipeTargets(
   setName: string,
-  generators: SetGeneratorMeta[],
-): SetGeneratorTargetImpact[] {
-  return generators
-    .filter((generator) => generator.targetSet === setName)
-    .map((generator) => ({
-      generatorId: generator.id,
-      generatorName: generator.name,
-      targetGroup: generator.targetGroup,
+  recipes: SetRecipeMeta[],
+): SetRecipeTargetImpact[] {
+  return recipes
+    .filter((recipe) => recipe.targetSet === setName)
+    .map((recipe) => ({
+      recipeId: recipe.id,
+      recipeName: recipe.name,
+      targetGroup: recipe.targetGroup,
     }))
-    .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
+    .sort((a, b) => a.recipeName.localeCompare(b.recipeName));
 }
 
 function removeThemeSetReferences(params: {
@@ -449,8 +449,8 @@ function buildSetImpact(params: {
   metadata: SetMetadataState;
   dimensions: ThemeDimension[];
   resolvers: SetResolverMeta[];
-  generators: SetGeneratorMeta[];
-  allOwnedTokens: Array<{ setName: string; path: string; generatorId: string }>;
+  recipes: SetRecipeMeta[];
+  allOwnedTokens: Array<{ setName: string; path: string; recipeId: string }>;
 }): SetPreflightImpact {
   const {
     setName,
@@ -458,11 +458,11 @@ function buildSetImpact(params: {
     metadata,
     dimensions,
     resolvers,
-    generators,
+    recipes,
     allOwnedTokens,
   } = params;
-  const generatorById = new Map(
-    generators.map((generator) => [generator.id, generator]),
+  const recipeById = new Map(
+    recipes.map((recipe) => [recipe.id, recipe]),
   );
   return {
     name: setName,
@@ -476,22 +476,22 @@ function buildSetImpact(params: {
     generatedOwnership: buildGeneratedOwnershipImpacts(
       setName,
       allOwnedTokens,
-      generatorById,
+      recipeById,
     ),
-    generatorTargets: buildGeneratorTargets(setName, generators),
+    recipeTargets: buildRecipeTargets(setName, recipes),
   };
 }
 
-function buildGeneratorTargetBlockers(
+function buildRecipeTargetBlockers(
   setImpact: SetPreflightImpact,
 ): SetPreflightBlocker[] {
-  return setImpact.generatorTargets.map((generator) => ({
-    id: `generator-target:${generator.generatorId}:${setImpact.name}`,
-    code: "generator-target-set",
+  return setImpact.recipeTargets.map((recipe) => ({
+    id: `recipe-target:${recipe.recipeId}:${setImpact.name}`,
+    code: "recipe-target-set",
     setName: setImpact.name,
-    generatorId: generator.generatorId,
-    generatorName: generator.generatorName,
-    message: `Generator "${generator.generatorName}" still targets "${setImpact.name}"${generator.targetGroup ? ` at ${generator.targetGroup}` : ""}.`,
+    recipeId: recipe.recipeId,
+    recipeName: recipe.recipeName,
+    message: `Recipe "${recipe.recipeName}" still targets "${setImpact.name}"${recipe.targetGroup ? ` at ${recipe.targetGroup}` : ""}.`,
   }));
 }
 
@@ -521,12 +521,12 @@ function buildGeneratedOwnershipBlockers(
   setImpact: SetPreflightImpact,
 ): SetPreflightBlocker[] {
   return setImpact.generatedOwnership.map((ownership) => ({
-    id: `generated-ownership:${ownership.generatorId}:${setImpact.name}`,
+    id: `generated-ownership:${ownership.recipeId}:${setImpact.name}`,
     code: "generated-token-ownership",
     setName: setImpact.name,
-    generatorId: ownership.generatorId,
-    generatorName: ownership.generatorName,
-    message: `Generated tokens in "${setImpact.name}" are still tagged as output from "${ownership.generatorName}"${ownership.targetGroup ? ` at ${ownership.targetGroup}` : ""}.`,
+    recipeId: ownership.recipeId,
+    recipeName: ownership.recipeName,
+    message: `Generated tokens in "${setImpact.name}" are still tagged as output from "${ownership.recipeName}"${ownership.targetGroup ? ` at ${ownership.targetGroup}` : ""}.`,
   }));
 }
 
@@ -591,10 +591,10 @@ function stripGeneratedOwnershipFromTokenGroup(tokens: TokenGroup): TokenGroup {
       if (
         extensions &&
         typeof extensions === "object" &&
-        GENERATOR_EXTENSION_KEY in extensions
+        RECIPE_EXTENSION_KEY in extensions
       ) {
         const nextExtensions = { ...extensions };
-        delete nextExtensions[GENERATOR_EXTENSION_KEY];
+        delete nextExtensions[RECIPE_EXTENSION_KEY];
         if (Object.keys(nextExtensions).length > 0) {
           node.$extensions = nextExtensions;
         } else {
@@ -628,7 +628,7 @@ function buildRemovalBlockers(
     ...buildThemeOptionBlockers(setImpact),
     ...buildResolverReferenceBlockers(setImpact),
     ...buildGeneratedOwnershipBlockers(setImpact),
-    ...buildGeneratorTargetBlockers(setImpact),
+    ...buildRecipeTargetBlockers(setImpact),
   ];
 }
 
@@ -670,7 +670,7 @@ function buildPreflightWarnings(params: {
   if (operation === "merge") {
     if (source.generatedOwnership.length > 0) {
       warnings.push(
-        `Generated tokens copied from "${source.name}" into "${target?.name ?? "the target set"}" become regular tokens there so the source generator keeps owning only "${source.name}".`,
+        `Generated tokens copied from "${source.name}" into "${target?.name ?? "the target set"}" become regular tokens there so the source recipe keeps owning only "${source.name}".`,
       );
     }
   }
@@ -685,7 +685,7 @@ function buildPreflightWarnings(params: {
     if (!deleteOriginal) {
       if (source.generatedOwnership.length > 0) {
         warnings.push(
-          `Generated tokens copied into the new split sets become regular tokens there so the original generator keeps owning only "${source.name}".`,
+          `Generated tokens copied into the new split sets become regular tokens there so the original recipe keeps owning only "${source.name}".`,
         );
       }
       if (listMetadataFields(source.metadata).length > 0) {
@@ -725,7 +725,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     newName: string,
   ) => {
     await rewriteResolverSetReferences(oldName, newName);
-    await fastify.generatorService.updateSetName(oldName, newName);
+    await fastify.recipeService.updateSetName(oldName, newName);
   };
 
   const loadSetDependencySnapshot = async (
@@ -757,15 +757,15 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           name: resolver.name,
           referencedSets: resolver.referencedSets,
         })),
-      generators: fastify.generatorService
+      recipes: fastify.recipeService
         .listSetDependencyMeta()
-        .map((generator) => ({
-          id: generator.id,
-          name: generator.name,
-          targetSet: generator.targetSet,
-          targetGroup: generator.targetGroup,
+        .map((recipe) => ({
+          id: recipe.id,
+          name: recipe.name,
+          targetSet: recipe.targetSet,
+          targetGroup: recipe.targetGroup,
         })),
-      allOwnedTokens: fastify.tokenStore.findTokensByGeneratorId("*"),
+      allOwnedTokens: fastify.tokenStore.findTokensByRecipeId("*"),
       setsByName: new Map(),
       impactsBySet: new Map(),
     };
@@ -783,7 +783,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           metadata: loadedSet.metadata,
           dimensions: snapshot.dimensions,
           resolvers: snapshot.resolvers,
-          generators: snapshot.generators,
+          recipes: snapshot.recipes,
           allOwnedTokens: snapshot.allOwnedTokens,
         }),
       );
@@ -1342,7 +1342,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.status(409).send({
               error:
                 blockers[0]?.message ??
-                `Cannot delete folder "${folder}" because dependent generator state still references its sets.`,
+                `Cannot delete folder "${folder}" because dependent recipe state still references its sets.`,
               blockers,
             });
           }
@@ -1476,7 +1476,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.resolverLock.withLock(async () => {
             await fastify.tokenStore.clearAll();
             await fastify.dimensionsStore.reset();
-            await fastify.generatorService.reset();
+            await fastify.recipeService.reset();
             await fastify.resolverStore.reset();
             await fastify.operationLog.reset();
             await fastify.manualSnapshots.reset();

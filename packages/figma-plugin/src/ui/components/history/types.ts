@@ -23,7 +23,7 @@ export interface SnapshotSummary {
   setCount: number;
   dimensionCount: number;
   resolverCount: number;
-  generatorCount: number;
+  recipeCount: number;
 }
 
 export interface SnapshotDiff {
@@ -36,7 +36,7 @@ export interface SnapshotDiff {
 }
 
 export interface WorkspaceDiff {
-  kind: 'themes' | 'resolver' | 'generator';
+  kind: 'themes' | 'resolver' | 'recipe';
   id: string;
   label: string;
   status: ChangeStatus;

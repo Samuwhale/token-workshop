@@ -8,7 +8,7 @@ import {
   FOOTER_H,
   FIXED_NODE_HEIGHT,
 } from './nodeGraphTypes';
-import { TYPE_LABELS } from '../generators/generatorUtils';
+import { TYPE_LABELS } from '../recipes/recipeUtils';
 
 // ---------------------------------------------------------------------------
 // Status colors
@@ -37,7 +37,7 @@ function statusDotColor(status: string): string {
 // Inline preview (adapted from previous implementation)
 // ---------------------------------------------------------------------------
 
-function GeneratorPreview({ node }: { node: GraphNode }) {
+function RecipePreview({ node }: { node: GraphNode }) {
   const y = NODE_HEADER_H + SOURCE_LINE_H + 2;
   const padX = 10;
   const w = NODE_WIDTH - padX * 2;
@@ -65,7 +65,7 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
     );
   }
 
-  switch (node.generatorType) {
+  switch (node.recipeType) {
     case 'colorRamp':
     case 'darkModeInversion': {
       const count = Math.min(node.stepCount || 7, 11);
@@ -136,7 +136,7 @@ function GeneratorPreview({ node }: { node: GraphNode }) {
                 y={y + PREVIEW_H / 2 - size / 2}
                 width={size}
                 height={size}
-                rx={node.generatorType === 'borderRadiusScale' ? size * 0.3 : 1}
+                rx={node.recipeType === 'borderRadiusScale' ? size * 0.3 : 1}
                 fill="none"
                 stroke="var(--color-figma-text-tertiary)"
                 strokeWidth={1}
@@ -207,8 +207,8 @@ export interface NodeRendererProps {
   isHighlighted?: boolean;
   isHovered?: boolean;
   onSelect: (id: string) => void;
-  onRun?: (generatorId: string) => void;
-  onEdit?: (generatorId: string) => void;
+  onRun?: (recipeId: string) => void;
+  onEdit?: (recipeId: string) => void;
 }
 
 export function NodeRenderer({
@@ -229,7 +229,7 @@ export function NodeRenderer({
   const trunc = (s: string, max: number) =>
     s.length > max ? s.slice(0, max - 1) + '\u2026' : s;
 
-  const typeLabel = TYPE_LABELS[node.generatorType as keyof typeof TYPE_LABELS] || node.generatorType;
+  const typeLabel = TYPE_LABELS[node.recipeType as keyof typeof TYPE_LABELS] || node.recipeType;
 
   // Y offsets for each section
   const sourceY = NODE_HEADER_H;
@@ -334,7 +334,7 @@ export function NodeRenderer({
       </text>
 
       {/* Preview */}
-      <GeneratorPreview node={node} />
+      <RecipePreview node={node} />
 
       {/* Target line */}
       <text
@@ -373,7 +373,7 @@ export function NodeRenderer({
             style={{ cursor: 'pointer' }}
             onPointerDown={(e) => {
               e.stopPropagation();
-              onRun?.(node.generatorId);
+              onRun?.(node.recipeId);
             }}
           >
             <rect
@@ -393,7 +393,7 @@ export function NodeRenderer({
             style={{ cursor: 'pointer' }}
             onPointerDown={(e) => {
               e.stopPropagation();
-              onEdit?.(node.generatorId);
+              onEdit?.(node.recipeId);
             }}
           >
             <rect

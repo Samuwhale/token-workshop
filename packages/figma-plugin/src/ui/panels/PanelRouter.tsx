@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
-import { TokenGeneratorDialog } from "../components/TokenGeneratorDialog";
+import { TokenRecipeDialog } from "../components/TokenRecipeDialog";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
 import { ThemeManager } from "../components/ThemeManager";
 import { SetManager } from "../components/SetSwitcher";
@@ -40,7 +40,7 @@ import {
 import {
   useTokenSetsContext,
   useTokenFlatMapContext,
-  useGeneratorContext,
+  useRecipeContext,
 } from "../contexts/TokenDataContext";
 import {
   useThemeSwitcherContext,
@@ -64,14 +64,14 @@ import {
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
-import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratorSave";
+import type { RecipeSaveSuccessInfo } from "../hooks/useRecipeSave";
 import type {
   ImportNextStepRecommendation,
   TopTab,
   SubTab,
   SecondarySurfaceId,
   TokensLibraryContextualSurface,
-  TokensLibraryGeneratorEditorTarget,
+  TokensLibraryRecipeEditorTarget,
 } from "../shared/navigationTypes";
 import {
   getImportResultNextStepRecommendations,
@@ -134,7 +134,7 @@ export function PanelRouter(): ReactNode {
     ...syncController,
     onShowPasteModal: shell.openPasteModal,
     onShowImportPanel: shell.openImportPanel,
-    onShowColorScaleGen: shell.openColorScaleGenerator,
+    onShowColorScaleGen: shell.openColorScaleRecipe,
     onOpenStartHere: shell.openStartHere,
     onRestartGuidedSetup: shell.restartGuidedSetup,
     onClearAllComplete: shell.handleClearAllComplete,
@@ -159,8 +159,8 @@ export function PanelRouter(): ReactNode {
   const {
     editingToken,
     setEditingToken,
-    editingGenerator,
-    setEditingGenerator,
+    editingRecipe,
+    setEditingRecipe,
     previewingToken,
     setPreviewingToken,
     highlightedToken,
@@ -218,12 +218,12 @@ export function PanelRouter(): ReactNode {
     setFilteredSetCount,
   } = useTokenFlatMapContext();
   const {
-    generators,
-    generatorsByTargetGroup,
+    recipes,
+    recipesByTargetGroup,
     derivedTokenPaths,
-    generatorsLoading,
-    refreshGenerators,
-  } = useGeneratorContext();
+    recipesLoading,
+    refreshRecipes,
+  } = useRecipeContext();
   const {
     dimensions,
     setDimensions,
@@ -248,28 +248,28 @@ export function PanelRouter(): ReactNode {
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(
     null,
   );
-  const editingGeneratorData =
-    editingGenerator?.mode === "edit"
-      ? (generators.find((generator) => generator.id === editingGenerator.id) ??
+  const editingRecipeData =
+    editingRecipe?.mode === "edit"
+      ? (recipes.find((recipe) => recipe.id === editingRecipe.id) ??
         null)
       : null;
 
   useEffect(() => {
     if (
-      !editingGenerator ||
-      editingGenerator.mode !== "edit" ||
-      editingGeneratorData
+      !editingRecipe ||
+      editingRecipe.mode !== "edit" ||
+      editingRecipeData
     )
       return;
-    setEditingGenerator(null);
-  }, [editingGenerator, editingGeneratorData, setEditingGenerator]);
+    setEditingRecipe(null);
+  }, [editingRecipe, editingRecipeData, setEditingRecipe]);
 
   useEffect(() => {
     if (!showPreviewSplit) return;
     if (
       activeTokensContextualSurface === "compare" ||
       activeTokensContextualSurface === "token-editor" ||
-      activeTokensContextualSurface === "generator-editor"
+      activeTokensContextualSurface === "recipe-editor"
     ) {
       setShowPreviewSplit(false);
     }
@@ -336,12 +336,12 @@ export function PanelRouter(): ReactNode {
     ],
   );
 
-  const openGeneratorEditor = useCallback(
-    (target: TokensLibraryGeneratorEditorTarget) => {
+  const openRecipeEditor = useCallback(
+    (target: TokensLibraryRecipeEditorTarget) => {
       setShowPreviewSplit(false);
       switchContextualSurface({
-        surface: "generator-editor",
-        generator: target,
+        surface: "recipe-editor",
+        recipe: target,
       });
     },
     [setShowPreviewSplit, switchContextualSurface],
@@ -368,7 +368,7 @@ export function PanelRouter(): ReactNode {
   );
 
   const getViewTokensToastAction = useCallback(
-    (info: GeneratorSaveSuccessInfo): ToastAction => ({
+    (info: RecipeSaveSuccessInfo): ToastAction => ({
       label: "View tokens",
       onClick: () => openGeneratedTokens(info.targetGroup, info.targetSet),
     }),
@@ -430,7 +430,7 @@ export function PanelRouter(): ReactNode {
     if (
       !createFromEmpty ||
       editingToken ||
-      editingGenerator ||
+      editingRecipe ||
       previewingToken ||
       showTokensCompare
     )
@@ -439,7 +439,7 @@ export function PanelRouter(): ReactNode {
     openCreateLauncher();
   }, [
     createFromEmpty,
-    editingGenerator,
+    editingRecipe,
     editingToken,
     openCreateLauncher,
     previewingToken,
@@ -492,9 +492,9 @@ export function PanelRouter(): ReactNode {
     },
     onGenerateScaleFromGroup: (groupPath: string, tokenType: string | null) => {
       controller.setPendingGraphFromGroup({ groupPath, tokenType });
-      navigateTo("define", "generators");
+      navigateTo("define", "recipes");
     },
-    onRefreshGenerators: controller.refreshAll,
+    onRefreshRecipes: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredSetCount,
     onNavigateToSet: controller.handleNavigateToSet,
@@ -502,18 +502,18 @@ export function PanelRouter(): ReactNode {
       setHistoryFilterPath(path);
       navigateTo("sync", "history");
     },
-    onEditGenerator: (generatorId: string) =>
+    onEditRecipe: (recipeId: string) =>
       controller.guardEditorAction(() => {
-        openGeneratorEditor({
+        openRecipeEditor({
           mode: "edit",
-          id: generatorId,
+          id: recipeId,
         });
       }),
-    onOpenGeneratorEditor: (target: TokensLibraryGeneratorEditorTarget) =>
+    onOpenRecipeEditor: (target: TokensLibraryRecipeEditorTarget) =>
       controller.guardEditorAction(() => {
-        openGeneratorEditor(target);
+        openRecipeEditor(target);
       }),
-    onNavigateToGenerator: controller.handleNavigateToGenerator,
+    onNavigateToRecipe: controller.handleNavigateToRecipe,
     onShowReferences: (path: string) => {
       controller.setFlowPanelInitialPath(path);
       navigateTo("apply", "dependencies");
@@ -567,7 +567,7 @@ export function PanelRouter(): ReactNode {
         onBack: handleTokenEditorBack,
         allTokensFlat,
         pathToSet,
-        generators,
+        recipes,
         isCreateMode: editingToken.isCreate,
         initialType: editingToken.initialType,
         initialValue: editingToken.initialValue,
@@ -587,8 +587,8 @@ export function PanelRouter(): ReactNode {
           navigateTo("apply", "dependencies");
         },
         onNavigateToToken: handleNavigateToAlias,
-        onNavigateToGenerator: controller.handleNavigateToGenerator,
-        onOpenGeneratorEditor: openGeneratorEditor,
+        onNavigateToRecipe: controller.handleNavigateToRecipe,
+        onOpenRecipeEditor: openRecipeEditor,
         onNavigateToThemes: () => navigateTo("define", "themes"),
       }
     : null;
@@ -632,49 +632,49 @@ export function PanelRouter(): ReactNode {
     />
   );
 
-  const generatorEditorProps =
-    editingGenerator &&
-    (editingGenerator.mode !== "edit" || editingGeneratorData)
+  const recipeEditorProps =
+    editingRecipe &&
+    (editingRecipe.mode !== "edit" || editingRecipeData)
       ? {
           serverUrl,
           allSets: sets,
           activeSet,
           allTokensFlat,
           sourceTokenPath:
-            editingGenerator.mode === "create"
-              ? editingGenerator.sourceTokenPath
+            editingRecipe.mode === "create"
+              ? editingRecipe.sourceTokenPath
               : undefined,
           sourceTokenName:
-            editingGenerator.mode === "create"
-              ? editingGenerator.sourceTokenName
+            editingRecipe.mode === "create"
+              ? editingRecipe.sourceTokenName
               : undefined,
           sourceTokenType:
-            editingGenerator.mode === "create"
-              ? editingGenerator.sourceTokenType
+            editingRecipe.mode === "create"
+              ? editingRecipe.sourceTokenType
               : undefined,
           sourceTokenValue:
-            editingGenerator.mode === "create"
-              ? editingGenerator.sourceTokenValue
+            editingRecipe.mode === "create"
+              ? editingRecipe.sourceTokenValue
               : undefined,
-          existingGenerator:
-            editingGenerator.mode === "edit"
-              ? (editingGeneratorData ?? undefined)
+          existingRecipe:
+            editingRecipe.mode === "edit"
+              ? (editingRecipeData ?? undefined)
               : undefined,
           initialDraft:
-            editingGenerator.mode === "create"
-              ? editingGenerator.initialDraft
+            editingRecipe.mode === "create"
+              ? editingRecipe.initialDraft
               : undefined,
           template:
-            editingGenerator.mode === "create"
-              ? editingGenerator.template
+            editingRecipe.mode === "create"
+              ? editingRecipe.template
               : undefined,
           pathToSet,
           onClose: () => {
-            setEditingGenerator(null);
+            setEditingRecipe(null);
             controller.refreshAll();
           },
-          onSaved: (info?: GeneratorSaveSuccessInfo) => {
-            setEditingGenerator(null);
+          onSaved: (info?: RecipeSaveSuccessInfo) => {
+            setEditingRecipe(null);
             controller.refreshAll();
             if (info) {
               openGeneratedTokens(info.targetGroup, info.targetSet);
@@ -713,13 +713,13 @@ export function PanelRouter(): ReactNode {
       }
 
       if (
-        activeTokensContextualSurface === "generator-editor" &&
-        editingGenerator &&
-        generatorEditorProps
+        activeTokensContextualSurface === "recipe-editor" &&
+        editingRecipe &&
+        recipeEditorProps
       ) {
         return {
-          surface: "generator-editor",
-          content: <TokenGeneratorDialog {...generatorEditorProps} />,
+          surface: "recipe-editor",
+          content: <TokenRecipeDialog {...recipeEditorProps} />,
           onDismiss: controller.requestEditorClose,
           height: "72%",
         };
@@ -741,7 +741,7 @@ export function PanelRouter(): ReactNode {
               dimensions={dimensions}
               activeThemes={activeThemes}
               tokenUsageCounts={tokenUsageCounts}
-              generators={generators}
+              recipes={recipes}
               derivedTokenPaths={derivedTokenPaths}
               lintViolations={controller.lintViolations.filter(
                 (violation) => violation.path === previewingToken.path,
@@ -753,7 +753,7 @@ export function PanelRouter(): ReactNode {
               onEdit={controller.handlePreviewEdit}
               onClose={controller.handlePreviewClose}
               onNavigateToAlias={handleNavigateToAlias}
-              onNavigateToGenerator={controller.handleNavigateToGenerator}
+              onNavigateToRecipe={controller.handleNavigateToRecipe}
             />
           ),
           onDismiss: controller.handlePreviewClose,
@@ -786,8 +786,8 @@ export function PanelRouter(): ReactNode {
           lintViolations: controller.lintViolations,
           syncSnapshot:
             Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
-          generators,
-          generatorsByTargetGroup,
+          recipes,
+          recipesByTargetGroup,
           derivedTokenPaths,
           tokenUsageCounts,
           cascadeDiff: controller.cascadeDiff ?? undefined,
@@ -935,7 +935,7 @@ export function PanelRouter(): ReactNode {
         activeSet={activeSet}
         onClose={closeSecondarySurface}
         onOpenQuickSwitch={setManagerController.onOpenQuickSwitch}
-        onOpenGenerators={setManagerController.onOpenGenerators}
+        onOpenRecipes={setManagerController.onOpenRecipes}
         onRename={setManagerController.onRename}
         onDuplicate={setManagerController.onDuplicate}
         onDelete={setManagerController.onDelete}
@@ -1069,7 +1069,7 @@ export function PanelRouter(): ReactNode {
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     define: {
       tokens: renderDefineTokens,
-      generators: renderDefineGenerators,
+      recipes: renderDefineRecipes,
       themes: renderDefineThemes,
     },
     apply: {
@@ -1226,9 +1226,9 @@ export function PanelRouter(): ReactNode {
                   }}
                   serverUrl={serverUrl}
                   tokenUsageCounts={tokenUsageCounts}
-                  generators={generators}
+                  recipes={recipes}
                   derivedTokenPaths={derivedTokenPaths}
-                  onNavigateToGenerator={controller.handleNavigateToGenerator}
+                  onNavigateToRecipe={controller.handleNavigateToRecipe}
                 />
               </ErrorBoundary>
             </div>
@@ -1239,7 +1239,7 @@ export function PanelRouter(): ReactNode {
     );
   }
 
-  function renderDefineGenerators(): ReactNode {
+  function renderDefineRecipes(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Recipes"
@@ -1249,12 +1249,12 @@ export function PanelRouter(): ReactNode {
           serverUrl={serverUrl}
           activeSet={activeSet}
           allSets={sets}
-          generators={generators}
-          loading={generatorsLoading}
+          recipes={recipes}
+          loading={recipesLoading}
           connected={connected}
           onRefresh={() => {
             controller.refreshAll();
-            refreshGenerators();
+            refreshRecipes();
           }}
           onPushUndo={controller.pushUndo}
           pendingTemplateId={controller.pendingGraphTemplate}
@@ -1267,8 +1267,8 @@ export function PanelRouter(): ReactNode {
             controller.setPendingGraphFromGroup(null);
             controller.setPendingOpenPicker(false);
           }}
-          focusGeneratorId={controller.focusGeneratorId}
-          onClearFocusGenerator={() => controller.setFocusGeneratorId(null)}
+          focusRecipeId={controller.focusRecipeId}
+          onClearFocusRecipe={() => controller.setFocusRecipeId(null)}
           onViewTokens={openGeneratedTokens}
           openCreateDialog={controller.pendingOpenPicker}
         />
@@ -1332,9 +1332,9 @@ export function PanelRouter(): ReactNode {
                 if (targetSet) setActiveSet(targetSet);
                 controller.setPendingOpenPicker(true);
                 beginHandoff({
-                  reason: "Create a generator, then return to Themes",
+                  reason: "Create a recipe, then return to Themes",
                 });
-                navigateTo("define", "generators", {
+                navigateTo("define", "recipes", {
                   preserveHandoff: true,
                 });
               }}
@@ -1559,7 +1559,7 @@ export function PanelRouter(): ReactNode {
           serverUrl={serverUrl}
           connected={connected}
           activeSet={activeSet}
-          generators={generators}
+          recipes={recipes}
           lintViolations={controller.lintViolations}
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}

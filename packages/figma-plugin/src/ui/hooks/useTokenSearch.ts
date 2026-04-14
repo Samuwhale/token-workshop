@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenGenerator } from './useGenerators';
+import type { TokenRecipe } from './useRecipes';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson, ssGet, ssSet } from '../shared/storage';
 import { ALL_TOKEN_TYPES } from '../shared/tokenTypeCategories';
 
@@ -46,7 +46,7 @@ export interface UseTokenSearchParams {
   lintPaths?: Set<string>;
   boundTokenPaths?: Set<string>;
   unusedTokenPaths?: Set<string> | undefined;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
+  derivedTokenPaths?: Map<string, TokenRecipe>;
 }
 
 export function useTokenSearch({
@@ -284,9 +284,9 @@ export function useTokenSearch({
     return [...merged].sort();
   }, [availableTypes]);
 
-  const generatorNames = useMemo(() => {
+  const recipeNames = useMemo(() => {
     const names = new Set<string>();
-    for (const generator of derivedTokenPaths?.values() ?? []) names.add(generator.name);
+    for (const recipe of derivedTokenPaths?.values() ?? []) names.add(recipe.name);
     return [...names].sort((a, b) => a.localeCompare(b));
   }, [derivedTokenPaths]);
 
@@ -340,16 +340,16 @@ export function useTokenSearch({
       }));
     }
 
-    if (qualifierDef.key === 'generator') {
+    if (qualifierDef.key === 'recipe') {
       const matches = partialValue
-        ? generatorNames.filter(name => name.toLowerCase().startsWith(partialValue))
-        : generatorNames;
+        ? recipeNames.filter(name => name.toLowerCase().startsWith(partialValue))
+        : recipeNames;
       if (matches.length > 0) {
         return matches.map(name => ({
-          id: `generator:${name}`,
-          label: `generator:${name}`,
+          id: `recipe:${name}`,
+          label: `recipe:${name}`,
           desc: 'Filter by recipe name',
-          replacement: `generator:${name}`,
+          replacement: `recipe:${name}`,
           kind: 'replacement' as const,
         }));
       }
@@ -361,7 +361,7 @@ export function useTokenSearch({
       desc: qualifierDef.valueHint ?? qualifierDef.desc,
       kind: 'hint' as const,
     }];
-  }, [activeQueryToken.token, generatorNames, qualifierTypeOptions]);
+  }, [activeQueryToken.token, recipeNames, qualifierTypeOptions]);
 
   // Compute highlight terms from the parsed search query for substring highlighting
   const searchHighlight = useMemo(() => {
@@ -379,7 +379,7 @@ export function useTokenSearch({
   }, [parsedSearchQuery, searchQuery]);
 
   const toggleQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'recipe' | 'group',
     value: string,
   ) => {
     const currentValues = getQueryQualifierValues(searchQuery, qualifier);
@@ -390,7 +390,7 @@ export function useTokenSearch({
   }, [searchQuery, setSearchQuery]);
 
   const addQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'recipe' | 'group',
     value: string,
   ) => {
     const normalizedValue = value.trim().toLowerCase();
@@ -401,7 +401,7 @@ export function useTokenSearch({
   }, [searchQuery, setSearchQuery]);
 
   const removeQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'recipe' | 'group',
     value: string,
   ) => {
     const normalizedValue = value.trim().toLowerCase();
@@ -411,18 +411,18 @@ export function useTokenSearch({
   }, [searchQuery, setSearchQuery]);
 
   const clearQueryQualifier = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'recipe' | 'group',
   ) => {
     setSearchQuery(removeQueryQualifierValues(searchQuery, qualifier));
   }, [searchQuery, setSearchQuery]);
 
   const replaceActiveQueryWithQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'recipe' | 'group',
     value: string,
   ) => {
     const normalizedValue = value.trim().toLowerCase();
     if (!normalizedValue) return;
-    const qualifierKey = qualifier === 'generator' ? 'generator' : qualifier;
+    const qualifierKey = qualifier === 'recipe' ? 'recipe' : qualifier;
     setSearchQuery(
       replaceQueryToken(
         searchQuery,
@@ -449,7 +449,7 @@ export function useTokenSearch({
     for (const value of parsedSearchQuery.descs) chips.push({ token: `desc:${value}`, label: `desc:${value}` });
     for (const value of parsedSearchQuery.paths) chips.push({ token: `path:${value}`, label: `path:${value}` });
     for (const value of parsedSearchQuery.names) chips.push({ token: `name:${value}`, label: `name:${value}` });
-    for (const value of parsedSearchQuery.generators) chips.push({ token: `generator:${value}`, label: `generator:${value}` });
+    for (const value of parsedSearchQuery.recipes) chips.push({ token: `recipe:${value}`, label: `recipe:${value}` });
     return chips;
   }, [parsedSearchQuery, selectedHasQualifiers]);
 
@@ -545,7 +545,7 @@ export function useTokenSearch({
     duplicateCounts,
     availableTypes,
     qualifierTypeOptions,
-    generatorNames,
+    recipeNames,
     qualifierHints,
     activeQueryToken,
     parsedSearchQuery,

@@ -1,10 +1,10 @@
 import type { MouseEvent } from "react";
-import { getGeneratorManagedOutputs } from "@tokenmanager/core";
+import { getRecipeManagedOutputs } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath } from "../../../shared/resolveAlias";
-import type { GeneratorType, TokenGenerator } from "../../hooks/useGenerators";
-import { getGeneratorTypeLabel } from "../GeneratorPipelineCard";
-import { detectGeneratorType } from "../generators/generatorUtils";
+import type { RecipeType, TokenRecipe } from "../../hooks/useRecipes";
+import { getRecipeTypeLabel } from "../RecipePipelineCard";
+import { detectRecipeType } from "../recipes/recipeUtils";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
   CONDENSED_MAX_DEPTH,
@@ -112,14 +112,14 @@ export function CondensedAncestorBreadcrumb({
   );
 }
 
-const GENERATOR_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
+const RECIPE_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
   hour: "numeric",
   minute: "2-digit",
 });
 
-export function GeneratorGlyph({
+export function RecipeGlyph({
   size = 8,
   strokeWidth = 1.5,
   className,
@@ -148,20 +148,20 @@ export function GeneratorGlyph({
   );
 }
 
-function formatGeneratorRunAt(lastRunAt?: string): string {
+function formatRecipeRunAt(lastRunAt?: string): string {
   if (!lastRunAt) return "Never run";
   const date = new Date(lastRunAt);
   if (Number.isNaN(date.getTime())) return "Unknown";
-  return GENERATOR_RUN_AT_FORMATTER.format(date);
+  return RECIPE_RUN_AT_FORMATTER.format(date);
 }
 
-function getGeneratorManagedPaths(generator: TokenGenerator): Set<string> {
+function getRecipeManagedPaths(recipe: TokenRecipe): Set<string> {
   return new Set(
-    getGeneratorManagedOutputs(generator).map((output) => output.path),
+    getRecipeManagedOutputs(recipe).map((output) => output.path),
   );
 }
 
-function countManagedGeneratorLeaves(
+function countManagedRecipeLeaves(
   node: TokenTreeNodeProps["node"],
   managedPaths: Set<string>,
 ): number {
@@ -169,15 +169,15 @@ function countManagedGeneratorLeaves(
     return managedPaths.has(node.path) ? 1 : 0;
   }
   return node.children.reduce(
-    (count, child) => count + countManagedGeneratorLeaves(child, managedPaths),
+    (count, child) => count + countManagedRecipeLeaves(child, managedPaths),
     0,
   );
 }
 
-export function GeneratorSummaryRow({
+export function RecipeSummaryRow({
   depth,
   condensedView,
-  generator,
+  recipe,
   managedTokenCount,
   running,
   detaching,
@@ -188,7 +188,7 @@ export function GeneratorSummaryRow({
 }: {
   depth: number;
   condensedView: boolean;
-  generator: TokenGenerator;
+  recipe: TokenRecipe;
   managedTokenCount: number;
   running: boolean;
   detaching: boolean;
@@ -197,9 +197,9 @@ export function GeneratorSummaryRow({
   onDetach?: () => Promise<void> | void;
   onNavigateToSourceToken?: (path: string) => void;
 }) {
-  const sourceLabel = generator.sourceToken || "standalone";
-  const typeLabel = getGeneratorTypeLabel(generator.type);
-  const lastRunLabel = formatGeneratorRunAt(generator.lastRunAt);
+  const sourceLabel = recipe.sourceToken || "standalone";
+  const typeLabel = getRecipeTypeLabel(recipe.type);
+  const lastRunLabel = formatRecipeRunAt(recipe.lastRunAt);
 
   return (
     <div
@@ -213,10 +213,10 @@ export function GeneratorSummaryRow({
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-bg)] px-1.5 py-0.5 font-medium text-[var(--color-figma-text)]">
-              <GeneratorGlyph />
-              Generator
+              <RecipeGlyph />
+              Recipe
             </span>
-            {generator.isStale && (
+            {recipe.isStale && (
               <span className="rounded-full border border-amber-500/60 bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-600">
                 Source changed
               </span>
@@ -225,14 +225,14 @@ export function GeneratorSummaryRow({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span>
               Source{" "}
-              {generator.sourceToken && onNavigateToSourceToken ? (
+              {recipe.sourceToken && onNavigateToSourceToken ? (
                 <button
                   type="button"
                   onClick={() =>
-                    onNavigateToSourceToken(generator.sourceToken!)
+                    onNavigateToSourceToken(recipe.sourceToken!)
                   }
                   className="font-mono text-[var(--color-figma-accent)] hover:underline"
-                  title={`Navigate to ${generator.sourceToken}`}
+                  title={`Navigate to ${recipe.sourceToken}`}
                 >
                   {sourceLabel}
                 </button>
@@ -258,7 +258,7 @@ export function GeneratorSummaryRow({
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
             These {managedTokenCount} token
             {managedTokenCount === 1 ? "" : "s"} are managed by this
-            generator. Edit the generator to change them, or detach them first
+            recipe. Edit the recipe to change them, or detach them first
             to make manual edits stick.
           </p>
         </div>
@@ -322,12 +322,12 @@ export function clampMenuPosition(
   };
 }
 
-export function getQuickGeneratorTypeForToken(
+export function getQuickRecipeTypeForToken(
   path: string,
   name: string,
   tokenType: string | undefined,
   tokenValue: unknown,
-): GeneratorType | null {
+): RecipeType | null {
   if (!tokenType) return null;
   if (tokenType === "color") return "colorRamp";
   if (tokenType === "fontSize") return "typeScale";
@@ -339,12 +339,12 @@ export function getQuickGeneratorTypeForToken(
       return "spacingScale";
   }
   if (tokenType === "dimension" || tokenType === "number") {
-    return detectGeneratorType(tokenType, tokenValue);
+    return detectRecipeType(tokenType, tokenValue);
   }
   return null;
 }
 
-export function getQuickGeneratorActionLabel(type: GeneratorType): string {
+export function getQuickRecipeActionLabel(type: RecipeType): string {
   switch (type) {
     case "colorRamp":
       return "Create color palette…";
@@ -357,7 +357,7 @@ export function getQuickGeneratorActionLabel(type: GeneratorType): string {
     case "borderRadiusScale":
       return "Create radius scale…";
     default:
-      return `Create ${getGeneratorTypeLabel(type).toLowerCase()}…`;
+      return `Create ${getRecipeTypeLabel(type).toLowerCase()}…`;
   }
 }
 
@@ -379,7 +379,7 @@ export type TokenRowBrowseMeta =
       onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
     }
   | {
-      kind: "generator";
+      kind: "recipe";
       compactLabel: string;
       expandedLabel: string;
       title: string;
@@ -421,7 +421,7 @@ export function TokenRowBrowseMetaBadge({
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
       ) : (
-        <GeneratorGlyph size={8} className="shrink-0" />
+        <RecipeGlyph size={8} className="shrink-0" />
       )}
       <span
         className={`truncate ${expanded ? "max-w-[140px]" : "max-w-[88px]"}`}
@@ -461,7 +461,7 @@ export function TokenRowBrowseMetaBadge({
     );
   }
 
-  if (meta.kind === "generator" && meta.interactive && meta.onClick) {
+  if (meta.kind === "recipe" && meta.interactive && meta.onClick) {
     return (
       <button
         type="button"
@@ -567,9 +567,9 @@ export function getBrowseMetaForReference(
   };
 }
 
-export function getBrowseMetaForGenerator(sourceToken: string, expanded: boolean) {
+export function getBrowseMetaForRecipe(sourceToken: string, expanded: boolean) {
   return {
-    kind: "generator" as const,
+    kind: "recipe" as const,
     compactLabel: getCompactPathLabel(sourceToken),
     expandedLabel: sourceToken,
     title: `Generated from ${sourceToken}`,
@@ -579,9 +579,9 @@ export function getBrowseMetaForGenerator(sourceToken: string, expanded: boolean
   };
 }
 
-export function getManagedGeneratorLeafCount(
+export function getManagedRecipeLeafCount(
   node: TokenTreeNodeProps["node"],
-  generator: TokenGenerator,
+  recipe: TokenRecipe,
 ) {
-  return countManagedGeneratorLeaves(node, getGeneratorManagedPaths(generator));
+  return countManagedRecipeLeaves(node, getRecipeManagedPaths(recipe));
 }

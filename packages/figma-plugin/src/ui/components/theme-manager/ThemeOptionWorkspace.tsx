@@ -1,9 +1,6 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
 import { useEffect, useMemo, useState } from "react";
-import type {
-  ThemeIssueSummary,
-  ThemeRoleNavigationTarget,
-} from "../../shared/themeWorkflow";
+import type { ThemeIssueSummary } from "../../shared/themeWorkflow";
 import {
   STATE_LABELS,
   THEME_ROLE_STATES,

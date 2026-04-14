@@ -5,7 +5,7 @@ import type {
   ResolverFile,
   ThemeDimension,
   Token,
-  TokenGenerator,
+  TokenRecipe,
 } from "@tokenmanager/core";
 import type { TokenStore } from "./token-store.js";
 import type { SetMetadataState } from "./token-store.js";
@@ -185,8 +185,8 @@ export type RollbackStep =
   | { action: "write-themes"; dimensions: ThemeDimension[] }
   | { action: "write-resolver"; name: string; file: ResolverFile }
   | { action: "delete-resolver"; name: string }
-  | { action: "create-generator"; generator: TokenGenerator }
-  | { action: "delete-generator"; id: string };
+  | { action: "create-recipe"; recipe: TokenRecipe }
+  | { action: "delete-recipe"; id: string };
 
 /**
  * Minimal interface for serialized access to the $themes.json file.
@@ -219,10 +219,10 @@ export interface RollbackContext {
     delete(name: string): Promise<boolean>;
     updateSetReferences?(oldName: string, newName: string): Promise<string[]>;
   };
-  generatorService?: {
+  recipeService?: {
     updateSetName(oldName: string, newName: string): Promise<number | void>;
-    getById(id: string): Promise<TokenGenerator | undefined>;
-    restore(generator: TokenGenerator): Promise<void>;
+    getById(id: string): Promise<TokenRecipe | undefined>;
+    restore(recipe: TokenRecipe): Promise<void>;
     delete(id: string): Promise<boolean>;
   };
 }
@@ -603,21 +603,21 @@ export class OperationLog {
           }
           break;
         }
-        case "create-generator":
-          // inverse: delete the generator that was just created
+        case "create-recipe":
+          // inverse: delete the recipe that was just created
           inverse.push({
-            action: "delete-generator",
-            id: step.generator.id,
+            action: "delete-recipe",
+            id: step.recipe.id,
           });
           break;
-        case "delete-generator": {
-          // inverse: re-create the generator — look up current state before it's deleted
-          if (ctx.generatorService) {
-            const current = await ctx.generatorService.getById(step.id);
+        case "delete-recipe": {
+          // inverse: re-create the recipe — look up current state before it's deleted
+          if (ctx.recipeService) {
+            const current = await ctx.recipeService.getById(step.id);
             if (current) {
               inverse.push({
-                action: "create-generator",
-                generator: structuredClone(current),
+                action: "create-recipe",
+                recipe: structuredClone(current),
               });
             }
           }
@@ -651,8 +651,8 @@ export class OperationLog {
               await rewriteResolverRefs();
             }
           }
-          if (ctx.generatorService) {
-            await ctx.generatorService.updateSetName(step.from, step.to);
+          if (ctx.recipeService) {
+            await ctx.recipeService.updateSetName(step.from, step.to);
           }
           break;
         case "reorder-sets":
@@ -701,21 +701,21 @@ export class OperationLog {
             }
           }
           break;
-        case "create-generator":
-          if (!ctx.generatorService) {
+        case "create-recipe":
+          if (!ctx.recipeService) {
             throw new Error(
-              `Cannot execute rollback step "create-generator": generatorService not available in RollbackContext`,
+              `Cannot execute rollback step "create-recipe": recipeService not available in RollbackContext`,
             );
           }
-          await ctx.generatorService.restore(step.generator);
+          await ctx.recipeService.restore(step.recipe);
           break;
-        case "delete-generator":
-          if (!ctx.generatorService) {
+        case "delete-recipe":
+          if (!ctx.recipeService) {
             throw new Error(
-              `Cannot execute rollback step "delete-generator": generatorService not available in RollbackContext`,
+              `Cannot execute rollback step "delete-recipe": recipeService not available in RollbackContext`,
             );
           }
-          await ctx.generatorService.delete(step.id);
+          await ctx.recipeService.delete(step.id);
           break;
       }
     }

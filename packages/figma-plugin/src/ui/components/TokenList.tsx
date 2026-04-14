@@ -42,7 +42,7 @@ import type {
   TokenListProps,
   MultiModeValue,
   AffectedRef,
-  GeneratorImpact,
+  RecipeImpact,
   ThemeImpact,
   TokenTreeGroupActionsContextType,
   TokenTreeGroupStateContextType,
@@ -145,8 +145,8 @@ export function TokenList({
     allTokensFlat,
     lintViolations = [],
     syncSnapshot,
-    generators,
-    generatorsByTargetGroup,
+    recipes,
+    recipesByTargetGroup,
     derivedTokenPaths,
     cascadeDiff: _cascadeDiff,
     tokenUsageCounts,
@@ -173,7 +173,7 @@ export function TokenList({
     onSyncGroupStyles,
     onSetGroupScopes,
     onGenerateScaleFromGroup,
-    onRefreshGenerators,
+    onRefreshRecipes,
     onToggleIssuesOnly,
     onFilteredCountChange,
     onNavigateToSet,
@@ -182,9 +182,9 @@ export function TokenList({
     starredPaths,
     onError,
     onViewTokenHistory,
-    onEditGenerator,
-    onOpenGeneratorEditor,
-    onNavigateToGenerator: _onNavigateToGenerator,
+    onEditRecipe,
+    onOpenRecipeEditor,
+    onNavigateToRecipe: _onNavigateToRecipe,
     onShowReferences: _onShowReferences,
     onDisplayedLeafNodesChange,
     onSelectionChange,
@@ -259,7 +259,7 @@ export function TokenList({
     themeLensEnabled,
     setThemeLensEnabled,
   } = viewState;
-  const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
+  const [runningStaleRecipes, setRunningStaleRecipes] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] =
     useState<BulkEditScope | null>(null);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] =
@@ -291,41 +291,41 @@ export function TokenList({
     prevHighlightRef.current = highlightedToken ?? null;
   }, [highlightedToken, recentlyTouched, onTokenTouched]);
 
-  const staleGeneratorsForSet = useMemo(
+  const staleRecipesForSet = useMemo(
     () =>
-      (generators ?? []).filter(
-        (generator) =>
-          generator.targetSet === setName && generator.isStale === true,
+      (recipes ?? []).filter(
+        (recipe) =>
+          recipe.targetSet === setName && recipe.isStale === true,
       ),
-    [generators, setName],
+    [recipes, setName],
   );
 
-  const staleGeneratorBannerStorageKey = useMemo(
-    () => STORAGE_KEY.staleGeneratorBannerDismissed(setName),
+  const staleRecipeBannerStorageKey = useMemo(
+    () => STORAGE_KEY.staleRecipeBannerDismissed(setName),
     [setName],
   );
 
-  const staleGeneratorSignature = useMemo(
+  const staleRecipeSignature = useMemo(
     () =>
       stableStringify(
-        staleGeneratorsForSet.map((generator) => ({
-          id: generator.id,
-          sourceToken: generator.sourceToken ?? null,
-          currentSourceValue: generator.sourceToken
-            ? (allTokensFlat[generator.sourceToken]?.$value ?? null)
+        staleRecipesForSet.map((recipe) => ({
+          id: recipe.id,
+          sourceToken: recipe.sourceToken ?? null,
+          currentSourceValue: recipe.sourceToken
+            ? (allTokensFlat[recipe.sourceToken]?.$value ?? null)
             : null,
-          lastRunAt: generator.lastRunAt ?? null,
-          lastRunSourceValue: generator.lastRunSourceValue ?? null,
+          lastRunAt: recipe.lastRunAt ?? null,
+          lastRunSourceValue: recipe.lastRunSourceValue ?? null,
         })),
       ),
-    [staleGeneratorsForSet, allTokensFlat],
+    [staleRecipesForSet, allTokensFlat],
   );
 
   const [
-    dismissedStaleGeneratorSignature,
-    setDismissedStaleGeneratorSignature,
+    dismissedStaleRecipeSignature,
+    setDismissedStaleRecipeSignature,
   ] = useState<string | null>(() =>
-    lsGet(STORAGE_KEY.staleGeneratorBannerDismissed(setName)),
+    lsGet(STORAGE_KEY.staleRecipeBannerDismissed(setName)),
   );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
@@ -371,29 +371,29 @@ export function TokenList({
   // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
 
   useEffect(() => {
-    setDismissedStaleGeneratorSignature(lsGet(staleGeneratorBannerStorageKey));
-  }, [staleGeneratorBannerStorageKey]);
+    setDismissedStaleRecipeSignature(lsGet(staleRecipeBannerStorageKey));
+  }, [staleRecipeBannerStorageKey]);
 
   useEffect(() => {
-    if (staleGeneratorsForSet.length === 0) {
-      if (dismissedStaleGeneratorSignature !== null) {
-        setDismissedStaleGeneratorSignature(null);
-        lsRemove(staleGeneratorBannerStorageKey);
+    if (staleRecipesForSet.length === 0) {
+      if (dismissedStaleRecipeSignature !== null) {
+        setDismissedStaleRecipeSignature(null);
+        lsRemove(staleRecipeBannerStorageKey);
       }
       return;
     }
     if (
-      dismissedStaleGeneratorSignature !== null &&
-      dismissedStaleGeneratorSignature !== staleGeneratorSignature
+      dismissedStaleRecipeSignature !== null &&
+      dismissedStaleRecipeSignature !== staleRecipeSignature
     ) {
-      setDismissedStaleGeneratorSignature(null);
-      lsRemove(staleGeneratorBannerStorageKey);
+      setDismissedStaleRecipeSignature(null);
+      lsRemove(staleRecipeBannerStorageKey);
     }
   }, [
-    dismissedStaleGeneratorSignature,
-    staleGeneratorBannerStorageKey,
-    staleGeneratorSignature,
-    staleGeneratorsForSet.length,
+    dismissedStaleRecipeSignature,
+    staleRecipeBannerStorageKey,
+    staleRecipeSignature,
+    staleRecipesForSet.length,
   ]);
 
   // Clear optimistic deletions when the server response arrives with fresh tokens
@@ -1448,11 +1448,11 @@ export function TokenList({
     tokens,
     allTokensFlat,
     perSetFlat,
-    generators,
+    recipes,
     dimensions,
     onRefresh,
     onPushUndo,
-    onRefreshGenerators,
+    onRefreshRecipes,
     onSetOperationLoading: setOperationLoading,
     onSetLocallyDeletedPaths: setLocallyDeletedPaths,
     onRecordTouch: recentlyTouched.recordTouch,
@@ -1499,7 +1499,7 @@ export function TokenList({
     handleInlineSave,
     handleDescriptionSave: _handleDescriptionSave,
     handleMultiModeInlineSave,
-    handleDetachFromGenerator,
+    handleDetachFromRecipe,
     handleRequestMoveToken,
     handleConfirmMoveToken,
     handleChangeMoveTokenTargetSet,
@@ -1516,10 +1516,10 @@ export function TokenList({
     }
   }, [deleteError, setDeleteError]);
 
-  const handleRegenerateGenerator = useCallback(
-    async (generatorId: string) => {
+  const handleRegenerateRecipe = useCallback(
+    async (recipeId: string) => {
       try {
-        await apiFetch(`${serverUrl}/api/generators/${generatorId}/run`, {
+        await apiFetch(`${serverUrl}/api/recipes/${recipeId}/run`, {
           method: "POST",
         });
         onRefresh();
@@ -1530,10 +1530,10 @@ export function TokenList({
     [serverUrl, onRefresh, onError],
   );
 
-  const handleDetachGeneratorGroup = useCallback(
-    async (generatorId: string, groupPath: string) => {
+  const handleDetachRecipeGroup = useCallback(
+    async (recipeId: string, groupPath: string) => {
       try {
-        await apiFetch(`${serverUrl}/api/generators/${generatorId}/detach`, {
+        await apiFetch(`${serverUrl}/api/recipes/${recipeId}/detach`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1544,54 +1544,54 @@ export function TokenList({
           }),
         });
         onRefresh();
-        onRefreshGenerators?.();
+        onRefreshRecipes?.();
       } catch {
         onError?.("Failed to detach recipe group");
       }
     },
-    [onError, onRefresh, onRefreshGenerators, serverUrl],
+    [onError, onRefresh, onRefreshRecipes, serverUrl],
   );
 
-  const handleDismissStaleGeneratorBanner = useCallback(() => {
-    lsSet(staleGeneratorBannerStorageKey, staleGeneratorSignature);
-    setDismissedStaleGeneratorSignature(staleGeneratorSignature);
-  }, [staleGeneratorBannerStorageKey, staleGeneratorSignature]);
+  const handleDismissStaleRecipeBanner = useCallback(() => {
+    lsSet(staleRecipeBannerStorageKey, staleRecipeSignature);
+    setDismissedStaleRecipeSignature(staleRecipeSignature);
+  }, [staleRecipeBannerStorageKey, staleRecipeSignature]);
 
-  const handleRegenerateAllStaleGenerators = useCallback(async () => {
-    if (runningStaleGenerators || staleGeneratorsForSet.length === 0) return;
-    setRunningStaleGenerators(true);
+  const handleRegenerateAllStaleRecipes = useCallback(async () => {
+    if (runningStaleRecipes || staleRecipesForSet.length === 0) return;
+    setRunningStaleRecipes(true);
     let successCount = 0;
     let totalUpdatedTokens = 0;
-    const failedGenerators: string[] = [];
+    const failedRecipes: string[] = [];
     try {
-      for (const generator of staleGeneratorsForSet) {
+      for (const recipe of staleRecipesForSet) {
         try {
           const result = await apiFetch<{ count?: number }>(
-            `${serverUrl}/api/generators/${generator.id}/run`,
+            `${serverUrl}/api/recipes/${recipe.id}/run`,
             { method: "POST" },
           );
           successCount += 1;
           totalUpdatedTokens += result.count ?? 0;
         } catch {
-          failedGenerators.push(generator.name);
+          failedRecipes.push(recipe.name);
         }
       }
-      if (failedGenerators.length === 0) {
+      if (failedRecipes.length === 0) {
         dispatchToast(
           `Re-ran ${successCount} stale recipe${successCount !== 1 ? "s" : ""}${totalUpdatedTokens > 0 ? ` — ${totalUpdatedTokens} token${totalUpdatedTokens !== 1 ? "s" : ""} updated` : ""}`,
           "success",
         );
       } else {
         dispatchToast(
-          `${failedGenerators.length} recipe${failedGenerators.length !== 1 ? "s" : ""} failed: ${failedGenerators.join(", ")}`,
+          `${failedRecipes.length} recipe${failedRecipes.length !== 1 ? "s" : ""} failed: ${failedRecipes.join(", ")}`,
           "error",
         );
       }
       onRefresh();
     } finally {
-      setRunningStaleGenerators(false);
+      setRunningStaleRecipes(false);
     }
-  }, [runningStaleGenerators, staleGeneratorsForSet, serverUrl, onRefresh]);
+  }, [runningStaleRecipes, staleRecipesForSet, serverUrl, onRefresh]);
 
   const tokenPromotion = useTokenPromotion({
     connected,
@@ -2639,13 +2639,13 @@ export function TokenList({
     confirmLabel: string;
     pathList?: string[];
     affectedRefs?: AffectedRef[];
-    generatorImpacts?: GeneratorImpact[];
+    recipeImpacts?: RecipeImpact[];
     themeImpacts?: ThemeImpact[];
   } | null => {
     if (!deleteConfirm) return null;
     const genImpacts =
-      deleteConfirm.generatorImpacts.length > 0
-        ? deleteConfirm.generatorImpacts
+      deleteConfirm.recipeImpacts.length > 0
+        ? deleteConfirm.recipeImpacts
         : undefined;
     const thmImpacts =
       deleteConfirm.themeImpacts.length > 0
@@ -2676,7 +2676,7 @@ export function TokenList({
             : `Token path: ${deleteConfirm.path}`,
         confirmLabel: "Delete",
         affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-        generatorImpacts: genImpacts,
+        recipeImpacts: genImpacts,
         themeImpacts: thmImpacts,
       };
     }
@@ -2703,7 +2703,7 @@ export function TokenList({
         description: `This will ${parts.join(", ")}.`,
         confirmLabel: `Delete group (${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? "s" : ""})`,
         affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-        generatorImpacts: genImpacts,
+        recipeImpacts: genImpacts,
         themeImpacts: thmImpacts,
       };
     }
@@ -2729,7 +2729,7 @@ export function TokenList({
       confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? "s" : ""}`,
       pathList: paths,
       affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-      generatorImpacts: genImpacts,
+      recipeImpacts: genImpacts,
       themeImpacts: thmImpacts,
     };
   };
@@ -3003,7 +3003,7 @@ export function TokenList({
       dragOverGroup,
       dragOverGroupIsInvalid,
       dragSource,
-      generatorsByTargetGroup,
+      recipesByTargetGroup,
       themeCoverage,
       condensedView,
       rovingFocusPath: effectiveRovingPath,
@@ -3018,7 +3018,7 @@ export function TokenList({
       dragOverGroup,
       dragOverGroupIsInvalid,
       dragSource,
-      generatorsByTargetGroup,
+      recipesByTargetGroup,
       themeCoverage,
       condensedView,
       effectiveRovingPath,
@@ -3043,9 +3043,9 @@ export function TokenList({
       onZoomIntoGroup: handleZoomIntoGroup,
       onDragOverGroup: handleDragOverGroup,
       onDropOnGroup: handleDropOnGroup,
-      onEditGenerator,
-      onRegenerateGenerator: handleRegenerateGenerator,
-      onDetachGeneratorGroup: handleDetachGeneratorGroup,
+      onEditRecipe,
+      onRegenerateRecipe: handleRegenerateRecipe,
+      onDetachRecipeGroup: handleDetachRecipeGroup,
       onNavigateToToken: onNavigateToAlias
         ? (path: string) => onNavigateToAlias(path)
         : undefined,
@@ -3068,9 +3068,9 @@ export function TokenList({
       handleZoomIntoGroup,
       handleDragOverGroup,
       handleDropOnGroup,
-      onEditGenerator,
-      handleRegenerateGenerator,
-      handleDetachGeneratorGroup,
+      onEditRecipe,
+      handleRegenerateRecipe,
+      handleDetachRecipeGroup,
       onNavigateToAlias,
       setRovingFocusPath,
     ],
@@ -3149,7 +3149,7 @@ export function TokenList({
       onRequestMoveToken: handleRequestMoveTokenReview,
       onRequestCopyToken: handleRequestCopyTokenReview,
       onDuplicateToken: handleDuplicateToken,
-      onDetachFromGenerator: handleDetachFromGenerator,
+      onDetachFromRecipe: handleDetachFromRecipe,
       onExtractToAlias: handleOpenExtractToAlias,
       onHoverToken: handleHoverToken,
       onFilterByType: setTypeFilter,
@@ -3166,7 +3166,7 @@ export function TokenList({
       onMultiModeInlineSave: multiModeData
         ? handleMultiModeInlineSave
         : undefined,
-      onOpenGeneratorEditor,
+      onOpenRecipeEditor,
       onToggleStar,
       clearPendingRename: handleClearPendingRename,
       clearPendingTabEdit: handleClearPendingTabEdit,
@@ -3184,7 +3184,7 @@ export function TokenList({
       handleRequestMoveTokenReview,
       handleRequestCopyTokenReview,
       handleDuplicateToken,
-      handleDetachFromGenerator,
+      handleDetachFromRecipe,
       handleOpenExtractToAlias,
       handleHoverToken,
       setTypeFilter,
@@ -3200,7 +3200,7 @@ export function TokenList({
       handleDropReorder,
       multiModeData,
       handleMultiModeInlineSave,
-      onOpenGeneratorEditor,
+      onOpenRecipeEditor,
       onToggleStar,
       handleClearPendingRename,
       handleClearPendingTabEdit,
@@ -3452,9 +3452,9 @@ export function TokenList({
     ],
   );
 
-  const showStaleGeneratorBanner =
-    staleGeneratorsForSet.length > 0 &&
-    dismissedStaleGeneratorSignature !== staleGeneratorSignature;
+  const showStaleRecipeBanner =
+    staleRecipesForSet.length > 0 &&
+    dismissedStaleRecipeSignature !== staleRecipeSignature;
 
   // Stable callbacks for review overlay panel actions
   const handleCloseVarDiff = useCallback(() => setVarDiffPending(null), []);
@@ -3581,6 +3581,9 @@ export function TokenList({
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
+            hasDimensions={dimensions.length > 0}
+            multiModeEnabled={multiModeEnabled}
+            onToggleMultiMode={toggleMultiMode}
             overflowMenuProps={tokens.length > 0 ? {
               sortOrder,
               onSortOrderChange: setSortOrder,
@@ -3636,34 +3639,34 @@ export function TokenList({
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {searchQuery ? `${displayedLeafNodes.length} tokens found` : ""}
       </div>
-      {showStaleGeneratorBanner && (
+      {showStaleRecipeBanner && (
         <NoticeBanner
           severity="warning"
           onDismiss={
-            !runningStaleGenerators
-              ? handleDismissStaleGeneratorBanner
+            !runningStaleRecipes
+              ? handleDismissStaleRecipeBanner
               : undefined
           }
           dismissLabel="Dismiss"
           actions={
             <button
               type="button"
-              onClick={handleRegenerateAllStaleGenerators}
-              disabled={runningStaleGenerators}
+              onClick={handleRegenerateAllStaleRecipes}
+              disabled={runningStaleRecipes}
               className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-amber-500/15 text-amber-700 font-medium hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {runningStaleGenerators && <Spinner size="xs" />}
+              {runningStaleRecipes && <Spinner size="xs" />}
               <span>
-                {runningStaleGenerators ? "Re-running…" : "Re-run all"}
+                {runningStaleRecipes ? "Re-running…" : "Re-run all"}
               </span>
             </button>
           }
         >
-          {staleGeneratorsForSet.length === 1
+          {staleRecipesForSet.length === 1
             ? "1 recipe"
-            : `${staleGeneratorsForSet.length} recipes`}{" "}
+            : `${staleRecipesForSet.length} recipes`}{" "}
           in <strong>{setName}</strong>{" "}
-          {staleGeneratorsForSet.length === 1 ? "is" : "are"} out of date
+          {staleRecipesForSet.length === 1 ? "is" : "are"} out of date
         </NoticeBanner>
       )}
       {/* Token stats bar — compact single row with type breakdown */}

@@ -35,7 +35,7 @@ export interface ShellWorkspaceController {
   openCommandPaletteWithQuery: (query: string) => void;
   openPasteModal: () => void;
   openImportPanel: () => void;
-  openColorScaleGenerator: () => void;
+  openColorScaleRecipe: () => void;
   toggleQuickApply: () => void;
   toggleSetSwitcher: () => void;
   openStartHere: (branch?: StartHereBranch) => void;
@@ -94,7 +94,7 @@ export interface TokensWorkspaceController {
   setErrorToast: (message: string) => void;
   setSuccessToast: (message: string) => void;
   handleNavigateToSet: (setName: string, tokenPath: string) => void;
-  handleNavigateToGenerator: (generatorId: string) => void;
+  handleNavigateToRecipe: (recipeId: string) => void;
   flowPanelInitialPath: string | null;
   setFlowPanelInitialPath: (path: string | null) => void;
   pendingGraphTemplate: string | null;
@@ -103,8 +103,8 @@ export interface TokensWorkspaceController {
   setPendingGraphFromGroup: (
     value: { groupPath: string; tokenType: string | null } | null,
   ) => void;
-  focusGeneratorId: string | null;
-  setFocusGeneratorId: (generatorId: string | null) => void;
+  focusRecipeId: string | null;
+  setFocusRecipeId: (recipeId: string | null) => void;
   pendingOpenPicker: boolean;
   setPendingOpenPicker: (value: boolean) => void;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
@@ -169,7 +169,7 @@ export interface SyncWorkspaceController {
 
 export interface SetManagerWorkspaceController {
   onOpenQuickSwitch: () => void;
-  onOpenGenerators: (setName: string) => void;
+  onOpenRecipes: (setName: string) => void;
   onRename: (setName: string) => void;
   onDuplicate: (setName: string) => void;
   onDelete: (setName: string) => void;

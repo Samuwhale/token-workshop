@@ -149,13 +149,13 @@ export function useTokenEditorSave({
           const initialToken = JSON.parse(initialServerSnapshotRef.current) as {
             $extensions?: Record<string, unknown>;
           } | null;
-          const generatorOwnership =
-            initialToken?.$extensions?.['com.tokenmanager.generator'];
-          if (generatorOwnership !== undefined) {
-            extensions['com.tokenmanager.generator'] = generatorOwnership;
+          const recipeOwnership =
+            initialToken?.$extensions?.['com.tokenmanager.recipe'];
+          if (recipeOwnership !== undefined) {
+            extensions['com.tokenmanager.recipe'] = recipeOwnership;
           }
         } catch (err) {
-          console.debug('[TokenEditor] failed to preserve generator ownership extension:', err);
+          console.debug('[TokenEditor] failed to preserve recipe ownership extension:', err);
         }
       }
       const body = createTokenValueBody({

@@ -12,7 +12,7 @@ import { useState, useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TokenPickerField } from './TokenPicker';
 import { ColorEditor } from './ValueEditors';
-import { CompactDimensionInput } from './generators/generatorShared';
+import { CompactDimensionInput } from './recipes/recipeShared';
 import { swatchBgColor } from '../shared/colorUtils';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 
@@ -23,7 +23,7 @@ import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 export type SourceMode = 'token' | 'value';
 
 export interface UnifiedSourceInputProps {
-  /** Which category the generator expects: 'color' | 'dimension' | null. */
+  /** Which category the recipe expects: 'color' | 'dimension' | null. */
   expectedType: 'color' | 'dimension' | null;
   /** Currently bound source token path (or empty string / undefined). */
   sourceTokenPath: string | undefined;

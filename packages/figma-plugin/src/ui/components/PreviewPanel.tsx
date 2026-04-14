@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { useCallback, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension } from '@tokenmanager/core';
-import type { TokenGenerator } from '../hooks/useGenerators';
+import type { TokenRecipe } from '../hooks/useRecipes';
 import type { LintViolation } from '../hooks/useLint';
 import { TokenDetailPreview } from './TokenDetailPreview';
 import { Spinner } from './Spinner';
@@ -15,7 +15,7 @@ interface PreviewPanelProps {
   onActiveThemesChange?: (themes: Record<string, string>) => void;
   onGoToTokens?: () => void;
   onNavigateToToken?: (path: string) => void;
-  onNavigateToGenerator?: (generatorId: string) => void;
+  onNavigateToRecipe?: (recipeId: string) => void;
   /** When set, the panel renders token detail instead of collection templates */
   focusedToken?: { path: string; name?: string; set: string } | null;
   pathToSet?: Record<string, string>;
@@ -23,9 +23,9 @@ interface PreviewPanelProps {
   onEditToken?: (path: string, name?: string, set?: string) => void;
   serverUrl?: string;
   tokenUsageCounts?: Record<string, number>;
-  generators?: TokenGenerator[];
-  generatorsBySource?: Map<string, TokenGenerator[]>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
+  recipes?: TokenRecipe[];
+  recipesBySource?: Map<string, TokenRecipe[]>;
+  derivedTokenPaths?: Map<string, TokenRecipe>;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
 }
@@ -227,7 +227,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, onNavigateToGenerator, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, generators, generatorsBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, onNavigateToRecipe, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = lsGet(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -428,8 +428,8 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
           dimensions={dimensions}
           activeThemes={activeThemes}
           tokenUsageCounts={tokenUsageCounts}
-          generators={generators}
-          generatorsBySource={generatorsBySource}
+          recipes={recipes}
+          recipesBySource={recipesBySource}
           derivedTokenPaths={derivedTokenPaths}
           lintViolations={lintViolations?.filter(violation => violation.path === focusedToken.path)}
           syncSnapshot={syncSnapshot}
@@ -437,7 +437,7 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
           onEdit={() => onEditToken?.(focusedToken.path, focusedToken.name, focusedToken.set)}
           onClose={onClearFocus ?? (() => {})}
           onNavigateToAlias={(path) => onNavigateToToken?.(path)}
-          onNavigateToGenerator={onNavigateToGenerator}
+          onNavigateToRecipe={onNavigateToRecipe}
         />
       </div>
     );

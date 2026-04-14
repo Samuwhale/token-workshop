@@ -1,7 +1,7 @@
 import type { TokenNode } from '../hooks/useTokens';
-import { createGeneratorOwnershipKey } from '@tokenmanager/core';
+import { createRecipeOwnershipKey } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenGenerator } from '../hooks/useGenerators';
+import type { TokenRecipe } from '../hooks/useRecipes';
 import type { SortOrder } from './tokenListTypes';
 import { isAlias } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
@@ -26,11 +26,11 @@ export interface ParsedQuery {
   paths: string[];
   /** name:<substring> — search only the leaf name */
   names: string[];
-  /** generator:<name> — filter by generator that produced the token */
-  generators: string[];
+  /** recipe:<name> — filter by recipe that produced the token */
+  recipes: string[];
 }
 
-const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generator|gen):(\S+)/gi;
+const QUALIFIER_RE = /\b(type|has|value|desc|path|name|recipe|gen):(\S+)/gi;
 const QUERY_TOKEN_RE = /\b([a-z]+):(\S+)/gi;
 
 /** Recognized values for has: qualifier */
@@ -57,7 +57,7 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
   const descs: string[] = [];
   const paths: string[] = [];
   const names: string[] = [];
-  const generators: string[] = [];
+  const recipes: string[] = [];
 
   const text = raw.replace(QUALIFIER_RE, (_, key: string, val: string) => {
     const k = key.toLowerCase();
@@ -69,12 +69,12 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
       case 'desc': descs.push(v); break;
       case 'path': paths.push(v); break;
       case 'name': names.push(v); break;
-      case 'generator': case 'gen': generators.push(v); break;
+      case 'recipe': case 'gen': recipes.push(v); break;
     }
     return ''; // remove qualifier from text portion
   }).trim();
 
-  return { text, types, has, values, descs, paths, names, generators };
+  return { text, types, has, values, descs, paths, names, recipes };
 }
 
 /** Returns true when the raw query contains at least one recognized qualifier. */
@@ -88,7 +88,7 @@ export const HAS_CANONICAL = ['alias', 'direct', 'duplicate', 'description', 'ex
 export type HasQualifierValue = typeof HAS_CANONICAL[number];
 
 export interface QueryQualifierDefinition {
-  key: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group';
+  key: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'recipe' | 'group';
   qualifier: string;
   desc: string;
   example: string;
@@ -128,7 +128,7 @@ export interface ActiveQueryToken {
 export function getQualifierCompletions(
   qualifier: string,
   partial: string,
-  tokens: Array<{ path: string; type: string; isAlias?: boolean; description?: string; generatorName?: string; value?: string }>,
+  tokens: Array<{ path: string; type: string; isAlias?: boolean; description?: string; recipeName?: string; value?: string }>,
   groups?: Array<{ path: string }>,
 ): string[] {
   const p = partial.toLowerCase();
@@ -144,10 +144,10 @@ export function getQualifierCompletions(
     case 'has':
       candidates = [...HAS_CANONICAL];
       break;
-    case 'generator':
+    case 'recipe':
     case 'gen': {
       const gens = new Set<string>();
-      for (const t of tokens) if (t.generatorName) gens.add(t.generatorName.toLowerCase());
+      for (const t of tokens) if (t.recipeName) gens.add(t.recipeName.toLowerCase());
       candidates = Array.from(gens).sort();
       break;
     }
@@ -209,7 +209,7 @@ export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'desc', qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary', valueHint: 'Enter words from the token description.' },
   { key: 'path', qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand', valueHint: 'Enter a path segment like colors.brand or spacing.' },
   { key: 'name', qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500', valueHint: 'Enter the token leaf name, such as 500 or primary.' },
-  { key: 'generator', qualifier: 'generator:', desc: 'Filter by recipe name', example: 'generator:color-ramp', valueHint: 'Enter the recipe name that produced the token.' },
+  { key: 'recipe', qualifier: 'recipe:', desc: 'Filter by recipe name', example: 'recipe:color-ramp', valueHint: 'Enter the recipe name that produced the token.' },
   { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];
 
@@ -238,7 +238,7 @@ const FILTER_DISCOVERY_TEMPLATES: FilterDiscoveryTemplate[] = [
     qualifier: 'has',
     mode: 'toggle-qualifier',
     value: 'generated',
-    keywords: ['generated', 'generator', 'derived'],
+    keywords: ['generated', 'recipe', 'derived'],
   },
   {
     id: 'has-unused',
@@ -329,7 +329,7 @@ export function replaceQueryToken(raw: string, activeToken: ActiveQueryToken, re
 }
 
 export function removeQueryQualifierValues(raw: string, qualifier: QueryQualifierDefinition['key']): string {
-  const keys = qualifier === 'generator' ? ['generator', 'gen'] : [qualifier];
+  const keys = qualifier === 'recipe' ? ['recipe', 'gen'] : [qualifier];
   const pattern = new RegExp(`\\b(?:${keys.join('|')}):\\S+`, 'gi');
   return raw.replace(pattern, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -340,13 +340,13 @@ export function setQueryQualifierValues(
   values: string[],
 ): string {
   const base = removeQueryQualifierValues(raw, qualifier);
-  const prefix = qualifier === 'generator' ? 'generator' : qualifier;
+  const prefix = qualifier === 'recipe' ? 'recipe' : qualifier;
   const additions = values.map(value => `${prefix}:${value}`);
   return [base, ...additions].filter(Boolean).join(' ').trim();
 }
 
 export function getQueryQualifierValues(raw: string, qualifier: QueryQualifierDefinition['key']): string[] {
-  const keys = qualifier === 'generator' ? new Set(['generator', 'gen']) : new Set([qualifier]);
+  const keys = qualifier === 'recipe' ? new Set(['recipe', 'gen']) : new Set([qualifier]);
   const values: string[] = [];
   raw.replace(QUERY_TOKEN_RE, (_, key: string, value: string) => {
     if (keys.has(key.toLowerCase())) values.push(value.toLowerCase());
@@ -359,7 +359,7 @@ export function getQualifierDefinitionForToken(token: string): QueryQualifierDef
   const match = token.match(/^([a-z]+):/i);
   if (!match) return null;
   const key = match[1].toLowerCase();
-  if (key === 'gen') return QUERY_QUALIFIERS.find(def => def.key === 'generator') ?? null;
+  if (key === 'gen') return QUERY_QUALIFIERS.find(def => def.key === 'recipe') ?? null;
   return QUERY_QUALIFIERS.find(def => def.key === key) ?? null;
 }
 
@@ -458,13 +458,13 @@ export function filterTokenNodes(
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
   duplicateValuePaths?: Set<string>,
-  derivedTokenPaths?: Map<string, TokenGenerator>,
+  derivedTokenPaths?: Map<string, TokenRecipe>,
   unusedTokenPaths?: Set<string>,
 ): TokenNode[] {
   const parsed = parseStructuredQuery(searchQuery);
   const hasQualifiers = parsed.types.length > 0 || parsed.has.length > 0 || parsed.values.length > 0
     || parsed.descs.length > 0 || parsed.paths.length > 0 || parsed.names.length > 0
-    || parsed.generators.length > 0;
+    || parsed.recipes.length > 0;
 
   if (hasQualifiers) {
     return filterTokenNodesStructured(nodes, setName, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
@@ -498,7 +498,7 @@ function filterTokenNodesStructured(
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
   duplicateValuePaths?: Set<string>,
-  derivedTokenPaths?: Map<string, TokenGenerator>,
+  derivedTokenPaths?: Map<string, TokenRecipe>,
   unusedTokenPaths?: Set<string>,
 ): TokenNode[] {
   const q = parsed.text.toLowerCase();
@@ -508,7 +508,7 @@ function filterTokenNodesStructured(
       const filtered = filterTokenNodesStructured(node.children ?? [], setName, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
       if (filtered.length > 0) result.push({ ...node, children: filtered });
     } else {
-      const generatorKey = createGeneratorOwnershipKey(setName, node.path);
+      const recipeKey = createRecipeOwnershipKey(setName, node.path);
       // Free-text match (on path, name, or description)
       if (q && !node.path.toLowerCase().includes(q) && !node.name.toLowerCase().includes(q) && !(node.$description || '').toLowerCase().includes(q)) continue;
 
@@ -528,7 +528,7 @@ function filterTokenNodesStructured(
         if ((h === 'duplicate' || h === 'dup') && (!duplicateValuePaths || !duplicateValuePaths.has(node.path))) { hasMatch = false; break; }
         if ((h === 'description' || h === 'desc') && !node.$description) { hasMatch = false; break; }
         if ((h === 'extension' || h === 'ext') && (!node.$extensions || Object.keys(node.$extensions).length === 0)) { hasMatch = false; break; }
-        if ((h === 'generated' || h === 'gen') && !derivedTokenPaths?.has(generatorKey)) { hasMatch = false; break; }
+        if ((h === 'generated' || h === 'gen') && !derivedTokenPaths?.has(recipeKey)) { hasMatch = false; break; }
         if (h === 'unused' && (!unusedTokenPaths || !unusedTokenPaths.has(node.path))) { hasMatch = false; break; }
       }
       if (!hasMatch) continue;
@@ -563,12 +563,12 @@ function filterTokenNodesStructured(
         if (!parsed.names.some(n => ln.includes(n))) continue;
       }
 
-      // generator: qualifier — match by generator name
-      if (parsed.generators.length > 0) {
-        const gen = derivedTokenPaths?.get(generatorKey);
+      // recipe: qualifier — match by recipe name
+      if (parsed.recipes.length > 0) {
+        const gen = derivedTokenPaths?.get(recipeKey);
         if (!gen) continue;
         const gn = gen.name.toLowerCase();
-        if (!parsed.generators.some(g => gn === g || gn.includes(g))) continue;
+        if (!parsed.recipes.some(g => gn === g || gn.includes(g))) continue;
       }
 
       result.push(node);

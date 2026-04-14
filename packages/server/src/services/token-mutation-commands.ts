@@ -1,7 +1,7 @@
 import type {
-  GeneratorPathRenameUpdate,
-  GeneratorService,
-} from "./generator-service.js";
+  RecipePathRenameUpdate,
+  RecipeService,
+} from "./recipe-service.js";
 import type {
   OperationLog,
   SnapshotEntry,
@@ -20,7 +20,7 @@ type SnapshotMap = Record<string, SnapshotEntry>;
 interface MutationCommandServices {
   tokenStore: TokenStore;
   operationLog: OperationLog;
-  generatorService: GeneratorService;
+  recipeService: RecipeService;
 }
 
 interface LoggedMutationConfig<TResult> {
@@ -36,7 +36,7 @@ interface LoggedMutationConfig<TResult> {
     result: TResult,
   ) => string[];
   pathRenames?: (result: TResult) => Array<{ oldPath: string; newPath: string }>;
-  generatorUpdates?: (result: TResult) => GeneratorPathRenameUpdate[];
+  recipeUpdates?: (result: TResult) => RecipePathRenameUpdate[];
 }
 
 function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
@@ -93,9 +93,9 @@ async function executeLoggedMutation<TResult>(
     pathRenames: config.pathRenames?.(result),
   });
 
-  const generatorUpdates = config.generatorUpdates?.(result) ?? [];
-  if (generatorUpdates.length > 0) {
-    await services.generatorService.applyPathRenames(generatorUpdates);
+  const recipeUpdates = config.recipeUpdates?.(result) ?? [];
+  if (recipeUpdates.length > 0) {
+    await services.recipeService.applyPathRenames(recipeUpdates);
   }
 
   return { result, operationId: entry.id };
@@ -125,7 +125,7 @@ export async function renameGroupCommand(
       ),
     captureAfter: () => snapshotGroup(services.tokenStore, setName, newGroupPath),
     pathRenames: (result) => result.pathRenames,
-    generatorUpdates: () => [
+    recipeUpdates: () => [
       { scope: "group", oldPath: oldGroupPath, newPath: newGroupPath },
     ],
   });
@@ -190,7 +190,7 @@ export async function renameTokenCommand(
       services.tokenStore.renameToken(setName, oldPath, newPath, updateAliases),
     captureAfter: () => snapshotPaths(services.tokenStore, setName, [newPath]),
     pathRenames: (result) => result.pathRenames,
-    generatorUpdates: (result) =>
+    recipeUpdates: (result) =>
       result.pathRenames.map(({ oldPath: sourcePath, newPath: targetPath }) => ({
         scope: "token" as const,
         oldPath: sourcePath,
@@ -260,7 +260,7 @@ export async function batchRenameTokensCommand(
       services.tokenStore.batchRenameTokens(setName, renames, updateAliases),
     captureAfter: () => snapshotPaths(services.tokenStore, setName, newPaths),
     pathRenames: (result) => result.pathRenames,
-    generatorUpdates: (result) =>
+    recipeUpdates: (result) =>
       result.pathRenames.map(({ oldPath, newPath }) => ({
         scope: "token" as const,
         oldPath,

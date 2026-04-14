@@ -18,7 +18,7 @@ type ActionTarget =
       subTab:
         | "tokens"
         | "themes"
-        | "generators"
+        | "recipes"
         | "inspect"
         | "dependencies"
         | "publish"
@@ -126,10 +126,10 @@ function inferWorkspaceAction(message: string): InboxAction {
       target: { kind: "surface", surface: "import" },
     };
   }
-  if (lower.includes("generator")) {
+  if (lower.includes("recipe")) {
     return {
       label: "Open recipes",
-      target: { kind: "workspace", topTab: "define", subTab: "generators" },
+      target: { kind: "workspace", topTab: "define", subTab: "recipes" },
     };
   }
   if (

@@ -1,9 +1,9 @@
-import type { TokenGenerator } from "../../hooks/useGenerators";
-import type { TokensLibraryGeneratorEditorTarget } from "../../shared/navigationTypes";
+import type { TokenRecipe } from "../../hooks/useRecipes";
+import type { TokensLibraryRecipeEditorTarget } from "../../shared/navigationTypes";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
 import {
-  getQuickGeneratorTypeForToken,
-  getQuickGeneratorActionLabel,
+  getQuickRecipeTypeForToken,
+  getQuickRecipeActionLabel,
 } from "../token-tree/tokenTreeNodeShared";
 
 export interface TokenEditorDerivedGroupsProps {
@@ -11,8 +11,8 @@ export interface TokenEditorDerivedGroupsProps {
   tokenName?: string;
   tokenType: string;
   value: any;
-  existingGeneratorsForToken: TokenGenerator[];
-  openGeneratorEditor: (target: TokensLibraryGeneratorEditorTarget) => void;
+  existingRecipesForToken: TokenRecipe[];
+  openRecipeEditor: (target: TokensLibraryRecipeEditorTarget) => void;
 }
 
 export function TokenEditorDerivedGroups({
@@ -20,22 +20,22 @@ export function TokenEditorDerivedGroups({
   tokenName,
   tokenType,
   value,
-  existingGeneratorsForToken,
-  openGeneratorEditor,
+  existingRecipesForToken,
+  openRecipeEditor,
 }: TokenEditorDerivedGroupsProps) {
-  const quickType = getQuickGeneratorTypeForToken(
+  const quickType = getQuickRecipeTypeForToken(
     tokenPath,
     tokenName ?? tokenPath.split(".").pop() ?? "",
     tokenType,
     value,
   );
-  const quickLabel = quickType ? getQuickGeneratorActionLabel(quickType) : null;
+  const quickLabel = quickType ? getQuickRecipeActionLabel(quickType) : null;
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
       <button
         onClick={() => {
-          openGeneratorEditor({
+          openRecipeEditor({
             mode: 'create',
             sourceTokenPath: tokenPath,
             sourceTokenName: tokenName,
@@ -65,11 +65,11 @@ export function TokenEditorDerivedGroups({
             <circle cx="8" cy="8" r="1.5" />
             <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
           </svg>
-          {existingGeneratorsForToken.length > 0
-            ? `Derived groups (${existingGeneratorsForToken.length})`
+          {existingRecipesForToken.length > 0
+            ? `Derived groups (${existingRecipesForToken.length})`
             : (quickLabel ?? "Derived groups")}
         </span>
-        {existingGeneratorsForToken.length === 0 ? (
+        {existingRecipesForToken.length === 0 ? (
           <span className="text-[10px] text-[var(--color-figma-accent)]">
             + Create
           </span>
@@ -89,9 +89,9 @@ export function TokenEditorDerivedGroups({
           </svg>
         )}
       </button>
-      {existingGeneratorsForToken.length > 0 && (
+      {existingRecipesForToken.length > 0 && (
         <div className="px-3 py-2 flex flex-col gap-1.5 border-t border-[var(--color-figma-border)]">
-          {existingGeneratorsForToken.map((gen) => (
+          {existingRecipesForToken.map((gen) => (
             <div
               key={gen.id}
               className="flex items-center justify-between gap-2"
@@ -124,7 +124,7 @@ export function TokenEditorDerivedGroups({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    openGeneratorEditor({
+                    openRecipeEditor({
                       mode: 'edit',
                       id: gen.id,
                     });
@@ -136,7 +136,7 @@ export function TokenEditorDerivedGroups({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    openGeneratorEditor({
+                    openRecipeEditor({
                       mode: 'create',
                       sourceTokenPath: tokenPath,
                       sourceTokenName: tokenName,
@@ -147,7 +147,7 @@ export function TokenEditorDerivedGroups({
                         label: `${gen.name} (copy)`,
                         description: "",
                         defaultPrefix: gen.targetGroup,
-                        generatorType: gen.type,
+                        recipeType: gen.type,
                         config: gen.config,
                         requiresSource: false,
                       },
@@ -163,7 +163,7 @@ export function TokenEditorDerivedGroups({
           ))}
           <button
             onClick={() => {
-              openGeneratorEditor({
+              openRecipeEditor({
                 mode: 'create',
                 sourceTokenPath: tokenPath,
                 sourceTokenName: tokenName,
