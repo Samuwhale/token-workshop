@@ -5,10 +5,10 @@ import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import { apiFetch } from "../shared/apiFetch";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import type { MutableRefObject } from "react";
 import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { ThemeDimension } from "@tokenmanager/core";
 import { useThemeSwitcherContext } from "../contexts/ThemeContext";
+import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
@@ -45,7 +45,6 @@ import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 
 import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
-import { SaveChangesDialog } from "./token-editor/SaveChangesDialog";
 import { TokenEditorValueSection } from "./token-editor/TokenEditorValueSection";
 import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
 import { TokenEditorInfoSection } from "./token-editor/TokenEditorInfoSection";
@@ -63,7 +62,10 @@ interface TokenEditorProps {
   initialType?: string;
   /** When alias-shaped (e.g. "{color.primary}"), alias mode activates automatically. */
   initialValue?: string;
-  onDirtyChange?: (dirty: boolean) => void;
+  editorSessionHost: {
+    registerSession: (session: EditorSessionRegistration | null) => void;
+    requestClose: () => void;
+  };
   onSaved?: (savedPath: string) => void;
   dimensions?: ThemeDimension[];
   onRefresh?: () => void;
@@ -71,8 +73,6 @@ interface TokenEditorProps {
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
-  /** Assigned handleBack so parents can trigger guarded close from backdrop clicks. */
-  closeRef?: MutableRefObject<() => void>;
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   onNavigateToGenerator?: (generatorId: string) => void;
@@ -93,7 +93,7 @@ export function TokenEditor({
   isCreateMode = false,
   initialType,
   initialValue,
-  onDirtyChange,
+  editorSessionHost,
   onSaved,
   onSaveAndCreateAnother,
   dimensions = [],
@@ -101,7 +101,6 @@ export function TokenEditor({
   availableFonts = [],
   fontWeightsByFamily = {},
   derivedTokenPaths,
-  closeRef,
   onShowReferences,
   onNavigateToToken,
   onNavigateToGenerator,
@@ -110,12 +109,31 @@ export function TokenEditor({
   pushUndo,
 }: TokenEditorProps) {
   const themeSwitcher = useThemeSwitcherContext();
+  const uiState = useTokenEditorUIState({
+    tokenPath,
+  });
+  const {
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    copied,
+    setCopied,
+    pasteFlash,
+    showPathAutocomplete,
+    setShowPathAutocomplete,
+    editPath,
+    setEditPath,
+    refsExpanded,
+    setRefsExpanded,
+    pathInputWrapperRef,
+    handlePasteInValueEditor,
+  } = uiState;
 
   const fields = useTokenEditorFields({
     isCreateMode,
     initialType,
     initialValue,
     tokenPath,
+    editPath,
     allTokensFlat,
   });
   const {
@@ -239,43 +257,7 @@ export function TokenEditor({
     focusBlockedField,
   } = typeParsing;
 
-  const uiState = useTokenEditorUIState({
-    isDirty,
-    onBack,
-    setShowDiscardConfirm: () => {}, // placeholder; we manage showDiscardConfirm here
-    tokenType,
-    aliasMode,
-    value,
-    tokenPath,
-    setName,
-  });
-  const {
-    showDeleteConfirm,
-    setShowDeleteConfirm,
-    copied,
-    setCopied,
-    pasteFlash,
-    showPathAutocomplete,
-    setShowPathAutocomplete,
-    editPath,
-    setEditPath,
-    refsExpanded,
-    setRefsExpanded,
-    pathInputWrapperRef,
-    handlePasteInValueEditor,
-  } = uiState;
-
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-
-  const handleBack = useCallback(() => {
-    if (isDirty) {
-      setShowDiscardConfirm(true);
-    } else {
-      onBack();
-    }
-  }, [isDirty, onBack]);
-
-  if (closeRef) closeRef.current = handleBack;
+  const requestClose = editorSessionHost.requestClose;
 
   const saveHook = useTokenEditorSave({
     serverUrl,
@@ -295,16 +277,13 @@ export function TokenEditor({
     extendsPath,
     initialServerSnapshotRef,
     onBack,
+    requestClose,
     onSaved,
     onSaveAndCreateAnother,
     pushUndo,
     handleToggleAlias,
-    handleBack,
-    showDiscardConfirm,
-    setShowDiscardConfirm,
     showAutocomplete,
     setShowAutocomplete,
-    isDirty,
   });
   const {
     saving,
@@ -465,8 +444,38 @@ export function TokenEditor({
   }, [isCreateMode, editPath, allTokensFlat]);
 
   useEffect(() => {
-    onDirtyChange?.(isDirty);
-  }, [isDirty, onDirtyChange]);
+    editorSessionHost.registerSession({
+      isDirty,
+      canSave:
+        canSave &&
+        !saving &&
+        !duplicatePath &&
+        (!isCreateMode || editPath.trim().length > 0),
+      save: async () => handleSaveRef.current(),
+      discard: async () => {
+        clearEditorDraft(setName, tokenPath);
+        setPendingDraft(null);
+        onBack();
+      },
+      closeWhenClean: onBack,
+    });
+    return () => {
+      editorSessionHost.registerSession(null);
+    };
+  }, [
+    canSave,
+    duplicatePath,
+    editPath,
+    editorSessionHost,
+    handleSaveRef,
+    isCreateMode,
+    isDirty,
+    onBack,
+    saving,
+    setName,
+    tokenPath,
+    setPendingDraft,
+  ]);
 
   // Restore scroll position when navigating between tokens
   useEffect(() => {
@@ -564,9 +573,14 @@ export function TokenEditor({
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLDivElement>) => {
-      handlePasteInValueEditor(e, parsePastedValue, setValue);
+      handlePasteInValueEditor(e, {
+        aliasMode,
+        tokenType,
+        parsePastedValue,
+        setValue,
+      });
     },
-    [handlePasteInValueEditor, setValue],
+    [aliasMode, handlePasteInValueEditor, setValue, tokenType],
   );
 
   const [detailsOpen, setDetailsOpen] = useState(() => {
@@ -879,7 +893,7 @@ export function TokenEditor({
               </svg>
             </button>
           )}
-          <button type="button" onClick={handleBack} className={AUTHORING.footerBtnSecondary}>
+          <button type="button" onClick={requestClose} className={AUTHORING.footerBtnSecondary}>
             {isDirty || isCreateMode ? "Cancel" : "Close"}
           </button>
           {isDirty && !isCreateMode && (
@@ -934,7 +948,7 @@ export function TokenEditor({
     <div className="flex flex-col h-full">
       <EditorShell
         surface="authoring"
-        onBack={handleBack}
+        onBack={requestClose}
         title={headerTitle}
         headerActions={headerActions}
         afterHeader={afterHeader}
@@ -1485,26 +1499,6 @@ export function TokenEditor({
           />
         )}
       </EditorShell>
-
-      {/* Save changes confirmation */}
-      {showDiscardConfirm && (
-        <SaveChangesDialog
-          canSave={canSave}
-          isCreateMode={isCreateMode}
-          editPath={editPath}
-          saving={saving}
-          onSave={() => {
-            setShowDiscardConfirm(false);
-            handleSaveRef.current();
-          }}
-          onDiscard={() => {
-            setShowDiscardConfirm(false);
-            clearEditorDraft(setName, tokenPath);
-            onBack();
-          }}
-          onCancel={() => setShowDiscardConfirm(false)}
-        />
-      )}
 
       {/* Delete confirmation */}
       {showDeleteConfirm && (

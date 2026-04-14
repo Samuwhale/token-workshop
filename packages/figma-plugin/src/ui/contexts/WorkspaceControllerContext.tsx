@@ -54,8 +54,8 @@ export interface EditorShellController {
   contextualEditorTransition: SurfaceTransition;
   splitPreviewTransition: SurfaceTransition;
   guardEditorAction: (fn: () => void) => void;
-  editorIsDirtyRef: MutableRefObject<boolean>;
-  editorCloseRef: MutableRefObject<() => void>;
+  registerEditorSession: (session: EditorSessionRegistration | null) => void;
+  requestEditorClose: () => void;
   displayedLeafNodesRef: MutableRefObject<TokenNode[]>;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
   handleEditorNavigate: (direction: 1 | -1) => void;
@@ -73,6 +73,14 @@ export interface EditorShellController {
   handleSplitKeyDown: (event: React.KeyboardEvent) => void;
   availableFonts: string[];
   fontWeightsByFamily: Record<string, number[]>;
+}
+
+export interface EditorSessionRegistration {
+  isDirty: boolean;
+  canSave: boolean;
+  save: () => Promise<boolean>;
+  discard: () => Promise<void>;
+  closeWhenClean: () => void;
 }
 
 export interface TokensWorkspaceController {

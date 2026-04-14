@@ -38,17 +38,14 @@ interface UseTokenEditorSaveParams {
   extendsPath: string;
   initialServerSnapshotRef: React.MutableRefObject<string | null>;
   onBack: () => void;
+  requestClose: () => void;
   onSaved?: (savedPath: string) => void;
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   pushUndo?: (slot: UndoSlot) => void;
   // For keyboard handler
   handleToggleAlias: () => void;
-  handleBack: () => void;
-  showDiscardConfirm: boolean;
-  setShowDiscardConfirm: (v: boolean) => void;
   showAutocomplete: boolean;
   setShowAutocomplete: (v: boolean) => void;
-  isDirty: boolean;
 }
 
 export function useTokenEditorSave({
@@ -69,22 +66,19 @@ export function useTokenEditorSave({
   extendsPath,
   initialServerSnapshotRef,
   onBack,
+  requestClose,
   onSaved,
   onSaveAndCreateAnother,
   pushUndo,
   handleToggleAlias,
-  handleBack,
-  showDiscardConfirm,
-  setShowDiscardConfirm,
   showAutocomplete,
   setShowAutocomplete,
-  isDirty,
 }: UseTokenEditorSaveParams) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
   const [saveRetryArgs, setSaveRetryArgs] = useState<[boolean, boolean] | null>(null);
-  const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => void>(() => {});
+  const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => Promise<boolean>>(async () => false);
 
   const handleDelete = async () => {
     try {
@@ -99,7 +93,7 @@ export function useTokenEditorSave({
     if (isCreateMode && !editPath.trim()) {
       setSaveRetryArgs(null);
       setError('Token path cannot be empty');
-      return;
+      return false;
     }
     setSaving(true);
     setSaveRetryArgs(null);
@@ -112,7 +106,7 @@ export function useTokenEditorSave({
           if (currentSnapshot !== initialServerSnapshotRef.current) {
             setShowConflictConfirm(true);
             setSaving(false);
-            return;
+            return false;
           }
         } catch (err) {
           console.warn('[TokenEditor] conflict check failed, proceeding with save:', err);
@@ -147,7 +141,7 @@ export function useTokenEditorSave({
           setSaveRetryArgs(null);
           setError('Invalid JSON in Extensions — fix before saving');
           setSaving(false);
-          return;
+          return false;
         }
       }
       if (initialServerSnapshotRef.current) {
@@ -211,6 +205,7 @@ export function useTokenEditorSave({
       } else {
         onBack();
       }
+      return true;
     } catch (err) {
       if (isCreateMode && err instanceof ApiError && err.status === 409) {
         setError(`Token "${editPath.trim()}" already exists`);
@@ -218,6 +213,7 @@ export function useTokenEditorSave({
         setError(getErrorMessage(err));
       }
       setSaveRetryArgs([forceOverwrite, createAnother]);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -229,9 +225,8 @@ export function useTokenEditorSave({
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (showDiscardConfirm) { setShowDiscardConfirm(false); return; }
         if (showAutocomplete) { setShowAutocomplete(false); return; }
-        handleBack();
+        requestClose();
       }
       if (matchesShortcut(e, 'EDITOR_TOGGLE_ALIAS')) {
         e.preventDefault();
@@ -257,7 +252,7 @@ export function useTokenEditorSave({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onBack, isDirty, showDiscardConfirm, showAutocomplete, handleToggleAlias, isCreateMode, onSaveAndCreateAnother, handleBack, setShowDiscardConfirm, setShowAutocomplete]);
+  }, [requestClose, showAutocomplete, handleToggleAlias, isCreateMode, onSaveAndCreateAnother, setShowAutocomplete]);
 
   return {
     saving,

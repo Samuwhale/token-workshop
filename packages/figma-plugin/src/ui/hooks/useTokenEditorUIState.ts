@@ -2,25 +2,11 @@ import { useState, useRef, useCallback } from 'react';
 import type { TokenEditorValue } from '../shared/tokenEditorTypes';
 
 interface UseTokenEditorUIStateParams {
-  isDirty: boolean;
-  onBack: () => void;
-  setShowDiscardConfirm: (v: boolean) => void;
-  tokenType: string;
-  aliasMode: boolean;
-  value: TokenEditorValue;
   tokenPath: string;
-  setName: string;
 }
 
 export function useTokenEditorUIState({
-  isDirty,
-  onBack,
-  setShowDiscardConfirm,
-  tokenType,
-  aliasMode,
-  value: _value,
   tokenPath,
-  setName: _setName,
 }: UseTokenEditorUIStateParams) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -30,11 +16,16 @@ export function useTokenEditorUIState({
   const [refsExpanded, setRefsExpanded] = useState(false);
   const pathInputWrapperRef = useRef<HTMLDivElement>(null);
 
-  const handleBack = useCallback(() => {
-    if (isDirty) { setShowDiscardConfirm(true); } else { onBack(); }
-  }, [isDirty, onBack, setShowDiscardConfirm]);
-
-  const handlePasteInValueEditor = useCallback((e: React.ClipboardEvent<HTMLDivElement>, parsePastedValue: (type: string, text: string) => TokenEditorValue | null, setValue: (v: TokenEditorValue) => void) => {
+  const handlePasteInValueEditor = useCallback((
+    e: React.ClipboardEvent<HTMLDivElement>,
+    options: {
+      aliasMode: boolean;
+      tokenType: string;
+      parsePastedValue: (type: string, text: string) => TokenEditorValue | null;
+      setValue: (v: TokenEditorValue) => void;
+    },
+  ) => {
+    const { aliasMode, tokenType, parsePastedValue, setValue } = options;
     if (aliasMode) return;
     const text = e.clipboardData.getData('text/plain');
     if (!text.trim()) return;
@@ -56,7 +47,7 @@ export function useTokenEditorUIState({
     setValue(parsed);
     setPasteFlash(true);
     setTimeout(() => setPasteFlash(false), 1500);
-  }, [aliasMode, tokenType]);
+  }, []);
 
   return {
     showDeleteConfirm,
@@ -72,7 +63,6 @@ export function useTokenEditorUIState({
     refsExpanded,
     setRefsExpanded,
     pathInputWrapperRef,
-    handleBack,
     handlePasteInValueEditor,
   };
 }

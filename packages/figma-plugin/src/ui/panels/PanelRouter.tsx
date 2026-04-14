@@ -571,10 +571,10 @@ export function PanelRouter(): ReactNode {
         isCreateMode: editingToken.isCreate,
         initialType: editingToken.initialType,
         initialValue: editingToken.initialValue,
-        onDirtyChange: (dirty: boolean) => {
-          controller.editorIsDirtyRef.current = dirty;
+        editorSessionHost: {
+          registerSession: controller.registerEditorSession,
+          requestClose: controller.requestEditorClose,
         },
-        closeRef: controller.editorCloseRef,
         onSaved: handleTokenEditorSaved,
         onSaveAndCreateAnother: handleTokenEditorSaveAndCreateAnother,
         dimensions,
@@ -683,10 +683,10 @@ export function PanelRouter(): ReactNode {
           getSuccessToastAction: getViewTokensToastAction,
           onPushUndo: controller.pushUndo,
           presentation: "panel" as const,
-          onDirtyChange: (dirty: boolean) => {
-            controller.editorIsDirtyRef.current = dirty;
+          editorSessionHost: {
+            registerSession: controller.registerEditorSession,
+            requestClose: controller.requestEditorClose,
           },
-          closeRef: controller.editorCloseRef,
         }
       : null;
 
@@ -707,7 +707,7 @@ export function PanelRouter(): ReactNode {
         return {
           surface: "token-editor",
           content: <TokenEditor {...tokenEditorProps} />,
-          onDismiss: controller.editorCloseRef.current,
+          onDismiss: controller.requestEditorClose,
           height: "65%",
         };
       }
@@ -720,7 +720,7 @@ export function PanelRouter(): ReactNode {
         return {
           surface: "generator-editor",
           content: <TokenGeneratorDialog {...generatorEditorProps} />,
-          onDismiss: controller.editorCloseRef.current,
+          onDismiss: controller.requestEditorClose,
           height: "72%",
         };
       }

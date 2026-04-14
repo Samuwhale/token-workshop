@@ -219,7 +219,7 @@ export function TokenListToolbar({
                 setHintIndex(0);
               }
             }}
-            placeholder="Search names, paths, or descriptions"
+            placeholder="Search tokens..."
             title={searchTooltip}
             className={`w-full rounded border bg-[var(--color-figma-bg)] py-1 pl-6 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${searchQuery ? "pr-8" : "pr-2"} ${structuredFilterChips.length > 0 ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"}`}
           />

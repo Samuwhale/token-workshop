@@ -41,9 +41,10 @@ export function useTokenEditorFields(params: {
   initialType?: string;
   initialValue?: string;
   tokenPath: string;
+  editPath: string;
   allTokensFlat: Record<string, TokenMapEntry>;
 }) {
-  const { isCreateMode, initialType, initialValue, tokenPath, allTokensFlat } = params;
+  const { isCreateMode, initialType, initialValue, tokenPath, editPath, allTokensFlat } = params;
 
   // initialRef tracks the server-loaded snapshot for dirty checking
   const initialRef = useRef<FieldsSnapshot | null>(null);
@@ -96,9 +97,10 @@ export function useTokenEditorFields(params: {
       stableStringify(modeValues) !== stableStringify(init.modeValues) ||
       extensionsJsonText !== init.extensionsJsonText ||
       lifecycle !== init.lifecycle ||
-      extendsPath !== init.extendsPath
+      extendsPath !== init.extendsPath ||
+      (isCreateMode && editPath.trim() !== tokenPath.trim())
     );
-  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath]);
+  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath, isCreateMode, editPath, tokenPath]);
 
   // colorFlatMap - flat map of color token string values for reference resolution
   const colorFlatMap = useMemo(() => {

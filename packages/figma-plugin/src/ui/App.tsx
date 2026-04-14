@@ -22,6 +22,7 @@ import { SetSwitcher } from "./components/SetSwitcher";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { computeHealthIssueCount } from "./components/HealthPanel";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
 import { PanelRouter } from "./panels/PanelRouter";
 import { useServerEvents } from "./hooks/useServerEvents";
 import type { TokenNode } from "./hooks/useTokens";
@@ -95,7 +96,10 @@ import { useAnalyticsState } from "./hooks/useAnalyticsState";
 import { useValidationCache } from "./hooks/useValidationCache";
 import { useGraphState } from "./hooks/useGraphState";
 import { useSettingsListener } from "./components/SettingsPanel";
-import { WorkspaceControllerProvider } from "./contexts/WorkspaceControllerContext";
+import {
+  WorkspaceControllerProvider,
+  type EditorSessionRegistration,
+} from "./contexts/WorkspaceControllerContext";
 import type { TokenMapEntry } from "../shared/types";
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { adaptShortcut, tokenPathToUrlSegment } from "./shared/utils";
@@ -780,22 +784,63 @@ export function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const editorIsDirtyRef = useRef(false);
-  // Pending navigation action — set when user tries to navigate away from a dirty editor
+  const editorSessionRef = useRef<EditorSessionRegistration | null>(null);
   const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(
     null,
   );
+  const [pendingUnsavedAction, setPendingUnsavedAction] = useState<
+    "save" | "discard" | null
+  >(null);
   const guardEditorAction = useCallback((fn: () => void) => {
-    if (editorIsDirtyRef.current) {
+    if (editorSessionRef.current?.isDirty) {
       setPendingNavAction(() => fn);
     } else {
       fn();
     }
   }, []);
-  const handleEditorClose = useCallback(() => {
-    switchContextualSurface({ surface: null });
-    refreshAll();
-  }, [refreshAll, switchContextualSurface]);
+  const registerEditorSession = useCallback(
+    (session: EditorSessionRegistration | null) => {
+      editorSessionRef.current = session;
+    },
+    [],
+  );
+  const requestEditorClose = useCallback(() => {
+    const closeWhenClean = editorSessionRef.current?.closeWhenClean;
+    if (!closeWhenClean) return;
+    guardEditorAction(closeWhenClean);
+  }, [guardEditorAction]);
+  const handlePendingEditorSave = useCallback(async () => {
+    const action = pendingNavAction;
+    const session = editorSessionRef.current;
+    setPendingUnsavedAction("save");
+    setPendingNavAction(null);
+    if (!session) {
+      setPendingUnsavedAction(null);
+      action?.();
+      return;
+    }
+    const saved = await session.save();
+    setPendingUnsavedAction(null);
+    if (saved) {
+      action?.();
+    }
+  }, [pendingNavAction]);
+  const handlePendingEditorDiscard = useCallback(async () => {
+    const action = pendingNavAction;
+    const session = editorSessionRef.current;
+    setPendingUnsavedAction("discard");
+    setPendingNavAction(null);
+    if (session) {
+      editorSessionRef.current = { ...session, isDirty: false };
+      await session.discard();
+    }
+    setPendingUnsavedAction(null);
+    action?.();
+  }, [pendingNavAction]);
+  const handlePendingEditorCancel = useCallback(() => {
+    if (pendingUnsavedAction !== null) return;
+    setPendingNavAction(null);
+  }, [pendingUnsavedAction]);
   const handlePreviewEdit = useCallback(() => {
     guardEditorAction(() => {
       if (!previewingToken) return;
@@ -812,9 +857,6 @@ export function App() {
   const handlePreviewClose = useCallback(() => {
     setPreviewingToken(null);
   }, [setPreviewingToken]);
-  const editorCloseRef = useRef<() => void>(() => {
-    if (!editorIsDirtyRef.current) handleEditorClose();
-  });
   const editingGeneratorData =
     editingGenerator?.mode === "edit"
       ? (generators.find((generator) => generator.id === editingGenerator.id) ??
@@ -1781,8 +1823,8 @@ export function App() {
       contextualEditorTransition,
       splitPreviewTransition: CONTEXTUAL_PANEL_TRANSITIONS.splitPreview,
       guardEditorAction,
-      editorIsDirtyRef,
-      editorCloseRef,
+      registerEditorSession,
+      requestEditorClose,
       displayedLeafNodesRef,
       tokenListCompareRef,
       handleEditorNavigate,
@@ -3469,19 +3511,16 @@ export function App() {
 
       {/* Unsaved editor changes guard */}
       {pendingNavAction && (
-        <ConfirmModal
-          title="Unsaved changes"
-          description="Changes will be lost."
-          confirmLabel="Discard changes"
-          cancelLabel="Keep editing"
-          danger
-          onConfirm={() => {
-            const action = pendingNavAction;
-            setPendingNavAction(null);
-            handleEditorClose();
-            action();
+        <UnsavedChangesDialog
+          canSave={editorSessionRef.current?.canSave ?? false}
+          busyAction={pendingUnsavedAction}
+          onSave={() => {
+            void handlePendingEditorSave();
           }}
-          onCancel={() => setPendingNavAction(null)}
+          onDiscard={() => {
+            void handlePendingEditorDiscard();
+          }}
+          onCancel={handlePendingEditorCancel}
         />
       )}
 
