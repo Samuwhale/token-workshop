@@ -9,7 +9,7 @@ export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 overflow-y-auto px-2 py-2 text-center">
       <FeedbackPlaceholder
-        variant="empty"
+        variant={connected ? "empty" : "disconnected"}
         size="section"
         className="w-full max-w-[270px]"
         icon={(
@@ -19,19 +19,9 @@ export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
           </svg>
         )}
         title="No tokens yet"
-        description="Start with guided setup, templates, or import."
-        primaryAction={{ label: 'Get started', onClick: onOpenStartHere }}
+        description={connected ? "Create your first token or import an existing file." : "Connect to a server to start managing tokens."}
+        primaryAction={{ label: connected ? 'Get started' : 'Connect', onClick: onOpenStartHere }}
       />
-
-      {!connected && (
-        <FeedbackPlaceholder
-          variant="disconnected"
-          size="section"
-          className="w-full max-w-[270px]"
-          title="Server offline"
-          description="Use guided setup to reconnect."
-        />
-      )}
     </div>
   );
 }

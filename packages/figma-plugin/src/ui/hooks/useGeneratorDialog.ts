@@ -25,6 +25,7 @@ import {
 } from "./useGeneratorSave";
 import type { UndoSlot } from "./useUndo";
 import type { ToastAction } from "../shared/toastBus";
+import { stableStringify } from "../shared/utils";
 
 import type { OverwrittenEntry } from "./useGeneratorPreview";
 export type { OverwrittenEntry } from "./useGeneratorPreview";
@@ -74,6 +75,13 @@ function cloneGeneratorDraftValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function cloneOptionalDraftValue<T>(value: T): T {
+  if (value === undefined) {
+    return value;
+  }
+  return cloneGeneratorDraftValue(value);
+}
+
 type GeneratorTemplateDraftSource = GeneratorTemplate & {
   semanticStarter?: {
     prefix: string;
@@ -116,6 +124,36 @@ export function createGeneratorDraftFromTemplate(
       ? cloneGeneratorDraftValue(semanticStarter.mappings)
       : undefined,
     selectedSemanticPatternId: semanticStarter?.patternId ?? null,
+  };
+}
+
+interface GeneratorDirtySnapshot {
+  selectedType: GeneratorType;
+  name: string;
+  targetSet: string;
+  targetGroup: string;
+  editableSourcePath: string;
+  inlineValue: unknown;
+  configs: Partial<Record<GeneratorType, GeneratorConfig>>;
+  pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
+  inputTable: InputTable | undefined;
+  targetSetTemplate: string;
+  semanticEnabled: boolean;
+  semanticPrefix: string;
+  semanticMappings: Array<{ semantic: string; step: string }>;
+  selectedSemanticPatternId: string | null;
+}
+
+function createGeneratorDirtySnapshot(
+  snapshot: GeneratorDirtySnapshot,
+): GeneratorDirtySnapshot {
+  return {
+    ...snapshot,
+    inlineValue: cloneOptionalDraftValue(snapshot.inlineValue),
+    configs: cloneGeneratorDraftValue(snapshot.configs),
+    pendingOverrides: cloneGeneratorDraftValue(snapshot.pendingOverrides),
+    inputTable: cloneOptionalDraftValue(snapshot.inputTable),
+    semanticMappings: cloneGeneratorDraftValue(snapshot.semanticMappings),
   };
 }
 
@@ -166,7 +204,7 @@ interface UseGeneratorDialogReturn {
   recommendedType: GeneratorType | undefined;
   currentConfig: GeneratorConfig;
   lockedCount: number;
-  isDirtyRef: React.RefObject<boolean>;
+  isDirty: boolean;
   // Config undo
   canUndo: boolean;
   canRedo: boolean;
@@ -225,9 +263,9 @@ interface UseGeneratorDialogReturn {
   ) => void;
   handleOverrideClear: (stepName: string) => void;
   clearAllOverrides: () => void;
-  handleQuickSave: () => Promise<void>;
-  handleSave: () => Promise<void>;
-  handleConfirmSave: () => Promise<void>;
+  handleQuickSave: () => Promise<boolean>;
+  handleSave: () => Promise<boolean>;
+  handleConfirmSave: () => Promise<boolean>;
   handleCancelConfirmation: () => void;
   setSemanticEnabled: (v: boolean) => void;
   setSemanticPrefix: (v: string) => void;
@@ -293,70 +331,102 @@ export function useGeneratorDialog({
     resolvedInitialDraft?.selectedType ??
     recommendedType ??
     "colorRamp";
+  const initialName =
+    existingGenerator?.name ??
+    resolvedInitialDraft?.name ??
+    autoName(sourceTokenPath, initialType);
+  const initialTargetSet =
+    existingGenerator?.targetSet ??
+    resolvedInitialDraft?.targetSet ??
+    activeSet;
+  const initialTargetGroup =
+    existingGenerator?.targetGroup ??
+    resolvedInitialDraft?.targetGroup ??
+    (sourceTokenPath
+      ? suggestTargetGroup(sourceTokenPath, sourceTokenName)
+      : "");
+  const initialInlineValue =
+    existingGenerator?.inlineValue ??
+    resolvedInitialDraft?.inlineValue ??
+    undefined;
+  const initialConfigs: Partial<Record<GeneratorType, GeneratorConfig>> = {};
+  for (const type of ALL_TYPES) {
+    if (existingGenerator?.type === type) {
+      initialConfigs[type] = cloneGeneratorDraftValue(existingGenerator.config);
+    } else if (resolvedInitialDraft?.configs?.[type]) {
+      initialConfigs[type] = cloneGeneratorDraftValue(
+        resolvedInitialDraft.configs[type]!,
+      );
+    } else {
+      initialConfigs[type] = defaultConfigForType(type);
+    }
+  }
+  const initialPendingOverrides =
+    existingGenerator?.overrides ??
+    resolvedInitialDraft?.pendingOverrides ??
+    {};
+  const initialInputTable = existingGenerator?.inputTable ?? undefined;
+  const initialTargetSetTemplate =
+    existingGenerator?.targetSetTemplate ?? "brands/{brand}";
+  const initialSemanticEnabled =
+    resolvedInitialDraft?.semanticEnabled ??
+    Boolean(existingGenerator?.semanticLayer?.mappings.length);
+  const initialSemanticPrefix =
+    resolvedInitialDraft?.semanticPrefix ??
+    existingGenerator?.semanticLayer?.prefix ??
+    "semantic";
+  const initialSemanticMappings =
+    resolvedInitialDraft?.semanticMappings ??
+    existingGenerator?.semanticLayer?.mappings ??
+    [];
+  const initialSelectedSemanticPatternId =
+    resolvedInitialDraft?.selectedSemanticPatternId ??
+    existingGenerator?.semanticLayer?.patternId ??
+    null;
 
   const [selectedType, setSelectedType] = useState<GeneratorType>(initialType);
-  const [name, setName] = useState(
-    existingGenerator?.name ??
-      resolvedInitialDraft?.name ??
-      autoName(sourceTokenPath, initialType),
-  );
-  const [targetSet, setTargetSet] = useState(
-    existingGenerator?.targetSet ??
-      resolvedInitialDraft?.targetSet ??
-      activeSet,
-  );
-  const [targetGroup, setTargetGroup] = useState(
-    existingGenerator?.targetGroup ??
-      resolvedInitialDraft?.targetGroup ??
-      (sourceTokenPath
-        ? suggestTargetGroup(sourceTokenPath, sourceTokenName)
-        : ""),
-  );
-  const [inlineValue, setInlineValueRaw] = useState<unknown>(
-    existingGenerator?.inlineValue ??
-      resolvedInitialDraft?.inlineValue ??
-      undefined,
-  );
+  const [name, setName] = useState(initialName);
+  const [targetSet, setTargetSet] = useState(initialTargetSet);
+  const [targetGroup, setTargetGroup] = useState(initialTargetGroup);
+  const [inlineValue, setInlineValueRaw] = useState<unknown>(initialInlineValue);
 
   const [configs, setConfigs] = useState<
     Partial<Record<GeneratorType, GeneratorConfig>>
-  >(() => {
-    const base: Partial<Record<GeneratorType, GeneratorConfig>> = {};
-    for (const t of ALL_TYPES) {
-      if (existingGenerator?.type === t) {
-        base[t] = cloneGeneratorDraftValue(existingGenerator.config);
-      } else if (resolvedInitialDraft?.configs?.[t]) {
-        base[t] = cloneGeneratorDraftValue(resolvedInitialDraft.configs[t]!);
-      } else {
-        base[t] = defaultConfigForType(t);
-      }
-    }
-    return base;
-  });
+  >(() => cloneGeneratorDraftValue(initialConfigs));
 
   const [pendingOverrides, setPendingOverrides] = useState<
     Record<string, { value: unknown; locked: boolean }>
-  >(
-    existingGenerator?.overrides ??
-      resolvedInitialDraft?.pendingOverrides ??
-      {},
-  );
+  >(() => cloneGeneratorDraftValue(initialPendingOverrides));
 
-  const [inputTable, setInputTable] = useState<InputTable | undefined>(
-    existingGenerator?.inputTable ?? undefined,
+  const [inputTable, setInputTable] = useState<InputTable | undefined>(() =>
+    cloneOptionalDraftValue(initialInputTable),
   );
   const [targetSetTemplate, setTargetSetTemplate] = useState<string>(
-    existingGenerator?.targetSetTemplate ?? "brands/{brand}",
+    initialTargetSetTemplate,
   );
 
   const nameWasAutoRef = useRef(
     resolvedInitialDraft?.nameIsAuto ??
       (!existingGenerator && !resolvedInitialDraft?.name),
   );
-  const isDirtyRef = useRef(false);
-  const markDirty = useCallback(() => {
-    isDirtyRef.current = true;
-  }, []);
+  const initialDirtySnapshotRef = useRef<GeneratorDirtySnapshot>(
+    createGeneratorDirtySnapshot({
+      selectedType: initialType,
+      name: initialName,
+      targetSet: initialTargetSet,
+      targetGroup: initialTargetGroup,
+      editableSourcePath: existingGenerator?.sourceToken ?? sourceTokenPath ?? "",
+      inlineValue: initialInlineValue,
+      configs: initialConfigs,
+      pendingOverrides: initialPendingOverrides,
+      inputTable: initialInputTable,
+      targetSetTemplate: initialTargetSetTemplate,
+      semanticEnabled: initialSemanticEnabled,
+      semanticPrefix: initialSemanticPrefix,
+      semanticMappings: initialSemanticMappings,
+      selectedSemanticPatternId: initialSelectedSemanticPatternId,
+    }),
+  );
 
   // --- Config undo/redo stack ---
   // Snapshots are debounced: rapid edits (keystrokes) are coalesced into one snapshot.
@@ -553,56 +623,77 @@ export function useGeneratorDialog({
     pushUndo,
     requestPreviewRefresh: () =>
       setPreviewRefreshNonce((current) => current + 1),
-    initialSemanticEnabled:
-      resolvedInitialDraft?.semanticEnabled ??
-      Boolean(existingGenerator?.semanticLayer?.mappings.length),
-    initialSemanticPrefix:
-      resolvedInitialDraft?.semanticPrefix ??
-      existingGenerator?.semanticLayer?.prefix ??
-      "semantic",
-    initialSemanticMappings:
-      resolvedInitialDraft?.semanticMappings ??
-      existingGenerator?.semanticLayer?.mappings ??
-      [],
-    initialSelectedSemanticPatternId:
-      resolvedInitialDraft?.selectedSemanticPatternId ??
-      existingGenerator?.semanticLayer?.patternId ??
-      null,
+    initialSemanticEnabled,
+    initialSemanticPrefix,
+    initialSemanticMappings,
+    initialSelectedSemanticPatternId,
   });
+  const isDirty = useMemo(() => {
+    const initialSnapshot = initialDirtySnapshotRef.current;
+    const currentSnapshot = createGeneratorDirtySnapshot({
+      selectedType,
+      name,
+      targetSet,
+      targetGroup,
+      editableSourcePath,
+      inlineValue,
+      configs,
+      pendingOverrides,
+      inputTable,
+      targetSetTemplate,
+      semanticEnabled,
+      semanticPrefix,
+      semanticMappings,
+      selectedSemanticPatternId,
+    });
+    return (
+      stableStringify(currentSnapshot) !== stableStringify(initialSnapshot)
+    );
+  }, [
+    configs,
+    editableSourcePath,
+    inlineValue,
+    inputTable,
+    name,
+    pendingOverrides,
+    selectedSemanticPatternId,
+    selectedType,
+    semanticEnabled,
+    semanticMappings,
+    semanticPrefix,
+    targetGroup,
+    targetSet,
+    targetSetTemplate,
+  ]);
 
   // --- Config handlers ---
 
   const handleTypeChange = (type: GeneratorType) => {
     pushConfigSnapshot();
-    markDirty();
     setSelectedType(type);
     if (nameWasAutoRef.current) setName(autoName(effectiveSourcePath, type));
   };
 
   const setEditableSourcePath = useCallback(
     (v: string) => {
-      markDirty();
       setEditableSourcePathRaw(v);
       if (nameWasAutoRef.current)
         setName(autoName(v.trim() || undefined, selectedType));
     },
-    [markDirty, selectedType],
+    [selectedType],
   );
 
   const handleNameChange = (value: string) => {
-    markDirty();
     nameWasAutoRef.current = false;
     setName(value);
   };
 
   const handleConfigChange = (type: GeneratorType, cfg: GeneratorConfig) => {
     pushConfigSnapshotDebounced();
-    markDirty();
     setConfigs((prev) => ({ ...prev, [type]: cfg }));
   };
 
   const handleToggleMultiBrand = () => {
-    markDirty();
     setInputTable(
       inputTable ? undefined : { inputKey: "brandColor", rows: [] },
     );
@@ -613,7 +704,6 @@ export function useGeneratorDialog({
     value: string,
     locked: boolean,
   ) => {
-    markDirty();
     setPendingOverrides((prev) => ({ ...prev, [stepName]: { value, locked } }));
   };
 
@@ -626,72 +716,62 @@ export function useGeneratorDialog({
   };
 
   const clearAllOverrides = () => {
-    markDirty();
     setPendingOverrides({});
   };
 
   const setTargetSetDirty = useCallback(
     (v: string) => {
-      markDirty();
       setTargetSet(v);
     },
-    [markDirty],
+    [],
   );
   const setTargetGroupDirty = useCallback(
     (v: string) => {
-      markDirty();
       setTargetGroup(v);
     },
-    [markDirty],
+    [],
   );
   const setTargetSetTemplateDirty = useCallback(
     (v: string) => {
-      markDirty();
       setTargetSetTemplate(v);
     },
-    [markDirty],
+    [],
   );
   const setInputTableDirty = useCallback(
     (t: InputTable | undefined) => {
-      markDirty();
       setInputTable(t);
     },
-    [markDirty],
+    [],
   );
   const setInlineValue = useCallback(
     (v: unknown) => {
-      markDirty();
       setInlineValueRaw(v);
     },
-    [markDirty],
+    [],
   );
   const setSemanticEnabledDirty = useCallback(
     (value: boolean) => {
-      markDirty();
       setSemanticEnabled(value);
     },
-    [markDirty, setSemanticEnabled],
+    [setSemanticEnabled],
   );
   const setSemanticPrefixDirty = useCallback(
     (value: string) => {
-      markDirty();
       setSemanticPrefix(value);
     },
-    [markDirty, setSemanticPrefix],
+    [setSemanticPrefix],
   );
   const setSemanticMappingsDirty = useCallback(
     (value: Array<{ semantic: string; step: string }>) => {
-      markDirty();
       setSemanticMappings(value);
     },
-    [markDirty, setSemanticMappings],
+    [setSemanticMappings],
   );
   const setSelectedSemanticPatternIdDirty = useCallback(
     (value: string | null) => {
-      markDirty();
       setSelectedSemanticPatternId(value);
     },
-    [markDirty, setSelectedSemanticPatternId],
+    [setSelectedSemanticPatternId],
   );
 
   return {
@@ -705,7 +785,7 @@ export function useGeneratorDialog({
     recommendedType,
     currentConfig,
     lockedCount,
-    isDirtyRef,
+    isDirty,
     // Config undo
     canUndo,
     canRedo,

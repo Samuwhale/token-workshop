@@ -64,7 +64,6 @@ export function ThemeAxisCard({
   );
   const optionKey = `${dimension.id}:${selectedOption}`;
   const selectedOptionIssues = ctx.optionIssues[optionKey] ?? [];
-  const selectedOptionSummary = ctx.optionRoleSummaries[optionKey] ?? null;
 
   const setTokenCounts = useMemo(
     () =>
@@ -169,11 +168,6 @@ export function ThemeAxisCard({
                   />
                 )}
               </div>
-              <span className="truncate text-[9px] text-[var(--color-figma-text-tertiary)]">
-                {dimension.options.length === 0
-                  ? "No variants yet"
-                  : `${dimension.options.length} variant${dimension.options.length === 1 ? "" : "s"} · ${selectedOptionSummary?.baseCount ?? foundationSets.length} shared · ${selectedOptionSummary?.overrideCount ?? overrideSets.length} override`}
-              </span>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
               {ctx.onGenerateForDimension && (
@@ -252,24 +246,17 @@ export function ThemeAxisCard({
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     <button
                       role="menuitem"
-                      onClick={() => { axisMenu.close(); ctx.onOpenCoverageView(undefined, true); }}
+                      onClick={() => { axisMenu.close(); ctx.onOpenCompare(dimension.id); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
-                      Review issues
+                      Compare
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => {
-                        axisMenu.close();
-                        ctx.onOpenAdvancedSetup({
-                          dimId: dimension.id,
-                          optionName: selectedOption,
-                          preferredSetName: null,
-                        });
-                      }}
+                      onClick={() => { axisMenu.close(); ctx.onOpenResolver(); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
-                      Advanced setup
+                      Resolver
                     </button>
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     <button
@@ -291,7 +278,6 @@ export function ThemeAxisCard({
       <ThemeOptionRail
         dimension={dimension}
         selectedOption={selectedOption}
-        optionDiffCounts={ctx.optionDiffCounts}
         optionRoleSummaries={ctx.optionRoleSummaries}
         onSelectOption={(dimId, optionName) => ctx.onSelectOption(dimId, optionName)}
         showAddOption={showAddOption}
@@ -305,15 +291,6 @@ export function ThemeAxisCard({
         onHandleCopyAssignmentsFrom={(sourceOptionName) =>
           ctx.handleCopyAssignmentsFrom(dimension.id, selectedOption, sourceOptionName)
         }
-        onOpenAdvancedSetup={() =>
-          ctx.onOpenAdvancedSetup({
-            dimId: dimension.id,
-            optionName: selectedOption,
-            preferredSetName: null,
-          })
-        }
-        onOpenCoverageView={() => ctx.onOpenCoverageView(undefined, false)}
-        disabledSetCount={disabledSets.length}
       />
 
       {(showAddOption || dimension.options.length === 0) && (
@@ -450,14 +427,20 @@ export function ThemeAxisCard({
           }}
           onExecuteRenameOption={ctx.executeRenameOption}
           onCancelRenameOption={ctx.cancelRenameOption}
-          onOpenCoverageView={ctx.onOpenCoverageView}
-          onOpenAdvancedSetup={() =>
-            ctx.onOpenAdvancedSetup({
-              dimId: dimension.id,
-              optionName: selectedOption,
-              preferredSetName: null,
-            })
-          }
+          onResolveIssue={(issue) => {
+            if (issue.preferredSetName && ctx.onNavigateToTokenSet) {
+              ctx.onNavigateToTokenSet(issue.preferredSetName);
+            } else if (issue.affectedSetNames?.[0] && ctx.onNavigateToTokenSet) {
+              ctx.onNavigateToTokenSet(issue.affectedSetNames[0]);
+            }
+          }}
+          onViewTokens={ctx.onNavigateToTokenSet ? (issue) => {
+            if (issue.preferredSetName) {
+              ctx.onNavigateToTokenSet!(issue.preferredSetName);
+            } else if (issue.affectedSetNames?.[0]) {
+              ctx.onNavigateToTokenSet!(issue.affectedSetNames[0]);
+            }
+          } : undefined}
           onHandleSetState={(setName, nextState) =>
             ctx.handleSetState(dimension.id, selectedOption, setName, nextState)
           }

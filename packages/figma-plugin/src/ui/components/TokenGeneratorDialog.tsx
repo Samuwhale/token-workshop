@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { MutableRefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
-import { ConfirmModal } from "./ConfirmModal";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import type { TokenGenerator, GeneratorTemplate } from "../hooks/useGenerators";
+import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import type { SemanticStarter } from "./graph-templates";
 import type { GraphTemplate } from "./graph-templates";
 import {
@@ -57,10 +56,10 @@ export interface TokenGeneratorDialogProps {
   onPushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
   /** When set to panel, render without the modal backdrop/chrome so the caller can host it in a drawer or side panel. */
   presentation?: "modal" | "panel";
-  /** Mirrors the dialog dirty state to the host surface so navigation guards can reuse it. */
-  onDirtyChange?: (dirty: boolean) => void;
-  /** Allows the host surface to trigger the dialog's close flow, including discard confirmation. */
-  closeRef?: MutableRefObject<(() => void) | null>;
+  editorSessionHost?: {
+    registerSession: (session: EditorSessionRegistration | null) => void;
+    requestClose: () => void;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -87,8 +86,7 @@ export function TokenGeneratorDialog({
   pathToSet,
   onPushUndo,
   presentation = "modal",
-  onDirtyChange,
-  closeRef,
+  editorSessionHost,
 }: TokenGeneratorDialogProps) {
   const [appliedTemplate, setAppliedTemplate] = useState<GraphTemplate | undefined>(undefined);
   const activeTemplate = appliedTemplate ?? template;
@@ -109,16 +107,7 @@ export function TokenGeneratorDialog({
     getSuccessToastAction,
     pushUndo: onPushUndo,
   });
-
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-
-  const handleClose = useCallback(() => {
-    if (dialog.isDirtyRef.current) {
-      setShowDiscardConfirm(true);
-      return;
-    }
-    onClose();
-  }, [dialog.isDirtyRef, onClose]);
+  const requestClose = editorSessionHost?.requestClose ?? onClose;
 
   // --- Save logic ---
   const canSave =
@@ -176,23 +165,42 @@ export function TokenGeneratorDialog({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
+      if (e.key === "Escape") requestClose();
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [handleClose]);
+  }, [requestClose]);
 
   useEffect(() => {
-    onDirtyChange?.(Boolean(dialog.isDirtyRef.current));
-  });
-
-  useEffect(() => {
-    if (!closeRef) return;
-    closeRef.current = handleClose;
+    if (!editorSessionHost) {
+      return;
+    }
+    editorSessionHost.registerSession({
+      isDirty: dialog.isDirty,
+      canSave: canSave && !dialog.saving && !dialog.overwriteCheckLoading,
+      save: () =>
+        dialog.showConfirmation
+          ? dialog.handleConfirmSave()
+          : dialog.handleQuickSave(),
+      discard: async () => {
+        onClose();
+      },
+      closeWhenClean: onClose,
+    });
     return () => {
-      if (closeRef.current === handleClose) closeRef.current = null;
+      editorSessionHost.registerSession(null);
     };
-  }, [closeRef, handleClose]);
+  }, [
+    canSave,
+    dialog.handleConfirmSave,
+    dialog.handleQuickSave,
+    dialog.isDirty,
+    dialog.overwriteCheckLoading,
+    dialog.saving,
+    dialog.showConfirmation,
+    editorSessionHost,
+    onClose,
+  ]);
 
   const isPanel = presentation === "panel";
   const shellClassName = isPanel
@@ -216,7 +224,7 @@ export function TokenGeneratorDialog({
   const headerActions = (
     <button
       type="button"
-      onClick={handleClose}
+      onClick={requestClose}
       aria-label="Close"
       className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
     >
@@ -251,7 +259,7 @@ export function TokenGeneratorDialog({
         <button
           type="button"
           onClick={
-            dialog.showConfirmation ? dialog.handleCancelConfirmation : handleClose
+            dialog.showConfirmation ? dialog.handleCancelConfirmation : requestClose
           }
           className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
         >
@@ -274,20 +282,6 @@ export function TokenGeneratorDialog({
 
   return (
     <div className={shellClassName}>
-      {showDiscardConfirm && (
-        <ConfirmModal
-          title="Discard unsaved changes?"
-          description="You have unsaved changes. They will be lost if you close."
-          confirmLabel="Discard"
-          cancelLabel="Keep editing"
-          danger
-          onConfirm={() => {
-            setShowDiscardConfirm(false);
-            onClose();
-          }}
-          onCancel={() => setShowDiscardConfirm(false)}
-        />
-      )}
       <div
         ref={dialogRef}
         role="dialog"

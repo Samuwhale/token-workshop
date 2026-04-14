@@ -1164,16 +1164,8 @@ export function TokenList({
       });
     }
 
-    for (const label of activeViewSummary) {
-      chips.push({
-        key: `view:${label}`,
-        label,
-        tone: "view",
-      });
-    }
-
     return chips;
-  }, [activeFilterSummary, activeViewSummary, structuredFilterChips]);
+  }, [activeFilterSummary, structuredFilterChips]);
 
   const currentBulkEditScope = useMemo<BulkEditScope>(() => {
     const trimmedQuery = searchQuery.trim();
@@ -3579,11 +3571,9 @@ export function TokenList({
             structuredFilterChips={structuredFilterChips}
             toolbarStateChips={toolbarStateChips}
             activeFilterSummary={activeFilterSummary}
-            activeViewSummary={activeViewSummary}
             hasStructuredFilters={hasStructuredFilters}
             removeQueryToken={removeQueryToken}
             clearFilters={clearFilters}
-            clearViewModes={clearViewModes}
             connected={connected}
             hasTokens={tokens.length > 0}
             onCreateNew={onCreateNew}
@@ -3639,9 +3629,6 @@ export function TokenList({
               tokensExist: tokens.length > 0,
               connected,
               activeCount: viewOptionsActiveCount,
-              onInsertSearchQualifier: insertSearchQualifier,
-              onClearFilters: (activeFilterSummary.length > 0 || hasStructuredFilters) ? clearFilters : undefined,
-              onResetView: activeViewSummary.length > 0 ? clearViewModes : undefined,
             } : null}
           />
         )}

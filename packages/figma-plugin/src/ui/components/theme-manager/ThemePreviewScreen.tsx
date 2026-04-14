@@ -182,47 +182,42 @@ export function ThemePreviewScreen({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <div className="flex items-start justify-between gap-3 px-3 py-2.5">
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              Preview
-            </p>
-          </div>
-          <button
-            onClick={onBack}
-            className="inline-flex shrink-0 items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-          >
-            <svg
-              width="9"
-              height="9"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+        <div className="flex items-center justify-between gap-3 px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              onClick={onBack}
+              className="inline-flex shrink-0 items-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
             >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-            Back to themes
-          </button>
-        </div>
-        <div className="flex items-center justify-between border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
-          <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {activeSelectionLabel || "No variant selected"}
+              <svg
+                width="9"
+                height="9"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              Back
+            </button>
+            <div className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
+              {activeSelectionLabel || "No variant selected"}
+            </div>
           </div>
           <button
             type="button"
             onClick={() => setGroupByPrefix((v) => !v)}
-            className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
+            className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
               groupByPrefix
                 ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
                 : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
             }`}
             title="Group tokens by prefix"
           >
-            Group by prefix
+            Group
           </button>
         </div>
       </div>

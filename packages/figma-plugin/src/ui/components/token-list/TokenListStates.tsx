@@ -1,4 +1,4 @@
-import { formatDisplayPath, QUERY_QUALIFIERS } from "../tokenListUtils";
+import { QUERY_QUALIFIERS } from "../tokenListUtils";
 import type { PromoteRow } from "../tokenListTypes";
 import type { RelocateConflictAction } from "../../hooks/useTokenRelocate";
 import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
@@ -183,7 +183,7 @@ export function TokenListFilteredEmptyState({
         size="section"
         className="w-full max-w-[260px]"
         title="No tokens match your filters"
-        description="Try a broader search or clear a qualifier."
+        description="Try different search terms or clear your filters."
         secondaryAction={{
           label: "Clear filters",
           onClick: onClearFilters,
@@ -204,7 +204,7 @@ export function TokenListFilteredEmptyState({
             q.includes(".") && /^[a-zA-Z0-9._-]+$/.test(q);
           if (looksLikePath && connected) {
             suggestions.push({
-              label: `Create token at "${formatDisplayPath(q, q.split(".").pop() || q)}"`,
+              label: `Create "${q.split(".").pop() || q}"`,
               icon: "create",
               action: () => {
                 onCreateNew?.(q);
@@ -218,7 +218,7 @@ export function TokenListFilteredEmptyState({
             /^[a-zA-Z0-9_-]+$/.test(q)
           ) {
             suggestions.push({
-              label: `Create token "${q}"`,
+              label: `Create "${q}"`,
               icon: "create",
               action: () => {
                 onCreateNew?.(q);
@@ -293,15 +293,12 @@ export function TokenListFilteredEmptyState({
           if (suggestions.length === 0) return null;
 
           return (
-            <div className="mt-3 flex flex-col gap-1 w-full max-w-[240px]">
-              <p className="text-[9px] uppercase tracking-wider text-[var(--color-figma-text-tertiary)] mb-0.5">
-                Suggestions
-              </p>
+            <div className="mt-3 flex flex-col gap-0.5 w-full max-w-[240px]">
               {suggestions.map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={suggestion.action}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] text-left bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] text-left hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-accent)] transition-colors"
                 >
                   {suggestion.icon === "create" && (
                     <svg
@@ -365,20 +362,6 @@ export function TokenListFilteredEmptyState({
                     </svg>
                   )}
                   <span className="truncate">{suggestion.label}</span>
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="ml-auto shrink-0 opacity-40"
-                    aria-hidden="true"
-                  >
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
                 </button>
               ))}
             </div>

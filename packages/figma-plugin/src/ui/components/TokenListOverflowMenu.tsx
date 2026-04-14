@@ -62,10 +62,6 @@ export interface TokenListOverflowMenuProps {
   connected: boolean;
   activeCount: number;
 
-  // Quick filters
-  onInsertSearchQualifier?: (qualifier: string) => void;
-  onClearFilters?: () => void;
-  onResetView?: () => void;
 }
 
 const MENU_SECTION_BORDER =
@@ -139,7 +135,7 @@ function MenuItem({
 
 function MenuLabel({ children }: { children: string }) {
   return (
-    <div className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--color-figma-text-tertiary)]">
+    <div className="px-3 pt-2 pb-1 text-[9px] font-semibold text-[var(--color-figma-text-tertiary)]">
       {children}
     </div>
   );
@@ -225,10 +221,10 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             <MenuItem
               label={
                 props.sortOrder === "default"
-                  ? "Default order"
+                  ? "Sort: Default"
                   : props.sortOrder === "alpha-asc"
-                    ? "A to Z"
-                    : "By type"
+                    ? "Sort: A-Z"
+                    : "Sort: By type"
               }
               onClick={() =>
                 runAndClose(() => {
@@ -255,7 +251,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               </>
             )}
             <MenuItem
-              label={props.density === "compact" ? "Compact rows" : "Comfortable rows"}
+              label={props.density === "compact" ? "Rows: Compact" : "Rows: Comfortable"}
               onClick={() =>
                 runAndClose(() =>
                   props.onDensityChange(
@@ -339,7 +335,7 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
               />
             )}
             <MenuItem
-              label="Selected layers only"
+              label="Match selection"
               checked={props.inspectMode}
               onClick={() => runAndClose(props.onToggleInspectMode)}
             />
@@ -417,74 +413,22 @@ export function TokenListOverflowMenu(props: TokenListOverflowMenuProps) {
             />
             {props.onFoundationTemplates && (
               <MenuItem
-                label="Foundation templates..."
+                label="Templates..."
                 onClick={() =>
                   runAndClose(() => props.onFoundationTemplates!())
                 }
               />
             )}
-
-            {/* ── Sync ── */}
-            <div className={MENU_SECTION_BORDER}>
-              <MenuLabel>Sync</MenuLabel>
-            </div>
             <MenuItem
-              label="Apply as Variables"
+              label="Push to variables"
               disabled={props.applyingOrLoading || !props.tokensExist}
               onClick={() => runAndClose(props.onApplyVariables)}
             />
             <MenuItem
-              label="Apply as Styles"
+              label="Push to styles"
               disabled={props.applyingOrLoading || !props.tokensExist}
               onClick={() => runAndClose(props.onApplyStyles)}
             />
-
-            {/* ── Quick filters ── */}
-            {props.onInsertSearchQualifier && (
-              <>
-                <div className={MENU_SECTION_BORDER}>
-                  <MenuLabel>Quick filters</MenuLabel>
-                </div>
-                {(
-                  [
-                    ["type", "Type"],
-                    ["has", "State"],
-                    ["path", "Path"],
-                    ["name", "Name"],
-                    ["value", "Value"],
-                    ["desc", "Description"],
-                    ["generator", "Recipe"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <MenuItem
-                    key={key}
-                    label={label}
-                    suffix={`${key}:`}
-                    onClick={() =>
-                      runAndClose(() => props.onInsertSearchQualifier!(key))
-                    }
-                  />
-                ))}
-              </>
-            )}
-
-            {/* ── Clear / Reset ── */}
-            {(props.onClearFilters || props.onResetView) && (
-              <div className={MENU_SECTION_BORDER}>
-                {props.onClearFilters && (
-                  <MenuItem
-                    label="Clear filters"
-                    onClick={() => runAndClose(props.onClearFilters!)}
-                  />
-                )}
-                {props.onResetView && (
-                  <MenuItem
-                    label="Reset view"
-                    onClick={() => runAndClose(props.onResetView!)}
-                  />
-                )}
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -72,9 +72,9 @@ export interface UseGeneratorSaveReturn {
   semanticPrefix: string;
   semanticMappings: Array<{ semantic: string; step: string }>;
   selectedSemanticPatternId: string | null;
-  handleQuickSave: () => Promise<void>;
-  handleSave: () => Promise<void>;
-  handleConfirmSave: () => Promise<void>;
+  handleQuickSave: () => Promise<boolean>;
+  handleSave: () => Promise<boolean>;
+  handleConfirmSave: () => Promise<boolean>;
   handleCancelConfirmation: () => void;
   setSemanticEnabled: (v: boolean) => void;
   setSemanticPrefix: (v: string) => void;
@@ -305,9 +305,11 @@ export function useGeneratorSave({
           targetGroup: targetGroupAtSave,
           targetSet: targetSetAtSave,
         });
+        return true;
       } catch (err) {
         setSaveError(getErrorMessage(err));
         setSaving(false);
+        return false;
       }
     },
     [
@@ -399,7 +401,7 @@ export function useGeneratorSave({
    *  Save captures the reviewed preview fingerprint so confirm can detect staleness.
    */
   const handleSave = useCallback(async () => {
-    if (!validateBeforeSave()) return;
+    if (!validateBeforeSave()) return false;
     setReviewedPreviewFingerprint(previewFingerprint);
     setPreviewReviewStale(false);
     setOverwritePendingPaths(
@@ -407,14 +409,15 @@ export function useGeneratorSave({
     );
     setOverwriteCheckError("");
     setShowConfirmation(true);
+    return false;
   }, [previewAnalysis, previewFingerprint, validateBeforeSave]);
 
   const handleQuickSave = useCallback(async () => {
-    if (!validateBeforeSave()) return;
+    if (!validateBeforeSave()) return false;
     setReviewedPreviewFingerprint(previewFingerprint);
     const revalidated = await revalidatePreview();
-    if (!revalidated) return;
-    await commitSave(
+    if (!revalidated) return false;
+    return commitSave(
       semanticEnabled,
       semanticPrefix,
       semanticMappings,
@@ -440,16 +443,16 @@ export function useGeneratorSave({
     if (previewReviewStale) {
       if (!previewFingerprint) {
         setSaveError("Refreshing preview…");
-        return;
+        return false;
       }
       setReviewedPreviewFingerprint(previewFingerprint);
       setPreviewReviewStale(false);
       setSaveError("");
-      return;
+      return false;
     }
     const revalidated = await revalidatePreview();
-    if (!revalidated) return;
-    await commitSave(
+    if (!revalidated) return false;
+    return commitSave(
       semanticEnabled,
       semanticPrefix,
       semanticMappings,

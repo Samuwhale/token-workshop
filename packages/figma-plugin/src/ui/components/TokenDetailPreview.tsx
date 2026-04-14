@@ -30,7 +30,6 @@ interface TokenDetailPreviewProps {
   derivedTokenPaths?: Map<string, TokenGenerator>;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
-  duplicateCount?: number;
   /** Server URL for fetching token value history. When omitted, history section is hidden. */
   serverUrl?: string;
   onEdit: () => void;
@@ -113,7 +112,6 @@ export function TokenDetailPreview({
   derivedTokenPaths,
   lintViolations = [],
   syncSnapshot,
-  duplicateCount,
   serverUrl,
   onEdit,
   onClose,
@@ -199,16 +197,6 @@ export function TokenDetailPreview({
   const derivedGenerator =
     derivedTokenPaths?.get(createGeneratorOwnershipKey(tokenSet, tokenPath));
   const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
-  const duplicateMatches = useMemo(() => {
-    if (duplicateCount != null) return duplicateCount;
-    if (rawValue === undefined) return 0;
-    const key = stableStringify(rawValue);
-    let count = 0;
-    for (const entry of Object.values(allTokensFlat)) {
-      if (stableStringify(entry.$value) === key) count += 1;
-    }
-    return count > 1 ? count : 0;
-  }, [duplicateCount, rawValue, allTokensFlat]);
   const syncChanged = useMemo(() => {
     if (!syncSnapshot || !(tokenPath in syncSnapshot)) return false;
     return syncSnapshot[tokenPath] !== stableStringify(rawValue);
@@ -237,8 +225,8 @@ export function TokenDetailPreview({
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)]">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-            Preview
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">
+            Token not found
           </span>
           <button
             onClick={onClose}
@@ -272,7 +260,7 @@ export function TokenDetailPreview({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
         <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate mr-2">
-          Preview
+          {name}
         </span>
         <button
           onClick={onClose}
@@ -297,19 +285,16 @@ export function TokenDetailPreview({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Token name + type */}
-        <div className="px-3 pt-3 pb-2">
-          <div className="flex items-center gap-1.5 mb-1">
+        {/* Token path + type */}
+        <div className="px-3 pt-2 pb-2">
+          <div className="flex items-center gap-1.5 mb-1.5">
             <ValuePreview type={type} value={resolvedValue} />
-            <span className="text-[12px] font-semibold text-[var(--color-figma-text)] truncate">
-              {name}
-            </span>
-          </div>
-          <div
-            className="text-[10px] text-[var(--color-figma-text-tertiary)] font-mono truncate mb-1.5"
-            title={tokenPath}
-          >
-            {displayPath}
+            <div
+              className="text-[10px] text-[var(--color-figma-text-tertiary)] font-mono truncate flex-1 min-w-0"
+              title={tokenPath}
+            >
+              {displayPath}
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             <span
@@ -321,9 +306,7 @@ export function TokenDetailPreview({
               {tokenSet}
             </span>
           </div>
-          {(lintViolations.length > 0 ||
-            syncChanged ||
-            duplicateMatches > 1) && (
+          {(lintViolations.length > 0 || syncChanged) && (
             <div className="mt-2 flex flex-wrap gap-1">
               {lintViolations.length > 0 && (
                 <span
@@ -362,25 +345,6 @@ export function TokenDetailPreview({
                   Unsynced
                 </span>
               )}
-              {duplicateMatches > 1 && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)]">
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <rect x="9" y="9" width="10" height="10" rx="2" />
-                    <path d="M5 15V7a2 2 0 0 1 2-2h8" />
-                  </svg>
-                  Shared by {duplicateMatches}
-                </span>
-              )}
             </div>
           )}
         </div>
@@ -391,25 +355,20 @@ export function TokenDetailPreview({
               {lintViolations.map((violation, index) => (
                 <div
                   key={`${violation.path}-${violation.message}-${index}`}
-                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
+                  className={`rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 border-l-2 ${
+                    violation.severity === "error"
+                      ? "border-l-[var(--color-figma-error)]"
+                      : violation.severity === "warning"
+                        ? "border-l-[var(--color-figma-warning)]"
+                        : "border-l-[var(--color-figma-text-tertiary)]"
+                  }`}
                 >
-                  <div
-                    className={`text-[9px] font-medium uppercase tracking-wide ${
-                      violation.severity === "error"
-                        ? "text-[var(--color-figma-error)]"
-                        : violation.severity === "warning"
-                          ? "text-[var(--color-figma-warning)]"
-                          : "text-[var(--color-figma-text-tertiary)]"
-                    }`}
-                  >
-                    {violation.severity}
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-[var(--color-figma-text)]">
+                  <div className="text-[10px] text-[var(--color-figma-text)]">
                     {violation.message}
                   </div>
                   {violation.suggestion && (
-                    <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                      Suggestion: {violation.suggestion}
+                    <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      {violation.suggestion}
                     </div>
                   )}
                 </div>
@@ -426,7 +385,7 @@ export function TokenDetailPreview({
           sourceGenerators.length > 0 ||
           derivedGenerator ||
           usageCount > 0) && (
-          <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+          <div className="px-3 pt-3 pb-2">
             <div className="flex flex-col gap-2">
               {entryMeta.$description && (
                 <div className="text-[10px] text-[var(--color-figma-text)] whitespace-pre-wrap break-words">
@@ -509,7 +468,7 @@ export function TokenDetailPreview({
         )}
 
         {/* Value section */}
-        <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+        <div className="px-3 pt-2 pb-2">
           <div className="text-[10px] font-mono text-[var(--color-figma-text)] break-all whitespace-pre-wrap bg-[var(--color-figma-bg-secondary)] rounded px-2 py-1.5 max-h-24 overflow-y-auto">
             {valueStr}
           </div>
@@ -520,12 +479,6 @@ export function TokenDetailPreview({
           dependentNodes.length > 0 ||
           dependencySnapshot?.hasCycles) && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">
-                Dependencies
-              </div>
-            </div>
-
             {dependencySnapshot?.hasCycles && (
               <div className="mb-2 rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
                 Circular alias detected. Open the full graph to debug.
@@ -533,98 +486,72 @@ export function TokenDetailPreview({
             )}
 
             {resolutionSteps && resolutionSteps.length >= 2 && (
-              <div className="mb-2 flex flex-col gap-1">
-                {resolutionSteps.map((step, i) => {
-                  const isFirst = i === 0;
-                  const isLast = i === resolutionSteps.length - 1;
-                  const isConcrete =
-                    isLast &&
-                    !step.isError &&
-                    step.value != null &&
-                    !isAlias(step.value);
+              <div className="mb-2">
+                <div className="text-[9px] font-semibold text-[var(--color-figma-text-tertiary)] mb-1">
+                  Resolves to
+                </div>
+                {(() => {
+                  const first = resolutionSteps[0];
+                  const last = resolutionSteps[resolutionSteps.length - 1];
+                  const middleCount = resolutionSteps.length - 2;
+                  const isConcrete = !last.isError && last.value != null && !isAlias(last.value);
                   return (
-                    <div
-                      key={step.path + i}
-                      className="flex items-start gap-1.5"
-                    >
-                      <div className="flex flex-col items-center pt-1 shrink-0 w-2.5">
-                        {isFirst ? (
-                          <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" />
-                        ) : (
-                          <svg
-                            width="8"
-                            height="8"
-                            viewBox="0 0 8 8"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            className="text-[var(--color-figma-text-tertiary)]"
-                            aria-hidden="true"
-                          >
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] shrink-0" />
+                        <span className="text-[10px] font-mono text-[var(--color-figma-accent)] truncate">
+                          {first.path}
+                        </span>
+                      </div>
+                      {middleCount > 0 && (
+                        <div className="flex items-center gap-1.5 pl-0.5">
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
                             <path d="M4 0v4M1 4l3 4 3-4" />
                           </svg>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        {isFirst ? (
-                          <span className="text-[10px] font-mono text-[var(--color-figma-accent)] truncate">
-                            {step.path}
+                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                            via {middleCount} alias{middleCount !== 1 ? "es" : ""}
                           </span>
-                        ) : (
+                        </div>
+                      )}
+                      <div className="flex items-start gap-1.5 pl-0.5">
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-tertiary)] shrink-0 mt-0.5" aria-hidden="true">
+                          <path d="M4 0v4M1 4l3 4 3-4" />
+                        </svg>
+                        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                           <button
-                            className={`text-[10px] font-mono truncate text-left ${step.isError ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline"}`}
-                            onClick={() =>
-                              !step.isError && onNavigateToAlias?.(step.path)
-                            }
-                            title={step.isError ? step.errorMsg : step.path}
+                            className={`text-[10px] font-mono truncate text-left ${last.isError ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline"}`}
+                            onClick={() => !last.isError && onNavigateToAlias?.(last.path)}
+                            title={last.isError ? last.errorMsg : last.path}
                           >
-                            {step.path}
+                            {last.path}
                           </button>
-                        )}
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {step.setName && (
-                            <span className="text-[8px] px-1 py-px rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] font-medium">
-                              {step.setName}
-                            </span>
-                          )}
-                          {step.isThemed &&
-                            step.themeDimension &&
-                            step.themeOption && (
-                              <span className="text-[8px] px-1 py-px rounded bg-[var(--color-figma-accent-bg,rgba(24,119,232,0.1))] text-[var(--color-figma-accent)] font-medium">
-                                {step.themeDimension}:{step.themeOption}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {isConcrete && (
+                              <span className="flex items-center gap-1">
+                                <ValuePreview type={last.$type} value={last.value} />
+                                <span className="text-[10px] font-mono text-[var(--color-figma-text)] font-medium">
+                                  {formatValue(last.$type, last.value)}
+                                </span>
                               </span>
                             )}
-                          {isConcrete && (
-                            <span className="flex items-center gap-1">
-                              <ValuePreview
-                                type={step.$type}
-                                value={step.value}
-                              />
-                              <span className="text-[10px] font-mono text-[var(--color-figma-text)] font-medium">
-                                {formatValue(step.$type, step.value)}
+                            {last.isError && (
+                              <span className="text-[8px] text-[var(--color-figma-error)] italic">
+                                {last.errorMsg}
                               </span>
-                            </span>
-                          )}
-                          {step.isError && (
-                            <span className="text-[8px] text-[var(--color-figma-error)] italic">
-                              {step.errorMsg}
-                            </span>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
             )}
 
             {dependentNodes.length > 0 && (
               <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                    {dependentNodes.length} dependent{dependentNodes.length !== 1 ? "s" : ""}
-                  </div>
+                <div className="text-[9px] font-semibold text-[var(--color-figma-text-tertiary)] mb-0.5">
+                  Used by {dependentNodes.length}
                 </div>
                 <div className="flex flex-col gap-1">
                   {dependentNodes.slice(0, 6).map((node) => (
@@ -736,42 +663,16 @@ export function TokenDetailPreview({
             navigator.clipboard.writeText(tokenPath);
           }}
           className="px-2 py-1.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          title="Copy path"
         >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-          </svg>
+          Copy path
         </button>
         <button
           onClick={() => {
             navigator.clipboard.writeText(valueStr);
           }}
           className="px-2 py-1.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          title="Copy value"
         >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
-            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-          </svg>
+          Copy value
         </button>
       </div>
     </div>

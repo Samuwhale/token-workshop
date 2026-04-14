@@ -20,8 +20,8 @@ export function ThemeStageModelControls({
 }: ThemeStageModelControlsProps) {
   return (
     <WorkflowStageIndicators
-      title="Theme workflow"
-      description="Create theme families, add variants, connect shared and variant-specific token sources, then preview the resolved combination."
+      title=""
+      description=""
       stages={stages}
       onSelectStage={onSelectStage}
       actions={actions}

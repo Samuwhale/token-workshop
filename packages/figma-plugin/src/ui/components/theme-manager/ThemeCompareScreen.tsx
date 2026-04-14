@@ -54,14 +54,7 @@ export function ThemeCompareScreen({
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <div className="px-3 py-2.5">
           <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-            {compareFocusDimension
-              ? `Compare from ${compareFocusDimension.name}`
-              : "Compare in theme context"}
-          </p>
-          <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-            {compareFocusDimension && compareFocusOptionName
-              ? `Starting from ${compareFocusDimension.name} → ${compareFocusOptionName}.`
-              : "Compare variants, tokens, and sets."}
+            Compare
           </p>
         </div>
       </div>
@@ -87,11 +80,7 @@ export function ThemeCompareScreen({
           serverUrl={serverUrl}
           onTokensCreated={onTokensCreated}
           onBack={onBack}
-          backLabel={
-            compareFocusDimension
-              ? `Back to ${compareFocusDimension.name} setup`
-              : "Back to advanced setup"
-          }
+          backLabel="Back"
         />
       </div>
     </>

@@ -59,7 +59,7 @@ export function SelectModeToolbar({
         className="shrink-0 accent-[var(--color-figma-accent)]"
       />
       <span id="select-mode-count" className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
-        {selectedPaths.size} of {displayedLeafPaths.size} selected
+        {selectedPaths.size}/{displayedLeafPaths.size}
       </span>
       {selectedPaths.size > 0 && (
         <>
@@ -67,7 +67,7 @@ export function SelectModeToolbar({
             onClick={onToggleBatchEditor}
             className={`shrink-0 px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? "bg-[var(--color-figma-accent)] text-white" : "bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"}`}
           >
-            Edit {selectedPaths.size}
+            Batch edit
           </button>
           <button
             onClick={onRequestBulkDelete}
@@ -82,7 +82,7 @@ export function SelectModeToolbar({
         onClick={onExitSelectMode}
         className="shrink-0 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
       >
-        Done
+        Exit
       </button>
       {selectedPaths.size > 0 && (
         <SelectModeOverflowMenu

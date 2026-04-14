@@ -7,7 +7,6 @@ import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
 interface ThemeOptionRailProps {
   dimension: ThemeDimension;
   selectedOption: string;
-  optionDiffCounts: Record<string, number>;
   optionRoleSummaries: Record<string, ThemeOptionRoleSummary>;
   onSelectOption: (dimId: string, optionName: string) => void;
   showAddOption: boolean;
@@ -20,15 +19,11 @@ interface ThemeOptionRailProps {
   canMoveRight?: boolean;
   copySourceOptions?: string[];
   onHandleCopyAssignmentsFrom?: (sourceOptionName: string) => void;
-  onOpenAdvancedSetup?: () => void;
-  onOpenCoverageView?: () => void;
-  disabledSetCount?: number;
 }
 
 export function ThemeOptionRail({
   dimension,
   selectedOption,
-  optionDiffCounts,
   optionRoleSummaries,
   onSelectOption,
   showAddOption,
@@ -40,9 +35,6 @@ export function ThemeOptionRail({
   canMoveRight,
   copySourceOptions,
   onHandleCopyAssignmentsFrom,
-  onOpenAdvancedSetup,
-  onOpenCoverageView,
-  disabledSetCount,
 }: ThemeOptionRailProps) {
   const {
     dimSearch,
@@ -94,9 +86,6 @@ export function ThemeOptionRail({
           const summary = optionRoleSummaries[`${dimension.id}:${item.name}`];
           const issueCount = summary?.totalIssueCount ?? 0;
           const isSelected = selectedOption === item.name;
-          const diffCount = isSelected
-            ? 0
-            : (optionDiffCounts[`${dimension.id}/${item.name}`] ?? 0);
           const isBeingDragged =
             draggingOpt?.dimId === dimension.id &&
             draggingOpt?.optionName === item.name;
@@ -125,14 +114,6 @@ export function ThemeOptionRail({
               }${optionMatches ? " ring-1 ring-[var(--color-figma-accent)]/40" : ""}${isBeingDragged ? " opacity-40" : ""}${isDragTarget ? " ring-2 ring-[var(--color-figma-accent)]/60" : ""}${dimension.options.length > 1 ? " cursor-grab active:cursor-grabbing" : ""}`}
             >
               {item.name}
-              {!isSelected && diffCount > 0 && (
-                <span
-                  className="inline-flex min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-text-tertiary)]/20 px-0.5 text-[9px] font-bold leading-none text-[var(--color-figma-text-tertiary)]"
-                  title={`${diffCount} token${diffCount !== 1 ? "s" : ""} differ from ${selectedOption}`}
-                >
-                  {diffCount}
-                </span>
-              )}
               {issueCount > 0 && (
                 <NoticeCountBadge
                   severity={summary?.hasAssignmentIssues ? "warning" : "info"}
@@ -211,17 +192,6 @@ export function ThemeOptionRail({
                       </button>
                     ))}
                   </>
-                )}
-                <div className="my-1 border-t border-[var(--color-figma-border)]" />
-                {onOpenAdvancedSetup && (
-                  <button role="menuitem" onClick={() => { variantMenu.close(); onOpenAdvancedSetup(); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
-                    {`Advanced${disabledSetCount ? ` (${disabledSetCount} unused)` : ""}`}
-                  </button>
-                )}
-                {onOpenCoverageView && (
-                  <button role="menuitem" onClick={() => { variantMenu.close(); onOpenCoverageView(); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
-                    Review issues
-                  </button>
                 )}
                 {onDeleteOption && (
                   <>

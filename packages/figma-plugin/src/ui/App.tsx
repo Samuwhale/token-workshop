@@ -819,10 +819,13 @@ export function App() {
       action?.();
       return;
     }
-    const saved = await session.save();
-    setPendingUnsavedAction(null);
-    if (saved) {
-      action?.();
+    try {
+      const saved = await session.save();
+      if (saved) {
+        action?.();
+      }
+    } finally {
+      setPendingUnsavedAction(null);
     }
   }, [pendingNavAction]);
   const handlePendingEditorDiscard = useCallback(async () => {
@@ -830,12 +833,15 @@ export function App() {
     const session = editorSessionRef.current;
     setPendingUnsavedAction("discard");
     setPendingNavAction(null);
-    if (session) {
-      editorSessionRef.current = { ...session, isDirty: false };
-      await session.discard();
+    try {
+      if (session) {
+        editorSessionRef.current = { ...session, isDirty: false };
+        await session.discard();
+      }
+      action?.();
+    } finally {
+      setPendingUnsavedAction(null);
     }
-    setPendingUnsavedAction(null);
-    action?.();
   }, [pendingNavAction]);
   const handlePendingEditorCancel = useCallback(() => {
     if (pendingUnsavedAction !== null) return;
@@ -2140,7 +2146,7 @@ export function App() {
       {
         id: "set-roles" as const,
         step: 3,
-        label: "Token sources",
+        label: "Sources",
         detail:
           themeWorkflowSummary.optionCount === 0
             ? ""
@@ -2192,8 +2198,13 @@ export function App() {
       themeShellState.authoringMode === "preview"
     ) {
       actions.push({
-        label: "Back to themes",
+        label: "Back",
         onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
+      });
+    } else {
+      actions.push({
+        label: "+ Family",
+        onClick: () => themeManagerHandleRef.current?.openCreateAxis(),
       });
     }
 

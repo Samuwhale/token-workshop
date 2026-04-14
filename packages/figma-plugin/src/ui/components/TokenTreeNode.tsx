@@ -261,7 +261,7 @@ function MultiModeCell({
       {!value ? (
         canCreate ? (
           <span
-            className={`text-[10px] text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer hover:text-[var(--color-figma-text-secondary)]" : "cursor-text hover:text-[var(--color-figma-text-secondary)]"}`}
+            className={`text-[10px] text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer" : "cursor-text"} hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors`}
             onClick={(e) => {
               e.stopPropagation();
               if (tokenType === "color") {
@@ -272,7 +272,7 @@ function MultiModeCell({
               }
             }}
           >
-            —
+            +
           </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -1023,20 +1023,6 @@ const TokenGroupNode = memo(
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
               <span className="flex-1">Copy to set</span>
             </button>
-            {onSetGroupScopes && (
-              <button
-                role="menuitem"
-                tabIndex={-1}
-                data-accel="s"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { closeGroupMenus(); onSetGroupScopes(node.path); }}
-                className={MENU_ITEM_CLASS}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="4" /></svg>
-                <span className="flex-1">Set scopes</span>
-                <span className={MENU_SHORTCUT_CLASS}>S</span>
-              </button>
-            )}
             {onGenerateScaleFromGroup && (
               <>
                 <div role="separator" className={MENU_SEPARATOR_CLASS} />
@@ -2377,7 +2363,7 @@ const TokenLeafNode = memo(
             </button>
           )}
 
-          {/* Name and info — single-click previews (non-select mode), double-click edits */}
+          {/* Name and info — single-click opens editor (non-select mode) */}
           {/* ctrl/cmd-click enters select mode; shift-click range-selects */}
           <div
             title={[
@@ -2399,26 +2385,8 @@ const TokenLeafNode = memo(
                 return;
               }
               e.stopPropagation();
-              onPreview?.(node.path, node.name);
+              onEdit(node.path, node.name);
             }}
-            onDoubleClick={
-              !selectMode
-                ? (e) => {
-                    e.stopPropagation();
-                    if (canInlineEdit) {
-                      activateInlineEdit();
-                    } else if (canInlinePopover) {
-                      const rect = nodeRef.current?.getBoundingClientRect();
-                      if (rect) {
-                        setInlinePopoverAnchor(rect);
-                        setInlinePopoverOpen(true);
-                      }
-                    } else {
-                      onEdit(node.path, node.name);
-                    }
-                  }
-                : undefined
-            }
             style={selectMode ? { cursor: "pointer" } : undefined}
           >
             <div className="flex items-center gap-1 min-w-0 overflow-hidden">

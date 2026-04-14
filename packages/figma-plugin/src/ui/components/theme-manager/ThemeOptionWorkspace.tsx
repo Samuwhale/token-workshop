@@ -1,12 +1,17 @@
 import type { ThemeDimension, ThemeOption } from "@tokenmanager/core";
 import { useEffect, useMemo, useState } from "react";
-import {
-  summarizeThemeIssueHealth,
-  type ThemeIssueSummary,
-  type ThemeRoleNavigationTarget,
+import type {
+  ThemeIssueSummary,
+  ThemeRoleNavigationTarget,
 } from "../../shared/themeWorkflow";
-import type { ThemeRoleState } from "../themeManagerTypes";
+import {
+  STATE_LABELS,
+  THEME_ROLE_STATES,
+  type ThemeRoleState,
+} from "../themeManagerTypes";
 import { useThemeAuthoringContext } from "./ThemeAuthoringContext";
+import { ThemeIssueEntryCard } from "./ThemeIssueEntryCard";
+import { ThemeSetRoleRow } from "./ThemeSetRoleRow";
 
 interface CompactAssignmentProps {
   label: string;
@@ -136,11 +141,8 @@ interface ThemeOptionWorkspaceProps {
   onRenameOptionValueChange: (value: string) => void;
   onExecuteRenameOption: () => void;
   onCancelRenameOption: () => void;
-  onOpenCoverageView: (
-    target?: ThemeRoleNavigationTarget | null,
-    allAxes?: boolean,
-  ) => void;
-  onOpenAdvancedSetup: () => void;
+  onResolveIssue: (issue: ThemeIssueSummary) => void;
+  onViewTokens?: (issue: ThemeIssueSummary) => void;
   onHandleSetState: (setName: string, nextState: ThemeRoleState) => void;
 }
 
@@ -151,7 +153,7 @@ export function ThemeOptionWorkspace({
   selectedOptionIssues,
   overrideSets,
   foundationSets,
-  disabledSets: _disabledSets,
+  disabledSets,
   renameOption,
   renameOptionValue,
   renameOptionError,
@@ -161,43 +163,27 @@ export function ThemeOptionWorkspace({
   onRenameOptionValueChange,
   onExecuteRenameOption,
   onCancelRenameOption,
-  onOpenCoverageView,
-  onOpenAdvancedSetup,
+  onResolveIssue,
+  onViewTokens,
   onHandleSetState,
 }: ThemeOptionWorkspaceProps) {
   const { setRoleRefs, onNavigateToTokenSet } = useThemeAuthoringContext();
   const [pendingSharedSet, setPendingSharedSet] = useState("");
   const [pendingVariantSet, setPendingVariantSet] = useState("");
+  const [showAllSets, setShowAllSets] = useState(false);
   const sharedCandidates = sets.filter((setName) => !foundationSets.includes(setName));
   const variantCandidates = sets.filter((setName) => !overrideSets.includes(setName));
-  const selectedOptionHealth = useMemo(
-    () => summarizeThemeIssueHealth(selectedOptionIssues),
-    [selectedOptionIssues],
-  );
-  const assignmentSummary = useMemo(() => {
-    const summaryParts: string[] = [];
-    if (foundationSets.length > 0) {
-      summaryParts.push(
-        `${foundationSets.length} shared set${foundationSets.length === 1 ? "" : "s"}`,
-      );
-    }
-    if (overrideSets.length > 0) {
-      summaryParts.push(
-        `${overrideSets.length} variant-specific set${overrideSets.length === 1 ? "" : "s"}`,
-      );
-    }
-    if (_disabledSets.length > 0) {
-      summaryParts.push(
-        `${_disabledSets.length} hidden in Advanced setup`,
-      );
-    }
 
-    if (summaryParts.length === 0) {
-      return "No token sources are connected yet. Start with one shared set used across every variant.";
-    }
+  const allSetsByRole = useMemo(() => {
+    const groups: Record<ThemeRoleState, string[]> = {
+      enabled: overrideSets,
+      source: foundationSets,
+      disabled: disabledSets,
+    };
+    return groups;
+  }, [overrideSets, foundationSets, disabledSets]);
 
-    return `${summaryParts.join(" · ")} active for this variant.`;
-  }, [_disabledSets.length, foundationSets.length, overrideSets.length]);
+  const allSetsCount = overrideSets.length + foundationSets.length + disabledSets.length;
 
   useEffect(() => {
     if (!pendingSharedSet || sharedCandidates.includes(pendingSharedSet)) return;
@@ -216,7 +202,6 @@ export function ThemeOptionWorkspace({
       }}
       className="bg-[var(--color-figma-bg)]"
     >
-      {/* Rename inline input — only shown during rename */}
       {renameOption?.dimId === dimension.id &&
       renameOption?.optionName === option.name && (
         <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)]">
@@ -254,7 +239,6 @@ export function ThemeOptionWorkspace({
         </div>
       )}
 
-      {/* Auto-fill banner */}
       {fillableCount > 0 && (
         <div className="flex items-center justify-between px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 text-[10px]">
           <span className="text-[var(--color-figma-text-secondary)]">
@@ -269,57 +253,17 @@ export function ThemeOptionWorkspace({
         </div>
       )}
 
-      <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 px-3 py-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-              {option.name}
-            </p>
-            <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Pick the shared token sets every variant should inherit, then add
-              variant-specific sets only where {option.name} needs to differ.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-            {selectedOptionHealth && (
-              <button
-                type="button"
-                onClick={() =>
-                  onOpenCoverageView(
-                    {
-                      dimId: dimension.id,
-                      optionName: option.name,
-                      preferredSetName:
-                        selectedOptionIssues[0]?.preferredSetName ?? null,
-                    },
-                    false,
-                  )
-                }
-                className="inline-flex items-center rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-              >
-                Review issues
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onOpenAdvancedSetup}
-              className="inline-flex items-center rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-            >
-              Advanced setup
-            </button>
-          </div>
+      {selectedOptionIssues.length > 0 && (
+        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-warning)]/5">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <span className="text-[10px] text-[var(--color-figma-warning)]">
+            {selectedOptionIssues.length} issue{selectedOptionIssues.length === 1 ? "" : "s"}
+          </span>
         </div>
-        <p className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-          {assignmentSummary}
-        </p>
-        {selectedOptionHealth && (
-          <p className="mt-1 text-[10px] text-[var(--color-figma-warning)]">
-            Needs review: {selectedOptionHealth.description}
-          </p>
-        )}
-      </div>
+      )}
 
-      {/* Compact assignment rows */}
       <div className="border-b border-[var(--color-figma-border)] py-1">
         <CompactAssignment
           label="Shared tokens"
@@ -353,6 +297,67 @@ export function ThemeOptionWorkspace({
           setTokenCounts={setTokenCounts}
           onNavigateToTokenSet={onNavigateToTokenSet}
         />
+      </div>
+
+      {selectedOptionIssues.length > 0 && (
+        <div className="border-b border-[var(--color-figma-border)] px-3 py-1">
+          {selectedOptionIssues.map((issue) => (
+            <ThemeIssueEntryCard
+              key={issue.key}
+              issue={issue}
+              onAction={() => onResolveIssue(issue)}
+              onViewTokens={onViewTokens}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="border-b border-[var(--color-figma-border)]">
+        <button
+          type="button"
+          onClick={() => setShowAllSets((prev) => !prev)}
+          className="flex w-full items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+        >
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+            className={`shrink-0 transition-transform ${showAllSets ? "rotate-90" : ""}`}
+          >
+            <path d="M8 5l10 7-10 7z" />
+          </svg>
+          All sets ({allSetsCount})
+        </button>
+        {showAllSets && (
+          <div className="pb-1">
+            {(["enabled", "source", "disabled"] as const).map((role) => {
+              const roleSets = allSetsByRole[role];
+              if (roleSets.length === 0) return null;
+              return (
+                <div key={role}>
+                  <div className="px-3 pt-1.5 pb-0.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)]">
+                      {STATE_LABELS[role]} ({roleSets.length})
+                    </span>
+                  </div>
+                  {roleSets.map((setName) => (
+                    <ThemeSetRoleRow
+                      key={setName}
+                      setName={setName}
+                      status={role}
+                      isSaving={false}
+                      tokenCount={setTokenCounts[setName] ?? null}
+                      roleStates={THEME_ROLE_STATES}
+                      onChangeState={(nextState) => onHandleSetState(setName, nextState)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

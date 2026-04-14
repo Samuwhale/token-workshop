@@ -48,11 +48,6 @@ interface UseThemeManagerNavigationParams {
   missingOverrides: MissingOverridesState;
   optionIssues: Record<string, ThemeIssueSummary[]>;
   setTokenCounts: Record<string, number | null>;
-  coverageContext: ThemeRoleNavigationTarget;
-  setCoverageContext: React.Dispatch<
-    React.SetStateAction<ThemeRoleNavigationTarget>
-  >;
-  setShowAllCoverageAxes: React.Dispatch<React.SetStateAction<boolean>>;
   compareContext: { dimId: string | null; optionName: string | null };
   setCompareContext: React.Dispatch<
     React.SetStateAction<{ dimId: string | null; optionName: string | null }>
@@ -70,6 +65,7 @@ interface UseThemeManagerNavigationParams {
     optionA?: string,
     optionB?: string,
   ) => void;
+  resolverAvailable: boolean;
 }
 
 export function useThemeManagerNavigation({
@@ -91,9 +87,6 @@ export function useThemeManagerNavigation({
   missingOverrides,
   optionIssues,
   setTokenCounts,
-  coverageContext,
-  setCoverageContext,
-  setShowAllCoverageAxes,
   compareContext,
   setCompareContext,
   setCompareMode,
@@ -103,6 +96,7 @@ export function useThemeManagerNavigation({
   showCompare,
   setShowCompare,
   navigateToCompareState,
+  resolverAvailable,
 }: UseThemeManagerNavigationParams) {
   const getDimensionForContext = useCallback(
     (preferredId?: string | null) => {
@@ -189,39 +183,6 @@ export function useThemeManagerNavigation({
     [setFocusedDimensionId, setSelectedOptions],
   );
 
-  const openAdvancedSetupView = useCallback(
-    (target?: ThemeRoleNavigationTarget | null) => {
-      const dimension = getDimensionForContext(target?.dimId ?? null);
-      const optionName = getOptionNameForContext(
-        dimension,
-        target?.optionName ?? null,
-      );
-
-      if (dimension?.id) {
-        setFocusedDimensionId(dimension.id);
-      }
-      if (dimension && optionName) {
-        setSelectedOptions((previous) => ({
-          ...previous,
-          [dimension.id]: optionName,
-        }));
-      }
-
-      setShowCompare(false);
-      setAuthoringMode("roles");
-      setActiveView("advanced-setup");
-    },
-    [
-      getDimensionForContext,
-      getOptionNameForContext,
-      setActiveView,
-      setAuthoringMode,
-      setFocusedDimensionId,
-      setSelectedOptions,
-      setShowCompare,
-    ],
-  );
-
   const returnToAuthoring = useCallback(
     (target?: ThemeRoleNavigationTarget | string | null) => {
       setShowCompare(false);
@@ -232,11 +193,9 @@ export function useThemeManagerNavigation({
         typeof target === "string"
           ? { dimId: target, optionName: null, preferredSetName: null }
           : (target ??
-            (activeView === "coverage"
-              ? coverageContext
-              : activeView === "compare"
-                ? compareContext
-                : null));
+            (activeView === "compare"
+              ? compareContext
+              : null));
 
       if (resolvedTarget?.dimId) {
         focusRoleTarget(resolvedTarget);
@@ -248,7 +207,6 @@ export function useThemeManagerNavigation({
     [
       activeView,
       compareContext,
-      coverageContext,
       focusRoleTarget,
       focusedDimensionId,
       scrollToDimension,
@@ -393,49 +351,17 @@ export function useThemeManagerNavigation({
     if (showCompare) setActiveView("compare");
   }, [setActiveView, showCompare]);
 
-  const openCoverageView = useCallback(
-    (target?: ThemeRoleNavigationTarget | null, allAxes = false) => {
-      const targetDimension = getDimensionForContext(target?.dimId ?? null);
-      const targetOptionName = getOptionNameForContext(
-        targetDimension,
-        target?.optionName ?? null,
-      );
-      if (targetDimension) setFocusedDimensionId(targetDimension.id);
-      setCoverageContext({
-        dimId: targetDimension?.id ?? null,
-        optionName: targetOptionName,
-        preferredSetName: target?.preferredSetName ?? null,
-      });
-      setShowAllCoverageAxes(allAxes);
-      setShowCompare(false);
-      setAuthoringMode("roles");
-      setActiveView("coverage");
-    },
-    [
-      getDimensionForContext,
-      getOptionNameForContext,
-      setActiveView,
-      setAuthoringMode,
-      setCoverageContext,
-      setFocusedDimensionId,
-      setShowAllCoverageAxes,
-      setShowCompare,
-    ],
-  );
-
   const openCompareView = useCallback(
-    (dimension?: ThemeDimension, optionName?: string) => {
+    (dimId?: string) => {
+      const dimension = getDimensionForContext(dimId);
       setCompareMode("theme-options");
-      const contextualDimension = getDimensionForContext(dimension?.id ?? null);
       const compareDimension =
         dimension && dimension.options.length >= 2
           ? dimension
-          : contextualDimension && contextualDimension.options.length >= 2
-            ? contextualDimension
-            : dimensions.find((entry) => entry.options.length >= 2);
+          : dimensions.find((entry) => entry.options.length >= 2);
       if (compareDimension) {
         const optionAName =
-          getOptionNameForContext(compareDimension, optionName) ??
+          getOptionNameForContext(compareDimension, null) ??
           compareDimension.options[0]?.name ??
           "";
         const optionBName =
@@ -494,11 +420,12 @@ export function useThemeManagerNavigation({
     ],
   );
 
-  const openAdvancedView = useCallback(() => {
+  const openResolverView = useCallback(() => {
+    if (!resolverAvailable) return;
     setShowCompare(false);
     setAuthoringMode("roles");
-    setActiveView("advanced");
-  }, [setActiveView, setAuthoringMode, setShowCompare]);
+    setActiveView("resolver");
+  }, [resolverAvailable, setActiveView, setAuthoringMode, setShowCompare]);
 
   const handleNavigateToCompare = useCallback(
     (
@@ -534,12 +461,10 @@ export function useThemeManagerNavigation({
   return {
     getOptionNameForContext,
     handleSelectOption,
-    openAdvancedSetupView,
     returnToAuthoring,
     focusAuthoringStage,
-    openCoverageView,
     openCompareView,
-    openAdvancedView,
+    openResolverView,
     handleNavigateToCompare,
   };
 }

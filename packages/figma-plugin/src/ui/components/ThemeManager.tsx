@@ -22,16 +22,14 @@ import {
 } from "../shared/noticeSystem";
 import {
   sortThemeIssuesByPriority,
-  themeIssueRequiresAdvancedSetup,
   type ThemeAuthoringStage,
   type ThemeAuthoringMode,
   type ThemeIssueSummary,
   type ThemeManagerView,
   type ThemeWorkspaceShellState,
 } from "../shared/themeWorkflow";
-import { ThemeCoverageScreen } from "./theme-manager/ThemeCoverageScreen";
 import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
-import { ThemeAdvancedScreen } from "./theme-manager/ThemeAdvancedScreen";
+import { ThemeResolverScreen } from "./theme-manager/ThemeResolverScreen";
 import {
   ThemeAuthoringScreen,
   type ThemeAuthoringScreenHandle,
@@ -49,9 +47,7 @@ import {
 } from "./theme-manager/themeManagerControllers";
 
 export interface ThemeManagerHandle {
-  /** Triggers auto-fill for the first dimension that has fillable gaps, showing the confirmation modal. */
   autoFillAllGaps: () => void;
-  /** Opens the Compare view inside ThemeManager for the given mode. */
   navigateToCompare: (
     mode: CompareMode,
     path?: string,
@@ -59,13 +55,9 @@ export interface ThemeManagerHandle {
     optionA?: string,
     optionB?: string,
   ) => void;
-  /** Focus one of the default authoring stages inside the Theme workspace. */
   focusStage: (stage: ThemeAuthoringStage) => void;
-  /** Returns to authoring and opens the create-axis entry point. */
   openCreateAxis: () => void;
-  /** Returns from coverage/compare/advanced views to the default authoring flow. */
   returnToAuthoring: () => void;
-  /** Switches to the DTCG Resolvers mode (advanced) inside ThemeManager. */
   switchToResolverMode: () => void;
 }
 
@@ -77,32 +69,20 @@ interface ThemeManagerProps {
   onNavigateToToken?: (path: string, set: string) => void;
   onCreateToken?: (tokenPath: string, set: string) => void;
   onPushUndo?: (slot: UndoSlot) => void;
-  /** Resolver state — when provided, enables the Advanced mode toggle */
   resolverState?: ResolverContentProps;
-  /** Flat token map across all sets (for ThemeCompare) */
   allTokensFlat?: Record<string, TokenMapEntry>;
-  /** Maps token path → owning set name (for ThemeCompare) */
   pathToSet?: Record<string, string>;
-  /** Called whenever the total count of auto-fillable token gaps changes. */
   onGapsDetected?: (count: number) => void;
-  /** Called after batch token creation so the app can refresh its token data. */
   onTokensCreated?: () => void;
-  /** Called after a new set is created (e.g. via "Create override set") so the parent can update the set list. */
   onSetCreated?: (name: string) => void;
-  /** Navigate to the Tokens sub-tab (used in Compare empty states). */
   onGoToTokens?: () => void;
-  /** Navigate to Tokens workspace with a specific set selected */
   onNavigateToTokenSet?: (setName: string) => void;
-  /** Ref populated with imperative actions for cross-component control (e.g. command palette). */
   themeManagerHandle?: React.MutableRefObject<ThemeManagerHandle | null>;
-  /** Called with a success message after a mutation completes (dimension/option create, rename). */
   onSuccess?: (msg: string) => void;
-  /** Called when user wants to generate tokens for a theme axis — provides the best target set and axis name. */
   onGenerateForDimension?: (info: {
     dimensionName: string;
     targetSet: string;
   }) => void;
-  /** Mirrors the current internal theme view so the shell can stay aligned with the active sub-screen. */
   onShellStateChange?: (state: ThemeWorkspaceShellState) => void;
 }
 
@@ -332,10 +312,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     selectedOptions,
   });
   const {
-    coverageContext,
-    setCoverageContext,
-    showAllCoverageAxes,
-    setShowAllCoverageAxes,
     setTokenCounts,
     optionIssues,
     allIssues,
@@ -399,12 +375,10 @@ const ThemeManagerWorkspace = React.forwardRef<
   const {
     getOptionNameForContext,
     handleSelectOption,
-    openAdvancedSetupView,
     returnToAuthoring,
     focusAuthoringStage,
-    openCoverageView,
     openCompareView,
-    openAdvancedView,
+    openResolverView,
     handleNavigateToCompare,
   } = useThemeManagerNavigation({
     dimensions,
@@ -425,9 +399,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     missingOverrides,
     optionIssues,
     setTokenCounts,
-    coverageContext,
-    setCoverageContext,
-    setShowAllCoverageAxes,
     compareContext,
     setCompareContext,
     setCompareMode,
@@ -437,9 +408,9 @@ const ThemeManagerWorkspace = React.forwardRef<
     showCompare,
     setShowCompare,
     navigateToCompareState,
+    resolverAvailable: Boolean(resolverState),
   });
 
-  // Populate imperative handle so parent (e.g. command palette) can trigger auto-fill
   const handleAutoFillAllRef = useRef(handleAutoFillAllOptions);
   handleAutoFillAllRef.current = handleAutoFillAllOptions;
   useImperativeHandle(
@@ -462,14 +433,14 @@ const ThemeManagerWorkspace = React.forwardRef<
       returnToAuthoring: () => {
         returnToAuthoring();
       },
-      switchToResolverMode: openAdvancedView,
+      switchToResolverMode: openResolverView,
     }),
     [
       coverage,
       dimensions,
       focusAuthoringStage,
       handleNavigateToCompare,
-      openAdvancedView,
+      openResolverView,
       openCreateDim,
       returnToAuthoring,
       setActiveView,
@@ -484,101 +455,6 @@ const ThemeManagerWorkspace = React.forwardRef<
       null,
     [dimensions, focusedDimensionId],
   );
-  const coverageFocusDimension = useMemo(
-    () =>
-      dimensions.find((dim) => dim.id === coverageContext.dimId) ??
-      focusedDimension,
-    [coverageContext.dimId, dimensions, focusedDimension],
-  );
-  const coverageFocusOptionName = useMemo(
-    () =>
-      getOptionNameForContext(
-        coverageFocusDimension,
-        coverageContext.optionName,
-      ),
-    [
-      coverageContext.optionName,
-      coverageFocusDimension,
-      getOptionNameForContext,
-    ],
-  );
-  const coverageDimensions = useMemo(
-    () =>
-      showAllCoverageAxes || !coverageFocusDimension
-        ? dimensions
-        : [coverageFocusDimension],
-    [coverageFocusDimension, dimensions, showAllCoverageAxes],
-  );
-  const coverageFocusIssues = useMemo(
-    () =>
-      coverageFocusDimension && coverageFocusOptionName
-        ? (optionIssues[
-            `${coverageFocusDimension.id}:${coverageFocusOptionName}`
-          ] ?? [])
-        : [],
-    [coverageFocusDimension, coverageFocusOptionName, optionIssues],
-  );
-  const coverageReviewIssues = useMemo(() => {
-    if (showAllCoverageAxes) {
-      return allIssues;
-    }
-    if (coverageFocusIssues.length > 0) return coverageFocusIssues;
-    if (!coverageFocusDimension) return [];
-    return sortThemeIssuesByPriority(
-      coverageFocusDimension.options.flatMap(
-        (option: ThemeDimension["options"][number]) =>
-          optionIssues[`${coverageFocusDimension.id}:${option.name}`] ?? [],
-      ),
-    );
-  }, [
-    allIssues,
-    coverageFocusDimension,
-    coverageFocusIssues,
-    optionIssues,
-    showAllCoverageAxes,
-  ]);
-  const coverageFocusIssueCount = useMemo(
-    () =>
-      coverageReviewIssues.reduce(
-        (sum: number, issue: ThemeIssueSummary) => sum + issue.count,
-        0,
-      ),
-    [coverageReviewIssues],
-  );
-  const coveragePrimaryIssue =
-    coverageFocusIssues[0] ?? coverageReviewIssues[0] ?? null;
-  const coverageAutoFillAction = useMemo(
-    () =>
-      resolveThemeAutoFillAction(
-        coverageFocusDimension,
-        coverage,
-        coverageFocusOptionName,
-      ),
-    [coverage, coverageFocusDimension, coverageFocusOptionName],
-  );
-  const isCoverageAutoFillInProgress = useMemo(() => {
-    if (!coverageAutoFillAction) return false;
-    if (coverageAutoFillAction.mode === "single-option") {
-      return fillingKeys.has(
-        `${coverageAutoFillAction.dimId}:${coverageAutoFillAction.optionName}:__all__`,
-      );
-    }
-    return fillingKeys.has(`${coverageAutoFillAction.dimId}:__all_options__`);
-  }, [coverageAutoFillAction, fillingKeys]);
-  const handleCoverageAutoFill = useCallback(() => {
-    if (!coverageAutoFillAction) return;
-    if (
-      coverageAutoFillAction.mode === "single-option" &&
-      coverageAutoFillAction.optionName
-    ) {
-      handleAutoFillAll(
-        coverageAutoFillAction.dimId,
-        coverageAutoFillAction.optionName,
-      );
-      return;
-    }
-    handleAutoFillAllOptions(coverageAutoFillAction.dimId);
-  }, [coverageAutoFillAction, handleAutoFillAll, handleAutoFillAllOptions]);
   const compareFocusDimension = useMemo(
     () =>
       dimensions.find((dim) => dim.id === compareContext.dimId) ??
@@ -633,56 +509,7 @@ const ThemeManagerWorkspace = React.forwardRef<
         )}
 
         <>
-          {activeView === "coverage" ? (
-            <ThemeCoverageScreen
-              dimensions={coverageDimensions}
-              allDimensions={dimensions}
-              coverage={coverage}
-              missingOverrides={missingOverrides}
-              setTokenValues={setTokenValues}
-              issueEntries={coverageReviewIssues}
-              focusDimension={coverageFocusDimension}
-              focusOptionName={coverageFocusOptionName}
-              focusIssueCount={coverageFocusIssueCount}
-              primaryIssue={coveragePrimaryIssue}
-              showAllAxes={showAllCoverageAxes}
-              context={coverageContext}
-              autoFillAction={coverageAutoFillAction}
-              isAutoFillInProgress={isCoverageAutoFillInProgress}
-              onToggleShowAllAxes={() =>
-                setShowAllCoverageAxes((value) => !value)
-              }
-              onBack={returnToAuthoring}
-              onAutoFill={handleCoverageAutoFill}
-              onViewTokens={onNavigateToTokenSet ? (issue) => {
-                if (issue.preferredSetName) {
-                  onNavigateToTokenSet(issue.preferredSetName);
-                } else if (issue.affectedSetNames?.[0]) {
-                  onNavigateToTokenSet(issue.affectedSetNames[0]);
-                }
-              } : undefined}
-              onResolveIssue={(issue) => {
-                const target = {
-                  dimId: issue.dimensionId,
-                  optionName: issue.optionName,
-                  preferredSetName: issue.preferredSetName,
-                };
-                if (themeIssueRequiresAdvancedSetup(issue)) {
-                  openAdvancedSetupView(target);
-                  return;
-                }
-                returnToAuthoring(target);
-              }}
-              onSelectOption={(dimId, optionName, preferredSetName) => {
-                handleSelectOption(dimId, optionName);
-                returnToAuthoring({
-                  dimId,
-                  optionName,
-                  preferredSetName: preferredSetName ?? null,
-                });
-              }}
-            />
-          ) : activeView === "compare" ? (
+          {activeView === "compare" ? (
             <ThemeCompareScreen
               compareFocusDimension={compareFocusDimension}
               compareFocusOptionName={compareFocusOptionName}
@@ -713,64 +540,14 @@ const ThemeManagerWorkspace = React.forwardRef<
               }}
               onBack={() => {
                 setShowCompare(false);
-                setActiveView("advanced-setup");
+                setActiveView("authoring");
               }}
             />
-          ) : activeView === "advanced-setup" ? (
-            <ThemeAdvancedScreen
-              mode="setup"
-              dimensions={dimensions}
-              focusedDimension={focusedDimension}
-              selectedOptionName={
-                focusedDimension ? selectedOptions[focusedDimension.id] ?? null : null
-              }
-              orderedSets={
-                focusedDimension
-                  ? optionSetOrders[focusedDimension.id]?.[
-                      selectedOptions[focusedDimension.id] ??
-                        focusedDimension.options[0]?.name ??
-                        ""
-                    ] ?? sets
-                  : sets
-              }
-              canCompareThemes={canCompareThemes}
-              resolverAvailable={Boolean(resolverState)}
-              roleStates={roleStates}
-              savingKeys={savingKeys}
-              setTokenCounts={setTokenCounts}
-              getCopySourceOptions={getCopySourceOptions}
-              getSetRoleCounts={getSetRoleCounts}
-              onSelectDimension={setFocusedDimensionId}
-              onSelectOption={handleSelectOption}
-              onSetState={handleSetState}
-              onBulkSetState={handleBulkSetState}
-              onBulkSetAllInOption={handleBulkSetAllInOption}
-              onCopyAssignmentsFrom={handleCopyAssignmentsFrom}
-              onCreateOverrideSet={(dimId, optionName, setName) =>
-                overrideSet.setCreateOverrideSet({
-                  dimId,
-                  setName,
-                  optName: optionName,
-                })
-              }
-              onOpenCompare={() =>
-                openCompareView(
-                  focusedDimension ?? undefined,
-                  focusedDimension
-                    ? selectedOptions[focusedDimension.id] ??
-                        focusedDimension.options[0]?.name
-                    : undefined,
-                )
-              }
-              onOpenResolver={openAdvancedView}
-              onBack={returnToAuthoring}
-            />
-          ) : activeView === "advanced" && resolverState ? (
-            <ThemeAdvancedScreen
-              mode="resolver"
+          ) : activeView === "resolver" && resolverState ? (
+            <ThemeResolverScreen
               resolverState={resolverState}
               resolverAuthoringContext={resolverAuthoringContext}
-              onBack={() => setActiveView("advanced-setup")}
+              onBack={() => setActiveView("authoring")}
               onSuccess={onSuccess}
             />
           ) : activeView === "authoring" && authoringMode === "preview" ? (
@@ -850,8 +627,8 @@ const ThemeManagerWorkspace = React.forwardRef<
               handleCopyAssignmentsFrom={handleCopyAssignmentsFrom}
               handleAutoFillAll={handleAutoFillAll}
               handleAutoFillAllOptions={handleAutoFillAllOptions}
-              onOpenCoverageView={openCoverageView}
-              onOpenAdvancedSetup={openAdvancedSetupView}
+              onOpenCompare={openCompareView}
+              onOpenResolver={openResolverView}
               onNavigateToTokenSet={onNavigateToTokenSet}
             />
           )}

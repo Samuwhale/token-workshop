@@ -137,13 +137,8 @@ interface ThemeAuthoringScreenProps {
   ) => void;
   handleAutoFillAll: (dimId: string, optionName: string) => void;
   handleAutoFillAllOptions: (dimId: string) => void;
-  onOpenCoverageView: (
-    target?: ThemeRoleNavigationTarget | null,
-    allAxes?: boolean,
-  ) => void;
-  onOpenAdvancedSetup: (
-    target?: ThemeRoleNavigationTarget | null,
-  ) => void;
+  onOpenCompare: (dimId?: string) => void;
+  onOpenResolver: () => void;
   /** Navigate to Tokens workspace with a specific set selected */
   onNavigateToTokenSet?: (setName: string) => void;
 }
@@ -218,8 +213,8 @@ export const ThemeAuthoringScreen = forwardRef<
     handleCopyAssignmentsFrom,
     handleAutoFillAll,
     handleAutoFillAllOptions,
-    onOpenCoverageView,
-    onOpenAdvancedSetup,
+    onOpenCompare,
+    onOpenResolver,
     onNavigateToTokenSet,
   },
   ref,
@@ -307,33 +302,6 @@ export const ThemeAuthoringScreen = forwardRef<
       );
     });
   }, [dimSearch, dimensions]);
-  const focusedOptionName = useMemo(() => {
-    if (!focusedDimension) return null;
-    return (
-      selectedOptions[focusedDimension.id] ??
-      focusedDimension.options[0]?.name ??
-      null
-    );
-  }, [focusedDimension, selectedOptions]);
-  const focusedOption = useMemo(() => {
-    if (!focusedDimension || !focusedOptionName) return null;
-    return (
-      focusedDimension.options.find(
-        (option: ThemeOption) => option.name === focusedOptionName,
-      ) ?? null
-    );
-  }, [focusedDimension, focusedOptionName]);
-  const focusedOptionSummary = useMemo(() => {
-    if (!focusedDimension || !focusedOptionName) return null;
-    return optionRoleSummaries[`${focusedDimension.id}:${focusedOptionName}`] ?? null;
-  }, [focusedDimension, focusedOptionName, optionRoleSummaries]);
-  const focusedIssueCount = useMemo(() => {
-    if (!focusedDimension || !focusedOptionName) return 0;
-    return (optionIssues[`${focusedDimension.id}:${focusedOptionName}`] ?? []).reduce(
-      (sum, issue) => sum + issue.count,
-      0,
-    );
-  }, [focusedDimension, focusedOptionName, optionIssues]);
   const toggleCollapsedDisabled = (dimId: string) => {
     setCollapsedDisabled((current) => {
       const next = new Set(current);
@@ -429,8 +397,8 @@ export const ThemeAuthoringScreen = forwardRef<
       handleAutoFillAllOptions,
 
       // Navigation
-      onOpenCoverageView,
-      onOpenAdvancedSetup,
+      onOpenCompare,
+      onOpenResolver,
       onNavigateToTokenSet,
       onGenerateForDimension,
     }),
@@ -488,8 +456,8 @@ export const ThemeAuthoringScreen = forwardRef<
       handleCopyAssignmentsFrom,
       handleAutoFillAll,
       handleAutoFillAllOptions,
-      onOpenCoverageView,
-      onOpenAdvancedSetup,
+      onOpenCompare,
+      onOpenResolver,
       onNavigateToTokenSet,
       onGenerateForDimension,
     ],
@@ -500,112 +468,30 @@ export const ThemeAuthoringScreen = forwardRef<
       <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
           <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
-            <div className="flex flex-col gap-1">
-              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Create a theme family
-              </p>
-              <p className="max-w-[240px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Add variants and connect sets.
-              </p>
-            </div>
-
-            <div className="flex w-full max-w-[260px] flex-col gap-1.5">
-              {(
-                [
-                  ["Color Mode", "Light / Dark"],
-                  ["Brand", "Default / Premium"],
-                  ["Density", "Regular / Compact"],
-                ] as const
-              ).map(([name, example]) => (
+            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+              Create a theme family
+            </p>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {(["Color Mode", "Brand", "Density"] as const).map((name) => (
                 <button
                   key={name}
                   onClick={() => openCreateDim(name)}
-                  className="group flex items-center justify-between rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-left transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)]"
+                  className="rounded-full border border-[var(--color-figma-border)] px-3 py-1 text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
                 >
-                  <span className="text-[11px] font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)]">
-                    {name}
-                  </span>
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                    {example}
-                  </span>
+                  {name}
                 </button>
               ))}
+              <button
+                onClick={() => openCreateDim()}
+                className="rounded-full border border-dashed border-[var(--color-figma-border)] px-3 py-1 text-[11px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text-secondary)]"
+              >
+                Custom
+              </button>
             </div>
-
-            <button
-              onClick={() => openCreateDim()}
-              className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-            >
-              or add a custom family
-            </button>
           </div>
         ) : (
           <ThemeAuthoringProvider value={authoringContextValue}>
             <div className="flex flex-col">
-              <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2.5">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                        Theme families
-                      </p>
-                      <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                        {focusedDimension && focusedOption
-                          ? "Shared sets apply everywhere; variant sets override per-variant."
-                          : "Add variants and connect sets."}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openCreateDim()}
-                        className="inline-flex items-center rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-                      >
-                        New family
-                      </button>
-                      {focusedDimension && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAddOption((current) => ({
-                              ...current,
-                              [focusedDimension.id]: true,
-                            }));
-                            requestAnimationFrame(() => {
-                              addOptionInputRefs.current[focusedDimension.id]?.focus();
-                            });
-                          }}
-                          className="inline-flex items-center rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
-                        >
-                          New variant
-                        </button>
-                      )}
-                      {focusedDimension && focusedOption && focusedIssueCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onOpenCoverageView({
-                              dimId: focusedDimension.id,
-                              optionName: focusedOption.name,
-                              preferredSetName: null,
-                            })
-                          }
-                          className="inline-flex items-center rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
-                        >
-                          Review issues
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {focusedDimension && focusedOptionSummary && (
-                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      {`${focusedDimension.options.length} variant${focusedDimension.options.length === 1 ? "" : "s"} · ${focusedOptionSummary.baseCount} shared · ${focusedOptionSummary.overrideCount} override`}
-                      {focusedOptionSummary.excludedCount > 0 &&
-                        ` · ${focusedOptionSummary.excludedCount} excluded`}
-                    </div>
-                  )}
-                </div>
-              </div>
               <ThemeAxisBrowser dimensionsCount={dimensions.length} />
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (
@@ -655,11 +541,6 @@ export const ThemeAuthoringScreen = forwardRef<
                     />
                   );
                 })}
-                {dimSearch && filteredDimensions.length === 0 && (
-                  <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No families matching &ldquo;{dimSearch}&rdquo;
-                  </div>
-                )}
                 {dimSearch &&
                   filteredDimensions.length > 0 &&
                   filteredDimensions.length < dimensions.length && (
@@ -673,32 +554,24 @@ export const ThemeAuthoringScreen = forwardRef<
         )}
       </div>
 
-      <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-        {showCreateDim ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Theme family name
-              </label>
-              <input
-                type="text"
-                value={newDimName}
-                onChange={(event) => setNewDimName(event.target.value)}
-                placeholder="e.g. Color mode, Brand, Density"
-                className={`w-full rounded border bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
-                  createDimError
-                    ? "border-[var(--color-figma-error)]"
-                    : "border-[var(--color-figma-border)]"
-                }`}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") handleCreateDimension();
-                }}
-                autoFocus
-              />
-              <p className="text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">
-                e.g. Light/Dark, Default/Premium
-              </p>
-            </div>
+      {showCreateDim && (
+        <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+          <div className="flex flex-col gap-2">
+            <input
+              type="text"
+              value={newDimName}
+              onChange={(event) => setNewDimName(event.target.value)}
+              placeholder="e.g. Color mode, Brand, Density"
+              className={`w-full rounded border bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] ${
+                createDimError
+                  ? "border-[var(--color-figma-error)]"
+                  : "border-[var(--color-figma-border)]"
+              }`}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleCreateDimension();
+              }}
+              autoFocus
+            />
             {createDimError && (
               <NoticeFieldMessage severity="error">
                 {createDimError}
@@ -710,7 +583,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 disabled={!newDimName || isCreatingDim}
                 className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
-                {isCreatingDim ? "Creating…" : "Create family"}
+                {isCreatingDim ? "Creating..." : "Create"}
               </button>
               <button
                 onClick={closeCreateDim}
@@ -720,15 +593,8 @@ export const ThemeAuthoringScreen = forwardRef<
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => openCreateDim()}
-            className="flex w-full items-center justify-center rounded border border-dashed border-[var(--color-figma-border)] px-3 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            Add family
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 });

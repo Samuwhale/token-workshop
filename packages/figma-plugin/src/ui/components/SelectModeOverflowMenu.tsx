@@ -58,7 +58,7 @@ export function SelectModeOverflowMenu({
     "w-full flex items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-not-allowed disabled:opacity-40";
   const sectionBorder = "border-t border-[var(--color-figma-border)] mt-1 pt-1";
   const sectionLabel =
-    "px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--color-figma-text-tertiary)]";
+    "px-3 pt-2 pb-1 text-[9px] font-semibold text-[var(--color-figma-text-tertiary)]";
 
   return (
     <div className="relative shrink-0" ref={containerRef}>
@@ -123,7 +123,7 @@ export function SelectModeOverflowMenu({
             </button>
           )}
           <button type="button" role="menuitem" onClick={() => { onLinkToTokens(); setOpen(false); }} className={menuItemClass}>
-            Link to tokens
+            Create aliases
           </button>
         </div>
       )}

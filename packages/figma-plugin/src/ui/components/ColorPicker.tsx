@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { Spinner } from './Spinner';
 import { hexToRgb, rgbToHex, hslToSrgb } from '@tokenmanager/core';
 import {
@@ -273,6 +273,31 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   const hueRef = useRef<HTMLCanvasElement>(null);
   const alphaRef = useRef<HTMLCanvasElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Compute fixed position from parent element
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = popoverRef.current;
+    if (!el) return;
+    const parent = el.parentElement;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    const pickerWidth = 240;
+    const pickerHeight = el.offsetHeight || 400;
+    const margin = 8;
+    // Position below the trigger, clamped to viewport
+    let top = rect.bottom + 4;
+    let left = rect.left;
+    // Flip above if not enough space below
+    if (top + pickerHeight + margin > window.innerHeight) {
+      top = Math.max(margin, rect.top - pickerHeight - 4);
+    }
+    // Clamp left to viewport
+    if (left + pickerWidth + margin > window.innerWidth) {
+      left = Math.max(margin, window.innerWidth - pickerWidth - margin);
+    }
+    setPopoverPos({ top, left });
+  }, []);
 
   // Current hex (no alpha)
   const hex6 = hslToHex(hue, sat, lit);
@@ -586,8 +611,8 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   return (
     <div
       ref={popoverRef}
-      className="absolute z-50 mt-1 p-2 rounded-lg shadow-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2"
-      style={{ width: 240, left: 0 }}
+      className="fixed z-50 p-2 rounded-lg shadow-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2"
+      style={{ width: 240, ...(popoverPos ?? { top: 0, left: 0 }) }}
     >
       {/* Color area */}
       <div

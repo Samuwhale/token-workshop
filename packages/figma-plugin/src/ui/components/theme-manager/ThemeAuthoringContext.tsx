@@ -124,13 +124,8 @@ export interface ThemeAuthoringContextValue {
   handleAutoFillAllOptions: (dimId: string) => void;
 
   // --- Navigation ---
-  onOpenCoverageView: (
-    target?: ThemeRoleNavigationTarget | null,
-    allAxes?: boolean,
-  ) => void;
-  onOpenAdvancedSetup: (
-    target?: ThemeRoleNavigationTarget | null,
-  ) => void;
+  onOpenCompare: (dimId?: string) => void;
+  onOpenResolver: () => void;
   onNavigateToTokenSet?: (setName: string) => void;
   onGenerateForDimension?: (info: {
     dimensionName: string;

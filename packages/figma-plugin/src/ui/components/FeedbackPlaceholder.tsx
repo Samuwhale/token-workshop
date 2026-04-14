@@ -39,8 +39,8 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
     description: 'text-[10px] leading-snug',
   },
   section: {
-    container: 'flex w-full flex-col items-center justify-center px-2 py-2 text-center',
-    content: 'w-full max-w-[240px] space-y-1.5',
+    container: 'flex w-full flex-col items-center justify-center px-2 py-1.5 text-center',
+    content: 'w-full max-w-[240px] space-y-1',
     title: 'text-[10px] font-medium',
     description: 'text-[10px] leading-snug',
   },

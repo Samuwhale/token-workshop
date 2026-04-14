@@ -40,11 +40,9 @@ export interface TokenListToolbarProps {
   // Toolbar state chips & filter management
   toolbarStateChips: ToolbarStateChip[];
   activeFilterSummary: string[];
-  activeViewSummary: string[];
   hasStructuredFilters: boolean;
   removeQueryToken: (token: string) => void;
   clearFilters: () => void;
-  clearViewModes: () => void;
 
   // Create actions
   connected: boolean;
@@ -76,11 +74,9 @@ export function TokenListToolbar({
   structuredFilterChips,
   toolbarStateChips,
   activeFilterSummary,
-  activeViewSummary,
   hasStructuredFilters,
   removeQueryToken,
   clearFilters,
-  clearViewModes,
   connected,
   hasTokens,
   onCreateNew,
@@ -230,7 +226,7 @@ export function TokenListToolbar({
                 setHintIndex(0);
                 searchRef.current?.focus();
               }}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 min-h-[24px] min-w-[24px] flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 min-h-[20px] min-w-[20px] flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
               title="Clear search"
               aria-label="Clear search"
             >
@@ -292,9 +288,9 @@ export function TokenListToolbar({
           disabled={!connected}
           aria-expanded={createToolsMenuOpen}
           aria-haspopup="menu"
-          aria-label="Create token, group, or import"
+          aria-label="Add new"
           className={`inline-flex items-center justify-center rounded p-1 transition-colors ${createToolsMenuOpen ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"} disabled:cursor-not-allowed disabled:opacity-40`}
-          title="Create token, group, or import"
+          title="Add new..."
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
@@ -308,10 +304,10 @@ export function TokenListToolbar({
             role="menu"
           >
             <button role="menuitem" onClick={() => runCreateToolsAction(() => onCreateNew?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-              Single token
+              New token
             </button>
             <button role="menuitem" onClick={() => runCreateToolsAction(openTableCreate)} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-              Bulk create
+              New tokens (bulk)
             </button>
             <button role="menuitem" onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
               New group
@@ -321,7 +317,7 @@ export function TokenListToolbar({
               Paste JSON
             </button>
             <button role="menuitem" onClick={() => runCreateToolsAction(() => onOpenImportPanel?.())} disabled={!connected} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40">
-              Import
+              Import file...
             </button>
           </div>
         )}
@@ -363,14 +359,6 @@ export function TokenListToolbar({
               className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
             >
               Clear filters
-            </button>
-          )}
-          {activeViewSummary.length > 0 && (
-            <button
-              onClick={clearViewModes}
-              className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
-            >
-              Reset view
             </button>
           )}
         </div>
