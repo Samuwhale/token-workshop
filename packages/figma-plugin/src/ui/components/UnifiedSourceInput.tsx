@@ -110,6 +110,11 @@ export function UnifiedSourceInput({
               setMode('value');
               // Clear the source token binding so inline value drives the preview
               if (sourceTokenPath) onSourcePathChange('');
+              // Seed a default value so the recipe registers a value immediately
+              if (inlineValue === undefined || inlineValue === '') {
+                if (expectedType === 'color') onInlineValueChange('#ffffff');
+                else if (expectedType === 'dimension') onInlineValueChange({ value: 16, unit: 'px' });
+              }
             }}
             className={`px-2.5 py-1 text-[10px] font-medium transition-colors ${
               mode === 'value'
@@ -172,7 +177,7 @@ export function UnifiedSourceInput({
         <div className="flex flex-col gap-2">
           {expectedType === 'color' && (
             <ColorEditor
-              value={typeof inlineValue === 'string' ? inlineValue : '#808080'}
+              value={typeof inlineValue === 'string' ? inlineValue : '#ffffff'}
               onChange={(hex: string) => onInlineValueChange(hex)}
             />
           )}
