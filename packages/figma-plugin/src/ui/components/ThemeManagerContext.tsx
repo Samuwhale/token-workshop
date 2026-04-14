@@ -362,7 +362,7 @@ export function ThemeManagerModals() {
         return (
           <ConfirmModal
             title={`Delete axis "${dim.name}"?`}
-            description={`This will permanently delete the axis and all ${dim.options.length} option${dim.options.length !== 1 ? 's' : ''} it contains. Token resolution across all sets that use this axis will be affected.`}
+            description={`Delete axis and all ${dim.options.length} option${dim.options.length !== 1 ? 's' : ''}. Resolution for sets using this axis will change.`}
             confirmLabel="Delete axis"
             danger
             onConfirm={async () => {
@@ -381,7 +381,7 @@ export function ThemeManagerModals() {
         return (
           <ConfirmModal
             title={`Delete option "${optionDeleteConfirm.optionName}"?`}
-            description={`This will permanently delete the option from axis "${dim.name}". Any token assignments specific to this option will be lost.`}
+            description={`Delete option from "${dim.name}". Assignments specific to this option will be lost.`}
             confirmLabel="Delete option"
             danger
             onConfirm={async () => {

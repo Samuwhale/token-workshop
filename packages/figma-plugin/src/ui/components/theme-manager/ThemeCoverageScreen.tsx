@@ -86,7 +86,7 @@ export function ThemeCoverageScreen({
               {autoFillDescription
                 ? autoFillDescription
                 : showAllAxes || !focusDimension
-                ? "Fix missing overrides in variants."
+                ? ""
                 : primaryIssue
                   ? `${focusedIssueLabel} in ${primaryIssue.dimensionName} / ${primaryIssue.optionName}`
                   : focusOptionName

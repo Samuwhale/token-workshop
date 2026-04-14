@@ -18,7 +18,7 @@ export function SyncWorkflowControls({
   return (
     <WorkflowStageIndicators
       title="Sync workflow"
-      description="Clear preflight first, then compare differences, then apply the destinations you want to keep."
+      description="Preflight, compare, then apply."
       stages={stages}
       onSelectStage={onSelectStage}
     />

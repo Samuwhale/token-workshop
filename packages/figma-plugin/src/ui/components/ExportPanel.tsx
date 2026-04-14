@@ -180,7 +180,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         {help.expanded && (
           <PanelHelpBanner
             title="Export"
-            description="Export platform-specific token files or inspect Figma variables for import. For commit, push, pull, and merge work, expand the Repository workflow section at the bottom."
+            description="Export platform token files or inspect Figma variables. For git operations, expand Git workflow at the bottom."
             onDismiss={help.dismiss}
           />
         )}
@@ -231,8 +231,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           {/* Mode description */}
           <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed -mt-1">
             {mode === 'platforms'
-              ? 'Generate platform-specific code files from the token server — CSS variables, Dart, Swift, Android, or W3C JSON.'
-              : 'Inspect variables from this Figma file, preview them, and copy as DTCG JSON or save them to the token server.'}
+              ? 'Generate platform code — CSS, Dart, Swift, Android, JSON.'
+              : 'Inspect Figma variables, preview, and export.'}
           </div>
 
           {/* Auto-switch notice */}
@@ -243,7 +243,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               dismissMode="icon"
             >
               <span className="block">
-                Switched to <strong>Figma Variables</strong> — server disconnected. Platforms mode requires a server connection. Reconnect to switch back.
+                Switched to <strong>Figma Variables</strong> — server disconnected. Reconnect for platform export.
               </span>
             </InlineBanner>
           )}
@@ -291,7 +291,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             <button
               onClick={() => setShowRepo(prev => !prev)}
               disabled={!connected}
-              title={!connected ? 'Connect to server to use repository workflow' : undefined}
+              title={!connected ? 'Connect to server to use git workflow' : undefined}
               className={`w-full flex items-center gap-2 text-[10px] font-medium transition-colors ${
                 !connected
                   ? 'opacity-40 cursor-not-allowed text-[var(--color-figma-text-tertiary)]'
@@ -314,7 +314,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 <circle cx="6" cy="18" r="3" />
                 <path d="M18 9a9 9 0 01-9 9" />
               </svg>
-              Repository workflow
+              Git workflow
             </button>
             {showRepo && (
               <div className="mt-3">
@@ -361,7 +361,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       {presetsState.pendingDeletePresetId && presetsState.presets.find(p => p.id === presetsState.pendingDeletePresetId) && (
         <ConfirmModal
           title={`Delete preset "${presetsState.presets.find(p => p.id === presetsState.pendingDeletePresetId)!.name}"?`}
-          description="This preset and its platform configuration will be permanently removed."
+          description="This preset will be permanently removed."
           confirmLabel="Delete"
           danger
           onConfirm={handleConfirmDeletePreset}
@@ -445,8 +445,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   <InlineBanner variant="error">
                     <span className="block">
                       {savedCount > 0
-                        ? `Saved ${savedCount} of ${previewRows.length} destination sets before the failure below. Saved rows have refreshed counts and each successful write can be undone.`
-                        : 'Save failed before any destination set finished.'}
+                        ? `Saved ${savedCount} of ${previewRows.length} sets before the error below.`
+                        : 'Save failed before any set was written.'}
                     </span>
                     <span className="mt-1 block">{saveRun.error}</span>
                   </InlineBanner>
@@ -460,7 +460,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto">
                 {figmaVariables.savePreviewRefreshing && (
                   <div className="px-2.5 py-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Recomputing diff counts for the current destination selections…
+                    Refreshing diff counts…
                   </div>
                 )}
                 {previewRows.map(item => {
@@ -541,7 +541,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       <div className="mt-2 grid grid-cols-1 gap-2">
                         <div>
                           <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-                            Destination set
+                            Set
                           </label>
                           <input
                             type="text"
@@ -554,23 +554,23 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             list="figma-save-destination-options"
                             className={`mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[10px] font-mono text-[var(--color-figma-text)] disabled:opacity-60 ${fieldBorderClass(!!item.destinationError)}`}
                             spellCheck={false}
-                            aria-label={`Destination set for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
+                            aria-label={`Set for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
                           />
                           <FieldMessage
                             error={item.destinationError ?? undefined}
                             info={
                               item.destinationChanged
-                                ? 'Diff counts update against the remapped destination'
+                                ? 'Diff counts reflect remapped destination'
                                 : item.destinationExists
-                                  ? 'Writes into an existing set'
-                                  : 'Creates a new set on save'
+                                  ? 'Existing set'
+                                  : 'New set'
                             }
                           />
                         </div>
 
                         <div>
                           <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-                            Merge behavior
+                            Merge strategy
                           </label>
                           <select
                             value={item.effectiveMergeStrategy}
@@ -582,20 +582,20 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             }}
                             disabled={saveRun.active || !item.destinationExists}
                             className="mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] disabled:opacity-50"
-                            aria-label={`Merge behavior for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
+                            aria-label={`Merge strategy for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
                           >
                             <option value="overwrite">Overwrite changed tokens</option>
                             <option value="merge">Merge and keep untouched tokens</option>
                             <option value="skip">Skip conflicting tokens</option>
                           </select>
                           <FieldMessage
-                            info={item.destinationExists ? 'Applies only when the destination already exists' : 'Not needed for a new destination set'}
+                            info={item.destinationExists ? 'Applies to existing sets only' : 'N/A for new sets'}
                           />
                         </div>
 
                         <div>
                           <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-                            Append path
+                            Path prefix
                           </label>
                           <input
                             type="text"
@@ -607,11 +607,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             placeholder="brand.colors"
                             className={`mt-1 w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[10px] font-mono text-[var(--color-figma-text)] disabled:opacity-60 ${fieldBorderClass(!!item.appendPathError)}`}
                             spellCheck={false}
-                            aria-label={`Append path for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
+                            aria-label={`Path prefix for ${item.collectionName}${item.modeName ? ` (${item.modeName})` : ''}`}
                           />
                           <FieldMessage
                             error={item.appendPathError ?? undefined}
-                            info={!item.appendPathError ? 'Optional dot path prefix inside the destination set' : undefined}
+                            info={!item.appendPathError ? 'Optional dot-path prefix inside the set' : undefined}
                           />
                         </div>
                       </div>

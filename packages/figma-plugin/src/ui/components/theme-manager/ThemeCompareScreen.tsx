@@ -60,8 +60,8 @@ export function ThemeCompareScreen({
           </p>
           <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
             {compareFocusDimension && compareFocusOptionName
-              ? `Theme comparison starts from ${compareFocusDimension.name} → ${compareFocusOptionName}. Switch compare views if you need token-level or set-level analysis without losing this context.`
-              : "Compare launches from Advanced setup so you can inspect alternatives without reopening the simple authoring flow."}
+              ? `Starting from ${compareFocusDimension.name} → ${compareFocusOptionName}.`
+              : "Compare variants, tokens, and sets."}
           </p>
         </div>
       </div>

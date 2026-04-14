@@ -123,43 +123,42 @@ const SOURCE_META: Record<ImportSource, Pick<SelectorOption, 'iconBgClass' | 'ic
 const FAMILY_NOTES: Record<SourceFamily, React.ReactNode> = {
   figma: (
     <>
-      <strong className="font-medium text-[var(--color-figma-text)]">Figma Variables</strong> require a{' '}
-      <strong className="font-medium text-[var(--color-figma-text)]">Figma Professional</strong> plan (or above) and at least one local variable collection in this file.
+      <strong className="font-medium text-[var(--color-figma-text)]">Variables</strong> require a Professional plan and at least one local collection.
     </>
   ),
   'token-files': (
     <>
-      Use this for DTCG-compatible token JSON files. Drag and drop works here too if you already have the file handy.
+      Accepts DTCG-compatible JSON files. Drag and drop supported.
     </>
   ),
   code: (
     <>
-      CSS and Tailwind imports parse static values only. Dynamic expressions such as <code className="font-mono text-[9px]">calc()</code>, functions, or arrays are skipped and listed after import.
+      Static values only. Dynamic expressions (<code className="font-mono text-[9px]">calc()</code>, functions, arrays) are skipped.
     </>
   ),
   migration: (
     <>
-      Tokens Studio imports support both single-set and multi-set JSON exports.
+      Supports single-set and multi-set Tokens Studio exports.
     </>
   ),
 };
 
 const FAMILY_PARSER_LIMITS: Record<SourceFamily, string[]> = {
   figma: [
-    'Variables require a Figma Professional plan or above.',
-    'The current file must already contain local variables or styles to read from.',
+    'Requires a Professional plan or above.',
+    'File must contain local variables or styles.',
   ],
   'token-files': [
-    'JSON imports expect a DTCG token object or a top-level "tokens" object.',
-    'Tokens Studio exports are auto-detected and routed to the migration parser when possible.',
+    'Expects DTCG or top-level "tokens" object.',
+    'Tokens Studio exports auto-route to migration.',
   ],
   code: [
-    'Only static CSS values and static Tailwind theme values are imported.',
-    'Dynamic expressions, arrays, functions, booleans, and null values are skipped and reported.',
+    'Only static values are imported.',
+    'Dynamic expressions, arrays, and functions are skipped.',
   ],
   migration: [
-    'Tokens Studio multi-set exports keep their set boundaries.',
-    'Only nested groups with value or $value fields are imported.',
+    'Multi-set exports keep their set boundaries.',
+    'Only groups with $value fields are imported.',
   ],
 };
 
@@ -236,7 +235,7 @@ function FileValidationCard({
           ))}
           {validation.issues.length > 3 && (
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              …and {validation.issues.length - 3} more parser issues
+              +{validation.issues.length - 3} more
             </div>
           )}
         </div>
@@ -434,7 +433,7 @@ export function ImportSourceSelector() {
     : [];
   const parserLimitItems = activeFamily
     ? FAMILY_PARSER_LIMITS[activeFamily]
-    : ['JSON imports expect DTCG or Tokens Studio exports.', 'CSS and Tailwind imports accept static values only.', 'Unsupported files stay in the picker until you choose a supported source.'];
+    : ['Expects DTCG or Tokens Studio JSON.', 'CSS and Tailwind: static values only.'];
   const validationFamily = fileImportValidation?.source ? IMPORT_SOURCE_DEFINITIONS[fileImportValidation.source].family : null;
   const showValidationCard = !!fileImportValidation && (!activeFamily || validationFamily === activeFamily || fileImportValidation.source === null);
 
@@ -447,11 +446,11 @@ export function ImportSourceSelector() {
       {!activeFamily ? (
         <>
           <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
-            Start by choosing the kind of source you are importing from.
+            Choose a source type.
           </div>
           <FileIntakeBox
             title={isDragging ? 'Release to import a supported file' : 'File Intake'}
-            description="Choose a family to pick a file, or drag one here and the parser will route it to the matching family and next step."
+            description="Pick a source below or drag a file here."
             entries={familyFileEntries}
             isDragging={isDragging}
           />
@@ -480,7 +479,7 @@ export function ImportSourceSelector() {
           {activeFamilyFileEntries.length > 0 && (
             <FileIntakeBox
               title={isDragging ? 'Release to import this file' : 'Pick or drop a file'}
-              description={`Supported formats for ${IMPORT_FAMILY_DEFINITIONS[activeFamily].title.toLowerCase()} use the same routing whether you click a format below or drag a file in.`}
+              description="Pick a format below or drop a file."
               entries={activeFamilyFileEntries}
               isDragging={isDragging}
             />

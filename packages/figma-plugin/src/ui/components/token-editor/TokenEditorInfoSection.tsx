@@ -96,7 +96,7 @@ export function TokenEditorInfoSection({
             <div className="flex items-center gap-1 flex-wrap">
               {referenceTrace.length > 0 && (
                 <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
-                  References {referenceTrace.length}
+                  Refs {referenceTrace.length}
                 </span>
               )}
               {(dependentTrace.length > 0 || dependentsLoading) && (
@@ -117,7 +117,7 @@ export function TokenEditorInfoSection({
                 type="button"
                 onClick={() => onShowReferences(tokenPath)}
                 className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:underline transition-colors"
-                title="Open advanced dependency graph"
+                title="Open graph"
               >
                 <svg
                   width="10"
@@ -140,7 +140,7 @@ export function TokenEditorInfoSection({
 
           {dependencySnapshot?.hasCycles && (
             <div className="rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
-              Circular reference detected in this token's chain.
+              Circular reference detected.
             </div>
           )}
 
@@ -148,7 +148,7 @@ export function TokenEditorInfoSection({
           {referenceTrace.length > 0 && (
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">
-                References this token uses &rarr;
+                Uses &rarr;
               </span>
               {referenceTrace.slice(0, 8).map((node) => {
                 const resolvedColor =
@@ -227,8 +227,7 @@ export function TokenEditorInfoSection({
               })}
               {referenceTrace.length > 8 && (
                 <div className="px-1.5 pt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                  + {referenceTrace.length - 8} more reference step
-                  {referenceTrace.length - 8 === 1 ? "" : "s"}
+                  + {referenceTrace.length - 8} more
                 </div>
               )}
             </div>
@@ -246,7 +245,7 @@ export function TokenEditorInfoSection({
                 className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
               >
                 {dependentsLoading ? (
-                  <span>&larr; Loading dependents…</span>
+                  <span>&larr; Loading…</span>
                 ) : (
                   <>
                     <svg
@@ -259,7 +258,7 @@ export function TokenEditorInfoSection({
                     >
                       <path d="M2 1l4 3-4 3V1z" />
                     </svg>
-                    &larr; Tokens that use this ({dependentTrace.length})
+                    &larr; Used by ({dependentTrace.length})
                   </>
                 )}
               </button>
@@ -344,9 +343,7 @@ export function TokenEditorInfoSection({
                   })}
                   {dependentTrace.length > 20 && (
                     <div className="px-1.5 pt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                      + {dependentTrace.length - 20} more downstream
-                      dependent
-                      {dependentTrace.length - 20 === 1 ? "" : "s"}
+                      + {dependentTrace.length - 20} more
                     </div>
                   )}
                 </div>

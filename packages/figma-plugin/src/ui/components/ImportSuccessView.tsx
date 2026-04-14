@@ -80,7 +80,7 @@ export function ImportSuccessView() {
         <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-              Applied import review for{" "}
+              Review applied to{" "}
               {lastImportReviewSummary.destinationLabel}
             </div>
             <span
@@ -105,19 +105,18 @@ export function ImportSuccessView() {
           <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             Next:{" "}
             {hasFailedWrites
-              ? "Retry the failed set writes below or copy the remaining paths to continue the review from the listed sets."
-              : "Import more, or undo this import if you want to revise the review."}
+              ? "Retry failed writes below, or copy paths to continue."
+              : "Import more or undo to revise."}
           </div>
         </div>
       )}
       <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
         <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-          Shared workflow after import
+          Workflow
         </div>
         <div className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-          Keep using the same shell order: {PRIMARY_WORKSPACE_SEQUENCE_LABEL}.{" "}
-          {AUDIT_WORKSPACE_GUIDE.label} stays available as a review space across
-          every stage.
+          Follow the workspace order: {PRIMARY_WORKSPACE_SEQUENCE_LABEL}.{" "}
+          {AUDIT_WORKSPACE_GUIDE.label} is available at every stage.
         </div>
         <div className="mt-2 flex flex-col gap-1.5">
           {PRIMARY_WORKSPACE_SEQUENCE.map((workspace) => (
@@ -135,7 +134,7 @@ export function ImportSuccessView() {
               {AUDIT_WORKSPACE_GUIDE.label}
             </span>
             <span className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-              Cross-cutting review space. {AUDIT_WORKSPACE_GUIDE.role}
+              {AUDIT_WORKSPACE_GUIDE.role}
             </span>
           </div>
         </div>
@@ -143,11 +142,10 @@ export function ImportSuccessView() {
       {importNextStepRecommendations.length > 0 && (
         <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
           <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Recommended next workspaces
+            Next steps
           </div>
           <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Close the import takeover and continue in the next workspace that
-            best matches what this import needs.
+            Continue in the workspace that fits this import.
           </div>
           <div className="mt-2 flex flex-col gap-2">
             {importNextStepRecommendations
@@ -226,7 +224,7 @@ export function ImportSuccessView() {
                   <span className="text-[var(--color-figma-warning,#e8a100)] font-medium">
                     {fileImportValidation.skippedCount}
                   </span>{" "}
-                  entries were skipped before import
+                  skipped
                 </span>
                 <svg
                   width="8"
@@ -271,9 +269,7 @@ export function ImportSuccessView() {
           )}
           {showRetryGuidance && (
             <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-              Retry only re-sends the tokens that parsed successfully. Skipped
-              entries from this file are still excluded until the source file is
-              fixed and re-imported.
+              Retry re-sends parsed tokens only. Skipped entries stay excluded until the source file is fixed.
             </div>
           )}
         </div>
@@ -291,14 +287,13 @@ export function ImportSuccessView() {
                 </span>
               </div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Import strategy: {failureStrategyLabel}. Next: retry the failed
-                set writes below.
+                Strategy: {failureStrategyLabel}. Retry failed writes below.
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopyFailedPaths}
-                title="Copy all failed paths to clipboard"
+                title="Copy failed paths"
                 className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
               >
                 {copyFeedback ? "✓ Copied" : "Copy paths"}

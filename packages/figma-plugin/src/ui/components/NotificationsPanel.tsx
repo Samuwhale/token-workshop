@@ -412,14 +412,14 @@ export function NotificationsPanel({
       {inbox.length === 0 ? (
         <FeedbackPlaceholder
           variant="empty"
-          title="No notifications yet"
-          description="New issues and confirmations will show up here."
+          title="No notifications"
+          description=""
         />
       ) : visibleItems.length === 0 ? (
         <FeedbackPlaceholder
           variant="no-results"
           title={`No ${FILTER_LABELS[filter].toLowerCase()} notifications`}
-          description="Switch filters to see the rest of your notifications."
+          description="Try a different filter."
           secondaryAction={{
             label: "View all",
             onClick: () => setFilter("all"),

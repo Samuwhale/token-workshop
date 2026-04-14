@@ -990,8 +990,8 @@ export function SelectionInspector({
             <FeedbackPlaceholder
               variant="empty"
               size="section"
-              title="No token-ready properties found"
-              description="Select a layer with design properties to bind tokens."
+              title="No bindable properties"
+              description="Select a layer with design properties."
               secondaryAction={
                 onGoToTokens
                   ? { label: "Go to Tokens", onClick: onGoToTokens }
@@ -1095,8 +1095,8 @@ export function SelectionInspector({
                   <FeedbackPlaceholder
                     variant="no-results"
                     size="section"
-                    title="No properties match the current filter"
-                    description="Try a broader property query or reset the active filter mode."
+                    title="No matching properties"
+                    description="Broaden or reset the filter."
                     secondaryAction={{
                       label: "Clear filter",
                       onClick: clearPropFilters,
@@ -1215,7 +1215,7 @@ export function SelectionInspector({
       {showClearConfirm && (
         <ConfirmModal
           title={`Clear ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}?`}
-          description="This will remove all token bindings from the selected layer. You can undo this action."
+          description="Remove all token bindings from this layer. This can be undone."
           confirmLabel="Clear all"
           danger
           onConfirm={() => {

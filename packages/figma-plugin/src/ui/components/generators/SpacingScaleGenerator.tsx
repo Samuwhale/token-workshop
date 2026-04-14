@@ -31,12 +31,12 @@ export const DEFAULT_SPACING_SCALE_CONFIG: SpacingScaleConfig = {
 export const SPACING_STEP_PRESETS = [
   {
     label: 'Tailwind',
-    description: '12 steps (1–24× base unit) for a broad product spacing ladder',
+    description: '12 steps, 1–24× base',
     steps: DEFAULT_SPACING_SCALE_CONFIG.steps,
   },
   {
     label: '8pt Grid',
-    description: '8 steps on a strict 8pt grid (1×–12× base unit) for pixel-perfect layouts',
+    description: '8 steps, strict 8pt grid',
     steps: [
       { name: '1', multiplier: 1 },
       { name: '2', multiplier: 2 },
@@ -50,7 +50,7 @@ export const SPACING_STEP_PRESETS = [
   },
   {
     label: 'Semantic',
-    description: '5 named steps (sm, base, md, lg, xl) — intent-based responsive sizing',
+    description: '5 semantic steps (sm–xl)',
     steps: [
       { name: 'sm', multiplier: 0.75 },
       { name: 'base', multiplier: 1 },
@@ -76,7 +76,7 @@ export const SPACING_PARAMETER_PRESETS: SpacingParameterPreset[] = [
   {
     id: 'compact',
     label: 'Compact',
-    description: 'Dense spacing scale for data-heavy interfaces and tight layouts',
+    description: 'Dense scale for tight layouts',
     config: {
       steps: [
         { name: '1', multiplier: 1 },
@@ -92,7 +92,7 @@ export const SPACING_PARAMETER_PRESETS: SpacingParameterPreset[] = [
   {
     id: 'balanced',
     label: 'Balanced',
-    description: 'General-purpose spacing scale with even distribution for most UIs',
+    description: 'Even distribution for most UIs',
     config: {
       steps: [
         { name: '1', multiplier: 1 },
@@ -110,7 +110,7 @@ export const SPACING_PARAMETER_PRESETS: SpacingParameterPreset[] = [
   {
     id: 'generous',
     label: 'Generous',
-    description: 'Wide spacing scale with large upper steps for spacious, editorial layouts',
+    description: 'Wide scale for spacious layouts',
     config: {
       steps: [
         { name: '1', multiplier: 1 },

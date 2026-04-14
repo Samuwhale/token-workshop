@@ -225,9 +225,6 @@ export function StepSource({
     <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
       <div className={AUTHORING.generatorTitleBlock}>
         <h3 className={AUTHORING.generatorTitle}>Configure</h3>
-        <p className={AUTHORING.generatorDescription}>
-          Provide a source value, tune the settings, and review the live preview.
-        </p>
       </div>
 
       <div className={AUTHORING_SURFACE_CLASSES.splitLayout}>
@@ -253,7 +250,7 @@ export function StepSource({
           {/* Multi-brand toggle + input table */}
           <div className={AUTHORING.generatorSectionCard}>
             <div className={AUTHORING.generatorFieldStack}>
-              <span className={AUTHORING.generatorSummaryLabel}>Publishing mode</span>
+              <span className={AUTHORING.generatorSummaryLabel}>Publishing</span>
               <button
                 type="button"
                 onClick={onToggleMultiBrand}
@@ -267,8 +264,8 @@ export function StepSource({
               </button>
               <p className={AUTHORING.generatorDescription}>
                 {isMultiBrand
-                  ? 'Create the same scale into multiple brand-specific token sets.'
-                  : 'Switch to multi-brand when this recipe should publish one scale across several sets.'}
+                  ? 'Publish into multiple sets.'
+                  : 'One scale across several sets.'}
               </p>
             </div>
             {isMultiBrand && inputTable && (
@@ -464,10 +461,10 @@ export function StepSource({
             {selectedType !== 'contrastCheck' && !previewError && !previewLoading && previewTokens.length === 0 && !(isMultiBrand && multiBrandPreviews && multiBrandPreviews.size > 0) && (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-dashed border-[var(--color-figma-border)] rounded-lg px-3 py-4 bg-[var(--color-figma-bg-secondary)] text-center">
                 {isMultiBrand
-                  ? 'Add a brand row with an input value to see a preview.'
+                  ? 'Add a brand row to see a preview.'
                   : typeNeedsValue && !hasValue
-                    ? `Pick or enter a base ${typeExpectsColor ? 'color' : 'value'} to see the token preview.`
-                    : 'Configure settings to see a preview.'}
+                    ? `Enter a base ${typeExpectsColor ? 'color' : 'value'} to preview.`
+                    : 'Adjust settings to preview.'}
               </div>
             )}
           </div>

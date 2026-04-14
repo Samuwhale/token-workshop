@@ -239,7 +239,7 @@ function ThemeAdvancedSetupScreen({
     <>
       <AdvancedScreenHeader
         title="Advanced theme setup"
-        description="Keep normal theme authoring in the main flow. Use this route when you need raw set-role controls, comparison tools, or resolver-only publish logic."
+        description="Raw set-role controls, comparison, and resolver logic."
         backLabel="Back to themes"
         onBack={onBack}
       />
@@ -248,20 +248,18 @@ function ThemeAdvancedSetupScreen({
         <div className="grid gap-2 md:grid-cols-2">
           <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-2.5 py-2">
             <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-              Stay in simple authoring
+              Simple authoring
             </p>
             <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Use the default theme workflow for shared sets, variant-specific sets,
-              coverage review, and preview.
+              Shared/variant sets, coverage, and preview.
             </p>
           </div>
           <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-2.5 py-2">
             <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-              Switch here for structure work
+              Structure work
             </p>
             <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Compare variants, batch-edit role assignments, or inspect every
-              included and excluded set behind a specific variant.
+              Compare variants, batch-edit roles, inspect sets.
             </p>
           </div>
         </div>
@@ -311,7 +309,7 @@ function ThemeAdvancedSetupScreen({
 
           {!selectedDimension || !selectedOption ? (
             <div className="rounded border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-[10px] text-[var(--color-figma-text-tertiary)]">
-              Create at least one theme family and variant before using Advanced setup.
+              Create a family and variant first.
             </div>
           ) : (
             <>
@@ -322,7 +320,7 @@ function ThemeAdvancedSetupScreen({
                   disabled={!canCompareThemes}
                   className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Open compare tools
+                  Compare
                 </button>
                 {resolverAvailable && (
                   <button
@@ -389,7 +387,7 @@ function ThemeAdvancedSetupScreen({
                 )}
                 {renderRoleSection(
                   "Excluded sets",
-                  "not part of this variant",
+                  "not in this variant",
                   setNamesByState.disabled,
                   "disabled",
                   "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]",
@@ -413,7 +411,7 @@ function ThemeResolverScreen({
     <>
       <AdvancedScreenHeader
         title="Advanced resolver setup"
-        description="Keep everyday light/dark, brand, and density authoring in themes. Move here only when publish output needs custom resolution order, modifier defaults, or contexts that do not map cleanly to those themes."
+        description="Custom resolution order, modifier defaults, and non-theme contexts."
         backLabel="Back to advanced setup"
         onBack={onBack}
       />
@@ -435,7 +433,7 @@ function ThemeResolverScreen({
               <ThemeResolverContextBanner
                 context={resolverAuthoringContext}
                 title="Advanced review"
-                description="Detailed resolver mismatch diagnostics stay in this advanced flow so the default theme authoring surface can stay focused on families and variants."
+                description="Resolver mismatch diagnostics for this theme context."
               />
             </div>
           )}

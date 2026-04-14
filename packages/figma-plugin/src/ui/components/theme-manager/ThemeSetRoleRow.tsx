@@ -38,7 +38,7 @@ export function ThemeSetRoleRow({
         {isEmptyOverride && (
           <NoticePill
             severity="warning"
-            title="This override set has no tokens"
+            title="No tokens in this override set"
           >
             empty
           </NoticePill>

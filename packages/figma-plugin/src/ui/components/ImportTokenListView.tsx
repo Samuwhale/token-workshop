@@ -148,7 +148,7 @@ export function ImportTokenListView() {
       {/* Preview header */}
       <div className="flex items-center justify-between">
         <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-          Preview parsed tokens ({selectedTokens.size}/{tokens.length} selected)
+          Tokens ({selectedTokens.size}/{tokens.length})
         </div>
         <button
           onClick={toggleAll}
@@ -280,7 +280,7 @@ export function ImportTokenListView() {
       {/* Path conflict warning banner */}
       {tokens.some(t => t._warning?.startsWith('Path conflict')) && (
         <div className="px-3 py-2 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 border border-[var(--color-figma-warning,#e8a100)]/30 text-[10px] text-[var(--color-figma-warning,#e8a100)]">
-          ⚠ Some tokens share the same path after normalization. Conflicting tokens are highlighted below — only the last one with each path will be saved.
+          Duplicate paths found — only the last token per path will be saved.
         </div>
       )}
 

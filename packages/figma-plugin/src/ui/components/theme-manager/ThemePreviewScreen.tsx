@@ -210,7 +210,7 @@ export function ThemePreviewScreen({
         </div>
         <div className="flex items-center justify-between border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
           <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {activeSelectionLabel || "No active theme variant selection"}
+            {activeSelectionLabel || "No variant selected"}
           </div>
           <button
             type="button"
@@ -324,7 +324,7 @@ export function ThemePreviewScreen({
 
         {previewTokens.length >= 200 && (
           <div className="border-t border-[var(--color-figma-border)] px-3 py-1 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-            Showing first 200 tokens. Use search to filter.
+            First 200 shown. Search to filter.
           </div>
         )}
       </div>

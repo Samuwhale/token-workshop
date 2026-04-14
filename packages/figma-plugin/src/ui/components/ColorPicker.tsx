@@ -704,7 +704,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
             value={hexInput}
             onChange={e => onHexInputChange(e.target.value)}
             className={inputClass + ' text-left' + (hexInputError ? ' !border-red-500' : '')}
-            title={hexInputError ? 'Invalid hex color — use #RRGGBB or #RRGGBBAA' : undefined}
+            title={hexInputError ? 'Invalid hex — use #RRGGBB or #RRGGBBAA' : undefined}
           />
         </div>
       ) : (
@@ -850,7 +850,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
           type="button"
           onClick={sampleSelection}
           disabled={eyedropperState === 'waiting'}
-          title={eyedropperState === 'waiting' ? 'Waiting for Figma selection…' : eyedropperState === 'success' ? 'Color sampled!' : 'Sample color from Figma selection'}
+          title={eyedropperState === 'waiting' ? 'Waiting for selection…' : eyedropperState === 'success' ? 'Sampled!' : 'Sample from Figma selection'}
           className={[
             'ml-auto flex items-center gap-1 px-2 py-1 rounded text-[10px] border transition-colors',
             eyedropperState === 'success'

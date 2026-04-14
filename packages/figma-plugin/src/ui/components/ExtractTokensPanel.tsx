@@ -143,7 +143,7 @@ export function ExtractTokensPanel({
     const timer = setTimeout(() => {
       setLoading(false);
       setError(
-        "No response from Figma — make sure a layer is selected and try again.",
+        "No response from Figma. Select a layer and retry.",
       );
     }, EXTRACT_TIMEOUT_MS);
 
@@ -421,7 +421,7 @@ export function ExtractTokensPanel({
       {!embedded && (
         <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 shrink-0">
           <span className="flex-1 text-[10px] font-medium text-[var(--color-figma-text)]">
-            Extract Tokens from Selection
+            Extract Tokens
           </span>
           <button
             onClick={onClose}
@@ -473,8 +473,8 @@ export function ExtractTokensPanel({
         <div className="px-3 py-6 text-center">
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
             {propertyFilter?.length
-              ? `No ${propertyFilterLabel ?? "matching"} properties are ready to extract from this selection.`
-              : "No extractable properties found in the selection."}
+              ? `No ${propertyFilterLabel ?? "matching"} properties to extract.`
+              : "Nothing to extract from this selection."}
           </p>
           <button
             onClick={onClose}
@@ -491,8 +491,7 @@ export function ExtractTokensPanel({
           {propertyFilter?.length ? (
             <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 shrink-0">
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Review these {propertyFilterLabel ?? "filtered"} properties before
-                creating or overwriting any tokens.
+                Review {propertyFilterLabel ?? "filtered"} properties before creating tokens.
               </p>
             </div>
           ) : null}

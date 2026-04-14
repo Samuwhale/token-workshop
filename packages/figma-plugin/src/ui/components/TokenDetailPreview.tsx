@@ -431,7 +431,7 @@ export function TokenDetailPreview({
           usageCount > 0) && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
             <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">
-              Metadata
+              Details
             </div>
             <div className="flex flex-col gap-2">
               {entryMeta.$description && (
@@ -545,12 +545,12 @@ export function TokenDetailPreview({
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider">
-                Dependency trace
+                Dependencies
               </div>
               <div className="flex items-center gap-1 flex-wrap justify-end">
                 {resolutionSteps && resolutionSteps.length >= 2 && (
                   <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
-                    Alias chain {resolutionSteps.length - 1}
+                    Chain {resolutionSteps.length - 1}
                   </span>
                 )}
                 {dependentNodes.length > 0 && (
@@ -563,15 +563,14 @@ export function TokenDetailPreview({
 
             {dependencySnapshot?.hasCycles && (
               <div className="mb-2 rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
-                Circular aliases detected in this trace. Use the full
-                Dependencies graph for cycle debugging.
+                Circular alias detected. Open the full graph to debug.
               </div>
             )}
 
             {resolutionSteps && resolutionSteps.length >= 2 && (
               <div className="mb-2 flex flex-col gap-1">
                 <div className="text-[9px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)]">
-                  Alias chain
+                  Chain
                 </div>
                 {resolutionSteps.map((step, i) => {
                   const isFirst = i === 0;
@@ -665,8 +664,7 @@ export function TokenDetailPreview({
                     Dependents
                   </div>
                   <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                    Direct {dependencySnapshot?.directDependents.length ?? 0} ·
-                    Downstream {dependentNodes.length}
+                    {dependencySnapshot?.directDependents.length ?? 0} direct · {dependentNodes.length} total
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -698,8 +696,7 @@ export function TokenDetailPreview({
                   ))}
                   {dependentNodes.length > 6 && (
                     <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                      + {dependentNodes.length - 6} more dependent token
-                      {dependentNodes.length - 6 === 1 ? "" : "s"}
+                      + {dependentNodes.length - 6} more
                     </div>
                   )}
                 </div>

@@ -224,7 +224,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Quick apply token"
+        aria-label="Apply token"
       >
         {/* Header: layer name + property tabs */}
         <div className="px-3 pt-2.5 pb-0 border-b border-[var(--color-figma-border)]">
@@ -233,7 +233,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
             <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate" title={layerSummary}>
-              Quick Apply — {layerSummary}
+              Apply — {layerSummary}
             </span>
             <kbd className="ml-auto text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
               ESC
@@ -305,7 +305,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
         <div ref={listRef} className="overflow-y-auto flex-1" role="listbox" aria-label="Token candidates">
           {candidates.length === 0 ? (
             <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
-              {query ? `No matching tokens for "${query}"` : `No compatible ${getTokenTypeForProperty(activeProp)} tokens`}
+              {query ? `No tokens matching "${query}"` : `No ${getTokenTypeForProperty(activeProp)} tokens available`}
             </div>
           ) : (
             <>
@@ -316,7 +316,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                     </svg>
-                    Recently used
+                    Recent
                   </div>
                   {recentCandidates.map((c, idx) => {
                     const isSelected = idx === activeIdx;

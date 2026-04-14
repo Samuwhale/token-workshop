@@ -22,13 +22,13 @@ export function GitWorkflowPanel({ serverUrl, connected }: GitWorkflowPanelProps
         <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
           <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Repository workflow</div>
           <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-            Use this for commit, push, pull, and merge-resolution when downstream delivery needs saved files or branch coordination. Figma publish and export file generation live above.
+            Commit, push, pull, and merge resolution.
           </div>
         </div>
 
         {!connected ? (
           <div className="px-4 py-6 text-[11px] text-[var(--color-figma-text-secondary)]">
-            Connect to the server to inspect repository status and run pull, commit, push, or merge-resolution actions.
+            Connect to manage repository.
           </div>
         ) : (
           <GitSubPanel git={git} diffFilter="" onRequestConfirm={setConfirmAction} />
@@ -38,7 +38,7 @@ export function GitWorkflowPanel({ serverUrl, connected }: GitWorkflowPanelProps
       {confirmAction === 'git-pull' && (
         <GitPreviewModal
           title="Pull from remote"
-          subtitle="Incoming changes from remote — nothing has been applied yet."
+          subtitle="Incoming changes from remote."
           confirmLabel="Pull"
           preview={git.pullPreview}
           loading={git.pullPreviewLoading}
@@ -58,7 +58,7 @@ export function GitWorkflowPanel({ serverUrl, connected }: GitWorkflowPanelProps
       {confirmAction === 'git-push' && (
         <GitPreviewModal
           title={`Push to remote${git.gitStatus?.branch ? ` (${git.gitStatus.branch})` : ''}`}
-          subtitle="Outgoing changes — nothing has been pushed yet."
+          subtitle="Outgoing changes."
           confirmLabel="Push"
           preview={git.pushPreview}
           loading={git.pushPreviewLoading}
@@ -242,7 +242,7 @@ function GitPreviewModal({
                 </p>
               ) : bySet.length === 0 ? (
                 <p className="py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  No token-level changes detected.
+                  No token changes.
                 </p>
               ) : (
                 <>
@@ -416,7 +416,7 @@ function CommitPreviewModal({
         <div className="px-4 pt-4 pb-2">
           <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review what will be committed before proceeding.
+            Review before committing.
           </p>
         </div>
 
@@ -527,7 +527,7 @@ function CommitPreviewModal({
               >
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              No token value changes detected.
+              No token value changes.
             </div>
           )}
         </div>
@@ -607,9 +607,9 @@ function ApplyRepositoryDiffModal({
         aria-modal="true"
       >
         <div className="px-4 pt-4 pb-2">
-          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Apply repository changes</h3>
+          <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">Apply changes</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review the file-level sync directions before applying them.
+            Review sync directions before applying.
           </p>
         </div>
 

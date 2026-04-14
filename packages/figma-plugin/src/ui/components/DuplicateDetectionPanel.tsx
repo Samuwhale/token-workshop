@@ -141,7 +141,7 @@ export function DuplicateDetectionPanel({
       onRefreshValidation();
     } catch (err) {
       console.warn('[DuplicateDetectionPanel] deduplicate failed:', err);
-      onError('Duplicate cleanup failed — refresh validation and review the remaining tokens.');
+      onError('Cleanup failed — refresh and review remaining tokens.');
       if (mutated) {
         onMutate();
       }
@@ -158,7 +158,7 @@ export function DuplicateDetectionPanel({
       for (const group of lintDuplicateGroups) {
         const canonical = selectedCanonicals.get(group.id);
         if (!canonical) {
-          throw new Error('Select a canonical token for every duplicate group before batch resolve.');
+          throw new Error('Select a canonical token for every group first.');
         }
         setDeduplicatingGroupId(group.id);
         mutated = (await resolveGroup(group, canonical)) > 0 || mutated;
@@ -169,8 +169,8 @@ export function DuplicateDetectionPanel({
     } catch (err) {
       console.warn('[DuplicateDetectionPanel] bulk deduplicate failed:', err);
       onError(mutated
-        ? 'Batch cleanup stopped after partial progress — validation has been refreshed.'
-        : 'Batch cleanup is blocked until every duplicate group has an explicit canonical token.');
+        ? 'Batch partially applied — validation refreshed.'
+        : 'Select a canonical token for every group first.');
       if (mutated) {
         onMutate();
       }
@@ -193,7 +193,7 @@ export function DuplicateDetectionPanel({
           <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">
             {lintDuplicateGroups.length} group{lintDuplicateGroups.length !== 1 ? 's' : ''} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
           </span>
-          <span className="normal-case font-normal opacity-60">shared values across multiple tokens</span>
+          <span className="normal-case font-normal opacity-60">shared values</span>
         </span>
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
       </button>
@@ -233,7 +233,7 @@ export function DuplicateDetectionPanel({
               </div>
               {!allGroupsConfigured && (
                 <p className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Expand a group and pick the canonical token to unlock batch cleanup.
+                  Pick a canonical token in each group to enable batch resolve.
                 </p>
               )}
             </div>
@@ -352,7 +352,7 @@ export function DuplicateDetectionPanel({
                                     </div>
                                   ) : (
                                     <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                      Metadata matches the selected canonical token.
+                                      Metadata matches canonical.
                                     </p>
                                   )}
                                 </div>
@@ -362,7 +362,7 @@ export function DuplicateDetectionPanel({
                         </div>
                       ) : (
                         <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 p-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          Choose the token to keep before resolving this group.
+                          Select a canonical token to resolve this group.
                         </div>
                       )}
 

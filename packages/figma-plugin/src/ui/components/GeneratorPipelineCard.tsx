@@ -78,17 +78,17 @@ function getRecipeStatusDetail(generator: TokenGenerator, status: DashboardStatu
   if (generator.staleReason) return generator.staleReason;
   switch (status) {
     case "stale":
-      return "Source changed since the last run.";
+      return "Source changed.";
     case "failed":
       return "Last run failed.";
     case "neverRun":
-      return "This recipe has not run yet.";
+      return "Not run yet.";
     case "upToDate":
-      return "Outputs match the current source.";
+      return "Up to date.";
     case "blocked":
-      return "This recipe is waiting on an upstream dependency.";
+      return "Waiting on upstream dependency.";
     default:
-      return generator.enabled === false ? "This recipe is paused." : "Recipe state available.";
+      return generator.enabled === false ? "Paused." : "Recipe state available.";
   }
 }
 
@@ -624,7 +624,7 @@ export function GeneratorPipelineCard({
       {showCloneDialog && (
         <ConfirmModal
           title="Clone Recipe"
-          description="Create a new recipe from the current one."
+          description="Create a copy of this recipe."
           confirmLabel={duplicating ? "Cloning…" : "Clone"}
           confirmDisabled={
             duplicating || !cloneName.trim() || !cloneTargetGroup.trim()

@@ -38,9 +38,6 @@ export function StepWhere({
     <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
       <div className={AUTHORING.generatorTitleBlock}>
         <h3 className={AUTHORING.generatorTitle}>Where should it land?</h3>
-        <p className={AUTHORING.generatorDescription}>
-          Name the recipe and choose where generated tokens are published.
-        </p>
       </div>
 
       <div className={`${AUTHORING.generatorSectionCard} ${AUTHORING.generatorFieldGrid}`}>

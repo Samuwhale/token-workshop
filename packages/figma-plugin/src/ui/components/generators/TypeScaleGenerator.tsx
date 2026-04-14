@@ -30,18 +30,18 @@ export const DEFAULT_TYPE_SCALE_CONFIG: TypeScaleConfig = {
 // ---------------------------------------------------------------------------
 
 export const TYPE_RATIO_PRESETS = [
-  { label: 'Minor Second', description: 'Ratio 1.067 — very subtle scale, tight steps ideal for dense UIs', value: 1.067 },
-  { label: 'Major Second', description: 'Ratio 1.125 — gentle scale, good for body text hierarchies', value: 1.125 },
-  { label: 'Minor Third', description: 'Ratio 1.2 — moderate scale, common for UI type systems', value: 1.2 },
-  { label: 'Major Third', description: 'Ratio 1.25 — balanced scale, used by Tailwind CSS', value: 1.25 },
-  { label: 'Perfect Fourth', description: 'Ratio 1.333 — strong scale with clear visual hierarchy', value: 1.333 },
-  { label: 'Golden Ratio', description: 'Ratio 1.618 — dramatic scale with large jumps between sizes', value: 1.618 },
+  { label: 'Minor Second', description: '1.067 — subtle, tight steps', value: 1.067 },
+  { label: 'Major Second', description: '1.125 — gentle, body text', value: 1.125 },
+  { label: 'Minor Third', description: '1.2 — moderate, common for UI', value: 1.2 },
+  { label: 'Major Third', description: '1.25 — balanced, Tailwind default', value: 1.25 },
+  { label: 'Perfect Fourth', description: '1.333 — strong hierarchy', value: 1.333 },
+  { label: 'Golden Ratio', description: '1.618 — dramatic jumps', value: 1.618 },
 ];
 
 export const TYPE_STEP_PRESETS = [
   {
     label: 'T-shirt (7)',
-    description: '7 named steps: xs, sm, base, lg, xl, 2xl, 3xl',
+    description: 'xs through 3xl',
     steps: [
       { name: 'xs', exponent: -2 },
       { name: 'sm', exponent: -1 },
@@ -54,7 +54,7 @@ export const TYPE_STEP_PRESETS = [
   },
   {
     label: 'Extended (9)',
-    description: '9 named steps: 2xs through 4xl — wider range for complex type hierarchies',
+    description: '2xs through 4xl',
     steps: [
       { name: '2xs', exponent: -3 },
       { name: 'xs', exponent: -2 },
@@ -69,7 +69,7 @@ export const TYPE_STEP_PRESETS = [
   },
   {
     label: 'Numeric',
-    description: '9 steps named by pixel size: 10, 12, 14, 16, 20, 24, 32, 40, 48',
+    description: '10–48 by pixel size',
     steps: [
       { name: '10', exponent: -3 },
       { name: '12', exponent: -2 },
@@ -99,7 +99,7 @@ export const TYPE_SCALE_PARAMETER_PRESETS: TypeScaleParameterPreset[] = [
   {
     id: 'tight',
     label: 'Tight',
-    description: 'Subtle scale with small ratio differences, ideal for data-dense UIs',
+    description: 'Small ratios for dense UIs',
     config: {
       steps: [
         { name: 'xs', exponent: -2 },
@@ -117,7 +117,7 @@ export const TYPE_SCALE_PARAMETER_PRESETS: TypeScaleParameterPreset[] = [
   {
     id: 'balanced',
     label: 'Balanced',
-    description: 'Standard scale with clear hierarchy, works for most applications',
+    description: 'Clear hierarchy for most UIs',
     config: {
       steps: [
         { name: 'xs', exponent: -2 },
@@ -137,7 +137,7 @@ export const TYPE_SCALE_PARAMETER_PRESETS: TypeScaleParameterPreset[] = [
   {
     id: 'expressive',
     label: 'Expressive',
-    description: 'Dramatic scale with large jumps, suited for editorial and marketing pages',
+    description: 'Large jumps for editorial layouts',
     config: {
       steps: [
         { name: 'sm', exponent: -1 },
@@ -432,7 +432,7 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Current: {config.ratio}</span>
           <button
             onClick={() => setCompareMode(v => !v)}
-            title="Compare two ratios side by side before committing"
+            title="Compare two ratios side by side"
             className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-medium border transition-colors ${compareMode ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">

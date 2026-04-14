@@ -1051,7 +1051,7 @@ export function BatchEditor({
         <PanelHelpHint
           panelKey="batch-editor"
           title="Batch Editor"
-          description="Edit multiple tokens at once — set a shared description, change their type, update Figma variable scopes, or apply a new alias value across all selected tokens simultaneously."
+          description="Batch-edit description, type, scopes, or alias across selected tokens."
         />
       </div>
 
@@ -1128,12 +1128,12 @@ export function BatchEditor({
                   </button>
                 )}
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-                  Proceeding will produce invalid tokens. Update their values afterward or cancel.
+                  This will produce invalid tokens. Update values afterward or cancel.
                 </p>
               </div>
             ) : (
               <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-                This may break alias references that depend on the current type.
+                May break alias references depending on the current type.
               </p>
             )}
             <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -1174,7 +1174,7 @@ export function BatchEditor({
           {showScopes && (
             <div className="ml-[16px] mt-1 space-y-1">
               <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">
-                Set scopes on all {selectedPaths.size} selected token{selectedPaths.size === 1 ? '' : 's'}. Empty = all scopes.
+                Applied to {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'}. Empty = all scopes.
               </p>
               {availableScopes.map(scope => (
                 <label key={scope.value} className="flex items-start gap-1.5 cursor-pointer">
@@ -1223,7 +1223,7 @@ export function BatchEditor({
         {showExtensions && (
           <div className="ml-[16px] mt-1 space-y-1">
             <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">
-              Merge these keys into <span className="font-mono">$extensions</span> on all {selectedPaths.size} selected token{selectedPaths.size === 1 ? '' : 's'}. Values are parsed as JSON if valid.
+              Merged into <span className="font-mono">$extensions</span> on {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'}. Values parsed as JSON.
             </p>
             {batchExtensions.map((entry, i) => (
               <div key={i} className="flex items-center gap-1">
@@ -1693,7 +1693,7 @@ export function BatchEditor({
         {aliasActive && !showAliasAutocomplete && (
           aliasConflict ? (
             <div className="text-[10px] text-[var(--color-figma-error)] leading-snug">
-              Alias cannot be combined with value transforms — disable one to apply
+              Cannot combine alias with value transforms
             </div>
           ) : aliasPreview && aliasPreview.length > 0 ? (
             <div className={AUTHORING.previewCard}>
@@ -1921,7 +1921,7 @@ export function BatchEditor({
                 )}
                 {movePreview.conflicts > 0 && (
                   <div className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] font-medium leading-snug pt-0.5">
-                    {movePreview.conflicts} token{movePreview.conflicts === 1 ? '' : 's'} already exist{movePreview.conflicts === 1 ? 's' : ''} in &quot;{targetSet}&quot; and will be overwritten
+                    {movePreview.conflicts} conflict{movePreview.conflicts === 1 ? '' : 's'} in &quot;{targetSet}&quot; — will overwrite
                   </div>
                 )}
               </div>

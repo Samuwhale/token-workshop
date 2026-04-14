@@ -870,9 +870,6 @@ export function TokenFlowPanel({
             <path d="M8 12h4m0 0l4-6m-4 6l4 6" />
           </svg>
           <span className="text-xs font-semibold">Dependencies</span>
-          <span className="rounded-full bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-            Advanced graph
-          </span>
           <PanelHelpIcon
             panelKey="token-flow"
             title="Dependencies"
@@ -885,14 +882,13 @@ export function TokenFlowPanel({
         </div>
         <TokenSearch tokenMap={allTokensFlat} onSelect={setSelectedPath} />
         <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          Inline traces now live in the token preview and editor. Use this graph
-          for wider branches, long chains, and cycle debugging.
+          Use this graph for long chains, wide branches, and cycle debugging.
         </p>
       </div>
       {help.expanded && (
         <PanelHelpBanner
           title="Dependencies"
-          description="Deep-dive alias reference chains. Search for any token to inspect its upstream references (left) and downstream dependents (right). Use this when the inline token trace is not enough. Click nodes to navigate the graph. Scroll to zoom, drag to pan."
+          description="Search a token to see upstream references (left) and downstream dependents (right). Click nodes to navigate. Scroll to zoom, drag to pan."
           onDismiss={help.dismiss}
         />
       )}
@@ -911,9 +907,7 @@ export function TokenFlowPanel({
             <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5v5h-1.5v-5zm0 6h1.5v1.5h-1.5V10.5z" />
           </svg>
           <span>
-            <strong>Circular dependency detected.</strong> Nodes highlighted in
-            red form a cycle — aliases that reference each other will not
-            resolve correctly.
+            <strong>Circular dependency.</strong> Red nodes form a cycle and will not resolve.
           </span>
         </div>
       )}
@@ -950,9 +944,7 @@ export function TokenFlowPanel({
               <circle cx="19" cy="18" r="3" />
               <path d="M8 12h4m0 0l4-6m-4 6l4 6" />
             </svg>
-            Select a token to see its dependency graph.
-            <br />
-            Search above, then click nodes to explore the chain.
+            Search or select a token to view its dependency graph.
           </div>
         </div>
       )}

@@ -147,7 +147,7 @@ export function StepSemanticPlanning({
       <div className={AUTHORING.generatorButtonGrid}>
         <StateButton
           label="Skip"
-          description="Create only the token scale."
+          description="Scale only, no aliases."
           active={state === 'skip'}
           onClick={() => onSemanticEnabledChange(false)}
         />
@@ -155,8 +155,8 @@ export function StepSemanticPlanning({
           label="Suggested"
           description={
             defaultSuggestion
-              ? 'Start from the chosen intent or a recommended alias pattern.'
-              : 'No suggested alias starter is available for this recipe.'
+              ? 'Use a recommended alias pattern.'
+              : 'No suggestions available.'
           }
           active={state === 'suggested'}
           disabled={!defaultSuggestion || !canPlanAliases}
@@ -166,7 +166,7 @@ export function StepSemanticPlanning({
         />
         <StateButton
           label="Custom"
-          description="Edit the prefix, names, and step mapping yourself."
+          description="Edit prefix, names, and mappings."
           active={state === 'custom'}
           disabled={!canPlanAliases}
           onClick={handleCustomState}
@@ -175,8 +175,7 @@ export function StepSemanticPlanning({
 
       {!canPlanAliases && (
         <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-          Semantic planning becomes available once the recipe preview has step
-          names to map against.
+          Available once the preview has step names.
         </div>
       )}
 
@@ -306,7 +305,7 @@ export function StepSemanticPlanning({
                 ))
               ) : (
                 <div className="rounded border border-dashed border-[var(--color-figma-border)] px-2 py-2 text-center text-[10px] text-[var(--color-figma-text-secondary)]">
-                  No aliases yet. Add a row or apply a suggested starter.
+                  No aliases yet.
                 </div>
               )}
             </div>
@@ -369,8 +368,7 @@ export function StepSemanticPlanning({
       <div className={AUTHORING.generatorTitleBlock}>
         <h3 className={AUTHORING.generatorTitle}>Semantic aliases</h3>
         <p className={AUTHORING.generatorDescription}>
-          Decide whether this recipe should also publish role-based aliases
-          before you review the final output.
+          Optionally create role-based aliases.
         </p>
       </div>
       {content}

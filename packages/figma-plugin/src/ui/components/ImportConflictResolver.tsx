@@ -58,12 +58,12 @@ export function ImportConflictResolver() {
   const recommendedAction = recommendedActionKey ? reviewActionCopy[recommendedActionKey] : null;
   const reviewSummary = recommendedAction
     ? {
-        title: `Recommended next step: ${recommendedAction.buttonLabel.toLowerCase()}`,
-        detail: `${recommendedAction.consequence} ${newCount > 0 ? `${newCount} new token${newCount !== 1 ? 's' : ''} will also import.` : ''}`.trim(),
+        title: `Next: ${recommendedAction.buttonLabel.toLowerCase()}`,
+        detail: `${recommendedAction.consequence}${newCount > 0 ? ` +${newCount} new.` : ''}`,
       }
     : {
-        title: `Recommended next step: apply this mixed review`,
-        detail: `${overwriteCount} overwrite, ${mergeCount} merge, ${keepExistingCount} keep existing. ${newCount} new token${newCount !== 1 ? 's' : ''} will also import.`,
+        title: 'Next: apply mixed review',
+        detail: `${overwriteCount} overwrite, ${mergeCount} merge, ${keepExistingCount} keep. +${newCount} new.`,
       };
 
   const getFilteredPaths = () => conflictPaths.filter(path => {
@@ -283,7 +283,7 @@ export function ImportConflictResolver() {
                 </div>
                 {decision === 'merge' && (
                   <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5 ml-0.5">
-                    Value will update · notes and metadata preserved
+                    Value updates · metadata preserved
                   </div>
                 )}
               </div>
@@ -332,11 +332,11 @@ export function ImportConflictResolver() {
       <button
         onClick={() => clearConflictState()}
         disabled={importing}
-        title="Revise selection (Esc)"
+        title="Back (Esc)"
         aria-keyshortcuts="Escape"
         className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
       >
-        Back to selection
+        Back
       </button>
     </div>
   );

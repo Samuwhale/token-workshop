@@ -31,13 +31,13 @@ export function SyncPreflightStep({
 
       {!running && isOutdated && !error && (
         <NoticeBanner severity="warning">
-          Token data changed since the last check. Run preflight again before comparing differences.
+          Data changed. Run preflight again.
         </NoticeBanner>
       )}
 
       {!running && blockingClusters.length === 0 && advisoryClusters.length === 0 && stage === 'idle' && !error && (
         <div className="rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          Compare and apply stay locked until preflight has run at least once for the current token state.
+          Run preflight first to unlock compare.
         </div>
       )}
 
@@ -134,7 +134,7 @@ function ClusterGroup({
 
               {!action && cluster.recommendedActionLabel && (
                 <div className="mt-2 rounded-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Recommended next action: <span className="font-medium text-[var(--color-figma-text)]">{cluster.recommendedActionLabel}</span>
+                  Next: <span className="font-medium text-[var(--color-figma-text)]">{cluster.recommendedActionLabel}</span>
                 </div>
               )}
             </div>

@@ -84,7 +84,7 @@ export function SyncPreviewModal({
         <div className="px-4 pt-4 pb-2">
           <h3 id="preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            {onConfirm ? 'Review changes before applying.' : 'Dry run \u2014 no changes will be written.'}
+            {onConfirm ? 'Review before applying.' : 'Dry run \u2014 no changes written.'}
           </p>
           {summaryItems.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -102,7 +102,7 @@ export function SyncPreviewModal({
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           {sections.length === 0 ? (
-            <p className="py-3 text-[10px] text-[var(--color-figma-text-secondary)]">Nothing to sync — all items skipped.</p>
+            <p className="py-3 text-[10px] text-[var(--color-figma-text-secondary)]">All items skipped.</p>
           ) : (
             sections.map(section => {
               const isCollapsed = collapsedSections.has(section.label);
@@ -309,7 +309,7 @@ export function GitPreviewModal({
               {sections.length === 0 && preview.commits.length === 0 ? (
                 <p className="py-3 text-[10px] text-[var(--color-figma-text-secondary)]">No changes to {confirmLabel.toLowerCase()}.</p>
               ) : sections.length === 0 ? (
-                <p className="py-2 text-[10px] text-[var(--color-figma-text-secondary)]">No token-level changes (non-token files only).</p>
+                <p className="py-2 text-[10px] text-[var(--color-figma-text-secondary)]">No token changes (non-token files only).</p>
               ) : (
                 sections.map(section => (
                   <div key={section.label} className="mb-2">
@@ -482,7 +482,7 @@ export function CommitPreviewModal({
         <div className="px-4 pt-4 pb-2">
           <h3 id="commit-preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">Save version</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review your changes before saving.
+            Review before saving.
           </p>
         </div>
 
@@ -567,7 +567,7 @@ export function CommitPreviewModal({
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              No token value changes detected (formatting or metadata only).
+              No token value changes (formatting or metadata only).
             </div>
           )}
         </div>
@@ -623,7 +623,7 @@ export function ApplyDiffConfirmModal({
           pushCount > 0 ? `\u2191 ${pushCount} file${pushCount !== 1 ? 's' : ''} pushed to remote` : null,
           pullCount > 0 ? `\u2193 ${pullCount} file${pullCount !== 1 ? 's' : ''} pulled to local` : null,
         ].filter(Boolean).join(', ')}
-        . This will overwrite the target files.
+        .
       </p>
     </ConfirmModal>
   );

@@ -8,10 +8,6 @@ export function KeyboardShortcutsPanel() {
         <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">
           Keyboard shortcuts
         </h2>
-        <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-          Keep this list open while you edit tokens, build themes, or sync
-          changes.
-        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto py-1">
@@ -19,7 +15,7 @@ export function KeyboardShortcutsPanel() {
           <div key={section.header}>
             <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
               {section.header === "Token Search"
-                ? "Token Search Qualifiers"
+                ? "Search Qualifiers"
                 : section.header}
             </div>
             {section.header === "Token Search" && (

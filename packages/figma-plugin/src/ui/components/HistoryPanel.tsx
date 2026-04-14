@@ -263,7 +263,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
       <FeedbackPlaceholder
         variant="disconnected"
         title="Connect to the token server"
-        description="History, rollback, snapshots, and git recovery are available once the server connection is restored."
+        description="Connect to access history, rollback, and snapshots."
       />
     );
   }
@@ -413,7 +413,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
             type="text"
             value={timelineSearch}
             onChange={e => setTimelineSearch(e.target.value)}
-            placeholder="Search recovery options…"
+            placeholder="Search history…"
             aria-label="Search history"
             className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
@@ -471,7 +471,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           <FeedbackPlaceholder
             variant="empty"
             title="No history yet"
-            description="Recovery options will appear here once you make edits, save a snapshot, or sync with git."
+            description="Make edits, save snapshots, or sync with git to see history here."
           />
         )}
 
@@ -479,7 +479,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           <FeedbackPlaceholder
             variant="no-results"
             title="No results"
-            description="Try another history search or clear the token filter to see more recovery options."
+            description="Try a different search or clear filters."
             secondaryAction={{ label: 'Clear filters', onClick: handleClearFilters }}
           />
         )}
@@ -533,8 +533,8 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   <FeedbackPlaceholder
                     variant={filterTokenPath ? 'no-results' : 'empty'}
                     size="section"
-                    title={filterTokenPath ? 'Session undo is hidden while filtering to one token.' : 'No session undo available.'}
-                    description={filterTokenPath ? 'Local undo cannot be scoped to a single token path, so only saved edits remain visible here.' : 'Make an edit in this window to see quick undo options.'}
+                    title={filterTokenPath ? 'Session undo hidden while filtering.' : 'No session undo yet.'}
+                    description={filterTokenPath ? 'Local undo cannot scope to a single token.' : 'Make an edit to see undo options.'}
                   />
                 )}
               </RecoverySubsection>
@@ -621,8 +621,8 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   <FeedbackPlaceholder
                     variant={filterTokenPath ? 'no-results' : 'empty'}
                     size="section"
-                    title="No saved edits match right now."
-                    description={filterTokenPath ? 'Try another token path or clear the filter to see more rollback targets.' : 'Saved edits appear here after a server-side change is recorded.'}
+                    title="No saved edits match."
+                    description={filterTokenPath ? 'Try another token or clear the filter.' : 'Server-side changes appear here.'}
                   />
                 )}
 
@@ -724,8 +724,8 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                 <FeedbackPlaceholder
                   variant="no-results"
                   size="section"
-                  title="No snapshots match right now."
-                  description="Save a checkpoint before a larger change so you can restore the whole workspace, not just token files, later."
+                  title="No snapshots match."
+                  description="Save a checkpoint before large changes to restore later."
                 />
               )}
             </RecoverySection>
@@ -888,8 +888,8 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                 <FeedbackPlaceholder
                   variant="no-results"
                   size="section"
-                  title="No git commits match right now."
-                  description="Sync with git to browse revisions and open the right version to restore."
+                  title="No git commits match."
+                  description="Sync with git to browse and restore revisions."
                 />
               )}
 

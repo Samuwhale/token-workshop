@@ -86,8 +86,8 @@ export function ComponentCoveragePanel() {
       if (err instanceof Error && err.message === 'Cancelled') return;
       setCoverageError(
         err instanceof Error && err.message === 'Scan timed out'
-          ? 'Scan timed out. Try selecting fewer components.'
-          : 'Scan failed. Make sure the plugin is running on the Figma canvas.'
+          ? 'Scan timed out. Try fewer components.'
+          : 'Scan failed. Ensure the plugin is active.'
       );
     } finally {
       setCoverageLoading(false);
@@ -98,7 +98,7 @@ export function ComponentCoveragePanel() {
     <div className="flex flex-col h-full overflow-y-auto p-3 gap-3" style={{ scrollbarWidth: 'thin' }}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Component Coverage</span>
+        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Coverage</span>
         {coverageLoading ? (
           <button
             onClick={() => coverageCancelRef.current?.()}
@@ -187,7 +187,7 @@ export function ComponentCoveragePanel() {
 
       {!coverageLoading && !coverageResult && !coverageError && (
         <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          Click "Scan" to check component tokenization on the current Figma page. The scan counts how many components use design tokens vs. hardcoded values.
+          Scan to check tokenization.
         </p>
       )}
     </div>

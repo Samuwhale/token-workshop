@@ -393,7 +393,7 @@ export function SettingsPanel({
     a.click();
     URL.revokeObjectURL(url);
     dispatchToast(
-      "Preferences backup exported — tokenmanager-settings.json downloaded",
+      "Settings backup exported",
       "success",
     );
   }, []);
@@ -475,7 +475,7 @@ export function SettingsPanel({
 
         if (diff.length === 0) {
           setImportError(
-            "No changes — this backup already matches your current preferences.",
+            "No changes — backup matches current settings.",
           );
           return;
         }
@@ -805,8 +805,8 @@ export function SettingsPanel({
                     Run <span className="font-mono">npm start</span> in the
                     TokenManager directory
                   </li>
-                  <li>Check the URL matches your server address and port</li>
-                  <li>Make sure nothing is blocking localhost traffic</li>
+                  <li>Check the URL and port</li>
+                  <li>Make sure localhost traffic is not blocked</li>
                 </ul>
               </div>
             )}
@@ -879,7 +879,7 @@ export function SettingsPanel({
           <Section title="Validation rules" defaultOpen={false}>
             {!connected ? (
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Connect to the local server to manage lint rules.
+                Connect to the server to manage rules.
               </p>
             ) : !lintConfig ? (
               <p className="animate-pulse text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1025,7 +1025,7 @@ export function SettingsPanel({
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
                 <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                  Restoring reloads the plugin. Unsaved edits will be lost.
+                  This will reload the plugin. Unsaved edits will be lost.
                 </p>
               </div>
               <div className="flex gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
@@ -1064,8 +1064,7 @@ export function SettingsPanel({
                   <span className="font-mono font-bold text-[var(--color-figma-error)]">
                     DELETE
                   </span>{" "}
-                  to permanently remove tokens, themes, sets, generators,
-                  resolvers, and history.
+                  to permanently remove all workspace data.
                 </p>
                 <input
                   type="text"

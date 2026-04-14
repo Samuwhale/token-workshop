@@ -124,16 +124,13 @@ export function StepSave({
       <div className={AUTHORING.generatorTitleBlock}>
         <h3 className={AUTHORING.generatorTitle}>Review and save</h3>
         <p className={AUTHORING.generatorDescription}>
-          Confirm the destination and the risks that need attention before saving.
+          Confirm destination and review any risks.
         </p>
       </div>
 
       <section className={AUTHORING.generatorSectionCard}>
         <div className={AUTHORING.generatorTitleBlock}>
           <h4 className={AUTHORING.generatorTitle}>Save target</h4>
-          <p className={AUTHORING.generatorDescription}>
-            These are the names and destinations this recipe will write into.
-          </p>
         </div>
         <div className={AUTHORING.generatorCardList}>
           <SummaryField label="Recipe" value={name} />
@@ -148,7 +145,7 @@ export function StepSave({
 
       {previewReviewStale && (
         <div className="rounded-lg border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 px-3 py-2.5 text-[10px] text-[var(--color-figma-warning)]">
-          The live token store changed after you opened review. Refresh the summary, then confirm again.
+          Token store changed since review opened. Refresh to confirm.
         </div>
       )}
 
@@ -189,9 +186,6 @@ export function StepSave({
         <div className={AUTHORING.generatorSectionCard}>
           <div className={AUTHORING.generatorTitleBlock}>
             <h4 className={AUTHORING.generatorTitle}>New tokens</h4>
-            <p className={AUTHORING.generatorDescription}>
-              These paths will be created for the first time by this recipe.
-            </p>
           </div>
           <div className={AUTHORING.generatorCardList}>
             {newTokens.map(token => (
@@ -221,9 +215,6 @@ export function StepSave({
         <div className={AUTHORING.generatorSectionCard}>
           <div className={AUTHORING.generatorTitleBlock}>
             <h4 className={AUTHORING.generatorTitle}>Brand destinations</h4>
-            <p className={AUTHORING.generatorDescription}>
-              Each brand row writes into its own target set and output group.
-            </p>
           </div>
           <ul className="flex flex-col gap-1 text-[10px] text-[var(--color-figma-text)]">
             {inputTable.rows.filter(r => r.brand.trim()).map((row, i) => (

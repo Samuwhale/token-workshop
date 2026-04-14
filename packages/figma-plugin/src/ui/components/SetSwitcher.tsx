@@ -2381,8 +2381,8 @@ function ManageView({
                       <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </StrokeIconButton>
                     <StrokeIconButton
-                      title="Merge folder into another folder"
-                      ariaLabel="Merge folder into another folder"
+                      title="Merge folder"
+                      ariaLabel="Merge folder"
                       onClick={() => openFolderMerge(item.folder)}
                     >
                       <path d="M7 7h5a4 4 0 014 4v0" />

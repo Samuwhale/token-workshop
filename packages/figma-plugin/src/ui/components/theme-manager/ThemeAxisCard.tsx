@@ -172,7 +172,7 @@ export function ThemeAxisCard({
               <span className="truncate text-[9px] text-[var(--color-figma-text-tertiary)]">
                 {dimension.options.length === 0
                   ? "No variants yet"
-                  : `${dimension.options.length} variant${dimension.options.length === 1 ? "" : "s"} · ${selectedOptionSummary?.baseCount ?? foundationSets.length} shared set${(selectedOptionSummary?.baseCount ?? foundationSets.length) === 1 ? "" : "s"} · ${selectedOptionSummary?.overrideCount ?? overrideSets.length} variant-specific set${(selectedOptionSummary?.overrideCount ?? overrideSets.length) === 1 ? "" : "s"}`}
+                  : `${dimension.options.length} variant${dimension.options.length === 1 ? "" : "s"} · ${selectedOptionSummary?.baseCount ?? foundationSets.length} shared · ${selectedOptionSummary?.overrideCount ?? overrideSets.length} override`}
               </span>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
@@ -255,7 +255,7 @@ export function ThemeAxisCard({
                       onClick={() => { axisMenu.close(); ctx.onOpenCoverageView(undefined, true); }}
                       className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
-                      Review family issues
+                      Review issues
                     </button>
                     <button
                       role="menuitem"

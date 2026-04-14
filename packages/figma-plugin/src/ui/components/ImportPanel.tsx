@@ -79,7 +79,7 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
       <FeedbackPlaceholder
         variant="disconnected"
         title="Connect to the token server"
-        description="Import sources become available again as soon as the server connection is restored."
+        description="Import requires an active server connection."
       />
     );
   }
@@ -143,7 +143,7 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
 
         {loading && (
           <div
-            aria-label={source === 'variables' ? 'Reading variables from Figma…' : 'Reading styles from Figma…'}
+            aria-label={source === 'variables' ? 'Reading variables…' : 'Reading styles…'}
             aria-busy="true"
           >
             {[

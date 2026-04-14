@@ -12,9 +12,9 @@ const SEVERITY_COLORS: Record<Severity, string> = {
 };
 
 const SEVERITY_HELP: Record<Severity, string> = {
-  error: 'Blocks publishing until fixed.',
-  warning: 'Highlights cleanup work without blocking.',
-  info: 'Tracks drift without creating friction.',
+  error: 'Blocks publishing.',
+  warning: 'Warns without blocking.',
+  info: 'Informational only.',
 };
 
 interface LintConfigPanelProps {
@@ -104,22 +104,22 @@ function describeCoverage(ruleConfig: LintRuleConfig, totalSets: number): string
   const enabledSets = overrides.filter(override => override.enabled === true).length;
 
   if (totalSets === 0) {
-    return ruleConfig.enabled ? 'Runs on every set' : 'Disabled until you opt a set in';
+    return ruleConfig.enabled ? 'All sets' : 'Disabled';
   }
 
   if (ruleConfig.enabled) {
     if (disabledSets === 0) {
-      return `Runs on all ${totalSets} sets`;
+      return `All ${totalSets} sets`;
     }
     const coveredSetCount = Math.max(totalSets - disabledSets, 0);
-    return `Runs on ${coveredSetCount} of ${totalSets} sets`;
+    return `${coveredSetCount} of ${totalSets} sets`;
   }
 
   if (enabledSets === 0) {
-    return 'Disabled until you opt a set in';
+    return 'Disabled';
   }
 
-  return `Enabled only for ${enabledSets} of ${totalSets} sets`;
+  return `${enabledSets} of ${totalSets} sets`;
 }
 
 function describeOverrideChip(ruleConfig: LintRuleConfig, setName: string, override: LintRuleSetOverride): string {
@@ -248,7 +248,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
           onClick={async () => { await onReset(); onLintRefresh(); }}
           disabled={saving}
           className="text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
-          title="Reset all lint rules to defaults"
+          title="Reset to defaults"
         >
           Reset defaults
         </button>
@@ -424,7 +424,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No token-group exceptions yet.</p>
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No token-group exceptions.</p>
                     )}
 
                     <div className="mt-2 flex items-center gap-2">
@@ -473,7 +473,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         })}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No set exceptions yet.</p>
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No set exceptions.</p>
                     )}
 
                     <div className="mt-2 flex items-center gap-2">
@@ -511,7 +511,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         </div>
 
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Applies in this set</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Enabled</span>
                           <button
                             onClick={() => handleSetExceptionChange(rule.id, ruleConfig, selectedSetName, { enabled: !(selectedSetOverride.enabled ?? ruleConfig.enabled) })}
                             disabled={saving}
@@ -529,7 +529,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         </div>
 
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="w-28 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">Severity in this set</span>
+                          <span className="w-28 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">Severity</span>
                           <select
                             value={selectedSetOverride.severity ?? ruleConfig.severity ?? 'warning'}
                             onChange={async event => {

@@ -176,18 +176,18 @@ function ResolverInner({
       const body = {
         name: templateName.trim(),
         version: '2025.10' as const,
-        description: 'Light / dark mode resolver',
+        description: 'Light / dark mode',
         sets: {
           foundation: {
-            description: 'Base tokens shared across all modes',
+            description: 'Base tokens',
             sources: foundationSet ? [{ $ref: `${foundationSet}.tokens.json` }] : [],
           },
           light: {
-            description: 'Light mode overrides',
+            description: 'Light overrides',
             sources: lightSet ? [{ $ref: `${lightSet}.tokens.json` }] : [],
           },
           dark: {
-            description: 'Dark mode overrides',
+            description: 'Dark overrides',
             sources: darkSet ? [{ $ref: `${darkSet}.tokens.json` }] : [],
           },
         },
@@ -900,7 +900,7 @@ function ResolverInner({
       {confirmDelete && (
         <ConfirmModal
           title="Delete Resolver"
-          description={`Delete "${confirmDelete}"? This will remove the .resolver.json file.`}
+          description={`Delete "${confirmDelete}"? The .resolver.json file will be removed.`}
           confirmLabel="Delete"
           danger
           onConfirm={() => handleDelete(confirmDelete)}

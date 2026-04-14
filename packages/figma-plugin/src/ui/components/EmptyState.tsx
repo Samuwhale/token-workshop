@@ -19,7 +19,7 @@ export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
           </svg>
         )}
         title="No tokens yet"
-        description="Set up your first tokens with guided setup, templates, or import."
+        description="Start with guided setup, templates, or import."
         primaryAction={{ label: 'Get started', onClick: onOpenStartHere }}
       />
 
@@ -29,7 +29,7 @@ export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
           size="section"
           className="w-full max-w-[270px]"
           title="Server offline"
-          description="Guided setup can walk you through reconnecting."
+          description="Use guided setup to reconnect."
         />
       )}
     </div>

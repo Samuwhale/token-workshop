@@ -219,25 +219,25 @@ export const PRIMARY_WORKSPACE_SEQUENCE: WorkspaceWorkflowGuide[] = [
     id: "tokens",
     label: "Tokens",
     stepNumber: 1,
-    role: "Build and organize the token library, naming, and recipes.",
+    role: "Build and organize tokens and recipes.",
   },
   {
     id: "themes",
     label: "Themes",
     stepNumber: 2,
-    role: "Define theme families, connect shared and variant token sets, and review coverage.",
+    role: "Define theme families and connect token sets.",
   },
   {
     id: "apply",
     label: "Apply",
     stepNumber: 3,
-    role: "Test token decisions on selections and inspect the canvas.",
+    role: "Apply tokens and inspect the canvas.",
   },
   {
     id: "sync",
     label: "Sync",
     stepNumber: 4,
-    role: "Run preflight, publish to Figma, and export platform files.",
+    role: "Publish to Figma and export.",
   },
 ];
 
@@ -245,7 +245,7 @@ export const AUDIT_WORKSPACE_GUIDE: WorkspaceWorkflowGuide = {
   id: "audit",
   label: "Audit",
   stepNumber: null,
-  role: "Review issues, history, and dependencies across every stage.",
+    role: "Review issues, history, and dependencies.",
 };
 
 const WORKSPACE_WORKFLOW_GUIDES: Record<WorkspaceId, WorkspaceWorkflowGuide> = {
@@ -358,19 +358,19 @@ export const CONTEXTUAL_PANEL_TRANSITIONS = {
     kind: "contextual-panel",
     presentation: "side-panel",
     closeBehavior: "restore-underlying-surface",
-    usage: "Keep editing the current item beside your list when there is room.",
+    usage: "Edit beside your list.",
   },
   bottomDrawer: {
     kind: "contextual-panel",
     presentation: "bottom-drawer",
     closeBehavior: "restore-underlying-surface",
-    usage: "Keep editing the current item in a drawer when space is tight.",
+    usage: "Edit in drawer.",
   },
   splitPreview: {
     kind: "contextual-panel",
     presentation: "split-pane",
     closeBehavior: "restore-underlying-surface",
-    usage: "Open a live preview next to the library without losing your place.",
+    usage: "Live preview beside library.",
   },
 } satisfies Record<
   "sidePanel" | "bottomDrawer" | "splitPreview",
@@ -382,12 +382,12 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
     id: "library-body",
     label: "Tokens > Library",
     usage:
-      "Browse tokens, search, filter, and switch sets in the main library.",
+      "Browse, search, and filter tokens.",
   },
   contextualPanel: {
     id: "contextual-panel",
     label: "Tokens > Library tools",
-    usage: "Open compare, editing, and preview tools next to the library.",
+    usage: "Compare, edit, and preview tools.",
     presentations: {
       wide: CONTEXTUAL_PANEL_TRANSITIONS.sidePanel,
       narrow: CONTEXTUAL_PANEL_TRANSITIONS.bottomDrawer,
@@ -395,19 +395,19 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
     surfaces: {
       compare: {
         label: "Compare",
-        usage: "Compare tokens or theme variants without leaving the library.",
+        usage: "Compare tokens or theme variants.",
       },
       "token-editor": {
         label: "Token editor",
-        usage: "Edit or create a token while keeping the library in view.",
+        usage: "Edit or create a token.",
       },
       "generator-editor": {
         label: "Recipe editor",
-        usage: "Adjust a recipe without leaving the current list.",
+        usage: "Adjust a recipe.",
       },
       "token-preview": {
         label: "Token preview",
-        usage: "Inspect one token in detail while keeping the library in view.",
+        usage: "Inspect token details.",
       },
     } satisfies Record<
       TokensLibraryContextualSurface,
@@ -418,7 +418,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
     id: "split-preview",
     label: "Tokens > Live preview",
     usage:
-      "Keep the library visible while a live preview focuses a token beside it.",
+      "Live preview beside library.",
     transition: CONTEXTUAL_PANEL_TRANSITIONS.splitPreview,
   },
 } satisfies {
@@ -451,9 +451,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryTitle: "Token library",
     topTab: "define",
     subTab: "tokens",
-    transition: workspaceTransition(
-      "Browse, edit, and organize tokens and recipes.",
-    ),
+    transition: workspaceTransition("Browse and manage tokens."),
     sections: [
       {
         id: "tokens",
@@ -461,7 +459,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryTitle: "Token library",
         topTab: "define",
         subTab: "tokens",
-        transition: workspaceTransition("Browse and edit the token library."),
+        transition: workspaceTransition("Browse and edit tokens."),
       },
       {
         id: "generators",
@@ -470,6 +468,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         topTab: "define",
         subTab: "generators",
         transition: workspaceTransition("Create and adjust recipes."),
+
       },
     ],
     matchRoutes: [route("define", "tokens"), route("define", "generators")],
@@ -480,39 +479,31 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryTitle: "Theme setup",
     topTab: "define",
     subTab: "themes",
-    transition: workspaceTransition(
-      "Define theme families, connect token sources, and review coverage.",
-    ),
+    transition: workspaceTransition("Set up theme families and coverage."),
   },
   {
     id: "apply",
     label: "Apply",
-    summaryTitle: "Apply to selection",
+    summaryTitle: "Apply",
     topTab: "apply",
     subTab: "inspect",
-    transition: workspaceTransition(
-      "Apply tokens to the current selection and review the canvas.",
-    ),
+    transition: workspaceTransition("Apply tokens and review the canvas."),
     sections: [
       {
         id: "inspect",
         label: "Selection",
-        summaryTitle: "Bind tokens to selection",
+        summaryTitle: "Selection",
         topTab: "apply",
         subTab: "inspect",
-        transition: workspaceTransition(
-          "Apply tokens to the current selection.",
-        ),
+        transition: workspaceTransition("Apply tokens to selection."),
       },
       {
         id: "canvas-analysis",
         label: "Canvas",
-        summaryTitle: "Canvas analysis",
+        summaryTitle: "Canvas",
         topTab: "apply",
         subTab: "canvas-analysis",
-        transition: workspaceTransition(
-          "Review token usage and issues across the canvas.",
-        ),
+        transition: workspaceTransition("Analyze token usage on canvas."),
       },
     ],
     matchRoutes: [route("apply", "inspect"), route("apply", "canvas-analysis")],
@@ -520,10 +511,10 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: "sync",
     label: "Sync",
-    summaryTitle: "Sync delivery",
+    summaryTitle: "Sync",
     topTab: "sync",
     subTab: "publish",
-    transition: workspaceTransition("Sync to Figma and export platform files."),
+    transition: workspaceTransition("Sync to Figma and export."),
     sections: [
       {
         id: "publish",
@@ -531,7 +522,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryTitle: "Figma Sync",
         topTab: "sync",
         subTab: "publish",
-        transition: workspaceTransition("Review and run your next Figma sync."),
+        transition: workspaceTransition("Review and sync to Figma."),
       },
       {
         id: "export",
@@ -539,9 +530,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryTitle: "Export",
         topTab: "sync",
         subTab: "export",
-        transition: workspaceTransition(
-          "Configure and export platform-specific token files.",
-        ),
+        transition: workspaceTransition("Export platform files."),
       },
     ],
     matchRoutes: [route("sync", "publish"), route("sync", "export")],
@@ -549,12 +538,10 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: "audit",
     label: "Audit",
-    summaryTitle: "Quality review",
+    summaryTitle: "Audit",
     topTab: "sync",
     subTab: "health",
-    transition: workspaceTransition(
-      "Review quality checks, history, and dependencies.",
-    ),
+    transition: workspaceTransition("Review quality and history."),
     sections: [
       {
         id: "health",
@@ -562,7 +549,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryTitle: "Issues",
         topTab: "sync",
         subTab: "health",
-        transition: workspaceTransition("Review quality checks and blockers."),
+        transition: workspaceTransition("Review issues and blockers."),
       },
       {
         id: "history",
@@ -570,19 +557,15 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryTitle: "Change history",
         topTab: "sync",
         subTab: "history",
-        transition: workspaceTransition(
-          "Review recent changes and restore points.",
-        ),
+        transition: workspaceTransition("Review changes and snapshots."),
       },
       {
         id: "dependencies",
         label: "Dependencies",
-        summaryTitle: "Dependency tracing",
+        summaryTitle: "Dependencies",
         topTab: "apply",
         subTab: "dependencies",
-        transition: contextualSubScreenTransition(
-          "Trace token relationships and alias chains.",
-        ),
+        transition: contextualSubScreenTransition("Trace token relationships."),
       },
     ],
     matchRoutes: [
@@ -597,47 +580,37 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
   {
     id: "import",
     label: "Import",
-    summaryTitle: "Import tokens",
+    summaryTitle: "Import",
     access: "shell-shortcut",
-    transition: secondaryTakeoverTransition(
-      "Bring external tokens into the library.",
-    ),
+    transition: secondaryTakeoverTransition("Import external tokens."),
   },
   {
     id: "sets",
-    label: "Set structure",
-    summaryTitle: "Set structure manager",
+    label: "Sets",
+    summaryTitle: "Set structure",
     access: "set-switcher",
-    transition: secondaryTakeoverTransition(
-      "Own token authoring structure here: rename, merge, split, reorder, and label sets.",
-    ),
+    transition: secondaryTakeoverTransition("Manage set structure."),
   },
   {
     id: "notifications",
     label: "Notifications",
-    summaryTitle: "Notification history",
+    summaryTitle: "Notifications",
     access: "attention-bell",
-    transition: secondaryTakeoverTransition(
-      "Review recent confirmations, warnings, and errors.",
-    ),
+    transition: secondaryTakeoverTransition("View notifications."),
   },
   {
     id: "shortcuts",
     label: "Shortcuts",
-    summaryTitle: "Keyboard shortcuts",
+    summaryTitle: "Shortcuts",
     access: "settings-help",
-    transition: secondaryTakeoverTransition(
-      "Open the keyboard reference when you need a quick reminder.",
-    ),
+    transition: secondaryTakeoverTransition("Keyboard shortcut reference."),
   },
   {
     id: "settings",
     label: "Settings",
     summaryTitle: "Settings",
     access: "shell-menu",
-    transition: secondaryTakeoverTransition(
-      "Adjust preferences, backups, and recovery options.",
-    ),
+    transition: secondaryTakeoverTransition("Preferences and recovery."),
   },
 ];
 
@@ -645,36 +618,35 @@ export const UTILITY_MENU: UtilityMenu = {
   id: "tools",
   triggerLabel: "Tools",
   label: "Tools",
-  description: "Quick actions you can open from anywhere in the app.",
+  description: "Quick actions available anywhere.",
   sections: [
     {
       id: "actions",
       label: "Actions",
-      description:
-        "Open a tool, finish the task, and return to what you were doing.",
+      description: "",
       actions: [
         {
           id: "command-palette",
-          label: "Command palette",
-          description: "Search commands and jump to the next task fast.",
+          label: "Commands",
+          description: "Search commands and jump to tasks.",
           transition: transientOverlayTransition(
             "centered-dialog",
-            "Browse commands without losing your place.",
+            "Search and run commands.",
           ),
         },
         {
           id: "paste-tokens",
           label: "Paste tokens",
-          description: "Paste token data to start an import.",
+          description: "Paste token data to import.",
           transition: transientOverlayTransition(
             "centered-dialog",
-            "Paste token data and return to your current work when you're done.",
+            "Paste token data to import.",
           ),
         },
         {
           id: "window-size",
           label: "Window size",
-          description: "Switch between compact and expanded plugin layouts.",
+          description: "Toggle compact or expanded layout.",
         },
       ],
     },
@@ -784,7 +756,7 @@ export function getImportResultNextStepRecommendations(
     addRecommendation(
       createSecondarySurfaceRecommendation(
         "import",
-        "Stay here to retry failed batches and review anything that did not save cleanly.",
+        "Retry failed batches.",
       ),
     );
   }
@@ -794,7 +766,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "themes",
-        "Open Themes next. Multiple imported variable collections usually need theme structure before you fine-tune individual tokens.",
+        "Multiple collections imported — set up theme structure.",
       ),
     );
   }
@@ -804,7 +776,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "sync",
         "publish",
-        "Open Sync next. A large first import is the right time to confirm sync mapping before more edits pile on.",
+        "Large import — confirm sync mapping.",
       ),
     );
   }
@@ -814,7 +786,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "tokens",
-        "Open Tokens next. Code and migration imports usually need a pass in the token library to verify naming, grouping, and cleanup.",
+        "Review naming and grouping in the library.",
       ),
     );
   }
@@ -824,7 +796,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "define",
         "tokens",
-        "Open Tokens next to review the imported library before moving into Themes, Apply, or Sync.",
+        "Review imported tokens.",
       ),
     );
   }

@@ -288,7 +288,7 @@ export function UnusedTokensPanel({
               <>
                 <div className="px-3 py-3 border-b border-[var(--color-figma-border)] space-y-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    <span>{unusedTokens.length} token{unusedTokens.length !== 1 ? 's' : ''} have zero Figma usage and no alias dependents.</span>
+                    <span>{unusedTokens.length} unused token{unusedTokens.length !== 1 ? 's' : ''}</span>
                     <div className="flex items-center gap-1.5">
                       <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] font-mono">Visible {filteredTokens.length}</span>
                       <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] font-mono">Staged {stagedQueue.length}</span>
@@ -550,7 +550,7 @@ export function UnusedTokensPanel({
       {confirmApplyStaged && (
         <ConfirmModal
           title="Apply staged cleanup?"
-          description={`This will apply ${stagedQueue.length} queued cleanup action${stagedQueue.length === 1 ? '' : 's'} to unused tokens.`}
+          description={`Apply ${stagedQueue.length} staged action${stagedQueue.length === 1 ? '' : 's'}.`}
           confirmLabel="Apply cleanup"
           danger={stagedDeleteCount > 0}
           wide

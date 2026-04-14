@@ -313,8 +313,7 @@ export function TokenGeneratorDialog({
                   detached from this recipe.
                 </p>
                 <p className="mt-1">
-                  Detached tokens stay manual and will not update on the next
-                  recipe run unless you recreate them through the recipe.
+                  Detached tokens remain manual until recreated by the recipe.
                 </p>
               </div>
             )}

@@ -42,9 +42,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
     <div className="flex flex-col gap-3">
       {/* Description */}
       <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-        Generates a perceptual dark-mode equivalent of the source color by inverting its
-        CIELAB lightness (100 − L) while preserving hue. Use chroma boost to control
-        how much saturation is retained.
+        Inverts CIELAB lightness to produce a dark-mode equivalent while preserving hue.
       </p>
 
       {/* Step name */}
@@ -61,7 +59,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
           className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
         />
         <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
-          Token name for the generated dark-mode color.
+          Output token name.
         </p>
       </div>
 

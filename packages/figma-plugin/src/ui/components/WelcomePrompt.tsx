@@ -18,22 +18,19 @@ type StartHereBranchCopy = {
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
     title: "Get started",
-    description:
-      "Start with a foundation, bring in existing tokens, or make a quick change.",
+    description: "",
   },
   import: {
     title: "Import existing tokens",
-    description: "Bring in Figma variables or paste a token file.",
+    description: "Import Figma variables or token files.",
   },
   "guided-setup": {
     title: "Guided setup",
-    description:
-      "Build color, spacing, type, and mode foundations step by step.",
+    description: "Build token foundations step by step.",
   },
   "template-library": {
     title: "Recipe templates",
-    description:
-      "Create a palette, type scale, or spacing system for your token set.",
+    description: "Generate a palette, type scale, or spacing system.",
   },
 };
 
@@ -176,7 +173,7 @@ export function WelcomePrompt({
     <div className="flex flex-col gap-3">
       <ActionRow
         title="Guided setup"
-        description="Build color, spacing, type, and mode foundations step by step."
+        description="Build token foundations step by step."
         emphasized
         onClick={() => setBranch("guided-setup")}
         icon={
@@ -198,7 +195,7 @@ export function WelcomePrompt({
       <div>
         <ActionRow
           title="Recipe templates"
-          description="Create a palette, type scale, or spacing system for your token set."
+          description="Generate a palette, type scale, or spacing system."
           disabled={!connected}
           onClick={() => setBranch("template-library")}
           icon={
@@ -221,7 +218,7 @@ export function WelcomePrompt({
         />
         <ActionRow
           title="Import existing tokens"
-          description="Bring in Figma variables or paste a token file."
+          description="Import Figma variables or token files."
           onClick={() => setBranch("import")}
           icon={
             <svg
@@ -243,7 +240,7 @@ export function WelcomePrompt({
         />
         <ActionRow
           title="Create a token"
-          description="Add a single token or group directly."
+          description="Add a token or group directly."
           disabled={!connected}
           onClick={() => handleAction(onCreateToken)}
           icon={
@@ -272,7 +269,7 @@ export function WelcomePrompt({
       {onImportFigma && (
         <ActionRow
           title="Import from Figma variables"
-          description="Pull your existing variables and modes into token sets."
+          description="Pull variables and modes into token sets."
           disabled={!connected}
           onClick={() => handleAction(onImportFigma)}
           icon={
@@ -295,7 +292,7 @@ export function WelcomePrompt({
       )}
       <ActionRow
         title="Paste token JSON"
-        description="Import a DTCG, Style Dictionary, or Tokens Studio file."
+        description="DTCG, Style Dictionary, or Tokens Studio format."
         disabled={!connected}
         onClick={() => handleAction(onPasteJSON)}
         icon={

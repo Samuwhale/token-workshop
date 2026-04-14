@@ -218,7 +218,7 @@ export function DeepInspectSection({
         className={`${showHeader ? "mt-1 border-t border-[var(--color-figma-border)]/50 pt-1" : ""} px-3 py-2 text-center`}
       >
         <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          No token bindings found in nested layers.
+          No nested bindings.
         </p>
       </div>
     );
@@ -257,7 +257,7 @@ export function DeepInspectSection({
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
             <path d="M9 22V12h6v10" />
           </svg>
-          Nested Layers ({deepChildNodes.length})
+          Nested ({deepChildNodes.length})
         </div>
       )}
       {deepChildNodes.map((child) => {

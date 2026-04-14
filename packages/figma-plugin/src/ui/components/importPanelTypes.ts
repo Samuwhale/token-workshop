@@ -63,33 +63,33 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
   figma: {
     family: 'figma',
     title: 'From Figma',
-    description: 'Read variables or styles from the current file',
+    description: 'Read variables or styles from this file',
     destinationLabel: 'Map destinations',
-    destinationDescription: 'Choose which sets receive each collection or style payload.',
+    destinationDescription: 'Choose destination sets for each collection or style.',
     supportedFileFormats: [],
   },
   'token-files': {
     family: 'token-files',
     title: 'From token files',
-    description: 'Bring in DTCG-compatible token exports from JSON',
+    description: 'Import DTCG-compatible JSON token files',
     destinationLabel: 'Choose destination',
-    destinationDescription: 'Pick the set that should receive the imported token file.',
+    destinationDescription: 'Pick the destination set for this token file.',
     supportedFileFormats: ['DTCG JSON (.json)'],
   },
   code: {
     family: 'code',
     title: 'From code',
-    description: 'Extract tokens from CSS custom properties or Tailwind config',
+    description: 'Extract tokens from CSS or Tailwind config',
     destinationLabel: 'Choose destination',
-    destinationDescription: 'Decide where the extracted code tokens should land before import.',
+    destinationDescription: 'Pick the destination set for extracted tokens.',
     supportedFileFormats: ['CSS files (.css)', 'Tailwind configs (.js, .ts, .mjs, .cjs)'],
   },
   migration: {
     family: 'migration',
     title: 'Migrate from another tool',
-    description: 'Bring in token exports from tools such as Tokens Studio',
+    description: 'Import from Tokens Studio or similar tools',
     destinationLabel: 'Choose destination',
-    destinationDescription: 'Route the imported migration data into new or existing token sets.',
+    destinationDescription: 'Route imported data into new or existing sets.',
     supportedFileFormats: ['Tokens Studio JSON (.json)'],
   },
 };
@@ -100,27 +100,27 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     family: 'figma',
     label: 'Figma Variables',
     shortLabel: 'Variables',
-    description: 'Read variables from this file and map them to token sets',
+    description: 'Read variables and map to token sets',
     destinationLabel: 'Map collections to sets',
-    destinationDescription: 'Each enabled mode becomes its own destination token set.',
+    destinationDescription: 'Each enabled mode maps to a token set.',
   },
   styles: {
     source: 'styles',
     family: 'figma',
     label: 'Figma Styles',
     shortLabel: 'Styles',
-    description: 'Read paint, text, and effect styles from this file',
+    description: 'Read paint, text, and effect styles',
     destinationLabel: 'Choose target set',
-    destinationDescription: 'Send the selected styles into one existing set or create a new one.',
+    destinationDescription: 'Import styles into an existing or new set.',
   },
   json: {
     source: 'json',
     family: 'token-files',
     label: 'DTCG JSON file',
     shortLabel: 'DTCG JSON',
-    description: 'Load a DTCG-format JSON token file',
+    description: 'Import a DTCG JSON token file',
     destinationLabel: 'Choose target set',
-    destinationDescription: 'Import the parsed token file into one destination set.',
+    destinationDescription: 'Choose a destination set for the parsed tokens.',
     fileSupport: {
       label: 'DTCG JSON (.json)',
       accept: '.json,application/json',
@@ -131,9 +131,9 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     family: 'code',
     label: 'CSS custom properties',
     shortLabel: 'CSS',
-    description: 'Parse static CSS custom properties from a stylesheet',
+    description: 'Parse static CSS custom properties',
     destinationLabel: 'Choose target set',
-    destinationDescription: 'Import the parsed CSS variables into one destination set.',
+    destinationDescription: 'Choose a destination set for parsed CSS tokens.',
     fileSupport: {
       label: 'CSS files (.css)',
       accept: '.css,text/css',
@@ -144,9 +144,9 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     family: 'code',
     label: 'Tailwind config',
     shortLabel: 'Tailwind',
-    description: 'Parse theme values from a Tailwind config file',
+    description: 'Parse theme values from a Tailwind config',
     destinationLabel: 'Choose target set',
-    destinationDescription: 'Import the extracted Tailwind theme tokens into one destination set.',
+    destinationDescription: 'Choose a destination set for Tailwind tokens.',
     fileSupport: {
       label: 'Tailwind configs (.js, .ts, .mjs, .cjs)',
       accept: '.js,.ts,.mjs,.cjs',
@@ -157,9 +157,9 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     family: 'migration',
     label: 'Tokens Studio export',
     shortLabel: 'Tokens Studio',
-    description: 'Load a Tokens Studio JSON export, including multi-set exports',
+    description: 'Import Tokens Studio JSON (single or multi-set)',
     destinationLabel: 'Choose destination',
-    destinationDescription: 'Single-set exports go into one set; multi-set exports keep their own set mapping.',
+    destinationDescription: 'Single-set goes to one set; multi-set keeps its mapping.',
     fileSupport: {
       label: 'Tokens Studio JSON (.json)',
       accept: '.json,application/json',
@@ -213,7 +213,7 @@ export function markDuplicatePaths(importTokens: ImportToken[]): ImportToken[] {
   for (const t of importTokens) pathCounts.set(t.path, (pathCounts.get(t.path) ?? 0) + 1);
   return importTokens.map(t => {
     if ((pathCounts.get(t.path) ?? 1) <= 1) return t;
-    return { ...t, _warning: `Path conflict: multiple tokens share "${t.path}" — only the last will be saved` };
+    return { ...t, _warning: `Duplicate path "${t.path}" — only the last will be saved` };
   });
 }
 
@@ -230,13 +230,13 @@ export function modeKey(collectionName: string, modeId: string): string {
 /** Known non-token JSON files that users commonly try to import by mistake. */
 export function detectKnownNonTokenFile(obj: Record<string, unknown>): string | null {
   if ('name' in obj && 'version' in obj && ('dependencies' in obj || 'devDependencies' in obj)) {
-    return 'This looks like a package.json file, not a design token file.';
+    return 'This is a package.json, not a token file.';
   }
   if ('compilerOptions' in obj || ('include' in obj && 'compilerOptions' in obj)) {
-    return 'This looks like a tsconfig.json file, not a design token file.';
+    return 'This is a tsconfig.json, not a token file.';
   }
   if ('eslintConfig' in obj || ('rules' in obj && 'env' in obj)) {
-    return 'This looks like an ESLint config file, not a design token file.';
+    return 'This is an ESLint config, not a token file.';
   }
   return null;
 }
@@ -248,7 +248,7 @@ export function detectKnownNonTokenFile(obj: Record<string, unknown>): string | 
 export function validateDTCGStructure(obj: Record<string, unknown>): string | null {
   const knownFile = detectKnownNonTokenFile(obj);
   if (knownFile) {
-    return `${knownFile} DTCG token files contain objects with $type and $value fields.`;
+    return `${knownFile} Token files need $type and $value fields.`;
   }
 
   let hasNestedObjects = false;
@@ -281,8 +281,8 @@ export function validateDTCGStructure(obj: Record<string, unknown>): string | nu
 
   if (hasPlainValues) {
     const sample = topKeys.slice(0, 3).map(k => `"${k}"`).join(', ');
-    return `This JSON file doesn't appear to be in DTCG format. Found flat key-value pairs (${sample}${topKeys.length > 3 ? ', …' : ''}) but no token objects with $value fields. Expected a nested structure like: { "group": { "token": { "$type": "color", "$value": "#fff" } } }`;
+    return `Not DTCG format. Found flat keys (${sample}${topKeys.length > 3 ? ', …' : ''}) but no $value fields. Expected: { "group": { "token": { "$type": "color", "$value": "#fff" } } }`;
   }
 
-  return 'The JSON file is empty — no tokens to import.';
+  return 'Empty JSON file — no tokens found.';
 }

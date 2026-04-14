@@ -268,21 +268,19 @@ export const IMPORT_REVIEW_ACTION_COPY: Record<
     key: "overwrite",
     label: "Overwrite",
     buttonLabel: "Overwrite conflicts",
-    consequence: "Replace the current value with the incoming value.",
+    consequence: "Replace current value with incoming.",
   },
   merge: {
     key: "merge",
     label: "Merge",
     buttonLabel: "Merge conflicts",
-    consequence:
-      "Update the value and keep any notes or metadata already on the token.",
+    consequence: "Update value, keep existing notes and metadata.",
   },
   skip: {
     key: "skip",
     label: "Keep existing",
     buttonLabel: "Keep existing conflicts",
-    consequence:
-      "Skip conflicting tokens and only import tokens that are still new.",
+    consequence: "Skip conflicts, import only new tokens.",
   },
 };
 
@@ -816,8 +814,8 @@ export function ImportPanelProvider({
               incomingLabel: lastSource.sourceLabel,
               note:
                 conflict.tokens.length === 2
-                  ? "Two enabled modes target this same path in the destination set."
-                  : `${conflict.tokens.length} enabled modes target this same path in the destination set.`,
+                  ? "Two enabled modes target this path."
+                  : `${conflict.tokens.length} enabled modes target this path.`,
             });
           }
 
@@ -995,8 +993,8 @@ export function ImportPanelProvider({
       if (hasAmbiguousCollectionImport) {
         dispatchToast(
           ambiguousCollectionImportCount === 1
-            ? "One destination set has duplicate token paths across enabled modes. Change the destination mapping or disable one mode before importing."
-            : `${ambiguousCollectionImportCount} destination token paths are duplicated across enabled modes. Change the destination mappings or disable conflicting modes before importing.`,
+            ? "Duplicate token paths in one set. Change the mapping or disable a mode."
+            : `${ambiguousCollectionImportCount} duplicate paths across modes. Change mappings or disable conflicting modes.`,
           "error",
         );
         return;
@@ -1058,8 +1056,8 @@ export function ImportPanelProvider({
             : `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? "s" : ""}`;
         const successSummary =
           failedCount > 0
-            ? `Imported ${importedTokens} token${importedTokens !== 1 ? "s" : ""} across ${importedSets} set${importedSets !== 1 ? "s" : ""} — ${failedCount} token${failedCount !== 1 ? "s" : ""} could not be saved`
-            : `Imported ${importedTokens} token${importedTokens !== 1 ? "s" : ""} across ${importedSets} set${importedSets !== 1 ? "s" : ""}`;
+            ? `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} set${importedSets !== 1 ? "s" : ""} — ${failedCount} failed`
+            : `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} set${importedSets !== 1 ? "s" : ""}`;
 
         dispatchToast(toastMessage, failedCount > 0 ? "error" : "success");
         onImportedRef.current();
@@ -1433,7 +1431,7 @@ export function ImportPanelProvider({
         setCopyFeedback(true);
         window.setTimeout(() => setCopyFeedback(false), 2000);
       },
-      () => dispatchToast("Failed to copy failed import paths", "error"),
+      () => dispatchToast("Copy failed", "error"),
     );
   }, [failedImportPaths]);
 

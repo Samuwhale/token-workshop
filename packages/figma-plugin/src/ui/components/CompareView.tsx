@@ -432,7 +432,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
   if (tokens.length === 0) {
     return (
       <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
-        No token data found for selected paths.
+        No token data for selected paths.
         <button onClick={onClose} className="ml-2 underline">Close</button>
       </div>
     );
@@ -776,7 +776,7 @@ function CrossThemeMode({
 
     return {
       title: `Create ${totalCount} missing override${totalCount === 1 ? '' : 's'}?`,
-      description: `This will create ${totalCount} missing override token${totalCount === 1 ? '' : 's'} for "${tokenName}" in ${targetLabel}.`,
+      description: `Create ${totalCount} override${totalCount === 1 ? '' : 's'} for "${tokenName}" in ${targetLabel}.`,
       confirmLabel: `Create ${totalCount}`,
       batches,
     };
@@ -812,7 +812,7 @@ function CrossThemeMode({
           <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Compare across themes</span>
           <button onClick={onClose} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">Close</button>
         </div>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No themes found. Add theme families in the Themes tab to compare token values across variants.</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No themes found. Add theme families in the Themes tab to compare across variants.</p>
       </div>
     );
   }
@@ -1546,8 +1546,8 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
             {sets.length < 2
-              ? 'You need at least two token sets to compare.'
-              : 'Select two different sets above to see how they differ.'}
+              ? 'At least two token sets needed to compare.'
+              : 'Select two different sets to compare.'}
           </p>
         </div>
       ) : (loadingA || loadingB) ? (
@@ -1557,7 +1557,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
       ) : diffs.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
-            These sets are identical — no differences found.
+            These sets are identical.
           </p>
         </div>
       ) : (

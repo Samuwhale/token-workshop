@@ -28,10 +28,10 @@ export const DEFAULT_OPACITY_SCALE_CONFIG: OpacityScaleConfig = {
 // ---------------------------------------------------------------------------
 
 const OPACITY_PRESETS = [
-  { label: 'Full range (12)', description: '12 steps: 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100% — fine-grained opacity control', steps: DEFAULT_OPACITY_SCALE_CONFIG.steps },
+  { label: 'Full range (12)', description: '0–100% in 10% increments', steps: DEFAULT_OPACITY_SCALE_CONFIG.steps },
   {
     label: 'Compact (5)',
-    description: '5 steps: 0, 25, 50, 75, 100% — simple quarter increments',
+    description: '0–100% in quarter increments',
     steps: [
       { name: '0', value: 0 },
       { name: '25', value: 25 },

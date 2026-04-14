@@ -281,7 +281,7 @@ export function SyncSubPanel({
 
             {isFiltered && filteredRows.length !== sync.rows.length && (
               <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
-                {filteredRows.length} of {sync.rows.length} token{sync.rows.length !== 1 ? 's' : ''} match filter
+                {filteredRows.length} of {sync.rows.length} token{sync.rows.length !== 1 ? 's' : ''}
               </div>
             )}
 
@@ -351,7 +351,7 @@ export function SyncSubPanel({
                 {revertPending ? (
                   <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                     <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Revert last sync?</span>
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{revertDescription} This cannot be undone.</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{revertDescription}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <button
                         onClick={handleRevertConfirm}

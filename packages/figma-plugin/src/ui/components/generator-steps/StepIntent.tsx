@@ -126,7 +126,7 @@ export function StepIntent({
       <div className={AUTHORING.generatorTitleBlock}>
         <h3 className={AUTHORING.generatorTitle}>What do you want to generate?</h3>
         <p className={AUTHORING.generatorDescription}>
-          Pick a recipe type, then optionally choose a starter template.
+          Pick a type, optionally a template.
         </p>
       </div>
 

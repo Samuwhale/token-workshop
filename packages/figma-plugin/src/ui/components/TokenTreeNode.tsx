@@ -1230,7 +1230,7 @@ const TokenGroupNode = memo(
         {showDetachGroupConfirm && targetGenerator && (
           <ConfirmModal
             title="Detach Group From Recipe?"
-            description={`This will convert the ${managedGeneratorLeafCount} recipe-managed token${managedGeneratorLeafCount === 1 ? "" : "s"} in "${node.path}" into manual tokens. Future runs of "${targetGenerator.name}" will stop updating them.`}
+            description={`Convert ${managedGeneratorLeafCount} recipe-managed token${managedGeneratorLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetGenerator.name}" will stop updating them.`}
             confirmLabel="Detach group"
             onCancel={() => setShowDetachGroupConfirm(false)}
             onConfirm={async () => {
@@ -3380,7 +3380,7 @@ const TokenLeafNode = memo(
           {showDetachTokenConfirm && producingGenerator && onDetachFromGenerator && (
             <ConfirmModal
               title="Detach Token?"
-              description={`This will convert "${node.path}" into a manual token. Future runs of "${producingGenerator.name}" will stop updating it.`}
+              description={`Convert "${node.path}" to manual. "${producingGenerator.name}" will stop updating it.`}
               confirmLabel="Detach token"
               onCancel={() => setShowDetachTokenConfirm(false)}
               onConfirm={async () => {

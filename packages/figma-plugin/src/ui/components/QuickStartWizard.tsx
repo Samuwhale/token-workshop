@@ -47,9 +47,9 @@ interface TaskDef {
 }
 
 const TASKS: TaskDef[] = [
-  { id: 'foundations', label: 'Recipes', description: 'Create a color, spacing, or type recipe' },
-  { id: 'semantics', label: 'Semantics', description: 'Map aliases to your foundations' },
-  { id: 'modes', label: 'Modes', description: 'Add light and dark mode support' },
+  { id: 'foundations', label: 'Recipes', description: 'Color, spacing, or type recipe' },
+  { id: 'semantics', label: 'Semantics', description: 'Map aliases to foundations' },
+  { id: 'modes', label: 'Modes', description: 'Light/dark mode support' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -138,8 +138,7 @@ function CreateSetStep({ serverUrl, onCreated }: {
       <div>
         <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token set</p>
         <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-          Token sets are JSON files that hold your design system foundations.
-          You can add more sets later for semantics, themes, or brands.
+          Token sets are JSON files that hold your design foundations. Add more later for semantics, themes, or brands.
         </p>
       </div>
 
@@ -675,7 +674,7 @@ export function QuickStartWizard({
         {checklistView === 'modes-inline' && (
           <div className="p-4 flex flex-col gap-3">
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Create a theme family such as color mode, then add variants like light and dark so your token system can switch across contexts.
+              Create a theme dimension (e.g. color mode) with variants like light and dark.
             </p>
             <ThemeStep
               serverUrl={serverUrl}

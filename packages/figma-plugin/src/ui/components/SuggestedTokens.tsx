@@ -178,7 +178,7 @@ export function SuggestedTokens({
               }}
               className="w-full text-[9px] text-[var(--color-figma-accent)] text-center py-1.5 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-accent)]/5 transition-colors"
             >
-              Show all {weakGroup!.items.length} remaining tokens
+              Show {weakGroup!.items.length} more
             </button>
           )}
           {hasWeakGroup && showAll && weakGroup && weakGroup.items.length > 0 && (
@@ -189,7 +189,7 @@ export function SuggestedTokens({
               }}
               className="w-full text-[9px] text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              Hide weaker matches
+              Hide weak
             </button>
           )}
         </div>

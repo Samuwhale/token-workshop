@@ -183,7 +183,7 @@ export function TokenListFilteredEmptyState({
         size="section"
         className="w-full max-w-[260px]"
         title="No tokens match your filters"
-        description="Try a broader search, or clear one of the active qualifiers to widen the current scope."
+        description="Try a broader search or clear a qualifier."
         secondaryAction={{
           label: "Clear filters",
           onClick: onClearFilters,

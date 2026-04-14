@@ -505,7 +505,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 Create a theme family
               </p>
               <p className="max-w-[240px] text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-                Add variants and connect the token sets each variant should use.
+                Add variants and connect sets.
               </p>
             </div>
 
@@ -551,8 +551,8 @@ export const ThemeAuthoringScreen = forwardRef<
                       </p>
                       <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                         {focusedDimension && focusedOption
-                          ? `Editing ${focusedDimension.name} / ${focusedOption.name}. Shared sets apply everywhere, variant sets override where this variant differs.`
-                          : "Define families, add variants, and connect token sets."}
+                          ? "Shared sets apply everywhere; variant sets override per-variant."
+                          : "Add variants and connect sets."}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
@@ -599,7 +599,7 @@ export const ThemeAuthoringScreen = forwardRef<
                   </div>
                   {focusedDimension && focusedOptionSummary && (
                     <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      {`${focusedDimension.options.length} variant${focusedDimension.options.length === 1 ? "" : "s"} · ${focusedOptionSummary.baseCount} shared · ${focusedOptionSummary.overrideCount} variant-specific`}
+                      {`${focusedDimension.options.length} variant${focusedDimension.options.length === 1 ? "" : "s"} · ${focusedOptionSummary.baseCount} shared · ${focusedOptionSummary.overrideCount} override`}
                       {focusedOptionSummary.excludedCount > 0 &&
                         ` · ${focusedOptionSummary.excludedCount} excluded`}
                     </div>
@@ -610,7 +610,7 @@ export const ThemeAuthoringScreen = forwardRef<
               <div className="flex flex-col">
                 {filteredDimensions.length === 0 && dimSearch && (
                   <div className="py-6 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No theme families match your filter
+                    No families match your filter
                   </div>
                 )}
                 {filteredDimensions.map((dimension) => {
@@ -657,14 +657,14 @@ export const ThemeAuthoringScreen = forwardRef<
                 })}
                 {dimSearch && filteredDimensions.length === 0 && (
                   <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-tertiary)]">
-                    No theme families matching &ldquo;{dimSearch}&rdquo;
+                    No families matching &ldquo;{dimSearch}&rdquo;
                   </div>
                 )}
                 {dimSearch &&
                   filteredDimensions.length > 0 &&
                   filteredDimensions.length < dimensions.length && (
                     <div className="px-3 py-1 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      Showing {filteredDimensions.length} of {dimensions.length} families
+                      {filteredDimensions.length} of {dimensions.length}
                     </div>
                   )}
               </div>
@@ -696,7 +696,7 @@ export const ThemeAuthoringScreen = forwardRef<
                 autoFocus
               />
               <p className="text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">
-                Each family has variants, e.g. Light/Dark or Default/Premium.
+                e.g. Light/Dark, Default/Premium
               </p>
             </div>
             {createDimError && (

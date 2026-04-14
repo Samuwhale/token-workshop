@@ -645,9 +645,9 @@ export function TokenEditor({
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
   const footerNote =
     isCreateMode && duplicatePath
-      ? "Choose another token path to continue."
+      ? "Path already exists."
       : isCreateMode && !trimmedEditPath
-        ? "Enter a token path to create this token."
+        ? "Enter a token path."
         : saveBlockReason;
 
   const headerTitle = (
@@ -658,7 +658,7 @@ export function TokenEditor({
             New token
           </div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Create a new token in {setName}
+            New in {setName}
           </div>
         </div>
       ) : (
@@ -691,8 +691,8 @@ export function TokenEditor({
         <button
           type="button"
           onClick={() => onShowReferences(tokenPath)}
-          title="Open advanced dependency graph (Apply → Dependencies)"
-          aria-label="Open advanced dependency graph"
+          title="Open dependency graph"
+          aria-label="Open dependency graph"
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
         >
           <svg
@@ -1164,9 +1164,6 @@ export function TokenEditor({
                 <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
                   Token details
                 </p>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Pick the token type and where it lives in {setName}.
-                </p>
               </div>
               <div className="w-[112px] shrink-0">
                 <label className="mb-1 block text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
@@ -1328,7 +1325,7 @@ export function TokenEditor({
         <Collapsible
           open={detailsOpen}
           onToggle={toggleDetails}
-          label={<span>Metadata</span>}
+          label={<span>Details</span>}
         >
           <div className="mt-2 flex flex-col gap-3">
             <div className="flex flex-col gap-1">
@@ -1436,7 +1433,7 @@ export function TokenEditor({
                       );
                     return (
                       <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
-                        Inherited properties will be merged with overrides below.
+                        Base properties merged with overrides.
                       </p>
                     );
                   })()}
@@ -1564,7 +1561,7 @@ export function TokenEditor({
       {showConflictConfirm && (
         <ConfirmModal
           title="Token modified on server"
-          description="This token was changed on the server since you opened the editor. Overwrite the server version with your changes?"
+          description="This token was changed on the server since you started editing. Overwrite with your changes?"
           confirmLabel="Overwrite"
           cancelLabel="Cancel"
           danger

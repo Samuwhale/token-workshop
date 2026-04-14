@@ -443,7 +443,7 @@ export function PropertyRow({
             {isMixed && (
               <PropertyActionButton
                 label={showMixedDetail ? 'Hide details' : 'Review mixed'}
-                title="Show distinct bindings across selected layers"
+                title="Show bindings across layers"
                 onClick={() => setShowMixedDetail(v => !v)}
                 icon={
                   <svg

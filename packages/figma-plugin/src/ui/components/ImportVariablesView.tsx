@@ -74,14 +74,14 @@ export function ImportVariablesView() {
                 : null;
               const duplicatePathError = enabled && !setNameError && (destinationStatus?.ambiguousPathCount ?? 0) > 0
                 ? destinationStatus?.ambiguousPathCount === 1
-                  ? 'Shares 1 token path with another enabled mode targeting this set'
-                  : `Shares ${destinationStatus?.ambiguousPathCount} token paths with other enabled modes targeting this set`
+                  ? 'Shares 1 path with another enabled mode'
+                  : `Shares ${destinationStatus?.ambiguousPathCount} paths with other enabled modes`
                 : null;
               const inputError = setNameError ?? duplicatePathError;
               const inputErrorDetail = setNameError
                 ? setNameError
                 : duplicatePathError
-                  ? `${duplicatePathError}. Change the destination name or disable one of the overlapping modes.`
+                  ? `${duplicatePathError}. Change the name or disable an overlapping mode.`
                   : null;
               const isSharedDestination = enabled && !setNameError && (destinationStatus?.sharedDestinationCount ?? 1) > 1;
               return (
@@ -131,7 +131,7 @@ export function ImportVariablesView() {
                       )}
                       {!inputError && isSharedDestination && (
                         <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight pl-3">
-                          This destination will be written once with all enabled mode tokens combined.
+                          All enabled modes will combine into this set.
                         </p>
                       )}
                     </div>

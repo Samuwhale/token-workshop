@@ -36,9 +36,9 @@ export const DEFAULT_COLOR_RAMP_CONFIG: ColorRampConfig = {
 // ---------------------------------------------------------------------------
 
 export const COLOR_STEP_PRESETS = [
-  { label: 'Tailwind (11)', description: '11 steps (50–950) matching the Tailwind CSS color palette', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] },
-  { label: 'Material (10)', description: '10 steps (50–900) matching the Material Design color palette', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] },
-  { label: 'Compact (5)', description: '5 steps (100, 300, 500, 700, 900) — minimal palette for simple use cases', steps: [100, 300, 500, 700, 900] },
+  { label: 'Tailwind (11)', description: '50–950, Tailwind palette', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] },
+  { label: 'Material (10)', description: '50–900, Material palette', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] },
+  { label: 'Compact (5)', description: '100–900, minimal palette', steps: [100, 300, 500, 700, 900] },
 ];
 
 // ---------------------------------------------------------------------------
@@ -56,19 +56,19 @@ export const COLOR_RAMP_PARAMETER_PRESETS: ColorRampParameterPreset[] = [
   {
     id: 'vibrant',
     label: 'Vibrant',
-    description: 'High chroma, punchy colors with strong saturation across the ramp',
+    description: 'High chroma, punchy colors',
     config: { lightEnd: 97, darkEnd: 8, chromaBoost: 1.6, lightnessCurve: [0.42, 0, 0.58, 1] },
   },
   {
     id: 'neutral',
     label: 'Neutral',
-    description: 'Low chroma, desaturated tones suited for UI surfaces and text',
+    description: 'Desaturated tones for surfaces and text',
     config: { lightEnd: 97, darkEnd: 10, chromaBoost: 0.5, lightnessCurve: [0.42, 0, 0.58, 1] },
   },
   {
     id: 'pastel',
     label: 'Pastel',
-    description: 'Soft, muted colors with a lifted dark end and gentle curve',
+    description: 'Soft, muted colors with lifted shadows',
     config: { lightEnd: 98, darkEnd: 25, chromaBoost: 0.8, lightnessCurve: [0.25, 0, 0.75, 1] },
   },
 ];

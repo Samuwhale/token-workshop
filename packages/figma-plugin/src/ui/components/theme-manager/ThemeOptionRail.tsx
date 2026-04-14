@@ -215,7 +215,7 @@ export function ThemeOptionRail({
                 <div className="my-1 border-t border-[var(--color-figma-border)]" />
                 {onOpenAdvancedSetup && (
                   <button role="menuitem" onClick={() => { variantMenu.close(); onOpenAdvancedSetup(); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
-                    {`Advanced setup${disabledSetCount ? ` (${disabledSetCount} unused)` : ""}`}
+                    {`Advanced${disabledSetCount ? ` (${disabledSetCount} unused)` : ""}`}
                   </button>
                 )}
                 {onOpenCoverageView && (

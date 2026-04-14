@@ -39,23 +39,23 @@ const CLEANUP_SECTIONS: Array<{
 }> = [
   {
     id: 'coverage',
-    step: 'Step 1',
-    label: 'Scan coverage',
-    title: 'Scan the canvas and inspect untokenized layers',
+    step: '1',
+    label: 'Coverage',
+    title: 'Coverage',
     panelHeightClassName: 'h-[420px]',
   },
   {
     id: 'suggestions',
-    step: 'Step 2',
-    label: 'Review suggestions',
-    title: 'Snap near-matches to the right tokens',
+    step: '2',
+    label: 'Suggestions',
+    title: 'Suggestions',
     panelHeightClassName: 'h-[400px]',
   },
   {
     id: 'components',
-    step: 'Step 3',
-    label: 'Fix components',
-    title: 'Clean up untokenized components',
+    step: '3',
+    label: 'Components',
+    title: 'Components',
     panelHeightClassName: 'h-[360px]',
   },
 ];
@@ -205,7 +205,7 @@ export function CanvasAnalysisPanel({
     setCreateDraft({
       source: 'heatmap',
       title: `Create token for ${node.name}`,
-      description: 'Create a token from the canvas value and bind it back to this layer without leaving Canvas cleanup.',
+      description: 'Create a token from this value and bind it to the layer.',
       options,
     });
   }, [buildHeatmapCreateOptions]);
@@ -222,7 +222,7 @@ export function CanvasAnalysisPanel({
     setCreateDraft({
       source: 'consistency',
       title: `Create token for ${request.match.nodeName}`,
-      description: 'This near-match is not close enough. Create a new token from the actual canvas value and bind it back immediately.',
+      description: 'Create a new token from the canvas value and bind it.',
       options: [
         {
           property: request.match.property,
@@ -286,9 +286,6 @@ export function CanvasAnalysisPanel({
           </div>
           <div className="shrink-0">
             <ScanScopeSelector value={heatmapScope} onChange={setHeatmapScope} showLabel />
-            <p className="mt-1 text-right text-[9px] text-[var(--color-figma-text-tertiary)]">
-              Scope applies to coverage and suggestions.
-            </p>
           </div>
         </div>
       </div>
@@ -301,7 +298,7 @@ export function CanvasAnalysisPanel({
               onClick={() => scrollToSection(section.id)}
               className="px-2.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              {section.step} · {section.label}
+              {section.step}. {section.label}
             </button>
           ))}
         </div>
@@ -322,13 +319,8 @@ export function CanvasAnalysisPanel({
               className="rounded-xl border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden"
             >
               <div className="px-4 py-3 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[var(--color-figma-bg-secondary)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
-                    {section.step}
-                  </span>
-                </div>
-                <h3 className="mt-2 text-[12px] font-semibold text-[var(--color-figma-text)]">
-                  {section.title}
+                <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                  {section.step}. {section.title}
                 </h3>
               </div>
 

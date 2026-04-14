@@ -307,7 +307,7 @@ export function TokenUsages({
               <button
                 type="button"
                 onClick={highlightAll}
-                title="Select and zoom to all affected layers on canvas"
+                title="Select and zoom to affected layers"
                 className="shrink-0 flex items-center gap-1 px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

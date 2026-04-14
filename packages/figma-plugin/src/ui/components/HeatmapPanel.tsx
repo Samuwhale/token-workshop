@@ -295,7 +295,7 @@ export function HeatmapPanel({
       {help.expanded && result && !loading && (
         <PanelHelpBanner
           title="Heatmap"
-          description="Scan your Figma document to see which layers use design tokens and which don't. Choose a scope — current page, selection, or all pages. Green = fully bound, yellow = partially bound, red = no token bindings. Use Quick Bind to attach tokens to unbound layers."
+          description="Shows which layers use tokens vs. hardcoded values. Green = fully bound, yellow = partial, red = unbound."
           onDismiss={help.dismiss}
         />
       )}
@@ -349,17 +349,17 @@ export function HeatmapPanel({
       {!loading && !error && !result && (
         <div className="flex-1 flex flex-col items-center justify-center px-3 py-3 text-center gap-3">
           <div className="flex flex-col gap-1">
-            <p className="text-[11px] font-semibold text-[var(--color-figma-text)]">Token binding heatmap</p>
+            <p className="text-[11px] font-semibold text-[var(--color-figma-text)]">Heatmap</p>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
-              Scan your canvas to see which layers use design tokens and which ones are using hard-coded values.
+              Scan layers for token coverage.
             </p>
           </div>
 
           <div className="w-full max-w-[260px] flex flex-col gap-1.5">
             {[
-              { color: 'bg-emerald-500', label: 'Fully bound', desc: 'All properties use tokens' },
-              { color: 'bg-amber-400', label: 'Partially bound', desc: 'Some hard-coded values' },
-              { color: 'bg-red-500', label: 'No bindings', desc: 'No tokens applied yet' },
+              { color: 'bg-emerald-500', label: 'Fully bound', desc: 'Fully bound' },
+              { color: 'bg-amber-400', label: 'Partially bound', desc: 'Partially bound' },
+              { color: 'bg-red-500', label: 'No bindings', desc: 'Unbound' },
             ].map(({ color, label, desc }) => (
               <div key={label} className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                 <div className={`w-2 h-2 rounded-full ${color} shrink-0`} />
@@ -388,9 +388,9 @@ export function HeatmapPanel({
             <line x1="15" y1="9" x2="9" y2="15"/>
           </svg>
           <div className="flex flex-col gap-1">
-            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No visual layers found</p>
+            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No bindable layers</p>
             <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
-              This page doesn't have any layers that support token bindings. Try scanning a page with rectangles, text, or frames.
+              No bindable layers on this page.
             </p>
           </div>
           <button

@@ -22,7 +22,7 @@ export function ContrastMatrixPanel({
   onNavigateToToken,
 }: ContrastMatrixPanelProps) {
   const contrastRequirementSummary =
-    "AA needs 4.5:1 contrast for normal text; AAA needs 7:1.";
+    "AA 4.5:1 · AAA 7:1";
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
   const [contrastPage, setContrastPage] = useState(0);
   const [contrastFailuresOnly, setContrastFailuresOnly] = useState(false);
@@ -602,7 +602,7 @@ export function ContrastMatrixPanel({
           {contrastFailuresOnly ? (
             allFailingPairs.length === 0 ? (
               <div className="text-[9px] text-[var(--color-figma-text-secondary)] text-center py-4">
-                No failing pairs — all combinations pass AA (≥4.5:1)
+                All pairs pass AA (4.5:1+)
               </div>
             ) : (
               <table

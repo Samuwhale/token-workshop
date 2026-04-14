@@ -22,8 +22,7 @@ export function AccessiblePairConfigEditor({ config, onChange }: {
     <div className="flex flex-col gap-3">
       {/* Description */}
       <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-        Generates two tokens from a source color: one for the background (the source color itself)
-        and one for the foreground (black or white, whichever meets the required contrast ratio).
+        Generates a background token (source color) and a foreground token (black or white) that meets the required contrast.
       </p>
 
       {/* Contrast level */}
@@ -61,7 +60,7 @@ export function AccessiblePairConfigEditor({ config, onChange }: {
             className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
           />
           <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
-            Token name for the background — receives the source color.
+            Token name for the background color.
           </p>
         </div>
         <div>
@@ -77,7 +76,7 @@ export function AccessiblePairConfigEditor({ config, onChange }: {
             className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
           />
           <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
-            Token name for the foreground — receives black or white for {config.contrastLevel} contrast.
+            Token name for the foreground color.
           </p>
         </div>
       </div>

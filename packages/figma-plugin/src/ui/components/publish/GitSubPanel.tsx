@@ -566,7 +566,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 <button
                   onClick={() => onRequestConfirm('git-pull')}
                   disabled={git.actionLoading !== null}
-                  title="Download the latest token changes from your team"
+                  title="Pull latest changes"
                   className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                 >
                   {git.actionLoading === 'pull' ? 'Getting updates\u2026' : '\u2193 Get updates'}
@@ -574,7 +574,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 <button
                   onClick={() => onRequestConfirm('git-push')}
                   disabled={git.actionLoading !== null}
-                  title="Upload your saved versions to the shared server"
+                  title="Push to remote"
                   className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                 >
                   {git.actionLoading === 'push' ? 'Sharing\u2026' : '\u2191 Share'}

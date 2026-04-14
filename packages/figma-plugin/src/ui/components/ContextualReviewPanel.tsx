@@ -296,7 +296,7 @@ export function RelocateTokenReviewPanel({
   return (
     <ContextualReviewPanel
       title={`${isMove ? "Move" : "Copy"} token to set`}
-      description={`Review the destination for ${tokenPath} before ${isMove ? "removing it from" : "duplicating it out of"} ${setName}.`}
+      description={`${isMove ? "Move" : "Copy"} ${tokenPath} ${isMove ? "from" : "out of"} ${setName}.`}
       onClose={onClose}
       footer={
         <>

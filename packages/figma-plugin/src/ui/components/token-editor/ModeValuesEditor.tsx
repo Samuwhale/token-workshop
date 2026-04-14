@@ -94,7 +94,7 @@ export function ModeValuesEditor({
             Theme overrides
           </p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            No theme families configured yet.
+            No themes configured.
           </p>
         </div>
         <button
@@ -102,7 +102,7 @@ export function ModeValuesEditor({
           onClick={onNavigateToThemes}
           className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
         >
-          Set up themes
+          Add themes
         </button>
       </div>
     );

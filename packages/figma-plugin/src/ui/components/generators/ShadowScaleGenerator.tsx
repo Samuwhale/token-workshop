@@ -27,13 +27,13 @@ export const DEFAULT_SHADOW_SCALE_CONFIG: ShadowScaleConfig = {
 const SHADOW_PRESETS = [
   {
     label: 'Tailwind (5)',
-    description: '5 semantic steps following Tailwind CSS shadow scale — sm through 2xl',
+    description: 'sm–2xl, Tailwind shadow scale',
     color: '#000000',
     steps: DEFAULT_SHADOW_SCALE_CONFIG.steps,
   },
   {
     label: 'Material (5)',
-    description: '5 elevation levels inspired by Material Design — 1dp through 16dp',
+    description: '1dp–16dp, Material elevation',
     color: '#000000',
     steps: [
       { name: '1dp',  offsetX: 0, offsetY: 1,  blur: 3,  spread: 0, opacity: 0.12 },
@@ -45,7 +45,7 @@ const SHADOW_PRESETS = [
   },
   {
     label: 'Subtle (3)',
-    description: '3 subtle steps — good for cards and surfaces with minimal depth',
+    description: '3 subtle steps for cards and surfaces',
     color: '#000000',
     steps: [
       { name: 'sm', offsetX: 0, offsetY: 1, blur: 2,  spread: 0, opacity: 0.04 },
@@ -191,7 +191,7 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
             onChange={hex => onChange({ ...config, color: hex })}
             aria-label="Shadow base color"
           />
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">(opacity set per step)</span>
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">(per-step opacity)</span>
         </div>
       </TokenRefInput>
 

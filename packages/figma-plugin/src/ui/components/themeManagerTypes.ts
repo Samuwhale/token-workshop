@@ -19,9 +19,9 @@ export const STATE_LABELS: Record<ThemeRoleState, string> = {
 };
 
 export const STATE_DESCRIPTIONS: Record<ThemeRoleState, string> = {
-  disabled: 'Tokens from this set are not used in this option',
-  source: 'Provides default token values — overridden by Override sets',
-  enabled: 'Highest priority — these tokens override Base set values',
+  disabled: 'Not used in this variant',
+  source: 'Default values, overridden by Override sets',
+  enabled: 'Highest priority, overrides Base values',
 };
 
 export type AutoFillPendingItem = { path: string; $value: unknown; $type?: string };

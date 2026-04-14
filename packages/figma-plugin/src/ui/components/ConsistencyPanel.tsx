@@ -154,7 +154,7 @@ function SuggestionCard({
         <div className="border-t border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
           {rejected && (
             <div className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
-              Create a new token from the actual canvas value for any layer below.
+              Create a token from the actual value for any layer below.
             </div>
           )}
           {uniqueMatches.map((match: ConsistencyMatch, idx: number) => (
@@ -362,7 +362,7 @@ export function ConsistencyPanel({
       {help.expanded && (
         <PanelHelpBanner
           title="Consistency Scanner"
-          description="Scans Figma layers for hardcoded values (colors, dimensions, typography) that match your design tokens. Click a suggestion to snap that layer's value to the matching token."
+          description="Finds hardcoded values that nearly match a design token. Snap to fix."
           onDismiss={help.dismiss}
         />
       )}
@@ -373,7 +373,7 @@ export function ConsistencyPanel({
         {!hasTokens && (
           <div className="flex flex-col items-center justify-center h-full gap-2 p-6 text-center">
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No tokens loaded.</p>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">Connect to a server with tokens to use the consistency scanner.</p>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">Connect to a server with tokens first.</p>
           </div>
         )}
 
@@ -411,7 +411,7 @@ export function ConsistencyPanel({
             </svg>
             <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Find near-matches</p>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] max-w-48">
-              Scans for colors, spacing, typography, and other values that are close to — but not exactly — a design token.
+              Scan for values close to a token but not yet bound.
             </p>
           </div>
         )}
@@ -446,7 +446,7 @@ export function ConsistencyPanel({
                 </svg>
                 <p className="text-[11px] font-medium text-[var(--color-figma-text)]">All consistent</p>
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  No near-miss token values found{snappedKeys.size > 0 ? ' (or all snapped)' : ''}.
+                  {snappedKeys.size > 0 ? 'All snapped.' : 'No near-matches found.'}
                 </p>
               </div>
             ) : hasMultipleCategories ? (

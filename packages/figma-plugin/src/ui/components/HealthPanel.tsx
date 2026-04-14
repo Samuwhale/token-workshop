@@ -126,27 +126,27 @@ function StatusIcon({ status }: { status: HealthStatus | null }) {
 const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
   "missing-type": {
     label: "Missing type",
-    tip: "Add a $type to make the token spec-compliant",
+    tip: "Add a $type for spec compliance",
   },
   "broken-alias": {
     label: "Broken reference",
-    tip: "The referenced token doesn't exist — update or remove the reference",
+    tip: "Referenced token missing — update or remove",
   },
   "circular-reference": {
     label: "Circular reference",
-    tip: "Break the reference loop so the token can resolve",
+    tip: "Break the loop so the token resolves",
   },
   "max-alias-depth": {
     label: "Deep reference chain",
-    tip: "Shorten the chain by pointing closer to the source token",
+    tip: "Shorten the chain to the source token",
   },
   "references-deprecated-token": {
     label: "Deprecated token in use",
-    tip: "Replace active references with a non-deprecated successor token",
+    tip: "Replace with a non-deprecated token",
   },
   "type-mismatch": {
     label: "Type / value mismatch",
-    tip: "The value doesn't match the declared $type",
+    tip: "Value doesn't match declared $type",
   },
 };
 
@@ -424,7 +424,7 @@ export function HealthPanel({
         console.warn("[HealthPanel] failed to load deprecated usage:", err);
         setDeprecatedUsageEntries([]);
         setDeprecatedUsageError(
-          "Failed to load deprecated usage. Refresh the audit and try again.",
+          "Failed to load deprecated usage. Try refreshing.",
         );
       })
       .finally(() => {
@@ -812,7 +812,7 @@ export function HealthPanel({
       }
       await runValidation();
     } catch {
-      onError("Fix failed — check your connection and try again.");
+      onError("Fix failed — check connection and retry.");
     } finally {
       setFixingKeys((prev) => {
         const next = new Set(prev);
@@ -827,7 +827,7 @@ export function HealthPanel({
   ) => {
     const sampleEntry = allTokensUnified[group.tokens[0]?.path ?? ""];
     if (!sampleEntry) {
-      onError("Alias promotion failed — source tokens are no longer available.");
+      onError("Alias promotion failed — source tokens unavailable.");
       return;
     }
 
@@ -847,7 +847,7 @@ export function HealthPanel({
       onError(
         err instanceof Error
           ? err.message
-          : "Alias promotion failed — refresh the audit and try again.",
+          : "Alias promotion failed — try refreshing.",
       );
     } finally {
       setPromotingAliasGroupId(null);
@@ -860,7 +860,7 @@ export function HealthPanel({
     const replacementPath =
       deprecatedReplacementPaths[entry.deprecatedPath]?.trim();
     if (!replacementPath) {
-      onError("Pick a replacement token before rewriting references.");
+      onError("Pick a replacement token first.");
       return;
     }
 
@@ -1180,16 +1180,14 @@ export function HealthPanel({
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              Connect to the token server to run validation
+              Connect to run validation
             </p>
           </div>
         ) : (
           <>
             {validationIsStale && (
               <NoticeBanner severity="stale" className="mb-3">
-                Audit results are outdated. Token data changed after the last
-                check, so review findings with caution until you refresh from
-                the shell header.
+                Audit results are outdated. Refresh to reflect recent token changes.
               </NoticeBanner>
             )}
 
@@ -1209,7 +1207,7 @@ export function HealthPanel({
                   )}
                   <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
                     {validationIssuesProp === null
-                      ? "Run the audit to check library health"
+                      ? "Run audit to check health"
                       : overallStatus === "healthy"
                         ? "All clear"
                         : `${totalAllIssues} active issue${totalAllIssues !== 1 ? "s" : ""}`}
