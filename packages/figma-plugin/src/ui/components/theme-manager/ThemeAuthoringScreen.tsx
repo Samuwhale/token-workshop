@@ -136,7 +136,7 @@ interface ThemeAuthoringScreenProps {
   handleAutoFillAll: (dimId: string, optionName: string) => void;
   handleAutoFillAllOptions: (dimId: string) => void;
   onOpenCompare: (dimId?: string) => void;
-  onOpenResolver: () => void;
+  onOpenOutput: () => void;
   /** Navigate to Tokens workspace with a specific set selected */
   onNavigateToTokenSet?: (setName: string) => void;
   /** Resolver alignment context for inline token output section */
@@ -366,7 +366,7 @@ export const ThemeAuthoringScreen = forwardRef<
     handleAutoFillAll,
     handleAutoFillAllOptions,
     onOpenCompare,
-    onOpenResolver,
+    onOpenOutput,
     onNavigateToTokenSet,
     resolverAuthoringContext,
   },
@@ -546,7 +546,7 @@ export const ThemeAuthoringScreen = forwardRef<
       handleAutoFillAll,
       handleAutoFillAllOptions,
       onOpenCompare,
-      onOpenResolver,
+      onOpenOutput,
       onNavigateToTokenSet,
       onGenerateForDimension,
     }),
@@ -605,7 +605,7 @@ export const ThemeAuthoringScreen = forwardRef<
       handleAutoFillAll,
       handleAutoFillAllOptions,
       onOpenCompare,
-      onOpenResolver,
+      onOpenOutput,
       onNavigateToTokenSet,
       onGenerateForDimension,
     ],
@@ -683,7 +683,7 @@ export const ThemeAuthoringScreen = forwardRef<
           {resolverAuthoringContext && (
             <InlineTokenOutputSection
               context={resolverAuthoringContext}
-              onConfigure={onOpenResolver}
+              onConfigure={onOpenOutput}
             />
           )}
         </div>

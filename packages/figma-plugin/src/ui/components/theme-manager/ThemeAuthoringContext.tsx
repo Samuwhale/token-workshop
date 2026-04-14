@@ -124,7 +124,7 @@ export interface ThemeAuthoringContextValue {
 
   // --- Navigation ---
   onOpenCompare: (dimId?: string) => void;
-  onOpenResolver: () => void;
+  onOpenOutput: () => void;
   onNavigateToTokenSet?: (setName: string) => void;
   onGenerateForDimension?: (info: {
     dimensionName: string;

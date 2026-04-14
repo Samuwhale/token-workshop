@@ -59,7 +59,7 @@ export interface ThemeManagerHandle {
   focusStage: (stage: ThemeAuthoringStage) => void;
   openCreateAxis: () => void;
   returnToAuthoring: () => void;
-  switchToResolverMode: () => void;
+  switchToOutputView: () => void;
 }
 
 interface ThemeManagerProps {
@@ -368,7 +368,7 @@ const ThemeManagerWorkspace = React.forwardRef<
     returnToAuthoring,
     focusAuthoringStage,
     openCompareView,
-    openResolverView,
+    openOutputView,
     handleNavigateToCompare,
   } = useThemeManagerNavigation({
     dimensions,
@@ -423,14 +423,14 @@ const ThemeManagerWorkspace = React.forwardRef<
       returnToAuthoring: () => {
         returnToAuthoring();
       },
-      switchToResolverMode: openResolverView,
+      switchToOutputView: openOutputView,
     }),
     [
       coverage,
       dimensions,
       focusAuthoringStage,
       handleNavigateToCompare,
-      openResolverView,
+      openOutputView,
       openCreateDim,
       returnToAuthoring,
       setActiveView,
@@ -468,51 +468,9 @@ const ThemeManagerWorkspace = React.forwardRef<
   );
   const themeHeaderStatus = useMemo(() => {
     if (activeView === "compare") return "Theme setup / Compare";
-    if (activeView === "resolver") return "Theme setup / Output setup";
-    if (authoringMode === "preview") return "Theme setup / Preview";
-    return "Theme setup / Modes";
-  }, [activeView, authoringMode]);
-  const themeHeaderSummary = useMemo(() => {
-    if (dimensions.length === 0) {
-      return "Create the modes your team switches between, then map each value to the right token sets.";
-    }
-
-    if (activeView === "compare") {
-      return "Review how token values change across mode values before you publish or continue mapping sets.";
-    }
-
-    if (activeView === "resolver") {
-      return resolverAuthoringContext
-        ? resolverAuthoringContext.setupSummary
-        : "Choose the output file that should represent this theme, then confirm how each mode maps.";
-    }
-
-    if (authoringMode === "preview") {
-      return "Inspect the resolved token result for the currently selected mode values.";
-    }
-
-    if (themeWorkflowSummary.currentStage === "options") {
-      return `${themeWorkflowSummary.axisCount} mode${themeWorkflowSummary.axisCount === 1 ? "" : "s"} created. Add values like Light and Dark so designers can switch between real theme states.`;
-    }
-
-    if (themeWorkflowSummary.currentStage === "set-roles") {
-      const issueCount =
-        themeWorkflowSummary.unmappedOptionCount +
-        themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount +
-        themeWorkflowSummary.optionsWithCoverageIssuesCount;
-      return issueCount > 0
-        ? `${issueCount} mode value${issueCount === 1 ? "" : "s"} still need set mapping or token cleanup before the theme is ready.`
-        : "Assign default and override sets for each mode value.";
-    }
-
-    return "Theme setup is ready to review. Preview resolved tokens, compare values, or configure an output file.";
-  }, [
-    activeView,
-    authoringMode,
-    dimensions.length,
-    resolverAuthoringContext,
-    themeWorkflowSummary,
-  ]);
+    if (activeView === "output") return "Theme setup / Output";
+    return "Theme setup";
+  }, [activeView]);
   const workflowStages = useMemo(() => {
     const asTone = (value: WorkflowStageTone) => value;
     const stageIsCurrent = (stage: ThemeAuthoringStage) =>
@@ -540,6 +498,10 @@ const ThemeManagerWorkspace = React.forwardRef<
     const mappingsNeedAttention =
       themeWorkflowSummary.unmappedOptionCount > 0 ||
       themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount > 0;
+    const mappingIssueCount =
+      themeWorkflowSummary.unmappedOptionCount +
+      themeWorkflowSummary.mappedOptionWithAssignmentIssuesCount +
+      themeWorkflowSummary.optionsWithCoverageIssuesCount;
     const mappingsTone =
       dimensions.length === 0 || themeWorkflowSummary.optionCount === 0
         ? asTone("blocked")
@@ -589,6 +551,9 @@ const ThemeManagerWorkspace = React.forwardRef<
             : "Ready",
         tone: mappingsTone,
         disabled: themeWorkflowSummary.optionCount === 0,
+        badge: mappingIssueCount > 0
+          ? { count: mappingIssueCount, severity: "warning" as const }
+          : undefined,
       },
       {
         id: "preview" as const,
@@ -617,12 +582,12 @@ const ThemeManagerWorkspace = React.forwardRef<
       },
       {
         label: "Output",
-        onClick: openResolverView,
+        onClick: openOutputView,
         disabled: !resolverState,
-        active: activeView === "resolver",
+        active: activeView === "output",
       },
     ],
-    [activeView, canCompareThemes, openCompareView, openResolverView, resolverState],
+    [activeView, canCompareThemes, openCompareView, openOutputView, resolverState],
   );
 
   if (!connected) {
@@ -673,9 +638,6 @@ const ThemeManagerWorkspace = React.forwardRef<
                 <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
                   {themeHeaderStatus}
                 </div>
-                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                  {themeHeaderSummary}
-                </p>
               </div>
               <div className="shrink-0 text-right">
                 <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
@@ -731,7 +693,7 @@ const ThemeManagerWorkspace = React.forwardRef<
                 setActiveView("authoring");
               }}
             />
-          ) : activeView === "resolver" && resolverState ? (
+          ) : activeView === "output" && resolverState ? (
             <ThemeResolverScreen
               resolverState={resolverState}
               resolverAuthoringContext={resolverAuthoringContext}
@@ -816,7 +778,7 @@ const ThemeManagerWorkspace = React.forwardRef<
               handleAutoFillAll={handleAutoFillAll}
               handleAutoFillAllOptions={handleAutoFillAllOptions}
               onOpenCompare={openCompareView}
-              onOpenResolver={openResolverView}
+              onOpenOutput={openOutputView}
               onNavigateToTokenSet={onNavigateToTokenSet}
               resolverAuthoringContext={resolverAuthoringContext}
             />

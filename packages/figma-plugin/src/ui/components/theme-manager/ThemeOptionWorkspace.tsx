@@ -119,14 +119,9 @@ export function ThemeOptionWorkspace({
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-              {hasAssigned
-                ? `${foundationSets.length} base set${foundationSets.length === 1 ? "" : "s"} · ${overrideSets.length} override${overrideSets.length === 1 ? "" : "s"}`
-                : "This value has no set roles yet. Start with a base set or an override."}
-            </p>
-            {fillableCount > 0 && (
+            {hasAssigned && (
               <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                {fillableCount} token{fillableCount === 1 ? "" : "s"} can be filled from existing set data.
+                {foundationSets.length} base set{foundationSets.length === 1 ? "" : "s"} · {overrideSets.length} override{overrideSets.length === 1 ? "" : "s"}
               </p>
             )}
           </div>
@@ -134,7 +129,7 @@ export function ThemeOptionWorkspace({
             <button
               type="button"
               onClick={onAutoFill}
-              className="shrink-0 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/15"
+              className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
             >
               {autoFillLabel}
             </button>

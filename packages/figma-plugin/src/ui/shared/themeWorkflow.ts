@@ -16,7 +16,7 @@ export type ThemeAuthoringStage = "axes" | "options" | "set-roles" | "preview";
 export type ThemeManagerView =
   | "authoring"
   | "compare"
-  | "resolver";
+  | "output";
 export type ThemeAuthoringMode = "roles" | "preview";
 export type ThemeWorkflowTone = WorkflowStageTone;
 export type ThemeWorkflowItem = WorkflowStageIndicatorItem<ThemeAuthoringStage>;

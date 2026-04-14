@@ -1282,7 +1282,7 @@ export function App() {
       dismissEphemeralOverlays();
       navigateTo("themes", "themes");
       setTimeout(() => {
-        themeManagerHandleRef.current?.switchToResolverMode();
+        themeManagerHandleRef.current?.switchToOutputView();
       }, 50);
     }
     if (matchesShortcut(e, "SHOW_SHORTCUTS")) {

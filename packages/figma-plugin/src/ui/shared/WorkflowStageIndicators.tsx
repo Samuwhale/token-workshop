@@ -1,4 +1,11 @@
+import { NoticeCountBadge, type NoticeSeverity } from './noticeSystem';
+
 export type WorkflowStageTone = 'current' | 'complete' | 'pending' | 'blocked';
+
+export interface WorkflowStageIndicatorBadge {
+  count: number;
+  severity: NoticeSeverity;
+}
 
 export interface WorkflowStageIndicatorItem<StageId extends string> {
   id: StageId;
@@ -7,6 +14,7 @@ export interface WorkflowStageIndicatorItem<StageId extends string> {
   detail: string;
   tone: WorkflowStageTone;
   disabled?: boolean;
+  badge?: WorkflowStageIndicatorBadge;
 }
 
 export interface WorkflowStageIndicatorAction {
@@ -61,6 +69,13 @@ export function WorkflowStageIndicators<StageId extends string>({
             >
               <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${toneDot[stage.tone]}`} />
               {stage.label}
+              {stage.badge && stage.badge.count > 0 && (
+                <NoticeCountBadge
+                  severity={stage.badge.severity}
+                  count={stage.badge.count}
+                  title={`${stage.badge.count} issue${stage.badge.count === 1 ? '' : 's'}`}
+                />
+              )}
             </button>
           </div>
         ))}

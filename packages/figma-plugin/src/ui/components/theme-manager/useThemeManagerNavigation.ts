@@ -420,11 +420,11 @@ export function useThemeManagerNavigation({
     ],
   );
 
-  const openResolverView = useCallback(() => {
+  const openOutputView = useCallback(() => {
     if (!resolverAvailable) return;
     setShowCompare(false);
     setAuthoringMode("roles");
-    setActiveView("resolver");
+    setActiveView("output");
   }, [resolverAvailable, setActiveView, setAuthoringMode, setShowCompare]);
 
   const handleNavigateToCompare = useCallback(
@@ -464,7 +464,7 @@ export function useThemeManagerNavigation({
     returnToAuthoring,
     focusAuthoringStage,
     openCompareView,
-    openResolverView,
+    openOutputView,
     handleNavigateToCompare,
   };
 }
