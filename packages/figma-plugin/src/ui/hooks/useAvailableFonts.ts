@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 
 /**
  * Requests available font families from the Figma plugin sandbox.
@@ -11,7 +12,11 @@ export function useAvailableFonts(): { families: string[]; weightsByFamily: Reco
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      const msg = event.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{
+        type?: string;
+        families?: string[];
+        weightsByFamily?: Record<string, number[]>;
+      }>(event);
       if (msg?.type === 'fonts-loaded' && Array.isArray(msg.families)) {
         setFamilies(msg.families);
         setWeightsByFamily(msg.weightsByFamily ?? {});
@@ -19,7 +24,7 @@ export function useAvailableFonts(): { families: string[]; weightsByFamily: Reco
     };
 
     window.addEventListener('message', handler);
-    parent.postMessage({ pluginMessage: { type: 'get-available-fonts' } }, '*');
+    postPluginMessage({ type: 'get-available-fonts' });
 
     return () => window.removeEventListener('message', handler);
   }, []);

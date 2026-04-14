@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { getPluginMessageFromEvent, getPluginMessageHost } from '../../shared/utils';
 
 /**
  * Shared hook for roundtrip plugin communication via correlationId tracking.
@@ -39,7 +40,7 @@ export function useFigmaMessage<
 
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage as TRawMessage | undefined;
+      const msg = getPluginMessageFromEvent<TRawMessage>(ev);
       if (!msg?.correlationId) return;
 
       const cid = msg.correlationId as string;
@@ -82,13 +83,18 @@ export function useFigmaMessage<
   const send = useCallback(
     (sendType: string, payload?: Record<string, unknown>) => {
       return new Promise<TResponse>((resolve, reject) => {
+        const host = getPluginMessageHost();
+        if (!host) {
+          reject(new Error('Plugin host is unavailable'));
+          return;
+        }
         const cid = `${sendType}-${Date.now()}-${Math.random()}`;
         const timer = setTimeout(() => {
           pendingRef.current.delete(cid);
           reject(new Error('Figma message timed out \u2014 is the plugin running?'));
         }, timeout);
         pendingRef.current.set(cid, { resolve, reject, timer });
-        parent.postMessage(
+        host.postMessage(
           { pluginMessage: { type: sendType, correlationId: cid, ...payload } },
           '*',
         );
