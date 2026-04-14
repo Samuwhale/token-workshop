@@ -194,7 +194,7 @@ function getFallbackPostImportRecommendation(
     return createFallbackWorkspaceRecommendation(
       "define",
       "tokens",
-      "Open Tokens next to review the imported library before moving into Themes, Apply, or Sync.",
+      "Review imported tokens.",
     );
   }
 
@@ -205,14 +205,14 @@ function getFallbackPostImportRecommendation(
     return createFallbackWorkspaceRecommendation(
       "define",
       "themes",
-      "Open Themes next. Imported variable collections usually need a quick theme-structure pass before you fine-tune individual tokens.",
+      "Multiple collections — set up theme structure.",
     );
   }
 
   return createFallbackWorkspaceRecommendation(
     "sync",
     "publish",
-    "Open Sync next to confirm mapping for the imported changes before more edits pile on.",
+    "Confirm sync mapping.",
   );
 }
 
@@ -220,45 +220,28 @@ function getPostImportNextRecommendation(
   result: ImportCompletionResult,
   destination: WorkspaceRouteTarget,
 ): ImportNextStepRecommendation | null {
-  const nextWorkspaceRecommendation = getImportResultNextStepRecommendations(
-    result,
-  ).find(
+  const nextRecommendation = getImportResultNextStepRecommendations(result).find(
     (recommendation) =>
-      recommendation.target.kind === "workspace" &&
+      recommendation.target.kind !== "workspace" ||
       !matchesWorkspaceRoute(destination, {
         topTab: recommendation.target.topTab,
         subTab: recommendation.target.subTab,
       }),
   );
 
-  return (
-    nextWorkspaceRecommendation ??
-    getFallbackPostImportRecommendation(result, destination)
-  );
+  return nextRecommendation ?? getFallbackPostImportRecommendation(result, destination);
 }
 
 function buildPostImportBannerMessage(result: ImportCompletionResult): string {
-  const summaryParts = [];
-  if (result.newCount > 0) summaryParts.push(`${result.newCount} new`);
-  if (result.overwriteCount > 0)
-    summaryParts.push(`${result.overwriteCount} overwritten`);
-  if (result.mergeCount > 0) summaryParts.push(`${result.mergeCount} merged`);
-  if (result.keepExistingCount > 0)
-    summaryParts.push(`${result.keepExistingCount} kept`);
-
-  const breakdown =
-    summaryParts.length > 0 ? ` ${summaryParts.join(", ")}.` : "";
-  const failureNote = result.hadFailures
-    ? " Some items still need follow-up."
-    : "";
+  const failureNote = result.hadFailures ? " Some items still need follow-up." : "";
 
   return `Imported ${formatCount(
     result.totalImportedCount,
     "token",
-  )} from ${formatImportSource(result.sourceType)} into ${formatCount(
+  )} into ${formatCount(
     result.destinationSets.length,
     "set",
-  )}.${breakdown}${failureNote}`;
+  )}.${failureNote}`;
 }
 
 export function App() {
@@ -488,13 +471,19 @@ export function App() {
     setPostImportBanner(null);
   }, []);
   const handlePostImportBannerAction = useCallback(() => {
-    if (postImportBanner?.nextRecommendation?.target.kind !== "workspace") {
+    if (!postImportBanner?.nextRecommendation) {
       return;
     }
 
-    const targetSet = getMostRelevantImportDestinationSet(
-      postImportBanner.result,
-    );
+    if (postImportBanner.nextRecommendation.target.kind === "secondary-surface") {
+      setPostImportBanner(null);
+      openSecondarySurface(
+        postImportBanner.nextRecommendation.target.secondarySurfaceId,
+      );
+      return;
+    }
+
+    const targetSet = getMostRelevantImportDestinationSet(postImportBanner.result);
     if (targetSet) {
       setActiveSet(targetSet);
     }
@@ -509,7 +498,13 @@ export function App() {
       postImportBanner.nextRecommendation.target.subTab,
       { preserveHandoff: true },
     );
-  }, [beginHandoff, navigateTo, postImportBanner, setActiveSet]);
+  }, [
+    beginHandoff,
+    navigateTo,
+    openSecondarySurface,
+    postImportBanner,
+    setActiveSet,
+  ]);
   const {
     toasts: toastStack,
     dismiss: dismissStackToast,
@@ -2855,9 +2850,6 @@ export function App() {
                 >
                   <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
                     <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                      App menu
-                    </div>
-                    <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
                       {utilitiesStatusLabel}
                     </div>
                     {!connected && (
@@ -2936,10 +2928,6 @@ export function App() {
                         <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                           Settings
                         </div>
-                        <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          Open preferences, recovery tools, and connection
-                          controls.
-                        </div>
                       </div>
                       {shellMenuSurfaces.map((surface) => (
                         <button
@@ -2968,9 +2956,11 @@ export function App() {
                         <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                           {section.label}
                         </div>
-                        <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          {section.description}
-                        </div>
+                        {section.description && (
+                          <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                            {section.description}
+                          </div>
+                        )}
                       </div>
                       {section.actions.map((action) => (
                         <button
@@ -3030,7 +3020,7 @@ export function App() {
           layout="strip"
           size="sm"
           action={
-            postImportBanner.nextRecommendation?.target.kind === "workspace"
+            postImportBanner.nextRecommendation
               ? {
                   label: `Open ${postImportBanner.nextRecommendation.label}`,
                   onClick: handlePostImportBannerAction,
@@ -3577,8 +3567,8 @@ export function App() {
       {/* Unsaved editor changes guard */}
       {pendingNavAction && (
         <ConfirmModal
-          title="You have unsaved changes"
-          description="Your edits have not been saved and will be lost if you continue."
+          title="Unsaved changes"
+          description="Changes will be lost."
           confirmLabel="Discard changes"
           cancelLabel="Keep editing"
           danger
