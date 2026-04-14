@@ -1,4 +1,3 @@
-import { NoticePill } from "../../shared/noticeSystem";
 import type { ThemeRoleState } from "../themeManagerTypes";
 import { STATE_DESCRIPTIONS, STATE_LABELS } from "../themeManagerTypes";
 
@@ -28,20 +27,17 @@ export function ThemeSetRoleRow({
         isSaving ? "pointer-events-none opacity-50" : ""
       }`}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+      <div className="flex min-w-0 flex-1 items-center gap-1">
         <span
-          className="truncate text-[10px] font-medium text-[var(--color-figma-text)]"
+          className={`truncate text-[10px] font-medium ${isEmptyOverride ? "text-[var(--color-figma-warning)]" : "text-[var(--color-figma-text)]"}`}
           title={setName}
         >
           {setName}
         </span>
         {isEmptyOverride && (
-          <NoticePill
-            severity="warning"
-            title="No tokens in this override set"
-          >
-            empty
-          </NoticePill>
+          <span className="shrink-0 text-[9px] text-[var(--color-figma-warning)]">
+            0 tokens
+          </span>
         )}
       </div>
       <div className="flex shrink-0 items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">

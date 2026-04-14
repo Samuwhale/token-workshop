@@ -119,8 +119,8 @@ const THEME_ISSUE_KIND_WEIGHT: Record<ThemeIssueKind, number> = {
 
 const THEME_ISSUE_KIND_LABEL: Record<ThemeIssueKind, string> = {
   "stale-set": "deleted token sources",
-  "empty-override": "empty variant sets",
-  "missing-override": "missing variant coverage",
+  "empty-override": "empty override sets",
+  "missing-override": "missing override coverage",
   "coverage-gap": "coverage gaps",
 };
 
@@ -130,15 +130,15 @@ const THEME_ISSUE_GROUP_COPY: Record<
 > = {
   "stale-set": {
     title: "Deleted token sources",
-    description: "Variants reference deleted sets.",
+    description: "Options reference deleted sets.",
   },
   "empty-override": {
-    title: "Empty variant sets",
+    title: "Empty override sets",
     description: "Assigned override sets are empty.",
   },
   "missing-override": {
-    title: "Missing variant coverage",
-    description: "Shared tokens missing from variant layer.",
+    title: "Missing override coverage",
+    description: "Base tokens missing from override layer.",
   },
   "coverage-gap": {
     title: "Coverage gaps",
@@ -191,7 +191,7 @@ export function summarizeThemeIssueHealth(
   const description =
     `${totalCount} issue${totalCount === 1 ? "" : "s"} across ${formatThemeIssueKindList(
       issues.map((issue) => issue.kind),
-    )}. Review them before previewing this variant.`;
+    )}. Review them before previewing.`;
 
   return {
     totalCount,
@@ -291,10 +291,10 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: summary.emptyOverrideCount,
-      title: "Empty variant sets",
+      title: "Empty override sets",
       summary: `${summary.emptyOverrideCount} empty override set${summary.emptyOverrideCount === 1 ? "" : "s"}.`,
       recommendedNextAction:
-        "Add tokens or reassign to shared.",
+        "Add tokens or reassign to base.",
       actionLabel: "View set",
       preferredSetName: pickPreferredSetName(
         orderedSets,
@@ -316,11 +316,11 @@ export function collectThemeOptionIssues({
       dimensionName: dimension.name,
       optionName: option.name,
       count: missingOverrideCount,
-      title: "Missing variant coverage",
-      summary: `${missingOverrideCount} shared token${missingOverrideCount === 1 ? "" : "s"} missing from variant layer.`,
+      title: "Missing override coverage",
+      summary: `${missingOverrideCount} base token${missingOverrideCount === 1 ? "" : "s"} missing from override layer.`,
       recommendedNextAction:
         "Review missing tokens.",
-      actionLabel: "Return to variant",
+      actionLabel: "View tokens",
       preferredSetName: pickPreferredSetName(
         orderedSets,
         availableSets,
@@ -342,7 +342,7 @@ export function collectThemeOptionIssues({
       summary: `${uncoveredCount} unresolved value${uncoveredCount === 1 ? "" : "s"} in active stack.`,
       recommendedNextAction:
         "Fill or create missing tokens.",
-      actionLabel: "Return to variant",
+      actionLabel: "View tokens",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: [],
     });
@@ -418,11 +418,11 @@ export function summarizeThemeWorkflow(
           ? "unmapped"
           : (topIssue?.kind ?? "coverage-gap"),
         recommendedNextAction: summary.isUnmapped
-          ? "Assign a set so this variant can contribute tokens."
+          ? "Assign a set so this option can contribute tokens."
           : (topIssue?.recommendedNextAction ??
             "Resolve outstanding issues."),
         actionLabel: summary.isUnmapped
-          ? "Assign token sources"
+          ? "Assign sets"
           : (topIssue?.actionLabel ?? "View set"),
         preferredSetName: summary.isUnmapped
           ? pickPreferredSetName(availableSets, availableSets)

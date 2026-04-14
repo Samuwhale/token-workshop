@@ -359,8 +359,8 @@ export function useCommandPaletteCommands(): {
         ? [
             {
               id: "compare-theme-options",
-              label: "Compare mode variants…",
-              description: "Open a side-by-side diff across mode variants",
+              label: "Compare mode options…",
+              description: "Open a side-by-side diff across mode options",
               category: "Modes" as const,
               handler: () => {
                 themes.themeManagerHandleRef.current?.navigateToCompare(
@@ -487,7 +487,7 @@ export function useCommandPaletteCommands(): {
               id: "compare-across-themes",
               label: `Compare across modes: ${highlightedToken}`,
               description:
-                "See how this token’s value varies across all mode variants",
+                "See how this token’s value varies across all mode options",
               category: "Modes" as const,
               handler: () =>
                 tokens.handleOpenCrossThemeCompare(highlightedToken),
@@ -500,7 +500,7 @@ export function useCommandPaletteCommands(): {
               id: "compare-across-themes-pick",
               label: "Compare token across modes…",
               description:
-                "Focus a token first, then run this command to compare its values across mode variants",
+                "Focus a token first, then run this command to compare its values across mode options",
               category: "Modes" as const,
               handler: () => {
                 themes.themeManagerHandleRef.current?.navigateToCompare(

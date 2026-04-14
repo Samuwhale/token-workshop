@@ -134,7 +134,7 @@ function CreateOverrideSetModal({
       setNameError('Use only letters, numbers, dashes, underscores, or / for folders');
       return;
     }
-    if (!optionName) { setNameError('Select a mode variant'); return; }
+    if (!optionName) { setNameError('Select a mode option'); return; }
     setNameError('');
     await onExecute({ newName: trimmed, optionName, startEmpty });
   };

@@ -1995,7 +1995,7 @@ export function App() {
 
       if (themeWorkflowSummary.currentStage === "options") {
         return {
-          label: "Add variant",
+          label: "Add option",
           onClick: () => {
             guardEditorAction(() => {
               navigateTo("define", "themes");
@@ -2011,8 +2011,8 @@ export function App() {
           label:
             themeWorkflowSummary.nextSetRoleTarget?.actionLabel ??
             (themeWorkflowSummary.unmappedOptionCount > 0
-              ? "Assign set roles"
-              : "Fix set roles"),
+              ? "Assign sets"
+              : "Fix sets"),
           onClick: () => {
             guardEditorAction(() => {
               navigateTo("define", "themes");
@@ -2025,7 +2025,7 @@ export function App() {
 
       if (themeWorkflowSummary.currentStage === "preview") {
         return {
-          label: "Preview combination",
+          label: "Preview tokens",
           onClick: () => {
             guardEditorAction(() => {
               navigateTo("define", "themes");
@@ -2037,7 +2037,7 @@ export function App() {
       }
 
       return {
-        label: "Create axis",
+        label: "Create mode",
         onClick: () => {
           guardEditorAction(() => {
             navigateTo("define", "themes");

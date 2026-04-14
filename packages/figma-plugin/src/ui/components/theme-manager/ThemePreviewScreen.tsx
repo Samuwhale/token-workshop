@@ -58,7 +58,7 @@ export function ThemePreviewScreen({
           merged[path] = {
             value,
             set: setName,
-            layer: `${dimension.name} / Shared`,
+            layer: `${dimension.name} / Base`,
             type: types[path] ?? "",
           };
         }
@@ -73,7 +73,7 @@ export function ThemePreviewScreen({
           merged[path] = {
             value,
             set: setName,
-            layer: `${dimension.name} / Variant-specific`,
+            layer: `${dimension.name} / Override`,
             type: types[path] ?? merged[path]?.type ?? "",
           };
         }
@@ -182,31 +182,41 @@ export function ThemePreviewScreen({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              onClick={onBack}
-              aria-label="Back"
-              className="inline-flex shrink-0 items-center rounded border border-[var(--color-figma-border)] p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+          <button
+            onClick={onBack}
+            aria-label="Back"
+            className="inline-flex shrink-0 items-center rounded border border-[var(--color-figma-border)] p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]"
+          >
+            <svg
+              width="9"
+              height="9"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
             >
-              <svg
-                width="9"
-                height="9"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-            <div className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
-              {activeSelectionLabel || "No variant selected"}
-            </div>
-          </div>
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <input
+            ref={previewSearchRef}
+            type="text"
+            placeholder={activeSelectionLabel || "Search..."}
+            value={previewSearch}
+            onChange={(event) => setPreviewSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                if (previewSearch) setPreviewSearch("");
+                previewSearchRef.current?.blur();
+              }
+            }}
+            className="flex-1 min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+          />
           <button
             type="button"
             onClick={() => setGroupByPrefix((v) => !v)}
@@ -220,24 +230,6 @@ export function ThemePreviewScreen({
             Group
           </button>
         </div>
-      </div>
-
-      <div className="shrink-0 border-b border-[var(--color-figma-border)] px-3 py-2">
-        <input
-          ref={previewSearchRef}
-          type="text"
-          placeholder="Search..."
-          value={previewSearch}
-          onChange={(event) => setPreviewSearch(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              if (previewSearch) setPreviewSearch("");
-              previewSearchRef.current?.blur();
-            }
-          }}
-          className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
-        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

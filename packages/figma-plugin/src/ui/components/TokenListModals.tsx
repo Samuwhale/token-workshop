@@ -237,7 +237,7 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
           {hasThemeImpacts && (
             <div className="mt-2">
               <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Affected theme variants ({themeImpacts.length}):
+                Affected theme options ({themeImpacts.length}):
               </div>
               <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                 {themeImpacts.map((impact, i) => (
@@ -486,7 +486,7 @@ function DeleteImpactDetails({
         )}
         {themeCount > 0 && (
           <NoticePill severity="info" className="border-blue-500/30 bg-blue-500/10 text-blue-600">
-            {themeCount} mode variant{themeCount !== 1 ? 's' : ''}
+            {themeCount} mode option{themeCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
       </div>
@@ -552,7 +552,7 @@ function DeleteImpactDetails({
         <CollapsibleSection
           open={themesOpen}
           onToggle={() => setThemesOpen(v => !v)}
-          label={`Affected theme variants (${themeCount})`}
+          label={`Affected theme options (${themeCount})`}
         >
           <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {themeImpacts!.map((impact, i) => (

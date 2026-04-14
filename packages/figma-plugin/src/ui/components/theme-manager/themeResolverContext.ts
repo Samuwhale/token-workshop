@@ -201,7 +201,7 @@ export function buildThemeResolverAuthoringContext({
 
     if (!exactModifierName) {
       const issueMessages = [
-        `No resolver dimension matches "${dimension.name}".`,
+        `No output config mode matches "${dimension.name}".`,
       ];
       return {
         dimensionId: dimension.id,
@@ -237,17 +237,17 @@ export function buildThemeResolverAuthoringContext({
 
     if (selectedOptionName && !matchedContextName) {
       issueMessages.push(
-        `The active option "${selectedOptionName}" is not available as a resolver context.`,
+        `"${selectedOptionName}" is not available as an output config option.`,
       );
     }
     if (missingContexts.length > 0) {
       issueMessages.push(
-        `Missing resolver contexts: ${missingContexts.join(", ")}.`,
+        `Missing options: ${missingContexts.join(", ")}.`,
       );
     }
     if (extraContexts.length > 0) {
       issueMessages.push(
-        `Resolver-only contexts: ${extraContexts.join(", ")}.`,
+        `Config-only options: ${extraContexts.join(", ")}.`,
       );
     }
 

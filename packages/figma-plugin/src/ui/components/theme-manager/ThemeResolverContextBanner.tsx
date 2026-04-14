@@ -1,150 +1,79 @@
-import { NoticePill } from "../../shared/noticeSystem";
+import { useState } from "react";
 import type { ThemeResolverAuthoringContext } from "./themeResolverContext";
 
 interface ThemeResolverContextBannerProps {
   context: ThemeResolverAuthoringContext;
   actionLabel?: string;
-  description?: string;
-  title?: string;
   onAction?: () => void;
-}
-
-function getBannerDescription(context: ThemeResolverAuthoringContext): string {
-  if (context.issueCount === 0) {
-    if (context.autoSelected && context.resolverCount > 1) {
-      return "Auto-selected closest match.";
-    }
-    return "";
-  }
-
-  const reviewTargets: string[] = [];
-  if (context.issueAxisCount > 0) {
-    reviewTargets.push(
-      `${context.issueAxisCount} mode mismatch${context.issueAxisCount === 1 ? "" : "es"}`,
-    );
-  }
-  if (context.unmatchedModifierCount > 0) {
-    reviewTargets.push(
-      `${context.unmatchedModifierCount} resolver-only mode${context.unmatchedModifierCount === 1 ? "" : "s"}`,
-    );
-  }
-  const mappedAxes = `${context.matchedAxisCount}/${context.axes.length} modes aligned`;
-
-  return `${mappedAxes}. Review ${reviewTargets.join(" and ")} here before publishing.`;
-}
-
-function getAxisTone(status: "matched" | "warning" | "error"): string {
-  if (status === "error") {
-    return "border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/8";
-  }
-  if (status === "warning") {
-    return "border-amber-500/30 bg-amber-500/10";
-  }
-  return "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]";
 }
 
 export function ThemeResolverContextBanner({
   context,
   actionLabel,
-  description,
-  title = "Resolver",
   onAction,
 }: ThemeResolverContextBannerProps) {
-  const bannerDescription = description ?? getBannerDescription(context);
+  const [expanded, setExpanded] = useState(false);
+  const hasIssues = context.issueCount > 0;
 
   return (
-    <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/65 px-2.5 py-1.5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-              {title}
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${hasIssues ? "bg-amber-500" : "bg-[var(--color-figma-success,#18a058)]"}`}
+          />
+          <span className="truncate text-[10px] font-medium text-[var(--color-figma-text)]">
+            {context.resolverName}
+          </span>
+          {hasIssues ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="shrink-0 text-[9px] text-amber-600 hover:underline"
+            >
+              {context.matchedAxisCount}/{context.axes.length} aligned
+            </button>
+          ) : (
+            <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
+              Aligned
             </span>
-            <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-              {context.resolverName}
-            </span>
-            {context.issueCount > 0 ? (
-              <NoticePill severity="warning">
-                {context.issueCount} issue{context.issueCount === 1 ? "" : "s"}
-              </NoticePill>
-            ) : (
-              <NoticePill severity="success">Aligned</NoticePill>
-            )}
-            {context.autoSelected && (
-              <NoticePill severity="info">Closest match</NoticePill>
-            )}
-          </div>
-          {(context.resolverDescription || bannerDescription) && (
-            <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              {context.resolverDescription && bannerDescription
-                ? `${context.resolverDescription}. ${bannerDescription}`
-                : context.resolverDescription || bannerDescription}
-            </p>
           )}
         </div>
         {onAction && actionLabel ? (
           <button
             type="button"
             onClick={onAction}
-            className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             {actionLabel}
           </button>
         ) : null}
       </div>
 
-      <div className="mt-2 grid gap-1">
-        {context.axes.map((axis) => (
-          <div
-            key={axis.dimensionId}
-            className={`rounded border px-2 py-1 ${getAxisTone(axis.status)}`}
-          >
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+      {expanded && hasIssues && (
+        <div className="flex flex-col gap-0.5 pl-3">
+          {context.axes.map((axis) => (
+            <div key={axis.dimensionId} className="flex items-center gap-1.5 text-[9px]">
+              <span
+                className={`h-1 w-1 shrink-0 rounded-full ${
+                  axis.status === "matched"
+                    ? "bg-[var(--color-figma-success,#18a058)]"
+                    : axis.status === "warning"
+                      ? "bg-amber-500"
+                      : "bg-[var(--color-figma-error)]"
+                }`}
+              />
+              <span className="text-[var(--color-figma-text-secondary)]">
                 {axis.dimensionName}
+                {axis.modifierLabel ? ` \u2192 ${axis.modifierLabel}` : " — no match"}
               </span>
-              {axis.modifierLabel ? (
-                <NoticePill
-                  severity={
-                    axis.status === "matched"
-                      ? "info"
-                      : axis.status === "warning"
-                        ? "warning"
-                        : "error"
-                  }
-                >
-                  {axis.modifierLabel}
-                </NoticePill>
-              ) : (
-                <NoticePill severity="error">Missing resolver dimension</NoticePill>
-              )}
             </div>
-            <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              {axis.matchedContextName
-                ? `Active option "${axis.selectedOptionName}" maps to resolver context "${axis.matchedContextName}".`
-                : axis.selectedOptionName
-                  ? `Active option "${axis.selectedOptionName}" does not map to this resolver yet.`
-                  : "Select an option to confirm the resolver mapping."}
-            </p>
-            {axis.issueMessages.length > 0 && (
-              <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                {axis.issueMessages.join(" ")}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {context.unmatchedModifiers.length > 0 && (
-        <div className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
-          <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Resolver-only dimensions
-          </p>
-          <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-            {context.unmatchedModifiers
-              .map((modifier) => modifier.modifierLabel)
-              .join(", ")}
-          </p>
+          ))}
+          {context.unmatchedModifiers.length > 0 && (
+            <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+              Config-only: {context.unmatchedModifiers.map((m) => m.modifierLabel).join(", ")}
+            </div>
+          )}
         </div>
       )}
     </div>

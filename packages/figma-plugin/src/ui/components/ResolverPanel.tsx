@@ -1,12 +1,12 @@
 /**
- * ResolverPanel — UI for managing DTCG v2025.10 resolver configs.
+ * ResolverPanel — UI for managing DTCG v2025.10 output configs.
  *
- * Shows a list of resolvers, lets users create/delete them, migrate
- * from themes, select dimension options, and preview resolved tokens.
+ * Shows a list of configs, lets users create/delete them, migrate
+ * from modes, select options, and preview resolved tokens.
  *
  * `ResolverContent` is the embeddable version (no outer header) used
  * inside ThemeManager's advanced mode. `ResolverPanel` adds a standalone
- * header and is kept for backward compatibility.
+ * header.
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -40,29 +40,20 @@ export interface ResolverContentProps {
   deleteResolver: (name: string) => Promise<void>;
   getResolverFile?: (name: string) => Promise<ResolverFile>;
   updateResolver?: (name: string, file: ResolverFile) => Promise<void>;
-  /** Called with a success message after a mutation completes (e.g. resolver save). */
   onSuccess?: (msg: string) => void;
 }
 
-/**
- * Embeddable resolver UI — no standalone header.
- * Used inside ThemeManager advanced mode.
- */
 export function ResolverContent(props: ResolverContentProps) {
   return <ResolverInner {...props} showHeader={false} />;
 }
 
-/**
- * Standalone resolver panel with full header chrome.
- */
 export function ResolverPanel(props: ResolverContentProps) {
   return <ResolverInner {...props} showHeader />;
 }
 
-// Edit form state for a single resolver
 interface EditFormState {
   description: string;
-  modifiers: Record<string, { description: string; defaultContext: string }>;
+  modifiers: Record<string, { defaultContext: string }>;
 }
 
 function ResolverInner({
@@ -93,17 +84,7 @@ function ResolverInner({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const [creatingFromTemplate, setCreatingFromTemplate] = useState(false);
-  const [templateName, setTemplateName] = useState('');
-  const [templateError, setTemplateError] = useState<string | null>(null);
-  const [templateStep, setTemplateStep] = useState<'name' | 'confirm'>('name');
-  const [templateAssignments, setTemplateAssignments] = useState<{
-    foundation: string;
-    light: string;
-    dark: string;
-  }>({ foundation: '', light: '', dark: '' });
 
-  // Edit mode state
   const [editingResolver, setEditingResolver] = useState<string | null>(null);
   const [editFile, setEditFile] = useState<ResolverFile | null>(null);
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
@@ -116,7 +97,7 @@ function ResolverInner({
     setMigrateError(null);
     try {
       await convertFromThemes();
-      onSuccess?.('Migrated themes to resolver format');
+      onSuccess?.('Converted modes to output config');
     } catch (err) {
       setMigrateError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -149,81 +130,16 @@ function ResolverInner({
       setNewName('');
       setCreating(false);
       fetchResolvers();
-      onSuccess?.(`Created resolver "${created}"`);
+      onSuccess?.(`Created output config "${created}"`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : String(err));
     }
   }, [newName, sets, serverUrl, fetchResolvers, onSuccess]);
 
-  const handleTemplateNameNext = useCallback(() => {
-    if (!templateName.trim()) return;
-    const lightSet = sets.find(s => s.toLowerCase().includes('light')) ?? '';
-    const darkSet = sets.find(s => s.toLowerCase().includes('dark')) ?? '';
-    const foundationSet = sets.find(s =>
-      s.toLowerCase().includes('foundation') || s.toLowerCase().includes('base') || s.toLowerCase().includes('global')
-    ) ?? sets[0] ?? '';
-    setTemplateAssignments({ foundation: foundationSet, light: lightSet, dark: darkSet });
-    setTemplateStep('confirm');
-    setTemplateError(null);
-  }, [templateName, sets]);
-
-  const handleCreateFromTemplate = useCallback(async () => {
-    setTemplateError(null);
-    try {
-      const { foundation: foundationSet, light: lightSet, dark: darkSet } = templateAssignments;
-      const body = {
-        name: templateName.trim(),
-        version: '2025.10' as const,
-        description: 'Light / dark mode',
-        sets: {
-          foundation: {
-            description: 'Base tokens',
-            sources: foundationSet ? [{ $ref: `${foundationSet}.tokens.json` }] : [],
-          },
-          light: {
-            description: 'Light overrides',
-            sources: lightSet ? [{ $ref: `${lightSet}.tokens.json` }] : [],
-          },
-          dark: {
-            description: 'Dark overrides',
-            sources: darkSet ? [{ $ref: `${darkSet}.tokens.json` }] : [],
-          },
-        },
-        modifiers: {
-          mode: {
-            description: 'Color scheme',
-            contexts: {
-              light: [{ $ref: '#/sets/light' }],
-              dark: [{ $ref: '#/sets/dark' }],
-            },
-            default: 'light',
-          },
-        },
-        resolutionOrder: [
-          { $ref: '#/sets/foundation' },
-          { $ref: '#/modifiers/mode' },
-        ],
-      };
-      await apiFetch(`${serverUrl}/api/resolvers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const created = templateName.trim();
-      setTemplateName('');
-      setTemplateStep('name');
-      setCreatingFromTemplate(false);
-      fetchResolvers();
-      onSuccess?.(`Created resolver "${created}"`);
-    } catch (err) {
-      setTemplateError(err instanceof Error ? err.message : String(err));
-    }
-  }, [templateName, templateAssignments, serverUrl, fetchResolvers, onSuccess]);
-
   const handleDelete = useCallback(async (name: string) => {
     await deleteResolver(name);
     setConfirmDelete(null);
-    onSuccess?.(`Deleted resolver "${name}"`);
+    onSuccess?.(`Deleted output config "${name}"`);
   }, [deleteResolver, onSuccess]);
 
   const handleModifierChange = useCallback((modName: string, context: string) => {
@@ -240,13 +156,11 @@ function ResolverInner({
     try {
       const file = await getResolverFile(name);
       setEditFile(file);
-      // Build form state from file
       const modifiers: EditFormState['modifiers'] = {};
       if (file.modifiers) {
         for (const [modName, mod] of Object.entries(file.modifiers)) {
           const contexts = Object.keys(mod.contexts);
           modifiers[modName] = {
-            description: mod.description ?? '',
             defaultContext: mod.default ?? contexts[0] ?? '',
           };
         }
@@ -267,17 +181,11 @@ function ResolverInner({
     setEditSaving(true);
     setEditError(null);
     try {
-      // Apply form values onto the full file
       const updatedModifiers: ResolverFile['modifiers'] = editFile.modifiers
         ? Object.fromEntries(
             Object.entries(editFile.modifiers).map(([modName, mod]) => {
               const formMod = editForm.modifiers[modName];
               const updatedMod = { ...mod };
-              if (formMod?.description) {
-                updatedMod.description = formMod.description;
-              } else {
-                delete updatedMod.description;
-              }
               if (formMod?.defaultContext) {
                 updatedMod.default = formMod.defaultContext;
               }
@@ -291,7 +199,7 @@ function ResolverInner({
         modifiers: updatedModifiers,
       };
       await updateResolver(editingResolver, updatedFile);
-      onSuccess?.(`Saved resolver "${editingResolver}"`);
+      onSuccess?.(`Saved output config "${editingResolver}"`);
       setEditingResolver(null);
       setEditFile(null);
       setEditForm(null);
@@ -313,11 +221,9 @@ function ResolverInner({
 
   const { allTokensFlat } = useTokenFlatMapContext();
 
-  /** Up to 8 sample tokens from the resolved output for live preview. Colors first. */
   const previewEntries = useMemo(() => {
     if (!resolvedTokens) return [];
     const all = Object.entries(resolvedTokens);
-    // Sort: color tokens first, then others with a known type, then unknown
     const sorted = [...all].sort(([, a], [, b]) => {
       const rank = (t: string) => t === 'color' ? 0 : t === 'unknown' ? 2 : 1;
       return rank(a.$type) - rank(b.$type);
@@ -325,7 +231,6 @@ function ResolverInner({
     return sorted.slice(0, 8).map(([path, entry]) => {
       const rawEntry = allTokensFlat[path];
       const rawValue = rawEntry?.$value;
-      // Detect if the resolved value differs from the raw value in allTokensFlat
       const rawStr = rawValue !== undefined ? formatTokenValueForDisplay(rawEntry.$type, rawValue) : null;
       const resolvedStr = formatTokenValueForDisplay(entry.$type, entry.$value);
       const differs = rawStr !== null && rawStr !== resolvedStr;
@@ -339,24 +244,14 @@ function ResolverInner({
       <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)]">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-            Resolvers
+            Output configs
           </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleMigrate}
-              disabled={migrating || !connected}
-              className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 transition-colors"
-              title="Convert existing $themes.json to a resolver"
-            >
-              {migrating ? 'Converting…' : 'From Themes'}
-            </button>
-            <button
-              onClick={() => setCreating(true)}
-              className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
-            >
-              + New
-            </button>
-          </div>
+          <button
+            onClick={() => setCreating(true)}
+            className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+          >
+            + New
+          </button>
         </div>
       </div>
 
@@ -369,7 +264,7 @@ function ResolverInner({
               value={newName}
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setCreating(false); }}
-              placeholder="Resolver name…"
+              placeholder="Config name…"
               autoFocus
               className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
@@ -380,121 +275,38 @@ function ResolverInner({
         </div>
       )}
 
-      {/* Template creation form */}
-      {creatingFromTemplate && (
-        <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5 flex items-center gap-1.5">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-            </svg>
-            <span className="font-medium text-[var(--color-figma-text)]">Light / Dark preset</span>
-            <span className="ml-auto text-[var(--color-figma-text-tertiary)]">
-              {templateStep === 'name' ? 'foundation + mode modifier' : 'confirm set assignments'}
-            </span>
-          </div>
-
-          {templateStep === 'name' ? (
-            <div className="flex items-center gap-1">
-              <input
-                type="text"
-                value={templateName}
-                onChange={e => setTemplateName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleTemplateNameNext(); if (e.key === 'Escape') { setCreatingFromTemplate(false); setTemplateError(null); setTemplateStep('name'); } }}
-                placeholder="Resolver name…"
-                autoFocus
-                className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-              />
-              <button onClick={handleTemplateNameNext} disabled={!templateName.trim()} className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white disabled:opacity-50">Next →</button>
-              <button onClick={() => { setCreatingFromTemplate(false); setTemplateError(null); setTemplateStep('name'); }} className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)]">Cancel</button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {(['foundation', 'light', 'dark'] as const).map(role => (
-                <div key={role} className="flex items-center gap-2">
-                  <span className="w-[64px] shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] capitalize">{role}</span>
-                  <select
-                    value={templateAssignments[role]}
-                    onChange={e => setTemplateAssignments(prev => ({ ...prev, [role]: e.target.value }))}
-                    className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-                  >
-                    <option value="">(none)</option>
-                    {sets.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                  {templateAssignments[role] && (
-                    <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]" title="Auto-detected">
-                      {sets.some(s => s === templateAssignments[role] &&
-                        (role === 'light' ? s.toLowerCase().includes('light') :
-                         role === 'dark' ? s.toLowerCase().includes('dark') :
-                         s.toLowerCase().includes('foundation') || s.toLowerCase().includes('base') || s.toLowerCase().includes('global')))
-                        ? 'detected' : ''}
-                    </span>
-                  )}
-                </div>
-              ))}
-              <div className="flex items-center gap-1 mt-0.5">
-                <button onClick={handleCreateFromTemplate} className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white">Create</button>
-                <button onClick={() => setTemplateStep('name')} className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)]">← Back</button>
-                <button onClick={() => { setCreatingFromTemplate(false); setTemplateError(null); setTemplateStep('name'); }} className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)]">Cancel</button>
-              </div>
-            </div>
-          )}
-
-          {templateError && <div className="mt-1 text-[10px] text-red-500">{templateError}</div>}
-        </div>
-      )}
-
-      {/* Resolver list */}
+      {/* List */}
       <div className="flex-1 overflow-y-auto">
-        {resolversLoading && resolvers.length === 0 && !creating && !creatingFromTemplate && (
+        {resolversLoading && resolvers.length === 0 && !creating && (
           <div className="flex flex-col h-full items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
             <Spinner size="md" />
-            <span className="text-[11px]">Loading resolvers…</span>
+            <span className="text-[11px]">Loading output configs…</span>
           </div>
         )}
-        {!resolversLoading && resolvers.length === 0 && Object.keys(resolverLoadErrors).length === 0 && !creating && !creatingFromTemplate && (
+
+        {/* Empty state */}
+        {!resolversLoading && resolvers.length === 0 && Object.keys(resolverLoadErrors).length === 0 && !creating && (
           <div className="flex flex-col items-center justify-center h-full px-3 py-3 text-center gap-3">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
-              <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
-            </svg>
-
-            <p className="text-[11px] font-medium text-[var(--color-figma-text)]">No resolvers yet</p>
-
+            <p className="text-[11px] font-medium text-[var(--color-figma-text)]">No output configs</p>
             <div className="flex flex-col gap-1.5 w-full max-w-[240px]">
+              <button
+                onClick={() => setCreating(true)}
+                className="flex items-center justify-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+              >
+                Create output config
+              </button>
               <button
                 onClick={handleMigrate}
                 disabled={migrating || !connected}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] disabled:opacity-40 transition-colors"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <path d="M3 9h18M9 21V9" />
-                </svg>
-                <span className="text-[11px] font-medium">Convert from modes</span>
-              </button>
-              <button
-                onClick={() => setCreating(true)}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0">
-                  <path d="M6 1v10M1 6h10" />
-                </svg>
-                <span className="text-[11px] font-medium">Create from scratch</span>
-              </button>
-              <button
-                onClick={() => { setCreatingFromTemplate(true); setTemplateError(null); setTemplateStep('name'); }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] border-dashed text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                  <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                </svg>
-                <span className="text-[11px] font-medium">Light / dark preset</span>
+                {migrating ? 'Converting…' : 'or convert from existing modes'}
               </button>
             </div>
           </div>
         )}
 
+        {/* Load errors */}
         {Object.entries(resolverLoadErrors).map(([name, err]) => (
           <div
             key={`err:${name}`}
@@ -510,12 +322,13 @@ function ResolverInner({
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{name}</div>
                 <div className="text-[10px] text-amber-600 mt-0.5 leading-snug">{err.message}</div>
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">Failed to load — fix the file to use this resolver</div>
+                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">Failed to load — fix the file to use this output config</div>
               </div>
             </div>
           </div>
         ))}
 
+        {/* Resolver rows */}
         {resolvers.map(resolver => {
           const isActive = activeResolver === resolver.name;
           const modNames = Object.keys(resolver.modifiers);
@@ -527,7 +340,6 @@ function ResolverInner({
                 isActive ? 'bg-[var(--color-figma-bg-secondary)]' : ''
               }`}
             >
-              {/* Resolver row */}
               <div
                 className="group flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 onClick={() => setActiveResolver(isActive ? null : resolver.name)}
@@ -549,17 +361,12 @@ function ResolverInner({
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  {modNames.length > 0 && (
-                    <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]">
-                      {modNames.length} modifier{modNames.length !== 1 ? 's' : ''}
-                    </span>
-                  )}
                   {getResolverFile && updateResolver && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEditClick(resolver.name); }}
                       className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-all"
-                      title="Edit resolver"
-                      aria-label="Edit resolver"
+                      title="Edit output config"
+                      aria-label="Edit output config"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -570,8 +377,8 @@ function ResolverInner({
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmDelete(resolver.name); }}
                     className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-0.5 rounded hover:bg-red-100 text-[var(--color-figma-text-tertiary)] hover:text-red-500 transition-all"
-                    title="Delete resolver"
-                    aria-label="Delete resolver"
+                    title="Delete output config"
+                    aria-label="Delete output config"
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 6L6 18M6 6l12 12" />
@@ -580,14 +387,13 @@ function ResolverInner({
                 </div>
               </div>
 
-              {/* Edit mode form */}
+              {/* Edit form */}
               {editingResolver === resolver.name && (
                 <div className="px-3 pb-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                   {editLoading ? (
                     <div className="py-3 text-[10px] text-[var(--color-figma-text-tertiary)] animate-pulse">Loading…</div>
                   ) : editForm ? (
                     <div className="flex flex-col gap-2 pt-2">
-                      {/* Description */}
                       <div className="flex flex-col gap-0.5">
                         <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Description</label>
                         <input
@@ -599,52 +405,35 @@ function ResolverInner({
                         />
                       </div>
 
-                      {/* Modifiers */}
                       {Object.keys(editForm.modifiers).length > 0 && (
                         <div className="flex flex-col gap-1.5">
-                          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Modifiers</div>
                           {Object.entries(editForm.modifiers).map(([modName, modEdit]) => {
                             const resolverMeta = resolvers.find(r => r.name === resolver.name);
                             const contexts = resolverMeta?.modifiers[modName]?.contexts ?? [];
+                            if (contexts.length === 0) return null;
                             return (
-                              <div key={modName} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 flex flex-col gap-1.5">
-                                <div className="text-[10px] font-medium text-[var(--color-figma-text)] capitalize">{modName}</div>
-                                <div className="flex flex-col gap-0.5">
-                                  <label className="text-[9px] text-[var(--color-figma-text-tertiary)]">Description</label>
-                                  <input
-                                    type="text"
-                                    value={modEdit.description}
-                                    onChange={e => setEditForm({
-                                      ...editForm,
-                                      modifiers: { ...editForm.modifiers, [modName]: { ...modEdit, description: e.target.value } },
-                                    })}
-                                    placeholder="Optional modifier description…"
-                                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-                                  />
+                              <div key={modName} className="flex items-center gap-2">
+                                <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 truncate capitalize" title={modName}>
+                                  {modName}
+                                </label>
+                                <div className="flex-1 flex gap-0.5 flex-wrap">
+                                  {contexts.map(ctx => (
+                                    <button
+                                      key={ctx}
+                                      onClick={() => setEditForm({
+                                        ...editForm,
+                                        modifiers: { ...editForm.modifiers, [modName]: { defaultContext: ctx } },
+                                      })}
+                                      className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                                        modEdit.defaultContext === ctx
+                                          ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                                          : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                                      }`}
+                                    >
+                                      {ctx}
+                                    </button>
+                                  ))}
                                 </div>
-                                {contexts.length > 0 && (
-                                  <div className="flex flex-col gap-0.5">
-                                    <label className="text-[9px] text-[var(--color-figma-text-tertiary)]">Default option</label>
-                                    <div className="flex flex-wrap gap-0.5">
-                                      {contexts.map(ctx => (
-                                        <button
-                                          key={ctx}
-                                          onClick={() => setEditForm({
-                                            ...editForm,
-                                            modifiers: { ...editForm.modifiers, [modName]: { ...modEdit, defaultContext: ctx } },
-                                          })}
-                                          className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
-                                            modEdit.defaultContext === ctx
-                                              ? 'bg-[var(--color-figma-accent)] text-white font-medium'
-                                              : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                                          }`}
-                                        >
-                                          {ctx}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
@@ -653,7 +442,6 @@ function ResolverInner({
 
                       {editError && <div className="text-[10px] text-red-500">{editError}</div>}
 
-                      {/* Actions */}
                       <div className="flex items-center gap-1 justify-end pt-0.5">
                         <button
                           onClick={handleEditCancel}
@@ -676,21 +464,17 @@ function ResolverInner({
                 </div>
               )}
 
-              {/* Expanded: modifier controls + preview */}
+              {/* Expanded: mode controls + preview */}
               {isActive && editingResolver !== resolver.name && (
                 <div className="px-3 pb-2">
-                  {/* Modifier selectors */}
                   {modNames.length > 0 ? (
                     <div className="flex flex-col gap-1.5 mb-2">
-                      <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                        Modifier Inputs
-                      </div>
                       {modNames.map(modName => {
                         const mod = resolver.modifiers[modName];
                         const selected = resolverInput[modName] ?? mod.default ?? mod.contexts[0];
                         return (
                           <div key={modName} className="flex items-center gap-2">
-                            <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-20 truncate capitalize" title={mod.description || modName}>
+                            <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 truncate capitalize" title={mod.description || modName}>
                               {modName}
                             </label>
                             <div className="flex-1 flex gap-0.5 flex-wrap">
@@ -714,7 +498,7 @@ function ResolverInner({
                     </div>
                   ) : (
                     <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-2">
-                      No modifiers defined — only base sets will be merged.
+                      No modes defined — only base sets will be merged.
                     </div>
                   )}
 
@@ -729,19 +513,14 @@ function ResolverInner({
                         {resolverError}
                       </InlineBanner>
                     ) : resolvedTokens ? (
-                      <InlineBanner variant="success" className="border-0 bg-transparent px-0 py-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                            <span className="font-medium text-[var(--color-figma-text)]">{resolvedCount}</span> tokens resolved
-                          </div>
-                          <div className="text-[9px] text-[var(--color-figma-success,#18a058)] flex items-center gap-1">
-                            Active
-                          </div>
-                        </div>
-                      </InlineBanner>
+                      <div className="flex items-center justify-between gap-2 text-[10px]">
+                        <span className="text-[var(--color-figma-text-secondary)]">
+                          <span className="font-medium text-[var(--color-figma-text)]">{resolvedCount}</span> tokens resolved
+                        </span>
+                      </div>
                     ) : (
                       <InlineBanner variant="info" className="border-0 bg-transparent px-0 py-0 text-[10px]">
-                        Select dimension options to resolve tokens
+                        Select mode options to resolve tokens
                       </InlineBanner>
                     )}
                   </div>
@@ -756,7 +535,6 @@ function ResolverInner({
                           const parentPath = path.includes('.') ? path.slice(0, path.lastIndexOf('.')) : '';
                           return (
                             <div key={path} className="flex items-center gap-1.5 px-2 py-1 bg-[var(--color-figma-bg)] min-w-0">
-                              {/* Color swatch */}
                               {isColor ? (
                                 <div
                                   className="shrink-0 w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)]"
@@ -769,14 +547,12 @@ function ResolverInner({
                                   </span>
                                 </div>
                               )}
-                              {/* Path */}
                               <div className="flex-1 min-w-0">
                                 {parentPath && (
                                   <span className="text-[8px] text-[var(--color-figma-text-tertiary)] truncate block leading-none mb-0.5">{parentPath}</span>
                                 )}
                                 <span className="text-[10px] text-[var(--color-figma-text)] font-medium truncate block leading-none">{leafName}</span>
                               </div>
-                              {/* Value */}
                               <div className="shrink-0 text-right">
                                 {rawStr && (
                                   <div className="text-[9px] text-[var(--color-figma-text-tertiary)] line-through leading-none mb-0.5 max-w-[80px] truncate">{rawStr}</div>
@@ -794,7 +570,6 @@ function ResolverInner({
                       )}
                     </div>
                   )}
-
                 </div>
               )}
             </div>
@@ -802,17 +577,17 @@ function ResolverInner({
         })}
       </div>
 
-      {/* Resolver error banner */}
+      {/* Error banner */}
       {resolverError && !activeResolver && (
         <InlineBanner variant="error" layout="strip" size="sm" className="border-t border-b-0">
           {resolverError}
         </InlineBanner>
       )}
 
-      {/* Delete confirmation modal */}
+      {/* Delete confirmation */}
       {confirmDelete && (
         <ConfirmModal
-          title="Delete Resolver"
+          title="Delete output config"
           description={`Delete "${confirmDelete}"? The .resolver.json file will be removed.`}
           confirmLabel="Delete"
           danger

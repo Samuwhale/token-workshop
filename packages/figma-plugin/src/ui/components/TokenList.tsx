@@ -2666,7 +2666,7 @@ export function TokenList({
         );
       if (thmImpacts)
         parts.push(
-          `affect ${thmImpacts.length} mode variant${thmImpacts.length !== 1 ? "s" : ""}`,
+          `affect ${thmImpacts.length} mode option${thmImpacts.length !== 1 ? "s" : ""}`,
         );
       return {
         title: `Delete "${name}"?`,
@@ -2696,7 +2696,7 @@ export function TokenList({
         );
       if (thmImpacts)
         parts.push(
-          `affect ${thmImpacts.length} mode variant${thmImpacts.length !== 1 ? "s" : ""}`,
+          `affect ${thmImpacts.length} mode option${thmImpacts.length !== 1 ? "s" : ""}`,
         );
       return {
         title: `Delete group "${deleteConfirm.name}"?`,
@@ -2720,7 +2720,7 @@ export function TokenList({
       );
     if (thmImpacts)
       parts.push(
-        `affect ${thmImpacts.length} mode variant${thmImpacts.length !== 1 ? "s" : ""}`,
+        `affect ${thmImpacts.length} mode option${thmImpacts.length !== 1 ? "s" : ""}`,
       );
     return {
       title: `Delete ${paths.length} token${paths.length !== 1 ? "s" : ""}?`,

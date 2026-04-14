@@ -38,10 +38,6 @@ export function ThemeIssueEntryCard({
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${accentClass}`}
       />
       <div className="min-w-0 flex-1">
-        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-          {issue.dimensionName} / {issue.optionName}
-        </span>
-        <span className="mx-1 text-[10px] text-[var(--color-figma-text-tertiary)]">·</span>
         <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
           {issue.summary}
         </span>

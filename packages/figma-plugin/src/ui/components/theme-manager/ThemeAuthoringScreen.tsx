@@ -464,26 +464,36 @@ export const ThemeAuthoringScreen = forwardRef<
     <>
       <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
-          <div className="flex flex-col items-center justify-center gap-2 px-3 py-2 text-center">
-            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              Create a theme family
-            </p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {(["Color Mode", "Brand", "Density"] as const).map((name) => (
+          <div className="flex flex-col gap-3 px-3 py-3">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">1. Create a mode</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(["Color Mode", "Brand", "Density"] as const).map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => openCreateDim(name)}
+                    className="rounded-full border border-[var(--color-figma-border)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                  >
+                    {name}
+                  </button>
+                ))}
                 <button
-                  key={name}
-                  onClick={() => openCreateDim(name)}
-                  className="rounded-full border border-[var(--color-figma-border)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                  onClick={() => openCreateDim()}
+                  className="rounded-full border border-dashed border-[var(--color-figma-border)] px-2.5 py-0.5 text-[11px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text-secondary)]"
                 >
-                  {name}
+                  Custom
                 </button>
-              ))}
-              <button
-                onClick={() => openCreateDim()}
-                className="rounded-full border border-dashed border-[var(--color-figma-border)] px-2.5 py-0.5 text-[11px] text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text-secondary)]"
-              >
-                Custom
-              </button>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2 opacity-35">
+              <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">2. Add options</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">e.g. Light, Dark</span>
+            </div>
+            <div className="flex items-baseline gap-2 opacity-35">
+              <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">3. Assign token sets</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">base and override</span>
             </div>
           </div>
         ) : (

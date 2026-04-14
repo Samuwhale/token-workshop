@@ -136,7 +136,7 @@ export function ThemeOptionRail({
               }))
             }
             className="shrink-0 px-1.5 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-            title="Add variant"
+            title="Add option"
           >
             +
           </button>
@@ -148,8 +148,8 @@ export function ThemeOptionRail({
               ref={variantMenu.triggerRef}
               onClick={variantMenu.toggle}
               className="rounded p-1 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
-              title="Variant actions"
-              aria-label="Variant actions"
+              title="Option actions"
+              aria-label="Option actions"
               aria-expanded={variantMenu.open}
               aria-haspopup="menu"
             >
@@ -188,7 +188,7 @@ export function ThemeOptionRail({
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     {copySourceOptions.map((src) => (
                       <button key={src} role="menuitem" onClick={() => { variantMenu.close(); onHandleCopyAssignmentsFrom(src); }} className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
-                        Copy setup from {src}
+                        Copy from {src}
                       </button>
                     ))}
                   </>

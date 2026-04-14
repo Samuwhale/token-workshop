@@ -413,8 +413,8 @@ export function GraphPanel({
           variant="empty"
           size="section"
           className="w-full max-w-[320px]"
-          title="No recipes yet"
-          description="Create a recipe to generate tokens from a source."
+          title="No recipes"
+          description="Create one to get started."
         />
         <button
           type="button"
@@ -422,7 +422,7 @@ export function GraphPanel({
           disabled={!connected}
           className="mt-2 rounded-md bg-[var(--color-figma-accent)] px-3 py-1 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Create your first recipe
+          New recipe
         </button>
         {!connected && (
           <p className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -485,13 +485,28 @@ export function GraphPanel({
             )}
           </div>
 
+          {/* Type filter dropdown */}
+          {presentTypes.length > 1 && (
+            <select
+              value={typeFilter ?? ""}
+              onChange={(e) => setTypeFilter((e.target.value || null) as RecipeType | null)}
+              className="shrink-0 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+              aria-label="Filter by type"
+            >
+              <option value="">All types</option>
+              {presentTypes.map((type) => (
+                <option key={type} value={type}>{getRecipeTypeLabel(type)}</option>
+              ))}
+            </select>
+          )}
+
           <button
             type="button"
             onClick={() => setShowCreateDialog(true)}
             disabled={!connected}
-            className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Add recipe
+            New
           </button>
 
           <div className="relative shrink-0">
@@ -602,52 +617,27 @@ export function GraphPanel({
                 >
                   Run all recipes
                 </button>
-                <div className="my-1 border-t border-[var(--color-figma-border)]" role="separator" />
-                <button
-                  role="menuitem"
-                  onClick={() =>
-                    runMenuAction(() => {
-                      exportGraphAsSVG(setRecipes, activeSet);
-                    })
-                  }
-                  className="w-full px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                >
-                  Export as SVG
-                </button>
+                {viewMode === "graph" && (
+                  <>
+                    <div className="my-1 border-t border-[var(--color-figma-border)]" role="separator" />
+                    <button
+                      role="menuitem"
+                      onClick={() =>
+                        runMenuAction(() => {
+                          exportGraphAsSVG(setRecipes, activeSet);
+                        })
+                      }
+                      className="w-full px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      Export as SVG
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {presentTypes.length > 1 && (
-          <div className="mt-2 flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setTypeFilter(null)}
-              className={`rounded-full border px-2 py-0.5 text-[10px] transition-colors ${
-                typeFilter === null
-                  ? "border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                  : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
-              }`}
-            >
-              All
-            </button>
-            {presentTypes.map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setTypeFilter(typeFilter === type ? null : type)}
-                className={`rounded-full border px-2 py-0.5 text-[10px] transition-colors ${
-                  typeFilter === type
-                    ? "border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                    : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                {getRecipeTypeLabel(type)}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {viewMode === "graph" ? (

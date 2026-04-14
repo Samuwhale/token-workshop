@@ -13,15 +13,15 @@ export type ThemeRoleState = 'disabled' | 'source' | 'enabled';
 export const THEME_ROLE_STATES: ThemeRoleState[] = ['disabled', 'source', 'enabled'];
 
 export const STATE_LABELS: Record<ThemeRoleState, string> = {
-  disabled: 'Excluded',
+  disabled: 'Off',
   source: 'Base',
   enabled: 'Override',
 };
 
 export const STATE_DESCRIPTIONS: Record<ThemeRoleState, string> = {
-  disabled: 'Not used in this variant',
-  source: 'Default values, overridden by Override sets',
-  enabled: 'Highest priority, overrides Base values',
+  disabled: 'Not used',
+  source: 'Default token values',
+  enabled: 'Overrides base values',
 };
 
 export type AutoFillPendingItem = { path: string; $value: unknown; $type?: string };

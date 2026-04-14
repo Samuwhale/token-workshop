@@ -63,7 +63,37 @@ export interface TokenRecipeDialogProps {
 }
 
 // ---------------------------------------------------------------------------
-// Single-form recipe dialog (replaces the 3-step wizard)
+// Step progress dots
+// ---------------------------------------------------------------------------
+
+type Step = 1 | 2 | 3;
+
+function StepDots({ active, total }: { active: Step; total: number }) {
+  return (
+    <div className="flex items-center gap-1.5" aria-hidden="true">
+      {Array.from({ length: total }, (_, i) => {
+        const step = (i + 1) as Step;
+        const isActive = step === active;
+        const isComplete = step < active;
+        return (
+          <div
+            key={step}
+            className={`h-1.5 rounded-full transition-all ${
+              isActive
+                ? "w-4 bg-[var(--color-figma-accent)]"
+                : isComplete
+                  ? "w-1.5 bg-[var(--color-figma-accent)]/50"
+                  : "w-1.5 bg-[var(--color-figma-border)]"
+            }`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stepper recipe dialog
 // ---------------------------------------------------------------------------
 
 export function TokenRecipeDialog({
@@ -109,6 +139,10 @@ export function TokenRecipeDialog({
   });
   const requestClose = editorSessionHost?.requestClose ?? onClose;
 
+  // --- Stepper state ---
+  const skipTypeStep = Boolean(existingRecipe || initialDraft?.selectedType || template);
+  const [activeStep, setActiveStep] = useState<Step>(skipTypeStep ? 2 : 1);
+
   // --- Save logic ---
   const canSave =
     dialog.targetGroup.trim().length > 0 &&
@@ -123,40 +157,146 @@ export function TokenRecipeDialog({
     }
   };
 
-  const saveLabel = (() => {
-    if (!dialog.showConfirmation) {
-      return "Review";
-    }
-    if (dialog.saving)
-      return dialog.isEditing ? "Saving\u2026" : "Creating\u2026";
-    if (dialog.overwriteCheckLoading) return "Checking\u2026";
-    if (dialog.previewReviewStale) return "Review update";
-    const aliasCount = dialog.semanticEnabled
-      ? dialog.semanticMappings.filter((m) => m.semantic.trim()).length
-      : 0;
-    if (dialog.isEditing) {
-      return `Save Changes (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`;
-    }
-    return aliasCount > 0
-      ? `Create (+${aliasCount} aliases)`
-      : "Create";
-  })();
+  // --- Footer buttons per step ---
+  const footerContent = (() => {
+    // Step 3 confirmation view (after "Review" click)
+    if (dialog.showConfirmation) {
+      const saveLabel = (() => {
+        if (dialog.saving)
+          return dialog.isEditing ? "Saving\u2026" : "Creating\u2026";
+        if (dialog.overwriteCheckLoading) return "Checking\u2026";
+        if (dialog.previewReviewStale) return "Review update";
+        const aliasCount = dialog.semanticEnabled
+          ? dialog.semanticMappings.filter((m) => m.semantic.trim()).length
+          : 0;
+        if (dialog.isEditing) {
+          return `Save (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`;
+        }
+        return aliasCount > 0
+          ? `Create (+${aliasCount} aliases)`
+          : "Create";
+      })();
 
-  // --- Missing field hints ---
-  const missingFields = (() => {
-    const missing: string[] = [];
-    if (!dialog.targetGroup.trim()) missing.push("target group");
-    if (!dialog.name.trim()) missing.push("name");
-    if (!dialog.isMultiBrand && dialog.typeNeedsValue && !dialog.hasValue) {
-      missing.push(
-        dialog.selectedType === "colorRamp" ||
-          dialog.selectedType === "accessibleColorPair" ||
-          dialog.selectedType === "darkModeInversion"
-          ? "base color"
-          : "base value",
+      return (
+        <div className={AUTHORING_SURFACE_CLASSES.footer}>
+          {dialog.existingTokensError && (
+            <div role="alert" className={AUTHORING.error}>
+              {dialog.existingTokensError}
+            </div>
+          )}
+          <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+            <button
+              type="button"
+              onClick={dialog.handleCancelConfirmation}
+              className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
+            >
+              Back
+            </button>
+            <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
+                className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
+              >
+                {dialog.saving && <Spinner size="sm" className="text-white" />}
+                {saveLabel}
+              </button>
+            </div>
+          </div>
+        </div>
       );
     }
-    return missing;
+
+    // Step 1: Type selection
+    if (activeStep === 1) {
+      return (
+        <div className={AUTHORING_SURFACE_CLASSES.footer}>
+          <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+            <button
+              type="button"
+              onClick={requestClose}
+              className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
+            >
+              Cancel
+            </button>
+            <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
+              <button
+                type="button"
+                onClick={() => setActiveStep(2)}
+                className={AUTHORING.footerBtnPrimary}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 2: Configure
+    if (activeStep === 2) {
+      return (
+        <div className={AUTHORING_SURFACE_CLASSES.footer}>
+          <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+            <button
+              type="button"
+              onClick={() => skipTypeStep ? requestClose() : setActiveStep(1)}
+              className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
+            >
+              {skipTypeStep ? "Cancel" : "Back"}
+            </button>
+            <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
+              <button
+                type="button"
+                onClick={() => setActiveStep(3)}
+                disabled={dialog.typeNeedsValue && !dialog.hasValue && !dialog.isMultiBrand}
+                className={AUTHORING.footerBtnPrimary}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 3: Destination & Review
+    const missingFields: string[] = [];
+    if (!dialog.targetGroup.trim()) missingFields.push("output path");
+    if (!dialog.name.trim()) missingFields.push("name");
+
+    return (
+      <div className={AUTHORING_SURFACE_CLASSES.footer}>
+        {missingFields.length > 0 && !dialog.saving && (
+          <p className={AUTHORING_SURFACE_CLASSES.footerMeta}>
+            {missingFields.length === 1
+              ? `${missingFields[0].charAt(0).toUpperCase() + missingFields[0].slice(1)} is required.`
+              : `Required: ${missingFields.join(", ")}.`}
+          </p>
+        )}
+        <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+          <button
+            type="button"
+            onClick={() => setActiveStep(2)}
+            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
+          >
+            Back
+          </button>
+          <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
+              className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
+            >
+              {dialog.saving && <Spinner size="sm" className="text-white" />}
+              {dialog.overwriteCheckLoading ? "Checking\u2026" : "Review"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   })();
 
   // --- Accessibility ---
@@ -208,18 +348,27 @@ export function TokenRecipeDialog({
     : "fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4";
   const dialogClassName = isPanel
     ? "bg-[var(--color-figma-bg)] w-full h-full flex flex-col overflow-hidden"
-    : "bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(56rem,95vw)] flex flex-col max-h-[90vh]";
+    : "bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(40rem,95vw)] flex flex-col max-h-[90vh]";
+
+  const stepCount = skipTypeStep ? 2 : 3;
+  const displayStep = skipTypeStep ? (activeStep - 1) as Step : activeStep;
+
   const title = (
-    <span
-      id="token-recipe-dialog-title"
-      className="text-[12px] font-semibold text-[var(--color-figma-text)]"
-    >
-      {dialog.isEditing
-        ? "Edit recipe"
-        : template
-          ? template.label
-          : "New recipe"}
-    </span>
+    <div className="flex items-center gap-2.5">
+      <span
+        id="token-recipe-dialog-title"
+        className="text-[12px] font-semibold text-[var(--color-figma-text)]"
+      >
+        {dialog.isEditing
+          ? "Edit recipe"
+          : template
+            ? template.label
+            : "New recipe"}
+      </span>
+      {!dialog.showConfirmation && (
+        <StepDots active={displayStep} total={stepCount} />
+      )}
+    </div>
   );
   const headerActions = (
     <button
@@ -241,44 +390,6 @@ export function TokenRecipeDialog({
       </svg>
     </button>
   );
-  const footer = (
-    <div className={AUTHORING_SURFACE_CLASSES.footer}>
-      {missingFields.length > 0 && !dialog.saving && !dialog.showConfirmation && (
-        <p className={AUTHORING_SURFACE_CLASSES.footerMeta}>
-          {missingFields.length === 1
-            ? `${missingFields[0].charAt(0).toUpperCase() + missingFields[0].slice(1)} is required.`
-            : `Required: ${missingFields.join(", ")}.`}
-        </p>
-      )}
-      {dialog.existingTokensError && !dialog.showConfirmation && (
-        <div role="alert" className={AUTHORING.error}>
-          {dialog.existingTokensError}
-        </div>
-      )}
-      <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
-        <button
-          type="button"
-          onClick={
-            dialog.showConfirmation ? dialog.handleCancelConfirmation : requestClose
-          }
-          className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
-        >
-          {dialog.showConfirmation ? "Back" : "Cancel"}
-        </button>
-        <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
-            className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
-          >
-            {dialog.saving && <Spinner size="sm" className="text-white" />}
-            {saveLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className={shellClassName}>
@@ -295,17 +406,9 @@ export function TokenRecipeDialog({
           backAriaLabel="Back to templates"
           title={title}
           headerActions={headerActions}
-          footer={footer}
+          footer={footerContent}
           bodyClassName={AUTHORING_SURFACE_CLASSES.bodyStack}
         >
-          {existingRecipe?.detachedPaths &&
-            existingRecipe.detachedPaths.length > 0 && (
-              <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text)]">
-                {existingRecipe.detachedPaths.length} detached output
-                {existingRecipe.detachedPaths.length === 1 ? "" : "s"}
-              </div>
-            )}
-
           {dialog.showConfirmation ? (
             <StepSave
               selectedType={dialog.selectedType}
@@ -335,82 +438,103 @@ export function TokenRecipeDialog({
             />
           ) : (
             <>
-              <StepIntent
-                selectedType={dialog.selectedType}
-                recommendedType={dialog.recommendedType}
-                connected
-                activeSet={activeSet}
-                sourceTokenPath={sourceTokenPath}
-                sourceTokenName={sourceTokenName}
-                sourceTokenType={sourceTokenType}
-                prefilled={Boolean(initialDraft?.selectedType || existingRecipe || template)}
-                onTypeChange={dialog.handleTypeChange}
-                onTemplateApply={(tmpl, draft) => {
-                  setAppliedTemplate(tmpl);
-                  if (draft.selectedType) dialog.handleTypeChange(draft.selectedType);
-                  if (draft.configs) {
-                    const type = draft.selectedType ?? dialog.selectedType;
-                    const cfg = draft.configs[type];
-                    if (cfg) dialog.handleConfigChange(type, cfg);
-                  }
-                  if (draft.name && draft.nameIsAuto) dialog.handleNameChange(draft.name);
-                  if (draft.targetGroup) dialog.setTargetGroup(draft.targetGroup);
-                  if (draft.semanticEnabled !== undefined) dialog.setSemanticEnabled(draft.semanticEnabled);
-                  if (draft.semanticPrefix) dialog.setSemanticPrefix(draft.semanticPrefix);
-                  if (draft.semanticMappings) dialog.setSemanticMappings(draft.semanticMappings);
-                  if (draft.selectedSemanticPatternId !== undefined) dialog.setSelectedSemanticPatternId(draft.selectedSemanticPatternId);
-                }}
-                onConfigChange={dialog.handleConfigChange}
-              />
+              {activeStep === 1 && (
+                <StepIntent
+                  selectedType={dialog.selectedType}
+                  recommendedType={dialog.recommendedType}
+                  connected
+                  activeSet={activeSet}
+                  sourceTokenPath={sourceTokenPath}
+                  sourceTokenName={sourceTokenName}
+                  sourceTokenType={sourceTokenType}
+                  prefilled={false}
+                  onTypeChange={(type) => {
+                    dialog.handleTypeChange(type);
+                  }}
+                  onTemplateApply={(tmpl, draft) => {
+                    setAppliedTemplate(tmpl);
+                    if (draft.selectedType) dialog.handleTypeChange(draft.selectedType);
+                    if (draft.configs) {
+                      const type = draft.selectedType ?? dialog.selectedType;
+                      const cfg = draft.configs[type];
+                      if (cfg) dialog.handleConfigChange(type, cfg);
+                    }
+                    if (draft.name && draft.nameIsAuto) dialog.handleNameChange(draft.name);
+                    if (draft.targetGroup) dialog.setTargetGroup(draft.targetGroup);
+                    if (draft.semanticEnabled !== undefined) dialog.setSemanticEnabled(draft.semanticEnabled);
+                    if (draft.semanticPrefix) dialog.setSemanticPrefix(draft.semanticPrefix);
+                    if (draft.semanticMappings) dialog.setSemanticMappings(draft.semanticMappings);
+                    if (draft.selectedSemanticPatternId !== undefined) dialog.setSelectedSemanticPatternId(draft.selectedSemanticPatternId);
+                    setActiveStep(2);
+                  }}
+                  onConfigChange={dialog.handleConfigChange}
+                />
+              )}
 
-              <StepSource
-                isEditing={dialog.isEditing}
-                selectedType={dialog.selectedType}
-                currentConfig={dialog.currentConfig}
-                typeNeedsValue={dialog.typeNeedsValue}
-                hasValue={dialog.hasValue}
-                sourceTokenPath={sourceTokenPath}
-                sourceTokenValue={sourceTokenValue}
-                inlineValue={dialog.inlineValue}
-                isMultiBrand={dialog.isMultiBrand}
-                inputTable={dialog.inputTable}
-                onToggleMultiBrand={dialog.handleToggleMultiBrand}
-                onInputTableChange={dialog.setInputTable}
-                previewTokens={dialog.previewTokens}
-                previewLoading={dialog.previewLoading}
-                previewError={dialog.previewError}
-                previewBrand={dialog.previewBrand}
-                multiBrandPreviews={dialog.multiBrandPreviews}
-                pendingOverrides={dialog.pendingOverrides}
-                lockedCount={dialog.lockedCount}
-                overwrittenEntries={dialog.overwrittenEntries}
-                allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
-                canUndo={dialog.canUndo}
-                canRedo={dialog.canRedo}
-                onUndo={dialog.handleUndo}
-                onRedo={dialog.handleRedo}
-                onConfigInteractionStart={dialog.handleConfigInteractionStart}
-                onConfigChange={dialog.handleConfigChange}
-                onSourcePathChange={dialog.setEditableSourcePath}
-                onInlineValueChange={dialog.setInlineValue}
-                onOverrideChange={dialog.handleOverrideChange}
-                onOverrideClear={dialog.handleOverrideClear}
-                onClearAllOverrides={dialog.clearAllOverrides}
-              />
+              {activeStep === 2 && (
+                <StepSource
+                  isEditing={dialog.isEditing}
+                  selectedType={dialog.selectedType}
+                  currentConfig={dialog.currentConfig}
+                  typeNeedsValue={dialog.typeNeedsValue}
+                  hasValue={dialog.hasValue}
+                  sourceTokenPath={sourceTokenPath}
+                  sourceTokenValue={sourceTokenValue}
+                  inlineValue={dialog.inlineValue}
+                  isMultiBrand={dialog.isMultiBrand}
+                  inputTable={dialog.inputTable}
+                  onToggleMultiBrand={dialog.handleToggleMultiBrand}
+                  onInputTableChange={dialog.setInputTable}
+                  previewTokens={dialog.previewTokens}
+                  previewLoading={dialog.previewLoading}
+                  previewError={dialog.previewError}
+                  previewBrand={dialog.previewBrand}
+                  multiBrandPreviews={dialog.multiBrandPreviews}
+                  pendingOverrides={dialog.pendingOverrides}
+                  lockedCount={dialog.lockedCount}
+                  overwrittenEntries={dialog.overwrittenEntries}
+                  allTokensFlat={allTokensFlat}
+                  pathToSet={pathToSet}
+                  canUndo={dialog.canUndo}
+                  canRedo={dialog.canRedo}
+                  onUndo={dialog.handleUndo}
+                  onRedo={dialog.handleRedo}
+                  onConfigInteractionStart={dialog.handleConfigInteractionStart}
+                  onConfigChange={dialog.handleConfigChange}
+                  onSourcePathChange={dialog.setEditableSourcePath}
+                  onInlineValueChange={dialog.setInlineValue}
+                  onOverrideChange={dialog.handleOverrideChange}
+                  onOverrideClear={dialog.handleOverrideClear}
+                  onClearAllOverrides={dialog.clearAllOverrides}
+                />
+              )}
 
-              <StepWhere
-                name={dialog.name}
-                targetSet={dialog.targetSet}
-                targetGroup={dialog.targetGroup}
-                allSets={allSets}
-                isMultiBrand={dialog.isMultiBrand}
-                targetSetTemplate={dialog.targetSetTemplate}
-                onNameChange={dialog.handleNameChange}
-                onTargetSetChange={dialog.setTargetSet}
-                onTargetGroupChange={dialog.setTargetGroup}
-                onTargetSetTemplateChange={dialog.setTargetSetTemplate}
-              />
+              {activeStep === 3 && (
+                <>
+                  {existingRecipe?.detachedPaths &&
+                    existingRecipe.detachedPaths.length > 0 && (
+                      <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text)]">
+                        {existingRecipe.detachedPaths.length} detached output
+                        {existingRecipe.detachedPaths.length === 1 ? "" : "s"}
+                      </div>
+                    )}
+                  <StepWhere
+                    name={dialog.name}
+                    targetSet={dialog.targetSet}
+                    targetGroup={dialog.targetGroup}
+                    allSets={allSets}
+                    isMultiBrand={dialog.isMultiBrand}
+                    targetSetTemplate={dialog.targetSetTemplate}
+                    onNameChange={dialog.handleNameChange}
+                    onTargetSetChange={dialog.setTargetSet}
+                    onTargetGroupChange={dialog.setTargetGroup}
+                    onTargetSetTemplateChange={dialog.setTargetSetTemplate}
+                    onToggleMultiBrand={dialog.handleToggleMultiBrand}
+                    inputTable={dialog.inputTable}
+                    onInputTableChange={dialog.setInputTable}
+                  />
+                </>
+              )}
             </>
           )}
         </EditorShell>

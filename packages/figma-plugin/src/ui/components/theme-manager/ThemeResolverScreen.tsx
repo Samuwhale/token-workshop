@@ -21,7 +21,7 @@ export function ThemeResolverScreen({
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <div className="flex items-center justify-between gap-3 px-3 py-2.5">
           <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-            Resolver
+            Output config
           </p>
           <button
             onClick={onBack}

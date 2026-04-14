@@ -343,7 +343,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
     surfaces: {
       compare: {
         label: "Compare",
-        usage: "Compare tokens or theme variants.",
+        usage: "Compare tokens or mode options.",
       },
       "token-editor": {
         label: "Token editor",
@@ -415,7 +415,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         summaryTitle: "Themes",
         topTab: "define",
         subTab: "themes",
-        transition: workspaceTransition("Set up theme families."),
+        transition: workspaceTransition("Set up theme modes."),
       },
     ],
     matchRoutes: [

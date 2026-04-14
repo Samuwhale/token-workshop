@@ -164,30 +164,23 @@ export function ThemeAxisCard({
                     severity="warning"
                     count={totalDimensionGaps}
                     className="min-w-[16px] shrink-0 px-1"
-                    title={`${totalDimensionGaps} issue${totalDimensionGaps === 1 ? "" : "s"} across this family`}
+                    title={`${totalDimensionGaps} issue${totalDimensionGaps === 1 ? "" : "s"} across this mode`}
                   />
                 )}
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
-              {ctx.onGenerateForDimension && (
+              {ctx.onOpenResolver && (
                 <button
-                  onClick={() => {
-                    const targetSet =
-                      overrideSets[0] ??
-                      foundationSets[0] ??
-                      sets[0] ??
-                      "";
-                    if (targetSet) {
-                      ctx.onGenerateForDimension!({
-                        dimensionName: dimension.name,
-                        targetSet,
-                      });
-                    }
-                  }}
-                  className="rounded px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+                  onClick={() => ctx.onOpenResolver()}
+                  className="rounded p-0.5 text-[var(--color-figma-text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  title="Output config"
+                  aria-label="Output config"
                 >
-                  Generate
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+                  </svg>
                 </button>
               )}
               <div className="relative">
@@ -195,8 +188,8 @@ export function ThemeAxisCard({
                   ref={axisMenu.triggerRef}
                   onClick={axisMenu.toggle}
                   className="rounded p-0.5 text-[var(--color-figma-text-secondary)] opacity-20 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--color-figma-bg-hover)]"
-                  title="Family actions"
-                  aria-label="Family actions"
+                  title="Mode actions"
+                  aria-label="Mode actions"
                   aria-expanded={axisMenu.open}
                   aria-haspopup="menu"
                 >
@@ -212,6 +205,31 @@ export function ThemeAxisCard({
                     role="menu"
                     className="absolute right-0 top-full z-50 mt-1 w-[140px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
                   >
+                    {ctx.onGenerateForDimension && (
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          axisMenu.close();
+                          const targetSet =
+                            overrideSets[0] ??
+                            foundationSets[0] ??
+                            sets[0] ??
+                            "";
+                          if (targetSet) {
+                            ctx.onGenerateForDimension!({
+                              dimensionName: dimension.name,
+                              targetSet,
+                            });
+                          }
+                        }}
+                        className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        Generate tokens
+                      </button>
+                    )}
+                    {ctx.onGenerateForDimension && (
+                      <div className="my-1 border-t border-[var(--color-figma-border)]" />
+                    )}
                     <button
                       role="menuitem"
                       onClick={() => { axisMenu.close(); ctx.startRenameDim(dimension.id, dimension.name); }}
@@ -256,7 +274,7 @@ export function ThemeAxisCard({
                       onClick={() => { axisMenu.close(); ctx.onOpenResolver(); }}
                       className="flex w-full items-center px-2 py-1 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     >
-                      Resolver
+                      Output config
                     </button>
                     <div className="my-1 border-t border-[var(--color-figma-border)]" />
                     <button

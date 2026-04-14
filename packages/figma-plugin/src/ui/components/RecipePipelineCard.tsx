@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TokenRecipe, RecipeType, GeneratedTokenResult } from "../hooks/useRecipes";
+import type { TokenRecipe, RecipeType } from "../hooks/useRecipes";
 import { getRecipeDashboardStatus } from "../hooks/useRecipes";
 import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { TokenRecipeDialog } from "./TokenRecipeDialog";
-import { SemanticMappingDialog } from "./SemanticMappingDialog";
 import type { RecipeSaveSuccessInfo } from "../hooks/useRecipeSave";
 import { dispatchToast } from "../shared/toastBus";
 import type { ToastAction } from "../shared/toastBus";
@@ -115,7 +114,7 @@ function getPrimaryActionConfig(status: DashboardStatus, isPaused: boolean) {
   }
   if (status === "stale") {
     return {
-      label: "Re-run",
+      label: "Run",
       className:
         "border-[var(--color-figma-warning,#f59e0b)]/50 bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#f59e0b)] hover:bg-[var(--color-figma-warning,#f59e0b)]/16",
     };
@@ -135,7 +134,7 @@ function getPrimaryActionConfig(status: DashboardStatus, isPaused: boolean) {
     };
   }
   return {
-    label: "View tokens",
+    label: "View",
     className:
       "border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/30 hover:text-[var(--color-figma-accent)]",
   };
@@ -194,9 +193,6 @@ export function RecipePipelineCard({
   const [cloneSourceToken, setCloneSourceToken] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTokensOnDelete, setDeleteTokensOnDelete] = useState(false);
-  const [showSemanticDialog, setShowSemanticDialog] = useState(false);
-  const [semanticDialogTokens, setSemanticDialogTokens] = useState<GeneratedTokenResult[]>([]);
-  const [semanticDialogLoading, setSemanticDialogLoading] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const actionsMenuContainerRef = useRef<HTMLDivElement>(null);
@@ -206,19 +202,15 @@ export function RecipePipelineCard({
   const status = getRecipeDashboardStatus(recipe);
   const isPaused = recipe.enabled === false;
   const typeLabel = getRecipeTypeLabel(recipe.type);
-  const semanticAliasCount = recipe.semanticLayer?.mappings.length ?? 0;
   const primaryAction = getPrimaryActionConfig(status, isPaused);
   const statusDetail = getRecipeStatusDetail(recipe, status);
   const lastRunAt = formatRelativeTimestamp(recipe.lastRunSummary?.at);
 
   const secondarySummary = useMemo(() => {
-    const sourceSummary = recipe.sourceToken
-      ? recipe.sourceToken
-      : formatInlineValue(recipe.inlineValue);
-    return [typeLabel, sourceSummary, `${recipe.targetGroup}.*`, recipe.targetSet]
+    return [typeLabel, `${recipe.targetGroup}.*`]
       .filter(Boolean)
-      .join(" · ");
-  }, [recipe.inlineValue, recipe.sourceToken, recipe.targetGroup, recipe.targetSet, typeLabel]);
+      .join(" \u00b7 ");
+  }, [recipe.targetGroup, typeLabel]);
 
   const statusLabel = useMemo(() => {
     if (isPaused) return "Paused";
@@ -332,40 +324,6 @@ export function RecipePipelineCard({
     }
   }, [recipe.id, recipe.targetGroup, recipe.targetSet, onRefresh, onViewTokens, serverUrl]);
 
-  const fetchStepResults = useCallback(async (): Promise<GeneratedTokenResult[]> => {
-    const response = await apiFetch<{ count: number; results: GeneratedTokenResult[] }>(
-      `${serverUrl}/api/recipes/${recipe.id}/steps`,
-    );
-    return response.results;
-  }, [recipe.id, serverUrl]);
-
-  const handleOpenSemanticDialog = useCallback(async () => {
-    setSemanticDialogLoading(true);
-    setActionError(null);
-    try {
-      const results = await fetchStepResults();
-      setSemanticDialogTokens(results);
-      setShowSemanticDialog(true);
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Unable to load recipe steps");
-    } finally {
-      setSemanticDialogLoading(false);
-    }
-  }, [fetchStepResults]);
-
-  const handleSaveSemanticLayer = useCallback(
-    async (semanticLayer: TokenRecipe["semanticLayer"] | null) => {
-      await apiFetch(`${serverUrl}/api/recipes/${recipe.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ semanticLayer }),
-      });
-      dispatchToast("Semantic layer updated", "success");
-      onRefresh();
-    },
-    [recipe.id, onRefresh, serverUrl],
-  );
-
   const openCloneDialog = useCallback(() => {
     setCloneName(`${recipe.name} copy`);
     setCloneTargetGroup(recipe.targetGroup);
@@ -467,7 +425,7 @@ export function RecipePipelineCard({
           <StatusDot
             status={status}
             isPaused={isPaused}
-            title={`${statusLabel}. ${statusDetail}`}
+            title={`${statusLabel}${lastRunAt ? ` \u00b7 ${lastRunAt}` : ''}${statusDetail ? `. ${statusDetail}` : ''}`}
           />
 
           <div className="min-w-0 flex-1">
@@ -487,11 +445,6 @@ export function RecipePipelineCard({
                 {supportMessage}
               </p>
             )}
-            {!supportMessage && lastRunAt && (
-              <p className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                Last run {lastRunAt}
-              </p>
-            )}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -503,7 +456,7 @@ export function RecipePipelineCard({
                 togglingEnabled ||
                 (status === "upToDate" && !onViewTokens)
               }
-              className={`inline-flex min-w-[86px] items-center justify-center rounded-md border px-2.5 py-1.5 text-[10px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${primaryAction.className}`}
+              className={`inline-flex min-w-[56px] items-center justify-center rounded-md border px-2 py-1.5 text-[10px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${primaryAction.className}`}
             >
               {running ? "Running…" : togglingEnabled ? "Updating…" : primaryAction.label}
             </button>
@@ -558,18 +511,6 @@ export function RecipePipelineCard({
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
                   >
                     Clone
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={() => runMenuAction(() => void handleOpenSemanticDialog())}
-                    disabled={semanticDialogLoading}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {semanticDialogLoading
-                      ? "Loading…"
-                      : semanticAliasCount > 0
-                        ? "Semantic layer"
-                        : "Add semantic layer"}
                   </button>
                   <button
                     role="menuitem"
@@ -686,28 +627,12 @@ export function RecipePipelineCard({
               className="rounded"
             />
             <span>
-              {semanticAliasCount > 0
-                ? `Also delete managed tokens and ${semanticAliasCount} semantic alias${semanticAliasCount === 1 ? "" : "es"}`
-                : "Also delete managed tokens"}
+              Also delete managed tokens
             </span>
           </label>
         </ConfirmModal>
       )}
 
-      {showSemanticDialog && (
-        <SemanticMappingDialog
-          serverUrl={serverUrl}
-          generatedTokens={semanticDialogTokens}
-          recipeType={recipe.type}
-          targetGroup={recipe.targetGroup}
-          targetSet={recipe.targetSet}
-          initialPrefix={recipe.semanticLayer?.prefix}
-          initialMappings={recipe.semanticLayer?.mappings}
-          initialPatternId={recipe.semanticLayer?.patternId ?? null}
-          onSaveLayer={handleSaveSemanticLayer}
-          onClose={() => setShowSemanticDialog(false)}
-        />
-      )}
     </>
   );
 }
