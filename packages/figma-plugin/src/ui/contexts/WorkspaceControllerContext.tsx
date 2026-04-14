@@ -25,6 +25,7 @@ import type { NotificationEntry } from "../hooks/useToastStack";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import type {
   SurfaceTransition,
+  TokensSection,
 } from "../shared/navigationTypes";
 import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
 
@@ -115,6 +116,8 @@ export interface TokensWorkspaceController {
   handlePaletteMove: (path: string) => void;
   requestPaletteDelete: (paths: string[], label: string) => void;
   handlePaletteDeleteToken: (path: string) => void;
+  activeTokensSection: TokensSection;
+  setActiveTokensSection: (section: TokensSection) => void;
 }
 
 export interface ThemeWorkspaceController {

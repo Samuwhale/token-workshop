@@ -31,6 +31,7 @@ import { useWindowResize } from "./hooks/useWindowResize";
 import type {
   SecondarySurfaceId,
   SubTab,
+  TokensSection,
   TopTab,
   UtilityActionId,
 } from "./shared/navigationTypes";
@@ -366,6 +367,12 @@ export function App() {
     pendingOpenPicker,
     setPendingOpenPicker,
   } = useGraphState();
+  const [activeTokensSection, setActiveTokensSection] = useState<TokensSection>(
+    () => (lsGet(STORAGE_KEYS.ACTIVE_TOKENS_SECTION) as TokensSection) || "library",
+  );
+  useEffect(() => {
+    lsSet(STORAGE_KEYS.ACTIVE_TOKENS_SECTION, activeTokensSection);
+  }, [activeTokensSection]);
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
@@ -747,7 +754,8 @@ export function App() {
   );
   const handleNavigateToRecipe = useCallback(
     (recipeId: string) => {
-      navigateTo("recipes", "recipes");
+      navigateTo("tokens", "tokens");
+      setActiveTokensSection("recipes");
       setFocusRecipeId(recipeId);
     },
     [navigateTo, setFocusRecipeId],
@@ -1603,6 +1611,8 @@ export function App() {
       requestPaletteDelete: (paths: string[], label: string) =>
         setPaletteDeleteConfirm({ paths, label }),
       handlePaletteDeleteToken,
+      activeTokensSection,
+      setActiveTokensSection,
     },
     themes: {
       themeManagerHandleRef,
@@ -1651,7 +1661,8 @@ export function App() {
       onOpenRecipes: (set: string) => {
         guardEditorAction(() => {
           setActiveSet(set);
-          navigateTo("recipes", "recipes");
+          navigateTo("tokens", "tokens");
+          setActiveTokensSection("recipes");
           closeSecondarySurface();
         });
       },

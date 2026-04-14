@@ -246,7 +246,8 @@ export interface HealthPanelProps {
   dimensions?: ThemeDimension[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
-  onNavigateTo: (topTab: "tokens" | "recipes" | "themes" | "inspect" | "sync", subTab?: string) => void;
+  onNavigateTo: (topTab: "tokens" | "themes" | "inspect" | "sync", subTab?: string) => void;
+  onSetTokensSection?: (section: "library" | "recipes") => void;
   onNavigateToToken?: (path: string, set: string) => void;
   onTriggerHeatmap: () => void;
   /** Shared validation cache — avoids re-fetching when switching from Analytics tab */
@@ -273,6 +274,7 @@ export function HealthPanel({
   tokenUsageCounts,
   heatmapResult,
   onNavigateTo,
+  onSetTokensSection,
   onNavigateToToken,
   onTriggerHeatmap,
   validationIssues: validationIssuesProp,
@@ -1111,7 +1113,10 @@ export function HealthPanel({
       case "lint":
         return () => onNavigateTo("tokens", "tokens");
       case "recipes":
-        return () => onNavigateTo("recipes", "recipes");
+        return () => {
+          onNavigateTo("tokens", "tokens");
+          onSetTokensSection?.("recipes");
+        };
       case "canvas":
         return () => {
           onNavigateTo("inspect", "canvas-analysis");

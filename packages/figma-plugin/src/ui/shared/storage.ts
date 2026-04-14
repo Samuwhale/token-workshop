@@ -135,7 +135,6 @@ export const STORAGE_KEYS = {
   ACTIVE_TAB:            'tm_active_tab',
   ACTIVE_TOP_TAB:        'tm_active_top_tab',
   ACTIVE_SUB_TAB_TOKENS:  'tm_sub_tab_tokens',
-  ACTIVE_SUB_TAB_RECIPES: 'tm_sub_tab_recipes',
   ACTIVE_SUB_TAB_THEMES:  'tm_sub_tab_themes',
   ACTIVE_SUB_TAB_INSPECT: 'tm_sub_tab_inspect',
   ACTIVE_SUB_TAB_SYNC:    'tm_sub_tab_sync',
@@ -178,6 +177,7 @@ export const STORAGE_KEYS = {
   ACTIVE_RESOLVER:          'tm_active_resolver',
   RESOLVER_INPUT:           'tm_resolver_input',
   EDITOR_WIDTH:             'tm_editor_width',
+  ACTIVE_TOKENS_SECTION:    'tm_tokens_section',
 } as const;
 
 /** Per-set dynamic key builders */
@@ -202,8 +202,8 @@ const WORKSPACE_RECOVERY_RESET_KEYS = [
   STORAGE_KEYS.ACTIVE_TAB,
   STORAGE_KEYS.ACTIVE_TOP_TAB,
   STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
-  STORAGE_KEYS.ACTIVE_SUB_TAB_RECIPES,
   STORAGE_KEYS.ACTIVE_SUB_TAB_THEMES,
+  STORAGE_KEYS.ACTIVE_TOKENS_SECTION,
   STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
   STORAGE_KEYS.ANALYTICS_CANONICAL,

@@ -6,6 +6,7 @@ import {
   useTokenFlatMapContext,
   useTokenSetsContext,
 } from "../contexts/TokenDataContext";
+import { useTokensWorkspaceController } from "../contexts/WorkspaceControllerContext";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 
 type InboxFilter = "all" | "blocker" | "attention" | "success";
@@ -14,17 +15,17 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "tokens" | "recipes" | "themes" | "inspect" | "sync";
+      topTab: "tokens" | "themes" | "inspect" | "sync";
       subTab:
         | "tokens"
         | "themes"
-        | "recipes"
         | "inspect"
         | "canvas-analysis"
         | "publish"
         | "export"
         | "history"
         | "health";
+      tokensSection?: "library" | "recipes";
     }
   | { kind: "surface"; surface: "import" | "settings" };
 
@@ -129,7 +130,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   if (lower.includes("recipe")) {
     return {
       label: "Open recipes",
-      target: { kind: "workspace", topTab: "recipes", subTab: "recipes" },
+      target: { kind: "workspace", topTab: "tokens", subTab: "tokens", tokensSection: "recipes" },
     };
   }
   if (
@@ -281,6 +282,7 @@ export function NotificationsPanel({
   const { activeSet, setActiveSet } = useTokenSetsContext();
   const { pathToSet } = useTokenFlatMapContext();
   const { setHighlightedToken, setPendingHighlightForSet } = useEditorContext();
+  const { setActiveTokensSection } = useTokensWorkspaceController();
 
   const inbox = useMemo(() => {
     const deduped = new Map<string, InboxItem>();
@@ -362,6 +364,9 @@ export function NotificationsPanel({
     navigateTo(action.target.topTab, action.target.subTab, {
       preserveHandoff: true,
     });
+    if (action.target.tokensSection) {
+      setActiveTokensSection(action.target.tokensSection);
+    }
   };
 
   return (

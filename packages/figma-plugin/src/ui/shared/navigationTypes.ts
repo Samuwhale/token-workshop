@@ -8,13 +8,13 @@ import { STORAGE_KEYS } from "./storage";
 import type { RecipeDialogInitialDraft } from "../hooks/useRecipeDialog";
 import type { RecipeTemplate } from "../hooks/useRecipes";
 
-export type TopTab = "tokens" | "recipes" | "themes" | "inspect" | "sync";
+export type TopTab = "tokens" | "themes" | "inspect" | "sync";
+export type TokensSection = "library" | "recipes";
 type TokensSubTab = "tokens";
-type RecipesSubTab = "recipes";
 type ThemesSubTab = "themes";
 type InspectSubTab = "inspect" | "canvas-analysis";
 type SyncSubTab = "publish" | "export" | "history" | "health";
-export type SubTab = TokensSubTab | RecipesSubTab | ThemesSubTab | InspectSubTab | SyncSubTab;
+export type SubTab = TokensSubTab | ThemesSubTab | InspectSubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
   | "sets"
@@ -86,11 +86,6 @@ export const TOP_TABS: {
     subTabs: [{ id: "tokens", label: "Tokens" }],
   },
   {
-    id: "recipes",
-    label: "Recipes",
-    subTabs: [{ id: "recipes", label: "Recipes" }],
-  },
-  {
     id: "themes",
     label: "Themes",
     subTabs: [{ id: "themes", label: "Themes" }],
@@ -117,7 +112,6 @@ export const TOP_TABS: {
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   tokens: "tokens",
-  recipes: "recipes",
   themes: "themes",
   inspect: "inspect",
   sync: "publish",
@@ -125,7 +119,6 @@ export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   tokens: STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
-  recipes: STORAGE_KEYS.ACTIVE_SUB_TAB_RECIPES,
   themes: STORAGE_KEYS.ACTIVE_SUB_TAB_THEMES,
   inspect: STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
@@ -135,7 +128,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "tokens" | "recipes" | "themes" | "inspect" | "sync";
+export type WorkspaceId = "tokens" | "themes" | "inspect" | "sync";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -404,14 +397,6 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "tokens",
     subTab: "tokens",
     transition: workspaceTransition("Browse and edit tokens."),
-  },
-  {
-    id: "recipes",
-    label: "Recipes",
-    summaryTitle: "Recipes",
-    topTab: "recipes",
-    subTab: "recipes",
-    transition: workspaceTransition("Generate token scales and palettes."),
   },
   {
     id: "themes",

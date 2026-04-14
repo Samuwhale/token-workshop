@@ -255,7 +255,8 @@ export function useCommandPaletteCommands(): {
         description: template.description,
         category: "Recipes" as const,
         handler: () => {
-          navigateTo("recipes");
+          navigateTo("tokens");
+          tokens.setActiveTokensSection("recipes");
           tokens.setPendingGraphTemplate(template.id);
         },
       })),

@@ -23,6 +23,7 @@ import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import { SelectionInspector } from "../components/SelectionInspector";
 import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
 import { GraphPanel } from "../components/GraphPanel";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { ExportPanel } from "../components/ExportPanel";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { HealthPanel } from "../components/HealthPanel";
@@ -71,6 +72,7 @@ import type {
   SecondarySurfaceId,
   TokensLibraryContextualSurface,
   TokensLibraryRecipeEditorTarget,
+  TokensSection,
 } from "../shared/navigationTypes";
 import {
   getImportResultNextStepRecommendations,
@@ -79,6 +81,11 @@ import {
 } from "../shared/navigationTypes";
 import type { ToastAction } from "../shared/toastBus";
 import { useEditorWidth } from "../hooks/useEditorWidth";
+
+const TOKENS_SECTION_OPTIONS: { value: TokensSection; label: string }[] = [
+  { value: "library", label: "Library" },
+  { value: "recipes", label: "Recipes" },
+];
 
 const LAST_CREATE_GROUP_STORAGE_KEY = "tm_last_create_group";
 const LAST_CREATE_TYPE_STORAGE_KEY = "tm_last_token_type";
@@ -397,6 +404,7 @@ export function PanelRouter(): ReactNode {
       if (targetSet !== activeSet) {
         setActiveSet(targetSet);
       }
+      controller.setActiveTokensSection("library");
       navigateTo("tokens", "tokens");
     },
     [
@@ -546,11 +554,13 @@ export function PanelRouter(): ReactNode {
     },
     onGenerateScaleFromGroup: (groupPath: string, tokenType: string | null) => {
       controller.setPendingGraphFromGroup({ groupPath, tokenType });
-      navigateTo("recipes", "recipes");
+      controller.setActiveTokensSection("recipes");
+      navigateTo("tokens", "tokens");
     },
     onNavigateToNewRecipe: () => {
       controller.setPendingOpenPicker(true);
-      navigateTo("recipes", "recipes");
+      controller.setActiveTokensSection("recipes");
+      navigateTo("tokens", "tokens");
     },
     onRefreshRecipes: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
@@ -1138,9 +1148,6 @@ export function PanelRouter(): ReactNode {
     tokens: {
       tokens: renderDefineTokens,
     },
-    recipes: {
-      recipes: renderDefineRecipes,
-    },
     themes: {
       themes: renderDefineThemes,
     },
@@ -1210,6 +1217,8 @@ export function PanelRouter(): ReactNode {
   // ---------------------------------------------------------------------------
 
   function renderDefineTokens(): ReactNode {
+    const { activeTokensSection } = controller;
+
     const renderTokensStartSurface = () => (
       <FeedbackPlaceholder
         variant="empty"
@@ -1231,7 +1240,42 @@ export function PanelRouter(): ReactNode {
         ? getTokensContextualSurfaceRenderState()
         : null;
 
-    return (
+    const renderRecipesSection = () => (
+      <ErrorBoundary
+        panelName="Recipes"
+        onReset={() => controller.setActiveTokensSection("library")}
+      >
+        <GraphPanel
+          serverUrl={serverUrl}
+          activeSet={activeSet}
+          allSets={sets}
+          recipes={recipes}
+          loading={recipesLoading}
+          connected={connected}
+          onRefresh={() => {
+            controller.refreshAll();
+            refreshRecipes();
+          }}
+          onPushUndo={controller.pushUndo}
+          pendingTemplateId={controller.pendingGraphTemplate}
+          onClearPendingTemplate={() => controller.setPendingGraphTemplate(null)}
+          pendingGroupPath={controller.pendingGraphFromGroup?.groupPath ?? null}
+          pendingGroupTokenType={
+            controller.pendingGraphFromGroup?.tokenType ?? null
+          }
+          onClearPendingGroup={() => {
+            controller.setPendingGraphFromGroup(null);
+            controller.setPendingOpenPicker(false);
+          }}
+          focusRecipeId={controller.focusRecipeId}
+          onClearFocusRecipe={() => controller.setFocusRecipeId(null)}
+          onViewTokens={openGeneratedTokens}
+          openCreateDialog={controller.pendingOpenPicker}
+        />
+      </ErrorBoundary>
+    );
+
+    const renderLibrarySection = () => (
       <>
         {/* Fetch error banner */}
         {(fetchError || tokensError) && (
@@ -1351,45 +1395,33 @@ export function PanelRouter(): ReactNode {
             </div>
           </div>
         )}
-        {renderNarrowTokensContextualSurface()}
       </>
     );
-  }
 
-  function renderDefineRecipes(): ReactNode {
     return (
-      <ErrorBoundary
-        panelName="Recipes"
-        onReset={() => navigateTo("tokens", "tokens")}
-      >
-        <GraphPanel
-          serverUrl={serverUrl}
-          activeSet={activeSet}
-          allSets={sets}
-          recipes={recipes}
-          loading={recipesLoading}
-          connected={connected}
-          onRefresh={() => {
-            controller.refreshAll();
-            refreshRecipes();
-          }}
-          onPushUndo={controller.pushUndo}
-          pendingTemplateId={controller.pendingGraphTemplate}
-          onClearPendingTemplate={() => controller.setPendingGraphTemplate(null)}
-          pendingGroupPath={controller.pendingGraphFromGroup?.groupPath ?? null}
-          pendingGroupTokenType={
-            controller.pendingGraphFromGroup?.tokenType ?? null
-          }
-          onClearPendingGroup={() => {
-            controller.setPendingGraphFromGroup(null);
-            controller.setPendingOpenPicker(false);
-          }}
-          focusRecipeId={controller.focusRecipeId}
-          onClearFocusRecipe={() => controller.setFocusRecipeId(null)}
-          onViewTokens={openGeneratedTokens}
-          openCreateDialog={controller.pendingOpenPicker}
-        />
-      </ErrorBoundary>
+      <>
+        {/* Section switcher */}
+        <div className="flex items-center justify-center shrink-0 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          <SegmentedControl<TokensSection>
+            options={TOKENS_SECTION_OPTIONS}
+            value={activeTokensSection}
+            onChange={controller.setActiveTokensSection}
+          />
+        </div>
+        {/* Section body with crossfade */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
+          <div
+            key={activeTokensSection}
+            className="flex-1 min-h-0 flex flex-col overflow-hidden animate-[fadeIn_150ms_ease-out]"
+          >
+            {activeTokensSection === "library"
+              ? renderLibrarySection()
+              : renderRecipesSection()}
+          </div>
+        </div>
+        {/* Contextual surfaces overlay whichever section is active */}
+        {renderNarrowTokensContextualSurface()}
+      </>
     );
   }
 
@@ -1451,7 +1483,8 @@ export function PanelRouter(): ReactNode {
                 beginHandoff({
                   reason: "Create a recipe, then return to Themes",
                 });
-                navigateTo("recipes", "recipes", {
+                controller.setActiveTokensSection("recipes");
+                navigateTo("tokens", "tokens", {
                   preserveHandoff: true,
                 });
               }}
@@ -1641,6 +1674,7 @@ export function PanelRouter(): ReactNode {
           onNavigateTo={(topTab, subTab) =>
             navigateTo(topTab as TopTab, subTab as SubTab | undefined)
           }
+          onSetTokensSection={controller.setActiveTokensSection}
           onNavigateToToken={(path, set) => {
             beginHandoff({
               reason:

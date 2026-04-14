@@ -50,9 +50,6 @@ export default {
     ]
   },
   "classification": {
-    "backlogRuntimePaths": [
-      "packages/backlog-runner/"
-    ],
     "uiPathPrefixes": [
       "packages/figma-plugin/src/ui",
       "packages/figma-plugin/standalone"
@@ -70,50 +67,22 @@ export default {
     "enabled": true,
     "promptDir": "./scripts/backlog/passes",
     "passes": {
-      "workspace-config": {
-        "description": "Audit repo-level workspace, build, lint, and TypeScript configuration for clarity and maintainability.",
-        "runner": {
-          "tool": "codex",
-          "model": "gpt-5.4"
-        },
-        "heuristics": {
-          "includePaths": [
-            "package.json",
-            "pnpm-workspace.yaml",
-            "turbo.json",
-            "tsconfig.json",
-            "tsconfig.*",
-            "eslint.config.*",
-            "packages/*/package.json",
-            "scripts/**"
-          ],
-          "excludePaths": [
-            "node_modules/**",
-            ".git/**",
-            ".turbo/**",
-            ".backlog-runner/**",
-            "backlog/**"
-          ],
-          "capabilities": [
-            "read",
-            "search",
-            "repo-config",
-            "task-proposal"
-          ]
-        }
-      },
       "plugin-ui-surface": {
-        "description": "Inspect the Figma plugin UI code paths for maintainability, constrained-window UX, and clean feature ownership.",
+        "description": "Inspect the Figma plugin UI for small-window clarity, hierarchy, clutter, and clean feature ownership.",
         "runner": {
-          "tool": "codex",
-          "model": "gpt-5.4"
+          "tool": "claude",
+          "model": "opus"
         },
         "heuristics": {
           "includePaths": [
-            "packages/**",
+            "packages/figma-plugin/src/ui/**",
+            "packages/figma-plugin/src/shared/**",
+            "packages/figma-plugin/standalone/**",
             "demo/**"
           ],
           "excludePaths": [
+            "packages/figma-plugin/src/plugin/**",
+            "packages/server/**",
             "packages/backlog-runner/**",
             "node_modules/**",
             ".git/**",
@@ -129,8 +98,95 @@ export default {
           ]
         }
       },
+      "token-authoring-workflows": {
+        "description": "Inspect token authoring flows across the plugin UI for coherence, maintainability, and unnecessary interaction cost.",
+        "runner": {
+          "tool": "claude",
+          "model": "opus"
+        },
+        "heuristics": {
+          "includePaths": [
+            "packages/figma-plugin/src/ui/**",
+            "packages/figma-plugin/src/shared/**",
+            "packages/server/src/routes/**",
+            "packages/server/src/services/**"
+          ],
+          "excludePaths": [
+            "packages/backlog-runner/**",
+            "node_modules/**",
+            ".git/**",
+            ".turbo/**",
+            ".backlog-runner/**",
+            "backlog/**"
+          ],
+          "capabilities": [
+            "read",
+            "search",
+            "workflow-review",
+            "task-proposal"
+          ]
+        }
+      },
+      "plugin-runtime-sync": {
+        "description": "Inspect the plugin runtime, Figma bridge, and sync logic for maintainability, correctness, and ownership boundaries.",
+        "runner": {
+          "tool": "codex",
+          "model": "gpt-5.4"
+        },
+        "heuristics": {
+          "includePaths": [
+            "packages/figma-plugin/src/plugin/**",
+            "packages/figma-plugin/src/shared/**",
+            "packages/server/src/routes/**",
+            "packages/server/src/services/**"
+          ],
+          "excludePaths": [
+            "packages/backlog-runner/**",
+            "node_modules/**",
+            ".git/**",
+            ".turbo/**",
+            ".backlog-runner/**",
+            "backlog/**"
+          ],
+          "capabilities": [
+            "read",
+            "search",
+            "plugin-runtime",
+            "task-proposal"
+          ]
+        }
+      },
+      "server-integration": {
+        "description": "Inspect API routes and services that back the plugin so product-facing server work stays clear, reliable, and well-scoped.",
+        "runner": {
+          "tool": "codex",
+          "model": "gpt-5.4"
+        },
+        "heuristics": {
+          "includePaths": [
+            "packages/server/**",
+            "packages/core/**",
+            "packages/figma-plugin/src/shared/**"
+          ],
+          "excludePaths": [
+            "packages/backlog-runner/**",
+            "node_modules/**",
+            ".git/**",
+            ".turbo/**",
+            ".backlog-runner/**",
+            "backlog/**"
+          ],
+          "capabilities": [
+            "read",
+            "search",
+            "backend-review",
+            "integration-review",
+            "task-proposal"
+          ]
+        }
+      },
       "preview-dev-flow": {
-        "description": "Review the local preview and standalone harness flow so agents and operators can run the repo reliably.",
+        "description": "Review the local preview and standalone harness flow so plugin work stays easy to run, inspect, and iterate on.",
         "runner": {
           "tool": "codex",
           "model": "gpt-5.4"
@@ -139,9 +195,10 @@ export default {
           "includePaths": [
             "README.md",
             "package.json",
-            "scripts/**",
+            "scripts/agent-preview.mjs",
             "demo/**",
-            "packages/**",
+            "packages/figma-plugin/standalone/**",
+            "packages/server/**",
             ".playwright-mcp/**"
           ],
           "excludePaths": [
@@ -156,39 +213,6 @@ export default {
             "read",
             "search",
             "dev-workflow",
-            "task-proposal"
-          ]
-        }
-      },
-      "docs-and-prompts": {
-        "description": "Check operator-facing docs, backlog task specs, and prompt/config files for drift, ambiguity, and repo-local ownership.",
-        "runner": {
-          "tool": "claude",
-          "model": "opus"
-        },
-        "heuristics": {
-          "includePaths": [
-            "AGENTS.md",
-            "README.md",
-            "docs/**",
-            ".claude/**",
-            "backlog.config.mjs",
-            "scripts/backlog/**",
-            "backlog/tasks/**"
-          ],
-          "excludePaths": [
-            "node_modules/**",
-            ".git/**",
-            ".turbo/**",
-            ".backlog-runner/**",
-            "backlog.md",
-            "backlog/inbox.jsonl"
-          ],
-          "capabilities": [
-            "read",
-            "search",
-            "docs-review",
-            "prompt-review",
             "task-proposal"
           ]
         }
