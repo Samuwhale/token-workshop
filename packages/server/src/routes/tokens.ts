@@ -158,7 +158,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         if (listError) return reply.status(400).send({ error: listError });
 
         const parsedLimit = parseInt(limit ?? '200', 10);
-        const resolvedLimit = Math.min(isNaN(parsedLimit) ? 200 : parsedLimit, 1000);
+        const resolvedLimit = Math.min(
+          Math.max(isNaN(parsedLimit) ? 200 : parsedLimit, 1),
+          1000,
+        );
         const parsedOffset = parseInt(offset ?? '0', 10);
         const resolvedOffset = Math.max(isNaN(parsedOffset) ? 0 : parsedOffset, 0);
         const { results, total } = fastify.tokenStore.searchTokens({

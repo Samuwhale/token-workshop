@@ -4,6 +4,7 @@ import { resolveAllAliases } from '../../shared/resolveAlias';
 import { isNetworkError } from '../shared/apiFetch';
 import { stableStringify, isAbortError } from '../shared/utils';
 import type { TokenMapEntry } from '../../shared/types';
+import { getPluginMessageFromEvent } from '../../shared/utils';
 
 interface UseTokenDataLoadingParams {
   serverUrl: string;
@@ -55,7 +56,7 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
   // Listen for variables-applied and capture a sync snapshot
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{ type?: string }>(e);
       if (msg?.type === 'variables-applied') {
         const snap: Record<string, string> = {};
         for (const [path, entry] of Object.entries(allTokensFlatRef.current)) {

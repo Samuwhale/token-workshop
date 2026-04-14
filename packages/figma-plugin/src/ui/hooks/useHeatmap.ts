@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { HeatmapResult } from '../components/HeatmapPanel';
 import type { ScanScope } from '../../shared/types';
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 
 const SCAN_TIMEOUT_MS = 30_000;
 
@@ -26,7 +27,7 @@ export function useHeatmap() {
 
   const cancelHeatmapScan = useCallback(() => {
     clearScanTimeout();
-    parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
+    postPluginMessage({ type: 'cancel-scan' });
     setHeatmapLoading(false);
     setHeatmapError(null);
     setHeatmapProgress(null);
@@ -39,11 +40,11 @@ export function useHeatmap() {
     setHeatmapResult(null);
     setHeatmapError(null);
     setHeatmapProgress(null);
-    parent.postMessage({ pluginMessage: { type: 'scan-canvas-heatmap', scope: effectiveScope } }, '*');
+    postPluginMessage({ type: 'scan-canvas-heatmap', scope: effectiveScope });
 
     timeoutRef.current = setTimeout(() => {
       timeoutRef.current = null;
-      parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
+      postPluginMessage({ type: 'cancel-scan' });
       setHeatmapLoading(false);
       setHeatmapError('Scan timed out — the plugin may have lost connection. Try rescanning.');
       setHeatmapProgress(null);
@@ -52,10 +53,30 @@ export function useHeatmap() {
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
-      if (msg?.type === 'canvas-heatmap-progress') {
+      const msg = getPluginMessageFromEvent<{
+        type?: string;
+        processed?: number;
+        total?: number;
+        green?: number;
+        yellow?: number;
+        red?: number;
+        nodes?: HeatmapResult['nodes'];
+        error?: string;
+      }>(e);
+      if (
+        msg?.type === 'canvas-heatmap-progress' &&
+        typeof msg.processed === 'number' &&
+        typeof msg.total === 'number'
+      ) {
         setHeatmapProgress({ processed: msg.processed, total: msg.total });
-      } else if (msg?.type === 'canvas-heatmap-result') {
+      } else if (
+        msg?.type === 'canvas-heatmap-result' &&
+        typeof msg.total === 'number' &&
+        typeof msg.green === 'number' &&
+        typeof msg.yellow === 'number' &&
+        typeof msg.red === 'number' &&
+        Array.isArray(msg.nodes)
+      ) {
         clearScanTimeout();
         setHeatmapProgress(null);
         setHeatmapResult({

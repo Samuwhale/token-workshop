@@ -30,8 +30,9 @@ export interface SnapshotDiff {
   path: string;
   set: string;
   status: ChangeStatus;
-  before?: { $value: unknown; $type?: string };
-  after?: { $value: unknown; $type?: string };
+  changedFields?: string[];
+  before?: { $value: unknown; $type?: string; $description?: string };
+  after?: { $value: unknown; $type?: string; $description?: string };
 }
 
 export interface WorkspaceDiff {
@@ -111,6 +112,7 @@ export function snapshotDiffToChange(d: SnapshotDiff): TokenChange {
     status: d.status,
     before: d.before?.$value,
     after: d.after?.$value,
+    changedFields: d.changedFields,
   };
 }
 

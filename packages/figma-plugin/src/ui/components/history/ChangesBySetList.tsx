@@ -10,6 +10,7 @@ import {
   Section,
   ChangeSummaryBadges,
 } from '../../shared/changeHelpers';
+import { stableStringify } from '../../shared/utils';
 
 export function StatusBadge({ status }: { status: ChangeStatus }) {
   return (
@@ -27,6 +28,12 @@ export function StatusBadge({ status }: { status: ChangeStatus }) {
 
 /** Shared change row with inline diff — used by GitCommitsSource and snapshot compare views */
 export function ChangeRow({ change, restoreButton }: { change: TokenChange; restoreButton?: React.ReactNode }) {
+  const hasValueDiff = stableStringify(change.before) !== stableStringify(change.after);
+  const nonValueChangedFields = (change.changedFields ?? []).filter(field => field !== '$value');
+  const changedFieldSummary = nonValueChangedFields
+    .map(field => field.replace(/^\$/, ''))
+    .join(', ');
+
   return (
     <div className="px-3 py-2 space-y-1 group/row relative">
       <div className="flex items-center gap-2">
@@ -38,8 +45,13 @@ export function ChangeRow({ change, restoreButton }: { change: TokenChange; rest
         {restoreButton}
       </div>
 
-      {change.status === 'modified' && (
+      {change.status === 'modified' && hasValueDiff && (
         <ValueDiff type={change.type} before={change.before} after={change.after} />
+      )}
+      {change.status === 'modified' && changedFieldSummary.length > 0 && (
+        <div className="pl-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+          Updated {changedFieldSummary}
+        </div>
       )}
       {change.status === 'added' && (
         <div className="flex items-center gap-1.5 pl-1">

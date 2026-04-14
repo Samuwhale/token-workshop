@@ -6,6 +6,13 @@ import { stableStringify } from "../services/stable-stringify.js";
 export const operationRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
+  const MODIFIED_TOKEN_FIELDS = [
+    '$value',
+    '$type',
+    '$description',
+    '$extensions',
+  ] as const;
+
   // GET /api/operations — list recent operations
   fastify.get<{ Querystring: { limit?: string; offset?: string } }>(
     "/operations",
@@ -102,8 +109,17 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
           path: string;
           set: string;
           status: "added" | "modified" | "removed";
-          before?: { $value: unknown; $type?: string };
-          after?: { $value: unknown; $type?: string };
+          changedFields?: string[];
+          before?: {
+            $value: unknown;
+            $type?: string;
+            $description?: string;
+          };
+          after?: {
+            $value: unknown;
+            $type?: string;
+            $description?: string;
+          };
         }> = [];
         const metadataChanges =
           entry.metadata?.kind === "set-metadata" &&
@@ -144,20 +160,24 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
               },
             });
           } else if (currentToken && restoredToken) {
-            const currentVal = stableStringify(currentToken.$value);
-            const restoredVal = stableStringify(restoredToken.$value);
-            if (currentVal !== restoredVal) {
+            const changedFields = MODIFIED_TOKEN_FIELDS.filter((field) => {
+              return stableStringify(currentToken[field]) !== stableStringify(restoredToken[field]);
+            });
+            if (changedFields.length > 0) {
               diffs.push({
                 path: userFacingPath,
                 set: setName,
                 status: "modified",
+                changedFields,
                 before: {
                   $value: currentToken.$value,
                   $type: currentToken.$type,
+                  $description: currentToken.$description,
                 },
                 after: {
                   $value: restoredToken.$value,
                   $type: restoredToken.$type,
+                  $description: restoredToken.$description,
                 },
               });
             }

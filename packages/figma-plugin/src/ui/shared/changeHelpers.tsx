@@ -12,6 +12,7 @@ export interface TokenChange {
   status: ChangeStatus;
   before?: any;
   after?: any;
+  changedFields?: string[];
 }
 
 /* ── Helpers ──────────────────────────────────────────────────────────── */
