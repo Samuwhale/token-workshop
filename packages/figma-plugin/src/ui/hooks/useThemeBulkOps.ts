@@ -37,7 +37,10 @@ export function useThemeBulkOps({
 
   // Prevents setState calls on unmounted component after in-flight mutations complete.
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
   useEffect(() => {
     if (pendingMutationsRef.current > 0) return;
     dimensionsRef.current = dimensions;

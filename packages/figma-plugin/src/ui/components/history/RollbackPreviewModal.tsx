@@ -50,6 +50,7 @@ export function RollbackPreviewModal({
   useFocusTrap(dialogRef);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
 

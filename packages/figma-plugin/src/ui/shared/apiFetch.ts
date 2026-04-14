@@ -78,7 +78,13 @@ async function readResponseBody(res: Response): Promise<unknown> {
   const raw = await res.text();
   if (raw.trim() === '') return undefined;
   if (!isJsonContentType(res.headers.get('content-type'))) return raw;
-  return JSON.parse(raw) as unknown;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch (error) {
+    if (!res.ok) return raw;
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new ApiError(`Invalid JSON response from server: ${detail}`, res.status);
+  }
 }
 
 function getErrorMessageFromBody(body: unknown, status: number): string {

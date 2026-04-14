@@ -132,9 +132,40 @@ export function parseCSSCustomProperties(raw: string): ParseResult {
 // CSV / TSV parser
 // ---------------------------------------------------------------------------
 
+function splitDelimitedRow(line: string, separator: ',' | '\t'): string[] {
+  const cells: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+        continue;
+      }
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === separator && !inQuotes) {
+      cells.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
 export function detectCSVSeparator(firstDataLine: string): ',' | '\t' | null {
-  const tabs = (firstDataLine.match(/\t/g) || []).length;
-  const commas = (firstDataLine.match(/,/g) || []).length;
+  const tabs = splitDelimitedRow(firstDataLine, '\t').length - 1;
+  const commas = splitDelimitedRow(firstDataLine, ',').length - 1;
   if (tabs >= 1) return '\t';
   if (commas >= 1) return ',';
   return null;
@@ -172,7 +203,7 @@ export function parseCSV(raw: string): ParseResult {
   const startRow = hasHeader ? 1 : 0;
 
   for (let i = startRow; i < lines.length; i++) {
-    const cells = lines[i].split(sep).map(c => c.trim());
+    const cells = splitDelimitedRow(lines[i], sep);
     const name = cells[nameCol] || '';
     const value = cells[valueCol] || '';
     const explicitType = typeCol >= 0 ? (cells[typeCol] || '') : '';
@@ -356,10 +387,10 @@ export function looksLikeCSV(raw: string): boolean {
   if (lines.length < 2) return false;
   const sep = detectCSVSeparator(lines[0]);
   if (!sep) return false;
-  const cols0 = lines[0].split(sep).length;
+  const cols0 = splitDelimitedRow(lines[0], sep).length;
   if (cols0 < 2) return false;
   // Check consistency: most lines should have the same column count
-  const consistent = lines.filter(l => l.split(sep).length === cols0).length;
+  const consistent = lines.filter(l => splitDelimitedRow(l, sep).length === cols0).length;
   return consistent >= lines.length * 0.7;
 }
 
