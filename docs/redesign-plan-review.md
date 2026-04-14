@@ -60,30 +60,15 @@ Cap inline option buttons at 3 per dimension. Beyond 3, use a dropdown.
 
 Relevant files: `App.tsx`, `TokenListToolbar.tsx`, `toastBus.ts`
 
-## Phase 2: Migration Inventory
+## Phase 2: Migration Inventory (Complete)
 
-Audit every touchpoint that assumes Recipes is a top-level workspace. No code changes — produce a checked list.
+Full inventory: [`docs/phase2-migration-inventory.md`](phase2-migration-inventory.md)
 
-Files to audit:
+**Decision:** Keep both entry points — section for listing (`GraphPanel`), contextual panel for editing (`TokenRecipeDialog`). Distinct intents, distinct treatments.
 
-- `navigationTypes.ts` — `TopTab`, `WORKSPACE_TABS`, `WorkspaceId`
-- `NavigationContext.tsx`
-- `PanelRouter.tsx` — `PANEL_MAP.recipes`, `renderDefineRecipes()`
-- `useCommandPaletteCommands.ts` — recipe creation commands calling `navigateTo("recipes")`
-- `AppCommandPalette.tsx`
-- `WorkspaceControllerContext.tsx` — `TokensWorkspaceController` recipe state, `SetManagerWorkspaceController.onOpenRecipes`
-- `useGraphState.ts` — `pendingGraphTemplate`, `pendingGraphFromGroup`, `focusRecipeId`, `pendingOpenPicker`
-- `SetSwitcher.tsx`
-- `HealthPanel.tsx`
-- `NotificationsPanel.tsx`
-- `App.tsx` — shell tab rendering, `workspacePrimaryAction`
+**Result:** 31 touchpoints audited across 12 files. Only 2 require changes (both in `navigationTypes.ts`): move recipes from `WORKSPACE_TABS` to a section under tokens, remove `"recipes"` from `WorkspaceId`. All 6 `navigateTo("recipes", ...)` calls, all `PANEL_MAP` routing, and all storage keys remain stable — `navigateTo` validates against `TOP_TABS` (not `WORKSPACE_TABS`), `PANEL_MAP` looks up renderers by `TopTab`/`SubTab` directly, and `resolveWorkspace` searches sections for shell tab highlighting.
 
 Key existing seam: recipe *editing* already lives inside Tokens via `TokensLibraryContextualSurface: "recipe-editor"` and `TokenRecipeDialog` rendered as a contextual panel in `PanelRouter`. The migration is about recipe *listing and management* — moving `GraphPanel` from its own workspace into a section.
-
-Deliverables:
-
-- Checked migration list with no route touchpoint left implicit
-- Decision on whether to keep both entry points (contextual panel for editing, section for list) or unify
 
 ## Phase 3: Redesign Tokens As A Two-Section Workspace
 
