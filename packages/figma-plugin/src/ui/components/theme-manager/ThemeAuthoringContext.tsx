@@ -9,7 +9,6 @@ import type {
 import type { ThemeRoleState, ThemeOptionRoleSummary } from "../themeManagerTypes";
 import type {
   ThemeIssueSummary,
-  ThemeRoleNavigationTarget,
 } from "../../shared/themeWorkflow";
 
 

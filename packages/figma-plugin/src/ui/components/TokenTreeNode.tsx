@@ -2083,68 +2083,6 @@ const TokenLeafNode = memo(
       [node.$value, node.$type, node.path, allTokensFlat],
     );
 
-    const handleApplyToSelection = useCallback(
-      (e: React.MouseEvent) => {
-        if (!node.$type) return;
-
-        // Composition tokens apply all their properties at once
-        if (node.$type === "composition") {
-          parent.postMessage(
-            {
-              pluginMessage: {
-                type: "apply-to-selection",
-                tokenPath: node.path,
-                tokenType: "composition",
-                targetProperty: "composition",
-                resolvedValue: resolveCompositeForApply(node, allTokensFlat),
-              },
-            },
-            "*",
-          );
-          return;
-        }
-
-        const validProps = TOKEN_PROPERTY_MAP[node.$type];
-        if (!validProps || validProps.length === 0) return;
-
-        // Quick-bind: use scope + capability + binding info to narrow targets
-        if (selectedNodes && selectedNodes.length > 0) {
-          const entry = allTokensFlat[node.path];
-          const targets = getQuickBindTargets(
-            node.$type,
-            entry?.$scopes,
-            selectedNodes,
-          );
-          if (targets.length === 1) {
-            applyWithProperty(targets[0]);
-            setQuickBound(PROPERTY_LABELS[targets[0]]);
-            setTimeout(() => setQuickBound(null), 1500);
-            return;
-          }
-          // If scope filtering narrowed to a subset, show picker with just those
-          if (targets.length > 1 && targets.length < validProps.length) {
-            const rect = (
-              e.currentTarget as HTMLElement
-            ).getBoundingClientRect();
-            setPickerAnchor({ top: rect.bottom + 2, left: rect.left });
-            setPickerProps(targets);
-            setShowPicker(true);
-            return;
-          }
-        }
-
-        if (validProps.length === 1) {
-          applyWithProperty(validProps[0]);
-        } else {
-          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-          setPickerAnchor({ top: rect.bottom + 2, left: rect.left });
-          setPickerProps(null);
-          setShowPicker(true);
-        }
-      },
-      [node, allTokensFlat, selectedNodes, applyWithProperty],
-    );
-
     const confirmTokenRename = useCallback(() => {
       const newName = renameTokenVal.trim();
       if (!newName) {
@@ -2349,12 +2287,6 @@ const TokenLeafNode = memo(
       const entry = allTokensFlat[node.path];
       return getQuickBindTargets(node.$type, entry?.$scopes, selectedNodes);
     }, [node.$type, node.path, allTokensFlat, selectedNodes]);
-    const canApplyFromRow =
-      !!node.$type &&
-      selectedNodes.length > 0 &&
-      (node.$type === "composition" ||
-        (TOKEN_PROPERTY_MAP[node.$type]?.length ?? 0) > 0);
-
     const reorderPos =
       dragOverReorder?.path === node.path ? dragOverReorder.position : null;
 

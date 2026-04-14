@@ -117,6 +117,11 @@ export const FIGMA_SCOPE_OPTIONS: Record<
 };
 
 type TokenExtensions = Record<string, unknown> | undefined;
+type TokenPresentationEntry = {
+  $extensions?: Record<string, unknown>;
+  $scopes?: string[];
+  $lifecycle?: "draft" | "published" | "deprecated";
+};
 
 type TokenManagerMetadata = {
   lifecycle?: "draft" | "published" | "deprecated";
@@ -146,32 +151,28 @@ function readTokenManagerMetadata(
 }
 
 export function readTokenPresentationMetadata(
-  entry?:
-    | TokenMapEntry
-    | {
-        $extensions?: Record<string, unknown>;
-        $scopes?: string[];
-        $lifecycle?: "draft" | "published" | "deprecated";
-      },
+  entry?: TokenMapEntry | TokenPresentationEntry,
 ): {
   scopes: string[];
   lifecycle: "draft" | "published" | "deprecated";
   provenance: string | null;
   extendsPath: string | null;
 } {
-  const scopesFromExtensions = entry?.$extensions?.[
-    "com.figma.scopes"
-  ] as unknown;
-  const metadata = readTokenManagerMetadata(entry?.$extensions);
-  const scopes = Array.isArray(entry?.$scopes)
-    ? entry.$scopes
-    : Array.isArray(scopesFromExtensions)
-      ? scopesFromExtensions.filter((value): value is string => typeof value === "string")
+  const metadataEntry = entry as TokenPresentationEntry | undefined;
+  const extensions = metadataEntry?.$extensions;
+  const scopesFromExtensions = extensions?.["com.figma.scopes"] as unknown;
+  const metadata = readTokenManagerMetadata(extensions);
+  const scopes = Array.isArray(metadataEntry?.$scopes)
+    ? metadataEntry.$scopes
+      : Array.isArray(scopesFromExtensions)
+      ? scopesFromExtensions.filter(
+          (value): value is string => typeof value === "string",
+        )
       : [];
 
   return {
     scopes,
-    lifecycle: entry?.$lifecycle ?? metadata.lifecycle ?? "published",
+    lifecycle: metadataEntry?.$lifecycle ?? metadata.lifecycle ?? "published",
     provenance: metadata.source ?? null,
     extendsPath: metadata.extends ?? null,
   };

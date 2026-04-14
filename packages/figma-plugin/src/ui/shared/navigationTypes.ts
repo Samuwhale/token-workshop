@@ -284,13 +284,6 @@ const workspaceTransition = (usage: string): SurfaceTransition => ({
   usage,
 });
 
-const contextualSubScreenTransition = (usage: string): SurfaceTransition => ({
-  kind: "contextual-sub-screen",
-  presentation: "route",
-  closeBehavior: "restore-underlying-surface",
-  usage,
-});
-
 const secondaryTakeoverTransition = (usage: string): SurfaceTransition => ({
   kind: "secondary-takeover",
   presentation: "full-height-body",
@@ -807,4 +800,3 @@ export function resolveSecondarySurface(
   if (id === null) return null;
   return SECONDARY_SURFACES.find((surface) => surface.id === id) ?? null;
 }
-

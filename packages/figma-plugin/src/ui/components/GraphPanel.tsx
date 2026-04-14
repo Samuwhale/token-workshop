@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TokenRecipe, RecipeType } from "../hooks/useRecipes";
+import type { TokenRecipe } from "../hooks/useRecipes";
 import { getRecipeDashboardStatus } from "../hooks/useRecipes";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenMapEntry } from "../../shared/types";

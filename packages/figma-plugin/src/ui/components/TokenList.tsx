@@ -114,7 +114,6 @@ const TOKEN_TYPE_COLORS: Record<string, string> = {
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
 const TOKENS_LIBRARY_BODY_SURFACE = "library-body";
-const TOKENS_LIBRARY_SPLIT_PREVIEW_LABEL = "Split preview";
 
 type BulkEditScope = {
   source: "current-scope" | "saved-preset";
@@ -1129,29 +1128,6 @@ export function TokenList({
     typeFilter,
   ]);
 
-  const activeViewSummary = useMemo(() => {
-    const items: string[] = [];
-    if (multiModeEnabled) {
-      items.push(
-        multiModeDimensionName
-          ? `Theme options: ${multiModeDimensionName}`
-          : "Theme options",
-      );
-    }
-    if (condensedView) items.push("Condensed rows");
-    if (themeLensEnabled) items.push("Active theme values");
-    if (showPreviewSplit) items.push("Preview pane");
-    if (showFlatSearchResults) items.push("Flat search results");
-    return items;
-  }, [
-    condensedView,
-    multiModeDimensionName,
-    multiModeEnabled,
-    themeLensEnabled,
-    showFlatSearchResults,
-    showPreviewSplit,
-  ]);
-
   const hasStructuredFilters = structuredFilterChips.length > 0;
   const toolbarStateChips = useMemo(() => {
     const chips: Array<{
@@ -1298,6 +1274,7 @@ export function TokenList({
     setInspectMode,
     setRefFilter,
     setSearchResultPresentation,
+    setThemeLensEnabled,
     setShowDuplicates,
     setShowRecentlyTouched,
     setSortOrder,

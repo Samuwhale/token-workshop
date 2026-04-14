@@ -18,7 +18,6 @@ import { ColorScaleRecipe } from "./components/ColorScaleRecipe";
 import { AppCommandPalette } from "./components/AppCommandPalette";
 import { SetSwitcher } from "./components/SetSwitcher";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
-import { computeHealthIssueCount } from "./components/HealthPanel";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
 import { PanelRouter } from "./panels/PanelRouter";
@@ -44,7 +43,6 @@ import {
   getImportResultNextStepRecommendations,
   getMostRelevantImportDestinationSet,
   resolveWorkspaceSummary,
-  resolveSecondarySurface,
   toWorkspaceId,
 } from "./shared/navigationTypes";
 import type {
@@ -68,9 +66,7 @@ import {
 } from "./contexts/ThemeContext";
 import {
   useSelectionContext,
-  useHeatmapContext,
   useUsageContext,
-  useInspectPreferencesContext,
 } from "./contexts/InspectContext";
 import { useNavigationContext } from "./contexts/NavigationContext";
 import { useEditorContext } from "./contexts/EditorContext";
@@ -307,8 +303,7 @@ export function App() {
     updateSetMetadataInState,
     fetchTokensForSet,
   } = useTokenSetsContext();
-  const { allTokensFlat, pathToSet, perSetFlat, filteredSetCount } =
-    useTokenFlatMapContext();
+  const { allTokensFlat, pathToSet, perSetFlat } = useTokenFlatMapContext();
   const {
     recipes,
     refreshRecipes,
@@ -327,15 +322,11 @@ export function App() {
     dimDropdownRef,
     themesError,
     retryThemes,
-    setThemeStatusMap,
   } = useThemeSwitcherContext();
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
-  const { triggerHeatmapScan } = useHeatmapContext();
   const { triggerUsageScan } = useUsageContext();
-  const { deepInspect, propFilter, propFilterMode } =
-    useInspectPreferencesContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } =
     useAvailableFonts();
   // Utilities menu owns the connection editor so recovery stays available without
@@ -615,10 +606,6 @@ export function App() {
     refreshRecipes();
     setTokenChangeKey((k) => k + 1);
   }, [refreshTokens, refreshRecipes]);
-  const staleRecipeCount = useMemo(
-    () => recipes.filter((g) => g.isStale).length,
-    [recipes],
-  );
   const activeWorkspaceSummary = useMemo(
     () => resolveWorkspaceSummary(activeTopTab, activeSubTab),
     [activeTopTab, activeSubTab],
@@ -626,10 +613,6 @@ export function App() {
   const activeWorkspace = activeWorkspaceSummary.workspace;
   const activeWorkspaceSection = activeWorkspaceSummary.section;
   const activeWorkspaceId = activeWorkspace.id;
-  const activeSecondarySurfaceDef = useMemo(
-    () => resolveSecondarySurface(activeSecondarySurface),
-    [activeSecondarySurface],
-  );
   const shellShortcutSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
     (surface) => surface.access === "shell-shortcut",
   );
@@ -659,11 +642,6 @@ export function App() {
       activeView: "authoring",
       authoringMode: "roles",
     });
-  // Title only shown for secondary surfaces (Import, Settings, etc.)
-  const shellCurrentTitle = activeSecondarySurfaceDef
-    ? activeSecondarySurfaceDef.summaryTitle
-    : null;
-
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
   const prevAllTokensFlatRef = useRef<Record<string, TokenMapEntry>>({});
@@ -1009,11 +987,6 @@ export function App() {
     validationIsStale,
     refreshValidation,
   } = useValidationCache({ serverUrl, connected, tokenChangeKey });
-  const healthIssueCount = useMemo(
-    () =>
-      computeHealthIssueCount(lintViolations, recipes, validationSummary),
-    [lintViolations, recipes, validationSummary],
-  );
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<
     string | null
   >(null);
@@ -1094,16 +1067,9 @@ export function App() {
 
   // Lightweight set switcher bar: overflow handling, token-drop targets, and manager reorder helpers.
   const {
-    dragOverSetName,
-    setTabsScrollRef,
-    setTabsOverflow,
     cascadeDiff,
-    handleSetDragOver,
-    handleSetDragLeave,
-    handleSetDrop,
     handleReorderSet,
     handleReorderSetFull,
-    scrollSetTabs,
   } = useSetTabs({
     serverUrl,
     sets,
@@ -1379,20 +1345,6 @@ export function App() {
       getDisconnectSignal,
     ],
   );
-
-  // Per-set type breakdown for tab tooltips
-  const setByTypeCounts = useMemo(() => {
-    const result: Record<string, Record<string, number>> = {};
-    for (const [setName, flatMap] of Object.entries(perSetFlat)) {
-      const byType: Record<string, number> = {};
-      for (const entry of Object.values(flatMap)) {
-        const t = (entry as { $type?: string }).$type || "unknown";
-        byType[t] = (byType[t] || 0) + 1;
-      }
-      result[setName] = byType;
-    }
-    return result;
-  }, [perSetFlat]);
 
   // Catch-all: warn in the console when the plugin sandbox sends a message type that
   // is not in the ControllerMessage union. This fires during development and helps
@@ -2135,12 +2087,6 @@ export function App() {
     themeWorkflowSummary.nextSetRoleTarget?.actionLabel,
   ]);
 
-  const shellSections =
-    activeSecondarySurface === null ? activeWorkspace.sections : undefined;
-  const shellActiveSectionId =
-    activeSecondarySurface === null
-      ? (activeWorkspaceSection?.id ?? null)
-      : null;
   const visibleHandoff = useMemo(() => {
     if (!activeHandoff) {
       return null;
@@ -2216,10 +2162,6 @@ export function App() {
     : connected
       ? `Connected to ${serverUrl}`
       : `Server offline · ${serverUrl}`;
-  const shellMenuActive =
-    menuOpen ||
-    activeSecondarySurface === "settings" ||
-    activeSecondarySurface === "shortcuts";
   const notificationCount = notificationHistory.length;
   const showNotificationButton =
     notificationCount > 0 || activeSecondarySurface === "notifications";

@@ -14,7 +14,7 @@ interface SyncPreflightStepProps {
 }
 
 export function SyncPreflightStep({
-  stage,
+  stage: _stage,
   isOutdated,
   error,
   blockingClusters,

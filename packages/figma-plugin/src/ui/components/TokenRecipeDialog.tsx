@@ -304,9 +304,9 @@ export function TokenRecipeDialog({
           ? dialog.handleConfirmSave()
           : dialog.handleQuickSave(),
       discard: async () => {
-        onClose();
+        requestClose();
       },
-      closeWhenClean: onClose,
+      closeWhenClean: requestClose,
     });
     return () => {
       editorSessionHost.registerSession(null);
@@ -319,8 +319,9 @@ export function TokenRecipeDialog({
     dialog.overwriteCheckLoading,
     dialog.saving,
     dialog.showConfirmation,
+    dialog,
     editorSessionHost,
-    onClose,
+    requestClose,
   ]);
 
   const isPanel = presentation === "panel";

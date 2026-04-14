@@ -1,5 +1,4 @@
 import React, {
-  useCallback,
   useState,
   useEffect,
   useRef,
@@ -21,11 +20,9 @@ import {
   NoticeInlineAlert,
 } from "../shared/noticeSystem";
 import {
-  sortThemeIssuesByPriority,
   summarizeThemeWorkflow,
   type ThemeAuthoringStage,
   type ThemeAuthoringMode,
-  type ThemeIssueSummary,
   type ThemeManagerView,
   type ThemeWorkspaceShellState,
 } from "../shared/themeWorkflow";
@@ -43,7 +40,6 @@ import { ThemePreviewScreen } from "./theme-manager/ThemePreviewScreen";
 import { useThemeManagerNavigation } from "./theme-manager/useThemeManagerNavigation";
 import {
   getFirstDimensionWithFillableGaps,
-  resolveThemeAutoFillAction,
 } from "./theme-manager/themeAutoFillTargets";
 import {
   useThemeAdvancedToolsController,
@@ -223,7 +219,6 @@ const ThemeManagerWorkspace = React.forwardRef<
     bulkOps,
     autoFill,
     options,
-    overrideSet,
     modals: modalContextValue,
     coverage,
     missingOverrides,
@@ -273,20 +268,11 @@ const ThemeManagerWorkspace = React.forwardRef<
   const {
     copyFromNewOption,
     setCopyFromNewOption,
-    roleStates,
     handleSetState,
-    handleBulkSetState,
-    handleBulkSetAllInOption,
     handleCopyAssignmentsFrom,
     getCopySourceOptions,
-    getSetRoleCounts,
-    savingKeys,
   } = bulkOps;
-  const {
-    fillingKeys,
-    handleAutoFillAll,
-    handleAutoFillAllOptions,
-  } = autoFill;
+  const { handleAutoFillAll, handleAutoFillAllOptions } = autoFill;
   const {
     newOptionNames,
     setNewOptionNames,
@@ -319,7 +305,6 @@ const ThemeManagerWorkspace = React.forwardRef<
   const {
     setTokenCounts,
     optionIssues,
-    allIssues,
     totalFillableGaps,
     optionDiffCounts,
     optionRoleSummaries,

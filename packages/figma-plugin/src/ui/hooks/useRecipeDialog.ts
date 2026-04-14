@@ -676,7 +676,7 @@ export function useRecipeDialog({
     setSelectedType(type);
     if (nameWasAutoRef.current) setName(autoName(effectiveSourcePath, type));
     if (editableSourcePath.trim()) return;
-    setInlineValueRaw((currentValue) => {
+    setInlineValueRaw((currentValue: unknown) => {
       if (isInlineValueCompatibleWithType(type, currentValue)) {
         return currentValue;
       }

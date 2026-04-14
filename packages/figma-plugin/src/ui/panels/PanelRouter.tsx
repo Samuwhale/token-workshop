@@ -23,7 +23,6 @@ import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import { SelectionInspector } from "../components/SelectionInspector";
 import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
 import { GraphPanel } from "../components/GraphPanel";
-import { TokenFlowPanel } from "../components/TokenFlowPanel";
 import { ExportPanel } from "../components/ExportPanel";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { HealthPanel } from "../components/HealthPanel";
@@ -218,7 +217,6 @@ export function PanelRouter(): ReactNode {
     perSetFlat,
     syncSnapshot,
     tokensError,
-    tokensLoading,
     setFilteredSetCount,
   } = useTokenFlatMapContext();
   const {
@@ -1562,52 +1560,6 @@ export function PanelRouter(): ReactNode {
               "*",
             )
           }
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  function renderApplyDependencies(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Dependencies"
-        onReset={() => navigateTo("sync", "health")}
-      >
-        <TokenFlowPanel
-          allTokensFlat={themedAllTokensFlat}
-          pathToSet={pathToSet}
-          loading={tokensLoading}
-          initialPath={controller.flowPanelInitialPath}
-          onNavigateToToken={(path) => {
-            const targetSet = pathToSet[path];
-            beginHandoff({
-              reason:
-                "Inspect the token behind this dependency chain, then return to Audit.",
-            });
-            navigateTo("tokens", "tokens", { preserveHandoff: true });
-            setEditingToken(null);
-            if (targetSet && targetSet !== activeSet) {
-              setActiveSet(targetSet);
-              setPendingHighlight(path);
-            } else {
-              setHighlightedToken(path);
-            }
-          }}
-          onEditToken={(path) => {
-            const targetSet = pathToSet[path];
-            beginHandoff({
-              reason:
-                "Edit the token behind this dependency chain, then return to Audit.",
-            });
-            navigateTo("tokens", "tokens", { preserveHandoff: true });
-            setEditingToken({ path, set: targetSet ?? activeSet });
-            if (targetSet && targetSet !== activeSet) {
-              setActiveSet(targetSet);
-              setPendingHighlight(path);
-            } else {
-              setHighlightedToken(path);
-            }
-          }}
         />
       </ErrorBoundary>
     );

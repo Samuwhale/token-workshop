@@ -126,6 +126,7 @@ export function TokenDetailPreview({
   const derivedRecipe = derivedTokenPaths?.get(
     createRecipeOwnershipKey(pathToSet?.[tokenPath] ?? setName, tokenPath),
   );
+  const tokenSetName = pathToSet?.[tokenPath] ?? setName;
   const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
   const presentation = readTokenPresentationMetadata(entry);
   const syncChanged = useMemo(() => {
@@ -222,7 +223,7 @@ export function TokenDetailPreview({
               {type}
             </span>
             <span className="text-[8px] text-[var(--color-figma-text-tertiary)]">
-              {tokenSet}
+              {tokenSetName}
             </span>
           </div>
           {(lintViolations.length > 0 || syncChanged) && (

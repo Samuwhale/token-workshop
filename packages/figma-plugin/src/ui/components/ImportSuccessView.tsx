@@ -1,7 +1,4 @@
-import {
-  IMPORT_REVIEW_ACTION_COPY,
-  useImportResultContext,
-} from "./ImportPanelContext";
+import { useImportResultContext } from "./ImportPanelContext";
 
 export function ImportSuccessView() {
   const {
@@ -9,7 +6,6 @@ export function ImportSuccessView() {
     failedImportPaths,
     failedImportBatches,
     failedImportGroups,
-    failedImportStrategy,
     succeededImportCount,
     lastImport,
     lastImportReviewSummary,
