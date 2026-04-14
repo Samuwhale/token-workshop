@@ -306,5 +306,6 @@ export function resetWorkspaceStateForRecovery(): void {
   lsClearByPrefix(
     STORAGE_PREFIXES.TOKEN_SORT,
     STORAGE_PREFIXES.TOKEN_TYPE_FILTER,
+    STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES,
   );
 }

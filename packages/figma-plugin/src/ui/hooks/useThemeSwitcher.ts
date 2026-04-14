@@ -1,3 +1,4 @@
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
@@ -22,7 +23,7 @@ export function useThemeSwitcher(
   activeThemesRef.current = activeThemes;
   const setActiveThemes = useCallback((map: Record<string, string>) => {
     lsSetJson(STORAGE_KEYS.ACTIVE_THEMES, map);
-    parent.postMessage({ pluginMessage: { type: 'set-active-themes', themes: map } }, '*');
+    postPluginMessage({ type: 'set-active-themes', themes: map });
     setActiveThemesState(map);
   }, []);
 
@@ -38,9 +39,13 @@ export function useThemeSwitcher(
 
   // Load per-file active themes from clientStorage on mount
   useEffect(() => {
-    parent.postMessage({ pluginMessage: { type: 'get-active-themes' } }, '*');
+    if (!postPluginMessage({ type: 'get-active-themes' })) {
+      figmaThemesReadyRef.current = true;
+      return;
+    }
+
     const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{ type?: string; themes?: Record<string, string> }>(e);
       if (msg?.type === 'active-themes-loaded') {
         figmaThemesReadyRef.current = true;
         const figmaThemes: Record<string, string> = msg.themes ?? {};

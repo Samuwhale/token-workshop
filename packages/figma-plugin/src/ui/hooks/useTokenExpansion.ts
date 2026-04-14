@@ -24,7 +24,11 @@ export function useTokenExpansion({
 
   // Initialize from localStorage on set change
   useEffect(() => {
-    if (tokens.length === 0) return;
+    if (tokens.length === 0) {
+      initializedForSet.current = null;
+      setExpandedPaths(new Set());
+      return;
+    }
     if (initializedForSet.current === setName) return;
     initializedForSet.current = setName;
     const fallback = collectGroupPathsByDepth(tokens, 2);

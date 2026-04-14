@@ -25,39 +25,43 @@ function makeRow(type = 'color'): TableRow {
 }
 
 // --- sessionStorage persistence for table-create recovery ---
-const STORAGE_KEY = 'tokenmanager:table-create-draft';
+const STORAGE_KEY_PREFIX = 'tokenmanager:table-create-draft';
+
+function getDraftStorageKey(setName: string): string {
+  return `${STORAGE_KEY_PREFIX}:${setName || '__default__'}`;
+}
 
 interface TableDraft {
   group: string;
   rows: TableRow[];
 }
 
-function saveDraft(group: string, rows: TableRow[]): void {
+function saveDraft(setName: string, group: string, rows: TableRow[]): void {
   // Only save if there's meaningful data (at least one row with content)
   const hasContent = rows.some(r => r.name.trim() || r.value.trim());
   if (!hasContent) {
-    ssRemove(STORAGE_KEY);
+    ssRemove(getDraftStorageKey(setName));
     return;
   }
-  ssSetJson(STORAGE_KEY, { group, rows });
+  ssSetJson(getDraftStorageKey(setName), { group, rows });
 }
 
-function loadDraft(): TableDraft | null {
+function loadDraft(setName: string): TableDraft | null {
   try {
-    const draft = ssGetJson<TableDraft | null>(STORAGE_KEY, null);
+    const draft = ssGetJson<TableDraft | null>(getDraftStorageKey(setName), null);
     if (!draft) return null;
     if (!Array.isArray(draft.rows) || draft.rows.length === 0) return null;
     // Re-assign IDs to avoid collisions with current counter
     draft.rows = draft.rows.map(r => ({ ...r, id: newRowId() }));
     return draft;
   } catch {
-    ssRemove(STORAGE_KEY);
+    ssRemove(getDraftStorageKey(setName));
     return null;
   }
 }
 
-function clearDraft(): void {
-  ssRemove(STORAGE_KEY);
+function clearDraft(setName: string): void {
+  ssRemove(getDraftStorageKey(setName));
 }
 
 export interface UseTableCreateParams {
@@ -95,9 +99,9 @@ export function useTableCreate({
   // Auto-save draft to sessionStorage whenever rows or group change
   useEffect(() => {
     if (showTableCreate) {
-      saveDraft(tableGroup, tableRows);
+      saveDraft(setName, tableGroup, tableRows);
     }
-  }, [showTableCreate, tableGroup, tableRows]);
+  }, [setName, showTableCreate, tableGroup, tableRows]);
 
   const addRow = useCallback((inheritType?: string) => {
     setTableRows(prev => {
@@ -141,24 +145,24 @@ export function useTableCreate({
     setBusy(false);
     setHasDraft(false);
     dismissedRecovery.current = false;
-    clearDraft();
-  }, []);
+    clearDraft(setName);
+  }, [setName]);
 
   const restoreDraft = useCallback(() => {
-    const draft = loadDraft();
+    const draft = loadDraft(setName);
     if (draft) {
       setTableGroup(draft.group);
       setTableRows(draft.rows);
       setHasDraft(false);
       dismissedRecovery.current = true;
     }
-  }, []);
+  }, [setName]);
 
   const dismissDraft = useCallback(() => {
     setHasDraft(false);
     dismissedRecovery.current = true;
-    clearDraft();
-  }, []);
+    clearDraft(setName);
+  }, [setName]);
 
   const openTableCreate = useCallback((group = '') => {
     setRowErrors({});
@@ -167,7 +171,7 @@ export function useTableCreate({
     dismissedRecovery.current = false;
 
     // Check for a saved draft to offer recovery
-    const draft = loadDraft();
+    const draft = loadDraft(setName);
     if (draft) {
       setHasDraft(true);
       // Start with a fresh table; user can choose to restore
@@ -180,7 +184,7 @@ export function useTableCreate({
     }
 
     setShowTableCreate(true);
-  }, []);
+  }, [setName]);
 
   const handleCreateAll = useCallback(async () => {
     if (!connected || busy) return;
