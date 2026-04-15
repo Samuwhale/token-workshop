@@ -7,8 +7,6 @@ import {
   type ResolverModifier,
   type ResolverSet,
   type ResolverSource,
-  type ThemeDimension,
-  type ThemeSetStatus,
   type Token,
   type TokenGroup,
 } from "@tokenmanager/core";
@@ -42,13 +40,6 @@ interface SetRecipeMeta {
   targetGroup: string;
 }
 
-interface SetThemeImpact {
-  dimensionId: string;
-  dimensionName: string;
-  optionName: string;
-  status: ThemeSetStatus;
-}
-
 interface SetResolverImpact {
   name: string;
 }
@@ -75,7 +66,6 @@ interface SetPreflightImpact {
     collectionName?: string;
     modeName?: string;
   };
-  themeOptions: SetThemeImpact[];
   resolverRefs: SetResolverImpact[];
   generatedOwnership: SetRecipeOwnershipImpact[];
   recipeTargets: SetRecipeTargetImpact[];
@@ -84,8 +74,7 @@ interface SetPreflightImpact {
 type SetPreflightBlockerCode =
   | "generated-token-ownership"
   | "recipe-target-set"
-  | "resolver-set-ref"
-  | "theme-option-set";
+  | "resolver-set-ref";
 
 interface SetPreflightBlocker {
   id: string;
@@ -125,7 +114,6 @@ interface LoadedSetDependencyData {
 }
 
 interface SetDependencySnapshot {
-  dimensions: ThemeDimension[];
   resolvers: SetResolverMeta[];
   recipes: SetRecipeMeta[];
   allOwnedTokens: Array<{ setName: string; path: string; recipeId: string }>;
@@ -255,26 +243,6 @@ function findFolderRenameConflicts(
   return [...conflicts].sort((a, b) => a.localeCompare(b));
 }
 
-function buildThemeImpacts(
-  setName: string,
-  dimensions: ThemeDimension[],
-): SetThemeImpact[] {
-  const impacts: SetThemeImpact[] = [];
-  for (const dimension of dimensions) {
-    for (const option of dimension.options) {
-      const status = option.sets[setName];
-      if (!status) continue;
-      impacts.push({
-        dimensionId: dimension.id,
-        dimensionName: dimension.name,
-        optionName: option.name,
-        status,
-      });
-    }
-  }
-  return impacts;
-}
-
 function buildGeneratedOwnershipImpacts(
   setName: string,
   allOwnedTokens: Array<{ setName: string; path: string; recipeId: string }>,
@@ -322,32 +290,6 @@ function buildRecipeTargets(
       targetGroup: recipe.targetGroup,
     }))
     .sort((a, b) => a.recipeName.localeCompare(b.recipeName));
-}
-
-function removeThemeSetReferences(params: {
-  dimensions: ThemeDimension[];
-  deletedSetNames: Set<string>;
-}): { dimensions: ThemeDimension[]; changed: boolean } {
-  const { dimensions, deletedSetNames } = params;
-  const nextDimensions = structuredClone(dimensions);
-  let changed = false;
-
-  for (const dimension of nextDimensions) {
-    for (const option of dimension.options) {
-      const nextSets = Object.fromEntries(
-        Object.entries(option.sets).filter(
-          ([setName]) => !deletedSetNames.has(setName),
-        ),
-      );
-      if (Object.keys(nextSets).length === Object.keys(option.sets).length) {
-        continue;
-      }
-      option.sets = nextSets;
-      changed = true;
-    }
-  }
-
-  return { dimensions: nextDimensions, changed };
 }
 
 function rewriteResolverSourcesWithoutDeletedSets(params: {
@@ -447,7 +389,6 @@ function buildSetImpact(params: {
   setName: string;
   tokens: TokenGroup;
   metadata: SetMetadataState;
-  dimensions: ThemeDimension[];
   resolvers: SetResolverMeta[];
   recipes: SetRecipeMeta[];
   allOwnedTokens: Array<{ setName: string; path: string; recipeId: string }>;
@@ -456,7 +397,6 @@ function buildSetImpact(params: {
     setName,
     tokens,
     metadata,
-    dimensions,
     resolvers,
     recipes,
     allOwnedTokens,
@@ -468,7 +408,6 @@ function buildSetImpact(params: {
     name: setName,
     tokenCount: flattenTokenGroup(tokens).size,
     metadata,
-    themeOptions: buildThemeImpacts(setName, dimensions),
     resolverRefs: resolvers
       .filter((resolver) => resolver.referencedSets.includes(setName))
       .map((resolver) => ({ name: resolver.name }))
@@ -492,17 +431,6 @@ function buildRecipeTargetBlockers(
     recipeId: recipe.recipeId,
     recipeName: recipe.recipeName,
     message: `Recipe "${recipe.recipeName}" still targets "${setImpact.name}"${recipe.targetGroup ? ` at ${recipe.targetGroup}` : ""}.`,
-  }));
-}
-
-function buildThemeOptionBlockers(
-  setImpact: SetPreflightImpact,
-): SetPreflightBlocker[] {
-  return setImpact.themeOptions.map((option) => ({
-    id: `theme-option:${option.dimensionId}:${option.optionName}:${setImpact.name}`,
-    code: "theme-option-set",
-    setName: setImpact.name,
-    message: `Theme option "${option.optionName}" in "${option.dimensionName}" still references "${setImpact.name}" as ${option.status}.`,
   }));
 }
 
@@ -625,7 +553,6 @@ function buildRemovalBlockers(
   setImpact: SetPreflightImpact,
 ): SetPreflightBlocker[] {
   return [
-    ...buildThemeOptionBlockers(setImpact),
     ...buildResolverReferenceBlockers(setImpact),
     ...buildGeneratedOwnershipBlockers(setImpact),
     ...buildRecipeTargetBlockers(setImpact),
@@ -732,25 +659,21 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     setNames: Iterable<string>,
   ): Promise<SetDependencySnapshot> => {
     const uniqueSetNames = [...new Set(setNames)];
-    const [dimensions, loadedSets] = await Promise.all([
-      fastify.dimensionsStore.load(),
-      Promise.all(
-        uniqueSetNames.map(async (setName) => {
-          const set = await fastify.tokenStore.getSet(setName);
-          if (!set) {
-            return null;
-          }
-          return {
-            name: setName,
-            tokens: set.tokens,
-            metadata: fastify.tokenStore.getSetMetadata(setName),
-          } satisfies LoadedSetDependencyData;
-        }),
-      ),
-    ]);
+    const loadedSets = await Promise.all(
+      uniqueSetNames.map(async (setName) => {
+        const set = await fastify.tokenStore.getSet(setName);
+        if (!set) {
+          return null;
+        }
+        return {
+          name: setName,
+          tokens: set.tokens,
+          metadata: fastify.tokenStore.getSetMetadata(setName),
+        } satisfies LoadedSetDependencyData;
+      }),
+    );
 
     const snapshot: SetDependencySnapshot = {
-      dimensions,
       resolvers: fastify.resolverStore
         .listSetDependencyMeta()
         .map((resolver) => ({
@@ -781,7 +704,6 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           setName: loadedSet.name,
           tokens: loadedSet.tokens,
           metadata: loadedSet.metadata,
-          dimensions: snapshot.dimensions,
           resolvers: snapshot.resolvers,
           recipes: snapshot.recipes,
           allOwnedTokens: snapshot.allOwnedTokens,
@@ -1313,8 +1235,6 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         let beforeSnapshot: Record<string, SnapshotEntry> | null = null;
         const deletedSetNames: string[] = [];
-        let previousDimensions: ThemeDimension[] | null = null;
-        let themesChanged = false;
         const previousResolverFiles: Record<string, ResolverFile> = {};
         let changedResolverNames: string[] = [];
 
@@ -1333,10 +1253,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           const blockers = buildRemovalBlockersForSetNames(
             dependencySnapshot,
             folderSetNames,
-            new Set<SetPreflightBlockerCode>([
-              "theme-option-set",
-              "resolver-set-ref",
-            ]),
+            new Set<SetPreflightBlockerCode>(["resolver-set-ref"]),
           );
           if (blockers.length > 0) {
             return reply.status(409).send({
@@ -1348,15 +1265,6 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           beforeSnapshot = await snapshotSets(fastify.tokenStore, folderSetNames);
-          await fastify.dimensionsStore.withLock(async (dimensions) => {
-            previousDimensions = structuredClone(dimensions);
-            const rewritten = removeThemeSetReferences({
-              dimensions,
-              deletedSetNames: deletedSetNameSet,
-            });
-            themesChanged = rewritten.changed;
-            return { dims: rewritten.dimensions, result: undefined };
-          });
           await fastify.resolverLock.withLock(async () => {
             const resolverFiles = fastify.resolverStore.getAllFiles();
             const nextChangedResolverNames: string[] = [];
@@ -1394,14 +1302,6 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 action: "create-set" as const,
                 name: setName,
               })),
-              ...(themesChanged && previousDimensions
-                ? [
-                    {
-                      action: "write-themes" as const,
-                      dimensions: previousDimensions,
-                    },
-                  ]
-                : []),
               ...changedResolverNames.map((name) => ({
                 action: "write-resolver" as const,
                 name,
@@ -1411,7 +1311,6 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             metadata: {
               folder,
               deletedSets: folderSetNames,
-              themesUpdated: themesChanged,
               changedResolvers: changedResolverNames,
             },
           });
@@ -1432,15 +1331,6 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 )
                 .catch(() => {});
             }
-          }
-          if (themesChanged && previousDimensions) {
-            const dimensionsToRestore = previousDimensions;
-            await fastify.dimensionsStore
-              .withLock(async () => ({
-                dims: dimensionsToRestore,
-                result: undefined,
-              }))
-              .catch(() => {});
           }
           if (changedResolverNames.length > 0) {
             await fastify.resolverLock

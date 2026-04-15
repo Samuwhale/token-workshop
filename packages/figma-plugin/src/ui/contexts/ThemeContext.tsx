@@ -2,9 +2,9 @@
  * ThemeContext — split into two focused sub-contexts to minimise cascade
  * re-renders caused by unrelated state changes:
  *
- *   ThemeSwitcherContext — theme switching UI state, preview/active themes,
- *                          and the derived themedAllTokensFlat / setThemeStatusMap
- *                          memos. `previewThemes` changes on every hover, so this
+ *   ThemeSwitcherContext — theme switching UI state, preview/active theme
+ *                          selections, and the derived themedAllTokensFlat memo.
+ *                          `previewThemes` changes on every hover, so this
  *                          context is intentionally isolated from resolver state.
  *   ResolverContext      — DTCG resolver config and resolution results.
  *                          Exposes the ResolverState interface directly so callers
@@ -75,10 +75,8 @@ export interface ThemeSwitcherContextValue {
   retryThemes: () => void;
 
   // ---- Derived memos (depend on both theme-switcher and resolver state) ---
-  /** Tokens resolved through active themes and (if active) resolver override. */
+  /** Tokens resolved through active theme selections and (if active) resolver override. */
   themedAllTokensFlat: Record<string, TokenMapEntry>;
-  /** Per-set theme status: 'enabled' | 'source' | 'disabled'. */
-  setThemeStatusMap: Record<string, 'enabled' | 'source' | 'disabled'>;
 }
 
 // ---------------------------------------------------------------------------
@@ -197,26 +195,6 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
     return themeOnlyTokensFlat;
   }, [resolverState.activeResolver, resolverState.resolvedTokens, themeOnlyTokensFlat]);
 
-  // Compute per-set theme status from active dimension options
-  // (enabled > source > disabled precedence).
-  const setThemeStatusMap = useMemo((): Record<string, 'enabled' | 'source' | 'disabled'> => {
-    const result: Record<string, 'enabled' | 'source' | 'disabled'> = {};
-    if (dimensions.length === 0) return result;
-    for (const dim of dimensions) {
-      const activeOptionName = activeThemes[dim.id];
-      if (!activeOptionName) continue;
-      const option = dim.options.find(o => o.name === activeOptionName);
-      if (!option) continue;
-      for (const [setName, status] of Object.entries(option.sets)) {
-        const existing = result[setName];
-        if (!existing || status === 'enabled' || (status === 'source' && existing === 'disabled')) {
-          result[setName] = status as 'enabled' | 'source' | 'disabled';
-        }
-      }
-    }
-    return result;
-  }, [dimensions, activeThemes]);
-
   const value = useMemo<ThemeSwitcherContextValue>(
     () => ({
       dimensions, setDimensions,
@@ -226,7 +204,6 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
       dimBarExpanded, setDimBarExpanded,
       dimDropdownRef, themesError, retryThemes,
       themedAllTokensFlat,
-      setThemeStatusMap,
     }),
     [
       dimensions, setDimensions,
@@ -236,7 +213,6 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
       dimBarExpanded, setDimBarExpanded,
       dimDropdownRef, themesError, retryThemes,
       themedAllTokensFlat,
-      setThemeStatusMap,
     ],
   );
 

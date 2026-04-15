@@ -256,7 +256,7 @@ export function useThemeDimensionsCrud({
               await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(savedDim.id)}/options`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: opt.name, sets: opt.sets }),
+                body: JSON.stringify({ name: opt.name }),
               });
             } catch (err) {
               console.warn('[ThemeManager] failed to restore option during undo:', opt.name, err);

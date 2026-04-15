@@ -1,18 +1,14 @@
 import type { ResolverContentProps } from "../ResolverPanel";
 import { ResolverContent } from "../ResolverPanel";
-import { ThemeResolverContextBanner } from "./ThemeResolverContextBanner";
-import type { ThemeResolverAuthoringContext } from "./themeResolverContext";
 
 interface ThemeResolverScreenProps {
   resolverState: ResolverContentProps;
-  resolverAuthoringContext: ThemeResolverAuthoringContext | null;
   onBack: () => void;
   onSuccess?: (message: string) => void;
 }
 
 export function ThemeResolverScreen({
   resolverState,
-  resolverAuthoringContext,
   onBack,
   onSuccess,
 }: ThemeResolverScreenProps) {
@@ -51,9 +47,6 @@ export function ThemeResolverScreen({
                 Choose the output file that should represent this theme, confirm each mode maps to the right switch, then review the resolved token result.
               </p>
             </div>
-            {resolverAuthoringContext && (
-              <ThemeResolverContextBanner context={resolverAuthoringContext} />
-            )}
           </div>
         </div>
       </div>

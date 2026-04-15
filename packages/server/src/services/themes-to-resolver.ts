@@ -1,98 +1,130 @@
-/**
- * Convert existing $themes.json dimensions into a DTCG v2025.10 resolver file.
- *
- * Each ThemeDimension becomes a modifier with its options as contexts.
- * Sets with status "source" form a base set; "enabled" sets go into
- * the modifier context. The resolutionOrder puts the base set first,
- * then modifiers in dimension order.
- */
+import {
+  flattenTokenGroup,
+  type ResolverFile,
+  type ResolverModifier,
+  type ThemeDimension,
+  type Token,
+  type TokenExtensions,
+  type TokenGroup,
+} from '@tokenmanager/core';
+import { setTokenAtPath } from './token-tree-utils.js';
 
-import type { ThemeDimension, ResolverFile, ResolverSet, ResolverModifier, ResolverSource } from '@tokenmanager/core';
+type ModeValues = Record<string, Record<string, unknown>>;
 
-function setNameToRef(setName: string): ResolverSource {
-  return { $ref: `${setName}.tokens.json` };
+interface TokenSetSource {
+  name: string;
+  tokens: TokenGroup;
+}
+
+function readTokenModes(token: Token): ModeValues | null {
+  const modes = (token.$extensions as TokenExtensions | undefined)?.tokenmanager?.modes;
+  if (!modes || typeof modes !== 'object' || Array.isArray(modes)) {
+    return null;
+  }
+  return modes as ModeValues;
+}
+
+function stripModeAuthoringExtensions(token: Token): Token {
+  const nextToken = structuredClone(token);
+  const tokenmanager = nextToken.$extensions?.tokenmanager;
+  if (!tokenmanager) {
+    return nextToken;
+  }
+
+  delete tokenmanager.modes;
+  if (Object.keys(tokenmanager).length === 0) {
+    delete nextToken.$extensions?.tokenmanager;
+  }
+  if (nextToken.$extensions && Object.keys(nextToken.$extensions).length === 0) {
+    delete nextToken.$extensions;
+  }
+  return nextToken;
+}
+
+function createModeOverrideToken(token: Token, overrideValue: unknown): Token {
+  const nextToken = stripModeAuthoringExtensions(token);
+  nextToken.$value = overrideValue as Token['$value'];
+  return nextToken;
+}
+
+function buildFoundationSet(tokenSets: TokenSetSource[]): TokenGroup {
+  const foundation: TokenGroup = {};
+
+  for (const set of tokenSets) {
+    for (const [path, rawToken] of flattenTokenGroup(set.tokens)) {
+      const token = rawToken as Token;
+      setTokenAtPath(foundation, path, stripModeAuthoringExtensions(token));
+    }
+  }
+
+  return foundation;
+}
+
+function buildModifierContexts(
+  tokenSets: TokenSetSource[],
+  dimension: ThemeDimension,
+): ResolverModifier {
+  const contexts: Record<string, TokenGroup[]> = {};
+
+  for (const option of dimension.options) {
+    const contextTokens: TokenGroup = {};
+
+    for (const set of tokenSets) {
+      for (const [path, rawToken] of flattenTokenGroup(set.tokens)) {
+        const token = rawToken as Token;
+        const overrideValue = readTokenModes(token)?.[dimension.id]?.[option.name];
+        if (overrideValue === undefined) {
+          continue;
+        }
+        setTokenAtPath(
+          contextTokens,
+          path,
+          createModeOverrideToken(token, overrideValue),
+        );
+      }
+    }
+
+    contexts[option.name] = [contextTokens];
+  }
+
+  return {
+    description: dimension.name,
+    contexts,
+    default: dimension.options[0]?.name,
+  };
 }
 
 export function convertThemesToResolver(
   dimensions: ThemeDimension[],
-  allSetNames: string[],
+  tokenSets: TokenSetSource[],
 ): ResolverFile {
-  const sets: Record<string, ResolverSet> = {};
-  const modifiers: Record<string, ResolverModifier> = {};
-  const resolutionOrder: { $ref: string }[] = [];
-
-  // Collect all set names referenced by any dimension option
-  const themedSetNames = new Set<string>();
-  for (const dim of dimensions) {
-    for (const opt of dim.options) {
-      for (const setName of Object.keys(opt.sets)) {
-        themedSetNames.add(setName);
-      }
-    }
-  }
-
-  // Base set: all sets NOT assigned to any dimension (global foundation)
-  const baseSources: ResolverSource[] = [];
-  for (const setName of allSetNames) {
-    if (!themedSetNames.has(setName)) {
-      baseSources.push(setNameToRef(setName));
-    }
-  }
-
-  // Also collect source-status sets across all dimensions as foundation
-  const sourceSets = new Set<string>();
-  for (const dim of dimensions) {
-    for (const opt of dim.options) {
-      for (const [setName, status] of Object.entries(opt.sets)) {
-        if (status === 'source') sourceSets.add(setName);
-      }
-    }
-  }
-  for (const setName of sourceSets) {
-    baseSources.push(setNameToRef(setName));
-  }
-
-  if (baseSources.length > 0) {
-    sets['foundation'] = {
-      description: 'Base tokens not controlled by any theme dimension',
-      sources: baseSources,
-    };
-    resolutionOrder.push({ $ref: '#/sets/foundation' });
-  }
-
-  // Each dimension becomes a modifier
-  for (const dim of dimensions) {
-    const contexts: Record<string, ResolverSource[]> = {};
-    let defaultContext: string | undefined;
-
-    for (let i = 0; i < dim.options.length; i++) {
-      const opt = dim.options[i];
-      const contextSources: ResolverSource[] = [];
-
-      for (const [setName, status] of Object.entries(opt.sets)) {
-        if (status === 'enabled') {
-          contextSources.push(setNameToRef(setName));
+  const sets =
+    tokenSets.length > 0
+      ? {
+          foundation: {
+            description: 'Base token values generated from collections',
+            sources: [buildFoundationSet(tokenSets)],
+          },
         }
-      }
+      : undefined;
 
-      contexts[opt.name] = contextSources;
-      if (i === 0) defaultContext = opt.name;
-    }
+  const modifiers = Object.fromEntries(
+    dimensions.map((dimension) => [
+      dimension.id,
+      buildModifierContexts(tokenSets, dimension),
+    ]),
+  );
 
-    const modName = dim.name.toLowerCase().replace(/\s+/g, '-');
-    modifiers[modName] = {
-      description: dim.name,
-      contexts,
-      default: defaultContext,
-    };
-    resolutionOrder.push({ $ref: `#/modifiers/${modName}` });
-  }
+  const resolutionOrder = [
+    ...(sets ? [{ $ref: '#/sets/foundation' }] : []),
+    ...dimensions.map((dimension) => ({ $ref: `#/modifiers/${dimension.id}` })),
+  ];
 
   return {
     version: '2025.10',
-    name: 'Migrated from themes',
-    description: 'Auto-generated from $themes.json dimensions',
-    sets,
+    name: 'Generated from theme modes',
+    description: 'Generated from base token values and inline mode overrides',
+    ...(sets ? { sets } : {}),
     modifiers,
     resolutionOrder,
   };

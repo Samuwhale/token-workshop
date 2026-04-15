@@ -239,7 +239,6 @@ export interface RecipeImpact {
 export interface ThemeImpact {
   dimName: string;
   optionName: string;
-  setName: string;
 }
 
 export type DeleteConfirm =

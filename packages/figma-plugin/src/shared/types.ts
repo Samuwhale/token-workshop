@@ -1,5 +1,6 @@
 // Shared types used by both controller (plugin sandbox) and UI
 import type { TokenValue, TokenReference } from '@tokenmanager/core';
+import type { TokenExtensions } from '@tokenmanager/core';
 
 /** Shape returned by API endpoints on error (e.g. 4xx/5xx). */
 export interface ApiErrorBody {
@@ -188,6 +189,7 @@ export interface TokenMapEntry {
   $type: string;
   /** DTCG leaf key (segment name) — may contain dots, e.g. "1.5". */
   $name?: string;
+  $extensions?: TokenExtensions;
   /** Figma variable scopes from $extensions['com.figma.scopes']. Empty/undefined = unrestricted. */
   $scopes?: string[];
   /** Lifecycle stage from $extensions.tokenmanager.lifecycle. Undefined means 'published'. */

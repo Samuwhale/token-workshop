@@ -1052,7 +1052,6 @@ export function PanelRouter(): ReactNode {
         onSplit={setManagerController.onSplit}
         setTokenCounts={setTokenCounts}
         setDescriptions={setDescriptions}
-        dimensions={dimensions}
         onBulkDelete={setManagerController.onBulkDelete}
         onBulkDuplicate={setManagerController.onBulkDuplicate}
         onBulkMoveToFolder={setManagerController.onBulkMoveToFolder}
@@ -1429,39 +1428,16 @@ export function PanelRouter(): ReactNode {
               onGapsDetected={controller.setThemeGapCount}
               onShellStateChange={controller.onThemeShellStateChange}
               onTokensCreated={controller.refreshAll}
-              onSetCreated={(name) => {
-                addSetToState(name, 0);
-                setActiveSet(name);
-              }}
               onGoToTokens={() => {
                 beginHandoff({
                   reason: "Browse tokens, then return to Themes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
               }}
-              onNavigateToTokenSet={(setName) => {
-                beginHandoff({
-                  reason: "View this token set, then return to Themes",
-                });
-                navigateTo("tokens", "tokens", { preserveHandoff: true });
-                controller.handleNavigateToSet(setName, "");
-              }}
               themeManagerHandle={controller.themeManagerHandleRef}
               onSuccess={controller.setSuccessToast}
-              onGenerateForDimension={({ dimensionName: _name, targetSet }) => {
-                if (targetSet) setActiveSet(targetSet);
-                beginHandoff({
-                  reason: "Create a recipe, then return to Themes",
-                });
-                navigateTo("tokens", "tokens", {
-                  preserveHandoff: true,
-                });
-                openRecipeFromThemeGap({ targetSet });
-              }}
               resolverState={{
-                serverUrl,
                 connected,
-                sets,
                 resolvers: resolverState.resolvers,
                 resolverLoadErrors: resolverState.resolverLoadErrors,
                 activeResolver: resolverState.activeResolver,
@@ -1477,8 +1453,6 @@ export function PanelRouter(): ReactNode {
                 fetchResolvers: resolverState.fetchResolvers,
                 convertFromThemes: resolverState.convertFromThemes,
                 deleteResolver: resolverState.deleteResolver,
-                getResolverFile: resolverState.getResolverFile,
-                updateResolver: resolverState.updateResolver,
               }}
             />
           </ErrorBoundary>

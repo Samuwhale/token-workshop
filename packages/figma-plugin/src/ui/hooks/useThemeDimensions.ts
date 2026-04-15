@@ -1,12 +1,16 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { ThemeCoverageSetTokens, ThemeDimension } from '@tokenmanager/core';
-import { buildThemeCoverage, flattenTokenGroup } from '@tokenmanager/core';
+import type { ThemeDimension } from '@tokenmanager/core';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
-import type { CoverageMap, MissingOverridesMap } from '../components/themeManagerTypes';
 import type { UndoSlot } from './useUndo';
 import { useThemeDimensionsCrud } from './useThemeDimensionsCrud';
 import type { UseThemeDimensionsCrudReturn } from './useThemeDimensionsCrud';
+import {
+  buildThemeModeCoverage,
+  type ThemeModeCoverageMap,
+} from '../shared/themeModeUtils';
+import type { TokenMapEntry } from '../../shared/types';
 
 export interface UseThemeDimensionsParams {
   serverUrl: string;
@@ -18,24 +22,12 @@ export interface UseThemeDimensionsParams {
 }
 
 export interface UseThemeDimensionsReturn extends UseThemeDimensionsCrudReturn {
-  // Core data
   dimensions: ThemeDimension[];
   setDimensions: React.Dispatch<React.SetStateAction<ThemeDimension[]>>;
   loading: boolean;
   fetchWarnings: string | null;
-  /** Dismiss the fetch-warnings banner. */
   clearFetchWarnings: () => void;
-  // Coverage data (computed during fetch)
-  coverage: CoverageMap;
-  missingOverrides: MissingOverridesMap;
-  // Derived UI state
-  optionSetOrders: Record<string, Record<string, string[]>>;
-  setOptionSetOrders: React.Dispatch<React.SetStateAction<Record<string, Record<string, string[]>>>>;
-  selectedOptions: Record<string, string>;
-  setSelectedOptions: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  setTokenValues: Record<string, Record<string, any>>;
-  setTokenTypesRef: React.MutableRefObject<Record<string, Record<string, string>>>;
-  // Fetch
+  coverage: ThemeModeCoverageMap;
   fetchDimensions: () => Promise<void>;
   debouncedFetchDimensions: () => void;
 }
@@ -51,12 +43,7 @@ export function useThemeDimensions({
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchWarnings, setFetchWarnings] = useState<string | null>(null);
-  const [coverage, setCoverage] = useState<CoverageMap>({});
-  const [missingOverrides, setMissingOverrides] = useState<MissingOverridesMap>({});
-  const [optionSetOrders, setOptionSetOrders] = useState<Record<string, Record<string, string[]>>>({});
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const [setTokenValues, setSetTokenValues] = useState<Record<string, Record<string, any>>>({});
-  const setTokenTypesRef = useRef<Record<string, Record<string, string>>>({});
+  const [coverage, setCoverage] = useState<ThemeModeCoverageMap>({});
 
   const debounceFetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchAbortRef = useRef<AbortController | null>(null);
@@ -78,37 +65,7 @@ export function useThemeDimensions({
       );
       const allDimensions: ThemeDimension[] = data.dimensions || [];
       setDimensions(allDimensions);
-
-      setOptionSetOrders(prev => {
-        const next = { ...prev };
-        for (const dim of allDimensions) {
-          if (!next[dim.id]) next[dim.id] = {};
-          for (const opt of dim.options) {
-            if (!next[dim.id][opt.name]) {
-              const optSetKeys = Object.keys(opt.sets).filter(s => sets.includes(s));
-              const rest = sets.filter(s => !optSetKeys.includes(s));
-              next[dim.id][opt.name] = [...optSetKeys, ...rest];
-            }
-          }
-        }
-        return next;
-      });
-
-      setSelectedOptions(prev => {
-        const next = { ...prev };
-        for (const dim of allDimensions) {
-          if (!next[dim.id] && dim.options.length > 0) next[dim.id] = dim.options[0].name;
-          if (next[dim.id] && !dim.options.some(o => o.name === next[dim.id])) {
-            next[dim.id] = dim.options[0]?.name || '';
-          }
-        }
-        return next;
-      });
-
-      // Fetch token values per set (needed for coverage and live preview)
-      const tokenValues: Record<string, Record<string, any>> = {};
-      const tokenTypes: Record<string, Record<string, string>> = {};
-      const flattenedSetTokens: Record<string, ThemeCoverageSetTokens> = {};
+      const perSetFlat: Record<string, Record<string, TokenMapEntry>> = {};
       const failedSets: string[] = [];
       await Promise.all(sets.map(async (s) => {
         try {
@@ -116,22 +73,21 @@ export function useThemeDimensions({
             `${serverUrl}/api/tokens/${encodeURIComponent(s)}`,
             { signal: controller.signal },
           );
-          const map: Record<string, any> = {};
-          const typeMap: Record<string, string> = {};
+          const entryMap: Record<string, TokenMapEntry> = {};
           for (const [path, token] of flattenTokenGroup(d.tokens || {})) {
-            map[path] = token.$value;
-            if (token.$type) typeMap[path] = token.$type;
+            const entry = token as TokenMapEntry;
+            entryMap[path] = {
+              $value: entry.$value,
+              $type: entry.$type ?? "unknown",
+              ...(entry.$extensions ? { $extensions: entry.$extensions } : {}),
+            };
           }
-          tokenValues[s] = map;
-          tokenTypes[s] = typeMap;
-          flattenedSetTokens[s] = { values: map, types: typeMap };
+          perSetFlat[s] = entryMap;
         } catch (err) {
           console.warn('[ThemeManager] failed to fetch token set:', s, err);
           failedSets.push(s);
         }
       }));
-      setSetTokenValues(tokenValues);
-      setTokenTypesRef.current = tokenTypes;
       if (failedSets.length > 0) {
         setFetchWarnings(
           `Could not load ${failedSets.length === 1 ? `set "${failedSets[0]}"` : `${failedSets.length} sets (${failedSets.join(', ')})`} — coverage data may be incomplete`,
@@ -140,13 +96,11 @@ export function useThemeDimensions({
         setFetchWarnings(null);
       }
 
-      const coverageResult = buildThemeCoverage({
+      const coverageResult = buildThemeModeCoverage({
         dimensions: allDimensions,
-        setTokens: flattenedSetTokens,
-        fillSearchOrder: sets,
+        perSetFlat,
       });
-      setCoverage(coverageResult.coverage);
-      setMissingOverrides(coverageResult.missingOverrides);
+      setCoverage(coverageResult);
     } catch (err) {
       if (controller.signal.aborted) return;
       setError(getErrorMessage(err));
@@ -189,13 +143,6 @@ export function useThemeDimensions({
     fetchWarnings,
     clearFetchWarnings,
     coverage,
-    missingOverrides,
-    optionSetOrders,
-    setOptionSetOrders,
-    selectedOptions,
-    setSelectedOptions,
-    setTokenValues,
-    setTokenTypesRef,
     fetchDimensions,
     debouncedFetchDimensions,
   };

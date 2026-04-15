@@ -512,8 +512,22 @@ export class OperationLog {
   }
 
   private async writeThemesFile(dimensions: ThemeDimension[]): Promise<void> {
-    const data = { $themes: dimensions };
     const dest = path.join(this.tokenDir, "$themes.json");
+    let views: unknown[] = [];
+    try {
+      const existing = JSON.parse(await fs.readFile(dest, "utf-8")) as {
+        $views?: unknown[];
+      };
+      if (Array.isArray(existing.$views)) {
+        views = existing.$views;
+      }
+    } catch {
+      views = [];
+    }
+    const data = {
+      $themes: dimensions,
+      ...(views.length > 0 ? { $views: views } : {}),
+    };
     const tmp = `${dest}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2));
     await fs.rename(tmp, dest);

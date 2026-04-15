@@ -241,10 +241,9 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
               </div>
               <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                 {themeImpacts.map((impact, i) => (
-                  <div key={i} className="px-2 py-0.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.dimName} / ${impact.optionName} (${impact.setName})`}>
+                  <div key={i} className="px-2 py-0.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.dimName} / ${impact.optionName}`}>
                     <span className="text-[var(--color-figma-text-tertiary)]">{impact.dimName} / </span>
                     <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
-                    <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.setName})</span>
                   </div>
                 ))}
               </div>
@@ -559,7 +558,6 @@ function DeleteImpactDetails({
               <div key={i} className="px-2 py-0.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate">
                 <span className="text-[var(--color-figma-text-tertiary)]">{impact.dimName} / </span>
                 <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
-                <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.setName})</span>
               </div>
             ))}
           </div>

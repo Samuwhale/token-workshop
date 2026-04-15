@@ -222,14 +222,17 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // Create resolver from themes (migration)
   // -----------------------------------------------------------------------
   const convertFromThemes = useCallback(async (name?: string) => {
-    const result = await apiFetch(`${serverUrl}/api/resolvers/from-themes`, {
+    const targetName = name || activeResolver || 'theme-resolver';
+    const result = await apiFetch<{ ok: true; name: string }>(`${serverUrl}/api/resolvers/from-themes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name || 'theme-resolver' }),
+      body: JSON.stringify({ name: targetName }),
     });
+    setActiveResolverState(result.name);
+    setSelectionOrigin('manual');
     fetchResolvers();
     return result;
-  }, [serverUrl, fetchResolvers]);
+  }, [activeResolver, serverUrl, fetchResolvers]);
 
   // -----------------------------------------------------------------------
   // Delete resolver

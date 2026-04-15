@@ -77,6 +77,7 @@ import { useTokenSearch } from "../hooks/useTokenSearch";
 import { useTokenSelection } from "../hooks/useTokenSelection";
 import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
+import { applyThemeSelectionsToTokens } from "../shared/themeModeUtils";
 import { JsonEditorView } from "./JsonEditorView";
 import { dispatchToast } from "../shared/toastBus";
 import { NoticeBanner } from "../shared/noticeSystem";
@@ -114,6 +115,23 @@ const TOKEN_TYPE_COLORS: Record<string, string> = {
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
 const TOKENS_LIBRARY_BODY_SURFACE = "library-body";
+
+function getInlineModeValues(
+  entry: TokenMapEntry | undefined,
+  dimensionId: string,
+): Record<string, unknown> {
+  const modes = entry?.$extensions?.tokenmanager?.modes;
+  if (!modes || typeof modes !== "object" || Array.isArray(modes)) return {};
+  const dimensionModes = modes[dimensionId];
+  if (
+    !dimensionModes ||
+    typeof dimensionModes !== "object" ||
+    Array.isArray(dimensionModes)
+  ) {
+    return {};
+  }
+  return dimensionModes as Record<string, unknown>;
+}
 
 type BulkEditScope = {
   source: "current-scope" | "saved-preset";
@@ -486,44 +504,20 @@ export function TokenList({
     const dim = dimensions.find((d) => d.id === multiModeDimId);
     if (!dim || dim.options.length < 2) return null;
 
-    // Collect all themed set names (from all dimensions)
-    const themedSets = new Set<string>();
-    for (const d of dimensions) {
-      for (const opt of d.options) {
-        for (const sn of Object.keys(opt.sets)) themedSets.add(sn);
-      }
-    }
-
     const results: Array<{
       optionName: string;
       dimId: string;
       resolved: Record<string, TokenMapEntry>;
     }> = [];
     for (const option of dim.options) {
-      // Base layer: tokens from non-themed sets
-      const merged: Record<string, TokenMapEntry> = {};
-      for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
-        const set = pathToSet[path];
-        if (!set || !themedSets.has(set)) merged[path] = entry;
-      }
-      // Source sets
-      for (const [sn, status] of Object.entries(option.sets)) {
-        if (status !== "source") continue;
-        for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
-          if (pathToSet[path] === sn) merged[path] = entry;
-        }
-      }
-      // Enabled sets (overrides)
-      for (const [sn, status] of Object.entries(option.sets)) {
-        if (status !== "enabled") continue;
-        for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
-          if (pathToSet[path] === sn) merged[path] = entry;
-        }
-      }
       results.push({
         optionName: option.name,
         dimId: dim.id,
-        resolved: resolveAllAliases(merged),
+        resolved: applyThemeSelectionsToTokens(
+          unthemedAllTokensFlat,
+          dimensions,
+          { [dim.id]: option.name },
+        ),
       });
     }
     return { dim, results };
@@ -531,7 +525,6 @@ export function TokenList({
     multiModeEnabled,
     multiModeDimId,
     unthemedAllTokensFlat,
-    pathToSet,
     dimensions,
   ]);
 
@@ -540,68 +533,33 @@ export function TokenList({
   const modeVariantPaths = useMemo<Set<string>>(() => {
     if (multiModeEnabled || !unthemedAllTokensFlat || dimensions.length === 0)
       return new Set();
-    // Pick the first dimension with >=2 options
     const dim = dimensions.find((d) => d.options.length >= 2);
     if (!dim) return new Set();
 
-    // Early bail-out: if any option has no enabled sets, it can't produce overrides
-    const hasEnabledSets = dim.options.every((opt) =>
-      Object.values(opt.sets).some((s) => s === "enabled"),
-    );
-    if (!hasEnabledSets) return new Set();
-
-    // Collect only tokens in "enabled" override sets — only those can differ
-    const enabledSetsByOption: Set<string>[] = dim.options.map((opt) => {
-      const sets = new Set<string>();
-      for (const [sn, status] of Object.entries(opt.sets)) {
-        if (status === "enabled") sets.add(sn);
-      }
-      return sets;
-    });
-
-    // Gather the candidate paths: tokens whose set appears in any enabled set
     const candidatePaths = new Set<string>();
-    for (const [path] of Object.entries(unthemedAllTokensFlat)) {
-      const set = pathToSet[path];
-      if (!set) continue;
-      for (const enabledSets of enabledSetsByOption) {
-        if (enabledSets.has(set)) {
-          candidatePaths.add(path);
-          break;
-        }
+    for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
+      const modeValues = getInlineModeValues(entry, dim.id);
+      if (Object.keys(modeValues).length > 0) {
+        candidatePaths.add(path);
       }
     }
     if (candidatePaths.size === 0) return new Set();
 
-    // Build per-option override maps only for candidate paths
-    const optionOverrides: Map<string, TokenMapEntry>[] = dim.options.map(
-      (opt) => {
-        const overrides = new Map<string, TokenMapEntry>();
-        // Apply "enabled" sets (overrides) — last wins
-        for (const [sn, status] of Object.entries(opt.sets)) {
-          if (status !== "enabled") continue;
-          for (const path of candidatePaths) {
-            if (pathToSet[path] === sn) {
-              overrides.set(path, unthemedAllTokensFlat[path]);
-            }
-          }
-        }
-        return overrides;
-      },
+    const optionResults = dim.options.map((option) =>
+      applyThemeSelectionsToTokens(unthemedAllTokensFlat, dimensions, {
+        [dim.id]: option.name,
+      }),
     );
 
     const varies = new Set<string>();
     for (const path of candidatePaths) {
-      const firstEntry = optionOverrides[0].get(path);
+      const firstEntry = optionResults[0]?.[path];
       const firstValue = firstEntry?.$value ?? null;
-      for (let i = 1; i < optionOverrides.length; i++) {
-        const otherEntry = optionOverrides[i].get(path);
+      for (let i = 1; i < optionResults.length; i++) {
+        const otherEntry = optionResults[i]?.[path];
         const otherValue = otherEntry?.$value ?? null;
-        // Referential equality check first, then fall back to stringify
         if (firstValue !== otherValue) {
-          if (
-            JSON.stringify(firstValue) !== JSON.stringify(otherValue)
-          ) {
+          if (JSON.stringify(firstValue) !== JSON.stringify(otherValue)) {
             varies.add(path);
           }
           break;
@@ -609,73 +567,40 @@ export function TokenList({
       }
     }
     return varies;
-  }, [multiModeEnabled, unthemedAllTokensFlat, pathToSet, dimensions]);
+  }, [multiModeEnabled, unthemedAllTokensFlat, dimensions]);
 
   // Build multiModeValues for a given token path
   const getMultiModeValues = useCallback(
     (tokenPath: string): MultiModeValue[] | undefined => {
-      if (!multiModeData || !perSetFlat) return undefined;
-      const { dim, results } = multiModeData;
+      if (!multiModeData) return undefined;
+      const { results } = multiModeData;
       return results.map(({ optionName, dimId, resolved }) => {
-        const option = dim.options.find(
-          (option: { name: string; sets: Record<string, string> }) =>
-            option.name === optionName,
-        )!;
-        // Find the best target set for edits: first enabled set that already has the token, or first enabled set
-        let targetSet: string | null = null;
-        const enabledSets = Object.entries(option.sets)
-          .filter(([_, s]) => s === "enabled")
-          .map(([sn]) => sn);
-        for (const sn of enabledSets) {
-          if (perSetFlat[sn]?.[tokenPath]) {
-            targetSet = sn;
-            break;
-          }
-        }
-        if (!targetSet && enabledSets.length > 0) targetSet = enabledSets[0];
-        // Fall back to source sets if no enabled sets exist
-        if (!targetSet) {
-          const sourceSets = Object.entries(option.sets)
-            .filter(([_, s]) => s === "source")
-            .map(([sn]) => sn);
-          for (const sn of sourceSets) {
-            if (perSetFlat[sn]?.[tokenPath]) {
-              targetSet = sn;
-              break;
-            }
-          }
-          if (!targetSet && sourceSets.length > 0) targetSet = sourceSets[0];
-        }
-        return { optionName, dimId, resolved: resolved[tokenPath], targetSet };
+        return {
+          optionName,
+          dimId,
+          resolved: resolved[tokenPath],
+          targetSet: null,
+        };
       });
     },
-    [multiModeData, perSetFlat],
+    [multiModeData],
   );
 
   // Pre-compute per-group theme coverage for the coverage badge
   const themeCoverage = useMemo(() => {
-    if (!dimensions || dimensions.length === 0 || !perSetFlat) return undefined;
-    // Collect all themed set names (sets referenced by any dimension option)
-    const themedSetNames = new Set<string>();
-    for (const d of dimensions) {
-      for (const opt of d.options) {
-        for (const [sn, status] of Object.entries(opt.sets)) {
-          if (status === "enabled" || status === "source")
-            themedSetNames.add(sn);
+    if (!dimensions || dimensions.length === 0) return undefined;
+    const themedTokenPaths = new Set<string>();
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (!entry.$extensions?.tokenmanager?.modes) continue;
+      for (const dimension of dimensions) {
+        const dimModes = getInlineModeValues(entry, dimension.id);
+        if (Object.keys(dimModes).length > 0) {
+          themedTokenPaths.add(path);
+          break;
         }
       }
     }
-    if (themedSetNames.size === 0) return undefined;
-    // Build set of token paths that exist in any themed set
-    const themedTokenPaths = new Set<string>();
-    for (const sn of themedSetNames) {
-      if (perSetFlat[sn]) {
-        for (const path of Object.keys(perSetFlat[sn]))
-          themedTokenPaths.add(path);
-      }
-    }
     if (themedTokenPaths.size === 0) return undefined;
-    // Walk token tree, computing per-group coverage
     const map = new Map<string, { themed: number; total: number }>();
     function walk(nodes: TokenNode[]): { themed: number; total: number } {
       let themed = 0,
@@ -695,7 +620,7 @@ export function TokenList({
     }
     walk(tokens);
     return map;
-  }, [dimensions, perSetFlat, tokens]);
+  }, [allTokensFlat, dimensions, tokens]);
 
   // JSON editor state
   const {

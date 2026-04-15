@@ -52,32 +52,37 @@ export function computeRecipeImpacts(
 }
 
 /**
- * Compute which theme options contain overrides (enabled/source sets) that
- * directly include any of the given token paths.
+ * Compute which theme options contain inline mode values for any of the given
+ * token paths across the authored collections.
  */
 export function computeThemeImpacts(
   targetPaths: Set<string>,
   dimensions: ThemeDimension[],
   perSetFlat: Record<string, Record<string, TokenMapEntry>>,
 ): ThemeImpact[] {
+  const seen = new Set<string>();
   const impacts: ThemeImpact[] = [];
-  for (const dim of dimensions) {
-    for (const option of dim.options) {
-      for (const [setName, status] of Object.entries(option.sets)) {
-        if (status !== 'enabled' && status !== 'source') continue;
-        const flatSet = perSetFlat[setName];
-        if (!flatSet) continue;
-        let found = false;
-        for (const path of targetPaths) {
-          if (flatSet[path] !== undefined) {
-            found = true;
-            break;
-          }
+  const tokenEntries = Object.values(perSetFlat).flatMap((flatSet) =>
+    Object.entries(flatSet),
+  );
+
+  for (const dimension of dimensions) {
+    for (const option of dimension.options) {
+      for (const [path, entry] of tokenEntries) {
+        if (!targetPaths.has(path)) continue;
+        const modes = (entry.$extensions as {
+          tokenmanager?: {
+            modes?: Record<string, Record<string, unknown>>;
+          };
+        } | undefined)?.tokenmanager?.modes;
+        if (modes?.[dimension.id]?.[option.name] === undefined) continue;
+
+        const impactKey = `${dimension.id}:${option.name}`;
+        if (!seen.has(impactKey)) {
+          seen.add(impactKey);
+          impacts.push({ dimName: dimension.name, optionName: option.name });
         }
-        if (found) {
-          impacts.push({ dimName: dim.name, optionName: option.name, setName });
-          break; // one entry per option is enough
-        }
+        break;
       }
     }
   }

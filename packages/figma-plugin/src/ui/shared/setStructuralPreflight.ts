@@ -1,13 +1,4 @@
-import type { ThemeSetStatus } from "@tokenmanager/core";
-
 export type SetStructuralOperation = "delete" | "merge" | "split";
-
-export interface SetThemeImpact {
-  dimensionId: string;
-  dimensionName: string;
-  optionName: string;
-  status: ThemeSetStatus;
-}
 
 export interface SetResolverImpact {
   name: string;
@@ -35,7 +26,6 @@ export interface SetPreflightImpact {
     collectionName?: string;
     modeName?: string;
   };
-  themeOptions: SetThemeImpact[];
   resolverRefs: SetResolverImpact[];
   generatedOwnership: SetRecipeOwnershipImpact[];
   recipeTargets: SetRecipeTargetImpact[];
@@ -43,11 +33,7 @@ export interface SetPreflightImpact {
 
 export interface SetPreflightBlocker {
   id: string;
-  code:
-    | "generated-token-ownership"
-    | "recipe-target-set"
-    | "resolver-set-ref"
-    | "theme-option-set";
+  code: "generated-token-ownership" | "recipe-target-set" | "resolver-set-ref";
   setName: string;
   message: string;
   recipeId?: string;

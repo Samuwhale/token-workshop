@@ -91,22 +91,28 @@ export function TokenUsages({
   const { dimensions } = useThemeSwitcherContext();
   const { resolvers } = useResolverContext();
 
-  // Which set owns this token
+  // Which collection owns this token
   const owningSet = pathToSet[tokenPath] ?? setName;
 
-  // Theme options that include this token's set (enabled or source)
+  // Theme mode values defined directly on this token
   const themeAssignments = useMemo(() => {
-    const result: Array<{ dimName: string; optionName: string; status: 'enabled' | 'source' }> = [];
+    const result: Array<{ dimName: string; optionName: string; status: "mode" }> = [];
+    const entry = allTokensFlat[tokenPath];
+    const modes = entry?.$extensions?.tokenmanager?.modes;
+    if (!modes || typeof modes !== "object" || Array.isArray(modes)) {
+      return result;
+    }
     for (const dim of dimensions) {
+      const dimModes = (modes as Record<string, Record<string, unknown>>)[dim.id];
+      if (!dimModes || typeof dimModes !== "object") continue;
       for (const option of dim.options) {
-        const status = option.sets[owningSet];
-        if (status === 'enabled' || status === 'source') {
-          result.push({ dimName: dim.name, optionName: option.name, status });
+        if (option.name in dimModes) {
+          result.push({ dimName: dim.name, optionName: option.name, status: "mode" });
         }
       }
     }
     return result;
-  }, [dimensions, owningSet]);
+  }, [allTokensFlat, dimensions, tokenPath]);
 
   // Resolvers that reference this token's set
   const resolverAssignments = useMemo(() => {
@@ -499,7 +505,7 @@ export function TokenUsages({
           {themeAssignments.length > 0 && (
             <>
               <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                Theme options ({themeAssignments.length})
+                Theme modes ({themeAssignments.length})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
                 {themeAssignments.map(({ dimName, optionName, status }) => (
@@ -510,11 +516,7 @@ export function TokenUsages({
                     <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate" title={`${dimName} / ${optionName}`}>
                       <span className="opacity-60">{dimName} / </span>{optionName}
                     </span>
-                    <span className={`shrink-0 px-1 py-0.5 rounded text-[8px] ${
-                      status === 'source'
-                        ? 'bg-purple-500/15 text-purple-600'
-                        : 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
-                    }`}>
+                    <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]">
                       {status}
                     </span>
                   </div>

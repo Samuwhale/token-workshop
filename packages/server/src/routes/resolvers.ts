@@ -6,7 +6,13 @@
  */
 
 import type { FastifyPluginAsync } from 'fastify';
-import type { ResolverFile, ResolverInput, ThemeDimension, ThemesFile } from '@tokenmanager/core';
+import type {
+  ResolverFile,
+  ResolverInput,
+  ThemeDimension,
+  ThemesFile,
+  TokenGroup,
+} from '@tokenmanager/core';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { convertThemesToResolver } from '../services/themes-to-resolver.js';
@@ -100,10 +106,40 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'No theme dimensions to convert.' });
       }
 
-      const setNames = await fastify.tokenStore.getSets();
-      const resolverFile = convertThemesToResolver(dimensions, setNames);
+      const tokenSets = (
+        await Promise.all(
+          (await fastify.tokenStore.getSets()).map(async (setName) => {
+            const set = await fastify.tokenStore.getSet(setName);
+            if (!set) {
+              return null;
+            }
+            return {
+              name: set.name,
+              tokens: set.tokens,
+            };
+          }),
+        )
+      ).filter((set): set is { name: string; tokens: TokenGroup } => Boolean(set));
+      const resolverFile = convertThemesToResolver(dimensions, tokenSets);
 
       return await withLock(async () => {
+        const beforeFile = fastify.resolverStore.get(resolverName);
+        if (beforeFile) {
+          await fastify.resolverStore.update(resolverName, resolverFile);
+          await fastify.operationLog.record({
+            type: 'resolver-update',
+            description: `Regenerate resolver "${resolverName}" from themes`,
+            setName: resolverName,
+            affectedPaths: [],
+            beforeSnapshot: {},
+            afterSnapshot: {},
+            rollbackSteps: [
+              { action: 'write-resolver', name: resolverName, file: structuredClone(beforeFile) },
+            ],
+          });
+          return reply.status(200).send({ ok: true, name: resolverName, resolver: resolverFile });
+        }
+
         await fastify.resolverStore.create(resolverName, resolverFile);
         await fastify.operationLog.record({
           type: 'resolver-create',

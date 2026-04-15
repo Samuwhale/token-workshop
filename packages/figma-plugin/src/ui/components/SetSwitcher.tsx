@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { RefObject, ReactNode } from "react";
-import type { ThemeDimension, ThemeSetStatus } from "@tokenmanager/core";
 import { fuzzyScore } from "../shared/fuzzyMatch";
 import {
   apiFetch,
@@ -58,11 +57,6 @@ interface FolderReorderResponse {
   sets: string[];
 }
 
-interface SetThemeLabel {
-  option: string;
-  status: ThemeSetStatus;
-}
-
 interface SetSwitcherProps {
   sets: string[];
   activeSet: string;
@@ -70,7 +64,6 @@ interface SetSwitcherProps {
   onClose: () => void;
   onManageSets?: () => void;
   onOpenCreateSet?: () => void;
-  dimensions?: ThemeDimension[];
 }
 
 interface SetManagerProps {
@@ -89,7 +82,6 @@ interface SetManagerProps {
   onSplit?: (setName: string) => void;
   setTokenCounts?: Record<string, number>;
   setDescriptions?: Record<string, string>;
-  dimensions?: ThemeDimension[];
   onBulkDelete?: (sets: string[]) => Promise<void>;
   onBulkDuplicate?: (sets: string[]) => Promise<void>;
   onBulkMoveToFolder?: (
@@ -231,28 +223,6 @@ function useSetStructuralPreflight({
   return { data, loading, error };
 }
 
-function formatThemeStatus(status: ThemeSetStatus): string {
-  if (status === "enabled") return "enabled";
-  if (status === "source") return "source";
-  return "disabled";
-}
-
-function ThemeStatusBadge({ status }: { status: ThemeSetStatus }) {
-  const className =
-    status === "enabled"
-      ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-      : status === "source"
-        ? "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)]"
-        : "border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]";
-  return (
-    <span
-      className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-[0.06em] ${className}`}
-    >
-      {formatThemeStatus(status)}
-    </span>
-  );
-}
-
 function SetPreflightCard({
   impact,
   label,
@@ -261,7 +231,6 @@ function SetPreflightCard({
   label?: string;
 }) {
   const hasDependencies =
-    impact.themeOptions.length > 0 ||
     impact.resolverRefs.length > 0 ||
     impact.generatedOwnership.length > 0 ||
     impact.recipeTargets.length > 0 ||
@@ -303,30 +272,10 @@ function SetPreflightCard({
       )}
       {!hasDependencies ? (
         <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          No theme, resolver, metadata, or recipe dependencies detected.
+          No resolver, metadata, or recipe dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
-          {impact.themeOptions.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Mode variants ({impact.themeOptions.length})
-              </div>
-              <div className="flex flex-col gap-1">
-                {impact.themeOptions.map((themeImpact) => (
-                  <div
-                    key={`${themeImpact.dimensionId}-${themeImpact.optionName}`}
-                    className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]"
-                  >
-                    <span className="truncate">
-                      {themeImpact.dimensionName} / {themeImpact.optionName}
-                    </span>
-                    <ThemeStatusBadge status={themeImpact.status} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {impact.resolverRefs.length > 0 && (
             <div className="flex flex-col gap-1">
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
@@ -599,47 +548,6 @@ function buildTopLevelItemOrder(sets: string[]): string[] {
   );
 }
 
-function buildSetThemeLabels(
-  dimensions: ThemeDimension[],
-): Record<string, SetThemeLabel[]> {
-  const map: Record<string, SetThemeLabel[]> = {};
-  for (const dim of dimensions) {
-    for (const opt of dim.options) {
-      for (const [setName, status] of Object.entries(opt.sets)) {
-        if (status === "disabled") continue;
-        if (!map[setName]) map[setName] = [];
-        map[setName].push({ option: opt.name, status });
-      }
-    }
-  }
-  return map;
-}
-
-function ThemeBadges({ labels }: { labels: SetThemeLabel[] }) {
-  if (!labels.length) return null;
-  return (
-    <span className="ml-1.5 flex flex-shrink-0 items-center gap-0.5">
-      {labels.map((label, index) => (
-        <span
-          key={`${label.option}-${index}`}
-          className={`rounded px-1 py-px text-[9px] leading-tight ${
-            label.status === "enabled"
-              ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-              : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
-          }`}
-          title={
-            label.status === "enabled"
-              ? `Mode override: ${label.option}`
-              : `Mode shared: ${label.option}`
-          }
-        >
-          {label.option}
-        </span>
-      ))}
-    </span>
-  );
-}
-
 function SetNameDisplay({ name }: { name: string }) {
   const slash = name.lastIndexOf("/");
   if (slash === -1) return <span>{name}</span>;
@@ -697,9 +605,7 @@ export function SetSwitcher({
   onClose,
   onManageSets,
   onOpenCreateSet,
-  dimensions = [],
 }: SetSwitcherProps) {
-  const setThemeLabels = buildSetThemeLabels(dimensions);
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(() => {
     const idx = sets.indexOf(activeSet);
@@ -808,7 +714,6 @@ export function SetSwitcher({
             onSelect(set);
             onClose();
           }}
-          setThemeLabels={setThemeLabels}
         />
 
         <div className="flex items-center justify-between border-t border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -849,7 +754,6 @@ interface SwitchViewProps {
   activeIdx: number;
   query: string;
   onSelect: (set: string) => void;
-  setThemeLabels: Record<string, SetThemeLabel[]>;
 }
 
 function SwitchView({
@@ -859,7 +763,6 @@ function SwitchView({
   activeIdx,
   query,
   onSelect,
-  setThemeLabels,
 }: SwitchViewProps) {
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(
     new Set(),
@@ -899,7 +802,6 @@ function SwitchView({
     const isCurrent = set === activeSet;
     const isHighlighted = filtered[activeIdx] === set;
     const label = indented ? set.slice(set.indexOf("/") + 1) : null;
-    const themeLabels = setThemeLabels[set] ?? [];
     return (
       <button
         key={set}
@@ -917,7 +819,6 @@ function SwitchView({
           ) : (
             <SetNameDisplay name={set} />
           )}
-          <ThemeBadges labels={themeLabels} />
         </span>
         {isCurrent && (
           <span className="ml-2 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1001,7 +902,6 @@ export function SetManager({
   onSplit,
   setTokenCounts = {},
   setDescriptions = {},
-  dimensions = [],
   onBulkDelete,
   onBulkDuplicate,
   onBulkMoveToFolder,
@@ -1051,7 +951,6 @@ export function SetManager({
     setModeNames,
     updateSetMetadataInState,
   } = useTokenSetsContext();
-  const setThemeLabels = buildSetThemeLabels(dimensions);
   const [query, setQuery] = useState("");
   const deletePreflight = useSetStructuralPreflight({
     operation: "delete",
@@ -1233,7 +1132,6 @@ export function SetManager({
               }
               setTokenCounts={setTokenCounts}
               setDescriptions={setDescriptions}
-              setThemeLabels={setThemeLabels}
               onRename={onRename}
               onDuplicate={onDuplicate}
               onDelete={onDelete}
@@ -1310,7 +1208,6 @@ interface ManageViewProps {
   topContent?: ReactNode;
   setTokenCounts: Record<string, number>;
   setDescriptions: Record<string, string>;
-  setThemeLabels: Record<string, SetThemeLabel[]>;
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
@@ -1342,7 +1239,6 @@ function ManageView({
   topContent,
   setTokenCounts,
   setDescriptions,
-  setThemeLabels,
   onRename,
   onDuplicate,
   onDelete,
@@ -1936,7 +1832,6 @@ function ManageView({
           const isLast = idx === sets.length - 1;
           const tokenCount = setTokenCounts[set];
           const description = setDescriptions[set];
-          const themeLabels = setThemeLabels[set] ?? [];
           const isSelected = selectedSets.has(set);
           const isDragging = dragSetName === set;
           const isDragOver = dragOverSetName === set && dragSetName !== set;
@@ -2035,7 +1930,6 @@ function ManageView({
                           Active
                         </span>
                       )}
-                      <ThemeBadges labels={themeLabels} />
                     </div>
                     {description && (
                       <div className="mt-0.5 truncate text-[10px] text-[var(--color-figma-text-secondary)]">

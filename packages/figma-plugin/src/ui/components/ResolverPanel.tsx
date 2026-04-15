@@ -6,14 +6,12 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { ResolverFile } from '@tokenmanager/core';
 import type {
   ResolverMeta,
   ResolverModifierMeta,
   ResolverSelectionOrigin,
 } from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
-import { apiFetch } from '../shared/apiFetch';
 import { Spinner } from './Spinner';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
@@ -21,9 +19,7 @@ import { swatchBgColor } from '../shared/colorUtils';
 
 
 export interface ResolverContentProps {
-  serverUrl: string;
   connected: boolean;
-  sets: string[];
   resolvers: ResolverMeta[];
   resolverLoadErrors?: Record<string, { message: string; at: string }>;
   activeResolver: string | null;
@@ -39,8 +35,6 @@ export interface ResolverContentProps {
   fetchResolvers: () => void;
   convertFromThemes: (name?: string) => Promise<unknown>;
   deleteResolver: (name: string) => Promise<void>;
-  getResolverFile?: (name: string) => Promise<ResolverFile>;
-  updateResolver?: (name: string, file: ResolverFile) => Promise<void>;
   onSuccess?: (msg: string) => void;
 }
 
@@ -52,19 +46,12 @@ export function ResolverPanel(props: ResolverContentProps) {
   return <ResolverInner {...props} showHeader />;
 }
 
-interface EditFormState {
-  description: string;
-  modifiers: Record<string, { defaultContext: string }>;
-}
-
 function formatCountLabel(count: number, label: string) {
   return `${count} ${label}${count === 1 ? '' : 's'}`;
 }
 
 function ResolverInner({
-  serverUrl,
   connected,
-  sets,
   resolvers,
   resolverLoadErrors = {},
   activeResolver,
@@ -79,68 +66,25 @@ function ResolverInner({
   fetchResolvers,
   convertFromThemes,
   deleteResolver,
-  getResolverFile,
-  updateResolver,
   onSuccess,
   showHeader,
 }: ResolverContentProps & { showHeader: boolean }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
   const [, setMigrateError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  const [editingResolver, setEditingResolver] = useState<string | null>(null);
-  const [editFile, setEditFile] = useState<ResolverFile | null>(null);
-  const [editForm, setEditForm] = useState<EditFormState | null>(null);
-  const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
-  const [editLoading, setEditLoading] = useState(false);
 
   const handleMigrate = useCallback(async () => {
     setMigrating(true);
     setMigrateError(null);
     try {
-      await convertFromThemes();
+      await convertFromThemes(activeResolver ?? undefined);
       onSuccess?.('Generated output from modes');
     } catch (err) {
       setMigrateError(err instanceof Error ? err.message : String(err));
     } finally {
       setMigrating(false);
     }
-  }, [convertFromThemes, onSuccess]);
-
-  const handleCreate = useCallback(async () => {
-    if (!newName.trim()) return;
-    setCreateError(null);
-    try {
-      const body = {
-        name: newName.trim(),
-        version: '2025.10' as const,
-        sets: {
-          foundation: {
-            description: 'Base token sets',
-            sources: sets.slice(0, 1).map(s => ({ $ref: `${s}.tokens.json` })),
-          },
-        },
-        modifiers: {},
-        resolutionOrder: [{ $ref: '#/sets/foundation' }],
-      };
-      await apiFetch(`${serverUrl}/api/resolvers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const created = newName.trim();
-      setNewName('');
-      setCreating(false);
-      fetchResolvers();
-      onSuccess?.(`Created output "${created}"`);
-    } catch (err) {
-      setCreateError(err instanceof Error ? err.message : String(err));
-    }
-  }, [newName, sets, serverUrl, fetchResolvers, onSuccess]);
+  }, [activeResolver, convertFromThemes, onSuccess]);
 
   const handleDelete = useCallback(async (name: string) => {
     await deleteResolver(name);
@@ -152,77 +96,6 @@ function ResolverInner({
     setResolverInput({ ...resolverInput, [modName]: context });
   }, [resolverInput, setResolverInput]);
 
-  const handleEditClick = useCallback(async (name: string) => {
-    if (!getResolverFile) return;
-    setEditingResolver(name);
-    setEditError(null);
-    setEditFile(null);
-    setEditForm(null);
-    setEditLoading(true);
-    try {
-      const file = await getResolverFile(name);
-      setEditFile(file);
-      const modifiers: EditFormState['modifiers'] = {};
-      if (file.modifiers) {
-        for (const [modName, mod] of Object.entries(file.modifiers)) {
-          const contexts = Object.keys(mod.contexts);
-          modifiers[modName] = {
-            defaultContext: mod.default ?? contexts[0] ?? '',
-          };
-        }
-      }
-      setEditForm({
-        description: file.description ?? '',
-        modifiers,
-      });
-    } catch (err) {
-      setEditError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setEditLoading(false);
-    }
-  }, [getResolverFile]);
-
-  const handleEditSave = useCallback(async () => {
-    if (!editingResolver || !editFile || !editForm || !updateResolver) return;
-    setEditSaving(true);
-    setEditError(null);
-    try {
-      const updatedModifiers: ResolverFile['modifiers'] = editFile.modifiers
-        ? Object.fromEntries(
-            Object.entries(editFile.modifiers).map(([modName, mod]) => {
-              const formMod = editForm.modifiers[modName];
-              const updatedMod = { ...mod };
-              if (formMod?.defaultContext) {
-                updatedMod.default = formMod.defaultContext;
-              }
-              return [modName, updatedMod];
-            }),
-          )
-        : undefined;
-      const updatedFile: ResolverFile = {
-        ...editFile,
-        description: editForm.description || undefined,
-        modifiers: updatedModifiers,
-      };
-      await updateResolver(editingResolver, updatedFile);
-      onSuccess?.(`Saved output "${editingResolver}"`);
-      setEditingResolver(null);
-      setEditFile(null);
-      setEditForm(null);
-    } catch (err) {
-      setEditError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setEditSaving(false);
-    }
-  }, [editingResolver, editFile, editForm, updateResolver, onSuccess]);
-
-  const handleEditCancel = useCallback(() => {
-    setEditingResolver(null);
-    setEditFile(null);
-    setEditForm(null);
-    setEditError(null);
-  }, []);
-
   const resolvedCount = resolvedTokens ? Object.keys(resolvedTokens).length : 0;
   const currentResolver = useMemo(() => {
     if (!activeResolver) return null;
@@ -233,11 +106,6 @@ function ResolverInner({
     : resolvedTokens
       ? `${resolvedCount} tokens resolved`
       : 'Preview not loaded yet';
-  const editingResolverMeta = useMemo(() => {
-    if (!editingResolver) return null;
-    return resolvers.find(resolver => resolver.name === editingResolver) ?? null;
-  }, [editingResolver, resolvers]);
-
   const { allTokensFlat } = useTokenFlatMapContext();
 
   const previewEntries = useMemo(() => {
@@ -278,69 +146,10 @@ function ResolverInner({
               >
                 {migrating ? 'Generating…' : 'Generate from modes'}
               </button>
-              <button
-                onClick={() => setCreating(true)}
-                className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90"
-              >
-                New output
-              </button>
             </div>
           </div>
         </div>
       ) : null}
-
-      {creating && (
-        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Create output
-              </div>
-              <p className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Give it a name, then we will start from the foundation set.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setCreating(false);
-                setCreateError(null);
-              }}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            >
-              Close
-            </button>
-          </div>
-          <div className="mt-2 flex items-center gap-1">
-            <input
-              type="text"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleCreate();
-                if (e.key === 'Escape') {
-                  setCreating(false);
-                  setCreateError(null);
-                }
-              }}
-              placeholder="Output name…"
-              autoFocus
-              className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-            />
-            <button
-              onClick={handleCreate}
-              disabled={!newName.trim()}
-              className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Create
-            </button>
-          </div>
-          {createError && (
-            <div className="mt-1 text-[10px] text-[var(--color-figma-error)]">
-              {createError}
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
         <div className="flex items-start justify-between gap-3">
@@ -393,15 +202,6 @@ function ResolverInner({
           </div>
           {currentResolver ? (
             <div className="flex shrink-0 items-center gap-1">
-              {getResolverFile && updateResolver && (
-                <button
-                  type="button"
-                  onClick={() => handleEditClick(currentResolver.name)}
-                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  Edit output
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => setActiveResolver(null)}
@@ -419,12 +219,6 @@ function ResolverInner({
               >
                 {migrating ? 'Generating…' : 'Generate from modes'}
               </button>
-              <button
-                onClick={() => setCreating(true)}
-                className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90"
-              >
-                New output
-              </button>
             </div>
           ) : null}
         </div>
@@ -437,12 +231,6 @@ function ResolverInner({
             >
               {migrating ? 'Generating…' : 'Generate from modes'}
             </button>
-            <button
-              onClick={() => setCreating(true)}
-              className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90"
-            >
-              New output
-            </button>
           </div>
         ) : null}
       </div>
@@ -453,14 +241,14 @@ function ResolverInner({
             Available outputs
           </div>
         )}
-        {resolversLoading && resolvers.length === 0 && !creating && (
+        {resolversLoading && resolvers.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
             <Spinner size="md" />
             <span className="text-[11px]">Loading outputs…</span>
           </div>
         )}
 
-        {!resolversLoading && resolvers.length === 0 && Object.keys(resolverLoadErrors).length === 0 && !creating && (
+        {!resolversLoading && resolvers.length === 0 && Object.keys(resolverLoadErrors).length === 0 && (
           <div className="flex h-full flex-col items-center justify-center px-4 py-6 text-center">
             <p className="max-w-[220px] text-[11px] leading-snug text-[var(--color-figma-text-secondary)]">
               An output defines how modes combine into final tokens.
@@ -505,10 +293,8 @@ function ResolverInner({
 
         {resolvers.map(resolver => {
           const isActive = activeResolver === resolver.name;
-          const isEditing = editingResolver === resolver.name;
           const modNames = Object.keys(resolver.modifiers);
           const selectedCountLabel = formatCountLabel(modNames.length, 'mode');
-          const resolverMeta = isEditing ? editingResolverMeta ?? resolver : resolver;
 
           return (
             <div
@@ -558,15 +344,6 @@ function ResolverInner({
                 </div>
 
                 <div className="mt-2 flex items-center gap-1.5">
-                  {getResolverFile && updateResolver && !isEditing && (
-                    <button
-                      type="button"
-                      onClick={() => handleEditClick(resolver.name)}
-                      className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                    >
-                      Edit
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(resolver.name)}
@@ -576,118 +353,6 @@ function ResolverInner({
                   </button>
                 </div>
               </div>
-
-              {isEditing && (
-                <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                        Editing output
-                      </div>
-                      <p className="mt-0.5 text-[9px] leading-snug text-[var(--color-figma-text-secondary)]">
-                        Update the description and each mode’s default value.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleEditCancel}
-                      className="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                    >
-                      Close
-                    </button>
-                  </div>
-
-                  {editLoading ? (
-                    <div className="py-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-                      Loading output…
-                    </div>
-                  ) : editForm ? (
-                    <div className="mt-2 flex flex-col gap-2">
-                      <input
-                        type="text"
-                        value={editForm.description}
-                        onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                        placeholder="Description (optional)"
-                        className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-                      />
-
-                      {Object.keys(editForm.modifiers).length > 0 ? (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                            Default selections
-                          </span>
-                          {Object.entries(editForm.modifiers).map(([modName, modEdit]) => {
-                            const contexts = resolverMeta.modifiers[modName]?.contexts ?? [];
-                            if (contexts.length === 0) return null;
-                            return (
-                              <div key={modName} className="flex items-center gap-2">
-                                <label
-                                  className="w-16 truncate text-[10px] capitalize text-[var(--color-figma-text-secondary)]"
-                                  title={modName}
-                                >
-                                  {modName}
-                                </label>
-                                <div className="flex flex-1 flex-wrap gap-0.5">
-                                  {contexts.map(ctx => (
-                                    <button
-                                      key={ctx}
-                                      type="button"
-                                      onClick={() =>
-                                        setEditForm({
-                                          ...editForm,
-                                          modifiers: {
-                                            ...editForm.modifiers,
-                                            [modName]: { defaultContext: ctx },
-                                          },
-                                        })
-                                      }
-                                      className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
-                                        modEdit.defaultContext === ctx
-                                          ? 'bg-[var(--color-figma-accent)] text-white font-medium'
-                                          : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                                      }`}
-                                    >
-                                      {ctx}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-
-                      {editError && (
-                        <div className="text-[10px] text-[var(--color-figma-error)]">
-                          {editError}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={handleEditCancel}
-                          className="rounded px-2 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleEditSave}
-                          disabled={editSaving}
-                          className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {editSaving ? 'Saving…' : 'Save changes'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : editError ? (
-                    <div className="py-2 text-[10px] text-[var(--color-figma-error)]">
-                      {editError}
-                    </div>
-                  ) : null}
-                </div>
-              )}
 
               {isActive && (
                 <div className="border-t border-[var(--color-figma-border)] px-3 py-2">

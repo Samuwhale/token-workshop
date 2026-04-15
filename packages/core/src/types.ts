@@ -141,19 +141,8 @@ export interface TokenSet {
   filePath?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Themes
-// ---------------------------------------------------------------------------
-
-export type ThemeSetStatus = 'enabled' | 'disabled' | 'source';
-
-export interface ThemeSetConfig {
-  [setName: string]: ThemeSetStatus;
-}
-
 export interface ThemeOption {
   name: string;
-  sets: ThemeSetConfig;
 }
 
 export interface ThemeDimension {
@@ -165,8 +154,15 @@ export interface ThemeDimension {
 /** Active themes: one selected option per dimension. Key = dimension id, value = option name. */
 export type ActiveThemes = Record<string, string>;
 
+export interface ThemeViewPreset {
+  id: string;
+  name: string;
+  selections: ActiveThemes;
+}
+
 export interface ThemesFile {
   $themes: ThemeDimension[];
+  $views?: ThemeViewPreset[];
 }
 
 // ---------------------------------------------------------------------------

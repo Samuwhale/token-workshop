@@ -150,28 +150,8 @@ export class TokenStore {
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const themesPath = path.join(this.dir, "$themes.json");
-    const content = await this.readOptionalRegularFile(themesPath);
-    if (content === null) return;
-    const data = JSON.parse(content) as {
-      $themes: Array<{ options: Array<{ sets: Record<string, unknown> }> }>;
-    };
-    if (!Array.isArray(data.$themes)) return;
-    let changed = false;
-    for (const dimension of data.$themes) {
-      if (!Array.isArray(dimension.options)) continue;
-      for (const option of dimension.options) {
-        if (option.sets && oldName in option.sets) {
-          option.sets[newName] = option.sets[oldName];
-          delete option.sets[oldName];
-          changed = true;
-        }
-      }
-    }
-    if (!changed) return;
-    const themesTmp = `${themesPath}.tmp`;
-    await fs.writeFile(themesTmp, JSON.stringify(data, null, 2));
-    await fs.rename(themesTmp, themesPath);
+    void oldName;
+    void newName;
   }
 
   /**

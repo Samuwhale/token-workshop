@@ -398,19 +398,19 @@ export function App() {
     }
     return counts;
   }, [perSetFlat, sets]);
-  const themeWorkflowSummary = useMemo(
-    () =>
-      summarizeThemeWorkflow(dimensions, {
-        availableSets: sets,
-        setTokenCounts: themeSetTokenCounts,
-      }),
-    [dimensions, sets, themeSetTokenCounts],
-  );
   const [themeShellState, setThemeShellState] =
     useState<ThemeWorkspaceShellState>({
       activeView: "authoring",
-      authoringMode: "roles",
+      authoringMode: "authoring",
     });
+  const themeWorkflowSummary = useMemo(
+    () =>
+      summarizeThemeWorkflow(dimensions, {
+        activeView: themeShellState.activeView,
+        authoringMode: themeShellState.authoringMode,
+      }),
+    [dimensions, themeShellState.activeView, themeShellState.authoringMode],
+  );
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
   const prevAllTokensFlatRef = useRef<Record<string, TokenMapEntry>>({});
@@ -1719,18 +1719,14 @@ export function App() {
         };
       }
 
-      if (themeWorkflowSummary.currentStage === "set-roles") {
+      if (themeWorkflowSummary.currentStage === "token-modes") {
         return {
-          label:
-            themeWorkflowSummary.nextSetRoleTarget?.actionLabel ??
-            (themeWorkflowSummary.unmappedOptionCount > 0
-              ? "Assign sets"
-              : "Fix sets"),
+          label: "Fill mode values",
           onClick: () => {
             guardEditorAction(() => {
               navigateTo("themes", "themes");
               closeSecondarySurface();
-              themeManagerHandleRef.current?.focusStage("set-roles");
+              themeManagerHandleRef.current?.focusStage("token-modes");
             });
           },
         };
@@ -1838,8 +1834,6 @@ export function App() {
     themeShellState.activeView,
     themeShellState.authoringMode,
     themeWorkflowSummary.currentStage,
-    themeWorkflowSummary.unmappedOptionCount,
-    themeWorkflowSummary.nextSetRoleTarget?.actionLabel,
   ]);
 
   const visibleHandoff = useMemo(() => {
@@ -2393,7 +2387,6 @@ export function App() {
             });
           }}
           onOpenCreateSet={openSetCreateDialog}
-          dimensions={dimensions}
         />
       )}
 

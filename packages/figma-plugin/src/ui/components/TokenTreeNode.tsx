@@ -25,7 +25,6 @@ import {
   extractAliasPath,
   resolveTokenValue,
   buildResolutionChain,
-  buildSetThemeMap,
 } from "../../shared/resolveAlias";
 import type { ResolutionStep } from "../../shared/resolveAlias";
 import { stableStringify } from "../shared/utils";
@@ -93,7 +92,6 @@ import {
   MENU_SHORTCUT_CLASS,
   MENU_SURFACE_CLASS,
   formatRecipeSummaryTitle,
-  formatThemeOptionLabel,
 } from "./token-tree/tokenTreeNodeShared";
 import type { MenuPosition } from "./token-tree/tokenTreeNodeShared";
 // ---------------------------------------------------------------------------
@@ -1447,8 +1445,6 @@ const TokenLeafNode = memo(
       showResolvedValues,
       condensedView = false,
       starredPaths,
-      dimensions,
-      activeThemes,
       pendingRenameToken,
       pendingTabEdit,
       rovingFocusPath,
@@ -1751,13 +1747,6 @@ const TokenLeafNode = memo(
       : 0;
 
     // Enriched resolution chain with per-hop set/theme metadata (for debugger view)
-    const setThemeMap = useMemo(
-      () =>
-        dimensions?.length && activeThemes
-          ? buildSetThemeMap(dimensions, activeThemes)
-          : undefined,
-      [dimensions, activeThemes],
-    );
     const resolutionSteps: ResolutionStep[] | null = useMemo(() => {
       if (!isAlias(node.$value)) return null;
       return buildResolutionChain(
@@ -1766,7 +1755,6 @@ const TokenLeafNode = memo(
         node.$type || "unknown",
         allTokensFlat,
         pathToSet,
-        setThemeMap,
       );
     }, [
       node.path,
@@ -1774,7 +1762,6 @@ const TokenLeafNode = memo(
       node.$type,
       allTokensFlat,
       pathToSet,
-      setThemeMap,
     ]);
 
     const commitInlineValueChange = useCallback(
@@ -3554,17 +3541,12 @@ const TokenLeafNode = memo(
                     </span>
                   )}
 
-                  {/* Set / theme context */}
-                  {(step.setName || (step.isThemed && step.themeDimension && step.themeOption)) && (
+                  {/* Collection context */}
+                  {step.setName && (
                     <span
                       className={`${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] shrink-0`}
                     >
-                      {[
-                        step.setName,
-                        step.isThemed && step.themeDimension && step.themeOption
-                          ? formatThemeOptionLabel(step.themeDimension, step.themeOption)
-                          : null,
-                      ].filter(Boolean).join(" · ")}
+                      {step.setName}
                     </span>
                   )}
 

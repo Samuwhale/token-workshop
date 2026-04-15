@@ -165,13 +165,6 @@ export function formatRecipeSummaryTitle(recipe: TokenRecipe): string {
     .join("\n");
 }
 
-export function formatThemeOptionLabel(
-  themeDimension: string,
-  themeOption: string,
-): string {
-  return `Theme ${themeDimension} / ${themeOption}`;
-}
-
 function getRecipeManagedPaths(recipe: TokenRecipe): Set<string> {
   return new Set(
     getRecipeManagedOutputs(recipe).map((output) => output.path),

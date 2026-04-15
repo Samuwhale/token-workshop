@@ -33,18 +33,6 @@ export function ContrastMatrixPanel({
   const [contrastThemeFilter, setContrastThemeFilter] =
     useState<Set<string> | null>(null);
 
-  // All sets referenced in any theme option
-  const themedSetsForContrast = useMemo(() => {
-    if (dimensions.length === 0) return undefined;
-    const sets = new Set<string>();
-    for (const dim of dimensions) {
-      for (const opt of dim.options) {
-        for (const setName of Object.keys(opt.sets)) sets.add(setName);
-      }
-    }
-    return sets.size > 0 ? sets : undefined;
-  }, [dimensions]);
-
   const allThemeOptionKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const dim of dimensions) {
@@ -65,10 +53,9 @@ export function ContrastMatrixPanel({
         result.set(
           key,
           resolveThemeOption(
-            opt,
+            { dimensionId: dim.id, optionName: opt.name },
+            dimensions,
             allTokensFlat,
-            pathToSet,
-            themedSetsForContrast,
           ),
         );
       }
@@ -79,7 +66,6 @@ export function ContrastMatrixPanel({
     dimensions,
     allTokensFlat,
     pathToSet,
-    themedSetsForContrast,
     activeContrastThemeKeys,
   ]);
 

@@ -262,22 +262,6 @@ export function useCommandPaletteCommands(): {
             },
           ]
         : []),
-      ...(themes.themeGapCount > 0
-        ? [
-            {
-              id: "autofill-theme-gaps",
-              label: "Auto-fill mode gaps",
-              description: `Fill ${themes.themeGapCount} missing token value${themes.themeGapCount !== 1 ? "s" : ""} from source sets`,
-              category: "Modes" as const,
-              handler: () => {
-                navigateTo("themes");
-                setTimeout(() => {
-                  themes.themeManagerHandleRef.current?.autoFillAllGaps();
-                }, 150);
-              },
-            },
-          ]
-        : []),
       ...(tokens.lintViolations.length > 0
         ? [
             {

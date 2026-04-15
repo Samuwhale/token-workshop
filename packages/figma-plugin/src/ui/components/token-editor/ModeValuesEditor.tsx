@@ -138,6 +138,9 @@ export function ModeValuesEditor({
           const dimOverrideCount = Object.values(modeValues[dim.id] ?? {}).filter(
             v => v !== '' && v !== undefined && v !== null,
           ).length;
+          const missingOptionCount = dim.options.length - dimOverrideCount;
+          const hasPartialCoverage =
+            dimOverrideCount > 0 && missingOptionCount > 0;
           const isCollapsible = dimensions.length > 1;
           const isOpen = !collapsedDims.has(dim.id);
 
@@ -268,7 +271,16 @@ export function ModeValuesEditor({
           );
 
           if (!isCollapsible) {
-            return <div key={dim.id} className="flex flex-col">{optionsContent}</div>;
+            return (
+              <div key={dim.id} className="flex flex-col gap-1">
+                {hasPartialCoverage ? (
+                  <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-700">
+                    {missingOptionCount} mode value{missingOptionCount === 1 ? "" : "s"} still missing in {dim.name}.
+                  </div>
+                ) : null}
+                {optionsContent}
+              </div>
+            );
           }
 
           return (
@@ -287,7 +299,14 @@ export function ModeValuesEditor({
                 </span>
               }
             >
-              {optionsContent}
+              <div className="flex flex-col gap-1">
+                {hasPartialCoverage ? (
+                  <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-700">
+                    {missingOptionCount} mode value{missingOptionCount === 1 ? "" : "s"} still missing in {dim.name}.
+                  </div>
+                ) : null}
+                {optionsContent}
+              </div>
             </Collapsible>
           );
         })}

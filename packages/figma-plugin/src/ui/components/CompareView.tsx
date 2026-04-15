@@ -276,7 +276,12 @@ function fmtProp(value: unknown, key: string): string {
 }
 
 /** Flat list of all options across dimensions, used by ThemeOptionsMode. */
-type FlatOption = { label: string; key: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
+type FlatOption = {
+  label: string;
+  key: string;
+  dimensionId: string;
+  optionName: string;
+};
 
 function buildFlatOptions(dimensions: ThemeDimension[]): FlatOption[] {
   const result: FlatOption[] = [];
@@ -285,7 +290,8 @@ function buildFlatOptions(dimensions: ThemeDimension[]): FlatOption[] {
       result.push({
         label: dimensions.length > 1 ? `${dim.name} / ${opt.name}` : opt.name,
         key: `${dim.id}:${opt.name}`,
-        sets: opt.sets,
+        dimensionId: dim.id,
+        optionName: opt.name,
       });
     }
   }
@@ -664,21 +670,15 @@ function CrossThemeMode({
   const [createStatus, setCreateStatus] = useState<CompareCreateStatus | null>(null);
   const [pendingCreate, setPendingCreate] = useState<PendingCompareBulkCreate | null>(null);
 
-  const themedSets = useMemo(() => {
-    const sets = new Set<string>();
-    for (const dim of dimensions) {
-      for (const option of dim.options) {
-        for (const setName of Object.keys(option.sets)) sets.add(setName);
-      }
-    }
-    return sets;
-  }, [dimensions]);
-
   const results = useMemo((): OptionResult[] => {
     const out: OptionResult[] = [];
     for (const dim of dimensions) {
       for (const option of dim.options) {
-        const resolved = resolveThemeOption(option, allTokensFlat, pathToSet, themedSets);
+        const resolved = resolveThemeOption(
+          { dimensionId: dim.id, optionName: option.name },
+          dimensions,
+          allTokensFlat,
+        );
         const entry = resolved[tokenPath];
         const rawEntry = allTokensFlat[tokenPath];
         const aliasCheck = rawEntry ? isAlias(rawEntry.$value) : false;
@@ -699,7 +699,7 @@ function CrossThemeMode({
       }
     }
     return out;
-  }, [dimensions, allTokensFlat, pathToSet, themedSets, tokenPath]);
+  }, [dimensions, allTokensFlat, tokenPath]);
 
   const dimStats = useMemo(() => {
     const map = new Map<string, { allSame: boolean; anyMissing: boolean }>();
@@ -737,8 +737,7 @@ function CrossThemeMode({
       const dim = dimensions.find(d => d.id === r.dimId);
       const opt = dim?.options.find(o => o.name === r.optionName);
       if (!opt) continue;
-      const enabled = Object.entries(opt.sets).filter(([, s]) => s === 'enabled').map(([n]) => n);
-      const targetSet = enabled[0] ?? Object.entries(opt.sets).filter(([, s]) => s === 'source').map(([n]) => n)[0];
+      const targetSet = pathToSet[tokenPath] ?? null;
       if (!targetSet) continue;
       const existing = batchesBySet.get(targetSet);
       const nextTokens = dedupeCompareBatchTokens([
@@ -762,7 +761,7 @@ function CrossThemeMode({
       confirmLabel: `Create ${totalCount}`,
       batches,
     };
-  }, [serverUrl, missingResults, allTokensFlat, tokenPath, dimensions, tokenName]);
+  }, [serverUrl, missingResults, allTokensFlat, tokenPath, dimensions, tokenName, pathToSet]);
 
   const handleConfirmCreateMissingOverrides = useCallback(async () => {
     if (!serverUrl || !createMissingPlan) return;
@@ -936,23 +935,31 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
   const resolvedA = useMemo(() => {
     if (!optionKeyA) return null;
     const opt = flatOptions.find(o => o.key === optionKeyA) ?? null;
-    return resolveThemeOption(opt, allTokensFlat, pathToSet);
-  }, [optionKeyA, flatOptions, allTokensFlat, pathToSet]);
+    return resolveThemeOption(
+      opt
+        ? { dimensionId: opt.dimensionId, optionName: opt.optionName }
+        : null,
+      dimensions,
+      allTokensFlat,
+    );
+  }, [optionKeyA, flatOptions, dimensions, allTokensFlat]);
 
   const resolvedB = useMemo(() => {
     if (!optionKeyB) return null;
     const opt = flatOptions.find(o => o.key === optionKeyB) ?? null;
-    return resolveThemeOption(opt, allTokensFlat, pathToSet);
-  }, [optionKeyB, flatOptions, allTokensFlat, pathToSet]);
+    return resolveThemeOption(
+      opt
+        ? { dimensionId: opt.dimensionId, optionName: opt.optionName }
+        : null,
+      dimensions,
+      allTokensFlat,
+    );
+  }, [optionKeyB, flatOptions, dimensions, allTokensFlat]);
 
   const targetSetForOption = useCallback((optionKey: string): string | null => {
-    const opt = flatOptions.find(o => o.key === optionKey);
-    if (!opt) return null;
-    const enabled = Object.entries(opt.sets).filter(([, s]) => s === 'enabled').map(([n]) => n);
-    if (enabled.length > 0) return enabled[0];
-    const source = Object.entries(opt.sets).filter(([, s]) => s === 'source').map(([n]) => n);
-    return source[0] ?? null;
-  }, [flatOptions]);
+    void optionKey;
+    return null;
+  }, []);
 
   const diffs = useMemo(() => {
     if (!resolvedA || !resolvedB) return [];

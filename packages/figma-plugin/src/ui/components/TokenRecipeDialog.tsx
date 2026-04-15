@@ -142,11 +142,8 @@ export function TokenRecipeDialog({
   // --- Stepper state ---
   const hidesIntentStep = Boolean(existingRecipe);
   const hasPrefilledSource = Boolean(sourceTokenPath?.trim());
-  const hasPrefilledDestination = Boolean(
-    initialDraft?.targetGroup?.trim() || initialDraft?.targetSet?.trim(),
-  );
   const initialStep: Step =
-    hidesIntentStep || hasPrefilledSource || hasPrefilledDestination ? 2 : 1;
+    hidesIntentStep || hasPrefilledSource ? 2 : 1;
   const [activeStep, setActiveStep] = useState<Step>(initialStep);
 
   useEffect(() => {

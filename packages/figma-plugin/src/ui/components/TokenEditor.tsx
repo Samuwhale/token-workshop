@@ -383,6 +383,7 @@ export function TokenEditor({
   });
   const {
     existingRecipesForToken,
+    canBeRecipeSource,
   } = recipes$;
   const producingRecipe =
     derivedTokenPaths?.get(createRecipeOwnershipKey(setName, tokenPath)) ??
@@ -1662,7 +1663,7 @@ export function TokenEditor({
               isCreateMode={isCreateMode}
             />
 
-            {existingRecipesForToken.length > 0 && !aliasMode && (
+            {canBeRecipeSource && !aliasMode && (
               <TokenEditorDerivedGroups
                 tokenPath={tokenPath}
                 tokenName={tokenName}

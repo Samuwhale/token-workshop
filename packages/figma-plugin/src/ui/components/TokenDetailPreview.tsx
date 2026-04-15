@@ -9,7 +9,6 @@ import {
   resolveTokenValue,
   isAlias,
   buildResolutionChain,
-  buildSetThemeMap,
 } from "../../shared/resolveAlias";
 import { formatDisplayPath, formatValue } from "./tokenListUtils";
 import { TokenHistorySection } from "./TokenHistorySection";
@@ -46,8 +45,8 @@ export function TokenDetailPreview({
   setName,
   allTokensFlat,
   pathToSet,
-  dimensions,
-  activeThemes,
+  dimensions: _dimensions,
+  activeThemes: _activeThemes,
   tokenUsageCounts,
   recipes,
   recipesBySource,
@@ -65,13 +64,6 @@ export function TokenDetailPreview({
   const type = entry?.$type ?? "unknown";
   const rawValue = entry?.$value;
 
-  const setThemeMap = useMemo(
-    () =>
-      dimensions?.length && activeThemes
-        ? buildSetThemeMap(dimensions, activeThemes)
-        : undefined,
-    [dimensions, activeThemes],
-  );
   const resolutionSteps = useMemo(() => {
     if (!rawValue || !isAlias(rawValue)) return null;
     return buildResolutionChain(
@@ -80,9 +72,8 @@ export function TokenDetailPreview({
       type,
       allTokensFlat,
       pathToSet,
-      setThemeMap,
     );
-  }, [tokenPath, rawValue, type, allTokensFlat, pathToSet, setThemeMap]);
+  }, [tokenPath, rawValue, type, allTokensFlat, pathToSet]);
 
   const resolved = useMemo(() => {
     if (!rawValue) return null;
