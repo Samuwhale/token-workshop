@@ -41,6 +41,7 @@ import {
   resolveWorkspaceSummary,
 } from "./shared/navigationTypes";
 import type {
+  ThemeAuthoringStage,
   ThemeWorkspaceShellState,
 } from "./shared/themeWorkflow";
 import { buildThemeModeCoverage } from "./shared/themeModeUtils";
@@ -389,6 +390,7 @@ export function App() {
   const activeWorkspace = activeWorkspaceSummary.workspace;
   const activeWorkspaceSection = activeWorkspaceSummary.section;
   const activeWorkspaceId = activeWorkspace.id;
+  const [pendingThemeStage, setPendingThemeStage] = useState<ThemeAuthoringStage | null>(null);
   const shellMenuSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
     (surface) => surface.access === "shell-menu",
   );
@@ -638,6 +640,16 @@ export function App() {
   // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
   const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
+  useEffect(() => {
+    if (pendingThemeStage === null) return;
+    if (activeWorkspaceId !== "themes" || activeWorkspaceSection?.id !== "themes") {
+      return;
+    }
+    const handle = themeManagerHandleRef.current;
+    if (!handle) return;
+    handle.focusStage(pendingThemeStage);
+    setPendingThemeStage(null);
+  }, [activeWorkspaceId, activeWorkspaceSection?.id, pendingThemeStage]);
   // Open compare view within the Tokens tab in 'cross-theme' mode for a specific token
   const handleOpenCrossThemeCompare = useCallback(
     (path: string) => {
@@ -1278,9 +1290,7 @@ export function App() {
       e.preventDefault();
       dismissEphemeralOverlays();
       navigateTo("themes", "themes");
-      setTimeout(() => {
-        themeManagerHandleRef.current?.switchToOutputView();
-      }, 50);
+      closeSecondarySurface();
     }
     if (matchesShortcut(e, "SHOW_SHORTCUTS")) {
       e.preventDefault();
@@ -1738,16 +1748,7 @@ export function App() {
       }
 
       if (themeWorkflowSummary.currentStage === "preview") {
-        return {
-          label: "Open preview",
-          onClick: () => {
-            guardEditorAction(() => {
-              navigateTo("themes", "themes");
-              closeSecondarySurface();
-              themeManagerHandleRef.current?.focusStage("preview");
-            });
-          },
-        };
+        return null;
       }
 
       return {

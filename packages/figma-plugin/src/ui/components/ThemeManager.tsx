@@ -44,7 +44,6 @@ export interface ThemeManagerHandle {
   focusStage: (stage: ThemeAuthoringStage) => void;
   openCreateAxis: () => void;
   returnToAuthoring: () => void;
-  switchToOutputView: () => void;
 }
 
 interface ThemeManagerProps {
@@ -480,10 +479,6 @@ export function ThemeManager({
       setActiveView("authoring");
       setAuthoringMode("authoring");
     },
-    switchToOutputView: () => {
-      setActiveView("output");
-      setAuthoringMode("authoring");
-    },
   }), [focusStage, handleNavigateToCompare, openCreateDim]);
 
   useEffect(() => {
@@ -592,28 +587,6 @@ export function ThemeManager({
                     Edit tokens
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView("compare");
-                    setAuthoringMode("preview");
-                  }}
-                  disabled={!canOpenReview}
-                  className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
-                >
-                  Review
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView("output");
-                    setAuthoringMode("authoring");
-                  }}
-                  disabled={!canOpenHandoff}
-                  className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
-                >
-                  Handoff
-                </button>
               </div>
             </div>
             <div className="mt-2 flex items-start justify-between gap-3 text-[10px] leading-snug">
@@ -872,9 +845,39 @@ export function ThemeManager({
 
               <ThemeSection
                 title="Secondary tools"
-                description="Saved states and resolved samples stay behind the core structure workflow."
+                description="Review states, handoff, and resolved samples stay behind the core structure workflow."
               >
                 <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      Use review to compare authored states. Generate handoff only after token coverage is complete.
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveView("compare");
+                          setAuthoringMode("preview");
+                        }}
+                        disabled={!canOpenReview}
+                        className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+                      >
+                        Review
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveView("output");
+                          setAuthoringMode("authoring");
+                        }}
+                        disabled={!canOpenHandoff}
+                        className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+                      >
+                        Handoff
+                      </button>
+                    </div>
+                  </div>
+
                   <Collapsible
                     open={savedStatesOpen}
                     onToggle={() => setSavedStatesOpen((previous) => !previous)}

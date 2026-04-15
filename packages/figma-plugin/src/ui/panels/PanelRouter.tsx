@@ -1395,14 +1395,14 @@ export function PanelRouter(): ReactNode {
               onDimensionsChange={setDimensions}
               onNavigateToToken={(path, set) => {
                 beginHandoff({
-                  reason: "View or edit this token, then return to Theme review",
+                  reason: "View or edit this token, then return to Themes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(set, path);
               }}
               onCreateToken={(tokenPath, set) => {
                 beginHandoff({
-                  reason: "Create this token, then return to Theme review",
+                  reason: "Create this token, then return to Themes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 setEditingToken({ path: tokenPath, set, isCreate: true });
@@ -1414,7 +1414,7 @@ export function PanelRouter(): ReactNode {
               onTokensCreated={controller.refreshAll}
               onGoToTokens={() => {
                 beginHandoff({
-                  reason: "Browse tokens, then return to Theme review",
+                  reason: "Browse tokens, then return to Themes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
               }}
