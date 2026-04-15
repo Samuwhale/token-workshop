@@ -579,11 +579,11 @@ export function TokenList({
           optionName,
           dimId,
           resolved: resolved[tokenPath],
-          targetSet: null,
+          targetSet: pathToSet[tokenPath] ?? null,
         };
       });
     },
-    [multiModeData],
+    [multiModeData, pathToSet],
   );
 
   // Pre-compute per-group theme coverage for the coverage badge

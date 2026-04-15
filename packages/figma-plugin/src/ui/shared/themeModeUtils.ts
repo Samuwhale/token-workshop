@@ -30,7 +30,7 @@ export interface ThemeModeCoverageSummary {
   mappedOptionCount: number;
   unmappedOptionCount: number;
   mappedOptionWithAssignmentIssuesCount: number;
-  optionsWithCoverageIssuesCount: number;
+  totalMissingModeValueCount: number;
   mappedSetCount: number;
 }
 
@@ -83,7 +83,7 @@ export function buildThemeModeCoverage(params: {
   let mappedOptionCount = 0;
   let unmappedOptionCount = 0;
   let mappedOptionWithAssignmentIssuesCount = 0;
-  let optionsWithCoverageIssuesCount = 0;
+  let totalMissingModeValueCount = 0;
 
   for (const dimension of params.dimensions) {
     const optionNames = new Set(
@@ -138,7 +138,7 @@ export function buildThemeModeCoverage(params: {
       missing.sort(compareCoverageEntries);
       if (missing.length > 0) {
         mappedOptionWithAssignmentIssuesCount += 1;
-        optionsWithCoverageIssuesCount += missing.length;
+        totalMissingModeValueCount += missing.length;
       }
 
       coverage[dimension.id][option.name] = {
@@ -160,7 +160,7 @@ export function buildThemeModeCoverage(params: {
       mappedOptionCount,
       unmappedOptionCount,
       mappedOptionWithAssignmentIssuesCount,
-      optionsWithCoverageIssuesCount,
+      totalMissingModeValueCount,
       mappedSetCount: mappedSetNames.size,
     },
   };

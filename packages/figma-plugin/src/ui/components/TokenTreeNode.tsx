@@ -102,6 +102,7 @@ function MultiModeCell({
   tokenType,
   value,
   targetSet,
+  dimId,
   optionName,
   onSave,
   isTabPending,
@@ -113,12 +114,15 @@ function MultiModeCell({
   tokenType: string | undefined;
   value: TokenMapEntry | undefined;
   targetSet: string | null;
+  dimId: string;
   optionName: string;
   onSave?: (
     path: string,
     type: string,
     newValue: any,
     targetSet: string,
+    dimId: string,
+    optionName: string,
     previousState?: { type?: string; value: unknown },
   ) => void;
   isTabPending?: boolean;
@@ -194,11 +198,11 @@ function MultiModeCell({
     const parsed = parseInlineValue(tokenType, raw);
     if (parsed === null) return;
     setEditing(false);
-    onSave(tokenPath, tokenType, parsed, targetSet, {
+    onSave(tokenPath, tokenType, parsed, targetSet, dimId, optionName, {
       type: value?.$type ?? tokenType,
       value: value?.$value,
     });
-  }, [editing, editValue, tokenType, targetSet, tokenPath, onSave, value]);
+  }, [editing, editValue, tokenType, targetSet, dimId, optionName, tokenPath, onSave, value]);
 
   const openAliasEditor = useCallback(
     (e: React.MouseEvent) => {
@@ -250,7 +254,7 @@ function MultiModeCell({
           onBlur={(e) => {
             const newHex = e.target.value + colorAlphaSuffix;
             if (newHex !== colorHex) {
-              onSave!(tokenPath, "color", newHex, targetSet!, {
+              onSave!(tokenPath, "color", newHex, targetSet!, dimId, optionName, {
                 type: value?.$type ?? "color",
                 value: value?.$value,
               });
@@ -331,7 +335,7 @@ function MultiModeCell({
                 if (raw) {
                   const parsed = parseInlineValue(tokenType, raw);
                   if (parsed !== null) {
-                    onSave(tokenPath, tokenType, parsed, targetSet, {
+                    onSave(tokenPath, tokenType, parsed, targetSet, dimId, optionName, {
                       type: value?.$type ?? tokenType,
                       value: value?.$value,
                     });
@@ -396,6 +400,8 @@ function MultiModeCell({
                       tokenType || value.$type || "color",
                       `{${path}}`,
                       targetSet!,
+                      dimId,
+                      optionName,
                       { type: value.$type, value: value.$value },
                     );
                     closeAliasEditor();
@@ -3443,6 +3449,7 @@ const TokenLeafNode = memo(
                   tokenType={node.$type}
                   value={mv.resolved}
                   targetSet={mv.targetSet}
+                  dimId={mv.dimId}
                   optionName={mv.optionName}
                   onSave={onMultiModeInlineSave}
                   isTabPending={

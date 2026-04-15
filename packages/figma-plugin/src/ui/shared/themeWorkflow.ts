@@ -17,7 +17,7 @@ export interface ThemeWorkflowSummary {
   mappedOptionCount: number;
   unmappedOptionCount: number;
   mappedOptionWithAssignmentIssuesCount: number;
-  optionsWithCoverageIssuesCount: number;
+  totalMissingModeValueCount: number;
   mappedSetCount: number;
   previewReady: boolean;
   hasComparisonOptions: boolean;
@@ -44,7 +44,7 @@ export function summarizeThemeWorkflow(
     mappedOptionCount: 0,
     unmappedOptionCount: 0,
     mappedOptionWithAssignmentIssuesCount: 0,
-    optionsWithCoverageIssuesCount: 0,
+    totalMissingModeValueCount: 0,
     mappedSetCount: 0,
   };
   const currentStage: ThemeAuthoringStage =
@@ -54,7 +54,7 @@ export function summarizeThemeWorkflow(
         ? "options"
         : axisCount === 0
           ? "axes"
-          : coverageSummary.optionsWithCoverageIssuesCount > 0
+          : coverageSummary.totalMissingModeValueCount > 0
             ? "token-modes"
             : "preview";
 
@@ -66,7 +66,7 @@ export function summarizeThemeWorkflow(
     unmappedOptionCount: coverageSummary.unmappedOptionCount,
     mappedOptionWithAssignmentIssuesCount:
       coverageSummary.mappedOptionWithAssignmentIssuesCount,
-    optionsWithCoverageIssuesCount: coverageSummary.optionsWithCoverageIssuesCount,
+    totalMissingModeValueCount: coverageSummary.totalMissingModeValueCount,
     mappedSetCount: coverageSummary.mappedSetCount,
     previewReady: axisCount > 0 && optionCount > 0,
     hasComparisonOptions: optionCount > 1,

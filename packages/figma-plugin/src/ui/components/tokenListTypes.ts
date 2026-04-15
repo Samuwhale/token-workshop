@@ -488,6 +488,8 @@ export interface TokenTreeLeafActionsContextType {
     type: string,
     newValue: any,
     targetSet: string,
+    dimId: string,
+    optionName: string,
     previousState?: { type?: string; value: unknown },
   ) => void;
   onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;

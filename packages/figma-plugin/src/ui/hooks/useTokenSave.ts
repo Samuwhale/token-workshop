@@ -160,47 +160,67 @@ export function useTokenSave({
 
   const handleMultiModeInlineSave = useCallback(async (
     path: string,
-    type: string,
+    _type: string,
     newValue: unknown,
     targetSet: string,
-    previousState?: { type?: string; value: unknown },
+    dimId: string,
+    optionName: string,
+    _previousState?: { type?: string; value: unknown },
   ) => {
     if (!connected) return;
-    const oldEntry = perSetFlat?.[targetSet]?.[path];
-    const previousSnapshot = previousState
-      ? {
-          type: previousState.type ?? oldEntry?.$type ?? type,
-          value: cloneUndoValue(previousState.value),
-        }
-      : oldEntry
-        ? {
-            type: oldEntry.$type,
-            value: cloneUndoValue(oldEntry.$value),
-          }
-        : null;
-    const nextSnapshot = { type, value: cloneUndoValue(newValue) };
+
+    // Read the current token to get its full $extensions for deep merge.
+    // The server PATCH replaces $extensions wholesale, so we must send
+    // the complete merged object.
+    const currentEntry = allTokensFlat[path];
+    const previousExtensions = currentEntry?.$extensions
+      ? structuredClone(currentEntry.$extensions)
+      : undefined;
+
+    // Build the merged extensions with the new mode value
+    const nextExtensions = currentEntry?.$extensions
+      ? structuredClone(currentEntry.$extensions)
+      : {};
+    const tokenmanager =
+      nextExtensions.tokenmanager &&
+      typeof nextExtensions.tokenmanager === 'object' &&
+      !Array.isArray(nextExtensions.tokenmanager)
+        ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
+        : {};
+    const modes =
+      tokenmanager.modes &&
+      typeof tokenmanager.modes === 'object' &&
+      !Array.isArray(tokenmanager.modes)
+        ? { ...(tokenmanager.modes as Record<string, Record<string, unknown>>) }
+        : {};
+    const dimModes = modes[dimId] ? { ...modes[dimId] } : {};
+    dimModes[optionName] = newValue;
+    modes[dimId] = dimModes;
+    tokenmanager.modes = modes;
+    nextExtensions.tokenmanager = tokenmanager;
+
     try {
-      await updateToken(serverUrl, targetSet, path, createTokenValueBody({ type, value: newValue }));
+      await updateToken(serverUrl, targetSet, path, createTokenBody({
+        $extensions: nextExtensions,
+      }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
     }
-    if (onPushUndo && previousSnapshot) {
+    if (onPushUndo) {
       const capturedUrl = serverUrl;
       const capturedSet = targetSet;
       onPushUndo({
-        description: `Edit ${path} in ${targetSet}`,
+        description: `Edit mode ${optionName} for ${path}`,
         restore: async () => {
-          await updateToken(capturedUrl, capturedSet, path, createTokenValueBody({
-            type: previousSnapshot.type,
-            value: previousSnapshot.value,
+          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
+            $extensions: previousExtensions,
           }));
           onRefresh();
         },
         redo: async () => {
-          await updateToken(capturedUrl, capturedSet, path, createTokenValueBody({
-            type: nextSnapshot.type,
-            value: nextSnapshot.value,
+          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
+            $extensions: nextExtensions,
           }));
           onRefresh();
         },
@@ -211,7 +231,7 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-  }, [connected, serverUrl, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
+  }, [connected, serverUrl, allTokensFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleDetachFromRecipe = useCallback(async (path: string) => {
     if (!connected) return;

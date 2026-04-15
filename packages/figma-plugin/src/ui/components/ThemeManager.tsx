@@ -385,10 +385,10 @@ export function ThemeManager({
             <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
               Author mode axes, save preview views, and review token output generated from inline mode values.
             </p>
-            {themeModeCoverage.summary.optionsWithCoverageIssuesCount > 0 ? (
+            {themeModeCoverage.summary.totalMissingModeValueCount > 0 ? (
               <p className="mt-0.5 text-[10px] text-[var(--color-figma-warning)]">
-                {themeModeCoverage.summary.optionsWithCoverageIssuesCount} missing mode value
-                {themeModeCoverage.summary.optionsWithCoverageIssuesCount === 1 ? "" : "s"}
+                {themeModeCoverage.summary.totalMissingModeValueCount} missing mode value
+                {themeModeCoverage.summary.totalMissingModeValueCount === 1 ? "" : "s"}
               </p>
             ) : null}
           </div>
