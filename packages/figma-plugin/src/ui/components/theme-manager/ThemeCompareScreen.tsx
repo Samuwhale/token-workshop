@@ -68,15 +68,15 @@ export function ThemeCompareScreen({
             >
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Back to structure
+            Back to themes
           </button>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Review across collections
+                Mode review
               </div>
               <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Inspect how the same token resolves across mode options and sets before you hand anything off.
+                Compare how tokens resolve across the selected modes and sets before handoff.
               </p>
             </div>
             {focusLabel ? (
@@ -109,7 +109,7 @@ export function ThemeCompareScreen({
           serverUrl={serverUrl}
           onTokensCreated={onTokensCreated}
           onBack={onBack}
-          backLabel="Back"
+          backLabel="Back to review"
         />
       </div>
     </>

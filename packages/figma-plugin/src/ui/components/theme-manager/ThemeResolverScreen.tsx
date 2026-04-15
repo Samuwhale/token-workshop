@@ -125,15 +125,15 @@ export function ThemeResolverScreen({
             >
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Back to structure
+            Back to review
           </button>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Output handoff
+                Handoff output
               </div>
               <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Generate implementation-ready output from the current theme state. Nothing in this view changes token values.
+                Generate output for the current theme state.
               </p>
             </div>
             <button
@@ -142,7 +142,11 @@ export function ThemeResolverScreen({
               disabled={syncing || !connected}
               className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {syncing ? "Generating..." : currentResolver ? "Refresh handoff" : "Generate handoff"}
+              {syncing
+                ? "Generating..."
+                : currentResolver
+                  ? "Refresh handoff"
+                  : "Generate handoff"}
             </button>
           </div>
         </div>
@@ -152,40 +156,42 @@ export function ThemeResolverScreen({
         <div className="space-y-3 px-3 py-3">
           <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
             <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-              <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                Output resolver
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                    Handoff resolver
+                  </div>
+                  <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    One generated resolver is used for the handoff.
+                  </p>
+                </div>
+                {loading ? (
+                  <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <Spinner size="sm" />
+                    Generating...
+                  </div>
+                ) : null}
               </div>
-              <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                The handoff uses one generated resolver. Arbitrary resolver files are not part of this workflow.
-              </p>
             </div>
             <div className="px-3 py-3">
               {currentResolver ? (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                        {currentResolver.name}
-                      </div>
-                      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                        {Object.keys(currentResolver.modifiers).length} mode
-                        {Object.keys(currentResolver.modifiers).length === 1 ? "" : "s"}
-                        {resolvedTokens ? ` · ${resolvedCount} tokens resolved` : ""}
-                      </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                      {currentResolver.name}
                     </div>
-                    {loading ? (
-                      <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                        <Spinner size="sm" />
-                        Generating...
-                      </div>
-                    ) : null}
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      {Object.keys(currentResolver.modifiers).length} mode
+                      {Object.keys(currentResolver.modifiers).length === 1 ? "" : "s"}
+                      {resolvedTokens ? ` · ${resolvedCount} tokens resolved` : ""}
+                    </div>
                   </div>
                   {currentResolver.description ? (
-                    <p className="mt-2 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                    <div className="max-w-[160px] text-right text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                       {currentResolver.description}
-                    </p>
+                    </div>
                   ) : null}
-                </>
+                </div>
               ) : (
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   Generate the handoff resolver to inspect the current state.
@@ -199,74 +205,106 @@ export function ThemeResolverScreen({
             </div>
           </section>
 
-          {currentResolver ? (
-            <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-              <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+          <details className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+            <summary className="[&::-webkit-details-marker]:hidden flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2">
+              <div>
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                  Current selections
+                  Resolver details
                 </div>
                 <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  The output follows the current theme state. Change selections in Themes or Inspect, then refresh the handoff.
+                  Inspect the generated handoff resolver metadata.
                 </p>
               </div>
-              <div className="space-y-2 px-3 py-3">
+              <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                {currentResolver
+                  ? `${Object.keys(currentResolver.modifiers).length} mode${
+                      Object.keys(currentResolver.modifiers).length === 1
+                        ? ""
+                        : "s"
+                    }`
+                  : "Collapsed"}
+              </div>
+            </summary>
+            <div className="border-t border-[var(--color-figma-border)] px-3 py-3">
+              {currentResolver ? (
+                <div className="space-y-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {currentResolver.description ? (
+                    <p className="leading-snug">{currentResolver.description}</p>
+                  ) : null}
+                  {!currentResolverIsActive && !syncing ? (
+                    <p className="leading-snug">
+                      Refresh the handoff to align it with the current theme state.
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Generate the handoff resolver to inspect the current state.
+                </div>
+              )}
+            </div>
+          </details>
+
+          {currentResolver ? (
+            <details className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+              <summary className="[&::-webkit-details-marker]:hidden flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2">
+                <div>
+                  <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                    Current selections
+                  </div>
+                  <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    View the selections that feed the generated output.
+                  </p>
+                </div>
+                <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  {selectedContexts.length} active
+                </div>
+              </summary>
+              <div className="border-t border-[var(--color-figma-border)] px-3 py-3">
                 {selectedContexts.length > 0 ? (
-                  selectedContexts.map(({ modifierName, description, selected }) => (
-                    <div
-                      key={modifierName}
-                      className="flex items-center justify-between gap-3 rounded border border-[var(--color-figma-border)] px-2.5 py-2"
-                    >
-                      <div className="min-w-0">
-                        <div
-                          className="truncate text-[10px] text-[var(--color-figma-text-secondary)]"
-                          title={description || modifierName}
-                        >
+                  <div className="space-y-2">
+                    {selectedContexts.map(({ modifierName, selected }) => (
+                      <div
+                        key={modifierName}
+                        className="rounded border border-[var(--color-figma-border)] px-2.5 py-2 text-[10px]"
+                      >
+                        <div className="truncate text-[var(--color-figma-text-secondary)]">
                           {modifierName}
                         </div>
-                        <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                        <div className="truncate font-medium text-[var(--color-figma-text)]">
                           {selected || "No selection"}
                         </div>
                       </div>
-                      <div className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                        In handoff
-                      </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
                   <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                     This output has no modes. It resolves against base token values only.
                   </div>
                 )}
-                {!currentResolverIsActive && !syncing ? (
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Refresh the handoff to update the preview for the current theme state.
-                  </div>
-                ) : null}
               </div>
-            </section>
+            </details>
           ) : null}
 
-          <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-            <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-              <div className="flex items-baseline justify-between gap-2">
-                <div>
-                  <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                    Resolved samples
-                  </div>
-                  <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Resolved token output for the selected mode combination.
-                  </p>
+          <details className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+            <summary className="[&::-webkit-details-marker]:hidden flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2">
+              <div>
+                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                  Resolved samples
                 </div>
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                  {resolvedTokens
-                    ? previewEntries.length < resolvedCount
-                      ? `Showing ${previewEntries.length} of ${resolvedCount}`
-                      : `${resolvedCount} total`
-                    : "No preview yet"}
-                </div>
+                <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Inspect a small sample of resolved token output.
+                </p>
               </div>
-            </div>
-            <div className="px-3 py-3">
+              <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                {resolvedTokens
+                  ? previewEntries.length < resolvedCount
+                    ? `Showing ${previewEntries.length} of ${resolvedCount}`
+                    : `${resolvedCount} total`
+                  : "No preview yet"}
+              </div>
+            </summary>
+            <div className="border-t border-[var(--color-figma-border)] px-3 py-3">
               {loading ? (
                 <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
                   <Spinner size="sm" />
@@ -334,7 +372,7 @@ export function ThemeResolverScreen({
                 </div>
               )}
             </div>
-          </section>
+          </details>
         </div>
       </div>
     </>

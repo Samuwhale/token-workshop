@@ -13,6 +13,7 @@ import type { TokenMapEntry } from "../../shared/types";
 import { useThemeDimensions } from "../hooks/useThemeDimensions";
 import { useThemeCompare } from "../hooks/useThemeCompare";
 import { Spinner } from "./Spinner";
+import { Collapsible } from "./Collapsible";
 import { apiFetch } from "../shared/apiFetch";
 import { useThemeSwitcherContext } from "../contexts/ThemeContext";
 import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
@@ -146,30 +147,6 @@ function ThemeSection({
   );
 }
 
-function ThemeMetric({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2">
-      <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-        {label}
-      </div>
-      <div className="mt-0.5 text-[11px] font-medium text-[var(--color-figma-text)]">
-        {value}
-      </div>
-      <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
-        {hint}
-      </div>
-    </div>
-  );
-}
-
 function parseCompareSelection(selection: string): {
   dimensionId: string;
   optionName: string;
@@ -218,6 +195,11 @@ export function ThemeManager({
   const [viewsLoading, setViewsLoading] = useState(true);
   const [viewsError, setViewsError] = useState<string | null>(null);
   const [newViewName, setNewViewName] = useState("");
+  const [savedStatesOpen, setSavedStatesOpen] = useState(false);
+  const [resolvedSampleOpen, setResolvedSampleOpen] = useState(false);
+  const [expandedGapRows, setExpandedGapRows] = useState<Record<string, boolean>>(
+    {},
+  );
 
   const compare = useThemeCompare();
 
@@ -333,19 +315,22 @@ export function ThemeManager({
   const shellStatus = useMemo(() => {
     switch (workflowSummary.currentStage) {
       case "axes":
-        return "Start by defining the mode axes that frame the system.";
+        return "Define the mode axes the token system actually needs.";
       case "options":
-        return `${workflowSummary.axesMissingOptionsCount} axis needs options before the workspace can be reviewed.`;
+        return `${workflowSummary.axesMissingOptionsCount} axis still needs options before token variations can be reviewed.`;
       case "token-modes":
-        return `${workflowSummary.totalMissingModeValueCount} mode values still need coverage across the token sets.`;
+        return `${workflowSummary.totalMissingModeValueCount} token mode values still need authoring in Tokens.`;
       case "preview":
         return workflowSummary.previewReady
-          ? "Preview is ready. Review a state, then hand off output when needed."
+          ? "Structure is ready. Review a state or generate handoff when needed."
           : "Finish the system before previewing or handing off output.";
       default:
         return "";
     }
   }, [workflowSummary]);
+
+  const canOpenReview = workflowSummary.previewReady;
+  const canOpenHandoff = workflowSummary.currentStage === "preview";
 
   const compareFocusLabel = useMemo(() => {
     const leftSelection = parseCompareSelection(compare.compareThemeDefaultA);
@@ -450,6 +435,13 @@ export function ThemeManager({
     [refreshViews, serverUrl],
   );
 
+  const toggleGapRow = useCallback((rowId: string) => {
+    setExpandedGapRows((previous) => ({
+      ...previous,
+      [rowId]: !previous[rowId],
+    }));
+  }, []);
+
   const focusStage = useCallback((stage: ThemeAuthoringStage) => {
     if (stage === "preview") {
       setActiveView("compare");
@@ -529,80 +521,6 @@ export function ThemeManager({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
-      <div className="shrink-0 border-b border-[var(--color-figma-border)] px-3 py-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              Themes
-            </div>
-            <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-              Supporting workspace for structure, cross-collection review, preview states, and implementation handoff.
-            </p>
-            <div className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
-              {selectionLabel || "No state selected"}
-            </div>
-          </div>
-          <div className="max-w-[180px] text-right text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-            {shellStatus}
-          </div>
-        </div>
-
-        <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
-          <ThemeMetric
-            label="Axes"
-            value={`${workflowSummary.axisCount}`}
-            hint={`${workflowSummary.optionCount} total options`}
-          />
-          <ThemeMetric
-            label="Coverage"
-            value={
-              workflowSummary.totalMissingModeValueCount > 0
-                ? `${workflowSummary.totalMissingModeValueCount}`
-                : "Clear"
-            }
-            hint={
-              workflowSummary.totalMissingModeValueCount > 0
-                ? "missing mode values"
-                : "no missing values"
-            }
-          />
-          <ThemeMetric
-            label="States"
-            value={`${views.length}`}
-            hint="saved selections"
-          />
-          <ThemeMetric
-            label="Handoff"
-            value={workflowSummary.previewReady ? "Ready" : "Pending"}
-            hint="implementation output"
-          />
-        </div>
-
-        <div className="mt-2 flex gap-1">
-          {[
-            { id: "authoring" as const, label: "Structure" },
-            { id: "compare" as const, label: "Review" },
-            { id: "output" as const, label: "Handoff" },
-          ].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                setActiveView(item.id);
-                setAuthoringMode(item.id === "compare" ? "preview" : "authoring");
-              }}
-              className={`rounded px-2 py-1 text-[10px] font-medium ${
-                activeView === item.id
-                  ? "bg-[var(--color-figma-accent)] text-white"
-                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {activeView === "compare" ? (
         <div className="min-h-0 flex-1 overflow-hidden">
           <ThemeCompareScreen
@@ -653,358 +571,442 @@ export function ThemeManager({
       ) : null}
 
       {activeView === "authoring" ? (
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-          <div className="space-y-3">
-            <ThemeSection
-              title="Structure"
-              description="Define axes and options here. Coverage hints stay attached to the option rows so review remains part of the system, not a separate setup flow."
-            >
-              <div className="space-y-3">
-                {showCreateDim ? (
-                  <CreateAxisForm
-                    value={newDimName}
-                    error={createDimError}
-                    saving={isCreatingDim}
-                    onChange={setNewDimName}
-                    onSubmit={() => void handleCreateDimension()}
-                    onCancel={closeCreateDim}
-                  />
-                ) : (
+        <>
+          <div className="shrink-0 border-b border-[var(--color-figma-border)] px-3 py-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                  Themes
+                </div>
+                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+                  Supporting workspace for mode structure, cross-collection review, and implementation handoff. Author token values in Tokens.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {onGoToTokens ? (
                   <button
                     type="button"
-                    onClick={() => openCreateDim()}
-                    className="rounded border border-[var(--color-figma-border)] px-3 py-2 text-[11px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                    onClick={() => onGoToTokens()}
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                   >
-                    Create axis
+                    Edit tokens
                   </button>
-                )}
-
-                {dimensions.length === 0 ? (
-                  <div className="rounded border border-dashed border-[var(--color-figma-border)] px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    No mode axes yet. Start with the structure that the token set actually needs.
-                  </div>
                 ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView("compare");
+                    setAuthoringMode("preview");
+                  }}
+                  disabled={!canOpenReview}
+                  className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+                >
+                  Review
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView("output");
+                    setAuthoringMode("authoring");
+                  }}
+                  disabled={!canOpenHandoff}
+                  className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+                >
+                  Handoff
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 flex items-start justify-between gap-3 text-[10px] leading-snug">
+              <div className="min-w-0 text-[var(--color-figma-text-tertiary)]">
+                {selectionLabel
+                  ? `Current review state: ${selectionLabel}`
+                  : "Current review state follows the selected option in each axis."}
+              </div>
+              <div className="max-w-[220px] text-right text-[var(--color-figma-text-secondary)]">
+                {shellStatus}
+              </div>
+            </div>
+          </div>
 
-                {dimensions.map((dimension) => (
-                  <section
-                    key={dimension.id}
-                    className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
-                  >
-                    <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-                      <div className="flex items-center justify-between gap-2">
-                        {renameDim === dimension.id ? (
-                          <div className="flex flex-1 gap-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+            <div className="space-y-3">
+              <ThemeSection
+                title="Structure"
+                description="Define axes and options here. Coverage stays lightweight so this workspace can support the authored token system without replacing it."
+                action={
+                  !showCreateDim ? (
+                    <button
+                      type="button"
+                      onClick={() => openCreateDim()}
+                      className="rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                    >
+                      Create axis
+                    </button>
+                  ) : null
+                }
+              >
+                <div className="space-y-3">
+                  {showCreateDim ? (
+                    <CreateAxisForm
+                      value={newDimName}
+                      error={createDimError}
+                      saving={isCreatingDim}
+                      onChange={setNewDimName}
+                      onSubmit={() => void handleCreateDimension()}
+                      onCancel={closeCreateDim}
+                    />
+                  ) : null}
+
+                  {dimensions.length === 0 ? (
+                    <div className="rounded border border-dashed border-[var(--color-figma-border)] px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      No mode axes yet. Start with the structure that the token set actually needs.
+                    </div>
+                  ) : null}
+
+                  {dimensions.map((dimension) => (
+                    <section
+                      key={dimension.id}
+                      className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          {renameDim === dimension.id ? (
+                            <div className="flex flex-1 gap-2">
+                              <input
+                                type="text"
+                                value={renameValue}
+                                onChange={(event) => setRenameValue(event.target.value)}
+                                className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void executeRenameDim()}
+                                className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white"
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelRenameDim}
+                                className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div>
+                                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                                  {dimension.name}
+                                </div>
+                                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                                  {dimension.options.length} option
+                                  {dimension.options.length === 1 ? "" : "s"}
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    startRenameDim(dimension.id, dimension.name)
+                                  }
+                                  className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                >
+                                  Rename
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleDuplicateDimension(dimension.id)}
+                                  className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                >
+                                  Duplicate
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openDeleteConfirm(dimension.id)}
+                                  className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        {renameDim === dimension.id && renameError ? (
+                          <div className="mt-1 text-[10px] text-[var(--color-figma-error)]">
+                            {renameError}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="space-y-2 px-3 py-3">
+                        {dimension.options.map((option) => {
+                          const optionCoverage =
+                            themeModeCoverage.coverage[dimension.id]?.[option.name];
+                          const hasCoverage = optionCoverage?.hasCoverage ?? false;
+                          const missing = optionCoverage?.missing ?? [];
+                          const isActive =
+                            normalizedSelections[dimension.id] === option.name;
+                          const gapRowId = `${dimension.id}:${option.name}`;
+                          const gapsExpanded = expandedGapRows[gapRowId] ?? false;
+                          const coverageLabel = !hasCoverage
+                            ? "No token values authored yet"
+                            : missing.length === 0
+                              ? "Complete"
+                              : `${missing.length} token mode value${missing.length === 1 ? "" : "s"} still missing`;
+                          return (
+                            <div
+                              key={option.name}
+                              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                                    {option.name}
+                                  </div>
+                                  <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                                    {coverageLabel}
+                                  </div>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1">
+                                  {hasCoverage && missing.length > 0 ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleGapRow(gapRowId)}
+                                      className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                    >
+                                      {gapsExpanded ? "Hide gaps" : "Review gaps"}
+                                    </button>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveThemes({
+                                        ...normalizedSelections,
+                                        [dimension.id]: option.name,
+                                      })
+                                    }
+                                    className={`rounded px-2 py-1 text-[10px] font-medium ${
+                                      isActive
+                                        ? "bg-[var(--color-figma-accent)] text-white"
+                                        : "text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+                                    }`}
+                                  >
+                                    {isActive ? "Selected" : "Use"}
+                                  </button>
+                                </div>
+                              </div>
+                              {gapsExpanded && hasCoverage && missing.length > 0 ? (
+                                <div className="mt-2 border-t border-[var(--color-figma-border)] pt-2">
+                                  <div className="space-y-1">
+                                    {missing.slice(0, 4).map((entry) => {
+                                      const targetSet =
+                                        entry.setName ||
+                                        pathToSet[entry.path] ||
+                                        sets[0] ||
+                                        "";
+                                      return (
+                                        <button
+                                          key={`${entry.setName}:${entry.path}`}
+                                          type="button"
+                                          onClick={() =>
+                                            onNavigateToToken?.(entry.path, targetSet)
+                                          }
+                                          className="block w-full truncate text-left text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                                          title={`${entry.setName || targetSet} · ${entry.path}`}
+                                        >
+                                          {entry.setName
+                                            ? `${entry.setName} · ${entry.path}`
+                                            : entry.path}
+                                        </button>
+                                      );
+                                    })}
+                                    {missing.length > 4 ? (
+                                      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                                        Showing 4 of {missing.length} missing tokens.
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+
+                        <div className="rounded border border-dashed border-[var(--color-figma-border)] px-2.5 py-2">
+                          <div className="flex gap-2">
                             <input
                               type="text"
-                              value={renameValue}
-                              onChange={(event) => setRenameValue(event.target.value)}
+                              value={axisDrafts[dimension.id] ?? ""}
+                              onChange={(event) =>
+                                setAxisDrafts((previous) => ({
+                                  ...previous,
+                                  [dimension.id]: event.target.value,
+                                }))
+                              }
+                              placeholder="Add option"
                               className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)]"
                             />
                             <button
                               type="button"
-                              onClick={() => void executeRenameDim()}
-                              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white"
+                              onClick={() => void handleSaveOption(dimension.id)}
+                              disabled={
+                                !axisDrafts[dimension.id]?.trim() ||
+                                axisSaving[dimension.id]
+                              }
+                              className="rounded bg-[var(--color-figma-accent)] px-3 py-1 text-[10px] font-medium text-white disabled:opacity-40"
                             >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelRenameDim}
-                              className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]"
-                            >
-                              Cancel
+                              Add
                             </button>
                           </div>
-                        ) : (
-                          <>
-                            <div>
-                              <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                                {dimension.name}
+                          {axisErrors[dimension.id] ? (
+                            <div className="mt-1 text-[10px] text-[var(--color-figma-error)]">
+                              {axisErrors[dimension.id]}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </ThemeSection>
+
+              <ThemeSection
+                title="Secondary tools"
+                description="Saved states and resolved samples stay behind the core structure workflow."
+              >
+                <div className="space-y-2">
+                  <Collapsible
+                    open={savedStatesOpen}
+                    onToggle={() => setSavedStatesOpen((previous) => !previous)}
+                    label={`Saved review states${views.length > 0 ? ` (${views.length})` : ""}`}
+                  >
+                    <div className="mt-2 space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newViewName}
+                          onChange={(event) => setNewViewName(event.target.value)}
+                          placeholder={createThemeViewName(dimensions, normalizedSelections)}
+                          className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void saveView()}
+                          className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white"
+                        >
+                          Save
+                        </button>
+                      </div>
+                      {viewsLoading ? <Spinner /> : null}
+                      {viewsError ? (
+                        <div className="text-[10px] text-[var(--color-figma-error)]">
+                          {viewsError}
+                        </div>
+                      ) : null}
+                      <div className="space-y-2">
+                        {views.map((view) => (
+                          <div
+                            key={view.id}
+                            className="flex items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] px-2.5 py-2"
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                                {view.name}
                               </div>
-                              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                {dimension.options.length} option
-                                {dimension.options.length === 1 ? "" : "s"}
+                              <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+                                {buildSelectionLabel(dimensions, view.selections)}
                               </div>
                             </div>
                             <div className="flex gap-1">
                               <button
                                 type="button"
-                                onClick={() =>
-                                  startRenameDim(dimension.id, dimension.name)
-                                }
-                                className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                onClick={() => applyView(view)}
+                                className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
                               >
-                                Rename
+                                Apply
                               </button>
                               <button
                                 type="button"
-                                onClick={() => void handleDuplicateDimension(dimension.id)}
-                                className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                              >
-                                Duplicate
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => openDeleteConfirm(dimension.id)}
+                                onClick={() => void deleteView(view.id)}
                                 className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                               >
                                 Delete
                               </button>
                             </div>
-                          </>
-                        )}
-                      </div>
-                      {renameDim === dimension.id && renameError ? (
-                        <div className="mt-1 text-[10px] text-[var(--color-figma-error)]">
-                          {renameError}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="space-y-2 px-3 py-3">
-                      {dimension.options.map((option) => {
-                        const optionCoverage =
-                          themeModeCoverage.coverage[dimension.id]?.[option.name];
-                        const hasCoverage = optionCoverage?.hasCoverage ?? false;
-                        const missing = optionCoverage?.missing ?? [];
-                        const isActive =
-                          normalizedSelections[dimension.id] === option.name;
-                        return (
-                          <div
-                            key={option.name}
-                            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div>
-                                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                                  {option.name}
-                                </div>
-                                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                  {!hasCoverage
-                                    ? "No mode values yet"
-                                    : missing.length === 0
-                                      ? "Complete"
-                                      : `${missing.length} missing mode value${missing.length === 1 ? "" : "s"}`}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setActiveThemes({
-                                    ...normalizedSelections,
-                                    [dimension.id]: option.name,
-                                  })
-                                }
-                                className={`rounded px-2 py-1 text-[10px] font-medium ${
-                                  isActive
-                                    ? "bg-[var(--color-figma-accent)] text-white"
-                                    : "text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
-                                }`}
-                              >
-                                {isActive ? "Active" : "Apply"}
-                              </button>
-                            </div>
-                            {hasCoverage && missing.length > 0 ? (
-                              <div className="mt-2 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-2">
-                                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                  Missing examples
-                                </div>
-                                <div className="mt-1 space-y-1">
-                                  {missing.slice(0, 4).map((entry) => {
-                                    const targetSet =
-                                      entry.setName ||
-                                      pathToSet[entry.path] ||
-                                      sets[0] ||
-                                      "";
-                                    return (
-                                      <button
-                                        key={`${entry.setName}:${entry.path}`}
-                                        type="button"
-                                        onClick={() =>
-                                          onNavigateToToken?.(entry.path, targetSet)
-                                        }
-                                        className="block w-full truncate text-left text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                                        title={`${entry.setName || targetSet} · ${entry.path}`}
-                                      >
-                                        {entry.setName
-                                          ? `${entry.setName} · ${entry.path}`
-                                          : entry.path}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ) : null}
                           </div>
-                        );
-                      })}
-
-                      <div className="rounded border border-dashed border-[var(--color-figma-border)] px-2.5 py-2">
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={axisDrafts[dimension.id] ?? ""}
-                            onChange={(event) =>
-                              setAxisDrafts((previous) => ({
-                                ...previous,
-                                [dimension.id]: event.target.value,
-                              }))
-                            }
-                            placeholder="Add option"
-                            className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => void handleSaveOption(dimension.id)}
-                            disabled={
-                              !axisDrafts[dimension.id]?.trim() ||
-                              axisSaving[dimension.id]
-                            }
-                            className="rounded bg-[var(--color-figma-accent)] px-3 py-1 text-[10px] font-medium text-white disabled:opacity-40"
-                          >
-                            Add
-                          </button>
-                        </div>
-                        {axisErrors[dimension.id] ? (
-                          <div className="mt-1 text-[10px] text-[var(--color-figma-error)]">
-                            {axisErrors[dimension.id]}
+                        ))}
+                        {views.length === 0 && !viewsLoading ? (
+                          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                            No saved states yet.
                           </div>
                         ) : null}
                       </div>
                     </div>
-                  </section>
-                ))}
-              </div>
-            </ThemeSection>
+                  </Collapsible>
 
-            <ThemeSection
-              title="Preview states"
-              description="Saved selections stay secondary to the token system. Use them to revisit a state without reopening structure editing."
-            >
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newViewName}
-                    onChange={(event) => setNewViewName(event.target.value)}
-                    placeholder={createThemeViewName(dimensions, normalizedSelections)}
-                    className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void saveView()}
-                    className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white"
+                  <Collapsible
+                    open={resolvedSampleOpen}
+                    onToggle={() => setResolvedSampleOpen((previous) => !previous)}
+                    label={`Resolved sample${previewTokens.length > 0 ? ` (${previewTokens.length})` : ""}`}
                   >
-                    Save state
-                  </button>
-                </div>
-                {viewsLoading ? <Spinner /> : null}
-                {viewsError ? (
-                  <div className="text-[10px] text-[var(--color-figma-error)]">
-                    {viewsError}
-                  </div>
-                ) : null}
-                <div className="space-y-2">
-                  {views.map((view) => (
-                    <div
-                      key={view.id}
-                      className="flex items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] px-2.5 py-2"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                          {view.name}
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                          {selectionLabel || "Select a state to inspect resolved values."}
                         </div>
-                        <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                          {buildSelectionLabel(dimensions, view.selections)}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveView("compare");
+                            setAuthoringMode("preview");
+                          }}
+                          disabled={!canOpenReview}
+                          className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+                        >
+                          Open review
+                        </button>
                       </div>
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => applyView(view)}
-                          className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
-                        >
-                          Apply
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void deleteView(view.id)}
-                          className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                        >
-                          Delete
-                        </button>
+                      <div className="max-h-[220px] overflow-auto">
+                        <div className="space-y-1">
+                          {previewTokens.map(([tokenPath, entry]) => (
+                            <div
+                              key={tokenPath}
+                              className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]"
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onNavigateToToken?.(
+                                    tokenPath,
+                                    pathToSet[tokenPath] ?? sets[0] ?? "",
+                                  )
+                                }
+                                className="min-w-0 flex-1 truncate text-left text-[10px] text-[var(--color-figma-text)]"
+                                title={tokenPath}
+                              >
+                                {tokenPath}
+                              </button>
+                              <div className="max-w-[45%] truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+                                {typeof entry.$value === "object"
+                                  ? JSON.stringify(entry.$value)
+                                  : String(entry.$value)}
+                              </div>
+                            </div>
+                          ))}
+                          {previewTokens.length === 0 ? (
+                            <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                              No preview values yet.
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                  {views.length === 0 && !viewsLoading ? (
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                      No saved states yet.
-                    </div>
-                  ) : null}
+                  </Collapsible>
                 </div>
-              </div>
-            </ThemeSection>
-
-            <ThemeSection
-              title="Live preview"
-              description="Resolved values from the current state. Only a short slice is shown here so the workspace stays lightweight."
-            >
-              <div className="space-y-2">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  {selectionLabel || "Select a state to inspect resolved values."}
-                </div>
-                <div className="max-h-[220px] overflow-auto">
-                  <div className="space-y-1">
-                    {previewTokens.map(([tokenPath, entry]) => (
-                      <div
-                        key={tokenPath}
-                        className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]"
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onNavigateToToken?.(
-                              tokenPath,
-                              pathToSet[tokenPath] ?? sets[0] ?? "",
-                            )
-                          }
-                          className="min-w-0 flex-1 truncate text-left text-[10px] text-[var(--color-figma-text)]"
-                          title={tokenPath}
-                        >
-                          {tokenPath}
-                        </button>
-                        <div className="max-w-[45%] truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                          {typeof entry.$value === "object"
-                            ? JSON.stringify(entry.$value)
-                            : String(entry.$value)}
-                        </div>
-                      </div>
-                    ))}
-                    {previewTokens.length === 0 ? (
-                      <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                        No preview values yet.
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    When the system is ready, open Handoff to generate implementation-ready output.
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveView("output");
-                      setAuthoringMode("authoring");
-                    }}
-                    className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
-                  >
-                    Open handoff
-                  </button>
-                </div>
-              </div>
-            </ThemeSection>
+              </ThemeSection>
           </div>
-        </div>
+          </div>
+        </>
       ) : null}
 
       {dimensionDeleteConfirm ? (

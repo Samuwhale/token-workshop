@@ -48,15 +48,13 @@ export function summarizeThemeWorkflow(
     mappedSetCount: 0,
   };
   const currentStage: ThemeAuthoringStage =
-    params.activeView === "compare" || params.authoringMode === "preview"
-      ? "preview"
+    axisCount === 0
+      ? "axes"
       : axesMissingOptionsCount > 0
         ? "options"
-        : axisCount === 0
-          ? "axes"
-          : coverageSummary.totalMissingModeValueCount > 0
-            ? "token-modes"
-            : "preview";
+        : coverageSummary.totalMissingModeValueCount > 0
+          ? "token-modes"
+          : "preview";
 
   return {
     axisCount,
@@ -68,7 +66,10 @@ export function summarizeThemeWorkflow(
       coverageSummary.mappedOptionWithAssignmentIssuesCount,
     totalMissingModeValueCount: coverageSummary.totalMissingModeValueCount,
     mappedSetCount: coverageSummary.mappedSetCount,
-    previewReady: axisCount > 0 && optionCount > 0,
+    previewReady:
+      axisCount > 0 &&
+      optionCount > 0 &&
+      axesMissingOptionsCount === 0,
     hasComparisonOptions: optionCount > 1,
     currentStage,
   };
