@@ -43,6 +43,7 @@ export function ThemeAxisBrowser({
               }
             }}
             placeholder="Search modes…"
+            aria-label="Search modes"
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 pl-6 pr-6 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
           />
           {dimSearch && (

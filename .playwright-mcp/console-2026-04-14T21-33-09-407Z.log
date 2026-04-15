@@ -1,0 +1,163 @@
+[     169ms] [WARNING] [plugin] Unhandled controller message type: "set-deep-inspect" {type: set-deep-inspect, enabled: false} @ http://127.0.0.1:3200/dist/ui.html:93637
+[     175ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[     175ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[     175ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29)
+    at http://127.0.0.1:3200/dist/ui.html:7351:7
+    at Qj (http://127.0.0.1:3200/dist/ui.html:5001:25)
+    at Hk (http://127.0.0.1:3200/dist/ui.html:6236:23)
+    at http://127.0.0.1:3200/dist/ui.html:6106:9
+    at J (http://127.0.0.1:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://127.0.0.1:3200/dist/ui.html:448:17) @ http://127.0.0.1:3200/dist/ui.html:7340
+[    5180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[    5180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[    5180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   10180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   10180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   10180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   15182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   15182ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   15182ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   20180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   20180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   20180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   25181ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   25181ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   25181ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   30182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   30182ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   30182ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   35179ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   35179ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   35179ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   40179ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   40179ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   40179ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   45182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   45182ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   45182ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   50179ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   50179ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   50179ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   55182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   55182ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   55182ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   60183ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   60183ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   60183ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   65180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   65180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   65180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   70180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   70180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   70180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   75182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   75183ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   75183ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   80182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   80182ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   80182ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   85181ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   85182ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   85182ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   90181ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   90181ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   90181ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[   95180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[   95180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[   95180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  100180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  100180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  100180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  105183ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  105183ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  105183ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  110180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  110180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  110180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  115181ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  115181ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  115181ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  120182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  120182ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  120182ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  125179ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  125179ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  125179ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  130181ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  130181ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  130181ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  135180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  135180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  135180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  140183ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  140183ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  140183ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  145180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  145180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  145180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  150182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  150182ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  150182ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  155183ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  155183ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  155183ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  160182ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  160183ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  160183ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  165179ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  165179ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  165179ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  170179ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  170179ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  170180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  175181ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  175181ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  175181ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  180282ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  180282ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  180282ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  185183ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  185183ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  185183ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340
+[  190180ms] [ERROR] Access to fetch at 'http://localhost:9400/api/health' from origin 'http://127.0.0.1:3200' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3200/dist/ui.html:0
+[  190180ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:9400/api/health:0
+[  190180ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7331:29) @ http://127.0.0.1:3200/dist/ui.html:7340

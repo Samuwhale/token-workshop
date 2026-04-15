@@ -1,0 +1,66 @@
+- generic [ref=e3]:
+  - tablist "Workspaces" [ref=e6]:
+    - tab "Tokens" [selected] [ref=e7]
+    - tab "Themes" [ref=e8]
+    - tab "Inspect" [ref=e9]
+    - tab "Sync" [ref=e10]
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - img [ref=e17]
+      - generic [ref=e20]:
+        - heading "No tokens yet" [level=3] [ref=e21]
+        - generic [ref=e22]: Set up your first tokens with guided setup, templates, or import.
+    - button "Get started" [ref=e24]
+  - dialog "Get started" [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - heading "Get started" [level=2] [ref=e30]
+        - button "Close" [ref=e31]:
+          - img [ref=e32]
+      - alert [ref=e34]:
+        - img [ref=e35]
+        - generic [ref=e38]: Server offline
+        - button "Retry" [ref=e39]
+    - generic [ref=e41]:
+      - button "Guided setup Build token foundations step by step." [ref=e42]:
+        - generic [ref=e43]:
+          - img [ref=e45]
+          - generic [ref=e48]:
+            - generic [ref=e49]:
+              - text: Guided setup
+              - paragraph [ref=e50]: Build token foundations step by step.
+            - img [ref=e52]
+      - generic [ref=e54]:
+        - button "Recipe templates Generate a palette, type scale, or spacing system." [disabled] [ref=e55]:
+          - generic [ref=e56]:
+            - img [ref=e58]
+            - generic [ref=e60]:
+              - generic [ref=e61]:
+                - text: Recipe templates
+                - paragraph [ref=e62]: Generate a palette, type scale, or spacing system.
+              - img [ref=e64]
+        - button "Import existing tokens Import Figma variables or token files." [ref=e66]:
+          - generic [ref=e67]:
+            - img [ref=e69]
+            - generic [ref=e72]:
+              - generic [ref=e73]:
+                - text: Import existing tokens
+                - paragraph [ref=e74]: Import Figma variables or token files.
+              - img [ref=e76]
+        - button "Create a token Add a token or group directly." [disabled] [ref=e78]:
+          - generic [ref=e79]:
+            - img [ref=e81]
+            - generic [ref=e83]:
+              - generic [ref=e84]:
+                - text: Create a token
+                - paragraph [ref=e85]: Add a token or group directly.
+              - img [ref=e87]
+  - generic [ref=e92]:
+    - button "Undo" [disabled]:
+      - img
+    - button "Redo" [disabled]:
+      - img
+    - button "Settings" [ref=e95]:
+      - img [ref=e96]
+  - generic "Drag to resize" [ref=e100]:
+    - img [ref=e101]

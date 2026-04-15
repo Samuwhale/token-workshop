@@ -91,22 +91,16 @@ export function ThemeOptionWorkspace({
       }}
       className="bg-[var(--color-figma-bg)]"
     >
-      <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="truncate text-[12px] font-semibold text-[var(--color-figma-text)]">
-                {option.name}
-              </h3>
-              {selectedOptionIssues.length > 0 && (
-                <span className="shrink-0 text-[9px] text-[var(--color-figma-warning)]">
-                  {selectedOptionIssues.length} issue
-                  {selectedOptionIssues.length === 1 ? "" : "s"}
-                </span>
-              )}
-            </div>
-            {/* Set counts are visible in the section headers below */}
-          </div>
+      {(fillableCount > 0 || selectedOptionIssues.length > 0) && (
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--color-figma-border)] px-3 py-1.5">
+          {selectedOptionIssues.length > 0 ? (
+            <span className="text-[10px] text-[var(--color-figma-warning)]">
+              {selectedOptionIssues.length} issue
+              {selectedOptionIssues.length === 1 ? "" : "s"}
+            </span>
+          ) : (
+            <span />
+          )}
           {fillableCount > 0 && (
             <button
               type="button"
@@ -117,7 +111,7 @@ export function ThemeOptionWorkspace({
             </button>
           )}
         </div>
-      </div>
+      )}
 
       {renameOption?.dimId === dimension.id &&
         renameOption?.optionName === option.name && (
@@ -162,9 +156,6 @@ export function ThemeOptionWorkspace({
 
       {selectedOptionIssues.length > 0 && (
         <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-          <div className="mb-1 text-[10px] font-medium text-[var(--color-figma-text)]">
-            Issues to fix
-          </div>
           <div className="space-y-1.5">
             {selectedOptionIssues.map((issue) => (
               <ThemeIssueEntryCard
@@ -230,6 +221,8 @@ export function ThemeOptionWorkspace({
             <button
               type="button"
               onClick={() => setNotUsedCollapsed((value) => !value)}
+              aria-expanded={!notUsedCollapsed}
+              aria-label={`Not included sets (${disabledSets.length})`}
               className="flex w-full items-center gap-1.5 border-b border-[var(--color-figma-border)] px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               <svg
@@ -245,7 +238,7 @@ export function ThemeOptionWorkspace({
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Off
+                Not included
               </div>
               <div className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
                 {disabledSets.length}

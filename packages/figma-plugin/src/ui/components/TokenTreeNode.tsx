@@ -653,14 +653,14 @@ const TokenGroupNode = memo(
     }
     if (node.$type) {
       groupMetadataSegments.push({
-        label: `Type: ${node.$type}`,
-        title: `Inherited type for child tokens: ${node.$type}`,
+        label: node.$type,
+        title: `Inherited type: ${node.$type}`,
       });
     }
     if (groupScopeSummary) {
       groupMetadataSegments.push({
-        label: `Scopes: ${groupScopeSummary}`,
-        title: `Figma variable scopes: ${groupPresentation.scopes.join(", ")}`,
+        label: groupScopeSummary,
+        title: `Figma scopes: ${groupPresentation.scopes.join(", ")}`,
       });
     }
     const groupLifecycle = getLifecycleLabel(groupPresentation.lifecycle);
@@ -1042,23 +1042,23 @@ const TokenGroupNode = memo(
                     <span className={MENU_SHORTCUT_CLASS}>S</span>
                   </button>
                 )}
-                <button
-                  role="menuitem"
-                  tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    closeGroupMenus();
-                    if (targetRecipe?.id) onNavigateToRecipe?.(targetRecipe.id);
-                  }}
-                  disabled={!targetRecipe?.id || !onNavigateToRecipe}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <RecipeGlyph size={8} className="shrink-0 opacity-60" />
-                  <span className="flex-1">Open recipe</span>
-                  <span className={MENU_SHORTCUT_CLASS}>{managedRecipeLeafCount}</span>
-                </button>
-                {targetRecipe && managedRecipeLeafCount > 0 && (
-                  <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                {targetRecipe?.id && onNavigateToRecipe && (
+                  <>
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        closeGroupMenus();
+                        onNavigateToRecipe(targetRecipe.id!);
+                      }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <RecipeGlyph size={8} className="shrink-0 opacity-60" />
+                      <span className="flex-1">Open recipe</span>
+                    </button>
+                    <div role="separator" className={MENU_SEPARATOR_CLASS} />
+                  </>
                 )}
                 <button
                   role="menuitem"
@@ -2659,6 +2659,8 @@ const TokenLeafNode = memo(
                       stepInlineValue(-1);
                     }}
                     tabIndex={-1}
+                    title="Decrement"
+                    aria-label="Decrement value"
                     className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-[11px] font-medium leading-none select-none shrink-0"
                   >
                     −
@@ -2720,6 +2722,8 @@ const TokenLeafNode = memo(
                       stepInlineValue(1);
                     }}
                     tabIndex={-1}
+                    title="Increment"
+                    aria-label="Increment value"
                     className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-[11px] font-medium leading-none select-none shrink-0"
                   >
                     +

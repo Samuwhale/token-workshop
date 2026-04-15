@@ -1942,6 +1942,7 @@ export function App() {
             {visibleHandoff && returnFromHandoff && (
               <button
                 onClick={returnFromHandoff}
+                aria-label={`Back to ${visibleHandoff.returnLabel}`}
                 className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
                 &larr; {visibleHandoff.returnLabel}
@@ -2009,6 +2010,9 @@ export function App() {
                   <div key={dim.id} className="relative flex items-center" title={dim.name}>
                     <button
                       onClick={() => setOpenDimDropdown(isOpen ? null : dim.id)}
+                      aria-expanded={isOpen}
+                      aria-haspopup="listbox"
+                      aria-label={`${dim.name}: ${activeOption || "None"}`}
                       className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                         activeOption
                           ? "bg-[var(--color-figma-accent)] text-white font-medium"

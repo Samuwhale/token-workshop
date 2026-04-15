@@ -1,0 +1,70 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: TokenManager Standalone
+    - generic [ref=e4]: loaded
+    - button "Clear Log" [ref=e5] [cursor=pointer]
+    - button "Mock Selection" [ref=e6] [cursor=pointer]
+    - generic [ref=e7]: 0 messages
+  - iframe [ref=e8]:
+    - generic [ref=f1e3]:
+      - tablist "Workspaces" [ref=f1e6]:
+        - tab "Tokens" [selected] [ref=f1e7]
+        - tab "Themes" [ref=f1e8]
+        - tab "Inspect" [ref=f1e9]
+        - tab "Sync" [ref=f1e10]
+      - generic [ref=f1e14]:
+        - generic [ref=f1e15]:
+          - img [ref=f1e17]
+          - generic [ref=f1e20]:
+            - heading "No tokens yet" [level=3] [ref=f1e21]
+            - generic [ref=f1e22]: Set up your first tokens with guided setup, templates, or import.
+        - button "Get started" [ref=f1e24]
+      - dialog "Get started" [ref=f1e26]:
+        - generic [ref=f1e28]:
+          - heading "Get started" [level=2] [ref=f1e30]
+          - button "Close" [ref=f1e31]:
+            - img [ref=f1e32]
+        - generic [ref=f1e35]:
+          - button "Guided setup Build token foundations step by step." [ref=f1e36]:
+            - generic [ref=f1e37]:
+              - img [ref=f1e39]
+              - generic [ref=f1e42]:
+                - generic [ref=f1e43]:
+                  - text: Guided setup
+                  - paragraph [ref=f1e44]: Build token foundations step by step.
+                - img [ref=f1e46]
+          - generic [ref=f1e48]:
+            - button "Recipe templates Generate a palette, type scale, or spacing system." [ref=f1e49]:
+              - generic [ref=f1e50]:
+                - img [ref=f1e52]
+                - generic [ref=f1e54]:
+                  - generic [ref=f1e55]:
+                    - text: Recipe templates
+                    - paragraph [ref=f1e56]: Generate a palette, type scale, or spacing system.
+                  - img [ref=f1e58]
+            - button "Import existing tokens Import Figma variables or token files." [ref=f1e60]:
+              - generic [ref=f1e61]:
+                - img [ref=f1e63]
+                - generic [ref=f1e66]:
+                  - generic [ref=f1e67]:
+                    - text: Import existing tokens
+                    - paragraph [ref=f1e68]: Import Figma variables or token files.
+                  - img [ref=f1e70]
+            - button "Create a token Add a token or group directly." [ref=f1e72]:
+              - generic [ref=f1e73]:
+                - img [ref=f1e75]
+                - generic [ref=f1e77]:
+                  - generic [ref=f1e78]:
+                    - text: Create a token
+                    - paragraph [ref=f1e79]: Add a token or group directly.
+                  - img [ref=f1e81]
+      - generic [ref=f1e84]:
+        - button "Undo" [disabled]:
+          - img
+        - button "Redo" [disabled]:
+          - img
+        - button "Settings" [ref=f1e86]:
+          - img [ref=f1e87]
+      - generic "Drag to resize" [ref=f1e90]:
+        - img [ref=f1e91]
+  - generic [ref=e9]: ⋯

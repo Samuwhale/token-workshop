@@ -351,10 +351,7 @@ export function TokenListToolbar({
                     </button>
                   )}
                   {(onSelectTokens || onBulkEdit || onFindReplace || onFoundationTemplates) && (
-                    <>
-                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                      <div className="px-2.5 pb-0.5 pt-1.5 text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">Edit</div>
-                    </>
+                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
                   )}
                   {onSelectTokens && (
                     <button
@@ -394,7 +391,6 @@ export function TokenListToolbar({
                     </button>
                   )}
                   <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  <div className="px-2.5 pb-0.5 pt-1.5 text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">Import</div>
                   <button
                     role="menuitem"
                     onClick={() =>
@@ -416,10 +412,7 @@ export function TokenListToolbar({
                     Import tokens
                   </button>
                   {(onApplyVariables || onApplyStyles) && (
-                    <>
-                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                      <div className="px-2.5 pb-0.5 pt-1.5 text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">Sync to Figma</div>
-                    </>
+                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
                   )}
                   {onApplyVariables && (
                     <button

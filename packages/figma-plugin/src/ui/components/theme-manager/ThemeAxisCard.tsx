@@ -99,11 +99,7 @@ export function ThemeAxisCard({
     return `${names.slice(0, 3).join(", ")} +${names.length - 3}`;
   }, [dimension.options]);
 
-  const headerSummary = option
-    ? selectedOptionIssues.length > 0
-      ? `${selectedOptionIssues.length} issue${selectedOptionIssues.length === 1 ? "" : "s"} on ${selectedOption}`
-      : collapsedSummary
-    : collapsedSummary;
+  const headerSummary = collapsedSummary;
 
   return (
     <div
@@ -402,9 +398,6 @@ export function ThemeAxisCard({
               </div>
               {dimension.options.length > 0 && (
                 <div className="mt-1 flex items-center gap-1">
-                  <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                    Start from
-                  </span>
                   <select
                     value={copyFromNewOption}
                     onChange={(event) =>
@@ -413,9 +406,10 @@ export function ThemeAxisCard({
                         [dimension.id]: event.target.value,
                       }))
                     }
+                    aria-label="Copy assignments from"
                     className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[9px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                   >
-                    <option value="">Start empty</option>
+                    <option value="">No assignments</option>
                     {dimension.options.map((item: ThemeOption) => (
                       <option key={item.name} value={item.name}>
                         {item.name}

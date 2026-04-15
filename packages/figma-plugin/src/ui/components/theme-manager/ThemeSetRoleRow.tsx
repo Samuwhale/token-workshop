@@ -1,11 +1,5 @@
 import type { ThemeRoleState } from "../themeManagerTypes";
-import { STATE_DESCRIPTIONS } from "../themeManagerTypes";
-
-const ROLE_LABELS: Record<ThemeRoleState, string> = {
-  disabled: "Off",
-  source: "Base",
-  enabled: "Override",
-};
+import { STATE_LABELS, STATE_DESCRIPTIONS } from "../themeManagerTypes";
 
 interface ThemeSetRoleRowProps {
   setName: string;
@@ -77,10 +71,10 @@ export function ThemeSetRoleRow({
                       : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                   : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
               }`}
-              aria-label={`${ROLE_LABELS[nextState]} ${setName}: ${STATE_DESCRIPTIONS[nextState]}`}
+              aria-label={`${STATE_LABELS[nextState]} ${setName}: ${STATE_DESCRIPTIONS[nextState]}`}
               aria-pressed={isActive}
             >
-              {ROLE_LABELS[nextState]}
+              {STATE_LABELS[nextState]}
             </button>
           );
         })}

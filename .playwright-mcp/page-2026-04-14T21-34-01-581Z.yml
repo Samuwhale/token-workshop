@@ -1,0 +1,22 @@
+- generic [ref=e3]:
+  - tablist "Workspaces" [ref=e6]:
+    - tab "Tokens" [selected] [ref=e7]
+    - tab "Themes" [ref=e8]
+    - tab "Inspect" [ref=e9]
+    - tab "Sync" [ref=e10]
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - img [ref=e17]
+      - generic [ref=e20]:
+        - heading "No tokens yet" [level=3] [ref=e21]
+        - generic [ref=e22]: Set up your first tokens with guided setup, templates, or import.
+    - button "Get started" [ref=e24]
+  - generic [ref=e92]:
+    - button "Undo" [disabled]:
+      - img
+    - button "Redo" [disabled]:
+      - img
+    - button "Settings" [active] [ref=e95]:
+      - img [ref=e96]
+  - generic "Drag to resize" [ref=e100]:
+    - img [ref=e101]

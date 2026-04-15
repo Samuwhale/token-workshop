@@ -1,0 +1,18 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - tablist "Workspaces" [ref=e6]:
+      - tab "Tokens" [ref=e7]
+      - tab "Themes" [active] [selected] [ref=e8]
+      - tab "Inspect" [ref=e9]
+      - tab "Sync" [ref=e10]
+    - button "Create mode" [ref=e131]
+  - generic [ref=e133]: Connect to server to manage themes
+  - generic [ref=e92]:
+    - button "Undo" [disabled]:
+      - img
+    - button "Redo" [disabled]:
+      - img
+    - button "Settings" [ref=e95]:
+      - img [ref=e96]
+  - generic "Drag to resize" [ref=e100]:
+    - img [ref=e101]
