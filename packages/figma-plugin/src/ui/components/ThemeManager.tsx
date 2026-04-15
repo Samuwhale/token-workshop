@@ -3,12 +3,11 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import type { ThemeDimension, ThemeViewPreset } from "@tokenmanager/core";
 import type { UndoSlot } from "../hooks/useUndo";
-import type { ResolverContentProps } from "./ResolverPanel";
+import type { ResolverContentProps } from "./resolverTypes";
 import type { CompareMode } from "./UnifiedComparePanel";
 import type { TokenMapEntry } from "../../shared/types";
 import { useThemeDimensions } from "../hooks/useThemeDimensions";
@@ -20,6 +19,7 @@ import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
 import { ThemeResolverScreen } from "./theme-manager/ThemeResolverScreen";
 import {
   buildSelectionLabel,
+  buildThemeModeCoverage,
   createThemeViewName,
   createThemeViewPreset,
   normalizeThemeSelections,
@@ -56,7 +56,6 @@ interface ThemeManagerProps {
   resolverState?: ResolverContentProps;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
-  onGapsDetected?: (count: number) => void;
   onTokensCreated?: () => void;
   onGoToTokens?: () => void;
   themeManagerHandle?: React.MutableRefObject<ThemeManagerHandle | null>;
@@ -128,7 +127,6 @@ export function ThemeManager({
   resolverState,
   allTokensFlat = {},
   pathToSet = {},
-  onGapsDetected,
   onTokensCreated,
   onGoToTokens,
   themeManagerHandle,
@@ -155,9 +153,7 @@ export function ThemeManager({
 
   const {
     dimensions,
-    setDimensions,
     loading,
-    coverage,
     fetchDimensions,
     createDimError,
     isCreatingDim,
@@ -182,7 +178,6 @@ export function ThemeManager({
   } = useThemeDimensions({
     serverUrl,
     connected,
-    sets,
     setError: () => undefined,
     onPushUndo,
     onSuccess,
@@ -221,19 +216,6 @@ export function ThemeManager({
     void refreshViews();
   }, [refreshViews]);
 
-  useEffect(() => {
-    const totalGaps = Object.values(coverage).reduce((sum, byOption) => {
-      return (
-        sum +
-        Object.values(byOption).reduce(
-          (optionSum, entry) => optionSum + entry.missing.length,
-          0,
-        )
-      );
-    }, 0);
-    onGapsDetected?.(totalGaps);
-  }, [coverage, onGapsDetected]);
-
   const normalizedSelections = useMemo(
     () => normalizeThemeSelections(dimensions, activeThemes),
     [dimensions, activeThemes],
@@ -248,6 +230,16 @@ export function ThemeManager({
   const selectionLabel = useMemo(
     () => buildSelectionLabel(dimensions, normalizedSelections),
     [dimensions, normalizedSelections],
+  );
+
+  const themeModeCoverage = useMemo(
+    () =>
+      buildThemeModeCoverage({
+        dimensions,
+        allTokensFlat,
+        pathToSet,
+      }),
+    [allTokensFlat, dimensions, pathToSet],
   );
 
   const previewTokens = useMemo(
@@ -347,7 +339,7 @@ export function ThemeManager({
       setAuthoringMode("authoring");
     },
     switchToOutputView: () => setActiveView("output"),
-  }), [compare, focusStage, handleNavigateToCompare, openCreateDim, themeManagerHandle]);
+  }), [focusStage, handleNavigateToCompare, openCreateDim]);
 
   useEffect(() => {
     if (!resolverState) return;
@@ -393,6 +385,12 @@ export function ThemeManager({
             <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
               Author mode axes, save preview views, and review token output generated from inline mode values.
             </p>
+            {themeModeCoverage.summary.optionsWithCoverageIssuesCount > 0 ? (
+              <p className="mt-0.5 text-[10px] text-[var(--color-figma-warning)]">
+                {themeModeCoverage.summary.optionsWithCoverageIssuesCount} missing mode value
+                {themeModeCoverage.summary.optionsWithCoverageIssuesCount === 1 ? "" : "s"}
+              </p>
+            ) : null}
           </div>
           <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             {selectionLabel || "No active view"}
@@ -607,7 +605,10 @@ export function ThemeManager({
                 </div>
                 <div className="space-y-2 px-3 py-3">
                   {dimension.options.map((option) => {
-                    const missing = coverage[dimension.id]?.[option.name]?.missing ?? [];
+                    const optionCoverage =
+                      themeModeCoverage.coverage[dimension.id]?.[option.name];
+                    const hasCoverage = optionCoverage?.hasCoverage ?? false;
+                    const missing = optionCoverage?.missing ?? [];
                     const isActive = normalizedSelections[dimension.id] === option.name;
                     return (
                       <div
@@ -620,9 +621,11 @@ export function ThemeManager({
                               {option.name}
                             </div>
                             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                              {missing.length === 0
-                                ? "Complete"
-                                : `${missing.length} missing mode value${missing.length === 1 ? "" : "s"}`}
+                              {!hasCoverage
+                                ? "No mode values yet"
+                                : missing.length === 0
+                                  ? "Complete"
+                                  : `${missing.length} missing mode value${missing.length === 1 ? "" : "s"}`}
                             </div>
                           </div>
                           <button
@@ -642,23 +645,32 @@ export function ThemeManager({
                             {isActive ? "Active" : "Apply"}
                           </button>
                         </div>
-                        {missing.length > 0 ? (
+                        {hasCoverage && missing.length > 0 ? (
                           <div className="mt-2 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-2">
                             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                               Missing examples
                             </div>
                             <div className="mt-1 space-y-1">
-                              {missing.slice(0, 4).map((entry) => (
-                                <button
-                                  key={entry.path}
-                                  type="button"
-                                  onClick={() => onNavigateToToken?.(entry.path, entry.setName)}
-                                  className="block w-full truncate text-left text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                                  title={`${entry.collection} · ${entry.path}`}
-                                >
-                                  {entry.collection} · {entry.path}
-                                </button>
-                              ))}
+                              {missing.slice(0, 4).map((entry) => {
+                                const targetSet =
+                                  entry.setName ||
+                                  pathToSet[entry.path] ||
+                                  sets[0] ||
+                                  "";
+                                return (
+                                  <button
+                                    key={`${entry.setName}:${entry.path}`}
+                                    type="button"
+                                    onClick={() =>
+                                      onNavigateToToken?.(entry.path, targetSet)
+                                    }
+                                    className="block w-full truncate text-left text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                                    title={`${entry.setName || targetSet} · ${entry.path}`}
+                                  >
+                                    {entry.setName ? `${entry.setName} · ${entry.path}` : entry.path}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         ) : null}
@@ -744,7 +756,7 @@ export function ThemeManager({
               Delete mode axis?
             </div>
             <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-              This removes the axis definition. Token mode values remain on tokens until they are edited.
+              This removes the axis definition and deletes its inline mode values from tokens and saved views.
             </div>
             <div className="mt-3 flex justify-end gap-2">
               <button

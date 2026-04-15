@@ -9,6 +9,36 @@ import { resolveAllAliases } from "../../shared/resolveAlias";
 
 type TokenModeMap = Record<string, Record<string, unknown>>;
 
+export interface ThemeModeCoverageEntry {
+  path: string;
+  setName: string;
+  type?: string;
+}
+
+export type ThemeModeCoverageMap = Record<
+  string,
+  Record<
+    string,
+    {
+      hasCoverage: boolean;
+      missing: ThemeModeCoverageEntry[];
+    }
+  >
+>;
+
+export interface ThemeModeCoverageSummary {
+  mappedOptionCount: number;
+  unmappedOptionCount: number;
+  mappedOptionWithAssignmentIssuesCount: number;
+  optionsWithCoverageIssuesCount: number;
+  mappedSetCount: number;
+}
+
+export interface ThemeModeCoverageResult {
+  coverage: ThemeModeCoverageMap;
+  summary: ThemeModeCoverageSummary;
+}
+
 function readTokenModes(
   entry: TokenMapEntry | undefined,
 ): TokenModeMap | null {
@@ -17,6 +47,123 @@ function readTokenModes(
   )?.tokenmanager?.modes;
   if (!modes || typeof modes !== "object" || Array.isArray(modes)) return null;
   return modes as TokenModeMap;
+}
+
+function hasModeValue(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== "";
+}
+
+function compareCoverageEntries(
+  left: ThemeModeCoverageEntry,
+  right: ThemeModeCoverageEntry,
+): number {
+  if (left.setName !== right.setName) {
+    return left.setName.localeCompare(right.setName);
+  }
+
+  return left.path.localeCompare(right.path);
+}
+
+export function buildThemeModeCoverage(params: {
+  dimensions: ThemeDimension[];
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
+}): ThemeModeCoverageResult {
+  const coverage: ThemeModeCoverageMap = {};
+  const mappedSetNames = new Set<string>();
+  const tokenEntries = Object.entries(params.allTokensFlat).map(
+    ([path, entry]) => ({
+      path,
+      entry,
+      tokenModes: readTokenModes(entry),
+      setName: params.pathToSet?.[path] ?? "",
+    }),
+  );
+
+  let mappedOptionCount = 0;
+  let unmappedOptionCount = 0;
+  let mappedOptionWithAssignmentIssuesCount = 0;
+  let optionsWithCoverageIssuesCount = 0;
+
+  for (const dimension of params.dimensions) {
+    const optionNames = new Set(
+      dimension.options.map((option) => option.name),
+    );
+    const tokenCoverage = tokenEntries.flatMap((token) => {
+      const dimensionModes = token.tokenModes?.[dimension.id];
+      if (
+        !dimensionModes ||
+        typeof dimensionModes !== "object" ||
+        Array.isArray(dimensionModes)
+      ) {
+        return [];
+      }
+
+      const activeOptionNames = new Set(
+        Object.entries(dimensionModes)
+          .filter(
+            ([optionName, value]) =>
+              optionNames.has(optionName) && hasModeValue(value),
+          )
+          .map(([optionName]) => optionName),
+      );
+
+      if (activeOptionNames.size === 0) {
+        return [];
+      }
+
+      if (token.setName) {
+        mappedSetNames.add(token.setName);
+      }
+
+      return [{ token, activeOptionNames }];
+    });
+    const dimensionHasCoverage = tokenCoverage.length > 0;
+
+    coverage[dimension.id] = {};
+
+    for (const option of dimension.options) {
+      const missing: ThemeModeCoverageEntry[] = [];
+
+      for (const token of tokenCoverage) {
+        if (!token.activeOptionNames.has(option.name)) {
+          missing.push({
+            path: token.token.path,
+            setName: token.token.setName,
+            type: token.token.entry.$type,
+          });
+        }
+      }
+
+      missing.sort(compareCoverageEntries);
+      if (missing.length > 0) {
+        mappedOptionWithAssignmentIssuesCount += 1;
+        optionsWithCoverageIssuesCount += missing.length;
+      }
+
+      coverage[dimension.id][option.name] = {
+        hasCoverage: dimensionHasCoverage,
+        missing,
+      };
+    }
+
+    if (dimensionHasCoverage) {
+      mappedOptionCount += dimension.options.length;
+    } else {
+      unmappedOptionCount += dimension.options.length;
+    }
+  }
+
+  return {
+    coverage,
+    summary: {
+      mappedOptionCount,
+      unmappedOptionCount,
+      mappedOptionWithAssignmentIssuesCount,
+      optionsWithCoverageIssuesCount,
+      mappedSetCount: mappedSetNames.size,
+    },
+  };
 }
 
 export function applyThemeSelectionsToTokens(
@@ -57,84 +204,6 @@ export function applyThemeSelectionsToTokens(
   }
 
   return resolveAllAliases(themedEntries);
-}
-
-export interface ThemeModeCoverageEntry {
-  path: string;
-  setName: string;
-  collection: string;
-  type?: string;
-}
-
-export type ThemeModeCoverageMap = Record<
-  string,
-  Record<string, { missing: ThemeModeCoverageEntry[] }>
->;
-
-export function buildThemeModeCoverage(params: {
-  dimensions: ThemeDimension[];
-  perSetFlat: Record<string, Record<string, TokenMapEntry>>;
-  collectionNames?: Record<string, string>;
-}): ThemeModeCoverageMap {
-  const { dimensions, perSetFlat, collectionNames = {} } = params;
-  const coverage: ThemeModeCoverageMap = {};
-
-  const tokenEntries = Object.entries(perSetFlat).flatMap(([setName, tokens]) =>
-    Object.entries(tokens).map(([path, entry]) => ({
-      path,
-      setName,
-      entry,
-    })),
-  );
-
-  for (const dimension of dimensions) {
-    const optionNames = new Set(dimension.options.map((option) => option.name));
-    const expectedOptionsByPath = new Map<string, Set<string>>();
-
-    for (const token of tokenEntries) {
-      const dimModes = readTokenModes(token.entry)?.[dimension.id];
-      if (!dimModes || typeof dimModes !== "object") continue;
-
-      const expectedOptions =
-        expectedOptionsByPath.get(token.path) ?? new Set<string>();
-      for (const optionName of Object.keys(dimModes)) {
-        if (optionNames.has(optionName)) {
-          expectedOptions.add(optionName);
-        }
-      }
-      if (expectedOptions.size > 0) {
-        expectedOptionsByPath.set(token.path, expectedOptions);
-      }
-    }
-
-    coverage[dimension.id] = {};
-
-    for (const option of dimension.options) {
-      const missing: ThemeModeCoverageEntry[] = [];
-
-      for (const token of tokenEntries) {
-        const expectedOptions = expectedOptionsByPath.get(token.path);
-        if (!expectedOptions?.has(option.name)) continue;
-
-        const dimModes = readTokenModes(token.entry)?.[dimension.id];
-        if (dimModes && typeof dimModes === "object" && option.name in dimModes) {
-          continue;
-        }
-
-        missing.push({
-          path: token.path,
-          setName: token.setName,
-          collection: collectionNames[token.setName] || token.setName,
-          type: token.entry.$type,
-        });
-      }
-
-      missing.sort((left, right) => left.path.localeCompare(right.path));
-      coverage[dimension.id][option.name] = { missing };
-    }
-  }
-
-  return coverage;
 }
 
 export function buildSelectionLabel(

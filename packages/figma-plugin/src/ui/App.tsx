@@ -43,6 +43,7 @@ import {
 import type {
   ThemeWorkspaceShellState,
 } from "./shared/themeWorkflow";
+import { buildThemeModeCoverage } from "./shared/themeModeUtils";
 import { summarizeThemeWorkflow } from "./shared/themeWorkflow";
 import {
   DEFAULT_PUBLISH_PREFLIGHT_STATE,
@@ -391,13 +392,15 @@ export function App() {
   const shellMenuSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
     (surface) => surface.access === "shell-menu",
   );
-  const themeSetTokenCounts = useMemo(() => {
-    const counts: Record<string, number | null> = {};
-    for (const setName of sets) {
-      counts[setName] = Object.keys(perSetFlat[setName] ?? {}).length;
-    }
-    return counts;
-  }, [perSetFlat, sets]);
+  const themeModeCoverage = useMemo(
+    () =>
+      buildThemeModeCoverage({
+        dimensions,
+        allTokensFlat,
+        pathToSet,
+      }),
+    [allTokensFlat, dimensions, pathToSet],
+  );
   const [themeShellState, setThemeShellState] =
     useState<ThemeWorkspaceShellState>({
       activeView: "authoring",
@@ -408,8 +411,14 @@ export function App() {
       summarizeThemeWorkflow(dimensions, {
         activeView: themeShellState.activeView,
         authoringMode: themeShellState.authoringMode,
+        coverageSummary: themeModeCoverage.summary,
       }),
-    [dimensions, themeShellState.activeView, themeShellState.authoringMode],
+    [
+      dimensions,
+      themeModeCoverage.summary,
+      themeShellState.activeView,
+      themeShellState.authoringMode,
+    ],
   );
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -629,7 +638,6 @@ export function App() {
   // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
   const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
-  const [themeGapCount, setThemeGapCount] = useState(0);
   // Open compare view within the Tokens tab in 'cross-theme' mode for a specific token
   const handleOpenCrossThemeCompare = useCallback(
     (path: string) => {
@@ -1596,8 +1604,6 @@ export function App() {
     },
     themes: {
       themeManagerHandleRef,
-      themeGapCount,
-      setThemeGapCount,
       onThemeShellStateChange: setThemeShellState,
     },
     apply: {

@@ -177,9 +177,8 @@ function CreateSetStep({ serverUrl, onCreated }: {
 // Theme Step (inline)
 // ---------------------------------------------------------------------------
 
-function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
+function ThemeStep({ serverUrl, onDone, onSkip }: {
   serverUrl: string;
-  activeSet: string;
   onDone: () => void;
   onSkip: () => void;
 }) {
@@ -205,20 +204,16 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
         body: JSON.stringify({ id: dimId, name: dimName.trim() }),
       });
 
-      const lightSets: Record<string, string> = {};
-      lightSets[activeSet] = 'source';
       await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: lightName.trim(), sets: lightSets }),
+        body: JSON.stringify({ name: lightName.trim() }),
       });
 
-      const darkSets: Record<string, string> = {};
-      darkSets[activeSet] = 'disabled';
       await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: darkName.trim(), sets: darkSets }),
+        body: JSON.stringify({ name: darkName.trim() }),
       });
 
       setDone(true);
@@ -670,7 +665,6 @@ export function QuickStartWizard({
 
             <ThemeStep
               serverUrl={serverUrl}
-              activeSet={effectiveActiveSet}
               onDone={handleModesDone}
               onSkip={handleModesBack}
             />

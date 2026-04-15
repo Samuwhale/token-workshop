@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type {
   ResolverFile,
   ThemeDimension,
+  ThemeViewPreset,
   Token,
   TokenRecipe,
 } from "@tokenmanager/core";
@@ -182,7 +183,11 @@ export type RollbackStep =
       name: string;
       metadata: Partial<SetMetadataState>;
     }
-  | { action: "write-themes"; dimensions: ThemeDimension[] }
+  | {
+      action: "write-themes";
+      dimensions: ThemeDimension[];
+      views?: ThemeViewPreset[];
+    }
   | { action: "write-resolver"; name: string; file: ResolverFile }
   | { action: "delete-resolver"; name: string }
   | { action: "create-recipe"; recipe: TokenRecipe }
@@ -197,6 +202,15 @@ export interface ThemesWriteLock {
     fn: (
       dims: ThemeDimension[],
     ) => Promise<{ dims: ThemeDimension[]; result: T }>,
+  ): Promise<T>;
+  withStateLock?<T>(
+    fn: (state: {
+      dimensions: ThemeDimension[];
+      views: ThemeViewPreset[];
+    }) => Promise<{
+      state: { dimensions: ThemeDimension[]; views: ThemeViewPreset[] };
+      result: T;
+    }>,
   ): Promise<T>;
 }
 
@@ -498,35 +512,33 @@ export class OperationLog {
   // Themes file helpers (for structural rollback of theme operations)
   // ---------------------------------------------------------------------------
 
-  private async readThemesFile(): Promise<ThemeDimension[]> {
+  private async readThemesFile(): Promise<{
+    dimensions: ThemeDimension[];
+    views: ThemeViewPreset[];
+  }> {
     try {
       const content = await fs.readFile(
         path.join(this.tokenDir, "$themes.json"),
         "utf-8",
       );
       const data = JSON.parse(content);
-      return data.$themes || [];
+      return {
+        dimensions: Array.isArray(data.$themes) ? data.$themes : [],
+        views: Array.isArray(data.$views) ? data.$views : [],
+      };
     } catch {
-      return [];
+      return { dimensions: [], views: [] };
     }
   }
 
-  private async writeThemesFile(dimensions: ThemeDimension[]): Promise<void> {
+  private async writeThemesFile(state: {
+    dimensions: ThemeDimension[];
+    views: ThemeViewPreset[];
+  }): Promise<void> {
     const dest = path.join(this.tokenDir, "$themes.json");
-    let views: unknown[] = [];
-    try {
-      const existing = JSON.parse(await fs.readFile(dest, "utf-8")) as {
-        $views?: unknown[];
-      };
-      if (Array.isArray(existing.$views)) {
-        views = existing.$views;
-      }
-    } catch {
-      views = [];
-    }
     const data = {
-      $themes: dimensions,
-      ...(views.length > 0 ? { $views: views } : {}),
+      $themes: state.dimensions,
+      ...(state.views.length > 0 ? { $views: state.views } : {}),
     };
     const tmp = `${dest}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2));
@@ -574,19 +586,29 @@ export class OperationLog {
           break;
         }
         case "write-themes": {
-          // Read current themes state while holding the DimensionsStore lock so that
-          // an in-flight theme mutation cannot complete its save between our read and
-          // the inverse-step computation, which would produce a stale snapshot.
-          let currentDims: ThemeDimension[];
-          if (ctx.themesStore) {
-            currentDims = await ctx.themesStore.withLock(async (dims) => ({
-              dims, // no-op: don't modify dims
+          let currentState: {
+            dimensions: ThemeDimension[];
+            views: ThemeViewPreset[];
+          };
+          if (ctx.themesStore?.withStateLock) {
+            currentState = await ctx.themesStore.withStateLock(async (state) => ({
+              state,
+              result: structuredClone(state),
+            }));
+          } else if (ctx.themesStore) {
+            const currentDims = await ctx.themesStore.withLock(async (dims) => ({
+              dims,
               result: structuredClone(dims),
             }));
+            currentState = { dimensions: currentDims, views: [] };
           } else {
-            currentDims = await this.readThemesFile();
+            currentState = await this.readThemesFile();
           }
-          inverse.push({ action: "write-themes", dimensions: currentDims });
+          inverse.push({
+            action: "write-themes",
+            dimensions: currentState.dimensions,
+            views: currentState.views,
+          });
           break;
         }
         case "write-resolver": {
@@ -676,15 +698,24 @@ export class OperationLog {
           await ctx.tokenStore.updateSetMetadata(step.name, step.metadata);
           break;
         case "write-themes":
-          // Write through the DimensionsStore lock so that concurrent theme mutations
-          // serialise behind this rollback write and don't overwrite it.
-          if (ctx.themesStore) {
+          if (ctx.themesStore?.withStateLock) {
+            await ctx.themesStore.withStateLock(async () => ({
+              state: {
+                dimensions: step.dimensions,
+                views: step.views ?? [],
+              },
+              result: undefined,
+            }));
+          } else if (ctx.themesStore) {
             await ctx.themesStore.withLock(async () => ({
               dims: step.dimensions,
               result: undefined,
             }));
           } else {
-            await this.writeThemesFile(step.dimensions);
+            await this.writeThemesFile({
+              dimensions: step.dimensions,
+              views: step.views ?? [],
+            });
           }
           break;
         case "write-resolver": {

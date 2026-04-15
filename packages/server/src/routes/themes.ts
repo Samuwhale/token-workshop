@@ -6,6 +6,7 @@ import type {
   ThemeDimension,
   ThemeViewPreset,
   ThemesFile,
+  Token,
 } from "@tokenmanager/core";
 import {
   handleRouteError,
@@ -13,12 +14,21 @@ import {
   ConflictError,
   BadRequestError,
 } from "../errors.js";
+import type { SnapshotEntry } from "../services/operation-log.js";
+import {
+  qualifySnapshotEntries,
+  snapshotPaths,
+} from "../services/operation-log.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
 interface ThemeDocumentState {
   dimensions: ThemeDimension[];
   views: ThemeViewPreset[];
 }
+
+type TokenModeMap = Record<string, Record<string, unknown>>;
+type TokenPatch = { path: string; patch: Partial<Token> };
+type TokenPatchesBySet = Map<string, TokenPatch[]>;
 
 function slugifyName(name: string): string {
   return name
@@ -62,6 +72,79 @@ function getDuplicateDimensionId(
     nextId = `${baseId}-${counter++}`;
   }
   return nextId;
+}
+
+function readTokenModes(token: Token): TokenModeMap {
+  const rawModes = (
+    token.$extensions?.tokenmanager as Record<string, unknown> | undefined
+  )?.modes;
+  if (!rawModes || typeof rawModes !== "object" || Array.isArray(rawModes)) {
+    return {};
+  }
+
+  const modes: TokenModeMap = {};
+  for (const [dimensionId, optionMap] of Object.entries(rawModes)) {
+    if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
+      continue;
+    }
+    modes[dimensionId] = { ...(optionMap as Record<string, unknown>) };
+  }
+  return modes;
+}
+
+function buildExtensionsWithModes(
+  token: Token,
+  nextModes: TokenModeMap,
+): Token["$extensions"] | undefined {
+  const nextExtensions = token.$extensions
+    ? structuredClone(token.$extensions)
+    : {};
+  const existingTokenManager =
+    nextExtensions.tokenmanager &&
+    typeof nextExtensions.tokenmanager === "object" &&
+    !Array.isArray(nextExtensions.tokenmanager)
+      ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
+      : {};
+
+  if (Object.keys(nextModes).length > 0) {
+    existingTokenManager.modes = nextModes;
+    nextExtensions.tokenmanager = existingTokenManager;
+  } else if (Object.keys(existingTokenManager).length > 0) {
+    delete existingTokenManager.modes;
+    if (Object.keys(existingTokenManager).length > 0) {
+      nextExtensions.tokenmanager = existingTokenManager;
+    } else {
+      delete nextExtensions.tokenmanager;
+    }
+  } else {
+    delete nextExtensions.tokenmanager;
+  }
+
+  return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
+}
+
+function mergeSetSnapshot(
+  target: Record<string, SnapshotEntry>,
+  setName: string,
+  snapshot: Record<string, SnapshotEntry>,
+): void {
+  Object.assign(target, qualifySnapshotEntries(setName, snapshot));
+}
+
+function groupSnapshotEntriesBySet(
+  snapshot: Record<string, SnapshotEntry>,
+): Map<string, Array<{ path: string; token: Token | null }>> {
+  const grouped = new Map<string, Array<{ path: string; token: Token | null }>>();
+  for (const [snapshotKey, entry] of Object.entries(snapshot)) {
+    const prefix = `${entry.setName}::`;
+    const tokenPath = snapshotKey.startsWith(prefix)
+      ? snapshotKey.slice(prefix.length)
+      : snapshotKey;
+    const items = grouped.get(entry.setName) ?? [];
+    items.push({ path: tokenPath, token: entry.token });
+    grouped.set(entry.setName, items);
+  }
+  return grouped;
 }
 
 export interface DimensionsStore {
@@ -321,6 +404,137 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     return result;
   }
 
+  async function collectModeMutationPatches(
+    mutateModes: (
+      token: Token,
+    ) => TokenModeMap | null,
+  ): Promise<TokenPatchesBySet> {
+    const patchesBySet: TokenPatchesBySet = new Map();
+
+    for (const setName of await fastify.tokenStore.getSets()) {
+      const flatTokens = await fastify.tokenStore.getFlatTokensForSet(setName);
+      const patches: TokenPatch[] = [];
+
+      for (const [tokenPath, token] of Object.entries(flatTokens)) {
+        const nextModes = mutateModes(token);
+        if (nextModes === null) continue;
+
+        const nextExtensions = buildExtensionsWithModes(token, nextModes);
+        if (
+          JSON.stringify(nextExtensions ?? null) ===
+          JSON.stringify(token.$extensions ?? null)
+        ) {
+          continue;
+        }
+
+        patches.push({
+          path: tokenPath,
+          patch: { $extensions: nextExtensions },
+        });
+      }
+
+      if (patches.length > 0) {
+        patchesBySet.set(setName, patches);
+      }
+    }
+
+    return patchesBySet;
+  }
+
+  async function withThemeStateAndTokenMutations<T>(
+    type: string,
+    fn: (state: ThemeDocumentState) => Promise<{
+      state: ThemeDocumentState;
+      result: T;
+      description: string;
+      tokenPatchesBySet?: TokenPatchesBySet;
+    }>,
+  ): Promise<T> {
+    const beforeSnapshot: Record<string, SnapshotEntry> = {};
+    const afterSnapshot: Record<string, SnapshotEntry> = {};
+    const touchedPathsBySet = new Map<string, string[]>();
+    let beforeState: ThemeDocumentState | null = null;
+    let description = "";
+
+    try {
+      const result = await fastify.tokenLock.withLock(async () =>
+        store.withStateLock(async (state) => {
+          beforeState = structuredClone(state);
+          const out = await fn(state);
+          description = out.description;
+
+          for (const [setName, patches] of out.tokenPatchesBySet ?? []) {
+            const paths = patches.map((patch) => patch.path);
+            touchedPathsBySet.set(setName, paths);
+            mergeSetSnapshot(
+              beforeSnapshot,
+              setName,
+              await snapshotPaths(fastify.tokenStore, setName, paths),
+            );
+          }
+
+          for (const [setName, patches] of out.tokenPatchesBySet ?? []) {
+            await fastify.tokenStore.batchUpdateTokens(setName, patches);
+          }
+
+          for (const [setName, paths] of touchedPathsBySet.entries()) {
+            mergeSetSnapshot(
+              afterSnapshot,
+              setName,
+              await snapshotPaths(fastify.tokenStore, setName, paths),
+            );
+          }
+
+          return { state: out.state, result: out.result };
+        }),
+      );
+
+      if (beforeState !== null) {
+        const previousState = beforeState as ThemeDocumentState;
+        await fastify.operationLog.record({
+          type,
+          description,
+          setName: "$themes",
+          affectedPaths: [
+            ...new Set(
+              Array.from(touchedPathsBySet.values()).flatMap((paths) => paths),
+            ),
+          ],
+          beforeSnapshot,
+          afterSnapshot,
+          rollbackSteps: [
+            {
+              action: "write-themes",
+              dimensions: previousState.dimensions,
+              views: previousState.views,
+            },
+          ],
+        });
+      }
+
+      return result;
+    } catch (err) {
+      if (beforeState !== null || Object.keys(beforeSnapshot).length > 0) {
+        await fastify.tokenLock.withLock(async () => {
+          await store.withStateLock(async (state) => {
+            if (Object.keys(beforeSnapshot).length > 0) {
+              const snapshotBySet = groupSnapshotEntriesBySet(beforeSnapshot);
+              for (const [setName, items] of snapshotBySet.entries()) {
+                await fastify.tokenStore.restoreSnapshot(setName, items);
+              }
+            }
+
+            return {
+              state: beforeState ?? state,
+              result: undefined,
+            };
+          });
+        });
+      }
+      throw err;
+    }
+  }
+
   fastify.get("/themes", async (_request, reply) => {
     try {
       const state = await store.loadState();
@@ -461,15 +675,39 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     async (request, reply) => {
       const { id } = request.params;
       try {
-        await withThemeLock("theme-dimension-delete", async (dimensions) => {
-          const dim = dimensions.find((dimension) => dimension.id === id);
-          if (!dim) throw new NotFoundError(`Dimension "${id}" not found`);
-          return {
-            dims: dimensions.filter((dimension) => dimension.id !== id),
-            result: undefined,
-            description: `Delete theme dimension "${dim.name}"`,
-          };
-        });
+        await withThemeStateAndTokenMutations(
+          "theme-dimension-delete",
+          async (state) => {
+            const dim = state.dimensions.find((dimension) => dimension.id === id);
+            if (!dim) throw new NotFoundError(`Dimension "${id}" not found`);
+
+            const tokenPatchesBySet = await collectModeMutationPatches((token) => {
+              const nextModes = readTokenModes(token);
+              if (!(id in nextModes)) return null;
+              delete nextModes[id];
+              return nextModes;
+            });
+
+            return {
+              state: {
+                dimensions: state.dimensions.filter(
+                  (dimension) => dimension.id !== id,
+                ),
+                views: state.views.map((view) => {
+                  const nextSelections = { ...view.selections };
+                  delete nextSelections[id];
+                  return {
+                    ...view,
+                    selections: nextSelections,
+                  };
+                }),
+              },
+              result: undefined,
+              description: `Delete theme dimension "${dim.name}"`,
+              tokenPatchesBySet,
+            };
+          },
+        );
         return { ok: true, id };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to delete dimension");
@@ -482,23 +720,39 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     async (request, reply) => {
       const { id } = request.params;
       try {
-        const dimension = await withThemeLock(
+        const dimension = await withThemeStateAndTokenMutations(
           "theme-dimension-duplicate",
-          async (dimensions) => {
-            const source = dimensions.find((dimension) => dimension.id === id);
+          async (state) => {
+            const source = state.dimensions.find((dimension) => dimension.id === id);
             if (!source) {
               throw new NotFoundError(`Dimension "${id}" not found`);
             }
-            const name = getDuplicateDimensionName(dimensions, source.name);
+            const name = getDuplicateDimensionName(state.dimensions, source.name);
             const duplicate: ThemeDimension = {
-              id: getDuplicateDimensionId(dimensions, name),
+              id: getDuplicateDimensionId(state.dimensions, name),
               name,
               options: structuredClone(source.options),
             };
+
+            const tokenPatchesBySet = await collectModeMutationPatches((token) => {
+              const nextModes = readTokenModes(token);
+              const sourceModes = nextModes[source.id];
+              if (!sourceModes || Object.keys(sourceModes).length === 0) {
+                return null;
+              }
+
+              nextModes[duplicate.id] = structuredClone(sourceModes);
+              return nextModes;
+            });
+
             return {
-              dims: [...dimensions, duplicate],
+              state: {
+                ...state,
+                dimensions: [...state.dimensions, duplicate],
+              },
               result: duplicate,
               description: `Duplicate theme dimension "${source.name}" → "${duplicate.name}"`,
+              tokenPatchesBySet,
             };
           },
         );
@@ -514,6 +768,12 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     async (request, reply) => {
       const { id } = request.params;
       const { name } = request.body || {};
+      const bodyKeys = Object.keys(request.body ?? {});
+      if (bodyKeys.some((key) => key !== "name")) {
+        return reply.status(400).send({
+          error: "Only the option name is supported when creating a theme option",
+        });
+      }
       if (!name || typeof name !== "string" || !name.trim()) {
         return reply.status(400).send({ error: "Option name is required" });
       }
@@ -563,14 +823,15 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     }
     const newName = name.trim();
     try {
-      const option = await withThemeLock(
+      const option = await withThemeStateAndTokenMutations(
         "theme-option-rename",
-        async (dimensions) => {
-          const dimIdx = dimensions.findIndex((dimension) => dimension.id === id);
+        async (state) => {
+          const nextDimensions = structuredClone(state.dimensions);
+          const dimIdx = nextDimensions.findIndex((dimension) => dimension.id === id);
           if (dimIdx === -1) {
             throw new NotFoundError(`Dimension "${id}" not found`);
           }
-          const nextDimensions = structuredClone(dimensions);
+
           const dimension = nextDimensions[dimIdx];
           const optionIndex = dimension.options.findIndex(
             (option) => option.name === optionName,
@@ -588,13 +849,51 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
               `Option "${newName}" already exists in this dimension`,
             );
           }
-          dimension.options[optionIndex] = {
-            name: newName,
-          };
+
+          const tokenPatchesBySet =
+            newName === optionName
+              ? undefined
+              : await collectModeMutationPatches((token) => {
+                  const nextModes = readTokenModes(token);
+                  const dimModes = nextModes[id];
+                  if (!dimModes || !(optionName in dimModes)) {
+                    return null;
+                  }
+
+                  if (
+                    newName in dimModes &&
+                    JSON.stringify(dimModes[newName]) !==
+                      JSON.stringify(dimModes[optionName])
+                  ) {
+                    throw new ConflictError(
+                      `Token "${optionName}" already has authored data under "${newName}" in dimension "${id}"`,
+                    );
+                  }
+
+                  dimModes[newName] = dimModes[optionName];
+                  delete dimModes[optionName];
+                  return nextModes;
+                });
+
+          dimension.options[optionIndex] = { name: newName };
+
           return {
-            dims: nextDimensions,
+            state: {
+              dimensions: nextDimensions,
+              views: state.views.map((view) => ({
+                ...view,
+                selections:
+                  view.selections[id] === optionName
+                    ? {
+                        ...view.selections,
+                        [id]: newName,
+                      }
+                    : view.selections,
+              })),
+            },
             result: dimension.options[optionIndex],
             description: `Rename option "${optionName}" → "${newName}" in dimension "${dimension.name}"`,
+            tokenPatchesBySet,
           };
         },
       );
@@ -665,28 +964,62 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     async (request, reply) => {
       const { id, optionName } = request.params;
       try {
-        await withThemeLock("theme-option-delete", async (dimensions) => {
-          const dimIdx = dimensions.findIndex((dimension) => dimension.id === id);
-          if (dimIdx === -1) {
-            throw new NotFoundError(`Dimension "${id}" not found`);
-          }
-          const nextDimensions = structuredClone(dimensions);
-          const dimension = nextDimensions[dimIdx];
-          const filteredOptions = dimension.options.filter(
-            (option) => option.name !== optionName,
-          );
-          if (filteredOptions.length === dimension.options.length) {
-            throw new NotFoundError(
-              `Option "${optionName}" not found in dimension "${id}"`,
+        await withThemeStateAndTokenMutations(
+          "theme-option-delete",
+          async (state) => {
+            const nextDimensions = structuredClone(state.dimensions);
+            const dimIdx = nextDimensions.findIndex((dimension) => dimension.id === id);
+            if (dimIdx === -1) {
+              throw new NotFoundError(`Dimension "${id}" not found`);
+            }
+
+            const dimension = nextDimensions[dimIdx];
+            const filteredOptions = dimension.options.filter(
+              (option) => option.name !== optionName,
             );
-          }
-          dimension.options = filteredOptions;
-          return {
-            dims: nextDimensions,
-            result: undefined,
-            description: `Delete option "${optionName}" from dimension "${dimension.name}"`,
-          };
-        });
+            if (filteredOptions.length === dimension.options.length) {
+              throw new NotFoundError(
+                `Option "${optionName}" not found in dimension "${id}"`,
+              );
+            }
+
+            const tokenPatchesBySet = await collectModeMutationPatches((token) => {
+              const nextModes = readTokenModes(token);
+              const dimModes = nextModes[id];
+              if (!dimModes || !(optionName in dimModes)) {
+                return null;
+              }
+
+              delete dimModes[optionName];
+              if (Object.keys(dimModes).length === 0) {
+                delete nextModes[id];
+              }
+              return nextModes;
+            });
+
+            dimension.options = filteredOptions;
+
+            return {
+              state: {
+                dimensions: nextDimensions,
+                views: state.views.map((view) => {
+                  if (view.selections[id] !== optionName) {
+                    return view;
+                  }
+                  const nextSelections = { ...view.selections };
+                  delete nextSelections[id];
+                  return {
+                    ...view,
+                    selections: nextSelections,
+                  };
+                }),
+              },
+              result: undefined,
+              description: `Delete option "${optionName}" from dimension "${dimension.name}"`,
+              tokenPatchesBySet,
+            };
+          },
+        );
         return { ok: true, id, optionName };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to delete option");

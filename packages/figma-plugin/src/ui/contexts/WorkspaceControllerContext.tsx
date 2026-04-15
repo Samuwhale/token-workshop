@@ -110,8 +110,6 @@ export interface TokensWorkspaceController {
 
 export interface ThemeWorkspaceController {
   themeManagerHandleRef: MutableRefObject<ThemeManagerHandle | null>;
-  themeGapCount: number;
-  setThemeGapCount: (count: number) => void;
   onThemeShellStateChange: (state: ThemeWorkspaceShellState) => void;
 }
 

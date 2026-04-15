@@ -6,14 +6,13 @@
  *                          selections, and the derived themedAllTokensFlat memo.
  *                          `previewThemes` changes on every hover, so this
  *                          context is intentionally isolated from resolver state.
- *   ResolverContext      — DTCG resolver config and resolution results.
+ *   ResolverContext      — DTCG resolver config and output previews.
  *                          Exposes the ResolverState interface directly so callers
  *                          can use `const resolverState = useResolverContext()`.
  *
- * `ThemeProvider` is a thin wrapper that stacks both providers. The
- * `ThemeSwitcherProvider` reads from `ResolverContext` internally to compute
- * the final `themedAllTokensFlat` (resolver output takes precedence when
- * a resolver is active).
+ * `ThemeProvider` is a thin wrapper that stacks both providers. Resolver state
+ * stays downstream from theme authoring; it never replaces the canonical
+ * token-plus-mode view exposed by ThemeSwitcherContext.
  */
 
 import { createContext, useContext, useMemo } from 'react';
@@ -74,8 +73,8 @@ export interface ThemeSwitcherContextValue {
   themesError: string | null;
   retryThemes: () => void;
 
-  // ---- Derived memos (depend on both theme-switcher and resolver state) ---
-  /** Tokens resolved through active theme selections and (if active) resolver override. */
+  // ---- Derived memos -------------------------------------------------------
+  /** Tokens resolved through the active theme selections only. */
   themedAllTokensFlat: Record<string, TokenMapEntry>;
 }
 
@@ -169,7 +168,6 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
 }) {
   const { tokenRevision } = useTokenSetsContext();
   const { allTokensFlat, pathToSet } = useTokenFlatMapContext();
-  const resolverState = useResolverContext();
 
   const {
     dimensions, setDimensions,
@@ -182,19 +180,6 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
     themesError, retryThemes,
   } = useThemeSwitcher(serverUrl, connected, tokenRevision, allTokensFlat, pathToSet);
 
-  // When a resolver is active and has resolved tokens, use those; otherwise
-  // fall back to the theme-switched tokens.
-  const themedAllTokensFlat = useMemo(() => {
-    if (
-      resolverState.activeResolver &&
-      resolverState.resolvedTokens &&
-      Object.keys(resolverState.resolvedTokens).length > 0
-    ) {
-      return resolverState.resolvedTokens;
-    }
-    return themeOnlyTokensFlat;
-  }, [resolverState.activeResolver, resolverState.resolvedTokens, themeOnlyTokensFlat]);
-
   const value = useMemo<ThemeSwitcherContextValue>(
     () => ({
       dimensions, setDimensions,
@@ -203,7 +188,7 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
       openDimDropdown, setOpenDimDropdown,
       dimBarExpanded, setDimBarExpanded,
       dimDropdownRef, themesError, retryThemes,
-      themedAllTokensFlat,
+      themedAllTokensFlat: themeOnlyTokensFlat,
     }),
     [
       dimensions, setDimensions,
@@ -212,7 +197,7 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
       openDimDropdown, setOpenDimDropdown,
       dimBarExpanded, setDimBarExpanded,
       dimDropdownRef, themesError, retryThemes,
-      themedAllTokensFlat,
+      themeOnlyTokensFlat,
     ],
   );
 

@@ -195,8 +195,8 @@ export interface TokenManagerExtensions {
   source?: 'figma-variables' | 'figma-styles' | 'json' | 'css' | 'tailwind' | (string & {});
   /** Dot-path to a base token this token inherits from (composite inheritance). */
   extends?: string;
-  /** Per-mode override values keyed by mode name. */
-  modes?: Record<string, unknown>;
+  /** Per-dimension mode overrides keyed by dimension id, then option name. */
+  modes?: Record<string, Record<string, unknown>>;
   /** Resolver-driven Figma publish configuration for mapping contexts to modes. */
   resolverPublish?: ResolverFigmaPublishConfig;
 }

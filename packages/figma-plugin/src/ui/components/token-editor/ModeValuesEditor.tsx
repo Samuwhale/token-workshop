@@ -78,10 +78,19 @@ export function ModeValuesEditor({
     });
   }, []);
 
-  const setCount = Object.values(modeValues).reduce(
-    (acc, opts) => acc + Object.values(opts).filter(v => v !== '' && v !== undefined && v !== null).length,
-    0,
-  );
+  const setCount = dimensions.reduce((acc, dim) => {
+    const optionNames = new Set(dim.options.map((option) => option.name));
+    return (
+      acc +
+      Object.entries(modeValues[dim.id] ?? {}).filter(
+        ([optionName, value]) =>
+          optionNames.has(optionName) &&
+          value !== "" &&
+          value !== undefined &&
+          value !== null,
+      ).length
+    );
+  }, 0);
   const hasTokens = Object.keys(allTokensFlat).length > 0;
   const useRichEditor = RICH_EDITOR_TYPES.has(tokenType);
 
@@ -135,8 +144,13 @@ export function ModeValuesEditor({
       </div>
       <div className="flex flex-col gap-2">
         {dimensions.map(dim => {
-          const dimOverrideCount = Object.values(modeValues[dim.id] ?? {}).filter(
-            v => v !== '' && v !== undefined && v !== null,
+          const dimOptionNames = new Set(dim.options.map((option) => option.name));
+          const dimOverrideCount = Object.entries(modeValues[dim.id] ?? {}).filter(
+            ([optionName, value]) =>
+              dimOptionNames.has(optionName) &&
+              value !== '' &&
+              value !== undefined &&
+              value !== null,
           ).length;
           const missingOptionCount = dim.options.length - dimOverrideCount;
           const hasPartialCoverage =
@@ -274,7 +288,7 @@ export function ModeValuesEditor({
             return (
               <div key={dim.id} className="flex flex-col gap-1">
                 {hasPartialCoverage ? (
-                  <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-700">
+                  <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1 text-[10px] text-[var(--color-figma-warning)]">
                     {missingOptionCount} mode value{missingOptionCount === 1 ? "" : "s"} still missing in {dim.name}.
                   </div>
                 ) : null}
@@ -301,7 +315,7 @@ export function ModeValuesEditor({
             >
               <div className="flex flex-col gap-1">
                 {hasPartialCoverage ? (
-                  <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-700">
+                  <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1 text-[10px] text-[var(--color-figma-warning)]">
                     {missingOptionCount} mode value{missingOptionCount === 1 ? "" : "s"} still missing in {dim.name}.
                   </div>
                 ) : null}

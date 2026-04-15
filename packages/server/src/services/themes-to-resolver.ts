@@ -11,9 +11,29 @@ import { setTokenAtPath } from './token-tree-utils.js';
 
 type ModeValues = Record<string, Record<string, unknown>>;
 
+const RECIPE_EXTENSION_KEY = 'com.tokenmanager.recipe';
+
 interface TokenSetSource {
   name: string;
   tokens: TokenGroup;
+}
+
+function isRecipeManagedToken(token: Token): boolean {
+  return Boolean(token.$extensions?.[RECIPE_EXTENSION_KEY]);
+}
+
+function buildCanonicalTokenSource(tokens: TokenGroup): TokenGroup {
+  const source: TokenGroup = {};
+
+  for (const [path, rawToken] of flattenTokenGroup(tokens)) {
+    const token = rawToken as Token;
+    if (isRecipeManagedToken(token)) {
+      continue;
+    }
+    setTokenAtPath(source, path, token);
+  }
+
+  return source;
 }
 
 function readTokenModes(token: Token): ModeValues | null {
@@ -41,23 +61,35 @@ function stripModeAuthoringExtensions(token: Token): Token {
   return nextToken;
 }
 
+function filterCanonicalTokenSets(tokenSets: TokenSetSource[]): TokenSetSource[] {
+  const filtered: TokenSetSource[] = [];
+
+  for (const set of tokenSets) {
+    const canonicalTokens = buildCanonicalTokenSource(set.tokens);
+    if (Object.keys(canonicalTokens).length === 0) {
+      continue;
+    }
+    filtered.push({ name: set.name, tokens: canonicalTokens });
+  }
+
+  return filtered;
+}
+
 function createModeOverrideToken(token: Token, overrideValue: unknown): Token {
   const nextToken = stripModeAuthoringExtensions(token);
   nextToken.$value = overrideValue as Token['$value'];
   return nextToken;
 }
 
-function buildFoundationSet(tokenSets: TokenSetSource[]): TokenGroup {
-  const foundation: TokenGroup = {};
+function buildStrippedTokenSource(tokens: TokenGroup): TokenGroup {
+  const source: TokenGroup = {};
 
-  for (const set of tokenSets) {
-    for (const [path, rawToken] of flattenTokenGroup(set.tokens)) {
-      const token = rawToken as Token;
-      setTokenAtPath(foundation, path, stripModeAuthoringExtensions(token));
-    }
+  for (const [path, rawToken] of flattenTokenGroup(tokens)) {
+    const token = rawToken as Token;
+    setTokenAtPath(source, path, stripModeAuthoringExtensions(token));
   }
 
-  return foundation;
+  return source;
 }
 
 function buildModifierContexts(
@@ -67,9 +99,11 @@ function buildModifierContexts(
   const contexts: Record<string, TokenGroup[]> = {};
 
   for (const option of dimension.options) {
-    const contextTokens: TokenGroup = {};
+    const contextSources: TokenGroup[] = [];
 
     for (const set of tokenSets) {
+      const contextTokens: TokenGroup = {};
+
       for (const [path, rawToken] of flattenTokenGroup(set.tokens)) {
         const token = rawToken as Token;
         const overrideValue = readTokenModes(token)?.[dimension.id]?.[option.name];
@@ -82,9 +116,13 @@ function buildModifierContexts(
           createModeOverrideToken(token, overrideValue),
         );
       }
+
+      if (Object.keys(contextTokens).length > 0) {
+        contextSources.push(contextTokens);
+      }
     }
 
-    contexts[option.name] = [contextTokens];
+    contexts[option.name] = contextSources;
   }
 
   return {
@@ -98,12 +136,13 @@ export function convertThemesToResolver(
   dimensions: ThemeDimension[],
   tokenSets: TokenSetSource[],
 ): ResolverFile {
+  const canonicalTokenSets = filterCanonicalTokenSets(tokenSets);
   const sets =
-    tokenSets.length > 0
+    canonicalTokenSets.length > 0
       ? {
           foundation: {
             description: 'Base token values generated from collections',
-            sources: [buildFoundationSet(tokenSets)],
+            sources: canonicalTokenSets.map((set) => buildStrippedTokenSource(set.tokens)),
           },
         }
       : undefined;
@@ -111,7 +150,7 @@ export function convertThemesToResolver(
   const modifiers = Object.fromEntries(
     dimensions.map((dimension) => [
       dimension.id,
-      buildModifierContexts(tokenSets, dimension),
+      buildModifierContexts(canonicalTokenSets, dimension),
     ]),
   );
 

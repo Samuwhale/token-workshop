@@ -4,14 +4,12 @@ import type { TokenMapEntry } from '../../shared/types';
 import type { ThemeDimension, TokenValue } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-import { getErrorMessage, stableStringify } from '../shared/utils';
+import { stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { swatchBgColor } from '../shared/colorUtils';
 import { resolveThemeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
 import { apiFetch } from '../shared/apiFetch';
-import { ConfirmModal } from './ConfirmModal';
-import { useTokensWorkspaceController } from '../contexts/WorkspaceControllerContext';
 
 function ColorSwatch({ value }: { value: string }) {
   if (typeof value !== 'string' || value === '') return null;
@@ -38,222 +36,6 @@ function useCopyFeedback(onError?: () => void): [boolean, (text: string) => Prom
     );
   }, [onError]);
   return [copied, triggerCopy];
-}
-
-type CompareBulkCreateToken = {
-  path: string;
-  $type: string;
-  $value: unknown;
-};
-
-type CompareBulkCreateBatch = {
-  targetSet: string;
-  tokens: CompareBulkCreateToken[];
-};
-
-type CompareCreateStatus = {
-  kind: 'success' | 'error';
-  message: string;
-};
-
-type PendingCompareBulkCreate = {
-  title: string;
-  description: string;
-  confirmLabel: string;
-  batches: CompareBulkCreateBatch[];
-};
-
-type CompareBulkCreateResult = {
-  status: CompareCreateStatus;
-  createdCount: number;
-};
-
-function dedupeCompareBatchTokens(tokens: CompareBulkCreateToken[]): CompareBulkCreateToken[] {
-  const byPath = new Map<string, CompareBulkCreateToken>();
-  for (const token of tokens) {
-    byPath.set(token.path, token);
-  }
-  return Array.from(byPath.values());
-}
-
-function formatCompareTokenPathList(paths: string[], maxVisible = 3): string {
-  if (paths.length <= maxVisible) return paths.join(', ');
-  return `${paths.slice(0, maxVisible).join(', ')} (+${paths.length - maxVisible})`;
-}
-
-function countCompareBatchTokens(batches: CompareBulkCreateBatch[]): number {
-  return batches.reduce((sum, batch) => sum + batch.tokens.length, 0);
-}
-
-async function executeCompareBulkCreate(params: {
-  serverUrl: string;
-  batches: CompareBulkCreateBatch[];
-  undoDescription: string;
-  pushUndo?: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
-  afterMutation?: () => void | Promise<void>;
-}): Promise<CompareBulkCreateResult> {
-  const { serverUrl, batches, undoDescription, pushUndo, afterMutation } = params;
-  const successes: Array<
-    CompareBulkCreateBatch & {
-      operationId?: string;
-      changedPaths: string[];
-    }
-  > = [];
-  const failures: Array<{
-    targetSet: string;
-    tokenPaths: string[];
-    message: string;
-  }> = [];
-
-  for (const batch of batches) {
-    try {
-      const result = await apiFetch<{
-        imported: number;
-        skipped: number;
-        changedPaths?: string[];
-        operationId?: string;
-      }>(`${serverUrl}/api/tokens/${encodeURIComponent(batch.targetSet)}/batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens: batch.tokens, strategy: 'overwrite' }),
-      });
-      successes.push({
-        ...batch,
-        operationId: result.operationId,
-        changedPaths: result.changedPaths ?? batch.tokens.map(token => token.path),
-      });
-    } catch (err) {
-      failures.push({
-        targetSet: batch.targetSet,
-        tokenPaths: batch.tokens.map(token => token.path),
-        message: getErrorMessage(err, 'Failed to create tokens'),
-      });
-    }
-  }
-
-  const createdCount = successes.reduce((sum, batch) => sum + batch.tokens.length, 0);
-  if (createdCount > 0) {
-    const rollbackable = successes.filter(batch => batch.operationId);
-    if (rollbackable.length > 0 && pushUndo) {
-      const batchesForRedo = successes.map(batch => ({
-        targetSet: batch.targetSet,
-        tokens: batch.tokens,
-      }));
-      pushUndo({
-        description: undoDescription,
-        restore: async () => {
-          for (let index = rollbackable.length - 1; index >= 0; index -= 1) {
-            const batch = rollbackable[index];
-            await apiFetch(
-              `${serverUrl}/api/operations/${encodeURIComponent(batch.operationId!)}/rollback`,
-              { method: 'POST' },
-            );
-          }
-          await afterMutation?.();
-        },
-        redo: async () => {
-          for (const batch of batchesForRedo) {
-            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(batch.targetSet)}/batch`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ tokens: batch.tokens, strategy: 'overwrite' }),
-            });
-          }
-          await afterMutation?.();
-        },
-      });
-    }
-    await afterMutation?.();
-  }
-
-  if (failures.length === 0) {
-    return {
-      createdCount,
-      status: {
-        kind: 'success',
-        message: `Created ${createdCount} token${createdCount === 1 ? '' : 's'}. Undo available.`,
-      },
-    };
-  }
-
-  const failureSummary = failures
-    .map(failure => `${failure.targetSet}: ${formatCompareTokenPathList(failure.tokenPaths)} (${failure.message})`)
-    .join(' ');
-
-  if (createdCount > 0) {
-    return {
-      createdCount,
-      status: {
-        kind: 'error',
-        message: `Created ${createdCount} token${createdCount === 1 ? '' : 's'}, but failed for ${failureSummary}`,
-      },
-    };
-  }
-
-  return {
-    createdCount: 0,
-    status: {
-      kind: 'error',
-      message: `Failed to create missing tokens. ${failureSummary}`,
-    },
-  };
-}
-
-function CompareBulkCreateStatus({ status }: { status: CompareCreateStatus | null }) {
-  if (!status) return null;
-  return (
-    <span
-      className={`text-[10px] break-all ${
-        status.kind === 'error'
-          ? 'text-[var(--color-figma-error)]'
-          : 'text-[var(--color-figma-text-secondary)]'
-      }`}
-    >
-      {status.message}
-    </span>
-  );
-}
-
-function CompareBulkCreateConfirmModal({
-  pending,
-  onCancel,
-  onConfirm,
-}: {
-  pending: PendingCompareBulkCreate;
-  onCancel: () => void;
-  onConfirm: () => Promise<void>;
-}) {
-  return (
-    <ConfirmModal
-      title={pending.title}
-      description={pending.description}
-      confirmLabel={pending.confirmLabel}
-      wide={pending.batches.length > 1}
-      onConfirm={onConfirm}
-      onCancel={onCancel}
-    >
-      <div className="mt-3 space-y-2">
-        {pending.batches.map(batch => (
-          <div
-            key={batch.targetSet}
-            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)] break-all">
-                {batch.targetSet}
-              </span>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
-                {batch.tokens.length} token{batch.tokens.length === 1 ? '' : 's'}
-              </span>
-            </div>
-            <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)] break-all">
-              {formatCompareTokenPathList(batch.tokens.map(token => token.path), 5)}
-            </p>
-          </div>
-        ))}
-      </div>
-    </ConfirmModal>
-  );
 }
 
 /** Extract all property keys from a composite value object. */
@@ -647,28 +429,17 @@ interface OptionResult {
 interface CrossThemeModeProps {
   tokenPath: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
   dimensions: ThemeDimension[];
   onClose: () => void;
-  serverUrl?: string;
-  onTokensCreated?: () => void;
-  pushUndo?: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
 }
 
 function CrossThemeMode({
   tokenPath,
   allTokensFlat,
-  pathToSet,
   dimensions,
   onClose,
-  serverUrl,
-  onTokensCreated,
-  pushUndo,
 }: CrossThemeModeProps) {
   const [copied, triggerCopy] = useCopyFeedback();
-  const [creatingMissing, setCreatingMissing] = useState(false);
-  const [createStatus, setCreateStatus] = useState<CompareCreateStatus | null>(null);
-  const [pendingCreate, setPendingCreate] = useState<PendingCompareBulkCreate | null>(null);
 
   const results = useMemo((): OptionResult[] => {
     const out: OptionResult[] = [];
@@ -725,67 +496,6 @@ function CrossThemeMode({
     await triggerCopy(rows.map(r => r.join('\t')).join('\n'));
   }, [results, tokenType, triggerCopy]);
 
-  const missingResults = useMemo(() => results.filter(r => r.missing), [results]);
-
-  const createMissingPlan = useMemo((): PendingCompareBulkCreate | null => {
-    if (!serverUrl || missingResults.length === 0) return null;
-    const baseEntry = allTokensFlat[tokenPath];
-    if (!baseEntry) return null;
-
-    const batchesBySet = new Map<string, CompareBulkCreateBatch>();
-    for (const r of missingResults) {
-      const dim = dimensions.find(d => d.id === r.dimId);
-      const opt = dim?.options.find(o => o.name === r.optionName);
-      if (!opt) continue;
-      const targetSet = pathToSet[tokenPath] ?? null;
-      if (!targetSet) continue;
-      const existing = batchesBySet.get(targetSet);
-      const nextTokens = dedupeCompareBatchTokens([
-        ...(existing?.tokens ?? []),
-        { path: tokenPath, $type: baseEntry.$type, $value: baseEntry.$value },
-      ]);
-      batchesBySet.set(targetSet, { targetSet, tokens: nextTokens });
-    }
-
-    const batches = Array.from(batchesBySet.values());
-    if (batches.length === 0) return null;
-
-    const totalCount = countCompareBatchTokens(batches);
-    const targetLabel = batches.length === 1
-      ? `"${batches[0].targetSet}"`
-      : `${batches.length} target sets`;
-
-    return {
-      title: `Create ${totalCount} missing override${totalCount === 1 ? '' : 's'}?`,
-      description: `Create ${totalCount} override${totalCount === 1 ? '' : 's'} for "${tokenName}" in ${targetLabel}.`,
-      confirmLabel: `Create ${totalCount}`,
-      batches,
-    };
-  }, [serverUrl, missingResults, allTokensFlat, tokenPath, dimensions, tokenName, pathToSet]);
-
-  const handleConfirmCreateMissingOverrides = useCallback(async () => {
-    if (!serverUrl || !createMissingPlan) return;
-
-    setCreatingMissing(true);
-    setCreateStatus(null);
-    try {
-      const result = await executeCompareBulkCreate({
-        serverUrl,
-        batches: createMissingPlan.batches,
-        undoDescription: `Create ${countCompareBatchTokens(createMissingPlan.batches)} missing override${countCompareBatchTokens(createMissingPlan.batches) === 1 ? '' : 's'} for ${tokenName}`,
-        pushUndo,
-        afterMutation: () => {
-          onTokensCreated?.();
-        },
-      });
-      setCreateStatus(result.status);
-      onTokensCreated?.();
-    } finally {
-      setCreatingMissing(false);
-      setPendingCreate(null);
-    }
-  }, [serverUrl, createMissingPlan, tokenName, pushUndo, onTokensCreated]);
-
   if (dimensions.length === 0) {
     return (
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
@@ -814,21 +524,6 @@ function CrossThemeMode({
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">across themes</span>
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
-          {createMissingPlan && (
-            <>
-              <button
-                onClick={() => {
-                  setCreateStatus(null);
-                  setPendingCreate(createMissingPlan);
-                }}
-                disabled={creatingMissing}
-                title={`Create overrides for ${countCompareBatchTokens(createMissingPlan.batches)} missing option${countCompareBatchTokens(createMissingPlan.batches) !== 1 ? 's' : ''}`}
-                className="text-[10px] px-2 py-0.5 rounded font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
-              >
-                {creatingMissing ? 'Creating…' : `+ ${countCompareBatchTokens(createMissingPlan.batches)} missing`}
-              </button>
-            </>
-          )}
           <button
             onClick={handleCopyTsv}
             className="text-[10px] px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -894,18 +589,6 @@ function CrossThemeMode({
           </div>
         );
       })}
-      {createStatus && (
-        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
-          <CompareBulkCreateStatus status={createStatus} />
-        </div>
-      )}
-      {pendingCreate && (
-        <CompareBulkCreateConfirmModal
-          pending={pendingCreate}
-          onCancel={() => setPendingCreate(null)}
-          onConfirm={handleConfirmCreateMissingOverrides}
-        />
-      )}
     </div>
   );
 }
@@ -917,14 +600,11 @@ interface ThemeOptionsModeProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   onEditToken?: (set: string, path: string) => void;
-  onCreateToken?: (path: string, set: string, type: string, value?: string) => void;
   initialOptionKeyA?: string;
   initialOptionKeyB?: string;
-  serverUrl?: string;
-  onTokensCreated?: () => void;
 }
 
-function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, onCreateToken, initialOptionKeyA, initialOptionKeyB, serverUrl, onTokensCreated }: ThemeOptionsModeProps) {
+function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, initialOptionKeyA, initialOptionKeyB }: ThemeOptionsModeProps) {
   const [optionKeyA, setOptionKeyA] = useState<string>(initialOptionKeyA ?? '');
   const [optionKeyB, setOptionKeyB] = useState<string>(initialOptionKeyB ?? '');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -955,11 +635,6 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
       allTokensFlat,
     );
   }, [optionKeyB, flatOptions, dimensions, allTokensFlat]);
-
-  const targetSetForOption = useCallback((optionKey: string): string | null => {
-    void optionKey;
-    return null;
-  }, []);
 
   const diffs = useMemo(() => {
     if (!resolvedA || !resolvedB) return [];
@@ -1017,9 +692,6 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
   }, []);
   const [copyFeedback, triggerCopy] = useCopyFeedback(handleCopyError);
 
-  const [bulkCreating, setBulkCreating] = useState<'A' | 'B' | null>(null);
-  const [bulkCreateResult, setBulkCreateResult] = useState<string | null>(null);
-
   const buildTsv = useCallback((rows: typeof filteredDiffs) => {
     const header = ['Token Path', 'Type', labelA, labelB].join('\t');
     const lines = rows.map(d =>
@@ -1054,38 +726,6 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
     () => filteredDiffs.filter(d => d.valueB === undefined),
     [filteredDiffs],
   );
-
-  const handleCreateMissing = useCallback(async (side: 'A' | 'B') => {
-    if (!serverUrl) return;
-    const isA = side === 'A';
-    const targetSet = isA ? targetSetForOption(optionKeyA) : targetSetForOption(optionKeyB);
-    if (!targetSet) return;
-    const missing = isA ? missingInA : missingInB;
-    if (missing.length === 0) return;
-
-    setBulkCreating(side);
-    setBulkCreateResult(null);
-    try {
-      const tokens = missing.map(d => ({
-        path: d.path,
-        $type: d.type,
-        $value: isA ? d.valueB : d.valueA,
-      }));
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens, strategy: 'overwrite' }),
-      });
-      setBulkCreateResult(`Created ${tokens.length} token${tokens.length !== 1 ? 's' : ''}`);
-      setTimeout(() => setBulkCreateResult(null), 3000);
-      onTokensCreated?.();
-    } catch {
-      setBulkCreateResult('Failed');
-      setTimeout(() => setBulkCreateResult(null), 3000);
-    } finally {
-      setBulkCreating(null);
-    }
-  }, [serverUrl, optionKeyA, optionKeyB, missingInA, missingInB, targetSetForOption, onTokensCreated]);
 
   return (
     <div className="flex flex-col h-full">
@@ -1152,32 +792,10 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
                   ? `${diffs.length} differing token${diffs.length !== 1 ? 's' : ''}`
                   : `${filteredDiffs.length} of ${diffs.length}`}
               </span>
-              {serverUrl && (missingInA.length > 0 || missingInB.length > 0) && (
-                <>
-                  {missingInA.length > 0 && (
-                    <button
-                      onClick={() => handleCreateMissing('A')}
-                      disabled={bulkCreating !== null}
-                      title={`Create ${missingInA.length} token${missingInA.length !== 1 ? 's' : ''} missing from ${labelA} (using ${labelB}'s values)`}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
-                    >
-                      {bulkCreating === 'A' ? 'Creating…' : `+ ${missingInA.length} missing in A`}
-                    </button>
-                  )}
-                  {missingInB.length > 0 && (
-                    <button
-                      onClick={() => handleCreateMissing('B')}
-                      disabled={bulkCreating !== null}
-                      title={`Create ${missingInB.length} token${missingInB.length !== 1 ? 's' : ''} missing from ${labelB} (using ${labelA}'s values)`}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
-                    >
-                      {bulkCreating === 'B' ? 'Creating…' : `+ ${missingInB.length} missing in B`}
-                    </button>
-                  )}
-                  {bulkCreateResult && (
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{bulkCreateResult}</span>
-                  )}
-                </>
+              {(missingInA.length > 0 || missingInB.length > 0) && (
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {missingInA.length + missingInB.length} unresolved diff{missingInA.length + missingInB.length === 1 ? '' : 's'}
+                </span>
               )}
               <div className="ml-auto flex items-center gap-1">
                 <button
@@ -1234,8 +852,6 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
               const par = nodeParentPath(diff.path, diff.name);
               const absentInA = diff.valueA === undefined;
               const absentInB = diff.valueB === undefined;
-              const targetA = targetSetForOption(optionKeyA);
-              const targetB = targetSetForOption(optionKeyB);
               return (
                 <div
                   key={diff.path}
@@ -1269,17 +885,8 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
                       </span>
                     </div>
                   </div>
-                  {(onEditToken || onCreateToken) && (
+                  {onEditToken && (
                     <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                      {absentInA && onCreateToken && targetA && (
-                        <button
-                          onClick={() => onCreateToken(diff.path, targetA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
-                          title={`Create token in ${targetA} (copy B's value)`}
-                        >
-                          + Create in A
-                        </button>
-                      )}
                       {!absentInA && onEditToken && diff.setA && (
                         <button
                           onClick={() => onEditToken(diff.setA!, diff.path)}
@@ -1287,15 +894,6 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, o
                           title={`Edit token in ${diff.setA}`}
                         >
                           Edit A
-                        </button>
-                      )}
-                      {absentInB && onCreateToken && targetB && (
-                        <button
-                          onClick={() => onCreateToken(diff.path, targetB, diff.type, diff.valueA !== undefined ? (typeof diff.valueA === 'string' ? diff.valueA : JSON.stringify(diff.valueA)) : undefined)}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
-                          title={`Create token in ${targetB} (copy A's value)`}
-                        >
-                          + Create in B
                         </button>
                       )}
                       {!absentInB && onEditToken && diff.setB && (
@@ -1775,7 +1373,6 @@ interface CompareViewProps {
 
   serverUrl?: string;
   onTokensCreated?: () => void;
-  pushUndo?: ReturnType<typeof useTokensWorkspaceController>['pushUndo'];
 }
 
 const MODES: { id: CompareMode; label: string }[] = [
@@ -1804,7 +1401,6 @@ export function CompareView({
   onGoToTokens,
   serverUrl,
   onTokensCreated,
-  pushUndo,
 }: CompareViewProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -1873,12 +1469,8 @@ export function CompareView({
             <CrossThemeMode
               tokenPath={tokenPath}
               allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
               dimensions={dimensions}
               onClose={onClearTokenPath}
-              serverUrl={serverUrl}
-              onTokensCreated={onTokensCreated}
-              pushUndo={pushUndo}
             />
           )
         )}
@@ -1892,9 +1484,6 @@ export function CompareView({
             initialOptionKeyA={themeOptionsDefaultA}
             initialOptionKeyB={themeOptionsDefaultB}
             onEditToken={onEditToken}
-            onCreateToken={onCreateToken}
-            serverUrl={serverUrl}
-            onTokensCreated={onTokensCreated}
           />
         )}
 

@@ -726,7 +726,6 @@ export function PanelRouter(): ReactNode {
       onGoToTokens={() => setShowTokensCompare(false)}
       serverUrl={serverUrl}
       onTokensCreated={controller.refreshAll}
-      pushUndo={controller.pushUndo}
       onBack={() => setShowTokensCompare(false)}
       backLabel="Back to tokens"
     />
@@ -1425,7 +1424,6 @@ export function PanelRouter(): ReactNode {
               onPushUndo={controller.pushUndo}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
-              onGapsDetected={controller.setThemeGapCount}
               onShellStateChange={controller.onThemeShellStateChange}
               onTokensCreated={controller.refreshAll}
               onGoToTokens={() => {

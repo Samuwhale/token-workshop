@@ -12,7 +12,6 @@ export type { CompareMode } from './CompareView';
 import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { CompareMode } from './CompareView';
-import type { UndoSlot } from '../hooks/useUndo';
 
 export interface UnifiedComparePanelProps {
   mode: CompareMode;
@@ -40,7 +39,6 @@ export interface UnifiedComparePanelProps {
 
   serverUrl?: string;
   onTokensCreated?: () => void;
-  pushUndo?: (slot: UndoSlot) => void;
 
   /** Called when the user clicks the back button. */
   onBack: () => void;

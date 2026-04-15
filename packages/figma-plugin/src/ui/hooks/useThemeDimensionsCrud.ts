@@ -238,40 +238,12 @@ export function useThemeDimensionsCrud({
       setDimensions(prev => prev.filter(d => d.id !== id));
       debouncedFetchDimensions();
       onSuccess?.(`Deleted mode "${savedDim.name}"`);
-      onPushUndo?.({
-        description: `Deleted mode "${savedDim.name}"`,
-        restore: async () => {
-          try {
-            await apiFetch(`${serverUrl}/api/themes/dimensions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: savedDim.id, name: savedDim.name }),
-            });
-          } catch (err) {
-            setError(makeErrorMsg(err, 'Failed to undo: could not recreate mode'));
-            return;
-          }
-          for (const opt of savedDim.options) {
-            try {
-              await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(savedDim.id)}/options`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: opt.name }),
-              });
-            } catch (err) {
-              console.warn('[ThemeManager] failed to restore option during undo:', opt.name, err);
-              setError(`Undo restored mode but failed to restore variant "${opt.name}"`);
-            }
-          }
-          fetchDimensions();
-        },
-      });
     } catch (err) {
       setError(makeErrorMsg(err, 'Failed to delete mode'));
     } finally {
       setIsDeletingDim(false);
     }
-  }, [debouncedFetchDimensions, dimensions, fetchDimensions, isDeletingDim, onPushUndo, onSuccess, serverUrl, setDimensions, setError]);
+  }, [debouncedFetchDimensions, dimensions, isDeletingDim, onSuccess, serverUrl, setDimensions, setError]);
 
   // --- Duplicate dimension ---
 

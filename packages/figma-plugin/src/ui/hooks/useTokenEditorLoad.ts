@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ColorModifierOp } from '@tokenmanager/core';
-import type { ThemeDimension } from '@tokenmanager/core';
 import { validateColorModifiers } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment, isAbortError, stableStringify } from '../shared/utils';
@@ -19,36 +18,19 @@ import type {
   TokenEditorValue,
 } from '../shared/tokenEditorTypes';
 
-/**
- * Migrate flat mode values (keyed by option.name) to nested shape
- * (keyed by dimensionId → optionName). Detects whether data is already nested.
- */
-function migrateModeValues(
-  raw: Record<string, unknown>,
-  dimensions: ThemeDimension[],
+function readModeValues(
+  raw: unknown,
 ): Record<string, Record<string, unknown>> {
-  if (Object.keys(raw).length === 0) return {};
-
-  // Check if already nested: keys match dimension IDs and values are plain objects
-  const dimIds = new Set(dimensions.map(d => d.id));
-  const allKeysAreDimIds = Object.keys(raw).every(k => dimIds.has(k));
-  const allValuesAreObjects = Object.values(raw).every(
-    v => v !== null && typeof v === 'object' && !Array.isArray(v),
-  );
-  if (allKeysAreDimIds && allValuesAreObjects) {
-    return raw as Record<string, Record<string, unknown>>;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {};
   }
 
-  // Flat shape: keys are option names. Match them to dimensions.
   const result: Record<string, Record<string, unknown>> = {};
-  for (const [optName, val] of Object.entries(raw)) {
-    for (const dim of dimensions) {
-      if (dim.options.some(o => o.name === optName)) {
-        if (!result[dim.id]) result[dim.id] = {};
-        result[dim.id][optName] = val;
-        break; // first matching dimension wins
-      }
+  for (const [dimensionId, optionMap] of Object.entries(raw)) {
+    if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
+      continue;
     }
+    result[dimensionId] = { ...(optionMap as Record<string, unknown>) };
   }
   return result;
 }
@@ -67,7 +49,6 @@ interface UseTokenEditorLoadParams {
   setScopes: (v: string[]) => void;
   setColorModifiers: (v: ColorModifierOp[]) => void;
   setModeValues: (v: TokenEditorModeValues) => void;
-  dimensions: ThemeDimension[];
   setExtensionsJsonText: (v: string) => void;
   setLifecycle: (v: TokenEditorLifecycle) => void;
   setExtendsPath: (v: string) => void;
@@ -90,7 +71,6 @@ export function useTokenEditorLoad({
   setScopes,
   setColorModifiers,
   setModeValues,
-  dimensions,
   setExtensionsJsonText,
   setLifecycle,
   setExtendsPath,
@@ -130,8 +110,7 @@ export function useTokenEditorLoad({
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
         setColorModifiers(loadedModifiers);
         const savedModes = extensions.tokenmanager?.modes;
-        const rawModes: Record<string, unknown> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, unknown> : {};
-        const loadedModes = migrateModeValues(rawModes, dimensions);
+        const loadedModes = readModeValues(savedModes);
         setModeValues(loadedModes);
         const savedLifecycle = extensions.tokenmanager?.lifecycle;
         const loadedLifecycle: TokenEditorLifecycle = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
@@ -199,7 +178,6 @@ export function useTokenEditorLoad({
     fetchToken();
     return () => controller.abort();
   }, [
-    dimensions,
     encodedTokenPath,
     initialRef,
     isCreateMode,
