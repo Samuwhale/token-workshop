@@ -62,6 +62,7 @@ export interface TokenListToolbarProps {
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
   onOpenSetSwitcher?: () => void;
+  onOpenCreateSet?: () => void;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
   themeLensEnabled: boolean;
@@ -125,6 +126,7 @@ export function TokenListToolbar({
   onShowPasteModal,
   onOpenImportPanel,
   onOpenSetSwitcher,
+  onOpenCreateSet,
   multiModeEnabled,
   onToggleMultiMode,
   themeLensEnabled,
@@ -340,6 +342,16 @@ export function TokenListToolbar({
                   >
                     Token table
                   </button>
+                  {onOpenCreateSet && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onOpenCreateSet)}
+                      disabled={!connected}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      New set
+                    </button>
+                  )}
                   {onCreateRecipe && (
                     <button
                       role="menuitem"

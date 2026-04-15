@@ -140,8 +140,18 @@ export function TokenRecipeDialog({
     (dialog.editableSourcePath === sourceTokenPath ? sourceTokenValue : undefined);
 
   // --- Stepper state ---
-  const skipTypeStep = Boolean(existingRecipe || initialDraft?.selectedType || template);
-  const [activeStep, setActiveStep] = useState<Step>(skipTypeStep ? 2 : 1);
+  const hidesIntentStep = Boolean(existingRecipe);
+  const hasPrefilledSource = Boolean(sourceTokenPath?.trim());
+  const hasPrefilledDestination = Boolean(
+    initialDraft?.targetGroup?.trim() || initialDraft?.targetSet?.trim(),
+  );
+  const initialStep: Step =
+    hidesIntentStep || hasPrefilledSource || hasPrefilledDestination ? 2 : 1;
+  const [activeStep, setActiveStep] = useState<Step>(initialStep);
+
+  useEffect(() => {
+    setActiveStep(initialStep);
+  }, [initialStep]);
 
   // Destination props passed into StepSource's inline output section
   const destinationProps: Omit<StepWhereProps, 'onToggleMultiBrand' | 'inputTable' | 'onInputTableChange'> = {
@@ -260,10 +270,10 @@ export function TokenRecipeDialog({
         <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
           <button
             type="button"
-            onClick={() => skipTypeStep ? requestClose() : setActiveStep(1)}
+            onClick={() => hidesIntentStep ? requestClose() : setActiveStep(1)}
             className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
           >
-            {skipTypeStep ? "Cancel" : "Back"}
+            {hidesIntentStep ? "Cancel" : "Back"}
           </button>
           <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
             <button
@@ -337,8 +347,8 @@ export function TokenRecipeDialog({
     ? "bg-[var(--color-figma-bg)] w-full h-full flex flex-col overflow-hidden"
     : "bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(40rem,95vw)] flex flex-col max-h-[90vh]";
 
-  const stepCount = skipTypeStep ? 1 : 2;
-  const displayStep = skipTypeStep ? 1 as Step : activeStep;
+  const stepCount = hidesIntentStep ? 1 : 2;
+  const displayStep = hidesIntentStep ? 1 as Step : activeStep;
 
   const title = (
     <div className="flex items-center gap-2.5">
@@ -416,7 +426,7 @@ export function TokenRecipeDialog({
             />
           ) : (
             <>
-              {activeStep === 1 && (
+              {!hidesIntentStep && activeStep === 1 && (
                 <StepIntent
                   selectedType={dialog.selectedType}
                   recommendedType={dialog.recommendedType}

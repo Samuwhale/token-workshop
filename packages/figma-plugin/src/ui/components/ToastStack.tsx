@@ -29,7 +29,7 @@ export function ToastStack({ toasts, onDismiss, undoToast }: ToastStackProps) {
   if (!hasAny) return null;
 
   return (
-    <div className="fixed bottom-4 left-3 right-3 z-50 flex flex-col gap-1.5 pointer-events-none">
+    <div className="fixed bottom-4 left-14 right-3 z-50 flex flex-col gap-1.5 pointer-events-none">
       {hasUndo && undoToast && (
         <UndoRow
           description={undoToast.description}

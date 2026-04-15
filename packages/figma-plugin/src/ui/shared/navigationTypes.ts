@@ -138,7 +138,6 @@ export type SecondarySurfaceAccess =
   | "shell-shortcut"
   | "workspace-context"
   | "set-switcher"
-  | "attention-bell"
   | "shell-menu"
   | "settings-help";
 
@@ -296,7 +295,7 @@ const transientOverlayTransition = (
   usage,
 });
 
-export const CONTEXTUAL_PANEL_MIN_WIDTH = 401;
+export const CONTEXTUAL_PANEL_MIN_WIDTH = 450;
 export const CONTEXTUAL_PANEL_TRANSITIONS = {
   sidePanel: {
     kind: "contextual-panel",
@@ -440,16 +439,16 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
   },
   {
     id: "sets",
-    label: "Sets",
-    summaryTitle: "Set structure",
+    label: "Manage sets",
+    summaryTitle: "Manage sets",
     access: "set-switcher",
-    transition: secondaryTakeoverTransition("Manage set structure."),
+    transition: secondaryTakeoverTransition("Manage sets."),
   },
   {
     id: "notifications",
     label: "Notifications",
     summaryTitle: "Notifications",
-    access: "attention-bell",
+    access: "shell-menu",
     transition: secondaryTakeoverTransition("View notifications."),
   },
   {

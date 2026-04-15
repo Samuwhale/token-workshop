@@ -1,12 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import type { TokenRecipe, RecipeType } from "../hooks/useRecipes";
 import { getRecipeDashboardStatus } from "../hooks/useRecipes";
-import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
-import { TokenRecipeDialog } from "./TokenRecipeDialog";
-import type { RecipeSaveSuccessInfo } from "../hooks/useRecipeSave";
 import { dispatchToast } from "../shared/toastBus";
-import type { ToastAction } from "../shared/toastBus";
 
 export function getRecipeTypeLabel(type: RecipeType): string {
   switch (type) {
@@ -187,12 +183,9 @@ export interface RecipePipelineCardProps {
   isFocused?: boolean;
   focusRef?: React.RefObject<HTMLDivElement | null>;
   serverUrl: string;
-  allSets: string[];
-  activeSet: string;
   onRefresh: () => void;
-  allTokensFlat?: Record<string, TokenMapEntry>;
-  onPushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
   onViewTokens?: (targetGroup: string, targetSet: string) => void;
+  onEditRecipe?: (recipeId: string) => void;
   onContextMenu?: (event: React.MouseEvent, recipe: TokenRecipe) => void;
 }
 
@@ -201,17 +194,13 @@ export function RecipePipelineCard({
   isFocused,
   focusRef,
   serverUrl,
-  allSets,
-  activeSet,
   onRefresh,
-  allTokensFlat,
-  onPushUndo,
   onViewTokens,
+  onEditRecipe,
   onContextMenu,
 }: RecipePipelineCardProps) {
   const [running, setRunning] = useState(false);
   const [togglingEnabled, setTogglingEnabled] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const status = getRecipeDashboardStatus(recipe);
   const isPaused = recipe.enabled === false;
@@ -226,17 +215,6 @@ export function RecipePipelineCard({
     if (statusDetail) parts.push(statusDetail);
     return parts.join(" \u00b7 ");
   }, [recipe.type, statusLabel, lastRunAt, statusDetail]);
-
-  const getViewTokensToastAction = useCallback(
-    (info: RecipeSaveSuccessInfo): ToastAction | undefined =>
-      onViewTokens
-        ? {
-            label: "View tokens",
-            onClick: () => onViewTokens(info.targetGroup, info.targetSet),
-          }
-        : undefined,
-    [onViewTokens],
-  );
 
   const handleToggleEnabled = useCallback(async () => {
     setTogglingEnabled(true);
@@ -298,7 +276,7 @@ export function RecipePipelineCard({
   const actionLabel = isPaused
     ? "Resume"
     : status === "upToDate"
-      ? "View"
+      ? "View generated tokens"
       : status === "failed" || status === "blocked"
         ? "Retry"
         : "Run";
@@ -325,11 +303,11 @@ export function RecipePipelineCard({
         ref={isFocused ? (focusRef as React.LegacyRef<HTMLDivElement>) : undefined}
         role="button"
         tabIndex={0}
-        onClick={() => onViewTokens?.(recipe.targetGroup, recipe.targetSet)}
+        onClick={() => onEditRecipe?.(recipe.id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onViewTokens?.(recipe.targetGroup, recipe.targetSet);
+            onEditRecipe?.(recipe.id);
           }
         }}
         onContextMenu={(e) => {
@@ -386,24 +364,6 @@ export function RecipePipelineCard({
           )}
         </button>
       </div>
-
-      {showEditDialog && (
-        <TokenRecipeDialog
-          serverUrl={serverUrl}
-          allSets={allSets}
-          activeSet={activeSet}
-          allTokensFlat={allTokensFlat}
-          existingRecipe={recipe}
-          onClose={() => setShowEditDialog(false)}
-          onSaved={() => {
-            setShowEditDialog(false);
-            onRefresh();
-          }}
-          getSuccessToastAction={getViewTokensToastAction}
-          onInterceptSemanticMapping={() => {}}
-          onPushUndo={onPushUndo}
-        />
-      )}
     </>
   );
 }

@@ -337,8 +337,8 @@ export function collectThemeOptionIssues({
       count: uncoveredCount,
       title: "Missing token values",
       summary: `${uncoveredCount} token${uncoveredCount === 1 ? "" : "s"} still cannot resolve`,
-      recommendedNextAction: "Open the destination set and fill or create the missing tokens.",
-      actionLabel: "Open set",
+      recommendedNextAction: "Generate the missing tokens into the destination set, then review the result.",
+      actionLabel: "Generate missing tokens",
       preferredSetName: pickPreferredSetName(orderedSets, availableSets),
       affectedSetNames: [],
     });

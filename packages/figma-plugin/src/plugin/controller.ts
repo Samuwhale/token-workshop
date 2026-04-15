@@ -8,7 +8,7 @@ import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBi
 import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 import { scanConsistency } from './consistencyScanner.js';
 
-figma.showUI(__html__, { width: 460, height: 640, themeColors: true });
+figma.showUI(__html__, { width: 680, height: 720, themeColors: true });
 
 let deepInspectEnabled = false;
 setSelectionDeepInspectEnabled(false);

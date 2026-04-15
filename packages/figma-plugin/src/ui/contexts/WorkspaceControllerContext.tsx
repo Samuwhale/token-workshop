@@ -34,6 +34,7 @@ export interface ShellWorkspaceController {
   openCommandPaletteWithQuery: (query: string) => void;
   openPasteModal: () => void;
   openImportPanel: () => void;
+  openSetCreateDialog: () => void;
   openColorScaleRecipe: () => void;
   toggleQuickApply: () => void;
   toggleSetSwitcher: () => void;
@@ -155,13 +156,12 @@ export interface SyncWorkspaceController {
 
 export interface SetManagerWorkspaceController {
   onOpenQuickSwitch: () => void;
-  onCreateRecipe: (setName: string) => void;
   onRename: (setName: string) => void;
   onDuplicate: (setName: string) => void;
   onDelete: (setName: string) => void;
   onReorder: (setName: string, direction: "left" | "right") => void;
   onReorderFull: (newOrder: string[]) => void;
-  onCreateSet: (name: string) => Promise<void>;
+  onOpenCreateSet: () => void;
   onEditInfo: (setName: string) => void;
   onMerge?: (setName: string) => void;
   onSplit: (setName: string) => void;

@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { postPluginMessage } from '../../shared/utils';
 
-const RESIZE_MIN_W = 360;
+const RESIZE_MIN_W = 480;
 const RESIZE_MIN_H = 400;
 const RESIZE_MAX_W = 1200;
 const RESIZE_MAX_H = 1000;

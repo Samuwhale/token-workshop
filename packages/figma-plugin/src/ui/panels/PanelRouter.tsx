@@ -31,6 +31,7 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { NotificationsPanel } from "../components/NotificationsPanel";
 import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import type { RecipeDialogInitialDraft } from "../hooks/useRecipeDialog";
 import {
   useConnectionContext,
   useSyncContext,
@@ -132,6 +133,7 @@ export function PanelRouter(): ReactNode {
     ...syncController,
     onShowPasteModal: shell.openPasteModal,
     onShowImportPanel: shell.openImportPanel,
+    onOpenSetCreateDialog: shell.openSetCreateDialog,
     onShowColorScaleGen: shell.openColorScaleRecipe,
     onOpenStartHere: shell.openStartHere,
     onRestartGuidedSetup: shell.restartGuidedSetup,
@@ -385,6 +387,40 @@ export function PanelRouter(): ReactNode {
     [setShowPreviewSplit, switchContextualSurface],
   );
 
+  const openNewRecipe = useCallback(() => {
+    openRecipeEditor({ mode: "create" });
+  }, [openRecipeEditor]);
+
+  const openRecipeFromSource = useCallback((source: {
+    path: string;
+    name?: string;
+    type?: string;
+    value?: unknown;
+    initialDraft?: RecipeDialogInitialDraft;
+  }) => {
+    openRecipeEditor({
+      mode: "create",
+      sourceTokenPath: source.path,
+      sourceTokenName: source.name,
+      sourceTokenType: source.type,
+      sourceTokenValue: source.value,
+      initialDraft: source.initialDraft,
+    });
+  }, [openRecipeEditor]);
+
+  const openRecipeFromThemeGap = useCallback((destination: {
+    targetSet: string;
+    targetGroup?: string;
+  }) => {
+    openRecipeEditor({
+      mode: "create",
+      initialDraft: {
+        targetSet: destination.targetSet,
+        targetGroup: destination.targetGroup,
+      },
+    });
+  }, [openRecipeEditor]);
+
   const openGeneratedTokens = useCallback(
     (targetGroup: string, targetSet: string) => {
       setShowPreviewSplit(false);
@@ -541,15 +577,14 @@ export function PanelRouter(): ReactNode {
       controller.setGroupScopesError(null);
     },
     onGenerateScaleFromGroup: (groupPath: string, tokenType: string | null) => {
-      openRecipeEditor({
-        mode: "create",
-        sourceTokenPath: groupPath,
-        sourceTokenType: tokenType ?? undefined,
+      openRecipeFromSource({
+        path: groupPath,
+        type: tokenType ?? undefined,
       });
       navigateTo("tokens", "tokens");
     },
     onNavigateToNewRecipe: () => {
-      openRecipeEditor({ mode: "create" });
+      openNewRecipe();
       navigateTo("tokens", "tokens");
     },
     onRefreshRecipes: controller.refreshAll,
@@ -610,6 +645,7 @@ export function PanelRouter(): ReactNode {
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
     onOpenSetSwitcher: controller.toggleSetSwitcher,
+    onOpenCreateSet: controller.onOpenSetCreateDialog,
     onOpenStartHere: controller.onOpenStartHere,
     onTogglePreviewSplit: () => controller.setShowPreviewSplit((v) => !v),
     onTokenDragStart: controller.onTokenDragStart,
@@ -1005,13 +1041,12 @@ export function PanelRouter(): ReactNode {
         activeSet={activeSet}
         onClose={closeSecondarySurface}
         onOpenQuickSwitch={setManagerController.onOpenQuickSwitch}
-        onCreateRecipe={setManagerController.onCreateRecipe}
         onRename={setManagerController.onRename}
         onDuplicate={setManagerController.onDuplicate}
         onDelete={setManagerController.onDelete}
         onReorder={setManagerController.onReorder}
         onReorderFull={setManagerController.onReorderFull}
-        onCreateSet={setManagerController.onCreateSet}
+        onOpenCreateSet={setManagerController.onOpenCreateSet}
         onEditInfo={setManagerController.onEditInfo}
         onMerge={setManagerController.onMerge}
         onSplit={setManagerController.onSplit}
@@ -1421,7 +1456,7 @@ export function PanelRouter(): ReactNode {
                 navigateTo("tokens", "tokens", {
                   preserveHandoff: true,
                 });
-                openRecipeEditor({ mode: "create" });
+                openRecipeFromThemeGap({ targetSet });
               }}
               resolverState={{
                 serverUrl,

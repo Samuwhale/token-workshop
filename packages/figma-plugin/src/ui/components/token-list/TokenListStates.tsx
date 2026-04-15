@@ -292,7 +292,7 @@ export function TokenListFilteredEmptyState({
           if (suggestions.length === 0) return null;
 
           return (
-            <div className="mt-2 flex flex-col gap-0.5 w-full max-w-[240px]">
+            <div className="mt-2 flex flex-col gap-0.5 w-full max-w-[300px]">
               {suggestions.map((suggestion, index) => (
                 <button
                   key={index}

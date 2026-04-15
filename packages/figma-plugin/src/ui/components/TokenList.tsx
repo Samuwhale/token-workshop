@@ -194,6 +194,7 @@ export function TokenList({
     onShowPasteModal,
     onOpenImportPanel,
     onOpenSetSwitcher,
+    onOpenCreateSet,
     onTokenDragStart,
     onTokenDragEnd,
     onOpenStartHere,
@@ -3778,6 +3779,7 @@ export function TokenList({
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
             onOpenSetSwitcher={onOpenSetSwitcher}
+            onOpenCreateSet={onOpenCreateSet}
             onCreateRecipe={onNavigateToNewRecipe}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
@@ -3786,7 +3788,6 @@ export function TokenList({
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
-            onFoundationTemplates={onOpenStartHere ? () => onOpenStartHere("template-library") : undefined}
             onApplyVariables={handleApplyVariables}
             onApplyStyles={handleApplyStyles}
             applyingOrLoading={applying || varDiffLoading}
@@ -3832,7 +3833,6 @@ export function TokenList({
               onSelectTokens: () => { setSelectMode(true); setShowBatchEditor(false); },
               onBulkEdit: handleOpenBulkWorkflowForVisibleTokens,
               onFindReplace: handleOpenFindReplaceReview,
-              onFoundationTemplates: onOpenStartHere ? () => onOpenStartHere("template-library") : undefined,
               onApplyVariables: handleApplyVariables,
               onApplyStyles: handleApplyStyles,
               applyingOrLoading: applying || varDiffLoading,
@@ -4132,7 +4132,7 @@ export function TokenList({
               <FeedbackPlaceholder
                 variant="empty"
                 size="section"
-                className="w-full max-w-[260px]"
+                className="w-full max-w-[320px]"
                 icon={
                   <svg
                     width="20"
@@ -4227,7 +4227,7 @@ export function TokenList({
                           {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
                           {i < zoomBreadcrumb.length - 1 ? (
                             <button
-                              className="truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline max-w-[120px]"
+                              className="truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline max-w-[200px]"
                               title={seg.path}
                               onClick={() => handleZoomToAncestor(seg.path)}
                             >
@@ -4235,7 +4235,7 @@ export function TokenList({
                             </button>
                           ) : (
                             <span
-                              className="truncate font-medium text-[var(--color-figma-text)] max-w-[120px]"
+                              className="truncate font-medium text-[var(--color-figma-text)] max-w-[200px]"
                               title={seg.path}
                             >
                               {seg.name}
@@ -4285,7 +4285,7 @@ export function TokenList({
                       {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
                       {i < breadcrumbSegments.length - 1 ? (
                         <button
-                          className="hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[120px]"
+                          className="hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[200px]"
                           title={`Jump to ${seg.path}`}
                           onClick={() => handleJumpToGroup(seg.path)}
                         >
@@ -4293,7 +4293,7 @@ export function TokenList({
                         </button>
                       ) : (
                         <span
-                          className="font-medium text-[var(--color-figma-text)] truncate max-w-[120px]"
+                          className="font-medium text-[var(--color-figma-text)] truncate max-w-[200px]"
                           title={seg.path}
                         >
                           {seg.name}

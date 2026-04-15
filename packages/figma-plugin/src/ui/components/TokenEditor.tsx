@@ -4,6 +4,7 @@ import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import { apiFetch } from "../shared/apiFetch";
+import { createTokenValueBody } from "../shared/tokenMutations";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createRecipeOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { ThemeDimension } from "@tokenmanager/core";
@@ -171,6 +172,7 @@ export function TokenEditor({
   const valueEditorContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionsRef = useRef(new Map<string, number>());
+  const previousTokenPathRef = useRef(tokenPath);
 
   const aliasEditor = useTokenAliasEditor({
     aliasMode,
@@ -381,7 +383,6 @@ export function TokenEditor({
   });
   const {
     existingRecipesForToken,
-    canBeRecipeSource,
   } = recipes$;
   const producingRecipe =
     derivedTokenPaths?.get(createRecipeOwnershipKey(setName, tokenPath)) ??
@@ -596,6 +597,7 @@ export function TokenEditor({
   const [detailsOpen, setDetailsOpen] = useState(() => {
     return lsGet('tm_editor_details') === '1';
   });
+  const [referenceOpen, setReferenceOpen] = useState(false);
   const toggleDetails = useCallback(() => {
     setDetailsOpen((v) => {
       const next = !v;
@@ -615,6 +617,97 @@ export function TokenEditor({
       return next;
     });
   }, []);
+  const hasReferenceValues = aliasMode || Boolean(extendsPath);
+  const referenceSummary = aliasMode
+    ? (extractAliasPath(reference) ?? "Alias")
+    : extendsPath
+      ? "Extends"
+      : "Optional";
+
+  useEffect(() => {
+    if (previousTokenPathRef.current === tokenPath) return;
+    previousTokenPathRef.current = tokenPath;
+    setReferenceOpen(hasReferenceValues);
+  }, [hasReferenceValues, tokenPath]);
+
+  useEffect(() => {
+    if (hasReferenceValues) {
+      setReferenceOpen(true);
+    }
+  }, [hasReferenceValues]);
+
+  const rawJsonPreview = useMemo(() => {
+    const extensions: Record<string, unknown> = {};
+    if (scopes.length > 0) {
+      extensions["com.figma.scopes"] = scopes;
+    }
+
+    const tokenManagerExtensions: Record<string, unknown> = {};
+    if (colorModifiers.length > 0) {
+      tokenManagerExtensions.colorModifier = colorModifiers;
+    }
+
+    const cleanModes: Record<string, Record<string, unknown>> = {};
+    for (const [dimId, options] of Object.entries(modeValues)) {
+      if (!options || typeof options !== "object") continue;
+      const cleanOptions = Object.fromEntries(
+        Object.entries(options).filter(
+          ([, modeValue]) =>
+            modeValue !== "" && modeValue !== undefined && modeValue !== null,
+        ),
+      );
+      if (Object.keys(cleanOptions).length > 0) {
+        cleanModes[dimId] = cleanOptions;
+      }
+    }
+
+    if (Object.keys(cleanModes).length > 0) {
+      tokenManagerExtensions.modes = cleanModes;
+    }
+    if (lifecycle !== "published") {
+      tokenManagerExtensions.lifecycle = lifecycle;
+    }
+    if (extendsPath) {
+      tokenManagerExtensions.extends = extendsPath;
+    }
+    if (Object.keys(tokenManagerExtensions).length > 0) {
+      extensions.tokenmanager = tokenManagerExtensions;
+    }
+
+    const trimmedExtensions = extensionsJsonText.trim();
+    if (trimmedExtensions && trimmedExtensions !== "{}") {
+      try {
+        const parsedExtensions = JSON.parse(trimmedExtensions);
+        if (parsedExtensions && typeof parsedExtensions === "object" && !Array.isArray(parsedExtensions)) {
+          Object.assign(extensions, parsedExtensions);
+        }
+      } catch {
+        // Keep the preview focused on the valid payload we can infer from the form.
+      }
+    }
+
+    return JSON.stringify(
+      createTokenValueBody({
+        type: tokenType,
+        value: reference || value,
+        description: description || undefined,
+        extensions,
+      }),
+      null,
+      2,
+    );
+  }, [
+    colorModifiers,
+    description,
+    extensionsJsonText,
+    extendsPath,
+    lifecycle,
+    modeValues,
+    reference,
+    scopes,
+    tokenType,
+    value,
+  ]);
 
   if (loading) {
     return (
@@ -954,6 +1047,190 @@ export function TokenEditor({
     </div>
   );
 
+  const referenceSection = (
+    <Collapsible
+      open={referenceOpen}
+      onToggle={() => setReferenceOpen((open) => !open)}
+      label={
+        <span className="flex items-center gap-1.5">
+          <span>Reference</span>
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {referenceSummary}
+          </span>
+        </span>
+      }
+      className="flex flex-col gap-2"
+    >
+      <div className="mt-2 flex flex-col gap-3">
+        <AliasPicker
+          aliasMode={aliasMode}
+          reference={reference}
+          tokenType={tokenType}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onToggleAlias={handleToggleAlias}
+          onReferenceChange={setReference}
+          showAutocomplete={showAutocomplete}
+          onShowAutocompleteChange={setShowAutocomplete}
+          aliasHasCycle={aliasHasCycle}
+          refInputRef={refInputRef}
+          hideHeader
+        />
+
+        {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+              Extends
+            </label>
+            {extendsPath ? (
+              <div className="flex items-center gap-1.5">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  className="shrink-0 text-[var(--color-figma-accent)]"
+                >
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+                <span
+                  className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
+                  title={extendsPath}
+                >
+                  {extendsPath}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setExtendsPath("")}
+                  title="Remove base token"
+                  className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+                >
+                  <svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <ExtendsTokenPicker
+                tokenType={tokenType}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                currentPath={isCreateMode ? trimmedEditPath : tokenPath}
+                onSelect={setExtendsPath}
+              />
+            )}
+            {extendsPath &&
+              (() => {
+                const base = allTokensFlat[extendsPath];
+                if (!base) {
+                  return (
+                    <p className="text-[10px] text-[var(--color-figma-error)]">
+                      Base token not found
+                    </p>
+                  );
+                }
+                return (
+                  <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                    Base properties merged with overrides.
+                  </p>
+                );
+              })()}
+          </div>
+        )}
+      </div>
+    </Collapsible>
+  );
+
+  const dependentsSection = !isCreateMode && dependentTrace.length > 0 && (
+    <Collapsible
+      open={refsExpanded}
+      onToggle={() => setRefsExpanded((open) => !open)}
+      label={<span>Dependents ({dependentTrace.length})</span>}
+      className="flex flex-col gap-2"
+    >
+      <div className="mt-2 flex flex-col gap-0.5 rounded-md border border-[var(--color-figma-border)]/65 bg-[var(--color-figma-bg-secondary)]/20 p-2">
+        {dependentTrace.slice(0, 20).map((dependent) => {
+          const dependentColor =
+            dependent.$type === "color"
+              ? resolveRefValue(dependent.path, colorFlatMap)
+              : null;
+          return (
+            <button
+              key={dependent.path}
+              type="button"
+              onClick={() => onNavigateToToken?.(dependent.path, tokenPath)}
+              disabled={!onNavigateToToken}
+              className="group flex items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-default"
+              title={
+                onNavigateToToken
+                  ? `Navigate to ${dependent.path}`
+                  : dependent.path
+              }
+              style={{
+                paddingLeft: `${6 + Math.max(0, dependent.depth - 1) * 12}px`,
+              }}
+            >
+              <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-0.5 text-[8px] text-[var(--color-figma-text-secondary)]">
+                {dependent.depth === 1 ? "Direct" : `+${dependent.depth - 1}`}
+              </span>
+              {dependentColor ? (
+                <span
+                  className="h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
+                  style={{ backgroundColor: dependentColor }}
+                />
+              ) : (
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  className="shrink-0 opacity-40"
+                >
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+              )}
+              <span
+                className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1 group-hover:underline`}
+              >
+                {dependent.path}
+              </span>
+              {dependent.setName && dependent.setName !== setName && (
+                <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-0.5 text-[8px] text-[var(--color-figma-text-secondary)]">
+                  {dependent.setName}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        {dependentTrace.length > 20 && (
+          <div className="px-1.5 pt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+            + {dependentTrace.length - 20} more
+          </div>
+        )}
+      </div>
+    </Collapsible>
+  );
+
   return (
     <div className="flex flex-col h-full">
       <EditorShell
@@ -989,47 +1266,6 @@ export function TokenEditor({
                 Retry
               </button>
             )}
-          </div>
-        )}
-
-        {activeProducingRecipe && !isCreateMode && (
-          <div className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[10px]">
-            <span className="min-w-0 flex-1 truncate text-[var(--color-figma-text)]">
-              Managed by <span className="font-medium">{activeProducingRecipe.name}</span> — edits overwritten on re-run
-            </span>
-            <div className="flex shrink-0 items-center gap-1">
-              {(onOpenRecipeEditor || onNavigateToRecipe) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onOpenRecipeEditor) {
-                      openRecipeEditor({
-                        mode: "edit",
-                        id: activeProducingRecipe.id,
-                      });
-                      return;
-                    }
-                    onNavigateToRecipe?.(activeProducingRecipe.id);
-                  }}
-                  className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-                >
-                  Edit
-                </button>
-              )}
-              {(onOpenRecipeEditor || onNavigateToRecipe) && (
-                <span className="text-[var(--color-figma-border)]">·</span>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  void handleDetachRecipeOwnership();
-                }}
-                disabled={detachingRecipeOwnership}
-                className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
-              >
-                {detachingRecipeOwnership ? "Detaching…" : "Detach"}
-              </button>
-            </div>
           </div>
         )}
 
@@ -1245,23 +1481,9 @@ export function TokenEditor({
           </div>
         )}
 
-        {/* Alias mode toggle + reference input */}
-        <AliasPicker
-          aliasMode={aliasMode}
-          reference={reference}
-          tokenType={tokenType}
-          allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          onToggleAlias={handleToggleAlias}
-          onReferenceChange={setReference}
-          showAutocomplete={showAutocomplete}
-          onShowAutocompleteChange={setShowAutocomplete}
-          aliasHasCycle={aliasHasCycle}
-          refInputRef={refInputRef}
-        />
-
-        {/* Type-specific editor */}
-        {!reference && (
+        {aliasMode ? (
+          referenceSection
+        ) : (
           <TokenEditorValueSection
             tokenPath={tokenPath}
             tokenType={tokenType}
@@ -1306,36 +1528,65 @@ export function TokenEditor({
           activeThemes={themeSwitcher.activeThemes}
         />
 
-        {/* Details — metadata, variants, and support tools */}
+        {!aliasMode && referenceSection}
+
+        {activeProducingRecipe && !isCreateMode && (
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                  Recipe
+                </p>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Managed by{" "}
+                  <span className="font-medium text-[var(--color-figma-text)]">
+                    {activeProducingRecipe.name}
+                  </span>
+                  . Manual edits will be overwritten when the recipe runs again.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {(onOpenRecipeEditor || onNavigateToRecipe) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenRecipeEditor) {
+                        openRecipeEditor({
+                          mode: "edit",
+                          id: activeProducingRecipe.id,
+                        });
+                        return;
+                      }
+                      onNavigateToRecipe?.(activeProducingRecipe.id);
+                    }}
+                    className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+                  >
+                    Edit recipe
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDetachRecipeOwnership();
+                  }}
+                  disabled={detachingRecipeOwnership}
+                  className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                >
+                  {detachingRecipeOwnership ? "Detaching…" : "Detach"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {dependentsSection}
+
         <Collapsible
           open={detailsOpen}
           onToggle={toggleDetails}
           label={<span>Details</span>}
         >
           <div className="mt-2 flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Optional description"
-                rows={2}
-                className="w-full rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
-              />
-            </div>
-
-            {tokenType === "color" && (
-              <ContrastChecker
-                tokenPath={tokenPath}
-                value={value}
-                allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
-                colorFlatMap={colorFlatMap}
-              />
-            )}
-
             {tokenType === "color" &&
               (aliasMode
                 ? isAlias(reference)
@@ -1351,83 +1602,31 @@ export function TokenEditor({
                 />
               )}
 
-            {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
-                  Extends
-                </label>
-                {extendsPath ? (
-                  <div className="flex items-center gap-1.5">
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                      className="shrink-0 text-[var(--color-figma-accent)]"
-                    >
-                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                    </svg>
-                    <span
-                      className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
-                      title={extendsPath}
-                    >
-                      {extendsPath}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setExtendsPath("")}
-                      title="Remove base token"
-                      className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
-                    >
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        aria-hidden="true"
-                      >
-                        <path d="M18 6L6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ) : (
-                  <ExtendsTokenPicker
-                    tokenType={tokenType}
-                    allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
-                    currentPath={isCreateMode ? trimmedEditPath : tokenPath}
-                    onSelect={setExtendsPath}
-                  />
-                )}
-                {extendsPath &&
-                  (() => {
-                    const base = allTokensFlat[extendsPath];
-                    if (!base)
-                      return (
-                        <p className="text-[10px] text-[var(--color-figma-error)]">
-                          Base token not found
-                        </p>
-                      );
-                    return (
-                      <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
-                        Base properties merged with overrides.
-                      </p>
-                    );
-                  })()}
-              </div>
+            {tokenType === "color" && (
+              <ContrastChecker
+                tokenPath={tokenPath}
+                value={value}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                colorFlatMap={colorFlatMap}
+              />
             )}
 
-            {/* Lifecycle */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Optional description"
+                rows={2}
+                className="min-h-[48px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                 Lifecycle
               </label>
               <div className="flex gap-1">
@@ -1436,7 +1635,7 @@ export function TokenEditor({
                     key={lc}
                     type="button"
                     onClick={() => setLifecycle(lc)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                    className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
                       lifecycle === lc
                         ? lc === "draft"
                           ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40"
@@ -1452,7 +1651,6 @@ export function TokenEditor({
               </div>
             </div>
 
-            {/* Scopes, Extensions */}
             <MetadataEditor
               tokenType={tokenType}
               scopes={scopes}
@@ -1463,56 +1661,68 @@ export function TokenEditor({
               onExtensionsJsonErrorChange={setExtensionsJsonError}
               isCreateMode={isCreateMode}
             />
+
+            {existingRecipesForToken.length > 0 && !aliasMode && (
+              <TokenEditorDerivedGroups
+                tokenPath={tokenPath}
+                tokenName={tokenName}
+                tokenType={tokenType}
+                value={value}
+                existingRecipesForToken={existingRecipesForToken}
+                openRecipeEditor={openRecipeEditor}
+              />
+            )}
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                Raw JSON
+              </label>
+              <pre className="max-h-56 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                {rawJsonPreview}
+              </pre>
+              {extensionsJsonError && (
+                <p className="text-[10px] text-[var(--color-figma-error)]">
+                  Extensions JSON is invalid. The preview excludes that invalid block until it parses.
+                </p>
+              )}
+            </div>
+
+            {!isCreateMode && (
+              <TokenEditorInfoSection
+                tokenPath={tokenPath}
+                setName={setName}
+                serverUrl={serverUrl}
+                tokenType={tokenType}
+                value={value}
+                scopes={tokenPresentation.scopes}
+                lifecycle={tokenPresentation.lifecycle}
+                provenance={tokenPresentation.provenance}
+                aliasPath={tokenAliasPath}
+                extendsPath={tokenPresentation.extendsPath}
+                isDirty={isDirty}
+                aliasMode={aliasMode}
+                referenceTrace={referenceTrace}
+                dependentTrace={dependentTrace}
+                dependencySnapshot={dependencySnapshot}
+                dependents={dependents}
+                dependentsLoading={dependentsLoading}
+                colorFlatMap={colorFlatMap}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                initialValue={initialRef.current?.value}
+                activeProducingRecipe={activeProducingRecipe}
+                existingRecipesForToken={existingRecipesForToken}
+                infoTab={infoTab}
+                onInfoTabChange={handleInfoTab}
+                refsExpanded={refsExpanded}
+                onRefsExpandedChange={setRefsExpanded}
+                onShowReferences={onShowReferences}
+                onNavigateToToken={onNavigateToToken}
+                onNavigateToRecipe={onNavigateToRecipe}
+              />
+            )}
           </div>
         </Collapsible>
-
-        {/* Recipe groups */}
-        {canBeRecipeSource && !aliasMode && (
-          <TokenEditorDerivedGroups
-            tokenPath={tokenPath}
-            tokenName={tokenName}
-            tokenType={tokenType}
-            value={value}
-            existingRecipesForToken={existingRecipesForToken}
-            openRecipeEditor={openRecipeEditor}
-          />
-        )}
-
-        {/* Info section — Dependencies, Usage, History (read-only reference data) */}
-        {!isCreateMode && (
-          <TokenEditorInfoSection
-            tokenPath={tokenPath}
-            setName={setName}
-            serverUrl={serverUrl}
-            tokenType={tokenType}
-            value={value}
-            scopes={tokenPresentation.scopes}
-            lifecycle={tokenPresentation.lifecycle}
-            provenance={tokenPresentation.provenance}
-            aliasPath={tokenAliasPath}
-            extendsPath={tokenPresentation.extendsPath}
-            isDirty={isDirty}
-            aliasMode={aliasMode}
-            referenceTrace={referenceTrace}
-            dependentTrace={dependentTrace}
-            dependencySnapshot={dependencySnapshot}
-            dependents={dependents}
-            dependentsLoading={dependentsLoading}
-            colorFlatMap={colorFlatMap}
-            allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
-            initialValue={initialRef.current?.value}
-            activeProducingRecipe={activeProducingRecipe}
-            existingRecipesForToken={existingRecipesForToken}
-            infoTab={infoTab}
-            onInfoTabChange={handleInfoTab}
-            refsExpanded={refsExpanded}
-            onRefsExpandedChange={setRefsExpanded}
-            onShowReferences={onShowReferences}
-            onNavigateToToken={onNavigateToToken}
-            onNavigateToRecipe={onNavigateToRecipe}
-          />
-        )}
       </EditorShell>
 
       {/* Delete confirmation */}

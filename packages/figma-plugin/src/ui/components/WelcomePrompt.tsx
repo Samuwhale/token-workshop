@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { NoticeBanner } from "../shared/noticeSystem";
-import { TokenRecipeDialog } from "./TokenRecipeDialog";
 import { QuickStartWizard } from "./QuickStartWizard";
 
 export type StartHereBranch =
   | "root"
   | "import"
-  | "guided-setup"
-  | "template-library";
+  | "guided-setup";
 
 type StartHereBranchCopy = {
   title: string;
@@ -28,15 +26,10 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
     title: "Guided setup",
     description: "",
   },
-  "template-library": {
-    title: "Recipe templates",
-    description: "",
-  },
 };
 
 export const TOKENS_START_HERE_BRANCHES = [
   "guided-setup",
-  "template-library",
   "import",
 ] as const satisfies readonly StartHereBranch[];
 
@@ -58,7 +51,6 @@ interface WelcomePromptProps {
   onImportFigma?: () => void;
   onPasteJSON: () => void;
   onCreateToken: () => void;
-  onTemplateCreated: (firstPath?: string) => void;
   onGuidedSetupComplete: () => void;
   onSetCreated?: (name: string) => void;
 }
@@ -154,7 +146,6 @@ export function WelcomePrompt({
   onImportFigma,
   onPasteJSON,
   onCreateToken,
-  onTemplateCreated,
   onGuidedSetupComplete,
   onSetCreated,
 }: WelcomePromptProps) {
@@ -193,29 +184,6 @@ export function WelcomePrompt({
         }
       />
       <div>
-        <ActionRow
-          title="Recipe templates"
-          description="Generate a palette, type scale, or spacing system."
-          disabled={!connected}
-          onClick={() => setBranch("template-library")}
-          icon={
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M4 6h16" />
-              <path d="M4 12h16" />
-              <path d="M4 18h10" />
-            </svg>
-          }
-        />
         <ActionRow
           title="Import existing tokens"
           description="Import Figma variables or token files."
@@ -398,19 +366,6 @@ export function WelcomePrompt({
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {branch === "root" && renderRoot()}
           {branch === "import" && renderImport()}
-          {branch === "template-library" && (
-            <div className="h-full">
-              <TokenRecipeDialog
-                serverUrl={serverUrl}
-                activeSet={activeSet}
-                allSets={allSets}
-                presentation="panel"
-                onBack={() => setBranch("root")}
-                onClose={() => setBranch("root")}
-                onSaved={() => onTemplateCreated()}
-              />
-            </div>
-          )}
           {branch === "guided-setup" && (
             <div className="h-full">
               <QuickStartWizard

@@ -91,25 +91,15 @@ export function ThemeOptionWorkspace({
       }}
       className="bg-[var(--color-figma-bg)]"
     >
-      {(fillableCount > 0 || selectedOptionIssues.length > 0) && (
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--color-figma-border)] px-3 py-1.5">
-          {selectedOptionIssues.length > 0 ? (
-            <span className="text-[10px] text-[var(--color-figma-warning)]">
-              {selectedOptionIssues.length} issue
-              {selectedOptionIssues.length === 1 ? "" : "s"}
-            </span>
-          ) : (
-            <span />
-          )}
-          {fillableCount > 0 && (
-            <button
-              type="button"
-              onClick={onAutoFill}
-              className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
-            >
-              {autoFillLabel}
-            </button>
-          )}
+      {fillableCount > 0 && (
+        <div className="flex items-center justify-end border-b border-[var(--color-figma-border)] px-3 py-1.5">
+          <button
+            type="button"
+            onClick={onAutoFill}
+            className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+          >
+            {autoFillLabel}
+          </button>
         </div>
       )}
 

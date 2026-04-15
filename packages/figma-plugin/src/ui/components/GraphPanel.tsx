@@ -508,12 +508,9 @@ export function GraphPanel({
                 isFocused={recipe.id === highlightedRecipeId}
                 focusRef={focusRef}
                 serverUrl={serverUrl}
-                allSets={allSets}
-                activeSet={activeSet}
                 onRefresh={onRefresh}
-                allTokensFlat={allTokensFlat}
-                onPushUndo={onPushUndo}
                 onViewTokens={onViewTokens}
+                onEditRecipe={(recipeId) => setEditingRecipeId(recipeId)}
                 onContextMenu={handleContextMenu}
               />
             ))}

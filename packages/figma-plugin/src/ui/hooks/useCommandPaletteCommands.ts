@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createRecipeOwnershipKey } from "@tokenmanager/core";
 import type { Command, TokenEntry } from "../components/CommandPalette";
-import { GRAPH_TEMPLATES } from "../components/graph-templates";
 import { inferTypeFromValue } from "../components/tokenListHelpers";
 import { isAlias } from "../../shared/resolveAlias";
 import { adaptShortcut } from "../shared/utils";
@@ -48,8 +47,7 @@ export function useCommandPaletteCommands(): {
     useTokenSetsContext();
   const { allTokensFlat, pathToSet, perSetFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useRecipeContext();
-  const { navigateTo, openSecondarySurface, closeSecondarySurface } =
-    useNavigationContext();
+  const { navigateTo, closeSecondarySurface } = useNavigationContext();
   const { dimensions } = useThemeSwitcherContext();
   const { selectedNodes } = useSelectionContext();
   const {
@@ -122,17 +120,6 @@ export function useCommandPaletteCommands(): {
         category: "Sets",
         shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_SET),
         handler: shell.toggleSetSwitcher,
-      },
-      {
-        id: "manage-sets",
-        label: "Open set manager",
-        description:
-          "Rename, reorder, merge, split, annotate, and bulk-edit token sets",
-        category: "Sets",
-        handler: () => {
-          navigateTo("tokens");
-          openSecondarySurface("sets");
-        },
       },
       {
         id: "paste-tokens",
@@ -253,19 +240,6 @@ export function useCommandPaletteCommands(): {
           shell.openColorScaleRecipe();
         },
       },
-      ...GRAPH_TEMPLATES.map((template) => ({
-        id: `graph-template-${template.id}`,
-        label: `Create recipe: ${template.label}`,
-        description: template.description,
-        category: "Recipes" as const,
-        handler: () => {
-          navigateTo("tokens");
-          switchContextualSurface({
-            surface: "recipe-editor",
-            recipe: { mode: "create", template },
-          });
-        },
-      })),
       {
         id: "compare-tokens",
         label: "Compare tokens…",
@@ -331,7 +305,6 @@ export function useCommandPaletteCommands(): {
     activeSet,
     sets.length,
     navigateTo,
-    openSecondarySurface,
     selectedNodes.length,
     setEditingToken,
     shell,

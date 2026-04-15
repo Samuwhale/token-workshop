@@ -99,8 +99,6 @@ export function ThemeAxisCard({
     return `${names.slice(0, 3).join(", ")} +${names.length - 3}`;
   }, [dimension.options]);
 
-  const headerSummary = collapsedSummary;
-
   return (
     <div
       ref={(element) => {
@@ -191,7 +189,7 @@ export function ThemeAxisCard({
                 )}
               </div>
               <div className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">
-                {headerSummary}
+                {collapsedSummary}
               </div>
             </div>
             <div className="relative shrink-0">
@@ -453,6 +451,16 @@ export function ThemeAxisCard({
               onExecuteRenameOption={ctx.executeRenameOption}
               onCancelRenameOption={ctx.cancelRenameOption}
               onResolveIssue={(issue: ThemeIssueSummary) => {
+                if (issue.kind === "coverage-gap" && ctx.onGenerateForDimension) {
+                  const targetSet = resolveIssueTargetSet(issue);
+                  if (targetSet) {
+                    ctx.onGenerateForDimension({
+                      dimensionName: issue.dimensionName,
+                      targetSet,
+                    });
+                    return;
+                  }
+                }
                 const targetSet = resolveIssueTargetSet(issue);
                 if (targetSet && ctx.onNavigateToTokenSet) {
                   ctx.onNavigateToTokenSet(targetSet);

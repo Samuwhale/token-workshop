@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { RefObject, ReactNode } from "react";
 import type { ThemeDimension, ThemeSetStatus } from "@tokenmanager/core";
-import { SET_NAME_RE } from "../shared/utils";
 import { fuzzyScore } from "../shared/fuzzyMatch";
 import {
   apiFetch,
@@ -70,6 +69,7 @@ interface SetSwitcherProps {
   onSelect: (set: string) => void;
   onClose: () => void;
   onManageSets?: () => void;
+  onOpenCreateSet?: () => void;
   dimensions?: ThemeDimension[];
 }
 
@@ -78,13 +78,12 @@ interface SetManagerProps {
   activeSet: string;
   onClose: () => void;
   onOpenQuickSwitch?: () => void;
-  onCreateRecipe?: (setName: string) => void;
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
   onReorder?: (setName: string, direction: "left" | "right") => void;
   onReorderFull?: (newOrder: string[]) => void;
-  onCreateSet?: (name: string) => Promise<void>;
+  onOpenCreateSet?: () => void;
   onEditInfo?: (setName: string) => void;
   onMerge?: (setName: string) => void;
   onSplit?: (setName: string) => void;
@@ -697,6 +696,7 @@ export function SetSwitcher({
   onSelect,
   onClose,
   onManageSets,
+  onOpenCreateSet,
   dimensions = [],
 }: SetSwitcherProps) {
   const setThemeLabels = buildSetThemeLabels(dimensions);
@@ -818,12 +818,20 @@ export function SetSwitcher({
               : `${filtered.length} of ${sets.length} sets`}
           </span>
           <div className="flex items-center gap-2">
+            {onOpenCreateSet && (
+              <button
+                onClick={onOpenCreateSet}
+                className="rounded px-1.5 py-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              >
+                New set
+              </button>
+            )}
             {onManageSets && (
               <button
                 onClick={onManageSets}
                 className="rounded px-1.5 py-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                Manage set structure
+                Manage sets
               </button>
             )}
             <span className="opacity-60">↑↓ navigate · ↵ switch</span>
@@ -982,13 +990,12 @@ export function SetManager({
   activeSet,
   onClose,
   onOpenQuickSwitch,
-  onCreateRecipe,
   onRename,
   onDuplicate,
   onDelete,
   onReorder,
   onReorderFull,
-  onCreateSet,
+  onOpenCreateSet,
   onEditInfo,
   onMerge,
   onSplit,
@@ -1046,11 +1053,6 @@ export function SetManager({
   } = useTokenSetsContext();
   const setThemeLabels = buildSetThemeLabels(dimensions);
   const [query, setQuery] = useState("");
-  const [creatingSet, setCreatingSet] = useState(false);
-  const [newSetName, setNewSetName] = useState("");
-  const [newSetError, setNewSetError] = useState("");
-  const [createPending, setCreatePending] = useState(false);
-  const newSetInputRef = useRef<HTMLInputElement>(null);
   const deletePreflight = useSetStructuralPreflight({
     operation: "delete",
     setName: deletingSet,
@@ -1102,42 +1104,6 @@ export function SetManager({
     [metadataManagerRows, query],
   );
 
-  useEffect(() => {
-    if (creatingSet) newSetInputRef.current?.focus();
-  }, [creatingSet]);
-
-  const handleCreateSubmit = async () => {
-    const name = newSetName.trim();
-    if (!name) {
-      setNewSetError("Name cannot be empty");
-      return;
-    }
-    if (!SET_NAME_RE.test(name)) {
-      setNewSetError("Use letters, numbers, - and _ (/ for folders)");
-      return;
-    }
-    if (!onCreateSet) return;
-    setCreatePending(true);
-    setNewSetError("");
-    try {
-      await onCreateSet(name);
-      setCreatingSet(false);
-      setNewSetName("");
-    } catch (err) {
-      setNewSetError(
-        err instanceof Error ? err.message : "Failed to create set",
-      );
-    } finally {
-      setCreatePending(false);
-    }
-  };
-
-  const cancelCreate = () => {
-    setCreatingSet(false);
-    setNewSetName("");
-    setNewSetError("");
-  };
-
   return (
     <>
       <div className="flex h-full flex-col">
@@ -1163,7 +1129,7 @@ export function SetManager({
             Back
           </button>
           <span className="ml-1 text-[10px] font-medium text-[var(--color-figma-text)]">
-            Set structure manager
+            Manage sets
           </span>
           {onOpenQuickSwitch && (
             <button
@@ -1224,9 +1190,9 @@ export function SetManager({
                   aria-label="Filter token sets"
                   className="flex-1 bg-transparent text-[12px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)]"
                 />
-                {!creatingSet && onCreateSet && (
+                {onOpenCreateSet && (
                   <button
-                    onClick={() => setCreatingSet(true)}
+                    onClick={onOpenCreateSet}
                     className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
                   >
                     New set
@@ -1241,54 +1207,10 @@ export function SetManager({
                 <span>Active: {activeSet}</span>
                 <span>·</span>
                 <span>
-                  Own all structural set work here: naming, folders, ordering, Figma
-                  routing, merges, splits, and bulk actions.
+                  Use this for naming, folders, ordering, Figma routing,
+                  merges, splits, and bulk actions.
                 </span>
               </div>
-              {creatingSet && onCreateSet && (
-                <div className="mt-2 flex flex-col gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={newSetInputRef}
-                      type="text"
-                      value={newSetName}
-                      onChange={(e) => {
-                        setNewSetName(e.target.value);
-                        setNewSetError("");
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleCreateSubmit();
-                        }
-                        if (e.key === "Escape") {
-                          e.preventDefault();
-                          cancelCreate();
-                        }
-                      }}
-                      placeholder="Set name (e.g. primitives or brand/colors)"
-                      className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                      disabled={createPending}
-                    />
-                    <button
-                      onClick={handleCreateSubmit}
-                      disabled={createPending || !newSetName.trim()}
-                      className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-                    >
-                      {createPending ? "Creating…" : "Create"}
-                    </button>
-                    <button
-                      onClick={cancelCreate}
-                      className="rounded px-2 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                  {newSetError && (
-                    <div className="text-[10px] text-red-500">{newSetError}</div>
-                  )}
-                </div>
-              )}
             </div>
 
             <ManageView
@@ -1312,7 +1234,6 @@ export function SetManager({
               setTokenCounts={setTokenCounts}
               setDescriptions={setDescriptions}
               setThemeLabels={setThemeLabels}
-              onCreateRecipe={onCreateRecipe}
               onRename={onRename}
               onDuplicate={onDuplicate}
               onDelete={onDelete}
@@ -1390,7 +1311,6 @@ interface ManageViewProps {
   setTokenCounts: Record<string, number>;
   setDescriptions: Record<string, string>;
   setThemeLabels: Record<string, SetThemeLabel[]>;
-  onCreateRecipe?: (setName: string) => void;
   onRename?: (setName: string) => void;
   onDuplicate?: (setName: string) => void;
   onDelete?: (setName: string) => void;
@@ -1423,7 +1343,6 @@ function ManageView({
   setTokenCounts,
   setDescriptions,
   setThemeLabels,
-  onCreateRecipe,
   onRename,
   onDuplicate,
   onDelete,
@@ -2154,15 +2073,6 @@ function ManageView({
                       >
                         <path d="M5 8L1 3H9L5 8Z" />
                       </IconButton>
-                    )}
-                    {onCreateRecipe && (
-                      <StrokeIconButton
-                        title="Create recipe"
-                        ariaLabel="Create recipe"
-                        onClick={() => onCreateRecipe(set)}
-                      >
-                        <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
-                      </StrokeIconButton>
                     )}
                     {onEditInfo && (
                       <StrokeIconButton

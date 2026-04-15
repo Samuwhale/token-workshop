@@ -11,7 +11,7 @@ export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
       <FeedbackPlaceholder
         variant={connected ? "empty" : "disconnected"}
         size="section"
-        className="w-full max-w-[240px]"
+        className="w-full max-w-[300px]"
         icon={(
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3" />

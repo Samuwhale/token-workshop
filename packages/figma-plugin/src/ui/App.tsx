@@ -16,6 +16,7 @@ import {
 import { ColorScaleRecipe } from "./components/ColorScaleRecipe";
 import { AppCommandPalette } from "./components/AppCommandPalette";
 import { SetSwitcher } from "./components/SetSwitcher";
+import { SetCreateDialog } from "./components/SetCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
@@ -31,6 +32,7 @@ import { useWindowResize } from "./hooks/useWindowResize";
 import type {
   SecondarySurfaceId,
   UtilityActionId,
+  WorkspaceId,
 } from "./shared/navigationTypes";
 import {
   APP_SHELL_NAVIGATION,
@@ -88,9 +90,6 @@ import { SHORTCUT_KEYS, matchesShortcut } from "./shared/shortcutRegistry";
 import { getMenuItems, handleMenuArrowKeys } from "./hooks/useMenuKeyboard";
 import { apiFetch, ApiError } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
-import {
-  shellControlClass,
-} from "./shared/shellControlStyles";
 import { findLeafByPath } from "./components/tokenListUtils";
 
 function formatCount(
@@ -210,6 +209,7 @@ export function App() {
     showSetSwitcher,
     setShowSetSwitcher,
   } = useModalVisibility();
+  const [showSetCreateDialog, setShowSetCreateDialog] = useState(false);
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] =
     useState("");
   const recentlyTouched = useRecentlyTouched();
@@ -250,6 +250,23 @@ export function App() {
   const closeStartHere = useCallback(() => {
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
     setStartHereState({ open: false, initialBranch: "root" });
+  }, []);
+  const openSetSwitcher = useCallback(() => {
+    dismissEphemeralOverlays();
+    setShowSetSwitcher(true);
+  }, [dismissEphemeralOverlays, setShowSetSwitcher]);
+  const toggleSetSwitcher = useCallback(() => {
+    setMenuOpen(false);
+    setShowCommandPalette(false);
+    setShowQuickApply(false);
+    setShowSetSwitcher((visible) => !visible);
+  }, [setShowCommandPalette, setShowQuickApply, setShowSetSwitcher]);
+  const openSetCreateDialog = useCallback(() => {
+    dismissEphemeralOverlays();
+    setShowSetCreateDialog(true);
+  }, [dismissEphemeralOverlays]);
+  const closeSetCreateDialog = useCallback(() => {
+    setShowSetCreateDialog(false);
   }, []);
   useEffect(() => {
     if (!initialFirstRun || !startHereState.open) return;
@@ -980,7 +997,7 @@ export function App() {
     pushUndo,
   });
 
-  // Create set by name — owned by the set manager surface.
+  // Create set by name — shared by the quick switcher, toolbar, and manager.
   const createSetByName = useCallback(
     async (name: string) => {
       await apiFetch(`${serverUrl}/api/sets`, {
@@ -1247,7 +1264,7 @@ export function App() {
     }
     if (matchesShortcut(e, "QUICK_SWITCH_SET")) {
       e.preventDefault();
-      setShowSetSwitcher((v) => !v);
+      toggleSetSwitcher();
     }
     if (matchesShortcut(e, "GO_TO_RESOLVER")) {
       e.preventDefault();
@@ -1507,9 +1524,10 @@ export function App() {
       },
       openPasteModal: () => setShowPasteModal(true),
       openImportPanel: () => openSecondaryPanel("import"),
+      openSetCreateDialog,
       openColorScaleRecipe: () => setShowColorScaleGen(true),
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
-      toggleSetSwitcher: () => setShowSetSwitcher((visible) => !visible),
+      toggleSetSwitcher,
       openStartHere: (branch?: StartHereBranch) => openStartHere(branch),
       restartGuidedSetup: () => {
         closeSecondarySurface();
@@ -1618,25 +1636,14 @@ export function App() {
     setManager: {
       onOpenQuickSwitch: () => {
         closeSecondarySurface();
-        setShowSetSwitcher(true);
-      },
-      onCreateRecipe: (set: string) => {
-        guardEditorAction(() => {
-          setActiveSet(set);
-          switchContextualSurface({
-            surface: "recipe-editor",
-            recipe: { mode: "create" },
-          });
-          navigateTo("tokens", "tokens");
-          closeSecondarySurface();
-        });
+        openSetSwitcher();
       },
       onRename: startRename,
       onDuplicate: handleDuplicateSet,
       onDelete: startDelete,
       onReorder: handleReorderSet,
       onReorderFull: handleReorderSetFull,
-      onCreateSet: createSetByName,
+      onOpenCreateSet: openSetCreateDialog,
       onEditInfo: (set: string) => {
         closeSecondarySurface();
         openSetMetadata(set);
@@ -1899,46 +1906,135 @@ export function App() {
     [isExpanded],
   );
 
-  const utilitiesAttention = !connected;
+  const notificationCount = notificationHistory.length;
+  const utilitiesAttention = !connected || notificationCount > 0;
   const utilitiesStatusLabel = checking
     ? `Checking ${serverUrl}`
     : connected
       ? `Connected to ${serverUrl}`
       : `Server offline · ${serverUrl}`;
-  const notificationCount = notificationHistory.length;
+
+  const workspaceIcon = (id: WorkspaceId) => {
+    const props = { width: 14, height: 14, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: 1.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
+    switch (id) {
+      case "tokens":
+        return (<svg {...props}><path d="M2 5l6-3 6 3-6 3-6-3Z" /><path d="M2 8l6 3 6-3" /><path d="M2 11l6 3 6-3" /></svg>);
+      case "themes":
+        return (<svg {...props}><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5A5.5 5.5 0 0 1 8 13.5Z" fill="currentColor" opacity="0.2" stroke="none" /></svg>);
+      case "inspect":
+        return (<svg {...props}><circle cx="8" cy="8" r="4.5" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" /></svg>);
+      case "sync":
+        return (<svg {...props}><path d="M13 5.5A5.5 5.5 0 0 0 4.5 3.5" /><path d="M3 10.5a5.5 5.5 0 0 0 8.5 2" /><path d="M6 2l-2 2 2 2" /><path d="M10 14l2-2-2-2" /></svg>);
+    }
+  };
+
   return (
-    <div className="relative flex h-screen min-h-0 flex-col overflow-hidden">
-      {/* Workspace shell — single compact row */}
-      <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5">
-          <div
-            className="flex shrink-0 items-center gap-1"
-            role="tablist"
-            aria-label="Workspaces"
-          >
-            {APP_SHELL_NAVIGATION.workspaces.map((workspace) => {
-              const isActive = workspace.id === activeWorkspaceId;
-              return (
-                <button
-                  key={workspace.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() =>
-                    guardEditorAction(() => {
-                      clearHandoff();
-                      navigateTo(workspace.topTab, workspace.subTab);
-                    })
-                  }
-                  className={shellControlClass({
-                    active: isActive,
-                    size: "sm",
-                    shape: "rounded",
-                  })}
-                >
-                  {workspace.label}
-                </button>
-              );
-            })}
+    <div className="relative flex h-screen min-h-0 overflow-hidden">
+      {/* Navigation rail */}
+      <nav className="flex w-11 shrink-0 flex-col items-center border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1.5" aria-label="Workspaces">
+        <div className="flex flex-col items-center gap-0.5" role="tablist" aria-label="Workspaces">
+          {APP_SHELL_NAVIGATION.workspaces.map((workspace) => {
+            const isActive = workspace.id === activeWorkspaceId;
+            return (
+              <button
+                key={workspace.id}
+                role="tab"
+                aria-selected={isActive}
+                title={workspace.label}
+                onClick={() =>
+                  guardEditorAction(() => {
+                    clearHandoff();
+                    navigateTo(workspace.topTab, workspace.subTab);
+                  })
+                }
+                className={`relative flex h-8 w-8 items-center justify-center rounded-lg outline-none transition-colors ${
+                  isActive
+                    ? "bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]/40"
+                    : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text-secondary)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]/30"
+                }`}
+              >
+                {isActive && (
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-[var(--color-figma-accent)]" aria-hidden="true" />
+                )}
+                {workspaceIcon(workspace.id)}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-auto flex flex-col items-center gap-0.5">
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-figma-text-tertiary)] outline-none hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]/30 transition-colors"
+              aria-label="Tools"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              title="Tools"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6.8 1.6h2.4l.3 1.8.9.4 1.5-1 1.7 1.7-1 1.5.4.9 1.8.3v2.4l-1.8.3-.4.9 1 1.5-1.7 1.7-1.5-1-.9.4-.3 1.8H6.8l-.3-1.8-.9-.4-1.5 1-1.7-1.7 1-1.5-.4-.9-1.8-.3V6.8l1.8-.3.4-.9-1-1.5L4.1 2.4l1.5 1 .9-.4z" />
+                <circle cx="8" cy="8" r="2" />
+              </svg>
+              {utilitiesAttention && (
+                <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`} aria-hidden="true" />
+              )}
+            </button>
+            {menuOpen && (
+              <div className="absolute left-full bottom-0 z-50 ml-1 w-52 overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
+                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+                  <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
+                  {!connected && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button onClick={retryConnection} disabled={checking} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50">{checking ? "Checking…" : "Retry"}</button>
+                      <button onClick={() => { setShowConnectionEditor((v) => !v); setConnectionUrlInput(serverUrl); setConnectionConnectResult(null); }} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]">{showConnectionEditor ? "Hide URL" : "Change URL"}</button>
+                    </div>
+                  )}
+                  {showConnectionEditor && (
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <div className="flex gap-1.5">
+                        <input type="text" value={connectionUrlInput} onChange={(e) => { setConnectionUrlInput(e.target.value); setConnectionConnectResult(null); }} onKeyDown={async (e) => { if (e.key !== "Enter") return; const url = connectionUrlInput.trim(); if (!url) return; setConnectionConnectResult(null); const ok = await updateServerUrlAndConnect(url); setConnectionConnectResult(ok ? "ok" : "fail"); if (ok) setShowConnectionEditor(false); }} placeholder="http://localhost:9400" autoFocus className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]" />
+                        <button onClick={async () => { const url = connectionUrlInput.trim(); if (!url) return; setConnectionConnectResult(null); const ok = await updateServerUrlAndConnect(url); setConnectionConnectResult(ok ? "ok" : "fail"); if (ok) setShowConnectionEditor(false); }} disabled={checking || !connectionUrlInput.trim()} className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">Connect</button>
+                      </div>
+                      {connectionConnectResult === "fail" && (<NoticeFieldMessage severity="error">Cannot reach server. Check the URL and try again.</NoticeFieldMessage>)}
+                    </div>
+                  )}
+                </div>
+                {shellMenuSurfaces.length > 0 && (
+                  <div className="py-0.5">
+                    {shellMenuSurfaces.map((surface) => (
+                      <button key={surface.id} role="menuitem" tabIndex={-1} onClick={() => { setMenuOpen(false); toggleSecondarySurface(surface.id); }} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={surface.transition.usage}>
+                        <span>{surface.label}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                          {surface.id === "notifications"
+                            ? notificationCount > 0
+                              ? `${notificationCount}`
+                              : ""
+                            : adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section) => (
+                  <div key={section.id} className="border-t border-[var(--color-figma-border)] py-0.5">
+                    {section.actions.map((action) => (
+                      <button key={action.id} role="menuitem" tabIndex={-1} onClick={() => handleUtilityAction(action.id)} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={action.transition?.usage ?? action.description}>
+                        <span>{action.id === "window-size" ? isExpanded ? "Restore window" : "Expand window" : action.label}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{utilityActionDetail(action.id)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* Content area */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+          <div className="flex items-center gap-1.5 px-3 py-1.5">
             {visibleHandoff && returnFromHandoff && (
               <button
                 onClick={returnFromHandoff}
@@ -1948,11 +2044,10 @@ export function App() {
                 &larr; {visibleHandoff.returnLabel}
               </button>
             )}
-          </div>
 
-          {/* Theme mode controls — globally available when dimensions exist */}
-          {!themesError && dimensions.length > 0 && (
-            <div ref={dimDropdownRef} className="flex items-center gap-1 ml-1.5">
+            {/* Theme mode controls */}
+            {!themesError && dimensions.length > 0 && (
+            <div ref={dimDropdownRef} className="flex items-center gap-1">
               {dimensions.map((dim) => {
                 const activeOption = activeThemes[dim.id];
                 const previewOption = previewThemes[dim.id];
@@ -2087,22 +2182,14 @@ export function App() {
                 {shellPrimaryAction.label}
               </button>
             )}
-            {notificationCount > 0 && (
-              <button
-                onClick={() => toggleSecondarySurface("notifications")}
-                className={`h-6 w-6 inline-flex items-center justify-center rounded transition-colors ${activeSecondarySurface === "notifications" ? "text-[var(--color-figma-text)] bg-[var(--color-figma-accent)]/12" : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
-                aria-label="Notifications"
-                aria-pressed={activeSecondarySurface === "notifications"}
-              >
-                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M8 2.5a3 3 0 0 0-3 3v1.1c0 .8-.23 1.58-.67 2.23L3.2 10.5h9.6l-1.13-1.67A4 4 0 0 1 11 6.6V5.5a3 3 0 0 0-3-3Z" />
-                  <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
-                </svg>
-              </button>
-            )}
+            <button onClick={executeUndo} disabled={!canUndo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
+            </button>
+            <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
+            </button>
           </div>
         </div>
-
       </div>
 
       <WorkspaceControllerProvider value={workspaceControllers}>
@@ -2112,6 +2199,7 @@ export function App() {
           </div>
         </ErrorBoundary>
       </WorkspaceControllerProvider>
+      </div>
 
       {/* Command palette delete confirmation */}
       {paletteDeleteConfirm && (
@@ -2298,9 +2386,22 @@ export function App() {
             });
           }}
           onClose={() => setShowSetSwitcher(false)}
+          onManageSets={() => {
+            guardEditorAction(() => {
+              setShowSetSwitcher(false);
+              openSecondaryPanel("sets");
+            });
+          }}
+          onOpenCreateSet={openSetCreateDialog}
           dimensions={dimensions}
         />
       )}
+
+      <SetCreateDialog
+        isOpen={showSetCreateDialog}
+        onClose={closeSetCreateDialog}
+        onCreate={createSetByName}
+      />
 
       {/* Command Palette */}
       {showCommandPalette && (
@@ -2366,11 +2467,6 @@ export function App() {
           onCreateToken={() =>
             setEditingToken({ path: "", set: activeSet, isCreate: true })
           }
-          onTemplateCreated={(firstPath) => {
-            closeStartHere();
-            refreshAll();
-            if (firstPath) setPendingHighlight(firstPath);
-          }}
           onGuidedSetupComplete={() => {
             closeStartHere();
             refreshAll();
@@ -2441,77 +2537,6 @@ export function App() {
           undoCount,
         }}
       />
-
-      {/* Status footer */}
-      <div className="flex items-center justify-end gap-1 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[10px]">
-        <div className="flex shrink-0 items-center gap-0.5">
-          <button onClick={executeUndo} disabled={!canUndo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
-            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
-          </button>
-          <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
-            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
-          </button>
-          <div className="relative shrink-0" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="relative h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              aria-label="Settings"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-            >
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6.8 1.6h2.4l.3 1.8.9.4 1.5-1 1.7 1.7-1 1.5.4.9 1.8.3v2.4l-1.8.3-.4.9 1 1.5-1.7 1.7-1.5-1-.9.4-.3 1.8H6.8l-.3-1.8-.9-.4-1.5 1-1.7-1.7 1-1.5-.4-.9-1.8-.3V6.8l1.8-.3.4-.9-1-1.5L4.1 2.4l1.5 1 .9-.4z" />
-                <circle cx="8" cy="8" r="2" />
-              </svg>
-              {utilitiesAttention && (
-                <span className={`absolute right-0 top-0 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`} aria-hidden="true" />
-              )}
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 bottom-full z-50 mb-1 w-52 overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
-                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                  <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
-                  {!connected && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <button onClick={retryConnection} disabled={checking} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50">{checking ? "Checking…" : "Retry"}</button>
-                      <button onClick={() => { setShowConnectionEditor((v) => !v); setConnectionUrlInput(serverUrl); setConnectionConnectResult(null); }} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]">{showConnectionEditor ? "Hide URL" : "Change URL"}</button>
-                    </div>
-                  )}
-                  {showConnectionEditor && (
-                    <div className="mt-2 flex flex-col gap-1.5">
-                      <div className="flex gap-1.5">
-                        <input type="text" value={connectionUrlInput} onChange={(e) => { setConnectionUrlInput(e.target.value); setConnectionConnectResult(null); }} onKeyDown={async (e) => { if (e.key !== "Enter") return; const url = connectionUrlInput.trim(); if (!url) return; setConnectionConnectResult(null); const ok = await updateServerUrlAndConnect(url); setConnectionConnectResult(ok ? "ok" : "fail"); if (ok) setShowConnectionEditor(false); }} placeholder="http://localhost:9400" autoFocus className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]" />
-                        <button onClick={async () => { const url = connectionUrlInput.trim(); if (!url) return; setConnectionConnectResult(null); const ok = await updateServerUrlAndConnect(url); setConnectionConnectResult(ok ? "ok" : "fail"); if (ok) setShowConnectionEditor(false); }} disabled={checking || !connectionUrlInput.trim()} className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">Connect</button>
-                      </div>
-                      {connectionConnectResult === "fail" && (<NoticeFieldMessage severity="error">Cannot reach server. Check the URL and try again.</NoticeFieldMessage>)}
-                    </div>
-                  )}
-                </div>
-                {shellMenuSurfaces.length > 0 && (
-                  <div className="py-0.5">
-                    {shellMenuSurfaces.map((surface) => (
-                      <button key={surface.id} role="menuitem" tabIndex={-1} onClick={() => { setMenuOpen(false); toggleSecondarySurface(surface.id); }} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={surface.transition.usage}>
-                        <span>{surface.label}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section) => (
-                  <div key={section.id} className="border-t border-[var(--color-figma-border)] py-0.5">
-                    {section.actions.map((action) => (
-                      <button key={action.id} role="menuitem" tabIndex={-1} onClick={() => handleUtilityAction(action.id)} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={action.transition?.usage ?? action.description}>
-                        <span>{action.id === "window-size" ? isExpanded ? "Restore window" : "Expand window" : action.label}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{utilityActionDetail(action.id)}</span>
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Resize handle */}
       <div

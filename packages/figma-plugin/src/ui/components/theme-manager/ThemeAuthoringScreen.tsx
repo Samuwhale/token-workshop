@@ -642,7 +642,7 @@ export const ThemeAuthoringScreen = forwardRef<
     <div className="flex-1" />
   ) : (
     <div className="flex flex-1 items-center justify-center px-4 py-8">
-      <div className="flex w-full max-w-[240px] flex-col items-center gap-3">
+      <div className="flex w-full max-w-[320px] flex-col items-center gap-3">
         <p className="text-center text-[11px] leading-snug text-[var(--color-figma-text-secondary)]">
           Define how tokens change across contexts
         </p>

@@ -32,6 +32,7 @@ interface AliasPickerProps {
   onShowAutocompleteChange: (show: boolean) => void;
   aliasHasCycle: string[] | null;
   refInputRef: React.RefObject<HTMLInputElement>;
+  hideHeader?: boolean;
 }
 
 export function AliasPicker({
@@ -40,18 +41,21 @@ export function AliasPicker({
   onToggleAlias, onReferenceChange,
   showAutocomplete, onShowAutocompleteChange,
   aliasHasCycle, refInputRef,
+  hideHeader = false,
 }: AliasPickerProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Value source
-          </p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Choose a direct value or link another token.
-          </p>
-        </div>
+        {!hideHeader && (
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              Value source
+            </p>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              Choose a direct value or link another token.
+            </p>
+          </div>
+        )}
         <div className="inline-flex shrink-0 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 p-0.5">
           <button
             type="button"

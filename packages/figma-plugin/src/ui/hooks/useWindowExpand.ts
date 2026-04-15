@@ -10,7 +10,7 @@ export function useWindowExpand() {
     const next = !isExpanded;
     setIsExpanded(next);
     lsSet(STORAGE_KEYS.EXPANDED, next ? '1' : '0');
-    parent.postMessage({ pluginMessage: { type: 'resize', width: next ? MAX_WIDTH : 460, height: next ? MAX_HEIGHT : 640 } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'resize', width: next ? MAX_WIDTH : 680, height: next ? MAX_HEIGHT : 720 } }, '*');
   }, [isExpanded]);
   useEffect(() => {
     if (isExpanded) {

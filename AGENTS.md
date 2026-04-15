@@ -26,7 +26,6 @@ This project is in **rapid, active development** and has not shipped to any user
 
 - Never use eyebrow text, overlines, or similar pre-heading label treatments
 - Be extremely wary of chrome and UI clutter
-- The plugin is run in small window within figma, so space is constrained.
 - Remove or avoid any decorative controls, wrappers, labels, or helper surfaces that do not materially improve comprehension or task flow
 - Prefer fewer visible elements, clearer hierarchy, and more whitespace over dense control-heavy layouts
 - Do not add informational pills, chips, or badges just to restate nearby content
