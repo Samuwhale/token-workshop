@@ -3,8 +3,7 @@ import { UnifiedComparePanel } from "../UnifiedComparePanel";
 import type { CompareMode } from "../UnifiedComparePanel";
 
 interface ThemeCompareScreenProps {
-  compareFocusDimension: ThemeDimension | null;
-  compareFocusOptionName: string | null;
+  focusLabel: string | null;
   mode: CompareMode;
   onModeChange: (mode: CompareMode) => void;
   tokenPaths: Set<string>;
@@ -27,8 +26,7 @@ interface ThemeCompareScreenProps {
 }
 
 export function ThemeCompareScreen({
-  compareFocusDimension,
-  compareFocusOptionName,
+  focusLabel,
   mode,
   onModeChange,
   tokenPaths,
@@ -49,48 +47,40 @@ export function ThemeCompareScreen({
   onTokensCreated,
   onBack,
 }: ThemeCompareScreenProps) {
-  const focusLabel = compareFocusDimension
-    ? compareFocusOptionName
-      ? `${compareFocusDimension.name}: ${compareFocusOptionName}`
-      : compareFocusDimension.name
-    : null;
-
   return (
     <>
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <div className="px-3 py-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onBack}
-              className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+        <div className="px-3 py-2.5">
+          <button
+            onClick={onBack}
+            className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            <svg
+              width="9"
+              height="9"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
             >
-              <svg
-                width="9"
-                height="9"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              Theme setup
-            </button>
-          </div>
-          <div className="mt-1.5 flex items-start justify-between gap-3">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            Back to structure
+          </button>
+          <div className="mt-2 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                Compare mode values
+              <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                Review across collections
               </div>
               <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Review how token values change across mode options before you publish or map more sets.
+                Inspect how the same token resolves across mode options and sets before you hand anything off.
               </p>
             </div>
             {focusLabel ? (
-              <div className="max-w-[120px] truncate rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+              <div className="max-w-[120px] truncate text-[9px] text-[var(--color-figma-text-secondary)]">
                 {focusLabel}
               </div>
             ) : null}

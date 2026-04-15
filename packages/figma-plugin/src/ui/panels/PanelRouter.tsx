@@ -209,7 +209,6 @@ export function PanelRouter(): ReactNode {
     setModeNames,
     fetchError,
     refreshTokens,
-    addSetToState,
   } = useTokenSetsContext();
   const {
     allTokensFlat,
@@ -405,19 +404,6 @@ export function PanelRouter(): ReactNode {
       sourceTokenType: source.type,
       sourceTokenValue: source.value,
       initialDraft: source.initialDraft,
-    });
-  }, [openRecipeEditor]);
-
-  const openRecipeFromThemeGap = useCallback((destination: {
-    targetSet: string;
-    targetGroup?: string;
-  }) => {
-    openRecipeEditor({
-      mode: "create",
-      initialDraft: {
-        targetSet: destination.targetSet,
-        targetGroup: destination.targetGroup,
-      },
     });
   }, [openRecipeEditor]);
 
@@ -1409,14 +1395,14 @@ export function PanelRouter(): ReactNode {
               onDimensionsChange={setDimensions}
               onNavigateToToken={(path, set) => {
                 beginHandoff({
-                  reason: "View or edit this token, then return to Themes",
+                  reason: "View or edit this token, then return to Theme review",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(set, path);
               }}
               onCreateToken={(tokenPath, set) => {
                 beginHandoff({
-                  reason: "Create this token, then return to Themes",
+                  reason: "Create this token, then return to Theme review",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 setEditingToken({ path: tokenPath, set, isCreate: true });
@@ -1428,7 +1414,7 @@ export function PanelRouter(): ReactNode {
               onTokensCreated={controller.refreshAll}
               onGoToTokens={() => {
                 beginHandoff({
-                  reason: "Browse tokens, then return to Themes",
+                  reason: "Browse tokens, then return to Theme review",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
               }}

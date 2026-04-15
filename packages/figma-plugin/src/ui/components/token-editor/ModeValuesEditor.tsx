@@ -4,6 +4,7 @@ import type { TokenMapEntry } from '../../../shared/types';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import { Collapsible } from '../Collapsible';
 import { ModeValueEditor } from './ModeValueEditor';
+import { summarizeModeCoverage } from './modeCoverage';
 
 // Token types that have a compact inline editor
 const RICH_EDITOR_TYPES = new Set(['color', 'dimension', 'number', 'boolean', 'duration']);
@@ -78,83 +79,68 @@ export function ModeValuesEditor({
     });
   }, []);
 
-  const setCount = dimensions.reduce((acc, dim) => {
-    const optionNames = new Set(dim.options.map((option) => option.name));
-    return (
-      acc +
-      Object.entries(modeValues[dim.id] ?? {}).filter(
-        ([optionName, value]) =>
-          optionNames.has(optionName) &&
-          value !== "" &&
-          value !== undefined &&
-          value !== null,
-      ).length
-    );
-  }, 0);
+  const coverage = summarizeModeCoverage(dimensions, modeValues);
   const hasTokens = Object.keys(allTokensFlat).length > 0;
   const useRichEditor = RICH_EDITOR_TYPES.has(tokenType);
 
   if (dimensions.length === 0) {
-    if (!onNavigateToThemes) return null;
     return (
-      <div className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
         <div className="min-w-0">
           <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Theme overrides
+            Mode values
           </p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            No themes configured.
+            No mode axes yet. Define axes to author token variations here.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onNavigateToThemes}
-          className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-        >
-          Add themes
-        </button>
+        {onNavigateToThemes && (
+          <button
+            type="button"
+            onClick={onNavigateToThemes}
+            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+          >
+            Set up modes
+          </button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Theme values
+            Mode values
+          </p>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Author token variations inline, one mode at a time.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {setCount > 0 && (
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-              {setCount} override{setCount === 1 ? "" : "s"}
-            </span>
-          )}
-          {onNavigateToThemes && (
-            <button
-              type="button"
-              onClick={onNavigateToThemes}
-              className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-            >
-              Manage themes
-            </button>
+        <div className="flex shrink-0 flex-col items-end gap-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+          <span>
+            {coverage.filledCount}/{coverage.optionCount} filled
+          </span>
+          {coverage.missingCount > 0 && (
+            <span>{coverage.missingCount} missing</span>
           )}
         </div>
       </div>
+      {coverage.missingCount > 0 && (
+        <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1 text-[10px] text-[var(--color-figma-text)]">
+          {coverage.missingCount} mode value{coverage.missingCount === 1 ? "" : "s"} still need authoring.
+        </div>
+      )}
+      {coverage.unconfiguredDimensionCount > 0 && (
+        <div className="rounded border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+          {coverage.unconfiguredDimensionCount} mode axis{coverage.unconfiguredDimensionCount === 1 ? "" : "es"} still need options.
+        </div>
+      )}
       <div className="flex flex-col gap-2">
-        {dimensions.map(dim => {
-          const dimOptionNames = new Set(dim.options.map((option) => option.name));
-          const dimOverrideCount = Object.entries(modeValues[dim.id] ?? {}).filter(
-            ([optionName, value]) =>
-              dimOptionNames.has(optionName) &&
-              value !== '' &&
-              value !== undefined &&
-              value !== null,
-          ).length;
-          const missingOptionCount = dim.options.length - dimOverrideCount;
-          const hasPartialCoverage =
-            dimOverrideCount > 0 && missingOptionCount > 0;
+        {coverage.dimensions.map(dim => {
+          const hasPartialCoverage = dim.filledCount > 0 && dim.missingCount > 0;
+          const hasOptions = dim.optionCount > 0;
           const isCollapsible = dimensions.length > 1;
           const isOpen = !collapsedDims.has(dim.id);
 
@@ -289,7 +275,12 @@ export function ModeValuesEditor({
               <div key={dim.id} className="flex flex-col gap-1">
                 {hasPartialCoverage ? (
                   <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1 text-[10px] text-[var(--color-figma-warning)]">
-                    {missingOptionCount} mode value{missingOptionCount === 1 ? "" : "s"} still missing in {dim.name}.
+                    {dim.missingCount} mode value{dim.missingCount === 1 ? "" : "s"} still missing in {dim.name}.
+                  </div>
+                ) : null}
+                {!hasOptions ? (
+                  <div className="rounded border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {dim.name} has no mode options yet.
                   </div>
                 ) : null}
                 {optionsContent}
@@ -305,9 +296,19 @@ export function ModeValuesEditor({
               label={
                 <span className="inline-flex items-center gap-1.5">
                   {dim.name}
-                  {dimOverrideCount > 0 && (
+                  {hasOptions && (
                     <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                      {dimOverrideCount}
+                      {dim.filledCount}/{dim.optionCount} filled
+                    </span>
+                  )}
+                  {hasOptions && dim.missingCount > 0 && (
+                    <span className="text-[9px] text-[var(--color-figma-warning)]">
+                      {dim.missingCount} missing
+                    </span>
+                  )}
+                  {!hasOptions && (
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      No options
                     </span>
                   )}
                 </span>
@@ -316,7 +317,12 @@ export function ModeValuesEditor({
               <div className="flex flex-col gap-1">
                 {hasPartialCoverage ? (
                   <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1 text-[10px] text-[var(--color-figma-warning)]">
-                    {missingOptionCount} mode value{missingOptionCount === 1 ? "" : "s"} still missing in {dim.name}.
+                    {dim.missingCount} mode value{dim.missingCount === 1 ? "" : "s"} still missing in {dim.name}.
+                  </div>
+                ) : null}
+                {!hasOptions ? (
+                  <div className="rounded border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {dim.name} has no mode options yet.
                   </div>
                 ) : null}
                 {optionsContent}

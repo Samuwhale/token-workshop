@@ -87,11 +87,11 @@ export function ThemeResolverScreen({
       try {
         await convertFromThemes(THEME_OUTPUT_RESOLVER_NAME);
         if (showSuccessToast) {
-          onSuccess?.("Generated output from modes");
+          onSuccess?.("Generated handoff from modes");
         }
       } catch (error) {
         setSyncError(
-          error instanceof Error ? error.message : "Failed to generate output",
+          error instanceof Error ? error.message : "Failed to generate handoff",
         );
       } finally {
         setSyncing(false);
@@ -125,18 +125,15 @@ export function ThemeResolverScreen({
             >
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Back to theme setup
+            Back to structure
           </button>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                Theme setup / Output setup
-              </div>
-              <div className="mt-0.5 text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Review generated output
+              <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                Output handoff
               </div>
               <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                This preview is generated directly from canonical inline mode data. Regenerate it after changing axes or token mode values.
+                Generate implementation-ready output from the current theme state. Nothing in this view changes token values.
               </p>
             </div>
             <button
@@ -145,7 +142,7 @@ export function ThemeResolverScreen({
               disabled={syncing || !connected}
               className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {syncing ? "Generating..." : currentResolver ? "Regenerate" : "Generate output"}
+              {syncing ? "Generating..." : currentResolver ? "Refresh handoff" : "Generate handoff"}
             </button>
           </div>
         </div>
@@ -156,10 +153,10 @@ export function ThemeResolverScreen({
           <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
             <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
               <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                Generated resolver
+                Output resolver
               </div>
               <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Theme output uses a single generated resolver. Arbitrary resolver files are not part of this workflow.
+                The handoff uses one generated resolver. Arbitrary resolver files are not part of this workflow.
               </p>
             </div>
             <div className="px-3 py-3">
@@ -191,7 +188,7 @@ export function ThemeResolverScreen({
                 </>
               ) : (
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Generate the output resolver to preview theme output.
+                  Generate the handoff resolver to inspect the current state.
                 </div>
               )}
               {syncError ? (
@@ -206,10 +203,10 @@ export function ThemeResolverScreen({
             <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
               <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                  Current theme selection
+                  Current selections
                 </div>
                 <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Generated output follows the current theme state. Change selections in Themes or Inspect, then regenerate output.
+                  The output follows the current theme state. Change selections in Themes or Inspect, then refresh the handoff.
                 </p>
               </div>
               <div className="space-y-2 px-3 py-3">
@@ -231,7 +228,7 @@ export function ThemeResolverScreen({
                         </div>
                       </div>
                       <div className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                        Generated
+                        In handoff
                       </div>
                     </div>
                   ))
@@ -242,7 +239,7 @@ export function ThemeResolverScreen({
                 )}
                 {!currentResolverIsActive && !syncing ? (
                   <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Generate output to refresh the generated preview for the current theme state.
+                    Refresh the handoff to update the preview for the current theme state.
                   </div>
                 ) : null}
               </div>
@@ -254,10 +251,10 @@ export function ThemeResolverScreen({
               <div className="flex items-baseline justify-between gap-2">
                 <div>
                   <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                    Preview
+                    Resolved samples
                   </div>
                   <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Generated token output for the selected mode combination.
+                    Resolved token output for the selected mode combination.
                   </p>
                 </div>
                 <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
@@ -273,7 +270,7 @@ export function ThemeResolverScreen({
               {loading ? (
                 <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
                   <Spinner size="sm" />
-                  Resolving generated output...
+                  Resolving handoff...
                 </div>
               ) : resolverError ? (
                 <div className="text-[10px] text-[var(--color-figma-error)]">
@@ -333,7 +330,7 @@ export function ThemeResolverScreen({
                 </div>
               ) : (
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Generate output to inspect the resolved token result.
+                  Generate the handoff to inspect the resolved token result.
                 </div>
               )}
             </div>

@@ -1727,12 +1727,11 @@ export function App() {
 
       if (themeWorkflowSummary.currentStage === "token-modes") {
         return {
-          label: "Fill mode values",
+          label: "Edit tokens",
           onClick: () => {
             guardEditorAction(() => {
-              navigateTo("themes", "themes");
+              navigateTo("tokens", "tokens");
               closeSecondarySurface();
-              themeManagerHandleRef.current?.focusStage("token-modes");
             });
           },
         };
@@ -1740,7 +1739,7 @@ export function App() {
 
       if (themeWorkflowSummary.currentStage === "preview") {
         return {
-          label: "Preview tokens",
+          label: "Open preview",
           onClick: () => {
             guardEditorAction(() => {
               navigateTo("themes", "themes");

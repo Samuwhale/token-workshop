@@ -208,7 +208,6 @@ export function TokenEditor({
     setScopes,
     setColorModifiers,
     setModeValues,
-    dimensions,
     setExtensionsJsonText,
     setLifecycle,
     setExtendsPath,

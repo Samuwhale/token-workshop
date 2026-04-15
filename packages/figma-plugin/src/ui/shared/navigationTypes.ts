@@ -402,7 +402,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryTitle: "Themes",
     topTab: "themes",
     subTab: "themes",
-    transition: workspaceTransition("Set up theme modes."),
+    transition: workspaceTransition("Review mode structure and preview states."),
   },
   {
     id: "inspect",
