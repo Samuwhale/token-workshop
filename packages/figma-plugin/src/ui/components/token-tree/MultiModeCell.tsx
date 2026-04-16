@@ -1,0 +1,350 @@
+/**
+ * MultiModeCell — compact inline-editable value cell for a single theme option.
+ * Extracted from TokenTreeNode.tsx.
+ */
+import { useState, useCallback, useEffect, useRef } from "react";
+import type { TokenMapEntry } from "../../../shared/types";
+import { isAlias, extractAliasPath } from "../../../shared/resolveAlias";
+import { formatValue } from "../tokenListUtils";
+import {
+  getEditableString,
+  parseInlineValue,
+} from "../tokenListHelpers";
+import { INLINE_SIMPLE_TYPES } from "../tokenListTypes";
+import { AliasAutocomplete } from "../AliasAutocomplete";
+import { useTokenTreeSharedData } from "../TokenTreeContext";
+
+export function MultiModeCell({
+  tokenPath,
+  tokenType,
+  value,
+  targetSet,
+  dimId,
+  optionName,
+  onSave,
+  isTabPending,
+  onTabActivated,
+  onTab,
+  onEdit,
+}: {
+  tokenPath: string;
+  tokenType: string | undefined;
+  value: TokenMapEntry | undefined;
+  targetSet: string | null;
+  dimId: string;
+  optionName: string;
+  onSave?: (
+    path: string,
+    type: string,
+    newValue: any,
+    targetSet: string,
+    dimId: string,
+    optionName: string,
+    previousState?: { type?: string; value: unknown },
+  ) => void;
+  isTabPending?: boolean;
+  onTabActivated?: () => void;
+  onTab?: (direction: 1 | -1) => void;
+  onEdit?: () => void;
+}) {
+  const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const escapedRef = useRef(false);
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const cellRef = useRef<HTMLDivElement>(null);
+
+  // Alias editing state
+  const [aliasEditing, setAliasEditing] = useState(false);
+  const [aliasQuery, setAliasQuery] = useState("");
+  const [aliasPopoverPos, setAliasPopoverPos] = useState({ x: 0, y: 0 });
+
+  const isAliasValue = isAlias(value?.$value);
+  const canEdit =
+    !!tokenType &&
+    INLINE_SIMPLE_TYPES.has(tokenType) &&
+    !!targetSet &&
+    !!onSave &&
+    !isAliasValue;
+  const canEditAlias = isAliasValue && !!targetSet && !!onSave;
+  const canCreate =
+    !value &&
+    !!tokenType &&
+    !!targetSet &&
+    !!onSave;
+
+  // Stable refs so the tab-activation effect always reads fresh values without
+  // adding them as trigger dependencies (which would cause spurious re-activations
+  // whenever value/tokenType/canEdit change while isTabPending is already true).
+  const canEditRef = useRef(canEdit);
+  canEditRef.current = canEdit;
+  const canCreateRef = useRef(canCreate);
+  canCreateRef.current = canCreate;
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const tokenTypeRef = useRef(tokenType);
+  tokenTypeRef.current = tokenType;
+  const onTabActivatedRef = useRef(onTabActivated);
+  onTabActivatedRef.current = onTabActivated;
+
+  // Activate edit mode when Tab navigation lands on this cell
+  useEffect(() => {
+    if (!isTabPending || tokenTypeRef.current === "color") return;
+    if (canCreateRef.current) {
+      // Empty cell — open editor with blank value
+      setEditValue("");
+      setEditing(true);
+      onTabActivatedRef.current?.();
+      return;
+    }
+    if (!canEditRef.current || !valueRef.current) return;
+    setEditValue(
+      getEditableString(tokenTypeRef.current!, valueRef.current.$value),
+    );
+    setEditing(true);
+    onTabActivatedRef.current?.();
+  }, [isTabPending]);
+
+  const handleSubmit = useCallback(() => {
+    if (!editing || !tokenType || !targetSet || !onSave) return;
+    const raw = editValue.trim();
+    if (!raw) {
+      setEditing(false);
+      return;
+    }
+    const parsed = parseInlineValue(tokenType, raw);
+    if (parsed === null) return;
+    setEditing(false);
+    onSave(tokenPath, tokenType, parsed, targetSet, dimId, optionName, {
+      type: value?.$type ?? tokenType,
+      value: value?.$value,
+    });
+  }, [editing, editValue, tokenType, targetSet, dimId, optionName, tokenPath, onSave, value]);
+
+  const openAliasEditor = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const rect = cellRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const currentPath = extractAliasPath(value?.$value) ?? "";
+      setAliasQuery(currentPath);
+      setAliasPopoverPos({ x: rect.left, y: rect.bottom + 4 });
+      setAliasEditing(true);
+    },
+    [value],
+  );
+
+  const closeAliasEditor = useCallback(() => {
+    setAliasEditing(false);
+    setAliasQuery("");
+  }, []);
+
+  const displayVal = value ? formatValue(value.$type, value.$value) : "—";
+  const isColor =
+    tokenType === "color" &&
+    value &&
+    typeof value.$value === "string" &&
+    !isAliasValue;
+
+  // For <input type="color">, extract 6-char hex and preserve any alpha suffix
+  const colorHex = isColor ? (value!.$value as string) : "";
+  const colorHexBase = colorHex.startsWith("#")
+    ? colorHex.slice(0, 7)
+    : "#000000";
+  const colorAlphaSuffix =
+    colorHex.startsWith("#") && colorHex.length === 9 ? colorHex.slice(7) : "";
+
+  return (
+    <div
+      ref={cellRef}
+      className="w-[48px] shrink-0 px-0.5 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
+      title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ""}`}
+    >
+      {/* Hidden color input — rendered for existing color values or creatable empty color cells */}
+      {(canEdit || canCreate) && tokenType === "color" && (
+        <input
+          type="color"
+          ref={colorInputRef}
+          key={colorHexBase}
+          defaultValue={colorHexBase}
+          className="sr-only"
+          onBlur={(e) => {
+            const newHex = e.target.value + colorAlphaSuffix;
+            if (newHex !== colorHex) {
+              onSave!(tokenPath, "color", newHex, targetSet!, dimId, optionName, {
+                type: value?.$type ?? "color",
+                value: value?.$value,
+              });
+            }
+          }}
+        />
+      )}
+      {!value ? (
+        canCreate ? (
+          <span
+            className={`text-[10px] text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer" : "cursor-text"} hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (tokenType === "color") {
+                colorInputRef.current?.click();
+              } else {
+                setEditValue("");
+                setEditing(true);
+              }
+            }}
+          >
+            +
+          </span>
+        ) : onEdit ? (
+          <span
+            className="text-[10px] text-[var(--color-figma-text-tertiary)] cursor-pointer hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          >
+            +
+          </span>
+        ) : (
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            —
+          </span>
+        )
+      ) : isColor ? (
+        <span
+          className={`w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]" : ""}`}
+          style={{ backgroundColor: value.$value as string }}
+          onClick={
+            canEdit
+              ? (e) => {
+                  e.stopPropagation();
+                  colorInputRef.current?.click();
+                }
+              : undefined
+          }
+        />
+      ) : editing ? (
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={() => {
+            if (escapedRef.current) {
+              escapedRef.current = false;
+              return;
+            }
+            handleSubmit();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSubmit();
+            }
+            if (e.key === "Escape") {
+              e.preventDefault();
+              escapedRef.current = true;
+              setEditing(false);
+            }
+            if (e.key === "Tab") {
+              e.preventDefault();
+              e.stopPropagation();
+              // Use escapedRef to block the onBlur from double-saving
+              escapedRef.current = true;
+              if (tokenType && targetSet && onSave) {
+                const raw = editValue.trim();
+                if (raw) {
+                  const parsed = parseInlineValue(tokenType, raw);
+                  if (parsed !== null) {
+                    onSave(tokenPath, tokenType, parsed, targetSet, dimId, optionName, {
+                      type: value?.$type ?? tokenType,
+                      value: value?.$value,
+                    });
+                  }
+                }
+              }
+              setEditing(false);
+              onTab?.(e.shiftKey ? -1 : 1);
+              return;
+            }
+            e.stopPropagation();
+          }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Edit token value"
+          autoFocus
+          className="text-[10px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none"
+        />
+      ) : isAliasValue ? (
+        <>
+          <span
+            className={`text-[10px] truncate max-w-full font-mono ${canEditAlias ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
+            onClick={canEditAlias ? openAliasEditor : undefined}
+            title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ""}\nClick to redirect alias`}
+          >
+            {displayVal}
+          </span>
+          {aliasEditing && (
+            <div
+              className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 w-64"
+              style={{ top: aliasPopoverPos.y, left: aliasPopoverPos.x }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                Redirect alias ·{" "}
+                <span className="font-mono normal-case text-[var(--color-figma-text)]">
+                  {optionName}
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  autoFocus
+                  type="text"
+                  value={aliasQuery}
+                  onChange={(e) => setAliasQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.stopPropagation();
+                      closeAliasEditor();
+                    }
+                  }}
+                  className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                  placeholder="Search tokens…"
+                />
+                <AliasAutocomplete
+                  query={aliasQuery}
+                  allTokensFlat={allTokensFlat}
+                  pathToSet={pathToSet}
+                  filterType={tokenType}
+                  onSelect={(path) => {
+                    onSave!(
+                      tokenPath,
+                      tokenType || value.$type || "color",
+                      `{${path}}`,
+                      targetSet!,
+                      dimId,
+                      optionName,
+                      { type: value.$type, value: value.$value },
+                    );
+                    closeAliasEditor();
+                  }}
+                  onClose={closeAliasEditor}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <span
+          className={`text-[10px] truncate max-w-full ${canEdit ? "cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
+          onClick={
+            canEdit
+              ? (e) => {
+                  e.stopPropagation();
+                  setEditValue(getEditableString(value.$type, value.$value));
+                  setEditing(true);
+                }
+              : undefined
+          }
+        >
+          {displayVal}
+        </span>
+      )}
+    </div>
+  );
+}
