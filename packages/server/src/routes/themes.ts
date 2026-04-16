@@ -38,10 +38,97 @@ function slugifyName(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeThemeOption(
+  value: unknown,
+): ThemeDimension["options"][number] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const name =
+    "name" in value && typeof value.name === "string"
+      ? value.name.trim()
+      : "";
+  if (!name) {
+    return null;
+  }
+
+  return { name };
+}
+
+function normalizeThemeDimension(
+  value: unknown,
+): ThemeDimension | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const id = "id" in value && typeof value.id === "string" ? value.id.trim() : "";
+  const name =
+    "name" in value && typeof value.name === "string"
+      ? value.name.trim()
+      : "";
+  if (!id || !name) {
+    return null;
+  }
+
+  const rawOptions = "options" in value ? value.options : [];
+  const options = Array.isArray(rawOptions)
+    ? rawOptions
+        .map((option) => normalizeThemeOption(option))
+        .filter((option): option is ThemeDimension["options"][number] => option !== null)
+    : [];
+
+  return { id, name, options };
+}
+
+function normalizeThemeViewPreset(
+  value: unknown,
+): ThemeViewPreset | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const id = "id" in value && typeof value.id === "string" ? value.id.trim() : "";
+  const name =
+    "name" in value && typeof value.name === "string"
+      ? value.name.trim()
+      : "";
+  if (!id || !name) {
+    return null;
+  }
+
+  const rawSelections = "selections" in value ? value.selections : null;
+  if (
+    !rawSelections ||
+    typeof rawSelections !== "object" ||
+    Array.isArray(rawSelections)
+  ) {
+    return null;
+  }
+
+  const selections = Object.fromEntries(
+    Object.entries(rawSelections).filter(
+      ([dimensionId, optionName]) =>
+        dimensionId.trim().length > 0 && typeof optionName === "string",
+    ),
+  );
+
+  return { id, name, selections };
+}
+
 function normalizeThemeFile(data: ThemesFile | null | undefined): ThemeDocumentState {
   return {
-    dimensions: Array.isArray(data?.$themes) ? data.$themes : [],
-    views: Array.isArray(data?.$views) ? data.$views : [],
+    dimensions: Array.isArray(data?.$themes)
+      ? data.$themes
+          .map((dimension) => normalizeThemeDimension(dimension))
+          .filter((dimension): dimension is ThemeDimension => dimension !== null)
+      : [],
+    views: Array.isArray(data?.$views)
+      ? data.$views
+          .map((view) => normalizeThemeViewPreset(view))
+          .filter((view): view is ThemeViewPreset => view !== null)
+      : [],
   };
 }
 

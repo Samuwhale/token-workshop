@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { getErrorMessage } from '../shared/utils';
 import type { UndoSlot } from './useUndo';
 import { useThemeDimensionsCrud } from './useThemeDimensionsCrud';
@@ -38,6 +38,7 @@ export function useThemeDimensions({
   const fetchDimensions = useCallback(async () => {
     if (!connected) {
       fetchAbortRef.current?.abort();
+      fetchAbortRef.current = null;
       setDimensions([]);
       setError(null);
       setLoading(false);
@@ -49,18 +50,23 @@ export function useThemeDimensions({
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
+    const signal = createFetchSignal(controller.signal);
     try {
       const data = await apiFetch<{ dimensions?: ThemeDimension[] }>(
         `${serverUrl}/api/themes`,
-        { signal: controller.signal },
+        { signal },
       );
+      if (fetchAbortRef.current !== controller) return;
       const allDimensions: ThemeDimension[] = data.dimensions || [];
       setDimensions(allDimensions);
     } catch (err) {
-      if (controller.signal.aborted) return;
-      setError(getErrorMessage(err));
+      if (fetchAbortRef.current !== controller) return;
+      setError(getErrorMessage(err, 'Failed to load themes'));
     } finally {
-      if (!controller.signal.aborted) setLoading(false);
+      if (fetchAbortRef.current === controller) {
+        fetchAbortRef.current = null;
+        setLoading(false);
+      }
     }
   }, [connected, serverUrl, setError]);
 

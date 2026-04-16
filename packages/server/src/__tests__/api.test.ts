@@ -188,20 +188,17 @@ describe('POST /api/themes/dimensions/:id/duplicate', () => {
     });
     expect(createDimRes.status).toBe(201);
 
-    const lightSets = { 'test-set': 'source' };
-    const darkSets = { 'test-set': 'enabled' };
-
     const lightRes = await fetch(url('/api/themes/dimensions/mode/options'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Light', sets: lightSets }),
+      body: JSON.stringify({ name: 'Light' }),
     });
     expect(lightRes.status).toBe(201);
 
     const darkRes = await fetch(url('/api/themes/dimensions/mode/options'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Dark', sets: darkSets }),
+      body: JSON.stringify({ name: 'Dark' }),
     });
     expect(darkRes.status).toBe(201);
 
@@ -215,8 +212,8 @@ describe('POST /api/themes/dimensions/:id/duplicate', () => {
       id: 'mode-copy',
       name: 'Mode Copy',
       options: [
-        { name: 'Light', sets: lightSets },
-        { name: 'Dark', sets: darkSets },
+        { name: 'Light' },
+        { name: 'Dark' },
       ],
     });
 
@@ -228,16 +225,16 @@ describe('POST /api/themes/dimensions/:id/duplicate', () => {
         id: 'mode',
         name: 'Mode',
         options: [
-          { name: 'Light', sets: lightSets },
-          { name: 'Dark', sets: darkSets },
+          { name: 'Light' },
+          { name: 'Dark' },
         ],
       },
       {
         id: 'mode-copy',
         name: 'Mode Copy',
         options: [
-          { name: 'Light', sets: lightSets },
-          { name: 'Dark', sets: darkSets },
+          { name: 'Light' },
+          { name: 'Dark' },
         ],
       },
     ]);
@@ -640,7 +637,7 @@ describe('DELETE /api/data', () => {
 
     const themesAfterRes = await fetch(url('/api/themes'));
     expect(themesAfterRes.ok).toBe(true);
-    expect(await themesAfterRes.json()).toEqual({ dimensions: [] });
+    expect(await themesAfterRes.json()).toEqual({ dimensions: [], views: [] });
 
     const recipesAfterRes = await fetch(url('/api/recipes'));
     expect(recipesAfterRes.ok).toBe(true);

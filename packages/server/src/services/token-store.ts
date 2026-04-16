@@ -75,16 +75,6 @@ interface PlannedGroupTransfer {
   leafTokens: PlannedGroupLeafToken[];
 }
 
-function summarizeError(err: unknown): string {
-  if (!err || typeof err !== "object") {
-    return String(err);
-  }
-
-  const code = "code" in err && typeof err.code === "string" ? err.code : null;
-  const message = err instanceof Error ? err.message : String(err);
-  return code ? `${code}: ${message}` : message;
-}
-
 export class TokenStore {
   /** Shared async mutex — route handlers and watcher callbacks serialize through this single lock. */
   readonly lock = new PromiseChainLock();
@@ -114,105 +104,10 @@ export class TokenStore {
   async initialize(): Promise<void> {
     // Create dir if not exists
     await fs.mkdir(this.dir, { recursive: true });
-    // Recover any incomplete rename from a previous crash before loading
-    await this.recoverPendingRename();
     // Load all .tokens.json files
     await this.loadAllSets();
     // Start watching
     this.startWatching();
-  }
-
-  private async readOptionalRegularFile(
-    filePath: string,
-  ): Promise<string | null> {
-    let stats: Awaited<ReturnType<typeof fs.stat>>;
-    try {
-      stats = await fs.stat(filePath);
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        return null;
-      }
-      throw err;
-    }
-
-    if (!stats.isFile()) {
-      const kind = stats.isDirectory() ? "directory" : "non-file path";
-      throw new Error(
-        `${path.basename(filePath)} must be a regular file, found ${kind}`,
-      );
-    }
-
-    return await fs.readFile(filePath, "utf-8");
-  }
-
-  /** Applies the set-name substitution to $themes.json atomically. No-ops if no themes file or no matches. */
-  private async applyThemesRename(
-    oldName: string,
-    newName: string,
-  ): Promise<void> {
-    void oldName;
-    void newName;
-  }
-
-  /**
-   * On startup, check for a $rename-pending.json marker left by a crash mid-rename.
-   * If the file rename completed (newFile exists, oldFile gone) but themes wasn't updated yet,
-   * re-apply the themes update. Otherwise discard the marker.
-   */
-  private async recoverPendingRename(): Promise<void> {
-    const markerPath = path.join(this.dir, "$rename-pending.json");
-    let marker: { oldName: string; newName: string } | null = null;
-    try {
-      const raw = await fs.readFile(markerPath, "utf-8");
-      marker = JSON.parse(raw) as { oldName: string; newName: string };
-    } catch {
-      return; // No marker or invalid JSON — nothing to recover
-    }
-
-    const { oldName, newName } = marker;
-    const oldFilePath = path.join(this.dir, `${oldName}.tokens.json`);
-    const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
-
-    const [oldExists, newExists] = await Promise.all([
-      fs
-        .access(oldFilePath)
-        .then(() => true)
-        .catch(() => false),
-      fs
-        .access(newFilePath)
-        .then(() => true)
-        .catch(() => false),
-    ]);
-
-    if (!oldExists && newExists) {
-      // File rename completed but themes update may not have run — reapply it
-      console.warn(
-        `[TokenStore] Recovering incomplete rename "${oldName}" → "${newName}": applying themes update`,
-      );
-      try {
-        await this.applyThemesRename(oldName, newName);
-        await fs.unlink(markerPath).catch(() => {});
-      } catch (err) {
-        // Keep the marker so the next server restart will retry the themes update.
-        console.error(
-          `[TokenStore] Recovery: themes update failed — marker preserved for retry on next restart: ${summarizeError(err)}`,
-        );
-      }
-    } else if (oldExists && !newExists) {
-      // File rename didn't complete — state is consistent, just remove the marker
-      console.warn(
-        `[TokenStore] Discarding incomplete rename marker "${oldName}" → "${newName}" (file rename did not complete)`,
-      );
-      await fs.unlink(markerPath).catch(() => {});
-    } else if (oldExists && newExists) {
-      // Both files exist — ambiguous state, leave marker and warn so admin can investigate
-      console.error(
-        `[TokenStore] Ambiguous rename state: both "${oldName}.tokens.json" and "${newName}.tokens.json" exist. Remove $rename-pending.json after manual resolution.`,
-      );
-    } else {
-      // Neither file exists — stale marker, clean up
-      await fs.unlink(markerPath).catch(() => {});
-    }
   }
 
   private async loadAllSets(): Promise<void> {
@@ -916,48 +811,11 @@ export class TokenStore {
 
     const oldFilePath = path.join(this.dir, `${oldName}.tokens.json`);
     const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
-    const markerPath = path.join(this.dir, "$rename-pending.json");
-
-    // Write crash-recovery marker before touching any files.
-    // If the server crashes after the file rename but before themes update, startup
-    // will detect this marker and complete the themes update automatically.
-    await fs.writeFile(markerPath, JSON.stringify({ oldName, newName }));
-
-    // Step 1: Rename the file atomically (same filesystem, so fs.rename is atomic)
     await fs.mkdir(path.dirname(newFilePath), { recursive: true });
     this._startWriteGuard(oldFilePath);
     this._startWriteGuard(newFilePath);
     try {
       await fs.rename(oldFilePath, newFilePath);
-
-      // Step 2: Update $themes.json — roll back file rename on failure
-      try {
-        await this.applyThemesRename(oldName, newName);
-      } catch (writeErr) {
-        // Themes write failed — attempt to roll back the file rename
-        let rollbackSucceeded = false;
-        try {
-          await fs.rename(newFilePath, oldFilePath);
-          rollbackSucceeded = true;
-        } catch (rollbackErr) {
-          console.error(
-            `[TokenStore] renameSet: file rename rollback also failed after themes write error. ` +
-              `"${newName}.tokens.json" may be in an inconsistent state. ` +
-              `Original error: ${String(writeErr)}. Rollback error: ${String(rollbackErr)}`,
-          );
-        }
-        // Only remove the marker if rollback succeeded — if rollback failed the marker
-        // must remain so that recoverPendingRename() can complete the themes update on startup.
-        if (rollbackSucceeded) {
-          await fs.unlink(markerPath).catch(() => {});
-        }
-        throw writeErr;
-      }
-
-      // Marker can be removed now that both steps have completed
-      await fs.unlink(markerPath).catch(() => {});
-
-      // Step 3: Update in-memory state (cannot fail)
       const newSet: TokenSet = {
         name: newName,
         tokens: set.tokens,

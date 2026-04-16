@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { ThemeDimension, ThemeViewPreset } from "@tokenmanager/core";
@@ -14,7 +15,7 @@ import { useThemeDimensions } from "../hooks/useThemeDimensions";
 import { useThemeCompare } from "../hooks/useThemeCompare";
 import { Spinner } from "./Spinner";
 import { Collapsible } from "./Collapsible";
-import { apiFetch } from "../shared/apiFetch";
+import { apiFetch, createFetchSignal } from "../shared/apiFetch";
 import { useThemeSwitcherContext } from "../contexts/ThemeContext";
 import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
 import { ThemeResolverScreen } from "./theme-manager/ThemeResolverScreen";
@@ -195,12 +196,14 @@ export function ThemeManager({
   const [views, setViews] = useState<ThemeViewPreset[]>([]);
   const [viewsLoading, setViewsLoading] = useState(true);
   const [viewsError, setViewsError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [newViewName, setNewViewName] = useState("");
   const [savedStatesOpen, setSavedStatesOpen] = useState(false);
   const [resolvedSampleOpen, setResolvedSampleOpen] = useState(false);
   const [expandedGapRows, setExpandedGapRows] = useState<Record<string, boolean>>(
     {},
   );
+  const viewsAbortRef = useRef<AbortController | null>(null);
 
   const compare = useThemeCompare();
 
@@ -231,7 +234,7 @@ export function ThemeManager({
   } = useThemeDimensions({
     serverUrl,
     connected,
-    setError: () => undefined,
+    setError: setLoadError,
     onPushUndo,
     onSuccess,
   });
@@ -247,27 +250,43 @@ export function ThemeManager({
 
   const refreshViews = useCallback(async () => {
     if (!connected) {
+      viewsAbortRef.current?.abort();
+      viewsAbortRef.current = null;
       setViews([]);
       setViewsLoading(false);
+      setViewsError(null);
       return;
     }
     setViewsLoading(true);
     setViewsError(null);
+    viewsAbortRef.current?.abort();
+    const controller = new AbortController();
+    viewsAbortRef.current = controller;
     try {
       const result = await apiFetch<{ views?: ThemeViewPreset[] }>(
         `${serverUrl}/api/themes`,
+        { signal: createFetchSignal(controller.signal) },
       );
+      if (viewsAbortRef.current !== controller) return;
       setViews(result.views ?? []);
     } catch (error) {
+      if (viewsAbortRef.current !== controller) return;
       setViewsError(error instanceof Error ? error.message : "Failed to load views");
     } finally {
-      setViewsLoading(false);
+      if (viewsAbortRef.current === controller) {
+        viewsAbortRef.current = null;
+        setViewsLoading(false);
+      }
     }
   }, [connected, serverUrl]);
 
   useEffect(() => {
     void refreshViews();
   }, [refreshViews]);
+
+  useEffect(() => () => {
+    viewsAbortRef.current?.abort();
+  }, []);
 
   const normalizedSelections = useMemo(
     () => normalizeThemeSelections(dimensions, activeThemes),
@@ -492,6 +511,28 @@ export function ThemeManager({
     return (
       <div className="flex h-full items-center justify-center">
         <Spinner />
+      </div>
+    );
+  }
+
+  if (loadError && dimensions.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center px-6">
+        <div className="max-w-sm text-center">
+          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+            Couldn&apos;t load modes
+          </div>
+          <p className="mt-1 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+            {loadError}
+          </p>
+          <button
+            type="button"
+            onClick={() => void fetchDimensions()}
+            className="mt-3 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
