@@ -261,11 +261,6 @@ export function normalizeThemeSelections(
       dimension.options.some((option) => option.name === selectedOption)
     ) {
       next[dimension.id] = selectedOption;
-      continue;
-    }
-
-    if (dimension.options[0]) {
-      next[dimension.id] = dimension.options[0].name;
     }
   }
 

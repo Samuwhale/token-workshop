@@ -30,8 +30,8 @@ export function useFigmaSync(
   serverUrl: string,
   connected: boolean,
   pathToSet: Record<string, string>,
-  setCollectionNames: Record<string, string>,
-  setModeNames: Record<string, string>,
+  collectionMap: Record<string, string>,
+  modeMap: Record<string, string>,
   activeSet: string,
 ) {
   const varFlow = useSyncFlow<GroupPending>();
@@ -168,14 +168,14 @@ export function useFigmaSync(
       setProgress: setSyncGroupProgress,
       setError: setSyncGroupError,
       sendApply: (_, payload) => sendVarApply('apply-variables', payload),
-      buildPayload: (tokens) => ({ tokens, collectionMap: setCollectionNames, modeMap: setModeNames }),
+      buildPayload: (tokens) => ({ tokens, collectionMap, modeMap }),
       successMsg: (count, skipped) => `${count} variable${count !== 1 ? 's' : ''} synced${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
       entityName: 'variables',
     });
   }, [
     sendVarApply,
-    setCollectionNames,
-    setModeNames,
+    collectionMap,
+    modeMap,
     setSyncGroupApplying,
     setSyncGroupError,
     setSyncGroupPending,

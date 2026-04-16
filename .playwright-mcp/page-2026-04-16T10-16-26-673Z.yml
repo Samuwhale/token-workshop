@@ -1,0 +1,103 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: TokenManager Standalone
+    - generic [ref=e4]: loaded
+    - button "Clear Log" [ref=e5] [cursor=pointer]
+    - button "Mock Selection" [ref=e6] [cursor=pointer]
+    - generic [ref=e7]: 11 messages
+  - iframe [active] [ref=e8]:
+    - generic [ref=f2e3]:
+      - navigation "Workspaces" [ref=f2e4]:
+        - generic [ref=f2e5]:
+          - generic [ref=f2e8]:
+            - generic [ref=f2e511]:
+              - button "To" [ref=f2e512]
+              - tooltip "Tokens":
+                - generic: Tokens
+            - generic [ref=f2e513]:
+              - button "Re" [ref=f2e514]
+              - tooltip "Recipes":
+                - generic: Recipes
+            - generic [ref=f2e515]:
+              - button "Co" [ref=f2e516]
+              - tooltip "Collections":
+                - generic: Collections
+          - generic [ref=f2e14]:
+            - generic [ref=f2e518]:
+              - button "Se" [ref=f2e519]
+              - tooltip "Selection":
+                - generic: Selection
+            - generic [ref=f2e520]:
+              - button "Ca" [ref=f2e521]
+              - tooltip "Canvas":
+                - generic: Canvas
+          - generic [ref=f2e19]:
+            - generic [ref=f2e523]:
+              - button "Pu" [ref=f2e524]
+              - tooltip "Publish":
+                - generic: Publish
+            - generic [ref=f2e525]:
+              - button "Ex" [ref=f2e526]
+              - tooltip "Export":
+                - generic: Export
+            - generic [ref=f2e527]:
+              - button "Hi" [ref=f2e528]
+              - tooltip "History":
+                - generic: History
+            - generic [ref=f2e529]:
+              - button "He" [ref=f2e530]
+              - tooltip "Health":
+                - generic: Health
+          - generic [ref=f2e533]:
+            - button "Im" [ref=f2e534]
+            - tooltip "Import":
+              - generic: Import
+        - generic [ref=f2e32]:
+          - button "Expand sidebar" [ref=f2e535]:
+            - img [ref=f2e34]
+          - tooltip "Expand sidebar":
+            - generic: Expand sidebar
+      - generic [ref=f2e37]:
+        - generic [ref=f2e39]:
+          - generic [ref=f2e114]:
+            - generic "-0--color-primitives" [ref=f2e115]
+            - generic "-1--color-semantic-modes/ids-dark" [ref=f2e117]
+            - generic "-1--color-semantic-modes/ids-light" [ref=f2e119]
+            - generic "-2--color-semantic" [ref=f2e121]
+            - generic "color-component" [ref=f2e123]
+            - generic "constants/mobile" [ref=f2e125]
+            - generic "constants/tablet" [ref=f2e127]
+            - generic "constants/web" [ref=f2e129]
+            - generic "layout-component" [ref=f2e131]
+            - generic "primitives" [ref=f2e133]
+            - generic "tokenmanager" [ref=f2e135]
+          - generic [ref=f2e40]:
+            - button "Undo" [disabled]:
+              - img
+            - button "Redo" [disabled]:
+              - img
+        - generic [ref=f2e542]:
+          - generic [ref=f2e544]:
+            - img
+            - textbox "Search layers" [active] [ref=f2e545]:
+              - /placeholder: Search layers by name, type, or component…
+          - generic [ref=f2e548]:
+            - img [ref=f2e550]
+            - generic [ref=f2e553]:
+              - heading "No layer selected" [level=3] [ref=f2e554]
+              - generic [ref=f2e555]: Search above or select a layer on the canvas to inspect its token bindings.
+      - generic "Drag to resize" [ref=f2e102]:
+        - img [ref=f2e103]
+  - generic [ref=e9]: ⋯
+  - generic [ref=e10]:
+    - generic [ref=e11]: "[10:15:39.516] UI → get-available-fonts: {\"type\":\"get-available-fonts\"}"
+    - generic [ref=e12]: "[10:15:39.529] UI → resize: {\"type\":\"resize\",\"width\":960,\"height\":760}"
+    - generic [ref=e13]: "[10:15:39.529] UI → set-deep-inspect: {\"type\":\"set-deep-inspect\",\"enabled\":false}"
+    - generic [ref=e14]: "[10:15:39.529] UI → get-selection: {\"type\":\"get-selection\"}"
+    - generic [ref=e15]: "[10:15:39.530] UI → get-active-themes: {\"type\":\"get-active-themes\"}"
+    - generic [ref=e16]: "[10:15:39.541] ← UI selection: {\"type\":\"selection\",\"nodes\":[]}"
+    - generic [ref=e17]: "[10:15:39.541] ← UI active-themes-loaded: {\"type\":\"active-themes-loaded\",\"themes\":{}}"
+    - generic [ref=e18]: "[10:15:39.542] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"
+    - generic [ref=e19]: "[10:15:39.542] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"
+    - generic [ref=e20]: "[10:15:39.562] UI → scan-token-usage: {\"type\":\"scan-token-usage\"}"
+    - generic [ref=e21]: "[10:15:39.576] UI → set-active-themes: {\"type\":\"set-active-themes\",\"themes\":{}}"

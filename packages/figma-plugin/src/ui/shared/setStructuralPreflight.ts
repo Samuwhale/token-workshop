@@ -23,8 +23,6 @@ export interface SetPreflightImpact {
   tokenCount: number;
   metadata: {
     description?: string;
-    collectionName?: string;
-    modeName?: string;
   };
   resolverRefs: SetResolverImpact[];
   generatedOwnership: SetRecipeOwnershipImpact[];

@@ -8,8 +8,11 @@ import type {
   Token,
   TokenRecipe,
 } from "@tokenmanager/core";
-import type { TokenStore } from "./token-store.js";
-import type { SetMetadataState } from "./token-store.js";
+import type {
+  PublishRouteState,
+  SetMetadataState,
+  TokenStore,
+} from "./token-store.js";
 import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError, ConflictError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -157,19 +160,19 @@ function snapshotContainsTokenPath(
   return findSnapshotEntryForTokenPath(snapshot, tokenPath) !== undefined;
 }
 
-export interface SetMetadataChange {
-  field: keyof SetMetadataState;
-  label: "Description" | "Collection" | "Mode";
+export interface FieldChange {
+  field: string;
+  label: string;
   before?: string;
   after?: string;
 }
 
-export interface SetMetadataOperationMetadata {
-  kind: "set-metadata";
+export interface FieldChangeOperationMetadata {
+  kind: "set-metadata" | "publish-routing";
   name: string;
-  before: SetMetadataState;
-  after: SetMetadataState;
-  changes: SetMetadataChange[];
+  before: SetMetadataState | PublishRouteState;
+  after: SetMetadataState | PublishRouteState;
+  changes: FieldChange[];
 }
 
 /** Structural rollback step — executed before token restoration during rollback. */
@@ -182,6 +185,11 @@ export type RollbackStep =
       action: "write-set-metadata";
       name: string;
       metadata: Partial<SetMetadataState>;
+    }
+  | {
+      action: "write-publish-routing";
+      name: string;
+      routing: Partial<PublishRouteState>;
     }
   | {
       action: "write-themes";
@@ -202,6 +210,12 @@ export interface ThemesWriteLock {
     fn: (
       dims: ThemeDimension[],
     ) => Promise<{ dims: ThemeDimension[]; result: T }>,
+  ): Promise<T>;
+  withReadStateLock?<T>(
+    fn: (state: {
+      dimensions: ThemeDimension[];
+      views: ThemeViewPreset[];
+    }) => Promise<T>,
   ): Promise<T>;
   withStateLock?<T>(
     fn: (state: {
@@ -260,7 +274,7 @@ export interface OperationEntry {
    */
   pathRenames?: TokenPathRename[];
   /** Arbitrary metadata for the operation (e.g. set-metadata before/after). */
-  metadata?: SetMetadataOperationMetadata | Record<string, unknown>;
+  metadata?: FieldChangeOperationMetadata | Record<string, unknown>;
 }
 
 /** Lightweight version returned by the list endpoint (no snapshot data). */
@@ -585,16 +599,30 @@ export class OperationLog {
           });
           break;
         }
+        case "write-publish-routing": {
+          const current = ctx.tokenStore.getSetPublishRoute(step.name);
+          const routing: Partial<PublishRouteState> = {};
+          for (const field of Object.keys(step.routing) as Array<
+            keyof PublishRouteState
+          >) {
+            routing[field] = current[field];
+          }
+          inverse.push({
+            action: "write-publish-routing",
+            name: step.name,
+            routing,
+          });
+          break;
+        }
         case "write-themes": {
           let currentState: {
             dimensions: ThemeDimension[];
             views: ThemeViewPreset[];
           };
-          if (ctx.themesStore?.withStateLock) {
-            currentState = await ctx.themesStore.withStateLock(async (state) => ({
-              state,
-              result: structuredClone(state),
-            }));
+          if (ctx.themesStore?.withReadStateLock) {
+            currentState = await ctx.themesStore.withReadStateLock((state) =>
+              Promise.resolve(structuredClone(state)),
+            );
           } else if (ctx.themesStore) {
             const currentDims = await ctx.themesStore.withLock(async (dims) => ({
               dims,
@@ -696,6 +724,9 @@ export class OperationLog {
           break;
         case "write-set-metadata":
           await ctx.tokenStore.updateSetMetadata(step.name, step.metadata);
+          break;
+        case "write-publish-routing":
+          await ctx.tokenStore.updateSetPublishRoute(step.name, step.routing);
           break;
         case "write-themes":
           if (ctx.themesStore?.withStateLock) {

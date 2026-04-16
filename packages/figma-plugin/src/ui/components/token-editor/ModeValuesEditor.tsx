@@ -118,7 +118,7 @@ export function ModeValuesEditor({
     try {
       for (const modeName of modeNames) {
         await apiFetch(
-          `${serverUrl}/api/themes/dimensions/${encodeURIComponent(setName)}/options`,
+          `${serverUrl}/api/collections/${encodeURIComponent(setName)}/modes`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

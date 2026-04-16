@@ -254,7 +254,7 @@ function SetPreflightCard({
       )}
       {!hasDependencies ? (
         <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          No resolver or recipe dependencies detected.
+          No linked resolver or recipe dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
@@ -1903,8 +1903,8 @@ function ManageView({
                     )}
                     {onMerge && (
                       <StrokeIconButton
-                        title="Merge into another collection"
-                        ariaLabel="Merge into another collection"
+                        title="Copy tokens into another collection"
+                        ariaLabel="Copy tokens into another collection"
                         onClick={() => onMerge(set)}
                       >
                         <path d="M7 7h5a4 4 0 014 4v0" />
@@ -2389,7 +2389,7 @@ function SetMergeInline({
     <>
       <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
         <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-          Merge &ldquo;{mergingSet}&rdquo; into&hellip;
+          Copy tokens from &ldquo;{mergingSet}&rdquo; into&hellip;
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
@@ -2425,8 +2425,9 @@ function SetMergeInline({
             <span className="font-mono font-medium">{mergingSet}</span> will
             be added to{" "}
             <span className="font-mono font-medium">{mergeTargetSet}</span>.
-            Conflicts where both collections have the same path but different values
-            will be shown for resolution.
+            The source collection stays in place. Conflicts where the target already
+            has a different base value or different mode-authored values for the
+            same token path will be shown for resolution.
           </p>
         )}
         {mergeChecked && mergeConflicts.length === 0 && (
@@ -2467,7 +2468,9 @@ function SetMergeInline({
                       />
                       <div className="font-medium">Use source</div>
                       <div className="mt-0.5 break-all opacity-80">
-                        {String(conflict.sourceValue)}
+                        {typeof conflict.sourceValue === "object"
+                          ? JSON.stringify(conflict.sourceValue)
+                          : String(conflict.sourceValue)}
                       </div>
                     </label>
                     <label
@@ -2487,7 +2490,9 @@ function SetMergeInline({
                       />
                       <div className="font-medium">Keep target</div>
                       <div className="mt-0.5 break-all opacity-80">
-                        {String(conflict.targetValue)}
+                        {typeof conflict.targetValue === "object"
+                          ? JSON.stringify(conflict.targetValue)
+                          : String(conflict.targetValue)}
                       </div>
                     </label>
                   </div>
@@ -2518,7 +2523,7 @@ function SetMergeInline({
             disabled={mergeLoading || hasBlockingPreflight}
             className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
-            {mergeLoading ? "Merging…" : "Merge"}
+            {mergeLoading ? "Copying…" : "Copy tokens"}
           </button>
         )}
       </div>

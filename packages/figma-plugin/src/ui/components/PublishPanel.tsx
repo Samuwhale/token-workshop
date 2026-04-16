@@ -19,6 +19,7 @@ import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../h
 import { useNavigationContext } from '../contexts/NavigationContext';
 import { useResolverContext } from '../contexts/ThemeContext';
 import { apiFetch } from '../shared/apiFetch';
+import type { PublishRoutingDraft } from '../hooks/usePublishRouting';
 import type {
   ReadStyleToken,
   ReadVariableCollection,
@@ -75,6 +76,7 @@ const STYLE_MESSAGES: SyncMessages<
 };
 
 const DEFAULT_RESOLVER_COLLECTION_NAME = 'TokenManager';
+const DEFAULT_VARIABLE_COLLECTION_NAME = 'TokenManager';
 type CompareTarget = 'variables' | 'styles';
 
 interface ResolverPublishMappingDraft {
@@ -210,6 +212,10 @@ interface PublishPanelProps {
   activeSet: string;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
+  savePublishRouting: (
+    setName: string,
+    routing: PublishRoutingDraft,
+  ) => Promise<{ collectionName?: string; modeName?: string }>;
   refreshValidation: () => Promise<ValidationSnapshot | null>;
   /** Increments whenever tokens are edited — used to detect stale readiness results */
   tokenChangeKey?: number;
@@ -230,6 +236,7 @@ export function PublishPanel({
   activeSet,
   collectionMap = {},
   modeMap = {},
+  savePublishRouting,
   refreshValidation,
   tokenChangeKey,
   publishPanelHandle,
@@ -270,6 +277,9 @@ export function PublishPanel({
   const [resolverPublishSaving, setResolverPublishSaving] = useState(false);
   const [resolverPublishSyncing, setResolverPublishSyncing] = useState(false);
   const [resolverPublishError, setResolverPublishError] = useState<string | null>(null);
+  const [standardRoutingDraft, setStandardRoutingDraft] = useState<PublishRoutingDraft>({});
+  const [standardRoutingSaving, setStandardRoutingSaving] = useState(false);
+  const [standardRoutingError, setStandardRoutingError] = useState<string | null>(null);
 
   const sendResolverVariableApply = useFigmaMessage<{
     count: number;
@@ -380,9 +390,28 @@ export function PublishPanel({
     () => buildResolverPublishSyncMappings(resolverPublishRows),
     [resolverPublishRows],
   );
+  const savedCollectionName = collectionMap[activeSet] ?? '';
+  const savedModeName = modeMap[activeSet] ?? '';
+  const resolvedCollectionName =
+    savedCollectionName || DEFAULT_VARIABLE_COLLECTION_NAME;
+  const resolvedModeName = savedModeName || 'First Figma mode';
+  const standardRoutingDirty =
+    (standardRoutingDraft.collectionName ?? '') !== savedCollectionName ||
+    (standardRoutingDraft.modeName ?? '') !== savedModeName;
+  const standardRoutingStatusLabel =
+    savedCollectionName || savedModeName ? 'Custom' : 'Default';
+  const standardRoutingSummary = `${resolvedCollectionName} / ${resolvedModeName}`;
   const variableCompareMode: VariablePublishCompareMode =
     activeResolver && resolverPublishSyncMappings.length > 0 ? 'resolver-publish' : 'standard';
   const isResolverPublishCompareActive = variableCompareMode === 'resolver-publish';
+
+  useEffect(() => {
+    setStandardRoutingDraft({
+      collectionName: savedCollectionName,
+      modeName: savedModeName,
+    });
+    setStandardRoutingError(null);
+  }, [activeSet, savedCollectionName, savedModeName]);
 
   const updateResolverPublishDraft = useCallback(
     (key: string, field: keyof ResolverPublishMappingDraft, value: string) => {
@@ -440,6 +469,40 @@ export function PublishPanel({
     resolverPublishRows,
     updateResolver,
   ]);
+
+  const updateStandardRoutingDraft = useCallback(
+    (field: keyof PublishRoutingDraft, value: string) => {
+      setStandardRoutingDraft((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const resetStandardRoutingDraft = useCallback(() => {
+    setStandardRoutingDraft({
+      collectionName: savedCollectionName,
+      modeName: savedModeName,
+    });
+    setStandardRoutingError(null);
+  }, [savedCollectionName, savedModeName]);
+
+  const saveStandardRouting = useCallback(async () => {
+    setStandardRoutingSaving(true);
+    setStandardRoutingError(null);
+    try {
+      await savePublishRouting(activeSet, {
+        collectionName: standardRoutingDraft.collectionName?.trim() || undefined,
+        modeName: standardRoutingDraft.modeName?.trim() || undefined,
+      });
+      dispatchToast('Saved Figma publish target', 'success');
+    } catch (error) {
+      setStandardRoutingError(describeError(error));
+    } finally {
+      setStandardRoutingSaving(false);
+    }
+  }, [activeSet, savePublishRouting, standardRoutingDraft]);
 
 
   // ── Extracted hooks ──
@@ -559,9 +622,15 @@ export function PublishPanel({
     isReadinessOutdated,
   } = readiness;
 
-  const canProceedToCompare = !readinessLoading && !isReadinessOutdated && (preflightStage === 'advisory' || preflightStage === 'ready');
+  const canProceedToCompare =
+    !readinessLoading &&
+    !isReadinessOutdated &&
+    (preflightStage === 'advisory' || preflightStage === 'ready');
+  const canProceedToSync = canProceedToCompare && !standardRoutingDirty;
   const compareLockedMessage = !readinessChecks.length
     ? 'Run preflight once for the current token state before comparing Figma variables or styles.'
+    : standardRoutingDirty
+      ? 'Save the Figma publish target before comparing or applying changes.'
     : isReadinessOutdated
       ? 'Preflight results are outdated. Re-run preflight before comparing differences.'
       : readinessBlockingFails > 0
@@ -662,7 +731,7 @@ export function PublishPanel({
     styleSync,
     setConfirmAction,
     markChecksStale: stableMarkChecksStale,
-    canProceed: canProceedToCompare,
+    canProceed: canProceedToSync,
     blockedMessage: compareLockedMessage,
   });
 
@@ -693,11 +762,11 @@ export function PublishPanel({
     isOutdated: isReadinessOutdated,
     blockingCount: blockingReadinessChecks.length,
     advisoryCount: advisoryReadinessChecks.length,
-    canProceed: canProceedToCompare,
+    canProceed: canProceedToSync,
   }), [
     advisoryReadinessChecks.length,
     blockingReadinessChecks.length,
-    canProceedToCompare,
+    canProceedToSync,
     isReadinessOutdated,
     preflightStage,
   ]);
@@ -714,7 +783,7 @@ export function PublishPanel({
       id: 'variables' as const,
       label: isResolverPublishCompareActive ? 'Mapped variables' : 'Variables',
       sync: varSync,
-      badge: !canProceedToCompare
+      badge: !canProceedToSync
         ? 'Locked'
         : varSync.loading
           ? 'Comparing…'
@@ -728,7 +797,7 @@ export function PublishPanel({
       id: 'styles' as const,
       label: 'Styles',
       sync: styleSync,
-      badge: !canProceedToCompare
+      badge: !canProceedToSync
         ? 'Locked'
         : styleSync.loading
           ? 'Comparing…'
@@ -739,7 +808,7 @@ export function PublishPanel({
             : 'Not compared',
     },
   ], [
-    canProceedToCompare,
+    canProceedToSync,
     isResolverPublishCompareActive,
     styleSync,
     varSync,
@@ -754,6 +823,19 @@ export function PublishPanel({
     () => resolverPublishRows.filter((row) => row.sourceModeName.trim().length > 0).length,
     [resolverPublishRows],
   );
+  const standardRoutingShouldExpand =
+    standardRoutingDirty ||
+    standardRoutingSaving ||
+    standardRoutingError !== null;
+  const [standardRoutingExpanded, setStandardRoutingExpanded] = useState(
+    standardRoutingShouldExpand,
+  );
+  useEffect(() => {
+    if (standardRoutingShouldExpand) {
+      setStandardRoutingExpanded(true);
+    }
+  }, [standardRoutingShouldExpand]);
+
   const resolverRoutingShouldExpand =
     (activeResolver !== null && savedResolverPublishCount > 0) ||
     resolverPublishDirtyCount > 0 ||
@@ -781,11 +863,11 @@ export function PublishPanel({
       return;
     }
 
-    if (selectedStage === 'preflight' && canProceedToCompare) {
+    if (selectedStage === 'preflight' && canProceedToSync) {
       setSelectedStage('compare');
     }
   }, [
-    canProceedToCompare,
+    canProceedToSync,
     isReadinessOutdated,
     preflightStage,
     readinessLoading,
@@ -907,14 +989,14 @@ export function PublishPanel({
   // ── Broadcast pending count to Sync tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
   useEffect(() => {
-    const varCount = canProceedToCompare && varSync.checked && !isResolverPublishCompareActive ? varSync.syncCount : 0;
-    const styleCount = canProceedToCompare && styleSync.checked ? styleSync.syncCount : 0;
+    const varCount = canProceedToSync && varSync.checked && !isResolverPublishCompareActive ? varSync.syncCount : 0;
+    const styleCount = canProceedToSync && styleSync.checked ? styleSync.syncCount : 0;
     window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: varCount + styleCount } }));
     return () => {
       window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: 0 } }));
     };
   }, [
-    canProceedToCompare,
+    canProceedToSync,
     isResolverPublishCompareActive,
     varSync.checked,
     varSync.syncCount,
@@ -950,14 +1032,14 @@ export function PublishPanel({
 
   const compareCardState = useMemo(
     () => buildCompareCardState({
-      canProceed: canProceedToCompare,
+      canProceed: canProceedToSync,
       compareLoading: compareAllLoading || varSync.loading || styleSync.loading,
       hasComparedAnything,
       totalDiffCount,
       totalConflictCount,
     }),
     [
-      canProceedToCompare,
+      canProceedToSync,
       compareAllLoading,
       hasComparedAnything,
       styleSync.loading,
@@ -969,7 +1051,7 @@ export function PublishPanel({
 
   const applyCardState = useMemo(
     () => buildApplyCardState({
-      canProceed: canProceedToCompare,
+      canProceed: canProceedToSync,
       hasComparedAnything,
       isResolverPublishCompareActive,
       hasResolverVariableCompare: isResolverPublishCompareActive && varSync.checked,
@@ -978,7 +1060,7 @@ export function PublishPanel({
       publishAllAvailable,
     }),
     [
-      canProceedToCompare,
+      canProceedToSync,
       hasComparedAnything,
       isResolverPublishCompareActive,
       publishAllAvailable,
@@ -1037,19 +1119,39 @@ export function PublishPanel({
             </WorkflowStage>
           </div>
 
+          <DisclosureSection
+            title="Figma publish target"
+            summary={standardRoutingSummary}
+            expanded={standardRoutingExpanded}
+            onToggle={() => setStandardRoutingExpanded((current) => !current)}
+            statusLabel={standardRoutingStatusLabel}
+            statusSeverity={standardRoutingDirty ? 'warning' : 'info'}
+          >
+            <StandardPublishRoutingCard
+              activeSet={activeSet}
+              draft={standardRoutingDraft}
+              dirty={standardRoutingDirty}
+              saving={standardRoutingSaving}
+              error={standardRoutingError}
+              onFieldChange={updateStandardRoutingDraft}
+              onReset={resetStandardRoutingDraft}
+              onSave={() => void saveStandardRouting()}
+            />
+          </DisclosureSection>
+
           <div ref={compareRef}>
             <WorkflowStage
               title="Compare"
-              expanded={canProceedToCompare && selectedStage === 'compare'}
+              expanded={canProceedToSync && selectedStage === 'compare'}
               onSelect={() => {
-                if (canProceedToCompare) {
+                if (canProceedToSync) {
                   setSelectedStage('compare');
                 }
               }}
               statusSeverity={compareCardState.severity}
               statusLabel={compareCardState.label}
-              disabled={!canProceedToCompare}
-              action={canProceedToCompare ? (
+              disabled={!canProceedToSync}
+              action={canProceedToSync ? (
                 <button
                   onClick={() => void handleCompareTargets()}
                   disabled={compareAllLoading || varSync.loading || styleSync.loading}
@@ -1114,16 +1216,16 @@ export function PublishPanel({
           <div ref={applyRef}>
             <WorkflowStage
               title="Apply"
-              expanded={canProceedToCompare && selectedStage === 'apply'}
+              expanded={canProceedToSync && selectedStage === 'apply'}
               onSelect={() => {
-                if (canProceedToCompare) {
+                if (canProceedToSync) {
                   setSelectedStage('apply');
                 }
               }}
               statusSeverity={applyCardState.severity}
               statusLabel={applyCardState.label}
-              disabled={!canProceedToCompare}
-              action={canProceedToCompare && (publishAllAvailable || quickSyncing || publishAllBusy || hasComparedAnything) ? (
+              disabled={!canProceedToSync}
+              action={canProceedToSync && (publishAllAvailable || quickSyncing || publishAllBusy || hasComparedAnything) ? (
                 <button
                   onClick={() => void handleOpenApplyReview()}
                   disabled={compareAllLoading || publishAllBusy || quickSyncing || !publishAllAvailable}
@@ -1241,6 +1343,108 @@ export function PublishPanel({
       </ConfirmModal>
     )}
     </>
+  );
+}
+
+function StandardPublishRoutingCard({
+  activeSet,
+  draft,
+  dirty,
+  saving,
+  error,
+  onFieldChange,
+  onReset,
+  onSave,
+}: {
+  activeSet: string;
+  draft: PublishRoutingDraft;
+  dirty: boolean;
+  saving: boolean;
+  error: string | null;
+  onFieldChange: (field: keyof PublishRoutingDraft, value: string) => void;
+  onReset: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+            {activeSet}
+          </div>
+          <p className="mt-1 max-w-[520px] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+            Choose where this collection publishes in Figma variables. This only
+            changes the Figma destination, never the authored modes in your token
+            files.
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onReset}
+            disabled={saving || !dirty}
+            className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving || !dirty}
+            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : dirty ? 'Save target' : 'Saved'}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="flex min-w-0 flex-col gap-1.5">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Figma collection
+          </span>
+          <input
+            type="text"
+            value={draft.collectionName ?? ''}
+            onChange={(event) =>
+              onFieldChange('collectionName', event.target.value)
+            }
+            placeholder={DEFAULT_VARIABLE_COLLECTION_NAME}
+            disabled={saving}
+            className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+          />
+        </label>
+
+        <label className="flex min-w-0 flex-col gap-1.5">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            Figma mode
+          </span>
+          <input
+            type="text"
+            value={draft.modeName ?? ''}
+            onChange={(event) => onFieldChange('modeName', event.target.value)}
+            placeholder="First Figma mode"
+            disabled={saving}
+            className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+          />
+        </label>
+      </div>
+
+      <div className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+        Leave the collection blank to publish into{' '}
+        <span className="text-[var(--color-figma-text)]">
+          {DEFAULT_VARIABLE_COLLECTION_NAME}
+        </span>
+        . Leave the mode blank to target the first mode in that Figma collection.
+      </div>
+
+      {dirty ? (
+        <NoticeBanner severity="warning">
+          Save this target before comparing or applying variable changes.
+        </NoticeBanner>
+      ) : null}
+      {error ? <NoticeBanner severity="error">{error}</NoticeBanner> : null}
+    </div>
   );
 }
 

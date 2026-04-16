@@ -121,15 +121,13 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
             $description?: string;
           };
         }> = [];
-        const metadataChanges =
-          entry.metadata?.kind === "set-metadata" &&
-          Array.isArray(entry.metadata.changes)
-            ? entry.metadata.changes.map((change) => ({
-                ...change,
-                before: change.after,
-                after: change.before,
-              }))
-            : [];
+        const metadataChanges = Array.isArray(entry.metadata?.changes)
+          ? entry.metadata.changes.map((change) => ({
+              ...change,
+              before: change.after,
+              after: change.before,
+            }))
+          : [];
         for (const p of allPaths) {
           const currentEntry = entry.afterSnapshot[p];
           const restoredEntry = entry.beforeSnapshot[p];

@@ -86,10 +86,10 @@ export function useThemeSwitcher(
       return;
     }
     setThemesError(null);
-    apiFetch<{ dimensions?: ThemeDimension[]; collections?: ThemeDimension[] }>(`${serverUrl}/api/themes`, { signal: createFetchSignal(signal) })
+    apiFetch<{ collections?: ThemeDimension[] }>(`${serverUrl}/api/collections`, { signal: createFetchSignal(signal) })
       .then(data => {
         if (signal.aborted) return;
-        const all: ThemeDimension[] = data.collections || data.dimensions || [];
+        const all: ThemeDimension[] = data.collections || [];
         setDimensions(all);
         if (!figmaThemesReadyRef.current) {
           // Figma clientStorage hasn't responded yet. Defer the prune so we don't clobber
@@ -109,7 +109,7 @@ export function useThemeSwitcher(
       })
       .catch(err => {
         if (signal.aborted) return;
-        setThemesError(getErrorMessage(err, 'Failed to load themes'));
+        setThemesError(getErrorMessage(err, 'Failed to load collections'));
       });
   }, [connected, serverUrl, setActiveThemes]);
 

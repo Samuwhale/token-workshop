@@ -3,19 +3,15 @@ import {
   flattenTokenGroup,
   isDTCGToken,
   type DTCGToken,
-  type ResolverFile,
-  type ResolverModifier,
-  type ResolverSet,
-  type ResolverSource,
   type Token,
   type TokenGroup,
   type ThemeDimension,
   type ThemeViewPreset,
 } from "@tokenmanager/core";
 import type {
+  FieldChange,
+  FieldChangeOperationMetadata,
   RollbackStep,
-  SetMetadataChange,
-  SetMetadataOperationMetadata,
 } from "../services/operation-log.js";
 import type { SetMetadataState } from "../services/token-store.js";
 import { handleRouteError } from "../errors.js";
@@ -66,8 +62,6 @@ interface SetPreflightImpact {
   tokenCount: number;
   metadata: {
     description?: string;
-    collectionName?: string;
-    modeName?: string;
   };
   resolverRefs: SetResolverImpact[];
   generatedOwnership: SetRecipeOwnershipImpact[];
@@ -342,6 +336,84 @@ function copyCollectionModesToNewCollection(
   return nextModes;
 }
 
+function prepareTokenForCollectionMerge(
+  token: Token,
+  sourceCollection: string,
+  targetCollection: string,
+): Token {
+  const sanitized = stripGeneratedOwnershipFromToken(
+    structuredClone(token as DTCGToken),
+  );
+  const nextModes = copyCollectionModesToNewCollection(
+    readTokenModes(sanitized),
+    sourceCollection,
+    targetCollection,
+  );
+  if (nextModes) {
+    writeTokenModes(sanitized, nextModes);
+  }
+  return sanitized;
+}
+
+function mergeIncomingModesIntoTargetToken(params: {
+  targetToken: Token;
+  incomingToken: Token;
+  targetCollection: string;
+}): {
+  token: Token;
+  changed: boolean;
+  conflict: boolean;
+  incomingModeValues: Record<string, unknown>;
+  targetModeValues: Record<string, unknown>;
+} {
+  const { targetToken, incomingToken, targetCollection } = params;
+  const incomingModes = readTokenModes(incomingToken);
+  const incomingCollectionModes = incomingModes[targetCollection];
+  if (!incomingCollectionModes) {
+    return {
+      token: structuredClone(targetToken),
+      changed: false,
+      conflict: false,
+      incomingModeValues: {},
+      targetModeValues: {},
+    };
+  }
+
+  const nextToken = structuredClone(targetToken);
+  const nextModes = readTokenModes(nextToken);
+  const existingCollectionModes = {
+    ...(nextModes[targetCollection] ?? {}),
+  };
+
+  for (const [modeName, incomingValue] of Object.entries(incomingCollectionModes)) {
+    if (
+      modeName in existingCollectionModes &&
+      stableStringify(existingCollectionModes[modeName]) !==
+        stableStringify(incomingValue)
+    ) {
+      return {
+        token: nextToken,
+        changed: false,
+        conflict: true,
+        incomingModeValues: structuredClone(incomingCollectionModes),
+        targetModeValues: structuredClone(existingCollectionModes),
+      };
+    }
+    existingCollectionModes[modeName] = structuredClone(incomingValue);
+  }
+
+  nextModes[targetCollection] = existingCollectionModes;
+  writeTokenModes(nextToken, nextModes);
+
+  return {
+    token: nextToken,
+    changed: true,
+    conflict: false,
+    incomingModeValues: structuredClone(incomingCollectionModes),
+    targetModeValues: structuredClone(existingCollectionModes),
+  };
+}
+
 function rewriteTokenGroupCollectionModes(
   tokens: TokenGroup,
   rewrite: (modes: TokenModeMap) => TokenModeMap | null,
@@ -512,81 +584,6 @@ function buildRecipeTargets(
     .sort((a, b) => a.recipeName.localeCompare(b.recipeName));
 }
 
-function rewriteResolverSourcesWithoutDeletedSets(params: {
-  sources: ResolverSource[];
-  deletedSetNames: Set<string>;
-}): { sources: ResolverSource[]; changed: boolean } {
-  const { sources, deletedSetNames } = params;
-  let changed = false;
-
-  const nextSources = sources.flatMap((source) => {
-    if (
-      !("$ref" in source) ||
-      typeof source.$ref !== "string" ||
-      source.$ref.startsWith("#/")
-    ) {
-      return [source];
-    }
-
-    const refSetName = source.$ref.endsWith(".tokens.json")
-      ? source.$ref.slice(0, -".tokens.json".length)
-      : source.$ref;
-    if (!deletedSetNames.has(refSetName)) {
-      return [source];
-    }
-
-    changed = true;
-    return [];
-  });
-
-  return { sources: nextSources, changed };
-}
-
-function removeResolverSetReferences(params: {
-  file: ResolverFile;
-  deletedSetNames: Set<string>;
-}): { file: ResolverFile; changed: boolean } {
-  const { file, deletedSetNames } = params;
-  const nextFile = structuredClone(file);
-  let changed = false;
-
-  if (nextFile.sets) {
-    for (const entry of Object.values(nextFile.sets) as ResolverSet[]) {
-      const rewritten = rewriteResolverSourcesWithoutDeletedSets({
-        sources: entry.sources,
-        deletedSetNames,
-      });
-      if (!rewritten.changed) {
-        continue;
-      }
-      entry.sources = rewritten.sources;
-      changed = true;
-    }
-  }
-
-  if (nextFile.modifiers) {
-    for (const modifier of Object.values(
-      nextFile.modifiers,
-    ) as ResolverModifier[]) {
-      for (const [contextName, sources] of Object.entries(
-        modifier.contexts,
-      ) as Array<[string, ResolverSource[]]>) {
-        const rewritten = rewriteResolverSourcesWithoutDeletedSets({
-          sources,
-          deletedSetNames,
-        });
-        if (!rewritten.changed) {
-          continue;
-        }
-        modifier.contexts[contextName] = rewritten.sources;
-        changed = true;
-      }
-    }
-  }
-
-  return { file: nextFile, changed };
-}
-
 function buildTokenGroupFromSnapshot(
   snapshot: Record<string, SnapshotEntry>,
   setName: string,
@@ -627,7 +624,9 @@ function buildSetImpact(params: {
   return {
     name: setName,
     tokenCount: flattenTokenGroup(tokens).size,
-    metadata,
+    metadata: {
+      description: metadata.description,
+    },
     resolverRefs: resolvers
       .filter((resolver) => resolver.referencedSets.includes(setName))
       .map((resolver) => ({ name: resolver.name }))
@@ -681,6 +680,8 @@ function buildGeneratedOwnershipBlockers(
 function buildMergeConflicts(
   sourceTokens: TokenGroup,
   targetTokens: TokenGroup,
+  sourceCollection: string,
+  targetCollection: string,
 ): SetMergeConflict[] {
   const sourceFlat = Object.fromEntries(flattenTokenGroup(sourceTokens));
   const targetFlat = Object.fromEntries(flattenTokenGroup(targetTokens));
@@ -688,14 +689,33 @@ function buildMergeConflicts(
   for (const [path, sourceToken] of Object.entries(sourceFlat)) {
     const targetToken = targetFlat[path];
     if (!targetToken) continue;
+    const incomingToken = prepareTokenForCollectionMerge(
+      sourceToken as unknown as Token,
+      sourceCollection,
+      targetCollection,
+    );
     if (
-      stableStringify(sourceToken.$value) !==
+      stableStringify(incomingToken.$value) !==
       stableStringify(targetToken.$value)
     ) {
       conflicts.push({
         path,
-        sourceValue: sourceToken.$value,
+        sourceValue: incomingToken.$value,
         targetValue: targetToken.$value,
+      });
+      continue;
+    }
+
+    const merged = mergeIncomingModesIntoTargetToken({
+      targetToken: targetToken as unknown as Token,
+      incomingToken,
+      targetCollection,
+    });
+    if (merged.conflict) {
+      conflicts.push({
+        path,
+        sourceValue: merged.incomingModeValues,
+        targetValue: merged.targetModeValues,
       });
     }
   }
@@ -779,16 +799,6 @@ function buildRemovalBlockers(
   ];
 }
 
-function listMetadataFields(
-  metadata: SetPreflightImpact["metadata"],
-): string[] {
-  const fields: string[] = [];
-  if (metadata.description) fields.push("description");
-  if (metadata.collectionName) fields.push("collection");
-  if (metadata.modeName) fields.push("mode");
-  return fields;
-}
-
 function buildPreflightWarnings(params: {
   operation: SetStructuralOperation;
   source: SetPreflightImpact;
@@ -804,15 +814,6 @@ function buildPreflightWarnings(params: {
     splitPreview,
   } = params;
   const warnings: string[] = [];
-
-  if (operation === "delete") {
-    const metadataFields = listMetadataFields(source.metadata);
-    if (metadataFields.length > 0) {
-      warnings.push(
-        `Deleting "${source.name}" also removes its Figma ${metadataFields.join(", ")} metadata.`,
-      );
-    }
-  }
 
   if (operation === "merge") {
     if (source.generatedOwnership.length > 0) {
@@ -835,11 +836,6 @@ function buildPreflightWarnings(params: {
           `Generated tokens copied into the new split sets become regular tokens there so the original recipe keeps owning only "${source.name}".`,
         );
       }
-      if (listMetadataFields(source.metadata).length > 0) {
-        warnings.push(
-          `Split does not copy the original set's Figma metadata onto the new sets.`,
-        );
-      }
     }
   }
 
@@ -848,19 +844,6 @@ function buildPreflightWarnings(params: {
 
 export const setRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
-  const METADATA_FIELD_CONFIG: Array<{
-    bodyKey: "description" | "figmaCollection" | "figmaMode";
-    field: keyof SetMetadataState;
-    label: SetMetadataChange["label"];
-  }> = [
-    { bodyKey: "description", field: "description", label: "Description" },
-    {
-      bodyKey: "figmaCollection",
-      field: "collectionName",
-      label: "Collection",
-    },
-    { bodyKey: "figmaMode", field: "modeName", label: "Mode" },
-  ];
 
   const rewriteResolverSetReferences = (oldName: string, newName: string) =>
     fastify.resolverLock.withLock(() =>
@@ -1033,9 +1016,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       const sets = await fastify.tokenStore.getSets();
       const descriptions = fastify.tokenStore.getSetDescriptions();
       const counts = fastify.tokenStore.getSetCounts();
-      const collectionNames = fastify.tokenStore.getSetCollectionNames();
-      const modeNames = fastify.tokenStore.getSetModeNames();
-      return { sets, descriptions, counts, collectionNames, modeNames };
+      return { sets, descriptions, counts };
     } catch (err) {
       return handleRouteError(reply, err, "Failed to list sets");
     }
@@ -1108,38 +1089,39 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // PATCH /api/sets/:name/metadata — update set description, figma collection name, and/or figma mode name
+  // PATCH /api/sets/:name/metadata — update set description
   fastify.patch<{
     Params: { name: string };
     Body: {
       description?: string;
-      figmaCollection?: string;
-      figmaMode?: string;
     };
   }>("/sets/:name/metadata", async (request, reply) => {
     const { name } = request.params;
     const body = request.body || {};
+    const bodyKeys = Object.keys(body);
+    if (bodyKeys.some((key) => key !== "description")) {
+      return reply.status(400).send({
+        error: "Only the description can be updated from collection metadata",
+      });
+    }
     return withLock(async () => {
       try {
-        const touchedFields = METADATA_FIELD_CONFIG.filter(({ bodyKey }) =>
-          Object.prototype.hasOwnProperty.call(body, bodyKey),
-        );
-        if (touchedFields.length === 0) {
+        if (!Object.prototype.hasOwnProperty.call(body, "description")) {
           const current = fastify.tokenStore.getSetMetadata(name);
           return { ok: true, name, ...current, changed: false };
         }
 
         const beforeMeta = fastify.tokenStore.getSetMetadata(name);
         const patch: Partial<SetMetadataState> = {};
-        const changes: SetMetadataChange[] = [];
-        for (const { bodyKey, field, label } of touchedFields) {
-          const nextValue = body[bodyKey]?.trim() || undefined;
-          patch[field] = nextValue;
-          if (beforeMeta[field] !== nextValue) {
+        const changes: FieldChange[] = [];
+        if (Object.prototype.hasOwnProperty.call(body, "description")) {
+          const nextValue = body.description?.trim() || undefined;
+          patch.description = nextValue;
+          if (beforeMeta.description !== nextValue) {
             changes.push({
-              field,
-              label,
-              before: beforeMeta[field],
+              field: "description",
+              label: "Description",
+              before: beforeMeta.description,
               after: nextValue,
             });
           }
@@ -1153,12 +1135,14 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         const afterMeta = fastify.tokenStore.getSetMetadata(name);
         const rollbackMetadata = changes.reduce<Partial<SetMetadataState>>(
           (acc, change) => {
-            acc[change.field] = change.before;
+            if (change.field === "description") {
+              acc.description = change.before;
+            }
             return acc;
           },
           {},
         );
-        const metadata: SetMetadataOperationMetadata = {
+        const metadata: FieldChangeOperationMetadata = {
           kind: "set-metadata",
           name,
           before: beforeMeta,
@@ -1604,8 +1588,6 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         let beforeSnapshot: Record<string, SnapshotEntry> | null = null;
         const deletedSetNames: string[] = [];
-        const previousResolverFiles: Record<string, ResolverFile> = {};
-        let changedResolverNames: string[] = [];
         let themeStateChanged = false;
         const previousThemeState = await loadCollectionModeState();
 
@@ -1618,43 +1600,22 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
               .send({ error: `Folder "${folder}" not found` });
           }
 
-          const deletedSetNameSet = new Set(folderSetNames);
           const dependencySnapshot =
             await loadSetDependencySnapshot(folderSetNames);
           const blockers = buildRemovalBlockersForSetNames(
             dependencySnapshot,
             folderSetNames,
-            new Set<SetPreflightBlockerCode>(["resolver-set-ref"]),
           );
           if (blockers.length > 0) {
             return reply.status(409).send({
               error:
                 blockers[0]?.message ??
-                `Cannot delete folder "${folder}" because dependent recipe state still references its sets.`,
+                `Cannot delete folder "${folder}" because dependent state still references its collections.`,
               blockers,
             });
           }
 
           beforeSnapshot = await snapshotSets(fastify.tokenStore, folderSetNames);
-          await fastify.resolverLock.withLock(async () => {
-            const resolverFiles = fastify.resolverStore.getAllFiles();
-            const nextChangedResolverNames: string[] = [];
-            for (const [name, file] of Object.entries(resolverFiles)) {
-              const rewritten = removeResolverSetReferences({
-                file,
-                deletedSetNames: deletedSetNameSet,
-              });
-              if (!rewritten.changed) {
-                continue;
-              }
-              previousResolverFiles[name] = structuredClone(file);
-              await fastify.resolverStore.update(name, rewritten.file);
-              nextChangedResolverNames.push(name);
-            }
-            changedResolverNames = nextChangedResolverNames.sort((a, b) =>
-              a.localeCompare(b),
-            );
-          });
 
           for (const setName of folderSetNames) {
             await fastify.tokenStore.deleteSet(setName);
@@ -1675,17 +1636,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 action: "create-set" as const,
                 name: setName,
               })),
-              ...changedResolverNames.map((name) => ({
-                action: "write-resolver" as const,
-                name,
-                file: previousResolverFiles[name],
-              })),
               buildThemesRollbackStep(previousThemeState),
             ],
             metadata: {
               folder,
               deletedSets: folderSetNames,
-              changedResolvers: changedResolverNames,
             },
           });
 
@@ -1708,18 +1663,6 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           }
           if (themeStateChanged) {
             await restoreCollectionModeState(previousThemeState).catch(() => {});
-          }
-          if (changedResolverNames.length > 0) {
-            await fastify.resolverLock
-              .withLock(async () => {
-                for (const name of changedResolverNames) {
-                  await fastify.resolverStore.update(
-                    name,
-                    previousResolverFiles[name],
-                  );
-                }
-              })
-              .catch(() => {});
           }
           return handleRouteError(reply, err, "Failed to delete folder");
         }
@@ -1875,7 +1818,12 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             .send({ error: `Token set "${targetSet}" not found` });
         }
 
-        const conflicts = buildMergeConflicts(sourceSet.tokens, target.tokens);
+        const conflicts = buildMergeConflicts(
+          sourceSet.tokens,
+          target.tokens,
+          name,
+          targetSet,
+        );
         const conflictMap = new Map(
           conflicts.map((conflict) => [conflict.path, conflict]),
         );
@@ -1896,17 +1844,39 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         beforeTargetTokens = structuredClone(target.tokens);
         const targetFlat = new Map(flattenTokenGroup(target.tokens));
         for (const [tokenPath, token] of flattenTokenGroup(sourceSet.tokens)) {
+          const incomingToken = prepareTokenForCollectionMerge(
+            token as unknown as Token,
+            name,
+            targetSet,
+          );
           const conflict = conflictMap.get(tokenPath);
           if (conflict && resolutions[tokenPath] !== "source") {
             continue;
           }
-          if (!conflict && targetFlat.has(tokenPath)) {
+          if (conflict) {
+            setTokenAtPath(nextTargetTokens, tokenPath, incomingToken);
             continue;
           }
-          const sanitized = stripGeneratedOwnershipFromToken(
-            structuredClone(token),
-          );
-          setTokenAtPath(nextTargetTokens, tokenPath, sanitized);
+
+          const existingTargetToken = targetFlat.get(tokenPath);
+          if (!existingTargetToken) {
+            setTokenAtPath(nextTargetTokens, tokenPath, incomingToken);
+            continue;
+          }
+
+          const merged = mergeIncomingModesIntoTargetToken({
+            targetToken: existingTargetToken as unknown as Token,
+            incomingToken,
+            targetCollection: targetSet,
+          });
+          if (merged.conflict) {
+            return reply.status(409).send({
+              error: `Merge conflict at "${tokenPath}" changed while merging. Re-check conflicts and try again.`,
+            });
+          }
+          if (merged.changed) {
+            setTokenAtPath(nextTargetTokens, tokenPath, merged.token);
+          }
         }
 
         const beforeSnapshot = await snapshotSet(fastify.tokenStore, targetSet);
@@ -2206,6 +2176,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           ? buildMergeConflicts(
               sourceSet.tokens,
               dependencySnapshot.setsByName.get(targetSet)?.tokens ?? {},
+              name,
+              targetSet,
             )
           : [];
       const warnings = buildPreflightWarnings({

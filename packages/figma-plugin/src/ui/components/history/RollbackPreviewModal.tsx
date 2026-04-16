@@ -17,8 +17,8 @@ interface RollbackPreviewModalProps {
 }
 
 interface MetadataDiff {
-  field: 'description' | 'collectionName' | 'modeName';
-  label: 'Description' | 'Collection' | 'Mode';
+  field: string;
+  label: string;
   before?: string;
   after?: string;
 }

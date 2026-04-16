@@ -621,10 +621,7 @@ export class ManualSnapshotStore {
   ): Promise<ManualSnapshotEntry> {
     const [data, themeState, resolvers, recipes] = await Promise.all([
       this.captureTokenSets(tokenStore),
-      dimensionsStore.withStateLock(async (state) => ({
-        state,
-        result: structuredClone(state),
-      })),
+      dimensionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
       this.captureCurrentResolvers(resolverStore),
       recipeService.getAllById(),
     ]);
@@ -983,10 +980,7 @@ export class ManualSnapshotStore {
   ): Promise<RestoreWorkspaceState> {
     const [setNames, themeState, resolvers, recipes] = await Promise.all([
       tokenStore.getSets(),
-      dimensionsStore.withStateLock(async (state) => ({
-        state,
-        result: structuredClone(state),
-      })),
+      dimensionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
       this.captureCurrentResolvers(resolverStore),
       recipeService.getAllById(),
     ]);
@@ -1157,10 +1151,9 @@ export class ManualSnapshotStore {
       const currentThemeState =
         baseline.views !== undefined
           ? { dimensions: baseline.dimensions, views: baseline.views }
-          : await dimensionsStore.withStateLock(async (state) => ({
-              state,
-              result: structuredClone(state),
-            }));
+          : await dimensionsStore.withReadStateLock((state) =>
+              Promise.resolve(structuredClone(state)),
+            );
       const resolvedBaseline =
         baseline.views !== undefined
           ? baseline

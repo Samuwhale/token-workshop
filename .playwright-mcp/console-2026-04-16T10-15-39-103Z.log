@@ -1,0 +1,746 @@
+[  917434ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[  924559ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[  983097ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[  986113ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[  992028ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[  995048ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[  997326ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1000344ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1007028ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1010051ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1012425ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1015443ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1057727ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1060752ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1062817ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1065830ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1082144ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1085165ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1127568ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1130589ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1135139ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1135425ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 1135425ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 1140431ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1140446ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140446ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140446ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140446ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140447ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140447ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140447ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140447ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140447ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140447ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1140463ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1145115ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1145425ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 1145425ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 1150437ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1150468ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150468ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1150475ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1150513ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1150513ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/sync/status:0
+[ 1150513ms] [WARNING] [ConnectionProvider] git status check failed: TypeError: Failed to fetch
+    at apiFetch (http://localhost:3200/dist/ui.html:8787:23)
+    at check (http://localhost:3200/dist/ui.html:9340:30)
+    at http://localhost:3200/dist/ui.html:9349:7
+    at Qj (http://localhost:3200/dist/ui.html:5001:25)
+    at Hk (http://localhost:3200/dist/ui.html:6236:23)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9345
+[ 1153523ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1185313ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1185426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 1185426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 1190438ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1190449ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190449ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1190456ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1213966ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1216985ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1223342ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1226359ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1557423ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1560440ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1595542ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1598568ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1615257ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1615422ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 1615422ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 1620434ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1620446ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620446ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620446ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620446ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620446ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620447ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620447ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620447ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620447ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620447ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 1620458ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1630550ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1633570ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1660471ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1663491ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 1718518ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 1721539ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2364957ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2365425ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 2365425ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 2370432ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2370444ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370444ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2370454ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2390892ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2393911ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2394850ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2395426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 2395426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 2400440ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2400490ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400490ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400490ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400490ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400490ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400490ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400491ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400491ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400491ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400491ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2400500ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2401727ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2404746ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2410613ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2413635ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2421461ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2424475ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2425519ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2428533ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2450738ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2453763ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2455180ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2455426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 2455426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 2460435ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2460447ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460447ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460447ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460447ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460447ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460448ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460448ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460448ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460448ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460448ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2460452ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2674708ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 2675428ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 2675428ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 2680437ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 2680489ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680489ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680489ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680490ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680490ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680490ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680490ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680490ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680490ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680490ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 2680518ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0

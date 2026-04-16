@@ -19,6 +19,7 @@ import { TokenDetailPreview } from "../components/TokenDetailPreview";
 import { ThemeManager } from "../components/ThemeManager";
 import { SetManager } from "../components/SetSwitcher";
 import { PublishPanel } from "../components/PublishPanel";
+import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 import { ImportPanel } from "../components/ImportPanel";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import { SelectionInspector } from "../components/SelectionInspector";
@@ -116,7 +117,18 @@ function resolveCreateLauncherPath(initialPath?: string): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export function PanelRouter(): ReactNode {
+export function PanelRouter({
+  collectionMap,
+  modeMap,
+  savePublishRouting,
+}: {
+  collectionMap: Record<string, string>;
+  modeMap: Record<string, string>;
+  savePublishRouting: (
+    setName: string,
+    routing: PublishRoutingDraft,
+  ) => Promise<{ collectionName?: string; modeName?: string }>;
+}): ReactNode {
   const shell = useShellWorkspaceController();
   const editorShell = useEditorShellController();
   const tokensController = useTokensWorkspaceController();
@@ -205,8 +217,6 @@ export function PanelRouter(): ReactNode {
     tokens,
     setTokenCounts,
     setDescriptions,
-    setCollectionNames,
-    setModeNames,
     fetchError,
     refreshTokens,
   } = useTokenSetsContext();
@@ -882,8 +892,8 @@ export function PanelRouter(): ReactNode {
           tokenUsageCounts,
           cascadeDiff: controller.cascadeDiff ?? undefined,
           perSetFlat,
-          collectionMap: setCollectionNames,
-          modeMap: setModeNames,
+          collectionMap,
+          modeMap,
           dimensions,
           unthemedAllTokensFlat: allTokensFlat,
           pathToSet,
@@ -1484,8 +1494,9 @@ export function PanelRouter(): ReactNode {
           serverUrl={serverUrl}
           connected={connected}
           activeSet={activeSet}
-          collectionMap={setCollectionNames}
-          modeMap={setModeNames}
+          collectionMap={collectionMap}
+          modeMap={modeMap}
+          savePublishRouting={savePublishRouting}
           refreshValidation={controller.refreshValidation}
           tokenChangeKey={controller.tokenChangeKey}
           publishPanelHandle={controller.publishPanelHandleRef}

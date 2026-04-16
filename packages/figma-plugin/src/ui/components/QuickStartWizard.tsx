@@ -49,7 +49,7 @@ interface TaskDef {
 const TASKS: TaskDef[] = [
   { id: 'foundations', label: 'Recipes', description: 'Color, spacing, or type recipe' },
   { id: 'semantics', label: 'Semantics', description: 'Map aliases to foundations' },
-  { id: 'modes', label: 'Modes', description: 'Light/dark mode support' },
+  { id: 'modes', label: 'Modes', description: 'Add collection-owned modes' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -177,40 +177,31 @@ function CreateSetStep({ serverUrl, onCreated }: {
 // Theme Step (inline)
 // ---------------------------------------------------------------------------
 
-function ThemeStep({ serverUrl, onDone, onSkip }: {
+function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
   serverUrl: string;
+  activeSet: string;
   onDone: () => void;
   onSkip: () => void;
 }) {
-  const [dimName, setDimName] = useState('Color Mode');
   const [lightName, setLightName] = useState('Light');
   const [darkName, setDarkName] = useState('Dark');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
-  const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-
   const handleCreate = async () => {
-    if (!dimName.trim()) { setError('Dimension name is required'); return; }
+    if (!activeSet.trim()) { setError('Create a collection first'); return; }
     if (!lightName.trim() || !darkName.trim()) { setError('Both option names are required'); return; }
     setSaving(true);
     setError('');
     try {
-      const dimId = slugify(dimName);
-      await apiFetch(`${serverUrl}/api/themes/dimensions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: dimId, name: dimName.trim() }),
-      });
-
-      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(activeSet)}/modes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: lightName.trim() }),
       });
 
-      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(activeSet)}/modes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: darkName.trim() }),
@@ -229,7 +220,7 @@ function ThemeStep({ serverUrl, onDone, onSkip }: {
       <div className="flex flex-col items-center gap-2 py-4 text-center">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
         <p className="text-[11px] font-medium text-[var(--color-figma-text)]">
-          Created "{dimName}" with {lightName} / {darkName}
+          Added {lightName} / {darkName} to "{activeSet}"
         </p>
         <button
           onClick={onDone}
@@ -244,19 +235,14 @@ function ThemeStep({ serverUrl, onDone, onSkip }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-dim-name">Dimension name</label>
-        <input
-          id="wizard-dim-name"
-          type="text"
-          value={dimName}
-          onChange={e => setDimName(e.target.value)}
-          placeholder="Color Mode"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-        />
+        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add modes to "{activeSet}"</p>
+        <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          Each collection owns its own modes, just like Figma collections.
+        </p>
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-light-option">Light option</label>
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-light-option">First mode</label>
           <input
             id="wizard-light-option"
             type="text"
@@ -267,7 +253,7 @@ function ThemeStep({ serverUrl, onDone, onSkip }: {
           />
         </div>
         <div className="flex-1">
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-dark-option">Dark option</label>
+          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-dark-option">Second mode</label>
           <input
             id="wizard-dark-option"
             type="text"
@@ -291,7 +277,7 @@ function ThemeStep({ serverUrl, onDone, onSkip }: {
           disabled={saving}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
         >
-          {saving ? 'Creating...' : 'Create Theme'}
+          {saving ? 'Adding...' : 'Add Modes'}
         </button>
       </div>
     </div>
@@ -665,6 +651,7 @@ export function QuickStartWizard({
 
             <ThemeStep
               serverUrl={serverUrl}
+              activeSet={effectiveActiveSet}
               onDone={handleModesDone}
               onSkip={handleModesBack}
             />

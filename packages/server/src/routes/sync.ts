@@ -2,7 +2,12 @@ import fs from "node:fs/promises";
 import type { FastifyPluginAsync } from "fastify";
 import type { Token } from "@tokenmanager/core";
 import { flattenTokenGroup } from "@tokenmanager/core";
+import type {
+  FieldChange,
+  FieldChangeOperationMetadata,
+} from "../services/operation-log.js";
 import { snapshotPaths } from "../services/operation-log.js";
+import type { PublishRouteState } from "../services/token-store.js";
 import { handleRouteError } from "../errors.js";
 import type { GitTokenChange as TokenChange } from "../services/git-sync.js";
 
@@ -16,6 +21,113 @@ function readGitLogField(entry: unknown, field: string): string {
 
 export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
+
+  fastify.get("/sync/publish-routing", async (_request, reply) => {
+    try {
+      return {
+        collectionMap: fastify.tokenStore.getPublishRouteCollectionNames(),
+        modeMap: fastify.tokenStore.getPublishRouteModeNames(),
+      };
+    } catch (err) {
+      return handleRouteError(reply, err, "Failed to load publish routing");
+    }
+  });
+
+  fastify.put<{
+    Params: { name: string };
+    Body: PublishRouteState;
+  }>("/sync/publish-routing/:name", async (request, reply) => {
+    const { name } = request.params;
+    const body = request.body || {};
+    const bodyKeys = Object.keys(body);
+    if (bodyKeys.some((key) => key !== "collectionName" && key !== "modeName")) {
+      return reply.status(400).send({
+        error: "Only the Figma collection and mode can be updated for publish routing",
+      });
+    }
+
+    return withLock(async () => {
+      try {
+        if (bodyKeys.length === 0) {
+          const current = fastify.tokenStore.getSetPublishRoute(name);
+          return { ok: true, name, ...current, changed: false };
+        }
+
+        const beforeRoute = fastify.tokenStore.getSetPublishRoute(name);
+        const patch: Partial<PublishRouteState> = {};
+        const changes: FieldChange[] = [];
+
+        if (Object.prototype.hasOwnProperty.call(body, "collectionName")) {
+          const nextValue = body.collectionName?.trim() || undefined;
+          patch.collectionName = nextValue;
+          if (beforeRoute.collectionName !== nextValue) {
+            changes.push({
+              field: "collectionName",
+              label: "Figma collection",
+              before: beforeRoute.collectionName,
+              after: nextValue,
+            });
+          }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(body, "modeName")) {
+          const nextValue = body.modeName?.trim() || undefined;
+          patch.modeName = nextValue;
+          if (beforeRoute.modeName !== nextValue) {
+            changes.push({
+              field: "modeName",
+              label: "Figma mode",
+              before: beforeRoute.modeName,
+              after: nextValue,
+            });
+          }
+        }
+
+        if (changes.length === 0) {
+          return { ok: true, name, ...beforeRoute, changed: false };
+        }
+
+        await fastify.tokenStore.updateSetPublishRoute(name, patch);
+        const afterRoute = fastify.tokenStore.getSetPublishRoute(name);
+        const rollbackRoute = changes.reduce<Partial<PublishRouteState>>(
+          (acc, change) => {
+            if (change.field === "collectionName") {
+              acc.collectionName = change.before;
+            }
+            if (change.field === "modeName") {
+              acc.modeName = change.before;
+            }
+            return acc;
+          },
+          {},
+        );
+        const metadata: FieldChangeOperationMetadata = {
+          kind: "publish-routing",
+          name,
+          before: beforeRoute,
+          after: afterRoute,
+          changes,
+        };
+        await fastify.operationLog.record({
+          type: "publish-routing",
+          description: `Update Figma publish target for "${name}"`,
+          setName: name,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          rollbackSteps: [
+            { action: "write-publish-routing", name, routing: rollbackRoute },
+          ],
+          metadata,
+        });
+
+        return { ok: true, name, ...afterRoute, changed: true };
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to update publish routing");
+      }
+    });
+  });
+
   // GET /api/sync/status — git status + isRepo + current branch
   fastify.get("/sync/status", async (_request, reply) => {
     try {

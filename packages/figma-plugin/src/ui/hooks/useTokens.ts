@@ -66,8 +66,6 @@ export function useTokens(
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [setTokenCounts, setSetTokenCounts] = useState<Record<string, number>>({});
   const [setDescriptions, setSetDescriptions] = useState<Record<string, string>>({});
-  const [setCollectionNames, setSetCollectionNames] = useState<Record<string, string>>({});
-  const [setModeNames, setSetModeNames] = useState<Record<string, string>>({});
   const fetchGenRef = useRef(0);
   const activeSetRef = useRef(activeSet);
   activeSetRef.current = activeSet;
@@ -90,13 +88,11 @@ export function useTokens(
     const disconnectCombined = disconnectSig ? AbortSignal.any([disconnectSig, unmountSig]) : unmountSig;
     const signal = createFetchSignal(disconnectCombined);
     try {
-      const setsData = await apiFetch<{ sets: string[]; descriptions?: Record<string, string>; collectionNames?: Record<string, string>; modeNames?: Record<string, string>; counts?: Record<string, number> }>(`${serverUrl}/api/sets`, { signal });
+      const setsData = await apiFetch<{ sets: string[]; descriptions?: Record<string, string>; counts?: Record<string, number> }>(`${serverUrl}/api/sets`, { signal });
       const allSets: string[] = setsData.sets || [];
       if (gen !== fetchGenRef.current || signal.aborted) return;
       setSets(allSets);
       setSetDescriptions(setsData.descriptions || {});
-      setSetCollectionNames(setsData.collectionNames || {});
-      setSetModeNames(setsData.modeNames || {});
       setSetTokenCounts(setsData.counts || {});
 
       setFetchError(null);
@@ -163,8 +159,6 @@ export function useTokens(
     setSets(prev => prev.filter(s => s !== name));
     setSetTokenCounts(prev => { const next = { ...prev }; delete next[name]; return next; });
     setSetDescriptions(prev => { const next = { ...prev }; delete next[name]; return next; });
-    setSetCollectionNames(prev => { const next = { ...prev }; delete next[name]; return next; });
-    setSetModeNames(prev => { const next = { ...prev }; delete next[name]; return next; });
   }, []);
 
   /** Rename a set across all local state maps without re-fetching. */
@@ -172,15 +166,11 @@ export function useTokens(
     setSets(prev => prev.map(s => s === oldName ? newName : s));
     setSetTokenCounts(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName]; delete next[oldName]; } return next; });
     setSetDescriptions(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName] ?? ''; delete next[oldName]; } return next; });
-    setSetCollectionNames(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName] ?? ''; delete next[oldName]; } return next; });
-    setSetModeNames(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName] ?? ''; delete next[oldName]; } return next; });
   }, []);
 
   /** Update only the metadata fields for a set without re-fetching. */
-  const updateSetMetadataInState = useCallback((name: string, description: string, collectionName: string, modeName: string) => {
+  const updateSetMetadataInState = useCallback((name: string, description: string) => {
     setSetDescriptions(prev => ({ ...prev, [name]: description }));
-    setSetCollectionNames(prev => ({ ...prev, [name]: collectionName }));
-    setSetModeNames(prev => ({ ...prev, [name]: modeName }));
   }, []);
 
   /** Fetch tokens for a specific set without re-fetching the sets list. */
@@ -212,7 +202,7 @@ export function useTokens(
     }
   }, [serverUrl, connected, onNetworkError, getDisconnectSignal]);
 
-  return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet };
+  return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet };
 }
 
 async function fetchAllSets(serverUrl: string, signal?: AbortSignal): Promise<{

@@ -38,6 +38,9 @@ export { isSafeRegex };
 
 export interface SetMetadataState {
   description?: string;
+}
+
+export interface PublishRouteState {
   collectionName?: string;
   modeName?: string;
 }
@@ -612,48 +615,12 @@ export class TokenStore {
     await this.updateSetMetadata(name, { description });
   }
 
-  getSetCollectionNames(): Record<string, string> {
-    const result: Record<string, string> = {};
-    for (const [name, set] of this.sets) {
-      const col = set.tokens.$figmaCollection;
-      if (typeof col === "string" && col) result[name] = col;
-    }
-    return result;
-  }
-
-  async updateSetCollectionName(
-    name: string,
-    collectionName: string,
-  ): Promise<void> {
-    await this.updateSetMetadata(name, { collectionName });
-  }
-
-  getSetModeNames(): Record<string, string> {
-    const result: Record<string, string> = {};
-    for (const [name, set] of this.sets) {
-      const mode = set.tokens.$figmaMode;
-      if (typeof mode === "string" && mode) result[name] = mode;
-    }
-    return result;
-  }
-
-  async updateSetModeName(name: string, modeName: string): Promise<void> {
-    await this.updateSetMetadata(name, { modeName });
-  }
-
   getSetMetadata(name: string): SetMetadataState {
     const set = this.sets.get(name);
     if (!set) throw new NotFoundError(`Set "${name}" not found`);
     return {
       ...(typeof set.tokens.$description === "string" && set.tokens.$description
         ? { description: set.tokens.$description }
-        : {}),
-      ...(typeof set.tokens.$figmaCollection === "string" &&
-      set.tokens.$figmaCollection
-        ? { collectionName: set.tokens.$figmaCollection }
-        : {}),
-      ...(typeof set.tokens.$figmaMode === "string" && set.tokens.$figmaMode
-        ? { modeName: set.tokens.$figmaMode }
         : {}),
     };
   }
@@ -671,16 +638,61 @@ export class TokenStore {
         delete set.tokens.$description;
       }
     }
-    if (Object.prototype.hasOwnProperty.call(metadata, "collectionName")) {
-      if (metadata.collectionName) {
-        set.tokens.$figmaCollection = metadata.collectionName;
+    await this.saveSet(name);
+  }
+
+  getSetPublishRoute(name: string): PublishRouteState {
+    const set = this.sets.get(name);
+    if (!set) throw new NotFoundError(`Set "${name}" not found`);
+    return {
+      ...(typeof set.tokens.$figmaCollection === "string" &&
+      set.tokens.$figmaCollection
+        ? { collectionName: set.tokens.$figmaCollection }
+        : {}),
+      ...(typeof set.tokens.$figmaMode === "string" && set.tokens.$figmaMode
+        ? { modeName: set.tokens.$figmaMode }
+        : {}),
+    };
+  }
+
+  getPublishRouteCollectionNames(): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const [name] of this.sets) {
+      const route = this.getSetPublishRoute(name);
+      if (route.collectionName) {
+        result[name] = route.collectionName;
+      }
+    }
+    return result;
+  }
+
+  getPublishRouteModeNames(): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const [name] of this.sets) {
+      const route = this.getSetPublishRoute(name);
+      if (route.modeName) {
+        result[name] = route.modeName;
+      }
+    }
+    return result;
+  }
+
+  async updateSetPublishRoute(
+    name: string,
+    route: Partial<PublishRouteState>,
+  ): Promise<void> {
+    const set = this.sets.get(name);
+    if (!set) throw new NotFoundError(`Set "${name}" not found`);
+    if (Object.prototype.hasOwnProperty.call(route, "collectionName")) {
+      if (route.collectionName) {
+        set.tokens.$figmaCollection = route.collectionName;
       } else {
         delete set.tokens.$figmaCollection;
       }
     }
-    if (Object.prototype.hasOwnProperty.call(metadata, "modeName")) {
-      if (metadata.modeName) {
-        set.tokens.$figmaMode = metadata.modeName;
+    if (Object.prototype.hasOwnProperty.call(route, "modeName")) {
+      if (route.modeName) {
+        set.tokens.$figmaMode = route.modeName;
       } else {
         delete set.tokens.$figmaMode;
       }

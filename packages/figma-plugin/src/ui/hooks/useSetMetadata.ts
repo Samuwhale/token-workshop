@@ -6,14 +6,7 @@ interface UseSetMetadataParams {
   serverUrl: string;
   connected: boolean;
   setDescriptions: Record<string, string>;
-  setCollectionNames: Record<string, string>;
-  setModeNames: Record<string, string>;
-  updateSetMetadataInState: (
-    name: string,
-    description: string,
-    collectionName: string,
-    modeName: string,
-  ) => void;
+  updateSetMetadataInState: (name: string, description: string) => void;
   onError: (msg: string) => void;
 }
 
@@ -21,8 +14,6 @@ export function useSetMetadata({
   serverUrl,
   connected,
   setDescriptions,
-  setCollectionNames,
-  setModeNames,
   updateSetMetadataInState,
   onError,
 }: UseSetMetadataParams) {
@@ -60,12 +51,7 @@ export function useSetMetadata({
       onError(`Save metadata failed: ${getErrorMessage(err)}`);
       return;
     }
-    updateSetMetadataInState(
-      editingMetadataSet,
-      metadataDescription,
-      setCollectionNames[editingMetadataSet] || "",
-      setModeNames[editingMetadataSet] || "",
-    );
+    updateSetMetadataInState(editingMetadataSet, metadataDescription);
     setEditingMetadataSet(null);
   };
 

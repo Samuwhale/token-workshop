@@ -130,14 +130,13 @@ export function ThemeManager({
 
     try {
       const result = await apiFetch<{
-        dimensions?: ThemeDimension[];
         collections?: ThemeDimension[];
-        views?: ThemeViewPreset[];
-      }>(`${serverUrl}/api/themes`, { signal: controller.signal });
+        previews?: ThemeViewPreset[];
+      }>(`${serverUrl}/api/collections`, { signal: controller.signal });
       if (viewsAbortRef.current !== controller) return;
-      const collections = result.collections ?? result.dimensions ?? [];
+      const collections = result.collections ?? [];
       setDimensions(collections);
-      setViews(result.views ?? []);
+      setViews(result.previews ?? []);
     } catch (error) {
       if (viewsAbortRef.current !== controller) return;
       setViewsError(
@@ -206,7 +205,7 @@ export function ThemeManager({
       setModeErrors((previous) => ({ ...previous, [setName]: null }));
       try {
         await apiFetch(
-          `${serverUrl}/api/themes/dimensions/${encodeURIComponent(setName)}/options`,
+          `${serverUrl}/api/collections/${encodeURIComponent(setName)}/modes`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -231,7 +230,7 @@ export function ThemeManager({
   const handleDeleteMode = useCallback(
     async (setName: string, modeName: string) => {
       await apiFetch(
-        `${serverUrl}/api/themes/dimensions/${encodeURIComponent(setName)}/options/${encodeURIComponent(modeName)}`,
+        `${serverUrl}/api/collections/${encodeURIComponent(setName)}/modes/${encodeURIComponent(modeName)}`,
         { method: "DELETE" },
       );
       await refreshCollectionsAndViews();
@@ -248,7 +247,7 @@ export function ThemeManager({
       dimensions,
       selections: normalizedSelections,
     });
-    await apiFetch(`${serverUrl}/api/themes/views`, {
+    await apiFetch(`${serverUrl}/api/previews`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(view),
@@ -266,7 +265,7 @@ export function ThemeManager({
 
   const handleDeleteView = useCallback(
     async (viewId: string) => {
-      await apiFetch(`${serverUrl}/api/themes/views/${encodeURIComponent(viewId)}`, {
+      await apiFetch(`${serverUrl}/api/previews/${encodeURIComponent(viewId)}`, {
         method: "DELETE",
       });
       await refreshCollectionsAndViews();
@@ -357,7 +356,7 @@ export function ThemeManager({
         <div className="space-y-3">
           <CollectionSection
             title="Current Preview"
-            description="Choose one mode per collection. This is a preview lens over the authored tokens, not a second authoring system."
+            description="Choose modes only where you want to review them. This is a preview lens over authored tokens, not a second authoring system."
           >
             <div className="space-y-2">
               {dimensions.map((dimension) => {
@@ -378,14 +377,18 @@ export function ThemeManager({
                     </div>
                     <select
                       value={selected}
-                      onChange={(event) =>
-                        setActiveThemes({
-                          ...normalizedSelections,
-                          [dimension.id]: event.target.value,
-                        })
-                      }
+                      onChange={(event) => {
+                        const nextSelections = { ...normalizedSelections };
+                        if (event.target.value) {
+                          nextSelections[dimension.id] = event.target.value;
+                        } else {
+                          delete nextSelections[dimension.id];
+                        }
+                        setActiveThemes(nextSelections);
+                      }}
                       className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)]"
                     >
+                      <option value="">No preview</option>
                       {dimension.options.map((option) => (
                         <option key={option.name} value={option.name}>
                           {option.name}
@@ -530,7 +533,7 @@ export function ThemeManager({
 
           <CollectionSection
             title={`Preview Presets${views.length > 0 ? ` (${views.length})` : ""}`}
-            description="Save a cross-collection preview state for review and handoff."
+            description="Save only the collection modes you explicitly selected for review and handoff."
             action={viewsLoading ? <Spinner size="sm" /> : null}
           >
             <div className="space-y-2">

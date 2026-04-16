@@ -132,35 +132,6 @@ function normalizeThemeFile(data: ThemesFile | null | undefined): ThemeDocumentS
   };
 }
 
-function getDuplicateDimensionName(
-  dimensions: ThemeDimension[],
-  sourceName: string,
-): string {
-  let nextName = `${sourceName} Copy`;
-  let counter = 2;
-  while (
-    dimensions.some(
-      (dimension) => dimension.name.toLowerCase() === nextName.toLowerCase(),
-    )
-  ) {
-    nextName = `${sourceName} Copy ${counter++}`;
-  }
-  return nextName;
-}
-
-function getDuplicateDimensionId(
-  dimensions: ThemeDimension[],
-  name: string,
-): string {
-  const baseId = slugifyName(name);
-  let nextId = baseId;
-  let counter = 2;
-  while (dimensions.some((dimension) => dimension.id === nextId)) {
-    nextId = `${baseId}-${counter++}`;
-  }
-  return nextId;
-}
-
 function readTokenModes(token: Token): TokenModeMap {
   const rawModes = (
     token.$extensions?.tokenmanager as Record<string, unknown> | undefined
@@ -256,6 +227,9 @@ export interface DimensionsStore {
     fn: (
       state: ThemeDocumentState,
     ) => Promise<{ state: ThemeDocumentState; result: T }>,
+  ): Promise<T>;
+  withReadStateLock<T>(
+    fn: (state: ThemeDocumentState) => Promise<T>,
   ): Promise<T>;
 }
 
@@ -396,6 +370,9 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
     },
 
     async saveState(state: ThemeDocumentState): Promise<void> {
+      if (JSON.stringify(cache) === JSON.stringify(state)) {
+        return;
+      }
       const data: ThemesFile = {
         $themes: state.dimensions,
         ...(state.views.length > 0 ? { $views: state.views } : {}),
@@ -450,6 +427,13 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
         const { state: updated, result } = await fn(state);
         await store.saveState(updated);
         return result;
+      });
+    },
+
+    withReadStateLock<T>(fn: (state: ThemeDocumentState) => Promise<T>): Promise<T> {
+      return lock.withLock(async () => {
+        const state = await store.loadState();
+        return fn(structuredClone(state));
       });
     },
   };
@@ -513,11 +497,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
         dimension.options.some((option) => option.name === selectedOption)
       ) {
         next[dimension.id] = selectedOption;
-        continue;
-      }
-
-      if (dimension.options[0]) {
-        next[dimension.id] = dimension.options[0].name;
       }
     }
 
@@ -731,82 +710,36 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     return result;
   }
 
-  fastify.get("/themes", async (_request, reply) => {
+  await store.withStateLock(async (state) => ({
+    state: await normalizeCollectionState(state),
+    result: undefined,
+  }));
+
+  fastify.get("/collections", async (_request, reply) => {
     try {
       const state = await normalizeCollectionState(await store.loadState());
       return {
-        dimensions: state.dimensions,
         collections: state.dimensions,
-        views: state.views,
+        previews: state.views,
       };
     } catch (err) {
-      return handleRouteError(reply, err, "Failed to load themes");
+      return handleRouteError(reply, err, "Failed to load collections");
     }
   });
 
-  fastify.post<{ Body: { id: string; name: string } }>(
-    "/themes/dimensions",
-    async (request, reply) => {
-      return reply.status(400).send({
-        error:
-          "Collections are created through token collections. Add or rename a collection in the collections manager instead of creating a global mode group.",
-      });
-    },
-  );
-
-  fastify.put<{ Params: { id: string }; Body: { name: string } }>(
-    "/themes/dimensions/:id",
-    async (request, reply) => {
-      return reply.status(400).send({
-        error:
-          "Collection names come from token collections. Rename the collection itself instead of renaming a global mode group.",
-      });
-    },
-  );
-
-  fastify.put<{ Body: { dimensionIds: string[] } }>(
-    "/themes/dimensions-order",
-    async (request, reply) => {
-      return reply.status(400).send({
-        error:
-          "Collection order follows token collection order. Reorder collections in the collections manager instead of reordering global mode groups.",
-      });
-    },
-  );
-
-  fastify.delete<{ Params: { id: string } }>(
-    "/themes/dimensions/:id",
-    async (request, reply) => {
-      return reply.status(400).send({
-        error:
-          "Collections are deleted through token collection actions. Delete the collection itself instead of deleting a global mode group.",
-      });
-    },
-  );
-
-  fastify.post<{ Params: { id: string } }>(
-    "/themes/dimensions/:id/duplicate",
-    async (request, reply) => {
-      return reply.status(400).send({
-        error:
-          "Duplicate the collection itself if you need another collection with the same modes. Global mode-group duplication is no longer supported.",
-      });
-    },
-  );
-
   fastify.post<{ Params: { id: string }; Body: { name: string } }>(
-    "/themes/dimensions/:id/options",
+    "/collections/:id/modes",
     async (request, reply) => {
       const { id } = request.params;
       const { name } = request.body || {};
       const bodyKeys = Object.keys(request.body ?? {});
       if (bodyKeys.some((key) => key !== "name")) {
         return reply.status(400).send({
-          error: "Only the option name is supported when creating a theme option",
+          error: "Only the mode name is supported when creating a collection mode",
         });
       }
       if (!name || typeof name !== "string" || !name.trim()) {
-        return reply.status(400).send({ error: "Option name is required" });
+        return reply.status(400).send({ error: "Mode name is required" });
       }
       const trimmedName = name.trim();
       try {
@@ -815,7 +748,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
           async (dimensions) => {
             const dimIdx = dimensions.findIndex((dimension) => dimension.id === id);
             if (dimIdx === -1) {
-              throw new NotFoundError(`Dimension "${id}" not found`);
+              throw new NotFoundError(`Collection "${id}" not found`);
             }
             const nextDimensions = structuredClone(dimensions);
             const dimension = nextDimensions[dimIdx];
@@ -832,13 +765,13 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
             return {
               dims: nextDimensions,
               result: { option, status: isUpdate ? 200 : 201 },
-              description: `${isUpdate ? "Update" : "Add"} option "${trimmedName}" in dimension "${dimension.name}"`,
+              description: `${isUpdate ? "Update" : "Add"} mode "${trimmedName}" in collection "${dimension.name}"`,
             };
           },
         );
         return reply.status(status).send({ ok: true, option });
       } catch (err) {
-        return handleRouteError(reply, err, "Failed to save option");
+        return handleRouteError(reply, err, "Failed to save mode");
       }
     },
   );
@@ -846,11 +779,11 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   fastify.put<{
     Params: { id: string; optionName: string };
     Body: { name: string };
-  }>("/themes/dimensions/:id/options/:optionName", async (request, reply) => {
+  }>("/collections/:id/modes/:optionName", async (request, reply) => {
     const { id, optionName } = request.params;
     const { name } = request.body || {};
     if (!name || typeof name !== "string" || !name.trim()) {
-      return reply.status(400).send({ error: "New option name is required" });
+      return reply.status(400).send({ error: "New mode name is required" });
     }
     const newName = name.trim();
     try {
@@ -860,7 +793,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
           const nextDimensions = structuredClone(state.dimensions);
           const dimIdx = nextDimensions.findIndex((dimension) => dimension.id === id);
           if (dimIdx === -1) {
-            throw new NotFoundError(`Dimension "${id}" not found`);
+            throw new NotFoundError(`Collection "${id}" not found`);
           }
 
           const dimension = nextDimensions[dimIdx];
@@ -869,7 +802,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
           );
           if (optionIndex === -1) {
             throw new NotFoundError(
-              `Option "${optionName}" not found in dimension "${id}"`,
+              `Mode "${optionName}" not found in collection "${id}"`,
             );
           }
           if (
@@ -877,7 +810,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
             dimension.options.some((option) => option.name === newName)
           ) {
             throw new ConflictError(
-              `Option "${newName}" already exists in this dimension`,
+              `Mode "${newName}" already exists in this collection`,
             );
           }
 
@@ -897,7 +830,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
                       JSON.stringify(dimModes[optionName])
                   ) {
                     throw new ConflictError(
-                      `Token "${optionName}" already has authored data under "${newName}" in dimension "${id}"`,
+                      `Token-authored mode data already exists under "${newName}" in collection "${id}"`,
                     );
                   }
 
@@ -923,19 +856,19 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
               })),
             },
             result: dimension.options[optionIndex],
-            description: `Rename option "${optionName}" → "${newName}" in dimension "${dimension.name}"`,
+            description: `Rename mode "${optionName}" → "${newName}" in collection "${dimension.name}"`,
             tokenPatchesBySet,
           };
         },
       );
       return { ok: true, option };
     } catch (err) {
-      return handleRouteError(reply, err, "Failed to rename option");
+      return handleRouteError(reply, err, "Failed to rename mode");
     }
   });
 
   fastify.put<{ Params: { id: string }; Body: { options: string[] } }>(
-    "/themes/dimensions/:id/options-order",
+    "/collections/:id/modes-order",
     async (request, reply) => {
       const { id } = request.params;
       const { options } = request.body || {};
@@ -953,7 +886,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
           async (dimensions) => {
             const dimIdx = dimensions.findIndex((dimension) => dimension.id === id);
             if (dimIdx === -1) {
-              throw new NotFoundError(`Dimension "${id}" not found`);
+              throw new NotFoundError(`Collection "${id}" not found`);
             }
             const nextDimensions = structuredClone(dimensions);
             const dimension = nextDimensions[dimIdx];
@@ -963,7 +896,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
             for (const optionName of options) {
               if (!byName.has(optionName)) {
                 throw new BadRequestError(
-                  `Option "${optionName}" not found in dimension "${id}"`,
+                  `Mode "${optionName}" not found in collection "${id}"`,
                 );
               }
             }
@@ -972,26 +905,26 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
               new Set(options).size !== dimension.options.length
             ) {
               throw new BadRequestError(
-                "options must list every option name exactly once",
+                "options must list every mode name exactly once",
               );
             }
             dimension.options = options.map((optionName) => byName.get(optionName)!);
             return {
               dims: nextDimensions,
               result: dimension,
-              description: `Reorder options in dimension "${dimension.name}"`,
+              description: `Reorder modes in collection "${dimension.name}"`,
             };
           },
         );
         return { ok: true, dimension };
       } catch (err) {
-        return handleRouteError(reply, err, "Failed to reorder options");
+        return handleRouteError(reply, err, "Failed to reorder modes");
       }
     },
   );
 
   fastify.delete<{ Params: { id: string; optionName: string } }>(
-    "/themes/dimensions/:id/options/:optionName",
+    "/collections/:id/modes/:optionName",
     async (request, reply) => {
       const { id, optionName } = request.params;
       try {
@@ -1001,7 +934,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
             const nextDimensions = structuredClone(state.dimensions);
             const dimIdx = nextDimensions.findIndex((dimension) => dimension.id === id);
             if (dimIdx === -1) {
-              throw new NotFoundError(`Dimension "${id}" not found`);
+              throw new NotFoundError(`Collection "${id}" not found`);
             }
 
             const dimension = nextDimensions[dimIdx];
@@ -1010,7 +943,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
             );
             if (filteredOptions.length === dimension.options.length) {
               throw new NotFoundError(
-                `Option "${optionName}" not found in dimension "${id}"`,
+                `Mode "${optionName}" not found in collection "${id}"`,
               );
             }
 
@@ -1046,21 +979,21 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
                 }),
               },
               result: undefined,
-              description: `Delete option "${optionName}" from dimension "${dimension.name}"`,
+              description: `Delete mode "${optionName}" from collection "${dimension.name}"`,
               tokenPatchesBySet,
             };
           },
         );
         return { ok: true, id, optionName };
       } catch (err) {
-        return handleRouteError(reply, err, "Failed to delete option");
+        return handleRouteError(reply, err, "Failed to delete mode");
       }
     },
   );
 
   fastify.post<{
     Body: { id: string; name: string; selections: ActiveThemes };
-  }>("/themes/views", async (request, reply) => {
+  }>("/previews", async (request, reply) => {
     const { id, name, selections } = request.body || {};
     if (!id || typeof id !== "string") {
       return reply.status(400).send({ error: "View id is required" });
@@ -1108,7 +1041,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   fastify.put<{
     Params: { id: string };
     Body: { name: string; selections: ActiveThemes };
-  }>("/themes/views/:id", async (request, reply) => {
+  }>("/previews/:id", async (request, reply) => {
     const { id } = request.params;
     const { name, selections } = request.body || {};
     if (!name || typeof name !== "string" || !name.trim()) {
@@ -1154,7 +1087,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   });
 
   fastify.delete<{ Params: { id: string } }>(
-    "/themes/views/:id",
+    "/previews/:id",
     async (request, reply) => {
       const { id } = request.params;
       try {

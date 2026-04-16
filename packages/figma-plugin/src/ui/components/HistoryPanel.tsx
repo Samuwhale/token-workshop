@@ -74,8 +74,8 @@ function RecoverySubsection({
   );
 }
 
-function getSetMetadataChanges(op: OperationEntry) {
-  if (op.metadata?.kind !== 'set-metadata' || !Array.isArray(op.metadata.changes)) {
+function getFieldChanges(op: OperationEntry) {
+  if (!Array.isArray(op.metadata?.changes)) {
     return [];
   }
   return op.metadata.changes;
@@ -323,7 +323,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
   const filteredOperations = (recentOperations ?? []).filter(op => {
     if (filterTokenPath && !op.affectedPaths.includes(filterTokenPath)) return false;
     if (!searchQuery) return true;
-    const metadataChanges = getSetMetadataChanges(op);
+    const metadataChanges = getFieldChanges(op);
     return op.description.toLowerCase().includes(searchQuery) ||
       op.setName.toLowerCase().includes(searchQuery) ||
       op.affectedPaths.some(path => path.toLowerCase().includes(searchQuery)) ||
@@ -534,7 +534,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
               >
                 {filteredOperations.length > 0 ? filteredOperations.map((op) => {
                   const isError = op.type.includes('error');
-                  const metadataChanges = getSetMetadataChanges(op);
+                  const metadataChanges = getFieldChanges(op);
                   const isSetMetadata = metadataChanges.length > 0;
                   const impactLabel = isSetMetadata
                     ? `${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''}`

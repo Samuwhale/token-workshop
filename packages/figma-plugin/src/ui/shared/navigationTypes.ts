@@ -406,7 +406,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
 };
 
 // ---------------------------------------------------------------------------
-// Sidebar groups — collapsible sections that organize workspaces/items
+// Sidebar groups — sections that organize workspace items
 // ---------------------------------------------------------------------------
 
 export interface SidebarItem {

@@ -39,14 +39,12 @@ export interface TokenSetsContextValue {
   /** Per-set token counts, keyed by set name. */
   setTokenCounts: Record<string, number>;
   setDescriptions: Record<string, string>;
-  setCollectionNames: Record<string, string>;
-  setModeNames: Record<string, string>;
   refreshTokens: () => void;
   fetchError: string | null;
   addSetToState: (name: string, count: number) => void;
   removeSetFromState: (name: string) => void;
   renameSetInState: (oldName: string, newName: string) => void;
-  updateSetMetadataInState: (name: string, description: string, collectionName: string, modeName: string) => void;
+  updateSetMetadataInState: (name: string, description: string) => void;
   fetchTokensForSet: (name: string) => Promise<void>;
 }
 
@@ -111,7 +109,7 @@ function TokenSetsProvider({ children, serverUrl, connected, markDisconnected, g
 }) {
   const {
     sets, setSets, activeSet, setActiveSet, tokens, tokenRevision,
-    fetchError, setTokenCounts, setDescriptions, setCollectionNames, setModeNames,
+    fetchError, setTokenCounts, setDescriptions,
     refreshTokens, addSetToState, removeSetFromState, renameSetInState,
     updateSetMetadataInState, fetchTokensForSet,
   } = useTokens(serverUrl, connected, markDisconnected, getDisconnectSignal);
@@ -121,7 +119,7 @@ function TokenSetsProvider({ children, serverUrl, connected, markDisconnected, g
       sets, setSets, activeSet, setActiveSet,
       tokens, tokenRevision,
       fetchError,
-      setTokenCounts, setDescriptions, setCollectionNames, setModeNames,
+      setTokenCounts, setDescriptions,
       refreshTokens, addSetToState, removeSetFromState, renameSetInState,
       updateSetMetadataInState, fetchTokensForSet,
     }),
@@ -129,7 +127,7 @@ function TokenSetsProvider({ children, serverUrl, connected, markDisconnected, g
       sets, setSets, activeSet, setActiveSet,
       tokens, tokenRevision,
       fetchError,
-      setTokenCounts, setDescriptions, setCollectionNames, setModeNames,
+      setTokenCounts, setDescriptions,
       refreshTokens, addSetToState, removeSetFromState, renameSetInState,
       updateSetMetadataInState, fetchTokensForSet,
     ],

@@ -75,6 +75,7 @@ import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
 import { useAnalyticsState } from "./hooks/useAnalyticsState";
 import { useValidationCache } from "./hooks/useValidationCache";
+import { usePublishRouting } from "./hooks/usePublishRouting";
 import { useSettingsListener } from "./components/SettingsPanel";
 import {
   WorkspaceControllerProvider,
@@ -154,8 +155,6 @@ export function App() {
     tokens,
     setTokenCounts,
     setDescriptions,
-    setCollectionNames,
-    setModeNames,
     refreshTokens,
     addSetToState,
     removeSetFromState,
@@ -187,6 +186,11 @@ export function App() {
   const { triggerUsageScan } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } =
     useAvailableFonts();
+  const { collectionMap, modeMap, savePublishRouting } = usePublishRouting(
+    serverUrl,
+    connected,
+    sets.join("\u0000"),
+  );
   const {
     showPasteModal,
     setShowPasteModal,
@@ -859,8 +863,8 @@ export function App() {
     serverUrl,
     connected,
     pathToSet,
-    setCollectionNames,
-    setModeNames,
+    collectionMap,
+    modeMap,
     activeSet,
   );
 
@@ -884,8 +888,6 @@ export function App() {
     serverUrl,
     connected,
     setDescriptions,
-    setCollectionNames,
-    setModeNames,
     updateSetMetadataInState,
     onError: setErrorToast,
   });
@@ -2123,7 +2125,11 @@ export function App() {
         <WorkspaceControllerProvider value={workspaceControllers}>
           <ErrorBoundary>
             <div className="min-h-0 flex-1 overflow-hidden">
-              <PanelRouter />
+              <PanelRouter
+                collectionMap={collectionMap}
+                modeMap={modeMap}
+                savePublishRouting={savePublishRouting}
+              />
             </div>
           </ErrorBoundary>
         </WorkspaceControllerProvider>

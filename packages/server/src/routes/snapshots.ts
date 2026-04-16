@@ -132,8 +132,8 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        const [beforeDimensions, beforeResolvers, beforeRecipes] = await Promise.all([
-          fastify.dimensionsStore.withLock(async (dims) => ({ dims, result: structuredClone(dims) })),
+        const [beforeThemeState, beforeResolvers, beforeRecipes] = await Promise.all([
+          fastify.dimensionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
           captureCurrentResolvers(fastify),
           captureCurrentRecipes(fastify),
         ]);
@@ -147,7 +147,8 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           fastify.recipeService,
           {
             setNames: currentSets,
-            dimensions: beforeDimensions,
+            dimensions: beforeThemeState.dimensions,
+            views: beforeThemeState.views,
             resolvers: beforeResolvers,
             recipes: beforeRecipes,
           },
