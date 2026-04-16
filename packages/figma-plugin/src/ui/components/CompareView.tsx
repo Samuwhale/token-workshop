@@ -736,6 +736,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
           <select
             value={optionKeyA}
             onChange={e => setOptionKeyA(e.target.value)}
+            aria-label="Compare option A"
             className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
           >
             <option value="">Select an option…</option>
@@ -749,6 +750,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
           <select
             value={optionKeyB}
             onChange={e => setOptionKeyB(e.target.value)}
+            aria-label="Compare option B"
             className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
           >
             <option value="">Select an option…</option>

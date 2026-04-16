@@ -433,6 +433,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
     <div
       className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 pt-16"
       onClick={onClose}
+      role="presentation"
     >
       <div
         ref={dialogRef}

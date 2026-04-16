@@ -511,6 +511,7 @@ export function HeatmapPanel({
             <select
               value={bindProperty}
               onChange={e => setBindProperty(e.target.value as BindableProperty)}
+              aria-label="Heatmap binding property"
               className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             >
               {ALL_BINDABLE_PROPERTIES.map(p => (
