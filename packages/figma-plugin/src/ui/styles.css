@@ -80,6 +80,10 @@
   --color-token-type-border: #e8e07d;
   --color-token-type-fallback: #8888aa;
 
+  /* Overlay backdrop */
+  --color-figma-overlay: rgba(0, 0, 0, 0.40);
+  --color-figma-overlay-heavy: rgba(0, 0, 0, 0.60);
+
   /* Depth guide-bar colors — used in tree indentation bars */
   --color-depth-0: transparent;
   --color-depth-1: rgba(24, 160, 251, 0.55);
@@ -87,6 +91,11 @@
   --color-depth-3: rgba(255, 180, 50, 0.55);
   --color-depth-4: rgba(230, 100, 80, 0.55);
   --color-depth-5: rgba(170, 100, 240, 0.55);
+}
+
+html.figma-light {
+  --color-figma-overlay: rgba(0, 0, 0, 0.25);
+  --color-figma-overlay-heavy: rgba(0, 0, 0, 0.40);
 }
 
 html,

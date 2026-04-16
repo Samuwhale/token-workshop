@@ -485,7 +485,7 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
               : <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">All scopes</span>
             }
             {scopesDiffer && (
-              <span className="text-[9px] text-yellow-600 font-medium shrink-0" title="Local and Figma scopes differ">scope conflict</span>
+              <span className="text-[9px] text-[var(--color-figma-warning)] font-medium shrink-0" title="Local and Figma scopes differ">scope conflict</span>
             )}
             {canEditScopes && (
               <button

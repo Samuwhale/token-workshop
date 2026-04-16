@@ -533,7 +533,7 @@ export function QuickStartWizard({
     }
 
     return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
         <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col">
           {prereqContent}
         </div>
@@ -677,7 +677,7 @@ export function QuickStartWizard({
   const shell = embedded
     ? <div className="flex h-full min-h-0 flex-col">{mainContent}</div>
     : (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
         <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
           {mainContent}
         </div>

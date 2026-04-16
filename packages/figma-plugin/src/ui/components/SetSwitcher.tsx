@@ -422,7 +422,7 @@ function StructuralPreflightSummary({
   }
   if (error) {
     return (
-      <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] text-red-500">
+      <div className="rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 px-3 py-2 text-[10px] text-[var(--color-figma-error)]">
         {error}
       </div>
     );
@@ -432,13 +432,13 @@ function StructuralPreflightSummary({
   return (
     <div className="flex flex-col gap-3">
       {preflight.blockers.length > 0 && (
-        <div className="rounded border border-red-500/40 bg-red-500/10 p-3">
-          <div className="text-[10px] font-medium text-red-500">
+        <div className="rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 p-3">
+          <div className="text-[10px] font-medium text-[var(--color-figma-error)]">
             Blocking dependencies
           </div>
           <div className="mt-1 flex flex-col gap-1">
             {preflight.blockers.map((blocker) => (
-              <div key={blocker.id} className="text-[10px] text-red-500">
+              <div key={blocker.id} className="text-[10px] text-[var(--color-figma-error)]">
                 {blocker.message}
               </div>
             ))}
@@ -446,13 +446,13 @@ function StructuralPreflightSummary({
         </div>
       )}
       {preflight.warnings.length > 0 && (
-        <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3">
-          <div className="text-[10px] font-medium text-amber-500">Warnings</div>
+        <div className="rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 p-3">
+          <div className="text-[10px] font-medium text-[var(--color-figma-warning)]">Warnings</div>
           <div className="mt-1 flex flex-col gap-1">
             {preflight.warnings.map((warning, index) => (
               <div
                 key={`${index}-${warning}`}
-                className="text-[10px] text-amber-600"
+                className="text-[10px] text-[var(--color-figma-warning)]"
               >
                 {warning}
               </div>
@@ -663,7 +663,7 @@ export function SetSwitcher({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-16"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-[var(--color-figma-overlay)] pt-16"
       onClick={onClose}
     >
       <div
@@ -1718,7 +1718,7 @@ function ManageView({
                   setBulkFolderMode(false);
                 }}
                 disabled={bulkPending}
-                className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-red-500 transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Delete
               </button>
@@ -1746,7 +1746,7 @@ function ManageView({
           </div>
 
           {deleteConfirming && (
-            <div className="flex items-center gap-2 border-t border-red-500/20 bg-red-500/10 px-2 py-1.5 text-[11px]">
+            <div className="flex items-center gap-2 border-t border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[11px]">
               <span className="flex-1 text-[var(--color-figma-text)]">
                 Delete {selectedSets.size} set
                 {selectedSets.size !== 1 ? "s" : ""}? This cannot be undone.
@@ -1754,7 +1754,7 @@ function ManageView({
               <button
                 onClick={handleBulkDeleteConfirm}
                 disabled={bulkPending}
-                className="shrink-0 rounded bg-red-500 px-2 py-0.5 text-[10px] text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                className="shrink-0 rounded bg-[var(--color-figma-error)] px-2 py-0.5 text-[10px] text-white transition-colors hover:bg-[var(--color-figma-error)] disabled:opacity-50"
               >
                 {bulkPending ? "Deleting…" : "Confirm delete"}
               </button>
@@ -1815,7 +1815,7 @@ function ManageView({
                 </button>
               </div>
               {bulkFolderError && (
-                <div className="mt-1 text-[10px] text-red-500">
+                <div className="mt-1 text-[10px] text-[var(--color-figma-error)]">
                   {bulkFolderError}
                 </div>
               )}
@@ -1912,7 +1912,7 @@ function ManageView({
                       className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
                     />
                     {renameError && (
-                      <span className="text-[10px] text-red-500">
+                      <span className="text-[10px] text-[var(--color-figma-error)]">
                         {renameError}
                       </span>
                     )}
@@ -2103,7 +2103,7 @@ function ManageView({
                         disabled={folderActionPending}
                       />
                       {folderRenameError && (
-                        <div className="text-[10px] text-red-500">
+                        <div className="text-[10px] text-[var(--color-figma-error)]">
                           {folderRenameError}
                         </div>
                       )}
@@ -2256,7 +2256,7 @@ function ManageView({
                       </div>
                     )}
                     {folderMergeError && (
-                      <div className="text-[10px] text-red-500">
+                      <div className="text-[10px] text-[var(--color-figma-error)]">
                         {folderMergeError}
                       </div>
                     )}
@@ -2265,7 +2265,7 @@ function ManageView({
               )}
 
               {isDeleting && (
-                <div className="border-t border-red-500/20 bg-red-500/10 px-3 py-2.5">
+                <div className="border-t border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-3 py-2.5">
                   <div className="flex items-center gap-2 text-[11px]">
                     <span className="flex-1 text-[var(--color-figma-text)]">
                       Delete folder "{item.folder}/" and its{" "}
@@ -2275,7 +2275,7 @@ function ManageView({
                     <button
                       onClick={() => void handleFolderDeleteConfirm()}
                       disabled={folderActionPending}
-                      className="rounded bg-red-500 px-2 py-1 text-[10px] text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                      className="rounded bg-[var(--color-figma-error)] px-2 py-1 text-[10px] text-white transition-colors hover:bg-[var(--color-figma-error)] disabled:opacity-50"
                     >
                       {folderActionPending ? "Deleting…" : "Confirm delete"}
                     </button>
@@ -2288,7 +2288,7 @@ function ManageView({
                     </button>
                   </div>
                   {folderDeleteError && (
-                    <div className="mt-1 text-[10px] text-red-500">
+                    <div className="mt-1 text-[10px] text-[var(--color-figma-error)]">
                       {folderDeleteError}
                     </div>
                   )}
@@ -2543,7 +2543,7 @@ function SetMetadataDialog({
   onSave: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex w-72 flex-col gap-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-4 shadow-xl">
         <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
           Edit set info — {setName}
@@ -2641,7 +2641,7 @@ function SetDeleteDialog({
     preflightLoading ||
     (preflight?.blockers.length ?? 0) > 0;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
           <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
@@ -2787,7 +2787,7 @@ function SetMergeInline({
           </p>
         )}
         {mergeChecked && mergeConflicts.length === 0 && (
-          <p className="text-[10px] text-green-500">
+          <p className="text-[10px] text-[var(--color-figma-success)]">
             No conflicts — all tokens can be merged cleanly.
           </p>
         )}
@@ -2914,7 +2914,7 @@ function SetSplitDialog({
     preflightLoading ||
     (preflight?.blockers.length ?? 0) > 0;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
           <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
@@ -2973,7 +2973,7 @@ function SetSplitDialog({
               {effectiveSplitPreview.some((preview) =>
                 sets.includes(preview.newName),
               ) && (
-                <p className="text-[10px] text-amber-500">
+                <p className="text-[10px] text-[var(--color-figma-warning)]">
                   Some sets already exist and will be skipped.
                 </p>
               )}
@@ -3069,7 +3069,7 @@ function StrokeIconButton({
       aria-label={ariaLabel}
       className={`rounded p-1 transition-colors ${
         danger
-          ? "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-red-500"
+          ? "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-error)]"
           : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
       }`}
     >

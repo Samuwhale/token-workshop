@@ -77,7 +77,7 @@ export function SetCreateDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)] p-3"
       onClick={onClose}
     >
       <div
@@ -149,7 +149,7 @@ export function SetCreateDialog({
             </div>
           )}
 
-          {error && <div className="text-[10px] text-red-500">{error}</div>}
+          {error && <div className="text-[10px] text-[var(--color-figma-error)]">{error}</div>}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-[var(--color-figma-border)] px-4 py-3">

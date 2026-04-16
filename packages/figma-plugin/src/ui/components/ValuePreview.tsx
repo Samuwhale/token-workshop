@@ -398,7 +398,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const boolVal = value === true || value === 'true';
     return (
       <div
-        className={`rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden ${boolVal ? 'bg-emerald-500/15 text-emerald-600' : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]'}`}
+        className={`rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden ${boolVal ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]'}`}
         style={sizeStyle}
         title={String(boolVal)}
       >

@@ -16,19 +16,19 @@ import { TYPE_LABELS } from '../recipes/recipeUtils';
 
 function statusAccentColor(status: string): string | null {
   switch (status) {
-    case 'stale': return '#eab308';    // yellow-500
-    case 'failed': return '#ef4444';   // red-500
-    case 'blocked': return '#f59e0b';  // amber-500
+    case 'stale': return 'var(--color-figma-warning)';
+    case 'failed': return 'var(--color-figma-error)';
+    case 'blocked': return 'var(--color-figma-warning)';
     default: return null;
   }
 }
 
 function statusDotColor(status: string): string {
   switch (status) {
-    case 'stale': return '#eab308';
-    case 'failed': return '#ef4444';
-    case 'blocked': return '#f59e0b';
-    case 'fresh': return '#22c55e';
+    case 'stale': return 'var(--color-figma-warning)';
+    case 'failed': return 'var(--color-figma-error)';
+    case 'blocked': return 'var(--color-figma-warning)';
+    case 'fresh': return 'var(--color-figma-success)';
     default: return 'var(--color-figma-text-tertiary)';
   }
 }
@@ -253,7 +253,7 @@ export function NodeRenderer({
           width={w + 8} height={h + 8}
           rx={10}
           fill="none"
-          stroke="#f59e0b"
+          stroke="var(--color-figma-warning)"
           strokeWidth={2}
           strokeOpacity={0.9}
           style={{ pointerEvents: 'none' }}

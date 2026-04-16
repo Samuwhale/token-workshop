@@ -339,7 +339,7 @@ export function TokenRecipeDialog({
   const isPanel = presentation === "panel";
   const shellClassName = isPanel
     ? "h-full flex flex-col"
-    : "fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4";
+    : "fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50 p-4";
   const dialogClassName = isPanel
     ? "bg-[var(--color-figma-bg)] w-full h-full flex flex-col overflow-hidden"
     : "bg-[var(--color-figma-bg)] rounded-lg border border-[var(--color-figma-border)] shadow-xl w-full max-w-[min(40rem,95vw)] flex flex-col max-h-[90vh]";

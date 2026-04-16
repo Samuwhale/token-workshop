@@ -385,7 +385,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
 
         {/* Restore confirmation dialog */}
         {pendingRestore && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
             <div className="bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded-lg shadow-xl mx-4 max-w-[280px] w-full overflow-hidden">
               <div className="px-4 pt-4 pb-3">
                 <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">Confirm restore</p>

@@ -32,7 +32,7 @@ interface WorkflowStageIndicatorsProps<StageId extends string> {
 
 const toneDot: Record<WorkflowStageTone, string> = {
   current: 'bg-[var(--color-figma-accent)]',
-  complete: 'bg-emerald-500',
+  complete: 'bg-[var(--color-figma-success)]',
   pending: 'bg-[var(--color-figma-border)]',
   blocked: 'bg-[var(--color-figma-border)]',
 };

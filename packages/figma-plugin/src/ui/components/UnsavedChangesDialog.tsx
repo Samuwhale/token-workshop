@@ -34,7 +34,7 @@ export function UnsavedChangesDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !controlsDisabled) {
           onCancel();

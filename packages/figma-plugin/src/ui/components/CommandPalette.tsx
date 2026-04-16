@@ -431,7 +431,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 pt-16"
+      className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-start justify-center z-50 pt-16"
       onClick={onClose}
     >
       <div
@@ -479,7 +479,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </button>
           )}
           {copiedLabel ? (
-            <span className="text-[10px] font-medium text-green-500 bg-green-500/10 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-1">
+            <span className="text-[10px] font-medium text-[var(--color-figma-success)] bg-[var(--color-figma-success)]/10 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-1">
               <svg aria-hidden="true" width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5"/></svg>
               Copied {copiedLabel}
             </span>
@@ -845,7 +845,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Delete token: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-red-300 hover:text-red-100 focus:text-red-100 focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-red-400'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] focus:text-[var(--color-figma-error)] focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]'}`}
                       onClick={(e) => { e.stopPropagation(); onDeleteToken(token.path); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}

@@ -111,9 +111,9 @@ export function LightnessInspectorPanel({
                           cx={p.x}
                           cy={p.y}
                           r={p.isAnom ? 4 : 3}
-                          fill={p.isAnom ? "#ef4444" : p.hex}
+                          fill={p.isAnom ? "var(--color-figma-error)" : p.hex}
                           stroke={
-                            p.isAnom ? "#ef4444" : "var(--color-figma-border)"
+                            p.isAnom ? "var(--color-figma-error)" : "var(--color-figma-border)"
                           }
                           strokeWidth="1"
                         />

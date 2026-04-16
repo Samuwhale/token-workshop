@@ -23,13 +23,13 @@ function LinkIcon() {
 function MatchLabel({ label }: { label: 'Exact' | 'Close' }) {
   if (label === 'Exact') {
     return (
-      <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-green-500/15 text-green-400">
+      <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
         Exact
       </span>
     );
   }
   return (
-    <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-yellow-500/15 text-yellow-400">
+    <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">
       Close
     </span>
   );

@@ -215,7 +215,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 pt-12"
+      className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-start justify-center z-50 pt-12"
       onClick={onClose}
     >
       <div
@@ -291,7 +291,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
             <button
               onClick={handleUnbind}
               title={`Unbind ${PROPERTY_LABELS[activeProp]} (Backspace)`}
-              className="shrink-0 flex items-center gap-0.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:text-red-400 hover:bg-red-400/10 rounded px-1.5 py-0.5 transition-colors"
+              className="shrink-0 flex items-center gap-0.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
             >
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 6L6 18M6 6l12 12" />

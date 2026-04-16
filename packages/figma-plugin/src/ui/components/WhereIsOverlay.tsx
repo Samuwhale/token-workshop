@@ -112,7 +112,7 @@ export function WhereIsOverlay({
                         </span>
                       )}
                       {def.isDifferentFromFirst && (
-                        <span className="text-[8px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 shrink-0">
+                        <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)] shrink-0">
                           override
                         </span>
                       )}

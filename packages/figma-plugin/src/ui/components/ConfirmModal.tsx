@@ -64,7 +64,7 @@ export function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
       <div ref={dialogRef} className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">

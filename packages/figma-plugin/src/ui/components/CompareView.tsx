@@ -243,7 +243,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
             </span>
           )}
           {!anyDiff && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
               All identical
             </span>
           )}
@@ -254,7 +254,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
             disabled={!anyDiff}
             className={`text-[10px] px-2 py-0.5 rounded transition-colors ${
               showDiffsOnly
-                ? 'bg-yellow-500/20 text-yellow-700 hover:bg-yellow-500/30'
+                ? 'bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/30'
                 : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
             } disabled:opacity-40 disabled:cursor-not-allowed`}
             title={anyDiff ? 'Show only rows where values differ' : 'No differences to filter'}
@@ -309,7 +309,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
           <tbody>
             {/* Type row */}
             {!allSameType && (
-              <tr className={rowDiffs['$type'] !== false ? 'bg-yellow-500/8' : ''}>
+              <tr className={rowDiffs['$type'] !== false ? 'bg-[var(--color-figma-warning)]/8' : ''}>
                 <td className="px-3 py-1.5 font-medium text-[var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
                   type
                 </td>
@@ -342,10 +342,10 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
               propertyKeys.filter(key => !showDiffsOnly || rowDiffs[key]).map(key => {
                 const isDiff = rowDiffs[key];
                 return (
-                  <tr key={key} className={isDiff ? 'bg-yellow-500/8' : ''}>
-                    <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${isDiff ? 'text-[var(--color-figma-text)] bg-yellow-500/8' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
+                  <tr key={key} className={isDiff ? 'bg-[var(--color-figma-warning)]/8' : ''}>
+                    <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${isDiff ? 'text-[var(--color-figma-text)] bg-[var(--color-figma-warning)]/8' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
                       {key}
-                      {isDiff && <span className="ml-1 text-yellow-600">*</span>}
+                      {isDiff && <span className="ml-1 text-[var(--color-figma-warning)]">*</span>}
                     </td>
                     {tokens.map(t => {
                       const val = fmtProp(t.resolvedValue, key);
@@ -366,10 +366,10 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
                 );
               })
             ) : (!showDiffsOnly || rowDiffs['$value']) ? (
-              <tr className={rowDiffs['$value'] ? 'bg-yellow-500/8' : ''}>
-                <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${rowDiffs['$value'] ? 'text-[var(--color-figma-text)] bg-yellow-500/8' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
+              <tr className={rowDiffs['$value'] ? 'bg-[var(--color-figma-warning)]/8' : ''}>
+                <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${rowDiffs['$value'] ? 'text-[var(--color-figma-text)] bg-[var(--color-figma-warning)]/8' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
                   value
-                  {rowDiffs['$value'] && <span className="ml-1 text-yellow-600">*</span>}
+                  {rowDiffs['$value'] && <span className="ml-1 text-[var(--color-figma-warning)]">*</span>}
                 </td>
                 {tokens.map(t => {
                   const formatted = formatTokenValueForDisplay(t.type, t.resolvedValue);
@@ -549,10 +549,10 @@ function CrossThemeMode({
             <div className="flex items-center gap-2 px-3 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
               <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">{dim.name}</span>
               {stats.allSame && !stats.anyMissing && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">Identical</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">Identical</span>
               )}
               {stats.anyMissing && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-600">Some missing</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">Some missing</span>
               )}
             </div>
 
@@ -1256,7 +1256,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
                 ? 'bg-blue-500/10 text-blue-400'
                 : diff.status === 'only-b'
                 ? 'bg-purple-500/10 text-purple-400'
-                : 'bg-yellow-500/10 text-yellow-400';
+                : 'bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]';
               const statusLabel = diff.status === 'only-a' ? 'only A' : diff.status === 'only-b' ? 'only B' : 'changed';
               return (
                 <div

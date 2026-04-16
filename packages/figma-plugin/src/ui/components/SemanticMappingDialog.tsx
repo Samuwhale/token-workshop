@@ -387,7 +387,7 @@ export function SemanticMappingDialog({
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-end justify-center z-50"
+      className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-end justify-center z-50"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}

@@ -262,8 +262,8 @@ function severityStripe(item: InboxItem): string {
   if (item.severity === "blocker")
     return "border-l-2 border-l-[var(--color-figma-error)]";
   if (item.severity === "attention")
-    return "border-l-2 border-l-amber-500";
-  return "border-l-2 border-l-green-500";
+    return "border-l-2 border-l-[var(--color-figma-warning)]";
+  return "border-l-2 border-l-[var(--color-figma-success)]";
 }
 
 function filterMatches(filter: InboxFilter, item: InboxItem): boolean {

@@ -77,7 +77,7 @@ export function SyncPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div ref={dialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
@@ -271,7 +271,7 @@ export function GitPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
       <div ref={gitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-preview-modal-title">
@@ -475,7 +475,7 @@ export function CommitPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
       <div ref={commitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="commit-preview-modal-title">

@@ -108,7 +108,7 @@ export function RollbackPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
       <div

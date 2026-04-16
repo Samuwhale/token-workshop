@@ -970,7 +970,7 @@ export function PanelRouter(): ReactNode {
         }}
       >
         <div
-          className="absolute inset-0 bg-black/30 drawer-fade-in"
+          className="absolute inset-0 bg-[var(--color-figma-overlay)] drawer-fade-in"
           onClick={() => surfaceState.onDismiss()}
         />
         <div
@@ -1251,7 +1251,7 @@ export function PanelRouter(): ReactNode {
       <>
         {/* Fetch error banner */}
         {(fetchError || tokensError) && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border-b border-red-500/20 shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 shrink-0">
             <svg
               width="10"
               height="10"
@@ -1261,7 +1261,7 @@ export function PanelRouter(): ReactNode {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-red-400 shrink-0"
+              className="text-[var(--color-figma-error)] shrink-0"
               aria-hidden="true"
             >
               <circle cx="12" cy="12" r="10" />
@@ -1272,7 +1272,7 @@ export function PanelRouter(): ReactNode {
             </span>
             <button
               onClick={refreshTokens}
-              className="text-[10px] px-2 py-0.5 rounded border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
+              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors shrink-0"
             >
               Retry
             </button>

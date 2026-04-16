@@ -145,8 +145,8 @@ function ContrastBadgeRow({ tokens, bg, label }: {
                 <span
                   className={`text-[6px] font-bold leading-none px-[2px] rounded-sm ${
                     level === 'AAA'
-                      ? 'bg-green-500 text-white'
-                      : 'bg-amber-400 text-white'
+                      ? 'bg-[var(--color-figma-success)] text-white'
+                      : 'bg-[var(--color-figma-warning)] text-white'
                   }`}
                 >
                   {level}
@@ -274,7 +274,7 @@ function SwatchCell({
       {isOverridden && (
         <button
           onClick={e => { e.stopPropagation(); onOverrideClear(token.stepName); }}
-          className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity bg-black/30 text-white hover:bg-red-500/80"
+          className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity bg-[var(--color-figma-overlay)] text-white hover:bg-[var(--color-figma-error)]/80"
           title="Clear override"
           aria-label="Clear override"
         >
