@@ -422,6 +422,15 @@ export function App() {
       themeShellState.authoringMode,
     ],
   );
+  const existingPathsForActiveSet = useMemo(
+    () =>
+      new Set(
+        Object.keys(allTokensFlat).filter(
+          (p) => pathToSet[p] === activeSet,
+        ),
+      ),
+    [allTokensFlat, pathToSet, activeSet],
+  );
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
   const prevAllTokensFlatRef = useRef<Record<string, TokenMapEntry>>({});
@@ -444,14 +453,16 @@ export function App() {
     externalRefreshPendingRef.current = false;
     const prev = prevAllTokensFlatRef.current;
     const curr = allTokensFlat;
+    const prevKeys = Object.keys(prev);
     // Skip if there was no prior state (initial load)
-    if (Object.keys(prev).length === 0) return;
+    if (prevKeys.length === 0) return;
     let added = 0,
       removed = 0,
       changed = 0;
-    const prevKeys = new Set(Object.keys(prev));
-    for (const key of Object.keys(curr)) {
-      if (!prevKeys.has(key)) {
+    const prevKeySet = new Set(prevKeys);
+    const currKeys = Object.keys(curr);
+    for (const key of currKeys) {
+      if (!prevKeySet.has(key)) {
         added++;
       } else {
         const p = prev[key],
@@ -463,7 +474,7 @@ export function App() {
           changed++;
       }
     }
-    for (const key of prevKeys) {
+    for (const key of prevKeySet) {
       if (!(key in curr)) removed++;
     }
     const total = added + removed + changed;
@@ -2059,9 +2070,11 @@ export function App() {
                       className="flex items-center"
                       title={dim.name}
                       onMouseLeave={() => {
-                        const next = { ...previewThemes };
-                        delete next[dim.id];
-                        setPreviewThemes(next);
+                        setPreviewThemes((prev) => {
+                          const next = { ...prev };
+                          delete next[dim.id];
+                          return next;
+                        });
                       }}
                     >
                       <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)] divide-x divide-[var(--color-figma-border)]">
@@ -2079,11 +2092,13 @@ export function App() {
                                 } else {
                                   setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
                                 }
-                                const next = { ...previewThemes };
-                                delete next[dim.id];
-                                setPreviewThemes(next);
+                                setPreviewThemes((prev) => {
+                                  const next = { ...prev };
+                                  delete next[dim.id];
+                                  return next;
+                                });
                               }}
-                              onMouseEnter={() => setPreviewThemes({ ...previewThemes, [dim.id]: opt.name })}
+                              onMouseEnter={() => setPreviewThemes((prev) => ({ ...prev, [dim.id]: opt.name }))}
                               title={isActive ? `${dim.name}: ${opt.name} (active — click to deselect)` : `Preview ${dim.name}: ${opt.name}`}
                               className={`px-1.5 py-0.5 text-[10px] transition-colors ${
                                 isActive
@@ -2123,9 +2138,11 @@ export function App() {
                       <div
                         className="absolute left-0 top-full z-50 mt-1 min-w-[90px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
                         onMouseLeave={() => {
-                          const next = { ...previewThemes };
-                          delete next[dim.id];
-                          setPreviewThemes(next);
+                          setPreviewThemes((prev) => {
+                            const next = { ...prev };
+                            delete next[dim.id];
+                            return next;
+                          });
                         }}
                       >
                         <button
@@ -2136,9 +2153,11 @@ export function App() {
                             setOpenDimDropdown(null);
                           }}
                           onMouseEnter={() => {
-                            const next = { ...previewThemes };
-                            delete next[dim.id];
-                            setPreviewThemes(next);
+                            setPreviewThemes((prev) => {
+                              const next = { ...prev };
+                              delete next[dim.id];
+                              return next;
+                            });
                           }}
                           className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
                             !activeOption ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
@@ -2152,11 +2171,13 @@ export function App() {
                             onClick={() => {
                               setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
                               setOpenDimDropdown(null);
-                              const next = { ...previewThemes };
-                              delete next[dim.id];
-                              setPreviewThemes(next);
+                              setPreviewThemes((prev) => {
+                                const next = { ...prev };
+                                delete next[dim.id];
+                                return next;
+                              });
                             }}
-                            onMouseEnter={() => setPreviewThemes({ ...previewThemes, [dim.id]: opt.name })}
+                            onMouseEnter={() => setPreviewThemes((prev) => ({ ...prev, [dim.id]: opt.name }))}
                             className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
                               activeOption === opt.name ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
                             }`}
@@ -2482,13 +2503,7 @@ export function App() {
         <ColorScaleRecipe
           serverUrl={serverUrl}
           activeSet={activeSet}
-          existingPaths={
-            new Set(
-              Object.keys(allTokensFlat).filter(
-                (p) => pathToSet[p] === activeSet,
-              ),
-            )
-          }
+          existingPaths={existingPathsForActiveSet}
           onClose={() => setShowColorScaleGen(false)}
           onConfirm={(firstPath) => {
             setShowColorScaleGen(false);
@@ -2503,13 +2518,7 @@ export function App() {
         <PasteTokensModal
           serverUrl={serverUrl}
           activeSet={activeSet}
-          existingPaths={
-            new Set(
-              Object.keys(allTokensFlat).filter(
-                (p) => pathToSet[p] === activeSet,
-              ),
-            )
-          }
+          existingPaths={existingPathsForActiveSet}
           existingTokens={perSetFlat[activeSet] ?? {}}
           onClose={() => setShowPasteModal(false)}
           onConfirm={() => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { inputClass, labelClass } from '../../shared/editorClasses';
 import { swatchBgColor } from '../../shared/colorUtils';
@@ -286,7 +286,7 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
   );
 }
 
-export function CompositionEditor({ value, onChange, baseValue, allTokensFlat = {}, pathToSet = {} }: { value: any; onChange: (v: any) => void; baseValue?: any; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string> }) {
+export const CompositionEditor = memo(function CompositionEditor({ value, onChange, baseValue, allTokensFlat = {}, pathToSet = {} }: { value: any; onChange: (v: any) => void; baseValue?: any; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string> }) {
   const [newProp, setNewProp] = useState(COMPOSITION_PROPERTIES[0]);
   const rawVal = typeof value === 'object' && value !== null ? value : {};
   const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
@@ -384,4 +384,4 @@ export function CompositionEditor({ value, onChange, baseValue, allTokensFlat = 
       <CompositionPreview val={val} />
     </div>
   );
-}
+});

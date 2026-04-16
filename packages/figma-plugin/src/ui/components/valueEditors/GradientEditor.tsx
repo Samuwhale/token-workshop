@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { inputClass } from '../../shared/editorClasses';
 import { AliasAutocomplete } from '../AliasAutocomplete';
@@ -291,7 +291,7 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToSet
   );
 }
 
-export function GradientEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
+export const GradientEditor = memo(function GradientEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
   const stops: GradientStop[] = Array.isArray(value?.stops) && value.stops.length >= 2
     ? value.stops
     : [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }];
@@ -362,4 +362,4 @@ export function GradientEditor({ value, onChange, allTokensFlat, pathToSet }: { 
       </button>
     </div>
   );
-}
+});

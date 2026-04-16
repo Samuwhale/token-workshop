@@ -73,6 +73,8 @@ interface SelectionInspectorProps {
   triggerCreateToken?: number;
 }
 
+const PROP_FILTER_MODES = ["bound", "unbound", "colors", "dimensions"] as const;
+
 export function SelectionInspector({
   selectedNodes,
   selectionLoading,
@@ -868,7 +870,7 @@ export function SelectionInspector({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1">
-          {(["bound", "unbound", "colors", "dimensions"] as const).map((mode) => (
+          {PROP_FILTER_MODES.map((mode) => (
             <button
               key={mode}
               onClick={() => setPropFilterMode(propFilterMode === mode ? "all" : mode)}

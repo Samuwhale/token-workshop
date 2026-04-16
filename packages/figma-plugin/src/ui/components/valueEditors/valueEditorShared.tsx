@@ -1,7 +1,7 @@
 /**
  * Shared utilities and sub-components used across multiple value editors.
  */
-import { useState, useRef, type Ref } from 'react';
+import { useState, useRef, memo, type Ref } from 'react';
 import { evalExpr } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AliasAutocomplete } from '../AliasAutocomplete';
@@ -39,7 +39,7 @@ export const VALUE_FORMAT_HINTS: Record<string, string> = {
   custom: 'Any value — JSON object, string, or number',
 };
 
-export function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
+export const InheritedBadge = memo(function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
   return (
     <span className="inline-flex items-center gap-0.5 ml-1">
       <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">inherited</span>
@@ -51,9 +51,9 @@ export function InheritedBadge({ propKey, onOverride }: { propKey: string; onOve
       >override</button>
     </span>
   );
-}
+});
 
-export function RevertBadge({ propKey, onRevert }: { propKey: string; onRevert: () => void }) {
+export const RevertBadge = memo(function RevertBadge({ propKey, onRevert }: { propKey: string; onRevert: () => void }) {
   return (
     <button
       type="button"
@@ -62,7 +62,7 @@ export function RevertBadge({ propKey, onRevert }: { propKey: string; onRevert: 
       title={`Revert ${propKey} to inherited value`}
     >revert</button>
   );
-}
+});
 
 export function resolveFormulaPreview(
   formula: string,
@@ -85,7 +85,7 @@ export function resolveFormulaPreview(
   }
 }
 
-export function SubPropInput({
+export const SubPropInput = memo(function SubPropInput({
   value,
   onChange,
   allTokensFlat,
@@ -187,13 +187,13 @@ export function SubPropInput({
       )}
     </div>
   );
-}
+});
 
 /**
  * Dimension sub-property input: number + unit select for literal values,
  * SubPropInput with autocomplete for alias values. Includes a link button to switch modes.
  */
-export function DimensionSubProp({
+export const DimensionSubProp = memo(function DimensionSubProp({
   value,
   onChange,
   allTokensFlat,
@@ -264,13 +264,13 @@ export function DimensionSubProp({
       </button>
     </div>
   );
-}
+});
 
 /**
  * Font family sub-property input for typography editor.
  * Uses FontFamilyPicker for literal values, falls back to alias input when typing `{`.
  */
-export function FontFamilySubProp({
+export const FontFamilySubProp = memo(function FontFamilySubProp({
   value,
   onChange,
   allTokensFlat,
@@ -369,7 +369,7 @@ export function FontFamilySubProp({
       </button>
     </div>
   );
-}
+});
 
 export function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, TokenMapEntry>): unknown {
   if (isAlias(raw as import('@tokenmanager/core').TokenValue | undefined)) {

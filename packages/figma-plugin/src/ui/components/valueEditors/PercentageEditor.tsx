@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { inputClass } from '../../shared/editorClasses';
 
-export function PercentageEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const PercentageEditor = memo(function PercentageEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const num = typeof value === 'number' ? value : 0;
   return (
     <div className="flex gap-2 items-center">
@@ -14,4 +15,4 @@ export function PercentageEditor({ value, onChange }: { value: any; onChange: (v
       <span className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0">%</span>
     </div>
   );
-}
+});

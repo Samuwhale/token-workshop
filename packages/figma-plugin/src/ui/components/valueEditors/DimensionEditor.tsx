@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
 import { inputClass } from '../../shared/editorClasses';
 import { resolveFormulaPreview } from './valueEditorShared';
 
-export function StepperInput({
+export const StepperInput = memo(function StepperInput({
   value,
   onChange,
   className = '',
@@ -62,7 +62,7 @@ export function StepperInput({
       </div>
     </div>
   );
-}
+});
 
 const UNIT_CONVERSIONS: Record<string, Record<string, ((v: number) => number) | null>> = {
   px: { rem: v => Math.round((v / 16) * 1000) / 1000, em: v => Math.round((v / 16) * 1000) / 1000, '%': null },
@@ -71,7 +71,7 @@ const UNIT_CONVERSIONS: Record<string, Record<string, ((v: number) => number) | 
   '%': { px: null, rem: null, em: null },
 };
 
-export function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string>; autoFocus?: boolean }) {
+export const DimensionEditor = memo(function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string>; autoFocus?: boolean }) {
   const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
   const isFormulaValue = typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
@@ -160,4 +160,4 @@ export function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet
       )}
     </div>
   );
-}
+});

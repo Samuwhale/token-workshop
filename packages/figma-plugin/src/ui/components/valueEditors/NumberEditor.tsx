@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
 import { resolveFormulaPreview } from './valueEditorShared';
 import { StepperInput } from './DimensionEditor';
 
-export function NumberEditor({ value, onChange, allTokensFlat = {}, pathToSet = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string>; autoFocus?: boolean }) {
+export const NumberEditor = memo(function NumberEditor({ value, onChange, allTokensFlat = {}, pathToSet = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string>; autoFocus?: boolean }) {
   const isFormulaValue = typeof value === 'string' && isFormula(value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
   const numVal = formulaMode ? 0 : (parseFloat(value) || 0);
@@ -58,4 +58,4 @@ export function NumberEditor({ value, onChange, allTokensFlat = {}, pathToSet = 
       )}
     </div>
   );
-}
+});

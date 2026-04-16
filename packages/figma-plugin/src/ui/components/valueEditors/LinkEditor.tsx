@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { inputClass } from '../../shared/editorClasses';
 
-export function LinkEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const LinkEditor = memo(function LinkEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const url = typeof value === 'string' ? value : '';
   return (
     <div className="flex gap-2 items-center">
@@ -26,4 +27,4 @@ export function LinkEditor({ value, onChange }: { value: any; onChange: (v: any)
       )}
     </div>
   );
-}
+});

@@ -519,6 +519,28 @@ const TokenGroupNode = memo(
       rovingFocusPath: groupRovingFocusPath,
     } = useTokenTreeGroupState();
     const { allTokensFlat } = useTokenTreeSharedData();
+    const dominantTypeByGroup = useMemo(() => {
+      const map = new Map<string, string | null>();
+      const entries = Object.entries(allTokensFlat);
+      const groups = new Set<string>();
+      for (const [path] of entries) {
+        const dot = path.lastIndexOf(".");
+        if (dot !== -1) groups.add(path.slice(0, dot));
+      }
+      for (const groupPath of groups) {
+        const prefix = `${groupPath}.`;
+        const types: Record<string, number> = {};
+        for (const [path, entry] of entries) {
+          if (path === groupPath || path.startsWith(prefix)) {
+            const t = entry.$type;
+            if (t) types[t] = (types[t] ?? 0) + 1;
+          }
+        }
+        const sorted = Object.entries(types).sort((a, b) => b[1] - a[1]);
+        map.set(groupPath, sorted[0]?.[0] ?? null);
+      }
+      return map;
+    }, [allTokensFlat]);
     const {
       onToggleExpand,
       onDeleteGroup,
@@ -1201,16 +1223,7 @@ const TokenGroupNode = memo(
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       closeGroupMenus();
-                      const prefix = `${node.path}.`;
-                      const types: Record<string, number> = {};
-                      for (const [path, entry] of Object.entries(allTokensFlat)) {
-                        if (path === node.path || path.startsWith(prefix)) {
-                          const t = entry.$type;
-                          if (t) types[t] = (types[t] ?? 0) + 1;
-                        }
-                      }
-                      const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-                      onGenerateScaleFromGroup(node.path, dominant);
+                      onGenerateScaleFromGroup(node.path, dominantTypeByGroup.get(node.path) ?? null);
                     }}
                     className={MENU_ITEM_CLASS}
                   >

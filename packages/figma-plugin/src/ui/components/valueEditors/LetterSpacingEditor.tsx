@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import { inputClass } from '../../shared/editorClasses';
 
 const LETTER_SPACING_UNITS = ['px', 'rem', 'em', '%'];
 
-export function LetterSpacingEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const LetterSpacingEditor = memo(function LetterSpacingEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const num = typeof value?.value === 'number' ? value.value : typeof value === 'number' ? value : 0;
   const unit: string = value?.unit || 'px';
   const update = (patch: { value?: number; unit?: string }) =>
@@ -25,4 +26,4 @@ export function LetterSpacingEditor({ value, onChange }: { value: any; onChange:
       </select>
     </div>
   );
-}
+});

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { inputClass } from '../../shared/editorClasses';
 
-export function CustomEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const CustomEditor = memo(function CustomEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const isObj = typeof value === 'object' && value !== null;
   const [text, setText] = useState(() => isObj ? JSON.stringify(value, null, 2) : String(value ?? ''));
   const [parseError, setParseError] = useState<string | null>(null);
@@ -42,4 +42,4 @@ export function CustomEditor({ value, onChange }: { value: any; onChange: (v: an
       )}
     </div>
   );
-}
+});
