@@ -227,7 +227,14 @@ export function TokenList({
   const [batchMoveToSetTarget, setBatchMoveToSetTarget] = useState("");
   const [showBatchCopyToSet, setShowBatchCopyToSet] = useState(false);
   const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState("");
-  const viewState = useTokenListViewState({ setName, dimensions });
+  const collectionDimensions = useMemo(
+    () => dimensions.filter((dimension) => dimension.id === setName),
+    [dimensions, setName],
+  );
+  const viewState = useTokenListViewState({
+    setName,
+    dimensions: collectionDimensions,
+  });
   const {
     showRecentlyTouched,
     setShowRecentlyTouched,
@@ -454,10 +461,10 @@ export function TokenList({
       !multiModeEnabled ||
       !multiModeDimId ||
       !unthemedAllTokensFlat ||
-      dimensions.length === 0
+      collectionDimensions.length === 0
     )
       return null;
-    const dim = dimensions.find((d) => d.id === multiModeDimId);
+    const dim = collectionDimensions.find((d) => d.id === multiModeDimId);
     if (!dim || dim.options.length < 2) return null;
 
     const results: Array<{
@@ -473,6 +480,7 @@ export function TokenList({
           unthemedAllTokensFlat,
           dimensions,
           { [dim.id]: option.name },
+          pathToSet,
         ),
       });
     }
@@ -481,15 +489,20 @@ export function TokenList({
     multiModeEnabled,
     multiModeDimId,
     unthemedAllTokensFlat,
-    dimensions,
+    collectionDimensions,
+    pathToSet,
   ]);
 
   // Lightweight check: which token paths have different values across mode options?
   // Computed even when mode columns are hidden, for the inline variant indicator.
   const modeVariantPaths = useMemo<Set<string>>(() => {
-    if (multiModeEnabled || !unthemedAllTokensFlat || dimensions.length === 0)
+    if (
+      multiModeEnabled ||
+      !unthemedAllTokensFlat ||
+      collectionDimensions.length === 0
+    )
       return new Set();
-    const dim = dimensions.find((d) => d.options.length >= 2);
+    const dim = collectionDimensions.find((d) => d.options.length >= 2);
     if (!dim) return new Set();
 
     const candidatePaths = new Set<string>();
@@ -502,9 +515,9 @@ export function TokenList({
     if (candidatePaths.size === 0) return new Set();
 
     const optionResults = dim.options.map((option) =>
-      applyThemeSelectionsToTokens(unthemedAllTokensFlat, dimensions, {
+      applyThemeSelectionsToTokens(unthemedAllTokensFlat, collectionDimensions, {
         [dim.id]: option.name,
-      }),
+      }, pathToSet),
     );
 
     const varies = new Set<string>();
@@ -523,7 +536,7 @@ export function TokenList({
       }
     }
     return varies;
-  }, [multiModeEnabled, unthemedAllTokensFlat, dimensions]);
+  }, [multiModeEnabled, unthemedAllTokensFlat, collectionDimensions, pathToSet]);
 
   // Build multiModeValues for a given token path
   const getMultiModeValues = useCallback(
@@ -545,19 +558,19 @@ export function TokenList({
   // Pre-compute per-group theme coverage and per-token missing mode counts
   const totalOptionCount = useMemo(
     () =>
-      dimensions
-        ? dimensions.reduce((sum, d) => sum + d.options.length, 0)
+      collectionDimensions.length > 0
+        ? collectionDimensions.reduce((sum, d) => sum + d.options.length, 0)
         : 0,
-    [dimensions],
+    [collectionDimensions],
   );
 
   const tokenModeMissing = useMemo(() => {
-    if (!dimensions || dimensions.length === 0 || totalOptionCount === 0)
+    if (collectionDimensions.length === 0 || totalOptionCount === 0)
       return undefined;
     const map = new Map<string, number>();
     for (const [path, entry] of Object.entries(allTokensFlat)) {
       let filled = 0;
-      for (const dim of dimensions) {
+      for (const dim of collectionDimensions) {
         const dimModes = getInlineModeValues(entry, dim.id);
         for (const opt of dim.options) {
           const v = dimModes[opt.name];
@@ -568,14 +581,14 @@ export function TokenList({
       if (missing > 0) map.set(path, missing);
     }
     return map.size > 0 ? map : undefined;
-  }, [allTokensFlat, dimensions, totalOptionCount]);
+  }, [allTokensFlat, collectionDimensions, totalOptionCount]);
 
   const themeCoverage = useMemo(() => {
-    if (!dimensions || dimensions.length === 0) return undefined;
+    if (collectionDimensions.length === 0) return undefined;
     const themedTokenPaths = new Set<string>();
     for (const [path, entry] of Object.entries(allTokensFlat)) {
       if (!entry.$extensions?.tokenmanager?.modes) continue;
-      for (const dimension of dimensions) {
+      for (const dimension of collectionDimensions) {
         const dimModes = getInlineModeValues(entry, dimension.id);
         if (Object.keys(dimModes).length > 0) {
           themedTokenPaths.add(path);
@@ -611,7 +624,7 @@ export function TokenList({
     }
     walk(tokens);
     return map;
-  }, [allTokensFlat, dimensions, tokens, tokenModeMissing]);
+  }, [allTokensFlat, collectionDimensions, tokens, tokenModeMissing]);
 
   // JSON editor state
   const {
@@ -980,8 +993,10 @@ export function TokenList({
   );
 
   const multiModeDimensionName = useMemo(
-    () => dimensions.find((d) => d.id === multiModeDimId)?.name ?? null,
-    [dimensions, multiModeDimId],
+    () =>
+      collectionDimensions.find((dimension) => dimension.id === multiModeDimId)
+        ?.name ?? null,
+    [collectionDimensions, multiModeDimId],
   );
 
   const hasStructuredFilters = structuredFilterChips.length > 0;
@@ -1008,13 +1023,13 @@ export function TokenList({
     }
 
     const locationLabel = crossSetSearch
-      ? "all sets"
+      ? "all collections"
       : zoomRootPath
         ? `${setName} / ${zoomRootPath}`
         : setName;
     const viewLabels: string[] = [];
     if (crossSetSearch) {
-      viewLabels.push("cross-set search results");
+      viewLabels.push("cross-collection search results");
     } else if (zoomRootPath) {
       viewLabels.push("focused group");
     }
@@ -1027,11 +1042,11 @@ export function TokenList({
     if (multiModeEnabled) {
       viewLabels.push(
         multiModeDimensionName
-          ? `theme options in ${multiModeDimensionName}`
-          : "theme options",
+          ? `mode columns for ${multiModeDimensionName}`
+          : "mode columns",
       );
     } else if (themeLensEnabled) {
-      viewLabels.push("active theme values");
+      viewLabels.push("current preview values");
     }
     if (inspectMode) {
       viewLabels.push("selection-related tokens");
@@ -1216,7 +1231,7 @@ export function TokenList({
   flatItemsRef.current = flatItems;
   // itemOffsetsRef is set by useTokenVirtualScroll internally
 
-  // Report filtered leaf count to parent so set tabs can show "X / Y"
+  // Report filtered leaf count to parent so collection tabs can show "X / Y"
   useEffect(() => {
     if (!onFilteredCountChange) return;
     onFilteredCountChange(filtersActive ? displayedLeafNodes.length : null);
@@ -1289,7 +1304,7 @@ export function TokenList({
   const handleOpenBulkWorkflowForVisibleTokens = useCallback(() => {
     if (crossSetSearch) {
       dispatchToast(
-        'Turn off "Search all sets" before bulk editing tokens in this set.',
+        'Turn off "Search all collections" before bulk editing tokens in this collection.',
         "error",
       );
       return;
@@ -1531,7 +1546,7 @@ export function TokenList({
   const handleOpenFindReplaceReview = useCallback(() => {
     if (crossSetSearch) {
       dispatchToast(
-        'Turn off "Search all sets" before bulk renaming tokens in this set.',
+        'Turn off "Search all collections" before bulk renaming tokens in this collection.',
         "error",
       );
       return;
@@ -2112,7 +2127,7 @@ export function TokenList({
     density, serverUrl, setName, sets, selectionCapabilities, duplicateCounts,
     selectMode, highlightedToken, inspectMode, syncSnapshot, derivedTokenPaths,
     searchHighlight, selectedNodes, dragOverReorder, selectedLeafNodes,
-    showResolvedValues, condensedView, starredPaths, dimensions, activeThemes,
+    showResolvedValues, condensedView, starredPaths, dimensions: collectionDimensions, activeThemes,
     pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
     multiModeEnabled, modeVariantPaths, themeLensEnabled, tokenModeMissing,
   });
@@ -2122,7 +2137,7 @@ export function TokenList({
     onRefresh, onPushUndo, handleRequestMoveTokenReview, handleRequestCopyTokenReview,
     handleDuplicateToken, handleDetachFromRecipe, handleOpenExtractToAlias,
     handleHoverToken, setTypeFilter, handleInlineSave, handleRenameToken,
-    onViewTokenHistory, dimensionsLength: dimensions.length,
+    onViewTokenHistory, dimensionsLength: collectionDimensions.length,
     handleCompareAcrossThemes, handleDragStartNotify, handleDragEndNotify,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, onOpenRecipeEditor, onToggleStar,
@@ -2455,7 +2470,7 @@ export function TokenList({
             multiModeData={multiModeData}
             multiModeDimId={multiModeDimId}
             multiModeDimensionName={multiModeDimensionName}
-            dimensions={dimensions}
+            dimensions={collectionDimensions}
             setMultiModeDimId={setMultiModeDimId}
             getMultiModeValues={getMultiModeValues}
             selectedPaths={selectedPaths}
@@ -2549,7 +2564,7 @@ export function TokenList({
         <TokenListModals />
       </TokenListModalsProvider>
 
-      {/* "Find in all sets" overlay */}
+      {/* "Find in all collections" overlay */}
       {whereIsPath !== null && (
         <WhereIsOverlay
           whereIsPath={whereIsPath}

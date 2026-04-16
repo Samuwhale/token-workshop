@@ -1852,17 +1852,17 @@ export function BatchEditor({
           )}
         </BatchSection>
 
-        {/* Move to set — only when multiple sets exist */}
+        {/* Move to collection — only when multiple collections exist */}
         {otherSets.length > 0 && (<>
-          <BatchSection label="Move to set">
+          <BatchSection label="Move to collection">
             <div className="space-y-1">
               <select
                 value={targetSet}
                 onChange={e => setTargetSet(e.target.value)}
-                aria-label="Target set"
+                aria-label="Target collection"
                 className={AUTHORING.select}
               >
-                <option value="">— choose set —</option>
+                <option value="">— choose collection —</option>
                 {otherSets.map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -1871,7 +1871,7 @@ export function BatchEditor({
                 <button
                   onClick={handleCopy}
                   disabled={!connected || !canCopy || copying}
-                  title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target set first' : `Copy ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}" (originals preserved)`}
+                  title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target collection first' : `Copy ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}" (originals preserved)`}
                   className="flex-1 min-w-[88px] px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {copying ? '…' : 'Copy'}
@@ -1879,7 +1879,7 @@ export function BatchEditor({
                 <button
                   onClick={handleMove}
                   disabled={!connected || !canMove || moving}
-                  title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target set first' : `Move ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}"`}
+                  title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target collection first' : `Move ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}"`}
                   className="flex-1 min-w-[88px] px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {moving ? '…' : 'Move'}

@@ -115,7 +115,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
         onError?.(
           err instanceof ApiError
             ? err.message
-            : "Move to set failed: network error",
+            : "Move to collection failed: network error",
         );
       }
       setOperationLoading(null);
@@ -161,7 +161,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
         onError?.(
           err instanceof ApiError
             ? err.message
-            : "Copy to set failed: network error",
+            : "Copy to collection failed: network error",
         );
       }
       setOperationLoading(null);

@@ -1,5 +1,5 @@
 /**
- * Destination fields: output path, name, set, and multi-brand controls.
+ * Destination fields: output path, name, collection, and multi-brand controls.
  * Rendered inline within StepSource or standalone.
  */
 import type { InputTable, InputTableRow } from '../../hooks/useRecipes';
@@ -136,7 +136,7 @@ export function StepWhere({
         <div className={AUTHORING.recipeFieldGrid}>
           {!isMultiBrand && (
             <div className={AUTHORING.recipeFieldStack}>
-              <label htmlFor="step-where-target-set" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Token set</label>
+              <label htmlFor="step-where-target-set" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Token collection</label>
               <select
                 id="step-where-target-set"
                 value={targetSet}
@@ -149,7 +149,7 @@ export function StepWhere({
           )}
           {isMultiBrand && (
             <div className={AUTHORING.recipeFieldStack}>
-              <label htmlFor="step-where-set-template" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Set template</label>
+              <label htmlFor="step-where-set-template" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Collection template</label>
               <input
                 id="step-where-set-template"
                 type="text"
@@ -175,7 +175,7 @@ export function StepWhere({
               : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
           }`}
         >
-          {isMultiBrand ? 'Switch to single set' : 'Publish to multiple sets'}
+          {isMultiBrand ? 'Switch to single collection' : 'Publish to multiple collections'}
         </button>
 
         {/* Multi-brand input table */}

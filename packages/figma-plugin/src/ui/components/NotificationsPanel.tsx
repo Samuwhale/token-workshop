@@ -14,10 +14,10 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "tokens" | "themes" | "inspect" | "sync";
+      topTab: "tokens" | "collections" | "inspect" | "sync";
       subTab:
         | "tokens"
-        | "themes"
+        | "collections"
         | "inspect"
         | "canvas-analysis"
         | "publish"
@@ -138,7 +138,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open modes",
-      target: { kind: "workspace", topTab: "themes", subTab: "themes" },
+      target: { kind: "workspace", topTab: "collections", subTab: "collections" },
     };
   }
   if (

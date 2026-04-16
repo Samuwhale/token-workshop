@@ -112,7 +112,7 @@ function CreateSetStep({ serverUrl, onCreated }: {
 
   const handleCreate = async () => {
     const trimmed = name.trim();
-    if (!trimmed) { setError('Set name is required'); return; }
+    if (!trimmed) { setError('Collection name is required'); return; }
     if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(trimmed)) {
       setError('Use letters, numbers, hyphens, or underscores (slashes for folders)');
       return;
@@ -135,7 +135,7 @@ function CreateSetStep({ serverUrl, onCreated }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token set</p>
+        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token collection</p>
         <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
           A JSON file for your design foundations.
         </p>
@@ -143,7 +143,7 @@ function CreateSetStep({ serverUrl, onCreated }: {
 
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-set-name">
-          Set name
+          Collection name
         </label>
         <input
           id="wizard-set-name"
@@ -167,7 +167,7 @@ function CreateSetStep({ serverUrl, onCreated }: {
         disabled={saving || !name.trim()}
         className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
       >
-        {saving ? 'Creating…' : 'Create Token Set'}
+        {saving ? 'Creating…' : 'Create Collection'}
       </button>
     </div>
   );

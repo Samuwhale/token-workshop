@@ -238,9 +238,9 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
           {props.currentLibraryViewMode === "library"
             ? "View"
             : props.currentLibraryViewMode === "theme-options"
-              ? "View: Options"
+              ? "View: Modes"
               : props.currentLibraryViewMode === "active-theme"
-                ? "View: Theme"
+                ? "View: Preview"
                 : "View: JSON"}
         </span>
       </button>
@@ -259,14 +259,14 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
             />
             {props.hasDimensions && (
               <MenuItem
-                label="Theme Options"
+                label="Mode Columns"
                 checked={props.currentLibraryViewMode === "theme-options"}
                 onClick={() => runAndClose(() => props.onActivateViewMode("theme-options"))}
               />
             )}
             {props.hasDimensions && (
               <MenuItem
-                label="Active Theme"
+                label="Current Preview"
                 checked={props.currentLibraryViewMode === "active-theme"}
                 onClick={() => runAndClose(() => props.onActivateViewMode("active-theme"))}
               />
@@ -337,14 +337,14 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
             />
             {props.hasDimensions && (
               <MenuItem
-                label="Theme options columns"
+                label="Mode columns"
                 checked={props.multiModeEnabled}
                 onClick={() => runAndClose(props.onToggleMultiMode)}
               />
             )}
             {props.hasDimensions && (
               <MenuItem
-                label="Active theme values"
+                label="Preview values"
                 checked={props.themeLensEnabled}
                 onClick={() => runAndClose(props.onToggleThemeLens)}
               />
@@ -453,7 +453,7 @@ export function FilterMenu(props: FilterMenuProps) {
             />
             {props.hasMultipleSets && (
               <MenuItem
-                label="Search across all sets"
+                label="Search across all collections"
                 checked={props.crossSetSearch}
                 onClick={() => runAndClose(props.onToggleCrossSetSearch)}
               />
@@ -509,4 +509,3 @@ export function FilterMenu(props: FilterMenuProps) {
     </div>
   );
 }
-

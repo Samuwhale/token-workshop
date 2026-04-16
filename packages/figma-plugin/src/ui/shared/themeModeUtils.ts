@@ -39,6 +39,13 @@ export interface ThemeModeCoverageResult {
   summary: ThemeModeCoverageSummary;
 }
 
+export function getCollectionModeDefinition(
+  dimensions: ThemeDimension[],
+  setName: string,
+): ThemeDimension | null {
+  return dimensions.find((dimension) => dimension.id === setName) ?? null;
+}
+
 function readTokenModes(
   entry: TokenMapEntry | undefined,
 ): TokenModeMap | null {
@@ -90,6 +97,9 @@ export function buildThemeModeCoverage(params: {
       dimension.options.map((option) => option.name),
     );
     const tokenCoverage = tokenEntries.flatMap((token) => {
+      if (token.setName !== dimension.id) {
+        return [];
+      }
       const dimensionModes = token.tokenModes?.[dimension.id];
       if (
         !dimensionModes ||
@@ -170,11 +180,15 @@ export function applyThemeSelectionsToTokens(
   allTokensFlat: Record<string, TokenMapEntry>,
   dimensions: ThemeDimension[],
   selections: ActiveThemes,
+  pathToSet?: Record<string, string>,
 ): Record<string, TokenMapEntry> {
   if (dimensions.length === 0 || Object.keys(selections).length === 0) {
     return resolveAllAliases(allTokensFlat);
   }
 
+  const dimensionsById = new Map(
+    dimensions.map((dimension) => [dimension.id, dimension]),
+  );
   const themedEntries: Record<string, TokenMapEntry> = {};
 
   for (const [path, entry] of Object.entries(allTokensFlat)) {
@@ -185,10 +199,15 @@ export function applyThemeSelectionsToTokens(
     }
 
     let nextValue = entry.$value;
-    for (const dimension of dimensions) {
-      const optionName = selections[dimension.id];
-      if (!optionName) continue;
-      const overrideValue = tokenModes[dimension.id]?.[optionName];
+    const setName = pathToSet?.[path];
+    if (!setName || !dimensionsById.has(setName)) {
+      themedEntries[path] = entry;
+      continue;
+    }
+
+    const optionName = selections[setName];
+    if (optionName) {
+      const overrideValue = tokenModes[setName]?.[optionName];
       if (overrideValue !== undefined) {
         nextValue = overrideValue as TokenMapEntry["$value"];
       }
@@ -213,7 +232,7 @@ export function buildSelectionLabel(
   return dimensions
     .map((dimension) => {
       const optionName = selections[dimension.id];
-      return optionName ? `${dimension.name}: ${optionName}` : null;
+      return optionName ? `${dimension.name} · ${optionName}` : null;
     })
     .filter(Boolean)
     .join(" · ");

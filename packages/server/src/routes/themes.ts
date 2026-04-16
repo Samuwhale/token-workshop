@@ -463,6 +463,67 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
 ) => {
   const store = fastify.dimensionsStore;
 
+  async function normalizeCollectionState(
+    state: ThemeDocumentState,
+  ): Promise<ThemeDocumentState> {
+    const setNames = await fastify.tokenStore.getSets();
+    const existingById = new Map(
+      state.dimensions.map((dimension) => [dimension.id, dimension]),
+    );
+
+    const dimensions = setNames.map((setName) => {
+      const existing = existingById.get(setName);
+      return {
+        id: setName,
+        name: setName,
+        options: structuredClone(existing?.options ?? []),
+      };
+    });
+
+    const validOptionsById = new Map(
+      dimensions.map((dimension) => [
+        dimension.id,
+        new Set(dimension.options.map((option) => option.name)),
+      ]),
+    );
+
+    const views = state.views.map((view) => ({
+      ...view,
+      selections: Object.fromEntries(
+        Object.entries(view.selections).filter(([collectionId, optionName]) => {
+          const validOptions = validOptionsById.get(collectionId);
+          return validOptions?.has(optionName) ?? false;
+        }),
+      ),
+    }));
+
+    return { dimensions, views };
+  }
+
+  function normalizeSelectionsForDimensions(
+    dimensions: ThemeDimension[],
+    selections: ActiveThemes,
+  ): ActiveThemes {
+    const next: ActiveThemes = {};
+
+    for (const dimension of dimensions) {
+      const selectedOption = selections[dimension.id];
+      if (
+        selectedOption &&
+        dimension.options.some((option) => option.name === selectedOption)
+      ) {
+        next[dimension.id] = selectedOption;
+        continue;
+      }
+
+      if (dimension.options[0]) {
+        next[dimension.id] = dimension.options[0].name;
+      }
+    }
+
+    return next;
+  }
+
   async function withThemeLock<T>(
     type: string,
     fn: (
@@ -472,8 +533,12 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     let capturedBefore: ThemeDimension[] | null = null;
     let capturedDescription = "";
     const result = await store.withLock(async (dims) => {
-      capturedBefore = structuredClone(dims);
-      const out = await fn(dims);
+      const normalizedState = await normalizeCollectionState({
+        dimensions: dims,
+        views: [],
+      });
+      capturedBefore = structuredClone(normalizedState.dimensions);
+      const out = await fn(normalizedState.dimensions);
       capturedDescription = out.description;
       return { dims: out.dims, result: out.result };
     });
@@ -546,8 +611,9 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     try {
       const result = await fastify.tokenLock.withLock(async () =>
         store.withStateLock(async (state) => {
-          beforeState = structuredClone(state);
-          const out = await fn(state);
+          const normalizedState = await normalizeCollectionState(state);
+          beforeState = structuredClone(normalizedState);
+          const out = await fn(normalizedState);
           description = out.description;
 
           for (const [setName, patches] of out.tokenPatchesBySet ?? []) {
@@ -622,11 +688,55 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     }
   }
 
+  async function withThemeStateMutation<T>(
+    type: string,
+    fn: (state: ThemeDocumentState) => Promise<{
+      state: ThemeDocumentState;
+      result: T;
+      description: string;
+    }>,
+  ): Promise<T> {
+    let beforeState: ThemeDocumentState | null = null;
+    let description = "";
+
+    const result = await store.withStateLock(async (state) => {
+      const normalizedState = await normalizeCollectionState(state);
+      beforeState = structuredClone(normalizedState);
+      const out = await fn(normalizedState);
+      description = out.description;
+      return { state: out.state, result: out.result };
+    });
+
+    const previousState = beforeState as ThemeDocumentState | null;
+    if (!previousState) {
+      return result;
+    }
+
+    await fastify.operationLog.record({
+      type,
+      description,
+      setName: "$themes",
+      affectedPaths: [],
+      beforeSnapshot: {},
+      afterSnapshot: {},
+      rollbackSteps: [
+        {
+          action: "write-themes",
+          dimensions: previousState.dimensions,
+          views: previousState.views,
+        },
+      ],
+    });
+
+    return result;
+  }
+
   fastify.get("/themes", async (_request, reply) => {
     try {
-      const state = await store.loadState();
+      const state = await normalizeCollectionState(await store.loadState());
       return {
         dimensions: state.dimensions,
+        collections: state.dimensions,
         views: state.views,
       };
     } catch (err) {
@@ -637,216 +747,50 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   fastify.post<{ Body: { id: string; name: string } }>(
     "/themes/dimensions",
     async (request, reply) => {
-      const { id, name } = request.body || {};
-      if (!id || typeof id !== "string") {
-        return reply.status(400).send({ error: "Dimension id is required" });
-      }
-      if (!/^[a-z0-9-]+$/.test(id)) {
-        return reply.status(400).send({
-          error:
-            "Dimension id must contain only lowercase letters, numbers, and hyphens",
-        });
-      }
-      if (!name || typeof name !== "string" || !name.trim()) {
-        return reply.status(400).send({ error: "Dimension name is required" });
-      }
-      try {
-        const dimension = await withThemeLock(
-          "theme-dimension-create",
-          async (dimensions) => {
-            if (dimensions.some((dimension) => dimension.id === id)) {
-              throw new ConflictError(
-                `Dimension with id "${id}" already exists`,
-              );
-            }
-            const dim: ThemeDimension = { id, name: name.trim(), options: [] };
-            return {
-              dims: [...dimensions, dim],
-              result: dim,
-              description: `Create theme dimension "${name.trim()}"`,
-            };
-          },
-        );
-        return reply.status(201).send({ ok: true, dimension });
-      } catch (err) {
-        return handleRouteError(reply, err, "Failed to create dimension");
-      }
+      return reply.status(400).send({
+        error:
+          "Collections are created through token collections. Add or rename a collection in the collections manager instead of creating a global mode group.",
+      });
     },
   );
 
   fastify.put<{ Params: { id: string }; Body: { name: string } }>(
     "/themes/dimensions/:id",
     async (request, reply) => {
-      const { id } = request.params;
-      const { name } = request.body || {};
-      if (!name || typeof name !== "string" || !name.trim()) {
-        return reply.status(400).send({ error: "Dimension name is required" });
-      }
-      try {
-        const dimension = await withThemeLock(
-          "theme-dimension-rename",
-          async (dimensions) => {
-            const idx = dimensions.findIndex((dimension) => dimension.id === id);
-            if (idx === -1) {
-              throw new NotFoundError(`Dimension "${id}" not found`);
-            }
-            const oldName = dimensions[idx].name;
-            const nextDimensions = structuredClone(dimensions);
-            nextDimensions[idx] = {
-              ...nextDimensions[idx],
-              name: name.trim(),
-            };
-            return {
-              dims: nextDimensions,
-              result: nextDimensions[idx],
-              description: `Rename dimension "${oldName}" → "${name.trim()}"`,
-            };
-          },
-        );
-        return { ok: true, dimension };
-      } catch (err) {
-        return handleRouteError(reply, err, "Failed to rename dimension");
-      }
+      return reply.status(400).send({
+        error:
+          "Collection names come from token collections. Rename the collection itself instead of renaming a global mode group.",
+      });
     },
   );
 
   fastify.put<{ Body: { dimensionIds: string[] } }>(
     "/themes/dimensions-order",
     async (request, reply) => {
-      const { dimensionIds } = request.body || {};
-      if (
-        !Array.isArray(dimensionIds) ||
-        dimensionIds.some((id) => typeof id !== "string")
-      ) {
-        return reply.status(400).send({
-          error: "dimensionIds must be an array of dimension id strings",
-        });
-      }
-      try {
-        const reordered = await withThemeLock(
-          "theme-dimensions-reorder",
-          async (dimensions) => {
-            const byId = new Map(
-              dimensions.map((dimension) => [dimension.id, dimension]),
-            );
-            for (const id of dimensionIds) {
-              if (!byId.has(id)) {
-                throw new BadRequestError(`Dimension "${id}" not found`);
-              }
-            }
-            if (
-              dimensionIds.length !== dimensions.length ||
-              new Set(dimensionIds).size !== dimensions.length
-            ) {
-              throw new BadRequestError(
-                "dimensionIds must list every dimension id exactly once",
-              );
-            }
-            const newOrder = dimensionIds.map((id) => byId.get(id)!);
-            return {
-              dims: newOrder,
-              result: newOrder,
-              description: "Reorder theme dimensions",
-            };
-          },
-        );
-        return { ok: true, dimensions: reordered };
-      } catch (err) {
-        return handleRouteError(reply, err, "Failed to reorder dimensions");
-      }
+      return reply.status(400).send({
+        error:
+          "Collection order follows token collection order. Reorder collections in the collections manager instead of reordering global mode groups.",
+      });
     },
   );
 
   fastify.delete<{ Params: { id: string } }>(
     "/themes/dimensions/:id",
     async (request, reply) => {
-      const { id } = request.params;
-      try {
-        await withThemeStateAndTokenMutations(
-          "theme-dimension-delete",
-          async (state) => {
-            const dim = state.dimensions.find((dimension) => dimension.id === id);
-            if (!dim) throw new NotFoundError(`Dimension "${id}" not found`);
-
-            const tokenPatchesBySet = await collectModeMutationPatches((token) => {
-              const nextModes = readTokenModes(token);
-              if (!(id in nextModes)) return null;
-              delete nextModes[id];
-              return nextModes;
-            });
-
-            return {
-              state: {
-                dimensions: state.dimensions.filter(
-                  (dimension) => dimension.id !== id,
-                ),
-                views: state.views.map((view) => {
-                  const nextSelections = { ...view.selections };
-                  delete nextSelections[id];
-                  return {
-                    ...view,
-                    selections: nextSelections,
-                  };
-                }),
-              },
-              result: undefined,
-              description: `Delete theme dimension "${dim.name}"`,
-              tokenPatchesBySet,
-            };
-          },
-        );
-        return { ok: true, id };
-      } catch (err) {
-        return handleRouteError(reply, err, "Failed to delete dimension");
-      }
+      return reply.status(400).send({
+        error:
+          "Collections are deleted through token collection actions. Delete the collection itself instead of deleting a global mode group.",
+      });
     },
   );
 
   fastify.post<{ Params: { id: string } }>(
     "/themes/dimensions/:id/duplicate",
     async (request, reply) => {
-      const { id } = request.params;
-      try {
-        const dimension = await withThemeStateAndTokenMutations(
-          "theme-dimension-duplicate",
-          async (state) => {
-            const source = state.dimensions.find((dimension) => dimension.id === id);
-            if (!source) {
-              throw new NotFoundError(`Dimension "${id}" not found`);
-            }
-            const name = getDuplicateDimensionName(state.dimensions, source.name);
-            const duplicate: ThemeDimension = {
-              id: getDuplicateDimensionId(state.dimensions, name),
-              name,
-              options: structuredClone(source.options),
-            };
-
-            const tokenPatchesBySet = await collectModeMutationPatches((token) => {
-              const nextModes = readTokenModes(token);
-              const sourceModes = nextModes[source.id];
-              if (!sourceModes || Object.keys(sourceModes).length === 0) {
-                return null;
-              }
-
-              nextModes[duplicate.id] = structuredClone(sourceModes);
-              return nextModes;
-            });
-
-            return {
-              state: {
-                ...state,
-                dimensions: [...state.dimensions, duplicate],
-              },
-              result: duplicate,
-              description: `Duplicate theme dimension "${source.name}" → "${duplicate.name}"`,
-              tokenPatchesBySet,
-            };
-          },
-        );
-        return reply.status(201).send({ ok: true, dimension });
-      } catch (err) {
-        return handleRouteError(reply, err, "Failed to duplicate dimension");
-      }
+      return reply.status(400).send({
+        error:
+          "Duplicate the collection itself if you need another collection with the same modes. Global mode-group duplication is no longer supported.",
+      });
     },
   );
 
@@ -1129,23 +1073,32 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     }
     try {
       const normalizedId = slugifyName(id);
-      const view = await store.withStateLock(async (state) => {
-        if (state.views.some((item) => item.id === normalizedId)) {
-          throw new ConflictError(`View "${normalizedId}" already exists`);
-        }
-        const nextView: ThemeViewPreset = {
-          id: normalizedId,
-          name: name.trim(),
-          selections: selections as ActiveThemes,
-        };
-        return {
-          state: {
-            ...state,
-            views: [...state.views, nextView],
-          },
-          result: nextView,
-        };
-      });
+      const view = await withThemeStateMutation(
+        "theme-view-create",
+        async (state) => {
+          if (state.views.some((item) => item.id === normalizedId)) {
+            throw new ConflictError(`View "${normalizedId}" already exists`);
+          }
+
+          const nextView: ThemeViewPreset = {
+            id: normalizedId,
+            name: name.trim(),
+            selections: normalizeSelectionsForDimensions(
+              state.dimensions,
+              selections as ActiveThemes,
+            ),
+          };
+
+          return {
+            state: {
+              ...state,
+              views: [...state.views, nextView],
+            },
+            result: nextView,
+            description: `Create preview preset "${nextView.name}"`,
+          };
+        },
+      );
       return reply.status(201).send({ ok: true, view });
     } catch (err) {
       return handleRouteError(reply, err, "Failed to create view");
@@ -1165,26 +1118,35 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
       return reply.status(400).send({ error: "View selections are required" });
     }
     try {
-      const view = await store.withStateLock(async (state) => {
-        const index = state.views.findIndex((item) => item.id === id);
-        if (index === -1) {
-          throw new NotFoundError(`View "${id}" not found`);
-        }
-        const nextView: ThemeViewPreset = {
-          id,
-          name: name.trim(),
-          selections: selections as ActiveThemes,
-        };
-        const nextViews = state.views.slice();
-        nextViews[index] = nextView;
-        return {
-          state: {
-            ...state,
-            views: nextViews,
-          },
-          result: nextView,
-        };
-      });
+      const view = await withThemeStateMutation(
+        "theme-view-update",
+        async (state) => {
+          const index = state.views.findIndex((item) => item.id === id);
+          if (index === -1) {
+            throw new NotFoundError(`View "${id}" not found`);
+          }
+
+          const nextView: ThemeViewPreset = {
+            id,
+            name: name.trim(),
+            selections: normalizeSelectionsForDimensions(
+              state.dimensions,
+              selections as ActiveThemes,
+            ),
+          };
+          const nextViews = state.views.slice();
+          nextViews[index] = nextView;
+
+          return {
+            state: {
+              ...state,
+              views: nextViews,
+            },
+            result: nextView,
+            description: `Update preview preset "${nextView.name}"`,
+          };
+        },
+      );
       return { ok: true, view };
     } catch (err) {
       return handleRouteError(reply, err, "Failed to update view");
@@ -1196,19 +1158,24 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     async (request, reply) => {
       const { id } = request.params;
       try {
-        await store.withStateLock(async (state) => {
-          const nextViews = state.views.filter((item) => item.id !== id);
-          if (nextViews.length === state.views.length) {
-            throw new NotFoundError(`View "${id}" not found`);
-          }
-          return {
-            state: {
-              ...state,
-              views: nextViews,
-            },
-            result: undefined,
-          };
-        });
+        await withThemeStateMutation(
+          "theme-view-delete",
+          async (state) => {
+            const view = state.views.find((item) => item.id === id);
+            if (!view) {
+              throw new NotFoundError(`View "${id}" not found`);
+            }
+
+            return {
+              state: {
+                ...state,
+                views: state.views.filter((item) => item.id !== id),
+              },
+              result: undefined,
+              description: `Delete preview preset "${view.name}"`,
+            };
+          },
+        );
         return { ok: true, id };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to delete view");

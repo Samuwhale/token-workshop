@@ -20,19 +20,18 @@ import type {
 
 function readModeValues(
   raw: unknown,
+  setName: string,
 ): Record<string, Record<string, unknown>> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return {};
   }
 
-  const result: Record<string, Record<string, unknown>> = {};
-  for (const [dimensionId, optionMap] of Object.entries(raw)) {
-    if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
-      continue;
-    }
-    result[dimensionId] = { ...(optionMap as Record<string, unknown>) };
+  const optionMap = (raw as Record<string, unknown>)[setName];
+  if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
+    return {};
   }
-  return result;
+
+  return { [setName]: { ...(optionMap as Record<string, unknown>) } };
 }
 
 interface UseTokenEditorLoadParams {
@@ -110,7 +109,7 @@ export function useTokenEditorLoad({
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
         setColorModifiers(loadedModifiers);
         const savedModes = extensions.tokenmanager?.modes;
-        const loadedModes = readModeValues(savedModes);
+        const loadedModes = readModeValues(savedModes, setName);
         setModeValues(loadedModes);
         const savedLifecycle = extensions.tokenmanager?.lifecycle;
         const loadedLifecycle: TokenEditorLifecycle = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';

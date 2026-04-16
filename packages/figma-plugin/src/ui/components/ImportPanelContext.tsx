@@ -993,7 +993,7 @@ export function ImportPanelProvider({
       if (hasAmbiguousCollectionImport) {
         dispatchToast(
           ambiguousCollectionImportCount === 1
-            ? "Duplicate token paths in one set. Change the mapping or disable a mode."
+            ? "Duplicate token paths in one collection. Change the mapping or disable a mode."
             : `${ambiguousCollectionImportCount} duplicate paths across modes. Change mappings or disable conflicting modes.`,
           "error",
         );
@@ -1052,12 +1052,12 @@ export function ImportPanelProvider({
         const failedCount = failedPaths.length;
         const toastMessage =
           failedCount > 0
-            ? `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? "s" : ""} (${failedCount} failed)`
-            : `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? "s" : ""}`;
+            ? `Imported ${importedTokens} tokens across ${importedSets} collection${importedSets !== 1 ? "s" : ""} (${failedCount} failed)`
+            : `Imported ${importedTokens} tokens across ${importedSets} collection${importedSets !== 1 ? "s" : ""}`;
         const successSummary =
           failedCount > 0
-            ? `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} set${importedSets !== 1 ? "s" : ""} — ${failedCount} failed`
-            : `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} set${importedSets !== 1 ? "s" : ""}`;
+            ? `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} collection${importedSets !== 1 ? "s" : ""} — ${failedCount} failed`
+            : `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} collection${importedSets !== 1 ? "s" : ""}`;
 
         dispatchToast(toastMessage, failedCount > 0 ? "error" : "success");
         onImportedRef.current();
@@ -1090,8 +1090,8 @@ export function ImportPanelProvider({
         setLastImportReviewSummary({
           destinationLabel:
             collectionImportPlans.length === 1
-              ? `"${collectionImportPlans[0]?.setName ?? "Unknown set"}"`
-              : `${collectionImportPlans.length} sets`,
+              ? `"${collectionImportPlans[0]?.setName ?? "Unknown collection"}"`
+              : `${collectionImportPlans.length} collections`,
           newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
           overwriteCount:
             strategy === "overwrite"

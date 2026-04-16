@@ -2,7 +2,7 @@
  * ThemeContext — split into two focused sub-contexts to minimise cascade
  * re-renders caused by unrelated state changes:
  *
- *   ThemeSwitcherContext — theme switching UI state, preview/active theme
+ *   ThemeSwitcherContext — collection/mode selection UI state, preview/active
  *                          selections, and the derived themedAllTokensFlat memo.
  *                          `previewThemes` changes on every hover, so this
  *                          context is intentionally isolated from resolver state.
@@ -11,8 +11,8 @@
  *                          can use `const resolverState = useResolverContext()`.
  *
  * `ThemeProvider` is a thin wrapper that stacks both providers. Resolver state
- * stays downstream from theme authoring; it never replaces the canonical
- * token-plus-mode view exposed by ThemeSwitcherContext.
+ * stays separate from the canonical collection-and-mode view exposed by
+ * ThemeSwitcherContext.
  */
 
 import { createContext, useContext, useMemo } from 'react';
@@ -49,7 +49,6 @@ export interface ResolverState {
   loading: boolean;
   resolversLoading: boolean;
   fetchResolvers: () => void;
-  convertFromThemes: (name?: string) => Promise<unknown>;
   deleteResolver: (name: string) => Promise<void>;
   getResolverFile: (name: string) => Promise<ResolverFile>;
   updateResolver: (name: string, file: ResolverFile) => Promise<void>;
@@ -74,7 +73,7 @@ export interface ThemeSwitcherContextValue {
   retryThemes: () => void;
 
   // ---- Derived memos -------------------------------------------------------
-  /** Tokens resolved through the active theme selections only. */
+  /** Tokens resolved through the active collection/mode selections only. */
   themedAllTokensFlat: Record<string, TokenMapEntry>;
 }
 
@@ -126,7 +125,6 @@ function ResolverProvider({ children, serverUrl, connected }: {
       loading: resolverState.loading,
       resolversLoading: resolverState.resolversLoading,
       fetchResolvers: resolverState.fetchResolvers,
-      convertFromThemes: resolverState.convertFromThemes,
       deleteResolver: resolverState.deleteResolver,
       getResolverFile: resolverState.getResolverFile,
       updateResolver: resolverState.updateResolver,
@@ -146,7 +144,6 @@ function ResolverProvider({ children, serverUrl, connected }: {
       resolverState.loading,
       resolverState.resolversLoading,
       resolverState.fetchResolvers,
-      resolverState.convertFromThemes,
       resolverState.deleteResolver,
       resolverState.getResolverFile,
       resolverState.updateResolver,
@@ -167,7 +164,7 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
   connected: boolean;
 }) {
   const { tokenRevision } = useTokenSetsContext();
-  const { allTokensFlat } = useTokenFlatMapContext();
+  const { allTokensFlat, pathToSet } = useTokenFlatMapContext();
 
   const {
     dimensions, setDimensions,
@@ -178,7 +175,13 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
     dimDropdownRef,
     themedAllTokensFlat: themeOnlyTokensFlat,
     themesError, retryThemes,
-  } = useThemeSwitcher(serverUrl, connected, tokenRevision, allTokensFlat);
+  } = useThemeSwitcher(
+    serverUrl,
+    connected,
+    tokenRevision,
+    allTokensFlat,
+    pathToSet,
+  );
 
   const value = useMemo<ThemeSwitcherContextValue>(
     () => ({

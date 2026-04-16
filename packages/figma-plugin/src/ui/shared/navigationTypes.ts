@@ -8,13 +8,13 @@ import { STORAGE_KEYS } from "./storage";
 import type { RecipeDialogInitialDraft } from "../hooks/useRecipeDialog";
 import type { RecipeTemplate } from "../hooks/useRecipes";
 
-export type TopTab = "tokens" | "recipes" | "themes" | "inspect" | "sync";
+export type TopTab = "tokens" | "recipes" | "collections" | "inspect" | "sync";
 type TokensSubTab = "tokens";
 type RecipesSubTab = "recipes";
-type ThemesSubTab = "themes";
+type CollectionsSubTab = "collections";
 type InspectSubTab = "inspect" | "canvas-analysis";
 type SyncSubTab = "publish" | "export" | "history" | "health";
-export type SubTab = TokensSubTab | RecipesSubTab | ThemesSubTab | InspectSubTab | SyncSubTab;
+export type SubTab = TokensSubTab | RecipesSubTab | CollectionsSubTab | InspectSubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
   | "sets"
@@ -91,9 +91,9 @@ export const TOP_TABS: {
     subTabs: [{ id: "recipes", label: "Recipes" }],
   },
   {
-    id: "themes",
-    label: "Themes",
-    subTabs: [{ id: "themes", label: "Themes" }],
+    id: "collections",
+    label: "Collections",
+    subTabs: [{ id: "collections", label: "Collections" }],
   },
   {
     id: "inspect",
@@ -118,7 +118,7 @@ export const TOP_TABS: {
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   tokens: "tokens",
   recipes: "recipes",
-  themes: "themes",
+  collections: "collections",
   inspect: "inspect",
   sync: "publish",
 };
@@ -126,7 +126,7 @@ export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   tokens: STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
   recipes: STORAGE_KEYS.ACTIVE_SUB_TAB_RECIPES,
-  themes: STORAGE_KEYS.ACTIVE_SUB_TAB_THEMES,
+  collections: STORAGE_KEYS.ACTIVE_SUB_TAB_THEMES,
   inspect: STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
 };
@@ -135,7 +135,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "tokens" | "recipes" | "themes" | "inspect" | "sync";
+export type WorkspaceId = "tokens" | "recipes" | "collections" | "inspect" | "sync";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -303,9 +303,17 @@ const transientOverlayTransition = (
   usage,
 });
 
-/** Minimum window width to show the contextual editor as a side panel.
- *  Accounts for the 208px labeled sidebar so the library + editor have room. */
-export const CONTEXTUAL_PANEL_MIN_WIDTH = 920;
+export const SIDEBAR_WIDTH_EXPANDED = 150;
+export const SIDEBAR_WIDTH_COLLAPSED = 36;
+
+/** Minimum content area width to show the contextual editor as a side panel. */
+const CONTENT_AREA_MIN_WIDTH = 712;
+
+/** Minimum window width for the side panel layout, accounting for sidebar state. */
+export function getContextualPanelMinWidth(sidebarCollapsed: boolean): number {
+  const sidebarWidth = sidebarCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
+  return CONTENT_AREA_MIN_WIDTH + sidebarWidth;
+}
 export const CONTEXTUAL_PANEL_TRANSITIONS = {
   sidePanel: {
     kind: "contextual-panel",
@@ -397,8 +405,6 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
   };
 };
 
-export type ThemeSidebarStage = "axes" | "options" | "token-modes" | "preview";
-
 // ---------------------------------------------------------------------------
 // Sidebar groups — collapsible sections that organize workspaces/items
 // ---------------------------------------------------------------------------
@@ -406,12 +412,10 @@ export type ThemeSidebarStage = "axes" | "options" | "token-modes" | "preview";
 export interface SidebarItem {
   id: string;
   label: string;
+  /** Two-letter abbreviation shown in collapsed rail mode */
+  railCode: string;
   topTab: TopTab;
   subTab: SubTab;
-  /** Stage-based item — for Theme sub-stages */
-  themeStage?: ThemeSidebarStage;
-  /** Nested children shown when this item's workspace is active */
-  children?: SidebarItem[];
   /** Which WorkspaceId this item belongs to (for highlight matching) */
   workspaceId: WorkspaceId;
 }
@@ -427,35 +431,27 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     id: "design",
     label: "Design",
     items: [
-      { id: "tokens", label: "Tokens", topTab: "tokens", subTab: "tokens", workspaceId: "tokens" },
-      { id: "recipes", label: "Recipes", topTab: "recipes", subTab: "recipes", workspaceId: "recipes" },
-      {
-        id: "themes", label: "Themes", topTab: "themes", subTab: "themes", workspaceId: "themes",
-        children: [
-          { id: "axes", label: "Axes", topTab: "themes", subTab: "themes", themeStage: "axes", workspaceId: "themes" },
-          { id: "options", label: "Options", topTab: "themes", subTab: "themes", themeStage: "options", workspaceId: "themes" },
-          { id: "token-modes", label: "Token modes", topTab: "themes", subTab: "themes", themeStage: "token-modes", workspaceId: "themes" },
-          { id: "preview", label: "Preview", topTab: "themes", subTab: "themes", themeStage: "preview", workspaceId: "themes" },
-        ],
-      },
+      { id: "tokens", label: "Tokens", railCode: "To", topTab: "tokens", subTab: "tokens", workspaceId: "tokens" },
+      { id: "recipes", label: "Recipes", railCode: "Re", topTab: "recipes", subTab: "recipes", workspaceId: "recipes" },
+      { id: "collections", label: "Collections", railCode: "Co", topTab: "collections", subTab: "collections", workspaceId: "collections" },
     ],
   },
   {
     id: "inspect",
     label: "Inspect",
     items: [
-      { id: "selection", label: "Selection", topTab: "inspect", subTab: "inspect", workspaceId: "inspect" },
-      { id: "canvas", label: "Canvas", topTab: "inspect", subTab: "canvas-analysis", workspaceId: "inspect" },
+      { id: "selection", label: "Selection", railCode: "Se", topTab: "inspect", subTab: "inspect", workspaceId: "inspect" },
+      { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "inspect", subTab: "canvas-analysis", workspaceId: "inspect" },
     ],
   },
   {
     id: "distribute",
     label: "Distribute",
     items: [
-      { id: "publish", label: "Publish", topTab: "sync", subTab: "publish", workspaceId: "sync" },
-      { id: "export", label: "Export", topTab: "sync", subTab: "export", workspaceId: "sync" },
-      { id: "history", label: "History", topTab: "sync", subTab: "history", workspaceId: "sync" },
-      { id: "health", label: "Health", topTab: "sync", subTab: "health", workspaceId: "sync" },
+      { id: "publish", label: "Publish", railCode: "Pu", topTab: "sync", subTab: "publish", workspaceId: "sync" },
+      { id: "export", label: "Export", railCode: "Ex", topTab: "sync", subTab: "export", workspaceId: "sync" },
+      { id: "history", label: "History", railCode: "Hi", topTab: "sync", subTab: "history", workspaceId: "sync" },
+      { id: "health", label: "Health", railCode: "He", topTab: "sync", subTab: "health", workspaceId: "sync" },
     ],
   },
 ];
@@ -478,12 +474,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     transition: workspaceTransition("Manage token generators."),
   },
   {
-    id: "themes",
-    label: "Themes",
-    summaryTitle: "Themes",
-    topTab: "themes",
-    subTab: "themes",
-    transition: workspaceTransition("Manage theme structure and coverage."),
+    id: "collections",
+    label: "Collections",
+    summaryTitle: "Collections",
+    topTab: "collections",
+    subTab: "collections",
+    transition: workspaceTransition("Manage collection modes and preview coverage."),
   },
   {
     id: "inspect",
@@ -521,10 +517,10 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
   },
   {
     id: "sets",
-    label: "Manage sets",
-    summaryTitle: "Manage sets",
+    label: "Manage collections",
+    summaryTitle: "Manage collections",
     access: "set-switcher",
-    transition: secondaryTakeoverTransition("Manage sets."),
+    transition: secondaryTakeoverTransition("Manage collections."),
   },
   {
     id: "notifications",
@@ -699,9 +695,9 @@ export function getImportResultNextStepRecommendations(
   if (importedMultipleVariableCollections(summary)) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "themes",
-        "themes",
-        "Multiple collections imported — set up theme structure.",
+        "collections",
+        "collections",
+        "Multiple collections imported — review collection modes and preview setup.",
       ),
     );
   }

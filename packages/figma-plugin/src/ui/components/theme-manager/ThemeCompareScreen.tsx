@@ -68,15 +68,15 @@ export function ThemeCompareScreen({
             >
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Back to themes
+            Back to collections
           </button>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                Mode review
+                Preview Review
               </div>
               <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                Compare how tokens resolve across the selected modes and sets before handoff.
+                Compare how tokens resolve across collection modes before publish.
               </p>
             </div>
             {focusLabel ? (

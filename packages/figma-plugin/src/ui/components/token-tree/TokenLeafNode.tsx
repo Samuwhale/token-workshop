@@ -423,7 +423,7 @@ export const TokenLeafNode = memo(
       ? (duplicateCounts.get(stableStringify(node.$value)) ?? 0)
       : 0;
 
-    // Enriched resolution chain with per-hop set/theme metadata (for debugger view)
+    // Enriched resolution chain with per-hop set/mode metadata (for debugger view)
     const resolutionSteps: ResolutionStep[] | null = useMemo(() => {
       if (!isAlias(node.$value)) return null;
       return buildResolutionChain(
@@ -710,8 +710,8 @@ export const TokenLeafNode = memo(
       });
     } else if (modeVariantPaths?.has(node.path) && !multiModeValues) {
       leafMetadataSegments.push({
-        label: "Theme overrides",
-        title: "Has per-theme-option overrides",
+        label: "Mode overrides",
+        title: "Has per-collection mode overrides",
         tone: "accent",
       });
     }
@@ -1811,7 +1811,7 @@ export const TokenLeafNode = memo(
                       className={MENU_ITEM_CLASS}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 14l3-3 3 3" /></svg>
-                      <span className="flex-1">Move to set</span>
+                      <span className="flex-1">Move to collection</span>
                       <span className={MENU_SHORTCUT_CLASS}>M</span>
                     </button>
                   )}
@@ -1824,7 +1824,7 @@ export const TokenLeafNode = memo(
                       className={MENU_ITEM_CLASS}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
-                      <span className="flex-1">Copy to set</span>
+                      <span className="flex-1">Copy to collection</span>
                     </button>
                   )}
                   {!isAlias(node.$value) && onExtractToAlias && (
@@ -2117,7 +2117,7 @@ export const TokenLeafNode = memo(
           )}
           </div>
 
-          {/* Multi-mode value columns — per-theme-option resolved values */}
+          {/* Multi-mode value columns — per-mode resolved values */}
           {multiModeValues && multiModeValues.length > 0 && (
             <div className="flex items-center shrink-0">
               {multiModeValues.map((mv) => (
@@ -2166,7 +2166,7 @@ export const TokenLeafNode = memo(
           </div>
         )}
 
-        {/* Resolution chain debugger — shows full alias/theme resolution pipeline */}
+        {/* Resolution chain debugger — shows full alias/mode resolution pipeline */}
         {resolutionSteps && resolutionSteps.length >= 2 && chainExpanded && (
           <div
             className="flex flex-col bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]"

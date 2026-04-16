@@ -264,7 +264,7 @@ export function TokenListToolbar({
                   type="button"
                   onClick={onOpenSetSwitcher}
                   className="min-w-0 rounded px-1.5 py-0.5 text-left text-[12px] font-semibold text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                  title="Switch set"
+                  title="Switch collection"
                 >
                   <span className="truncate">{setName}</span>
                 </button>
@@ -349,7 +349,7 @@ export function TokenListToolbar({
                       disabled={!connected}
                       className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      New set
+                      New collection
                     </button>
                   )}
                   {onCreateRecipe && (

@@ -56,6 +56,7 @@ export function ContrastMatrixPanel({
             { dimensionId: dim.id, optionName: opt.name },
             dimensions,
             allTokensFlat,
+            pathToSet,
           ),
         );
       }
@@ -65,6 +66,7 @@ export function ContrastMatrixPanel({
     contrastMultiTheme,
     dimensions,
     allTokensFlat,
+    pathToSet,
     activeContrastThemeKeys,
   ]);
 

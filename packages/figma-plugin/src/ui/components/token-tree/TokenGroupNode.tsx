@@ -752,7 +752,7 @@ export const TokenGroupNode = memo(
                   className={MENU_ITEM_CLASS}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 14l3-3 3 3" /></svg>
-                  <span className="flex-1">Move to set</span>
+                  <span className="flex-1">Move to collection</span>
                   <span className={MENU_SHORTCUT_CLASS}>M</span>
                 </button>
                 <button
@@ -763,7 +763,7 @@ export const TokenGroupNode = memo(
                   className={MENU_ITEM_CLASS}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
-                  <span className="flex-1">Copy to set</span>
+                  <span className="flex-1">Copy to collection</span>
                 </button>
                 {onGenerateScaleFromGroup && (
                   <button

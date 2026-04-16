@@ -457,7 +457,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isTokenMode
-              ? (searchAllSets ? 'Search all sets… (type:color, has:ref, path:brand)' : 'Search tokens… (type:color, has:ref, path:brand)')
+              ? (searchAllSets ? 'Search all collections… (type:color, has:ref, path:brand)' : 'Search tokens… (type:color, has:ref, path:brand)')
               : 'Search expert actions… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
@@ -683,7 +683,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                         className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
                         onClick={() => { setSearchAllSets(true); setVisibleCount(100); }}
                       >
-                        Search all sets
+                        Search all collections
                       </button>
                     </div>
                   )}
@@ -833,7 +833,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                   {onMoveToken && (
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Move to set: ${token.path}`}
+                      title={`Move to collection: ${token.path}`}
                       className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onMoveToken(token.path); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}

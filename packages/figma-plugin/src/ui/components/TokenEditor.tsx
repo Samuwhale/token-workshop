@@ -1515,6 +1515,7 @@ export function TokenEditor({
         )}
 
         <ModeValuesEditor
+          setName={setName}
           dimensions={dimensions}
           modeValues={modeValues}
           onModeValuesChange={setModeValues}

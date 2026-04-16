@@ -163,7 +163,7 @@ export function useTokenSave({
     _type: string,
     newValue: unknown,
     targetSet: string,
-    dimId: string,
+    _dimId: string,
     optionName: string,
     _previousState?: { type?: string; value: unknown },
   ) => {
@@ -172,7 +172,7 @@ export function useTokenSave({
     // Read the current token to get its full $extensions for deep merge.
     // The server PATCH replaces $extensions wholesale, so we must send
     // the complete merged object.
-    const currentEntry = allTokensFlat[path];
+    const currentEntry = perSetFlat?.[targetSet]?.[path] ?? allTokensFlat[path];
     const previousExtensions = currentEntry?.$extensions
       ? structuredClone(currentEntry.$extensions)
       : undefined;
@@ -193,10 +193,9 @@ export function useTokenSave({
       !Array.isArray(tokenmanager.modes)
         ? { ...(tokenmanager.modes as Record<string, Record<string, unknown>>) }
         : {};
-    const dimModes = modes[dimId] ? { ...modes[dimId] } : {};
-    dimModes[optionName] = newValue;
-    modes[dimId] = dimModes;
-    tokenmanager.modes = modes;
+    const collectionModes = modes[targetSet] ? { ...modes[targetSet] } : {};
+    collectionModes[optionName] = newValue;
+    tokenmanager.modes = { [targetSet]: collectionModes };
     nextExtensions.tokenmanager = tokenmanager;
 
     try {
@@ -231,7 +230,7 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-  }, [connected, serverUrl, allTokensFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
+  }, [connected, serverUrl, allTokensFlat, onRefresh, onPushUndo, onRecordTouch, onError, perSetFlat]);
 
   const handleDetachFromRecipe = useCallback(async (path: string) => {
     if (!connected) return;

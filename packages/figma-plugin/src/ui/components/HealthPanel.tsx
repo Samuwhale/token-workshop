@@ -245,7 +245,7 @@ export interface HealthPanelProps {
   dimensions?: ThemeDimension[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
-  onNavigateTo: (topTab: "tokens" | "themes" | "inspect" | "sync", subTab?: string) => void;
+  onNavigateTo: (topTab: "tokens" | "collections" | "inspect" | "sync", subTab?: string) => void;
   onNavigateToToken?: (path: string, set: string) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
   onTriggerHeatmap: () => void;

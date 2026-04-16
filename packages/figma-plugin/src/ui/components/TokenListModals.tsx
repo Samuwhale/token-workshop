@@ -198,7 +198,7 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
           </h3>
           {depCount > 0 && (
             <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-              {depCount} {noun} will be updated across all sets:
+              {depCount} {noun} will be updated across all collections:
             </p>
           )}
           {deps.length > 0 && (
@@ -237,7 +237,7 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
           {hasThemeImpacts && (
             <div className="mt-2">
               <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Affected theme options ({themeImpacts.length}):
+                Affected mode values ({themeImpacts.length}):
               </div>
               <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                 {themeImpacts.map((impact, i) => (
@@ -372,7 +372,7 @@ function ExtractToAliasModal() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Create in set</label>
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Create in collection</label>
                 <select
                   value={newPrimitiveSet}
                   onChange={e => onSetNewPrimitiveSet(e.target.value)}
@@ -454,7 +454,7 @@ function DeleteImpactDetails({
   const [tokensOpen, setTokensOpen] = useState(false);
   const [refsOpen, setRefsOpen] = useState(false);
   const [gensOpen, setGensOpen] = useState(false);
-  const [themesOpen, setThemesOpen] = useState(false);
+  const [modesOpen, setModesOpen] = useState(false);
 
   const tokenCount = pathList?.length ?? 0;
   const refCount = affectedRefs?.length ?? 0;
@@ -485,7 +485,7 @@ function DeleteImpactDetails({
         )}
         {themeCount > 0 && (
           <NoticePill severity="info" className="border-blue-500/30 bg-blue-500/10 text-blue-600">
-            {themeCount} mode option{themeCount !== 1 ? 's' : ''}
+            {themeCount} mode value{themeCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
       </div>
@@ -549,9 +549,9 @@ function DeleteImpactDetails({
       {/* Collapsible: mode impacts */}
       {themeCount > 0 && (
         <CollapsibleSection
-          open={themesOpen}
-          onToggle={() => setThemesOpen(v => !v)}
-          label={`Affected theme options (${themeCount})`}
+          open={modesOpen}
+          onToggle={() => setModesOpen(v => !v)}
+          label={`Affected mode values (${themeCount})`}
         >
           <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {themeImpacts!.map((impact, i) => (
@@ -758,16 +758,16 @@ export function TokenListModals() {
 
       {/* Long-lived review surfaces now render inline in TokenList to preserve library context. */}
 
-      {/* Move group to set modal */}
+      {/* Move group to collection modal */}
       {movingGroup && (
         <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
-            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move group to set</div>
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move group to collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
               <span className="font-mono text-[var(--color-figma-text)]">{movingGroup}</span>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination set</label>
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination collection</label>
               <select
                 value={moveTargetSet}
                 onChange={e => onSetMoveTargetSet(e.target.value)}
@@ -797,16 +797,16 @@ export function TokenListModals() {
         </div>
       )}
 
-      {/* Copy group to set modal */}
+      {/* Copy group to collection modal */}
       {copyingGroup && (
         <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
-            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Copy group to set</div>
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Copy group to collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
               <span className="font-mono text-[var(--color-figma-text)]">{copyingGroup}</span>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination set</label>
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination collection</label>
               <select
                 value={copyTargetSet}
                 onChange={e => onSetCopyTargetSet(e.target.value)}
@@ -880,23 +880,23 @@ export function TokenListModals() {
         </div>
       )}
 
-      {/* Batch move selected tokens to another set */}
+      {/* Batch move selected tokens to another collection */}
       {showBatchMoveToSet && (
         <div
           className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) onSetShowBatchMoveToSet(false); }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another set</div>
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Tokens will be removed from <span className="font-mono text-[var(--color-figma-text)]">{setName}</span> and added to the target set.
+              Tokens will be removed from <span className="font-mono text-[var(--color-figma-text)]">{setName}</span> and added to the target collection.
             </div>
             <select
               value={batchMoveToSetTarget}
               onChange={e => onSetBatchMoveToSetTarget(e.target.value)}
               onKeyDown={e => { if (e.key === 'Escape') onSetShowBatchMoveToSet(false); }}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-              aria-label="Target set"
+              aria-label="Target collection"
               autoFocus
             >
               {sets.filter(s => s !== setName).map(s => (
@@ -922,23 +922,23 @@ export function TokenListModals() {
         </div>
       )}
 
-      {/* Batch copy selected tokens to another set */}
+      {/* Batch copy selected tokens to another collection */}
       {showBatchCopyToSet && (
         <div
           className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) onSetShowBatchCopyToSet(false); }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Copy {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another set</div>
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Copy {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Tokens will be duplicated into the target set. Originals in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span> are kept.
+              Tokens will be duplicated into the target collection. Originals in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span> are kept.
             </div>
             <select
               value={batchCopyToSetTarget}
               onChange={e => onSetBatchCopyToSetTarget(e.target.value)}
               onKeyDown={e => { if (e.key === 'Escape') onSetShowBatchCopyToSet(false); }}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
-              aria-label="Target set"
+              aria-label="Target collection"
               autoFocus
             >
               {sets.filter(s => s !== setName).map(s => (

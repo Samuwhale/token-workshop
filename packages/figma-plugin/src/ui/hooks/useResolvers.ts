@@ -3,7 +3,7 @@
  *
  * Fetches resolver list from the server, lets the user select a resolver
  * and modifier inputs, then resolves tokens and returns them as a flat
- * TokenMapEntry record for display alongside existing theme-based tokens.
+ * TokenMapEntry record for display alongside the collection-native token view.
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -219,22 +219,6 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   }, [activeResolver, resolvers]);
 
   // -----------------------------------------------------------------------
-  // Create resolver from themes (migration)
-  // -----------------------------------------------------------------------
-  const convertFromThemes = useCallback(async (name?: string) => {
-    const targetName = name || activeResolver || 'theme-resolver';
-    const result = await apiFetch<{ ok: true; name: string }>(`${serverUrl}/api/resolvers/from-themes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: targetName }),
-    });
-    setActiveResolverState(result.name);
-    setSelectionOrigin('manual');
-    fetchResolvers();
-    return result;
-  }, [activeResolver, serverUrl, fetchResolvers]);
-
-  // -----------------------------------------------------------------------
   // Delete resolver
   // -----------------------------------------------------------------------
   const deleteResolver = useCallback(async (name: string) => {
@@ -300,7 +284,6 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     loading,
     resolversLoading,
     fetchResolvers,
-    convertFromThemes,
     deleteResolver,
     getResolverFile,
     updateResolver,
@@ -319,7 +302,6 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     loading,
     resolversLoading,
     fetchResolvers,
-    convertFromThemes,
     deleteResolver,
     getResolverFile,
     updateResolver,

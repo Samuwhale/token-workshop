@@ -93,7 +93,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     if (showRecentlyTouched) items.push("Recently touched");
     if (typeFilter !== "") items.push(`Type: ${typeFilter}`);
     if (inspectMode) items.push("Bound to selection");
-    if (crossSetSearch) items.push("Search all sets");
+    if (crossSetSearch) items.push("Search all collections");
     return items;
   }, [
     crossSetSearch, inspectMode, lintViolationsLength, refFilter,
@@ -174,7 +174,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     if (crossSetSearch) {
       chips.push({
         key: "cross-set",
-        label: "Search all sets",
+        label: "Search all collections",
         tone: "filter",
         onRemove: () => setCrossSetSearch(false),
       });
@@ -184,8 +184,8 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         key: "view:modes",
         label:
           multiModeDimensionName
-            ? `Theme options: ${multiModeDimensionName}`
-            : "Theme options",
+            ? `Mode columns: ${multiModeDimensionName}`
+            : "Mode columns",
         tone: "view",
         onRemove: toggleMultiMode,
       });
@@ -193,7 +193,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     if (themeLensEnabled) {
       chips.push({
         key: "view:theme-values",
-        label: "Active theme values",
+        label: "Preview values",
         tone: "view",
         onRemove: () => setThemeLensEnabled(false),
       });

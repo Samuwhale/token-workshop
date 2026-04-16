@@ -11,11 +11,14 @@ export function resolveThemeOption(
   option: ThemeComparisonOption | null,
   dimensions: ThemeDimension[],
   allTokensFlat: Record<string, TokenMapEntry>,
+  pathToSet: Record<string, string>,
 ): Record<string, TokenMapEntry> {
-  if (!option) return applyThemeSelectionsToTokens(allTokensFlat, dimensions, {});
+  if (!option) {
+    return applyThemeSelectionsToTokens(allTokensFlat, dimensions, {}, pathToSet);
+  }
   return applyThemeSelectionsToTokens(allTokensFlat, dimensions, {
     [option.dimensionId]: option.optionName,
-  });
+  }, pathToSet);
 }
 
 export function exportCsvFile(filename: string, rows: string[][]): void {

@@ -26,7 +26,6 @@ import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import type {
   SurfaceTransition,
 } from "../shared/navigationTypes";
-import type { ThemeWorkspaceShellState } from "../shared/themeWorkflow";
 
 export interface ShellWorkspaceController {
   showPreviewSplit: boolean;
@@ -110,7 +109,6 @@ export interface TokensWorkspaceController {
 
 export interface ThemeWorkspaceController {
   themeManagerHandleRef: MutableRefObject<ThemeManagerHandle | null>;
-  onThemeShellStateChange: (state: ThemeWorkspaceShellState) => void;
 }
 
 export interface ApplyWorkspaceController {
@@ -179,10 +177,6 @@ export interface SetManagerWorkspaceController {
   editingMetadataSet: string | null;
   metadataDescription: string;
   setMetadataDescription: (value: string) => void;
-  metadataCollectionName: string;
-  setMetadataCollectionName: (value: string) => void;
-  metadataModeName: string;
-  setMetadataModeName: (value: string) => void;
   onMetadataClose: () => void;
   onMetadataSave: () => void;
   deletingSet: string | null;

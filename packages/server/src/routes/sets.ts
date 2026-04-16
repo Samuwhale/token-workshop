@@ -9,8 +9,11 @@ import {
   type ResolverSource,
   type Token,
   type TokenGroup,
+  type ThemeDimension,
+  type ThemeViewPreset,
 } from "@tokenmanager/core";
 import type {
+  RollbackStep,
   SetMetadataChange,
   SetMetadataOperationMetadata,
 } from "../services/operation-log.js";
@@ -112,6 +115,13 @@ interface LoadedSetDependencyData {
   tokens: TokenGroup;
   metadata: SetMetadataState;
 }
+
+interface ThemeDocumentState {
+  dimensions: ThemeDimension[];
+  views: ThemeViewPreset[];
+}
+
+type TokenModeMap = Record<string, Record<string, unknown>>;
 
 interface SetDependencySnapshot {
   resolvers: SetResolverMeta[];
@@ -241,6 +251,216 @@ function findFolderRenameConflicts(
   }
 
   return [...conflicts].sort((a, b) => a.localeCompare(b));
+}
+
+function readTokenModes(token: Token): TokenModeMap {
+  const rawModes = (
+    token.$extensions?.tokenmanager as Record<string, unknown> | undefined
+  )?.modes;
+  if (!rawModes || typeof rawModes !== "object" || Array.isArray(rawModes)) {
+    return {};
+  }
+
+  const modes: TokenModeMap = {};
+  for (const [collectionId, optionMap] of Object.entries(rawModes)) {
+    if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
+      continue;
+    }
+    modes[collectionId] = { ...(optionMap as Record<string, unknown>) };
+  }
+  return modes;
+}
+
+function buildExtensionsWithModes(
+  token: Token,
+  nextModes: TokenModeMap,
+): Token["$extensions"] | undefined {
+  const nextExtensions = token.$extensions
+    ? structuredClone(token.$extensions)
+    : {};
+  const existingTokenManager =
+    nextExtensions.tokenmanager &&
+    typeof nextExtensions.tokenmanager === "object" &&
+    !Array.isArray(nextExtensions.tokenmanager)
+      ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
+      : {};
+
+  if (Object.keys(nextModes).length > 0) {
+    existingTokenManager.modes = nextModes;
+    nextExtensions.tokenmanager = existingTokenManager;
+  } else if (Object.keys(existingTokenManager).length > 0) {
+    delete existingTokenManager.modes;
+    if (Object.keys(existingTokenManager).length > 0) {
+      nextExtensions.tokenmanager = existingTokenManager;
+    } else {
+      delete nextExtensions.tokenmanager;
+    }
+  } else {
+    delete nextExtensions.tokenmanager;
+  }
+
+  return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
+}
+
+function writeTokenModes(token: Token, nextModes: TokenModeMap): void {
+  const nextExtensions = buildExtensionsWithModes(token, nextModes);
+  if (nextExtensions) {
+    token.$extensions = nextExtensions;
+    return;
+  }
+  delete token.$extensions;
+}
+
+function renameCollectionModes(
+  modes: TokenModeMap,
+  oldName: string,
+  newName: string,
+): TokenModeMap | null {
+  if (!(oldName in modes)) {
+    return null;
+  }
+
+  const nextModes = { ...modes, [newName]: structuredClone(modes[oldName]) };
+  delete nextModes[oldName];
+  return nextModes;
+}
+
+function copyCollectionModesToNewCollection(
+  modes: TokenModeMap,
+  sourceName: string,
+  targetName: string,
+): TokenModeMap | null {
+  if (!(sourceName in modes)) {
+    return null;
+  }
+
+  const nextModes = {
+    ...modes,
+    [targetName]: structuredClone(modes[sourceName]),
+  };
+  delete nextModes[sourceName];
+  return nextModes;
+}
+
+function rewriteTokenGroupCollectionModes(
+  tokens: TokenGroup,
+  rewrite: (modes: TokenModeMap) => TokenModeMap | null,
+): { tokens: TokenGroup; changed: boolean } {
+  const nextTokens = structuredClone(tokens);
+  let changed = false;
+
+  for (const [, token] of flattenTokenGroup(nextTokens)) {
+    const nextModes = rewrite(readTokenModes(token as Token));
+    if (!nextModes) {
+      continue;
+    }
+    writeTokenModes(token as Token, nextModes);
+    changed = true;
+  }
+
+  return { tokens: nextTokens, changed };
+}
+
+function renameCollectionIdsInState(
+  state: ThemeDocumentState,
+  renames: FolderSetRename[],
+): ThemeDocumentState {
+  if (renames.length === 0) {
+    return state;
+  }
+
+  const renameMap = new Map(renames.map(({ from, to }) => [from, to]));
+  return {
+    dimensions: state.dimensions.map((dimension) => {
+      const nextId = renameMap.get(dimension.id);
+      return nextId
+        ? { ...dimension, id: nextId, name: nextId }
+        : dimension;
+    }),
+    views: state.views.map((view) => {
+      let changed = false;
+      const nextSelections = { ...view.selections };
+      for (const { from, to } of renames) {
+        if (!(from in nextSelections)) {
+          continue;
+        }
+        nextSelections[to] = nextSelections[from];
+        delete nextSelections[from];
+        changed = true;
+      }
+      return changed ? { ...view, selections: nextSelections } : view;
+    }),
+  };
+}
+
+function copyCollectionIdsInState(
+  state: ThemeDocumentState,
+  sourceName: string,
+  targetNames: string[],
+): ThemeDocumentState {
+  if (targetNames.length === 0) {
+    return state;
+  }
+
+  const source = state.dimensions.find((dimension) => dimension.id === sourceName);
+  return {
+    dimensions:
+      source &&
+      targetNames.every(
+        (targetName) =>
+          !state.dimensions.some((dimension) => dimension.id === targetName),
+      )
+        ? [
+            ...state.dimensions,
+            ...targetNames.map((targetName) => ({
+              id: targetName,
+              name: targetName,
+              options: structuredClone(source.options),
+            })),
+          ]
+        : state.dimensions,
+    views: state.views.map((view) => {
+      if (!(sourceName in view.selections)) {
+        return view;
+      }
+      const nextSelections = { ...view.selections };
+      for (const targetName of targetNames) {
+        nextSelections[targetName] = nextSelections[sourceName];
+      }
+      return {
+        ...view,
+        selections: nextSelections,
+      };
+    }),
+  };
+}
+
+function deleteCollectionIdsFromState(
+  state: ThemeDocumentState,
+  setNames: string[],
+): ThemeDocumentState {
+  if (setNames.length === 0) {
+    return state;
+  }
+
+  const deletedSetNames = new Set(setNames);
+  return {
+    dimensions: state.dimensions.filter(
+      (dimension) => !deletedSetNames.has(dimension.id),
+    ),
+    views: state.views.map((view) => {
+      let changed = false;
+      const nextSelections = { ...view.selections };
+      for (const setName of deletedSetNames) {
+        if (!(setName in nextSelections)) {
+          continue;
+        }
+        delete nextSelections[setName];
+        changed = true;
+      }
+      return changed ? { ...view, selections: nextSelections } : view;
+    }),
+  };
 }
 
 function buildGeneratedOwnershipImpacts(
@@ -655,6 +875,83 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.recipeService.updateSetName(oldName, newName);
   };
 
+  const loadCollectionModeState = async (): Promise<ThemeDocumentState> =>
+    structuredClone(await fastify.dimensionsStore.loadState());
+
+  const restoreCollectionModeState = async (
+    state: ThemeDocumentState,
+  ): Promise<void> => {
+    await fastify.dimensionsStore.withStateLock(async () => ({
+      state: structuredClone(state),
+      result: undefined,
+    }));
+  };
+
+  const buildThemesRollbackStep = (state: ThemeDocumentState) => ({
+    action: "write-themes" as const,
+    dimensions: structuredClone(state.dimensions),
+    views: structuredClone(state.views),
+  });
+
+  const renameCollectionModeState = async (renames: FolderSetRename[]) => {
+    await fastify.dimensionsStore.withStateLock(async (state) => ({
+      state: renameCollectionIdsInState(state, renames),
+      result: undefined,
+    }));
+  };
+
+  const deleteCollectionModeState = async (setNames: string[]) => {
+    await fastify.dimensionsStore.withStateLock(async (state) => ({
+      state: deleteCollectionIdsFromState(state, setNames),
+      result: undefined,
+    }));
+  };
+
+  const duplicateCollectionModeState = async (
+    sourceName: string,
+    targetNames: string[],
+  ) => {
+    await fastify.dimensionsStore.withStateLock(async (state) => ({
+      state: copyCollectionIdsInState(state, sourceName, targetNames),
+      result: undefined,
+    }));
+  };
+
+  const replaceSetTokensIfNeeded = async (
+    setName: string,
+    nextTokens: TokenGroup,
+    changed: boolean,
+  ): Promise<void> => {
+    if (!changed) {
+      return;
+    }
+    await fastify.tokenStore.replaceSetTokens(setName, nextTokens);
+  };
+
+  const renameCollectionModesInSet = async (
+    setName: string,
+    oldName: string,
+    newName: string,
+  ): Promise<void> => {
+    const set = await fastify.tokenStore.getSet(setName);
+    if (!set) {
+      throw new Error(`Set "${setName}" not found`);
+    }
+    const rewritten = rewriteTokenGroupCollectionModes(set.tokens, (modes) =>
+      renameCollectionModes(modes, oldName, newName),
+    );
+    await replaceSetTokensIfNeeded(setName, rewritten.tokens, rewritten.changed);
+  };
+
+  const cloneTokenGroupForCollection = (
+    tokens: TokenGroup,
+    sourceName: string,
+    targetName: string,
+  ): TokenGroup =>
+    rewriteTokenGroupCollectionModes(tokens, (modes) =>
+      copyCollectionModesToNewCollection(modes, sourceName, targetName),
+    ).tokens;
+
   const loadSetDependencySnapshot = async (
     setNames: Iterable<string>,
   ): Promise<SetDependencySnapshot> => {
@@ -905,20 +1202,50 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return withLock(async () => {
+        let renamed = false;
+        let themeStateChanged = false;
+        let beforeSnapshot: Record<string, SnapshotEntry> = {};
+        const previousThemeState = await loadCollectionModeState();
         try {
+          beforeSnapshot = await snapshotSet(fastify.tokenStore, name);
           await fastify.tokenStore.renameSet(name, newName);
+          renamed = true;
+          await renameCollectionModesInSet(newName, name, newName);
           await renameDependentSetReferences(name, newName);
+          await renameCollectionModeState([{ from: name, to: newName }]);
+          themeStateChanged = true;
+          const afterSnapshot = await snapshotSet(fastify.tokenStore, newName);
           await fastify.operationLog.record({
             type: "set-rename",
             description: `Rename set "${name}" → "${newName}"`,
             setName: newName,
-            affectedPaths: [],
-            beforeSnapshot: {},
-            afterSnapshot: {},
-            rollbackSteps: [{ action: "rename-set", from: newName, to: name }],
+            affectedPaths: [
+              ...new Set([
+                ...listSnapshotTokenPaths(beforeSnapshot),
+                ...listSnapshotTokenPaths(afterSnapshot),
+              ]),
+            ],
+            beforeSnapshot,
+            afterSnapshot,
+            rollbackSteps: [
+              { action: "rename-set", from: newName, to: name },
+              buildThemesRollbackStep(previousThemeState),
+            ],
           });
           return { ok: true, oldName: name, newName };
         } catch (err) {
+          if (themeStateChanged) {
+            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          }
+          if (renamed) {
+            await fastify.tokenStore
+              .renameSet(newName, name)
+              .then(async () => {
+                await renameCollectionModesInSet(name, newName, name);
+                await renameDependentSetReferences(newName, name);
+              })
+              .catch(() => {});
+          }
           return handleRouteError(reply, err, "Failed to rename set");
         }
       });
@@ -980,6 +1307,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return withLock(async () => {
+        const completedRenames: FolderSetRename[] = [];
+        let themeStateChanged = false;
+        const previousThemeState = await loadCollectionModeState();
         try {
           const allSets = await fastify.tokenStore.getSets();
           const folderSetNames = getFolderSetNames(allSets, fromFolder);
@@ -1011,8 +1341,12 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           );
           for (const rename of sortFolderRenamePairsForApply(renames)) {
             await fastify.tokenStore.renameSet(rename.from, rename.to);
+            await renameCollectionModesInSet(rename.to, rename.from, rename.to);
             await renameDependentSetReferences(rename.from, rename.to);
+            completedRenames.push(rename);
           }
+          await renameCollectionModeState(renames);
+          themeStateChanged = true;
           const renamedSetNames = renames.map(({ to }) => to);
           const afterSnapshot = await snapshotSets(
             fastify.tokenStore,
@@ -1025,6 +1359,14 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             ]),
           ];
 
+          const rollbackSteps: RollbackStep[] = [
+            ...sortFolderRenamePairsForRollback(renames).map(({ from, to }) => ({
+              action: "rename-set" as const,
+              from,
+              to,
+            })),
+            buildThemesRollbackStep(previousThemeState),
+          ];
           await fastify.operationLog.record({
             type: "set-folder-rename",
             description: `Rename folder "${fromFolder}" → "${toFolder}"`,
@@ -1032,13 +1374,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             affectedPaths,
             beforeSnapshot,
             afterSnapshot,
-            rollbackSteps: sortFolderRenamePairsForRollback(renames).map(
-              ({ from, to }) => ({
-                action: "rename-set" as const,
-                from,
-                to,
-              }),
-            ),
+            rollbackSteps,
             metadata: {
               folder: fromFolder,
               newFolder: toFolder,
@@ -1054,6 +1390,18 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             sets: await fastify.tokenStore.getSets(),
           };
         } catch (err) {
+          if (themeStateChanged) {
+            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          }
+          for (const rename of sortFolderRenamePairsForRollback(completedRenames)) {
+            await fastify.tokenStore
+              .renameSet(rename.from, rename.to)
+              .then(async () => {
+                await renameCollectionModesInSet(rename.to, rename.from, rename.to);
+                await renameDependentSetReferences(rename.from, rename.to);
+              })
+              .catch(() => {});
+          }
           return handleRouteError(reply, err, "Failed to rename folder");
         }
       });
@@ -1130,6 +1478,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return withLock(async () => {
+        const completedRenames: FolderSetRename[] = [];
+        let themeStateChanged = false;
+        const previousThemeState = await loadCollectionModeState();
         try {
           const allSets = await fastify.tokenStore.getSets();
           const sourceSetNames = getFolderSetNames(allSets, sourceFolder);
@@ -1168,8 +1519,12 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           );
           for (const rename of sortFolderRenamePairsForApply(renames)) {
             await fastify.tokenStore.renameSet(rename.from, rename.to);
+            await renameCollectionModesInSet(rename.to, rename.from, rename.to);
             await renameDependentSetReferences(rename.from, rename.to);
+            completedRenames.push(rename);
           }
+          await renameCollectionModeState(renames);
+          themeStateChanged = true;
           const movedSetNames = renames.map(({ to }) => to);
           const afterSnapshot = await snapshotSets(
             fastify.tokenStore,
@@ -1182,6 +1537,14 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             ]),
           ];
 
+          const rollbackSteps: RollbackStep[] = [
+            ...sortFolderRenamePairsForRollback(renames).map(({ from, to }) => ({
+              action: "rename-set" as const,
+              from,
+              to,
+            })),
+            buildThemesRollbackStep(previousThemeState),
+          ];
           await fastify.operationLog.record({
             type: "set-folder-merge",
             description: `Merge folder "${sourceFolder}" into "${targetFolder}"`,
@@ -1189,13 +1552,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             affectedPaths,
             beforeSnapshot,
             afterSnapshot,
-            rollbackSteps: sortFolderRenamePairsForRollback(renames).map(
-              ({ from, to }) => ({
-                action: "rename-set" as const,
-                from,
-                to,
-              }),
-            ),
+            rollbackSteps,
             metadata: {
               sourceFolder,
               targetFolder,
@@ -1211,6 +1568,18 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             sets: await fastify.tokenStore.getSets(),
           };
         } catch (err) {
+          if (themeStateChanged) {
+            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          }
+          for (const rename of sortFolderRenamePairsForRollback(completedRenames)) {
+            await fastify.tokenStore
+              .renameSet(rename.from, rename.to)
+              .then(async () => {
+                await renameCollectionModesInSet(rename.to, rename.from, rename.to);
+                await renameDependentSetReferences(rename.from, rename.to);
+              })
+              .catch(() => {});
+          }
           return handleRouteError(reply, err, "Failed to merge folders");
         }
       });
@@ -1237,6 +1606,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         const deletedSetNames: string[] = [];
         const previousResolverFiles: Record<string, ResolverFile> = {};
         let changedResolverNames: string[] = [];
+        let themeStateChanged = false;
+        const previousThemeState = await loadCollectionModeState();
 
         try {
           const allSets = await fastify.tokenStore.getSets();
@@ -1289,6 +1660,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             await fastify.tokenStore.deleteSet(setName);
             deletedSetNames.push(setName);
           }
+          await deleteCollectionModeState(folderSetNames);
+          themeStateChanged = true;
 
           await fastify.operationLog.record({
             type: "set-folder-delete",
@@ -1307,6 +1680,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 name,
                 file: previousResolverFiles[name],
               })),
+              buildThemesRollbackStep(previousThemeState),
             ],
             metadata: {
               folder,
@@ -1331,6 +1705,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 )
                 .catch(() => {});
             }
+          }
+          if (themeStateChanged) {
+            await restoreCollectionModeState(previousThemeState).catch(() => {});
           }
           if (changedResolverNames.length > 0) {
             await fastify.resolverLock
@@ -1385,8 +1762,12 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { name } = request.params;
       const requestedName = request.body?.newName;
+      let nextName = requestedName;
 
       return withLock(async () => {
+        let created = false;
+        let themeStateChanged = false;
+        const previousThemeState = await loadCollectionModeState();
         try {
           const source = await fastify.tokenStore.getSet(name);
           if (!source) {
@@ -1396,46 +1777,60 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           // Auto-generate a unique name if not provided
-          let newName = requestedName;
-          if (!newName) {
+          if (!nextName) {
             const allSets = await fastify.tokenStore.getSets();
-            newName = `${name}-copy`;
+            nextName = `${name}-copy`;
             let i = 2;
-            while (allSets.includes(newName)) {
-              newName = `${name}-copy-${i++}`;
+            while (allSets.includes(nextName)) {
+              nextName = `${name}-copy-${i++}`;
             }
           } else {
-            if (!isValidSetName(newName)) {
+            if (!isValidSetName(nextName)) {
               return reply.status(400).send({
                 error:
                   "Set name must contain only alphanumeric characters, dashes, underscores, and / for folders",
               });
             }
-            const existing = await fastify.tokenStore.getSet(newName);
+            const existing = await fastify.tokenStore.getSet(nextName);
             if (existing) {
               return reply
                 .status(409)
-                .send({ error: `Token set "${newName}" already exists` });
+                .send({ error: `Token set "${nextName}" already exists` });
             }
           }
 
-          // Deep-copy tokens (includes $description, $figmaCollection, $figmaMode metadata fields)
-          const tokensCopy = JSON.parse(JSON.stringify(source.tokens));
-          const set = await fastify.tokenStore.createSet(newName, tokensCopy);
-          const afterSnap = await snapshotSet(fastify.tokenStore, newName);
+          const tokensCopy = cloneTokenGroupForCollection(
+            source.tokens,
+            name,
+            nextName,
+          );
+          const set = await fastify.tokenStore.createSet(nextName, tokensCopy);
+          created = true;
+          await duplicateCollectionModeState(name, [nextName]);
+          themeStateChanged = true;
+          const afterSnap = await snapshotSet(fastify.tokenStore, nextName);
           await fastify.operationLog.record({
             type: "set-create",
-            description: `Duplicate set "${name}" → "${newName}"`,
-            setName: newName,
+            description: `Duplicate set "${name}" → "${nextName}"`,
+            setName: nextName,
             affectedPaths: Object.keys(afterSnap),
             beforeSnapshot: {},
             afterSnapshot: afterSnap,
-            rollbackSteps: [{ action: "delete-set", name: newName }],
+            rollbackSteps: [
+              { action: "delete-set", name: nextName },
+              buildThemesRollbackStep(previousThemeState),
+            ],
           });
           return reply
             .status(201)
             .send({ ok: true, name: set.name, originalName: name });
         } catch (err) {
+          if (themeStateChanged) {
+            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          }
+          if (created && nextName) {
+            await fastify.tokenStore.deleteSet(nextName).catch(() => {});
+          }
           return handleRouteError(reply, err, "Failed to duplicate set");
         }
       });
@@ -1567,6 +1962,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       const createdNames: string[] = [];
       let sourceTokensForRollback: TokenGroup | null = null;
       let deletedOriginal = false;
+      let themeStateChanged = false;
+      const previousThemeState = await loadCollectionModeState();
       try {
         const sourceSet = await fastify.tokenStore.getSet(name);
         if (!sourceSet) {
@@ -1622,7 +2019,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           }
           await fastify.tokenStore.createSet(
             newName,
-            stripGeneratedOwnershipFromTokenGroup(groupTokens as TokenGroup),
+            cloneTokenGroupForCollection(
+              stripGeneratedOwnershipFromTokenGroup(groupTokens as TokenGroup),
+              name,
+              newName,
+            ),
           );
           createdNames.push(newName);
         }
@@ -1638,6 +2039,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.tokenStore.deleteSet(name);
           deletedOriginal = true;
         }
+        await duplicateCollectionModeState(name, createdNames);
+        if (deleteOriginal) {
+          await deleteCollectionModeState([name]);
+        }
+        themeStateChanged = true;
 
         const afterSnapshot = deleteOriginal
           ? await snapshotSets(fastify.tokenStore, createdNames)
@@ -1664,6 +2070,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             ...(deleteOriginal
               ? [{ action: "create-set" as const, name }]
               : []),
+            buildThemesRollbackStep(previousThemeState),
           ],
           metadata: {
             sourceSet: name,
@@ -1684,6 +2091,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.tokenStore
             .deleteSet(createdNames[index])
             .catch(() => {});
+        }
+        if (themeStateChanged) {
+          await restoreCollectionModeState(previousThemeState).catch(() => {});
         }
         if (deletedOriginal && sourceTokensForRollback) {
           await fastify.tokenStore
@@ -1826,6 +2236,10 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { name } = request.params;
       return withLock(async () => {
+        let deleted = false;
+        let themeStateChanged = false;
+        const previousThemeState = await loadCollectionModeState();
+        let beforeSnap: Record<string, SnapshotEntry> = {};
         try {
           const set = await fastify.tokenStore.getSet(name);
           if (!set) {
@@ -1849,13 +2263,15 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             });
           }
 
-          const beforeSnap = await snapshotSet(fastify.tokenStore, name);
-          const deleted = await fastify.tokenStore.deleteSet(name);
+          beforeSnap = await snapshotSet(fastify.tokenStore, name);
+          deleted = await fastify.tokenStore.deleteSet(name);
           if (!deleted) {
             return reply
               .status(404)
               .send({ error: `Token set "${name}" not found` });
           }
+          await deleteCollectionModeState([name]);
+          themeStateChanged = true;
           const entry = await fastify.operationLog.record({
             type: "set-delete",
             description: `Delete set "${name}"`,
@@ -1863,10 +2279,21 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             affectedPaths: Object.keys(beforeSnap),
             beforeSnapshot: beforeSnap,
             afterSnapshot: {},
-            rollbackSteps: [{ action: "create-set", name }],
+            rollbackSteps: [
+              { action: "create-set", name },
+              buildThemesRollbackStep(previousThemeState),
+            ],
           });
           return { ok: true, name, operationId: entry.id };
         } catch (err) {
+          if (themeStateChanged) {
+            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          }
+          if (deleted) {
+            await fastify.tokenStore
+              .createSet(name, buildTokenGroupFromSnapshot(beforeSnap, name))
+              .catch(() => {});
+          }
           return handleRouteError(reply, err, "Failed to delete set");
         }
       });

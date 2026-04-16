@@ -397,7 +397,7 @@ export function GraphPanel({
           variant="empty"
           size="section"
           className="w-full max-w-[320px]"
-          title="No recipes in this set"
+          title="No recipes in this collection"
           description={!connected ? "Connect to create recipes." : undefined}
           primaryAction={{
             label: "Create recipe",

@@ -232,7 +232,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     </div>
   ) : null;
 
-  // Cross-set search results
+  // Cross-collection search results
   if (crossSetResults !== null) {
     if (crossSetResults.length === 0) {
       return (
@@ -242,8 +242,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             <FeedbackPlaceholder
               variant="no-results"
               size="section"
-              title="No tokens found across all sets"
-              description="Try a broader search or switch to a specific set."
+              title="No tokens found across all collections"
+              description="Try a broader search or switch to a specific collection."
             />
             {searchQuery &&
               (() => {
@@ -404,7 +404,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     );
   }
 
-  // Empty set
+  // Empty collection
   if (tokens.length === 0) {
     return (
       <>
@@ -430,7 +430,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
               </svg>
             }
-            title="This set is empty"
+            title="This collection is empty"
             description="Use the Create menu to add tokens."
           />
         </div>

@@ -562,8 +562,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                               item.destinationChanged
                                 ? 'Diff counts reflect remapped destination'
                                 : item.destinationExists
-                                  ? 'Existing set'
-                                  : 'New set'
+                                  ? 'Existing collection'
+                                  : 'New collection'
                             }
                           />
                         </div>

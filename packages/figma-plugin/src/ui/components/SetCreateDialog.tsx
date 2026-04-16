@@ -68,7 +68,7 @@ export function SetCreateDialog({
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Failed to create set",
+          : "Failed to create collection",
       );
     } finally {
       setPending(false);
@@ -97,14 +97,14 @@ export function SetCreateDialog({
         }}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="new-set-dialog-title"
+        aria-labelledby="new-collection-dialog-title"
       >
         <div className="border-b border-[var(--color-figma-border)] px-4 py-3">
           <h2
-            id="new-set-dialog-title"
+            id="new-collection-dialog-title"
             className="text-[12px] font-semibold text-[var(--color-figma-text)]"
           >
-            New set
+            New collection
           </h2>
         </div>
 

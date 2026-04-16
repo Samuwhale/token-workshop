@@ -60,7 +60,7 @@ export function ImportFileDestinationRules() {
                 if (e.key === 'Enter') commitNewSet();
                 if (e.key === 'Escape') cancelNewSet();
               }}
-              placeholder="New set name…"
+              placeholder="New collection name…"
               aria-invalid={newSetError ? true : undefined}
               className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none ${newSetError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
             />
@@ -117,7 +117,7 @@ export function ImportFileDestinationRules() {
                   {targetSet} (new)
                 </option>
               )}
-              <option value="__new__">+ New set…</option>
+              <option value="__new__">+ New collection…</option>
             </select>
           </div>
           {setsError && (

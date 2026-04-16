@@ -90,8 +90,8 @@ export function ImportVariablesView() {
                       disabled={!enabled}
                       onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
                       className={`w-full px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:outline-none disabled:opacity-50 ${inputError ? 'border-[var(--color-figma-error,#e53935)] focus-visible:border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
-                      placeholder="set-name"
-                      aria-label="Set name for mode"
+                      placeholder="collection-name"
+                      aria-label="Collection name for mode"
                       aria-invalid={inputError ? true : undefined}
                       aria-describedby={inputError ? `err-${key}` : undefined}
                     />
@@ -102,7 +102,7 @@ export function ImportVariablesView() {
                     )}
                     {!inputError && isSharedDestination && (
                       <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">
-                        All enabled modes will combine into this set.
+                        All enabled modes will combine into this collection.
                       </p>
                     )}
                   </div>

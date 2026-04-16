@@ -237,7 +237,7 @@ export function WelcomePrompt({
       {onImportFigma && (
         <ActionRow
           title="Import from Figma variables"
-          description="Pull variables and modes into token sets."
+          description="Pull variables and modes into token collections."
           disabled={!connected}
           onClick={() => handleAction(onImportFigma)}
           icon={

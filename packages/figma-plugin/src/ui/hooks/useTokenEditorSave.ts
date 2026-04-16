@@ -74,6 +74,25 @@ export function useTokenEditorSave({
   showAutocomplete,
   setShowAutocomplete,
 }: UseTokenEditorSaveParams) {
+  const sanitizeModeValues = (
+    modes: TokenEditorModeValues,
+  ): TokenEditorModeValues => {
+    const currentSetModes = modes[setName];
+    if (!currentSetModes || typeof currentSetModes !== 'object') {
+      return {};
+    }
+
+    const cleanOptions = Object.fromEntries(
+      Object.entries(currentSetModes).filter(
+        ([, value]) => value !== '' && value !== undefined && value !== null,
+      ),
+    );
+
+    return Object.keys(cleanOptions).length > 0
+      ? { [setName]: cleanOptions }
+      : {};
+  };
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
@@ -117,14 +136,7 @@ export function useTokenEditorSave({
       if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
       const tmExt: Record<string, any> = {};
       if (colorModifiers.length > 0) tmExt.colorModifier = colorModifiers;
-      const cleanModes: Record<string, Record<string, unknown>> = {};
-      for (const [dimId, opts] of Object.entries(modeValues)) {
-        if (!opts || typeof opts !== 'object') continue;
-        const cleanOpts = Object.fromEntries(
-          Object.entries(opts).filter(([, v]) => v !== '' && v !== undefined && v !== null),
-        );
-        if (Object.keys(cleanOpts).length > 0) cleanModes[dimId] = cleanOpts;
-      }
+      const cleanModes = sanitizeModeValues(modeValues);
       if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
       if (lifecycle !== 'published') tmExt.lifecycle = lifecycle;
       if (extendsPath) tmExt.extends = extendsPath;

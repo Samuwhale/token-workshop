@@ -57,7 +57,7 @@ export interface SavePreviewRow extends SavePreviewItem {
   effectiveMergeStrategy: SaveMergeStrategy;
   effectiveAppendPath: string;
   destinationChanged: boolean;
-  actionLabel: 'Existing set' | 'New set';
+  actionLabel: 'Existing collection' | 'New collection';
   destinationError: string | null;
   appendPathError: string | null;
 }
@@ -502,7 +502,7 @@ function buildSavePreviewRows(
       effectiveMergeStrategy,
       effectiveAppendPath,
       destinationChanged: effectiveDestination !== item.destinationSet,
-      actionLabel: destinationExists ? 'Existing set' : 'New set',
+      actionLabel: destinationExists ? 'Existing collection' : 'New collection',
       destinationError: null,
       appendPathError,
     };

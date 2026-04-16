@@ -19,6 +19,7 @@ import { SetSwitcher } from "./components/SetSwitcher";
 import { SetCreateDialog } from "./components/SetCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Tooltip } from "./shared/Tooltip";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
 import { PanelRouter } from "./panels/PanelRouter";
 import { useServerEvents } from "./hooks/useServerEvents";
@@ -34,19 +35,12 @@ import type {
   WorkspaceId,
 } from "./shared/navigationTypes";
 import {
-  APP_SHELL_NAVIGATION,
-  CONTEXTUAL_PANEL_MIN_WIDTH,
+  getContextualPanelMinWidth,
   CONTEXTUAL_PANEL_TRANSITIONS,
   SIDEBAR_GROUPS,
   resolveWorkspaceSummary,
 } from "./shared/navigationTypes";
 import type { SidebarItem } from "./shared/navigationTypes";
-import type {
-  ThemeAuthoringStage,
-  ThemeWorkspaceShellState,
-} from "./shared/themeWorkflow";
-import { buildThemeModeCoverage } from "./shared/themeModeUtils";
-import { summarizeThemeWorkflow } from "./shared/themeWorkflow";
 import {
   DEFAULT_PUBLISH_PREFLIGHT_STATE,
   type PublishPreflightState,
@@ -377,36 +371,6 @@ export function App() {
   );
   const activeWorkspace = activeWorkspaceSummary.workspace;
   const activeWorkspaceSection = activeWorkspaceSummary.section;
-  const activeWorkspaceId = activeWorkspace.id;
-  const [pendingThemeStage, setPendingThemeStage] = useState<ThemeAuthoringStage | null>(null);
-  const themeModeCoverage = useMemo(
-    () =>
-      buildThemeModeCoverage({
-        dimensions,
-        allTokensFlat,
-        pathToSet,
-      }),
-    [allTokensFlat, dimensions, pathToSet],
-  );
-  const [themeShellState, setThemeShellState] =
-    useState<ThemeWorkspaceShellState>({
-      activeView: "authoring",
-      authoringMode: "authoring",
-    });
-  const themeWorkflowSummary = useMemo(
-    () =>
-      summarizeThemeWorkflow(dimensions, {
-        activeView: themeShellState.activeView,
-        authoringMode: themeShellState.authoringMode,
-        coverageSummary: themeModeCoverage.summary,
-      }),
-    [
-      dimensions,
-      themeModeCoverage.summary,
-      themeShellState.activeView,
-      themeShellState.authoringMode,
-    ],
-  );
   const existingPathsForActiveSet = useMemo(
     () =>
       new Set(
@@ -636,16 +600,6 @@ export function App() {
   // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
   const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
-  useEffect(() => {
-    if (pendingThemeStage === null) return;
-    if (activeWorkspaceId !== "themes" || activeWorkspaceSection?.id !== "themes") {
-      return;
-    }
-    const handle = themeManagerHandleRef.current;
-    if (!handle) return;
-    handle.focusStage(pendingThemeStage);
-    setPendingThemeStage(null);
-  }, [activeWorkspaceId, activeWorkspaceSection?.id, pendingThemeStage]);
   // Open compare view within the Tokens tab in 'cross-theme' mode for a specific token
   const handleOpenCrossThemeCompare = useCallback(
     (path: string) => {
@@ -790,8 +744,18 @@ export function App() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => lsGet(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "1",
+  );
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((previous) => {
+      const next = !previous;
+      lsSet(STORAGE_KEYS.SIDEBAR_COLLAPSED, next ? "1" : "0");
+      return next;
+    });
+  }, []);
   const useSidePanel =
-    windowWidth >= CONTEXTUAL_PANEL_MIN_WIDTH &&
+    windowWidth >= getContextualPanelMinWidth(sidebarCollapsed) &&
     !!(editingToken || editingRecipeData || previewingToken) &&
     activeSecondarySurface === null &&
     activeTopTab === "tokens" &&
@@ -913,10 +877,6 @@ export function App() {
     editingMetadataSet,
     metadataDescription,
     setMetadataDescription,
-    metadataCollectionName,
-    setMetadataCollectionName,
-    metadataModeName,
-    setMetadataModeName,
     closeSetMetadata,
     openSetMetadata,
     handleSaveMetadata,
@@ -1256,7 +1216,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_RESOLVER")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("themes", "themes");
+      navigateTo("collections", "collections");
       closeSecondarySurface();
     }
     if (matchesShortcut(e, "SHOW_SHORTCUTS")) {
@@ -1581,7 +1541,6 @@ export function App() {
     },
     themes: {
       themeManagerHandleRef,
-      onThemeShellStateChange: setThemeShellState,
     },
     apply: {
       triggerCreateToken,
@@ -1647,10 +1606,6 @@ export function App() {
       editingMetadataSet,
       metadataDescription,
       setMetadataDescription,
-      metadataCollectionName,
-      setMetadataCollectionName,
-      metadataModeName,
-      setMetadataModeName,
       onMetadataClose: closeSetMetadata,
       onMetadataSave: handleSaveMetadata,
       deletingSet,
@@ -1678,58 +1633,6 @@ export function App() {
   };
 
   const workspacePrimaryAction = useMemo(() => {
-    if (activeSecondarySurface === null && activeSubTab === "themes") {
-      if (
-        themeShellState.activeView !== "authoring" ||
-        themeShellState.authoringMode === "preview"
-      ) {
-        return {
-          label: "Back",
-          onClick: () => themeManagerHandleRef.current?.returnToAuthoring(),
-        };
-      }
-
-      if (themeWorkflowSummary.currentStage === "options") {
-        return {
-          label: "Add option",
-          onClick: () => {
-            guardEditorAction(() => {
-              navigateTo("themes", "themes");
-              closeSecondarySurface();
-              themeManagerHandleRef.current?.focusStage("options");
-            });
-          },
-        };
-      }
-
-      if (themeWorkflowSummary.currentStage === "token-modes") {
-        return {
-          label: "Edit tokens",
-          onClick: () => {
-            guardEditorAction(() => {
-              navigateTo("tokens", "tokens");
-              closeSecondarySurface();
-            });
-          },
-        };
-      }
-
-      if (themeWorkflowSummary.currentStage === "preview") {
-        return null;
-      }
-
-      return {
-        label: "Create mode",
-        onClick: () => {
-          guardEditorAction(() => {
-            navigateTo("themes", "themes");
-            closeSecondarySurface();
-            themeManagerHandleRef.current?.openCreateAxis();
-          });
-        },
-      };
-    }
-
     if (
       activeSecondarySurface === null &&
       activeWorkspace.id === "inspect" &&
@@ -1804,9 +1707,6 @@ export function App() {
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
     closeSecondarySurface,
-    themeShellState.activeView,
-    themeShellState.authoringMode,
-    themeWorkflowSummary.currentStage,
   ]);
 
   const visibleHandoff = useMemo(() => {
@@ -1842,183 +1742,161 @@ export function App() {
     activeSecondarySurface === null &&
     (activeTopTab === "tokens" || activeTopTab === "inspect");
 
-  const activeThemeStage = activeWorkspaceId === "themes" ? themeWorkflowSummary.currentStage : null;
-
-  // Collapsible sidebar groups
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(
-    () => lsGetJson<Record<string, boolean>>(STORAGE_KEYS.SIDEBAR_COLLAPSED, {}),
-  );
-  const toggleGroupCollapsed = useCallback((groupId: string) => {
-    setCollapsedGroups((prev) => {
-      const next = { ...prev, [groupId]: !prev[groupId] };
-      lsSetJson(STORAGE_KEYS.SIDEBAR_COLLAPSED, next);
-      return next;
-    });
-  }, []);
-
   const handleSidebarItemClick = useCallback((item: SidebarItem) => {
-    if (item.themeStage) {
-      guardEditorAction(() => {
-        navigateTo("themes", "themes");
-        closeSecondarySurface();
-        setPendingThemeStage(item.themeStage as ThemeAuthoringStage);
-      });
-    } else {
-      guardEditorAction(() => {
-        navigateTo(item.topTab, item.subTab);
-        closeSecondarySurface();
-        clearHandoff();
-        if (item.subTab === "canvas-analysis") {
-          triggerHeatmapScan();
-        }
-      });
-    }
-  }, [guardEditorAction, navigateTo, closeSecondarySurface, clearHandoff, setPendingThemeStage, triggerHeatmapScan]);
+    guardEditorAction(() => {
+      navigateTo(item.topTab, item.subTab);
+      closeSecondarySurface();
+      clearHandoff();
+      if (item.subTab === "canvas-analysis") {
+        triggerHeatmapScan();
+      }
+    });
+  }, [guardEditorAction, navigateTo, closeSecondarySurface, clearHandoff, triggerHeatmapScan]);
 
   const isSidebarItemActive = useCallback((item: SidebarItem) => {
     if (activeSecondarySurface !== null) return false;
-    if (item.themeStage) {
-      return activeWorkspaceId === "themes" && activeThemeStage === item.themeStage;
-    }
     return item.topTab === activeTopTab && item.subTab === activeSubTab;
-  }, [activeSecondarySurface, activeWorkspaceId, activeThemeStage, activeTopTab, activeSubTab]);
+  }, [activeSecondarySurface, activeTopTab, activeSubTab]);
 
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">
-      {/* Labeled sidebar */}
-      <nav className="flex w-[208px] shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]" aria-label="Workspaces">
-        {/* Grouped navigation */}
-        <div className="flex flex-1 flex-col gap-0 overflow-y-auto px-2 pt-2 pb-1">
-          {SIDEBAR_GROUPS.map((group) => {
-            const isCollapsed = !!collapsedGroups[group.id];
-            const groupHasActiveItem = group.items.some(
-              (item) =>
-                isSidebarItemActive(item) ||
-                item.children?.some((child) => isSidebarItemActive(child)),
-            );
-            return (
-              <div key={group.id} className="mb-1">
-                <button
-                  onClick={() => toggleGroupCollapsed(group.id)}
-                  className="group flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-left outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 8 8"
-                    fill="none"
-                    className={`shrink-0 text-[var(--color-figma-text-tertiary)] transition-transform ${isCollapsed ? "" : "rotate-90"}`}
-                    aria-hidden="true"
-                  >
-                    <path d="M2 1l4 3-4 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${
-                    groupHasActiveItem && !isCollapsed
-                      ? "text-[var(--color-figma-text-secondary)]"
-                      : "text-[var(--color-figma-text-tertiary)]"
-                  }`}>
+      {/* Sidebar */}
+      <nav
+        className={`flex ${sidebarCollapsed ? 'w-9' : 'w-[150px]'} shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]`}
+        aria-label="Workspaces"
+      >
+        {/* Navigation */}
+        <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-0.5 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
+          {SIDEBAR_GROUPS.map((group, groupIndex) => (
+            <div key={group.id} className={sidebarCollapsed ? 'mb-1' : 'mb-1.5'}>
+              {!sidebarCollapsed && (
+                <div className="px-1.5 py-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)]">
                     {group.label}
                   </span>
-                </button>
-                {!isCollapsed && (
-                  <div className="flex flex-col gap-px pt-0.5">
-                    {group.items.map((item) => {
-                      const isActive = isSidebarItemActive(item);
-                      const showChildren = item.children && item.workspaceId === activeWorkspaceId && activeSecondarySurface === null;
-                      return (
-                        <div key={item.id}>
-                          <button
-                            onClick={() => handleSidebarItemClick(item)}
-                            className={`w-full rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-                              isActive
-                                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
-                            }`}
-                          >
-                            {item.label}
-                          </button>
-                          {showChildren && (
-                            <div className="flex flex-col gap-px py-0.5 pl-2.5">
-                              {item.children!.map((child) => {
-                                const isChildActive = isSidebarItemActive(child);
-                                return (
-                                  <button
-                                    key={child.id}
-                                    onClick={() => handleSidebarItemClick(child)}
-                                    className={`w-full rounded-md px-2 py-0.5 text-left text-[10px] outline-none transition-colors ${
-                                      isChildActive
-                                        ? "text-[var(--color-figma-text)] font-medium"
-                                        : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] focus-visible:bg-[var(--color-figma-bg-hover)]"
-                                    }`}
-                                  >
-                                    {child.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                </div>
+              )}
+              {sidebarCollapsed && groupIndex > 0 && (
+                <div className="mx-1 mb-1 border-t border-[var(--color-figma-border)]" />
+              )}
+              <div className={`flex flex-col ${sidebarCollapsed ? 'items-center gap-0.5' : 'gap-px pt-0.5'}`}>
+                {group.items.map((item) => {
+                  const isActive = isSidebarItemActive(item);
+                  if (sidebarCollapsed) {
+                    return (
+                      <Tooltip key={item.id} label={item.label} position="right">
+                        <button
+                          onClick={() => handleSidebarItemClick(item)}
+                          className={`flex h-7 w-7 items-center justify-center rounded-md text-[9px] font-medium outline-none transition-colors ${
+                            isActive
+                              ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                              : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+                          }`}
+                        >
+                          {item.railCode}
+                        </button>
+                      </Tooltip>
+                    );
+                  }
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSidebarItemClick(item)}
+                      className={`w-full rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                        isActive
+                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                          : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
+
+          {/* Import */}
+          <div className={sidebarCollapsed ? 'mt-0.5' : 'mt-0.5 border-t border-[var(--color-figma-border)] pt-1'}>
+            {sidebarCollapsed ? (
+              <>
+                <div className="mx-1 mb-1 border-t border-[var(--color-figma-border)]" />
+                <div className="flex flex-col items-center">
+                  <Tooltip label="Import" position="right">
+                    <button
+                      onClick={() => toggleSecondarySurface("import")}
+                      className={`flex h-7 w-7 items-center justify-center rounded-md text-[9px] font-medium outline-none transition-colors ${
+                        activeSecondarySurface === "import"
+                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                          : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      }`}
+                    >
+                      Im
+                    </button>
+                  </Tooltip>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => toggleSecondarySurface("import")}
+                className={`w-full rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                  activeSecondarySurface === "import"
+                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                }`}
+              >
+                Import
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Bottom utilities */}
-        <div className="flex flex-col gap-px border-t border-[var(--color-figma-border)] px-2 py-2">
-          <button
-            onClick={() => toggleSecondarySurface("import")}
-            className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-              activeSecondarySurface === "import"
-                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            }`}
-          >
-            Import
-          </button>
-          <button
-            onClick={() => toggleSecondarySurface("sets")}
-            className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-              activeSecondarySurface === "sets"
-                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            }`}
-          >
-            Manage sets
-          </button>
-          <button
-            onClick={() => toggleSecondarySurface("notifications")}
-            className={`flex items-center justify-between rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-              activeSecondarySurface === "notifications"
-                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            }`}
-          >
-            <span>Notifications</span>
-            {notificationCount > 0 && (
-              <span className="text-[9px] tabular-nums text-[var(--color-figma-text-tertiary)]">{notificationCount}</span>
-            )}
-          </button>
-          <button
-            onClick={() => toggleSecondarySurface("settings")}
-            className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-              activeSecondarySurface === "settings"
-                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            }`}
-          >
-            Settings
-          </button>
-          <button
-            onClick={toggleExpand}
-            className="rounded-md px-2.5 py-1 text-left text-[11px] text-[var(--color-figma-text-secondary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-          >
-            {isExpanded ? "Compact" : "Wide"}
-          </button>
-          {!connected && (
+        <div className={`flex flex-col gap-px border-t border-[var(--color-figma-border)] ${sidebarCollapsed ? 'px-0.5 py-1.5' : 'px-2 py-2'}`}>
+          {!sidebarCollapsed && (
+            <>
+              <button
+                onClick={() => toggleSecondarySurface("sets")}
+                className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                  activeSecondarySurface === "sets"
+                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                }`}
+              >
+                Manage collections
+              </button>
+              <button
+                onClick={() => toggleSecondarySurface("notifications")}
+                className={`flex items-center justify-between rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                  activeSecondarySurface === "notifications"
+                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                }`}
+              >
+                <span>Notifications</span>
+                {notificationCount > 0 && (
+                  <span className="text-[9px] tabular-nums text-[var(--color-figma-text-tertiary)]">{notificationCount}</span>
+                )}
+              </button>
+              <button
+                onClick={() => toggleSecondarySurface("settings")}
+                className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                  activeSecondarySurface === "settings"
+                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                }`}
+              >
+                Settings
+              </button>
+              <button
+                onClick={toggleExpand}
+                className="rounded-md px-2.5 py-1 text-left text-[11px] text-[var(--color-figma-text-secondary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              >
+                {isExpanded ? "Compact" : "Wide"}
+              </button>
+            </>
+          )}
+          {!connected && !sidebarCollapsed && (
             <div className="mt-1 rounded-md bg-[var(--color-figma-error)]/8 px-2.5 py-1.5">
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 {checking ? "Connecting…" : "Server offline"}
@@ -2033,6 +1911,26 @@ export function App() {
               )}
             </div>
           )}
+          {!connected && sidebarCollapsed && (
+            <Tooltip label={checking ? "Connecting…" : "Server offline"} position="right">
+              <div className="mx-auto h-2 w-2 rounded-full bg-[var(--color-figma-error)]" />
+            </Tooltip>
+          )}
+          <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarCollapsed}>
+            <button
+              onClick={toggleSidebarCollapsed}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={`flex items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto h-7 w-7' : 'h-6 w-full'}`}
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {sidebarCollapsed ? (
+                  <><path d="M6 3l5 5-5 5" /><path d="M1 3l5 5-5 5" /></>
+                ) : (
+                  <><path d="M10 3L5 8l5 5" /><path d="M15 3l-5 5 5 5" /></>
+                )}
+              </svg>
+            </button>
+          </Tooltip>
         </div>
       </nav>
 
@@ -2041,7 +1939,7 @@ export function App() {
         {/* Simplified top bar */}
         <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
           <div className="flex items-center gap-1.5 px-3 py-1.5">
-            {visibleHandoff && returnFromHandoff ? (
+            {visibleHandoff && returnFromHandoff && (
               <button
                 onClick={returnFromHandoff}
                 aria-label={visibleHandoff.returnLabel}
@@ -2049,12 +1947,6 @@ export function App() {
               >
                 &larr; {visibleHandoff.returnLabel}
               </button>
-            ) : (
-              <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                {activeSecondarySurface
-                  ? APP_SHELL_NAVIGATION.secondarySurfaces.find((s) => s.id === activeSecondarySurface)?.label
-                  : activeWorkspaceSummary.currentLabel}
-              </span>
             )}
 
             {/* Current set context — shown for Tokens workspace */}

@@ -44,7 +44,6 @@ import {
 } from "../contexts/TokenDataContext";
 import {
   useThemeSwitcherContext,
-  useResolverContext,
 } from "../contexts/ThemeContext";
 import {
   useSelectionContext,
@@ -231,7 +230,6 @@ export function PanelRouter(): ReactNode {
     setActiveThemes,
     themedAllTokensFlat,
   } = useThemeSwitcherContext();
-  const resolverState = useResolverContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
     heatmapResult,
@@ -676,7 +674,7 @@ export function PanelRouter(): ReactNode {
           }),
         onNavigateToRecipe: controller.handleNavigateToRecipe,
         onOpenRecipeEditor: openRecipeEditor,
-        onNavigateToThemes: () => navigateTo("themes", "themes"),
+        onNavigateToThemes: () => navigateTo("collections", "collections"),
       }
     : null;
 
@@ -1052,12 +1050,6 @@ export function PanelRouter(): ReactNode {
         editingMetadataSet={setManagerController.editingMetadataSet}
         metadataDescription={setManagerController.metadataDescription}
         setMetadataDescription={setManagerController.setMetadataDescription}
-        metadataCollectionName={setManagerController.metadataCollectionName}
-        setMetadataCollectionName={
-          setManagerController.setMetadataCollectionName
-        }
-        metadataModeName={setManagerController.metadataModeName}
-        setMetadataModeName={setManagerController.setMetadataModeName}
         onMetadataClose={setManagerController.onMetadataClose}
         onMetadataSave={setManagerController.onMetadataSave}
         deletingSet={setManagerController.deletingSet}
@@ -1161,8 +1153,8 @@ export function PanelRouter(): ReactNode {
     recipes: {
       recipes: renderRecipes,
     },
-    themes: {
-      themes: renderDefineThemes,
+    collections: {
+      collections: renderDefineCollections,
     },
     inspect: {
       inspect: renderApplyInspect,
@@ -1339,12 +1331,12 @@ export function PanelRouter(): ReactNode {
     );
   }
 
-  function renderDefineThemes(): ReactNode {
+  function renderDefineCollections(): ReactNode {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Themes"
+            panelName="Collections"
             onReset={() => navigateTo("tokens", "tokens")}
           >
             <ThemeManager
@@ -1354,49 +1346,28 @@ export function PanelRouter(): ReactNode {
               onDimensionsChange={setDimensions}
               onNavigateToToken={(path, set) => {
                 beginHandoff({
-                  reason: "View or edit this token, then return to Themes",
+                  reason: "View or edit this token, then return to Collections",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(set, path);
               }}
               onCreateToken={(tokenPath, set) => {
                 beginHandoff({
-                  reason: "Create this token, then return to Themes",
+                  reason: "Create this token, then return to Collections",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 setEditingToken({ path: tokenPath, set, isCreate: true });
               }}
-              onPushUndo={controller.pushUndo}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
-              onShellStateChange={controller.onThemeShellStateChange}
               onTokensCreated={controller.refreshAll}
               onGoToTokens={() => {
                 beginHandoff({
-                  reason: "Browse tokens, then return to Themes",
+                  reason: "Browse tokens, then return to Collections",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
               }}
               themeManagerHandle={controller.themeManagerHandleRef}
-              onSuccess={controller.setSuccessToast}
-              resolverState={{
-                connected,
-                resolvers: resolverState.resolvers,
-                resolverLoadErrors: resolverState.resolverLoadErrors,
-                activeResolver: resolverState.activeResolver,
-                selectionOrigin: resolverState.selectionOrigin,
-                setActiveResolver: resolverState.setActiveResolver,
-                resolverInput: resolverState.resolverInput,
-                setResolverInput: resolverState.setResolverInput,
-                activeModifiers: resolverState.activeModifiers,
-                resolvedTokens: resolverState.resolvedTokens,
-                resolverError: resolverState.resolverError,
-                loading: resolverState.loading,
-                resolversLoading: resolverState.resolversLoading,
-                fetchResolvers: resolverState.fetchResolvers,
-                convertFromThemes: resolverState.convertFromThemes,
-                deleteResolver: resolverState.deleteResolver,
-              }}
             />
           </ErrorBoundary>
         </div>

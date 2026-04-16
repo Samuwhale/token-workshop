@@ -430,6 +430,7 @@ interface CrossThemeModeProps {
   tokenPath: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   dimensions: ThemeDimension[];
+  pathToSet: Record<string, string>;
   onClose: () => void;
 }
 
@@ -437,6 +438,7 @@ function CrossThemeMode({
   tokenPath,
   allTokensFlat,
   dimensions,
+  pathToSet,
   onClose,
 }: CrossThemeModeProps) {
   const [copied, triggerCopy] = useCopyFeedback();
@@ -449,6 +451,7 @@ function CrossThemeMode({
           { dimensionId: dim.id, optionName: option.name },
           dimensions,
           allTokensFlat,
+          pathToSet,
         );
         const entry = resolved[tokenPath];
         const rawEntry = allTokensFlat[tokenPath];
@@ -470,7 +473,7 @@ function CrossThemeMode({
       }
     }
     return out;
-  }, [dimensions, allTokensFlat, tokenPath]);
+  }, [dimensions, allTokensFlat, pathToSet, tokenPath]);
 
   const dimStats = useMemo(() => {
     const map = new Map<string, { allSame: boolean; anyMissing: boolean }>();
@@ -621,8 +624,9 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
         : null,
       dimensions,
       allTokensFlat,
+      pathToSet,
     );
-  }, [optionKeyA, flatOptions, dimensions, allTokensFlat]);
+  }, [optionKeyA, flatOptions, dimensions, allTokensFlat, pathToSet]);
 
   const resolvedB = useMemo(() => {
     if (!optionKeyB) return null;
@@ -633,8 +637,9 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
         : null,
       dimensions,
       allTokensFlat,
+      pathToSet,
     );
-  }, [optionKeyB, flatOptions, dimensions, allTokensFlat]);
+  }, [optionKeyB, flatOptions, dimensions, allTokensFlat, pathToSet]);
 
   const diffs = useMemo(() => {
     if (!resolvedA || !resolvedB) return [];
@@ -1380,8 +1385,8 @@ interface CompareViewProps {
 const MODES: { id: CompareMode; label: string }[] = [
   { id: 'tokens', label: 'Token values' },
   { id: 'cross-theme', label: 'Token × modes' },
-  { id: 'theme-options', label: 'Mode options' },
-  { id: 'set-diff', label: 'Set diff' },
+  { id: 'theme-options', label: 'Mode pairs' },
+  { id: 'set-diff', label: 'Collection diff' },
 ];
 
 export function CompareView({
@@ -1472,6 +1477,7 @@ export function CompareView({
               tokenPath={tokenPath}
               allTokensFlat={allTokensFlat}
               dimensions={dimensions}
+              pathToSet={pathToSet}
               onClose={onClearTokenPath}
             />
           )

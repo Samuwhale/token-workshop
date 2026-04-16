@@ -299,16 +299,16 @@ export function UnusedTokensPanel({
                     <input
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Search path, set, type, or lifecycle"
+                      placeholder="Search path, collection, type, or lifecycle"
                       className="px-2.5 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
                     />
                     <select
                       value={setFilter}
                       onChange={(event) => setSetFilter(event.target.value)}
                       className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
-                      aria-label="Filter unused tokens by set"
+                      aria-label="Filter unused tokens by collection"
                     >
-                      <option value="all">All sets</option>
+                      <option value="all">All collections</option>
                       {availableSets.map(setName => (
                         <option key={setName} value={setName}>{setName}</option>
                       ))}
@@ -349,7 +349,7 @@ export function UnusedTokensPanel({
                     <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                          {totalVisibleGroups} queue group{totalVisibleGroups === 1 ? '' : 's'} across {groupedQueue.length} set{groupedQueue.length === 1 ? '' : 's'} match the current filters.
+                          {totalVisibleGroups} queue group{totalVisibleGroups === 1 ? '' : 's'} across {groupedQueue.length} collection{groupedQueue.length === 1 ? '' : 's'} match the current filters.
                         </div>
                         <div className="flex flex-wrap items-center gap-1">
                           <button
@@ -438,20 +438,20 @@ export function UnusedTokensPanel({
                                   onClick={() => stageTokens(groupTokens, 'deprecate')}
                                   className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                                 >
-                                  Stage set to deprecate
+                                  Stage collection to deprecate
                                 </button>
                                 <button
                                   onClick={() => stageTokens(groupTokens, 'delete')}
                                   className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
                                 >
-                                  Stage set to delete
+                                  Stage collection to delete
                                 </button>
                                 <button
                                   onClick={() => clearStagedTokens(groupTokens.filter(token => stagedActions[token.key]))}
                                   disabled={groupStagedCount === 0}
                                   className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 >
-                                  Clear set
+                                  Clear collection
                                 </button>
                               </div>
 

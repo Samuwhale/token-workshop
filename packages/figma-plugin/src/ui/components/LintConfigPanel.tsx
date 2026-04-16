@@ -483,7 +483,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         value={setPickerValues[rule.id] ?? ''}
                         onChange={event => setSetPickerValues(current => ({ ...current, [rule.id]: event.target.value }))}
                         disabled={saving || availableSetChoices.length === 0}
-                        aria-label="Token set"
+                        aria-label="Token collection"
                         className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-[10px] text-[var(--color-figma-text)] disabled:opacity-40"
                       >
                         <option value="">Pick a set…</option>

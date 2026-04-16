@@ -12,6 +12,7 @@ export function useThemeSwitcher(
   connected: boolean,
   tokenRevision: number,
   allTokensFlat: Record<string, TokenMapEntry>,
+  pathToSet: Record<string, string>,
 ) {
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
   const [themesError, setThemesError] = useState<string | null>(null);
@@ -85,10 +86,10 @@ export function useThemeSwitcher(
       return;
     }
     setThemesError(null);
-    apiFetch<{ dimensions?: ThemeDimension[] }>(`${serverUrl}/api/themes`, { signal: createFetchSignal(signal) })
+    apiFetch<{ dimensions?: ThemeDimension[]; collections?: ThemeDimension[] }>(`${serverUrl}/api/themes`, { signal: createFetchSignal(signal) })
       .then(data => {
         if (signal.aborted) return;
-        const all: ThemeDimension[] = data.dimensions || [];
+        const all: ThemeDimension[] = data.collections || data.dimensions || [];
         setDimensions(all);
         if (!figmaThemesReadyRef.current) {
           // Figma clientStorage hasn't responded yet. Defer the prune so we don't clobber
@@ -141,8 +142,13 @@ export function useThemeSwitcher(
   // Preview selections override the committed view for the hovered dimension.
   const themedAllTokensFlat = useMemo(() => {
     const effectiveThemes = { ...activeThemes, ...previewThemes };
-    return applyThemeSelectionsToTokens(allTokensFlat, dimensions, effectiveThemes);
-  }, [activeThemes, previewThemes, dimensions, allTokensFlat]);
+    return applyThemeSelectionsToTokens(
+      allTokensFlat,
+      dimensions,
+      effectiveThemes,
+      pathToSet,
+    );
+  }, [activeThemes, previewThemes, dimensions, allTokensFlat, pathToSet]);
 
   return {
     dimensions,

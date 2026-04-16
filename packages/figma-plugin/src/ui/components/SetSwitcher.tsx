@@ -8,7 +8,6 @@ import {
 } from "../shared/apiFetch";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useTokenSetsContext } from "../contexts/TokenDataContext";
-import { useSetMetadata } from "../hooks/useSetMetadata";
 import type {
   SetPreflightImpact,
   SetStructuralOperation,
@@ -98,10 +97,6 @@ interface SetManagerProps {
   editingMetadataSet?: string | null;
   metadataDescription?: string;
   setMetadataDescription?: (value: string) => void;
-  metadataCollectionName?: string;
-  setMetadataCollectionName?: (value: string) => void;
-  metadataModeName?: string;
-  setMetadataModeName?: (value: string) => void;
   onMetadataClose?: () => void;
   onMetadataSave?: () => void;
   deletingSet?: string | null;
@@ -198,7 +193,7 @@ function useSetStructuralPreflight({
           setError(
             err instanceof Error
               ? err.message
-              : "Failed to inspect set dependencies",
+              : "Failed to inspect collection dependencies",
           );
         }
       })
@@ -233,10 +228,7 @@ function SetPreflightCard({
   const hasDependencies =
     impact.resolverRefs.length > 0 ||
     impact.generatedOwnership.length > 0 ||
-    impact.recipeTargets.length > 0 ||
-    !!impact.metadata.description ||
-    !!impact.metadata.collectionName ||
-    !!impact.metadata.modeName;
+    impact.recipeTargets.length > 0;
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
@@ -254,16 +246,6 @@ function SetPreflightCard({
             {impact.tokenCount} token{impact.tokenCount === 1 ? "" : "s"}
           </div>
         </div>
-        {(impact.metadata.collectionName || impact.metadata.modeName) && (
-          <div className="text-right text-[9px] text-[var(--color-figma-text-secondary)]">
-            {impact.metadata.collectionName && (
-              <div>Collection: {impact.metadata.collectionName}</div>
-            )}
-            {impact.metadata.modeName && (
-              <div>Mode: {impact.metadata.modeName}</div>
-            )}
-          </div>
-        )}
       </div>
       {impact.metadata.description && (
         <p className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -272,7 +254,7 @@ function SetPreflightCard({
       )}
       {!hasDependencies ? (
         <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          No resolver, metadata, or recipe dependencies detected.
+          No resolver or recipe dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
@@ -374,14 +356,14 @@ function getPreflightImpactLabel(params: {
     splitPreview = [],
   } = params;
   if (operation === "delete" && impactName === sourceSetName) {
-    return "Set being deleted";
+    return "Collection being deleted";
   }
   if (operation === "merge") {
-    if (impactName === sourceSetName) return "Source set";
-    if (impactName === targetSetName) return "Target set";
+    if (impactName === sourceSetName) return "Source collection";
+    if (impactName === targetSetName) return "Target collection";
   }
   if (operation === "split") {
-    if (impactName === sourceSetName) return "Set being split";
+    if (impactName === sourceSetName) return "Collection being split";
     if (
       splitPreview.some(
         (entry) => entry.existing && entry.newName === impactName,
@@ -577,27 +559,6 @@ function filterSets(sets: string[], query: string): string[] {
     .map(({ set }) => set);
 }
 
-function matchesMappingManagerQuery({
-  query,
-  setName,
-  description,
-  collectionName,
-  modeName,
-}: {
-  query: string;
-  setName: string;
-  description: string;
-  collectionName: string;
-  modeName: string;
-}): boolean {
-  if (!query) return true;
-  const lowered = query.trim().toLowerCase();
-  if (!lowered) return true;
-  return [setName, description, collectionName, modeName].some((value) =>
-    value.toLowerCase().includes(lowered),
-  );
-}
-
 export function SetSwitcher({
   sets,
   activeSet,
@@ -673,7 +634,7 @@ export function SetSwitcher({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Switch token set"
+        aria-label="Switch token collection"
       >
         <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-2.5">
           <svg
@@ -696,8 +657,8 @@ export function SetSwitcher({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Switch to set…"
-            aria-label="Filter token sets"
+            placeholder="Switch to collection…"
+            aria-label="Filter token collections"
             className="flex-1 bg-transparent text-[12px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)]"
           />
           <kbd className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -720,8 +681,8 @@ export function SetSwitcher({
         <div className="flex items-center justify-between border-t border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
           <span>
             {filtered.length === sets.length
-              ? `${sets.length} set${sets.length !== 1 ? "s" : ""}`
-              : `${filtered.length} of ${sets.length} sets`}
+              ? `${sets.length} collection${sets.length !== 1 ? "s" : ""}`
+              : `${filtered.length} of ${sets.length} collections`}
           </span>
           <div className="flex items-center gap-2">
             {onOpenCreateSet && (
@@ -729,7 +690,7 @@ export function SetSwitcher({
                 onClick={onOpenCreateSet}
                 className="rounded px-1.5 py-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                New set
+                New collection
               </button>
             )}
             {onManageSets && (
@@ -737,7 +698,7 @@ export function SetSwitcher({
                 onClick={onManageSets}
                 className="rounded px-1.5 py-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                Manage sets
+                Manage collections
               </button>
             )}
             <span className="opacity-60">↑↓ navigate · ↵ switch</span>
@@ -835,11 +796,11 @@ function SwitchView({
       ref={listRef as RefObject<HTMLDivElement>}
       className="flex-1 overflow-y-auto"
       role="listbox"
-      aria-label="Token sets"
+      aria-label="Token collections"
     >
       {filtered.length === 0 ? (
         <div className="px-3 py-4 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
-          No sets match &ldquo;{query}&rdquo;
+          No collections match &ldquo;{query}&rdquo;
         </div>
       ) : groups ? (
         groups.map((group) => {
@@ -869,7 +830,7 @@ function SwitchView({
                 {hasActiveSet && isCollapsed && (
                   <span
                     className="ml-auto leading-none text-[var(--color-figma-accent)]"
-                    aria-label="contains active set"
+                    aria-label="contains active collection"
                   >
                     ●
                   </span>
@@ -917,10 +878,6 @@ export function SetManager({
   editingMetadataSet = null,
   metadataDescription = "",
   setMetadataDescription,
-  metadataCollectionName = "",
-  setMetadataCollectionName,
-  metadataModeName = "",
-  setMetadataModeName,
   onMetadataClose,
   onMetadataSave,
   deletingSet = null,
@@ -946,12 +903,6 @@ export function SetManager({
   onSplitClose,
 }: SetManagerProps) {
   const { serverUrl, connected } = useConnectionContext();
-  const {
-    setDescriptions: metadataDescriptions,
-    setCollectionNames,
-    setModeNames,
-    updateSetMetadataInState,
-  } = useTokenSetsContext();
   const [query, setQuery] = useState("");
   const deletePreflight = useSetStructuralPreflight({
     operation: "delete",
@@ -970,39 +921,7 @@ export function SetManager({
     deleteOriginal: splitDeleteOriginal,
     enabled: !!splittingSet && !!onSplitConfirm,
   });
-  const {
-    metadataManagerRows,
-    metadataManagerDirtyCount,
-    metadataManagerSaving,
-    updateMetadataManagerField,
-    resetMetadataManager,
-    saveMetadataManager,
-  } = useSetMetadata({
-    serverUrl,
-    connected,
-    setDescriptions: metadataDescriptions,
-    setCollectionNames,
-    setModeNames,
-    updateSetMetadataInState,
-    onError: (message) => dispatchToast(message, "error"),
-    onSuccess: (message) => dispatchToast(message, "success"),
-    sets,
-  });
-
   const filtered = useMemo(() => filterSets(sets, query), [sets, query]);
-  const visibleMetadataRows = useMemo(
-    () =>
-      metadataManagerRows.filter((row) =>
-        matchesMappingManagerQuery({
-          query,
-          setName: row.setName,
-          description: row.description,
-          collectionName: row.collectionName,
-          modeName: row.modeName,
-        }),
-      ),
-    [metadataManagerRows, query],
-  );
 
   return (
     <>
@@ -1029,7 +948,7 @@ export function SetManager({
             Back
           </button>
           <span className="ml-1 text-[10px] font-medium text-[var(--color-figma-text)]">
-            Manage sets
+            Manage collections
           </span>
           {onOpenQuickSwitch && (
             <button
@@ -1086,8 +1005,8 @@ export function SetManager({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Filter sets…"
-                  aria-label="Filter token sets"
+                  placeholder="Filter collections…"
+                  aria-label="Filter token collections"
                   className="flex-1 bg-transparent text-[12px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)]"
                 />
                 {onOpenCreateSet && (
@@ -1095,21 +1014,16 @@ export function SetManager({
                     onClick={onOpenCreateSet}
                     className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
                   >
-                    New set
+                    New collection
                   </button>
                 )}
               </div>
               <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
                 <span>
-                  {sets.length} set{sets.length !== 1 ? "s" : ""}
+                  {sets.length} collection{sets.length !== 1 ? "s" : ""}
                 </span>
                 <span>·</span>
-                <span>Active: {activeSet}</span>
-                <span>·</span>
-                <span>
-                  Use this for naming, folders, ordering, Figma routing,
-                  merges, splits, and bulk actions.
-                </span>
+                <span>Active collection: {activeSet}</span>
               </div>
             </div>
 
@@ -1118,19 +1032,6 @@ export function SetManager({
               sets={sets}
               activeSet={activeSet}
               query={query}
-              topContent={
-                <SetMappingManager
-                  rows={metadataManagerRows}
-                  visibleRows={visibleMetadataRows}
-                  dirtyCount={metadataManagerDirtyCount}
-                  saving={metadataManagerSaving}
-                  onFieldChange={updateMetadataManagerField}
-                  onResetRow={(setName) => resetMetadataManager(setName)}
-                  onResetAll={() => resetMetadataManager()}
-                  onSaveRow={(setName) => saveMetadataManager([setName])}
-                  onSaveAll={() => saveMetadataManager()}
-                />
-              }
               setTokenCounts={setTokenCounts}
               setDescriptions={setDescriptions}
               onRename={onRename}
@@ -1161,10 +1062,6 @@ export function SetManager({
           setName={editingMetadataSet}
           description={metadataDescription}
           onDescriptionChange={(value) => setMetadataDescription?.(value)}
-          collectionName={metadataCollectionName}
-          onCollectionNameChange={(value) => setMetadataCollectionName?.(value)}
-          modeName={metadataModeName}
-          onModeNameChange={(value) => setMetadataModeName?.(value)}
           onClose={() => onMetadataClose?.()}
           onSave={() => onMetadataSave?.()}
         />
@@ -1206,7 +1103,6 @@ interface ManageViewProps {
   sets: string[];
   activeSet: string;
   query: string;
-  topContent?: ReactNode;
   setTokenCounts: Record<string, number>;
   setDescriptions: Record<string, string>;
   onRename?: (setName: string) => void;
@@ -1237,7 +1133,6 @@ function ManageView({
   sets,
   activeSet,
   query,
-  topContent,
   setTokenCounts,
   setDescriptions,
   onRename,
@@ -1394,7 +1289,7 @@ function ManageView({
     }));
     const actualMoves = moves.filter((move) => move.from !== move.to);
     if (!actualMoves.length) {
-      setBulkFolderError("All selected sets are already in that folder");
+      setBulkFolderError("All selected collections are already in that folder");
       return;
     }
     setBulkPending(true);
@@ -1573,7 +1468,7 @@ function ManageView({
       }
       cancelFolderDelete();
       dispatchToast(
-        `Deleted folder "${deletingFolder}" (${response.deletedSets.length} set${response.deletedSets.length === 1 ? "" : "s"})`,
+        `Deleted folder "${deletingFolder}" (${response.deletedSets.length} collection${response.deletedSets.length === 1 ? "" : "s"})`,
         "success",
       );
     } catch (err) {
@@ -1667,14 +1562,13 @@ function ManageView({
   if (filtered.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center px-3 py-6 text-[11px] text-[var(--color-figma-text-secondary)]">
-        No sets match &ldquo;{query}&rdquo;
+        No collections match &ldquo;{query}&rdquo;
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {topContent}
       {hasBulkOps && hasSelection && (
         <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex items-center gap-1 px-2 py-1.5 text-[11px]">
@@ -1749,7 +1643,7 @@ function ManageView({
           {deleteConfirming && (
             <div className="flex items-center gap-2 border-t border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[11px]">
               <span className="flex-1 text-[var(--color-figma-text)]">
-                Delete {selectedSets.size} set
+                Delete {selectedSets.size} collection
                 {selectedSets.size !== 1 ? "s" : ""}? This cannot be undone.
               </span>
               <button
@@ -1909,7 +1803,7 @@ function ManageView({
                         if (e.key === "Escape") onRenameCancel?.();
                       }}
                       onBlur={() => onRenameCancel?.()}
-                      aria-label="Rename token set"
+                      aria-label="Rename token collection"
                       className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
                     />
                     {renameError && (
@@ -1971,8 +1865,8 @@ function ManageView({
                     )}
                     {onEditInfo && (
                       <StrokeIconButton
-                        title="Edit set info"
-                        ariaLabel="Edit set info"
+                        title="Edit collection info"
+                        ariaLabel="Edit collection info"
                         onClick={() => onEditInfo(set)}
                       >
                         <circle cx="12" cy="12" r="10" />
@@ -2009,8 +1903,8 @@ function ManageView({
                     )}
                     {onMerge && (
                       <StrokeIconButton
-                        title="Merge into another set"
-                        ariaLabel="Merge into another set"
+                        title="Merge into another collection"
+                        ariaLabel="Merge into another collection"
                         onClick={() => onMerge(set)}
                       >
                         <path d="M7 7h5a4 4 0 014 4v0" />
@@ -2139,7 +2033,7 @@ function ManageView({
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
                         <span>
-                          {item.totalSetCount} set
+                          {item.totalSetCount} collection
                           {item.totalSetCount === 1 ? "" : "s"}
                         </span>
                         {visibleCount !== item.totalSetCount && (
@@ -2271,7 +2165,7 @@ function ManageView({
                   <div className="flex items-center gap-2 text-[11px]">
                     <span className="flex-1 text-[var(--color-figma-text)]">
                       Delete folder "{item.folder}/" and its{" "}
-                      {item.totalSetCount} set
+                      {item.totalSetCount} collection
                       {item.totalSetCount === 1 ? "" : "s"}?
                     </span>
                     <button
@@ -2315,232 +2209,16 @@ function ManageView({
   );
 }
 
-function SetMappingManager({
-  rows,
-  visibleRows,
-  dirtyCount,
-  saving,
-  onFieldChange,
-  onResetRow,
-  onResetAll,
-  onSaveRow,
-  onSaveAll,
-}: {
-  rows: Array<{
-    setName: string;
-    description: string;
-    collectionName: string;
-    modeName: string;
-    isDirty: boolean;
-  }>;
-  visibleRows: Array<{
-    setName: string;
-    description: string;
-    collectionName: string;
-    modeName: string;
-    isDirty: boolean;
-  }>;
-  dirtyCount: number;
-  saving: boolean;
-  onFieldChange: (
-    setName: string,
-    field: "collectionName" | "modeName",
-    value: string,
-  ) => void;
-  onResetRow: (setName: string) => void;
-  onResetAll: () => void;
-  onSaveRow: (setName: string) => Promise<unknown>;
-  onSaveAll: () => Promise<unknown>;
-}) {
-  const collectionsCount = new Set(
-    rows.map((row) => row.collectionName.trim()).filter(Boolean),
-  ).size;
-  const customModesCount = rows.filter(
-    (row) => row.modeName.trim().length > 0,
-  ).length;
-
-  return (
-    <section className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-            Fallback Figma collection + mode routing
-          </div>
-          <p className="mt-1 max-w-3xl text-[10px] leading-4 text-[var(--color-figma-text-secondary)]">
-            Review each set&rsquo;s direct Sync destination here. Resolver-based
-            publish flows can now own their own context-to-mode mapping in the
-            Publish workspace, while these per-set destinations remain the
-            fallback for direct set sync and any sets not covered by a resolver.
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={onResetAll}
-            disabled={saving || dirtyCount === 0}
-            className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
-          >
-            Reset all
-          </button>
-          <button
-            onClick={() => {
-              void onSaveAll();
-            }}
-            disabled={saving || dirtyCount === 0}
-            className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-          >
-            {saving
-              ? "Saving…"
-              : dirtyCount > 0
-                ? `Save ${dirtyCount} change${dirtyCount === 1 ? "" : "s"}`
-                : "Saved"}
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-        <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
-          {rows.length} set{rows.length === 1 ? "" : "s"}
-        </span>
-        <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
-          {collectionsCount} named collection{collectionsCount === 1 ? "" : "s"}
-        </span>
-        <span className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5">
-          {customModesCount} custom mode{customModesCount === 1 ? "" : "s"}
-        </span>
-        {dirtyCount > 0 && (
-          <span className="rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[var(--color-figma-accent)]">
-            {dirtyCount} unsaved
-          </span>
-        )}
-      </div>
-
-      <div className="mt-3 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-        <div
-          className="hidden items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)] md:grid"
-          style={{
-            gridTemplateColumns:
-              "minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) auto",
-          }}
-        >
-          <span>Set</span>
-          <span>Collection</span>
-          <span>Mode</span>
-          <span className="text-right">Actions</span>
-        </div>
-        {visibleRows.length === 0 ? (
-          <div className="px-3 py-4 text-[10px] text-[var(--color-figma-text-secondary)]">
-            No sets match the current filter.
-          </div>
-        ) : (
-          <div className="max-h-72 overflow-y-auto">
-            {visibleRows.map((row) => (
-              <div
-                key={row.setName}
-                className={`grid gap-2 border-b border-[var(--color-figma-border)] px-3 py-2.5 last:border-b-0 ${row.isDirty ? "bg-[var(--color-figma-accent)]/5" : ""}`}
-                style={{
-                  gridTemplateColumns:
-                    "minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) auto",
-                }}
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                    <SetNameDisplay name={row.setName} />
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-secondary)]">
-                    <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5">
-                      {row.collectionName.trim()
-                        ? "Custom collection"
-                        : "Default collection"}
-                    </span>
-                    <span className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5">
-                      {row.modeName.trim() ? "Named mode" : "First mode"}
-                    </span>
-                    {row.isDirty && (
-                      <span className="rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[var(--color-figma-accent)]">
-                        Edited
-                      </span>
-                    )}
-                  </div>
-                  {row.description && (
-                    <div className="mt-1 truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                      {row.description}
-                    </div>
-                  )}
-                </div>
-
-                <input
-                  type="text"
-                  value={row.collectionName}
-                  onChange={(event) =>
-                    onFieldChange(
-                      row.setName,
-                      "collectionName",
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Default TokenManager collection"
-                  disabled={saving}
-                  className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                  aria-label={`Collection for ${row.setName}`}
-                />
-
-                <input
-                  type="text"
-                  value={row.modeName}
-                  onChange={(event) =>
-                    onFieldChange(row.setName, "modeName", event.target.value)
-                  }
-                  placeholder="First mode"
-                  disabled={saving}
-                  className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                  aria-label={`Mode for ${row.setName}`}
-                />
-
-                <div className="flex items-center justify-end gap-1">
-                  <button
-                    onClick={() => onResetRow(row.setName)}
-                    disabled={saving || !row.isDirty}
-                    className="rounded px-1.5 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    onClick={() => {
-                      void onSaveRow(row.setName);
-                    }}
-                    disabled={saving || !row.isDirty}
-                    className="rounded bg-[var(--color-figma-accent)] px-1.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
 function SetMetadataDialog({
   setName,
   description,
   onDescriptionChange,
-  collectionName,
-  onCollectionNameChange,
-  modeName,
-  onModeNameChange,
   onClose,
   onSave,
 }: {
   setName: string;
   description: string;
   onDescriptionChange: (value: string) => void;
-  collectionName: string;
-  onCollectionNameChange: (value: string) => void;
-  modeName: string;
-  onModeNameChange: (value: string) => void;
   onClose: () => void;
   onSave: () => void;
 }) {
@@ -2548,7 +2226,7 @@ function SetMetadataDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex w-72 flex-col gap-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-4 shadow-xl">
         <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
-          Edit set info — {setName}
+          Edit collection info — {setName}
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -2562,47 +2240,9 @@ function SetMetadataDialog({
               if (e.key === "Escape") onClose();
             }}
             rows={3}
-            placeholder="What is this token set for?"
+            placeholder="What is this token collection for?"
             className="w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Figma collection name
-          </label>
-          <input
-            type="text"
-            value={collectionName}
-            onChange={(e) => onCollectionNameChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") onClose();
-            }}
-            placeholder="TokenManager"
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-          />
-          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Direct set sync uses this collection when no resolver publish
-            mapping is handling the destination.
-          </p>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Figma mode name
-          </label>
-          <input
-            type="text"
-            value={modeName}
-            onChange={(e) => onModeNameChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") onClose();
-            }}
-            placeholder="Mode 1"
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-          />
-          <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Direct set sync uses this mode when no resolver publish mapping is
-            handling the destination. Leave blank to use the first mode.
-          </p>
         </div>
         <div className="flex justify-end gap-2">
           <button
@@ -2667,8 +2307,8 @@ function SetDeleteDialog({
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto p-4">
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review linked themes, resolvers, Figma metadata, and managed-token
-            ownership before the set is removed.
+            Review linked previews and managed-token ownership before the
+            collection is removed.
           </p>
           <StructuralPreflightSummary
             preflight={preflight}
@@ -2689,7 +2329,7 @@ function SetDeleteDialog({
             disabled={hasBlockingPreflight}
             className="flex-1 rounded bg-[var(--color-figma-error)] px-3 py-1.5 text-[11px] font-medium text-white hover:opacity-90 disabled:opacity-50"
           >
-            Delete set
+            Delete collection
           </button>
         </div>
       </div>
@@ -2755,12 +2395,12 @@ function SetMergeInline({
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
         <div className="flex flex-col gap-1">
           <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Target set
+            Target collection
           </label>
           <select
             value={mergeTargetSet}
             onChange={(e) => onTargetChange(e.target.value)}
-            aria-label="Merge target set"
+            aria-label="Merge target collection"
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           >
             {sets
@@ -2785,7 +2425,7 @@ function SetMergeInline({
             <span className="font-mono font-medium">{mergingSet}</span> will
             be added to{" "}
             <span className="font-mono font-medium">{mergeTargetSet}</span>.
-            Conflicts where both sets have the same path but different values
+            Conflicts where both collections have the same path but different values
             will be shown for resolution.
           </p>
         )}
@@ -2949,12 +2589,12 @@ function SetSplitDialog({
           />
           {effectiveSplitPreview.length === 0 ? (
             <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              No top-level groups found in this set to split.
+              No top-level groups found in this collection to split.
             </p>
           ) : (
             <>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Creates {effectiveSplitPreview.length} new set
+                Creates {effectiveSplitPreview.length} new collection
                 {effectiveSplitPreview.length !== 1 ? "s" : ""} from top-level
                 groups:
               </p>
@@ -2977,7 +2617,7 @@ function SetSplitDialog({
                 sets.includes(preview.newName),
               ) && (
                 <p className="text-[10px] text-[var(--color-figma-warning)]">
-                  Some sets already exist and will be skipped.
+                  Some collections already exist and will be skipped.
                 </p>
               )}
               <label className="flex cursor-pointer items-center gap-2">

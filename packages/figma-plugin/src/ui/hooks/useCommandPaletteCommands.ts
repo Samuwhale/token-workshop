@@ -315,20 +315,20 @@ export function useCommandPaletteCommands(): {
     }));
   }, [navigateTo, setActiveSet, setEditingToken, setTokenCounts, sets]);
 
-  const themeCompareCommands = useMemo<Command[]>(() => {
+  const modeCompareCommands = useMemo<Command[]>(() => {
     return [
       ...(dimensions.length > 0
         ? [
             {
-              id: "compare-theme-options",
-              label: "Compare mode options…",
-              description: "Open a side-by-side diff across mode options",
+              id: "compare-mode-options",
+              label: "Compare collection modes…",
+              description: "Open a side-by-side diff across collection modes",
               category: "Modes" as const,
               handler: () => {
                 themes.themeManagerHandleRef.current?.navigateToCompare(
                   "theme-options",
                 );
-                navigateTo("themes");
+                navigateTo("collections");
               },
             },
           ]
@@ -337,8 +337,8 @@ export function useCommandPaletteCommands(): {
         .filter((dimension) => dimension.options.length >= 2)
         .map((dimension) => ({
           id: `compare-dim-${dimension.id}`,
-          label: `Compare ${dimension.name}: ${dimension.options[0].name} vs ${dimension.options[1].name}`,
-          description: `See token differences across ${dimension.name} options`,
+          label: `Compare ${dimension.name} modes: ${dimension.options[0].name} vs ${dimension.options[1].name}`,
+          description: `See token differences across ${dimension.name} modes`,
           category: "Modes" as const,
           handler: () => {
             themes.themeManagerHandleRef.current?.navigateToCompare(
@@ -348,7 +348,7 @@ export function useCommandPaletteCommands(): {
               `${dimension.id}:${dimension.options[0].name}`,
               `${dimension.id}:${dimension.options[1].name}`,
             );
-            navigateTo("themes");
+            navigateTo("collections");
           },
         })),
     ];
@@ -379,7 +379,7 @@ export function useCommandPaletteCommands(): {
             },
             {
               id: "move-highlighted-token",
-              label: `Move to set: ${highlightedToken}`,
+              label: `Move to collection: ${highlightedToken}`,
               description: "Move this token to a different token set",
               category: "Tokens" as const,
               handler: () => tokens.handlePaletteMove(highlightedToken),
@@ -446,10 +446,10 @@ export function useCommandPaletteCommands(): {
       ...(dimensions.length > 0 && highlightedToken
         ? [
             {
-              id: "compare-across-themes",
+              id: "compare-across-modes",
               label: `Compare across modes: ${highlightedToken}`,
               description:
-                "See how this token’s value varies across all mode options",
+                "See how this token’s value varies across all collection modes",
               category: "Modes" as const,
               handler: () =>
                 tokens.handleOpenCrossThemeCompare(highlightedToken),
@@ -459,16 +459,16 @@ export function useCommandPaletteCommands(): {
       ...(dimensions.length > 0 && !highlightedToken
         ? [
             {
-              id: "compare-across-themes-pick",
+              id: "compare-across-modes-pick",
               label: "Compare token across modes…",
               description:
-                "Focus a token first, then run this command to compare its values across mode options",
+                "Focus a token first, then run this command to compare its values across collection modes",
               category: "Modes" as const,
               handler: () => {
                 themes.themeManagerHandleRef.current?.navigateToCompare(
                   "cross-theme",
                 );
-                navigateTo("themes");
+                navigateTo("collections");
               },
             },
           ]
@@ -552,7 +552,7 @@ export function useCommandPaletteCommands(): {
   const commands = useMemo(
     () => [
       ...baseCommands,
-      ...themeCompareCommands,
+      ...modeCompareCommands,
       ...setCommands,
       ...contextualCommands,
       ...undoRedoCommands,
@@ -563,7 +563,7 @@ export function useCommandPaletteCommands(): {
       contextualCommands,
       exportPresetCommands,
       setCommands,
-      themeCompareCommands,
+      modeCompareCommands,
       undoRedoCommands,
     ],
   );

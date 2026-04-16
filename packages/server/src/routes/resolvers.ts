@@ -9,13 +9,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type {
   ResolverFile,
   ResolverInput,
-  ThemeDimension,
-  ThemesFile,
-  TokenGroup,
 } from '@tokenmanager/core';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { convertThemesToResolver } from '../services/themes-to-resolver.js';
 import { handleRouteError } from '../errors.js';
 
 /** Validates a resolver name: non-empty, no null bytes, no path traversal, no leading/trailing whitespace. */
@@ -77,83 +71,6 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
       });
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to create resolver');
-    }
-  });
-
-  // -----------------------------------------------------------------------
-  // Convert existing $themes.json to a resolver file
-  // IMPORTANT: Must be registered BEFORE /resolvers/:name routes
-  // -----------------------------------------------------------------------
-  fastify.post<{ Body: { name?: string } }>('/resolvers/from-themes', async (req, reply) => {
-    const providedName = (req.body as { name?: string })?.name;
-    if (providedName !== undefined && !isValidResolverName(providedName)) {
-      return reply.status(400).send({ error: 'name must be a non-empty string with no null bytes or path traversal' });
-    }
-    const resolverName = providedName || 'theme-resolver';
-    try {
-      const storeDir = fastify.resolverStore.getDir();
-      const themesPath = path.join(storeDir, '$themes.json');
-      let dimensions: ThemeDimension[] = [];
-      try {
-        const content = await fs.readFile(themesPath, 'utf-8');
-        const data = JSON.parse(content) as ThemesFile;
-        dimensions = data.$themes || [];
-      } catch {
-        return reply.status(404).send({ error: 'No $themes.json found to convert.' });
-      }
-
-      if (dimensions.length === 0) {
-        return reply.status(400).send({ error: 'No theme dimensions to convert.' });
-      }
-
-      const tokenSets = (
-        await Promise.all(
-          (await fastify.tokenStore.getSets()).map(async (setName) => {
-            const set = await fastify.tokenStore.getSet(setName);
-            if (!set) {
-              return null;
-            }
-            return {
-              name: set.name,
-              tokens: set.tokens,
-            };
-          }),
-        )
-      ).filter((set): set is { name: string; tokens: TokenGroup } => Boolean(set));
-      const resolverFile = convertThemesToResolver(dimensions, tokenSets);
-
-      return await withLock(async () => {
-        const beforeFile = fastify.resolverStore.get(resolverName);
-        if (beforeFile) {
-          await fastify.resolverStore.update(resolverName, resolverFile);
-          await fastify.operationLog.record({
-            type: 'resolver-update',
-            description: `Regenerate resolver "${resolverName}" from themes`,
-            setName: resolverName,
-            affectedPaths: [],
-            beforeSnapshot: {},
-            afterSnapshot: {},
-            rollbackSteps: [
-              { action: 'write-resolver', name: resolverName, file: structuredClone(beforeFile) },
-            ],
-          });
-          return reply.status(200).send({ ok: true, name: resolverName, resolver: resolverFile });
-        }
-
-        await fastify.resolverStore.create(resolverName, resolverFile);
-        await fastify.operationLog.record({
-          type: 'resolver-create',
-          description: `Create resolver "${resolverName}" from themes`,
-          setName: resolverName,
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          rollbackSteps: [{ action: 'delete-resolver', name: resolverName }],
-        });
-        return reply.status(201).send({ ok: true, name: resolverName, resolver: resolverFile });
-      });
-    } catch (err) {
-      return handleRouteError(reply, err, 'Failed to convert themes to resolver');
     }
   });
 
