@@ -363,6 +363,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                       await persistRulePatch(rule.id, { severity: event.target.value as Severity });
                     }}
                     disabled={saving || !ruleConfig.enabled}
+                    aria-label="Rule severity"
                     className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] outline-none disabled:opacity-40"
                     style={{ color: ruleConfig.enabled ? SEVERITY_COLORS[ruleConfig.severity ?? 'warning'] : undefined }}
                   >
@@ -432,6 +433,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         value={pathPickerValues[rule.id] ?? ''}
                         onChange={event => setPathPickerValues(current => ({ ...current, [rule.id]: event.target.value }))}
                         disabled={saving || pathChoices.length === 0}
+                        aria-label="Token group"
                         className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-[10px] text-[var(--color-figma-text)] disabled:opacity-40"
                       >
                         <option value="">Pick a token group…</option>
@@ -481,6 +483,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         value={setPickerValues[rule.id] ?? ''}
                         onChange={event => setSetPickerValues(current => ({ ...current, [rule.id]: event.target.value }))}
                         disabled={saving || availableSetChoices.length === 0}
+                        aria-label="Token set"
                         className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-[10px] text-[var(--color-figma-text)] disabled:opacity-40"
                       >
                         <option value="">Pick a set…</option>

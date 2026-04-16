@@ -263,6 +263,7 @@ export function SemanticMappingDialog({
                 <path d="M2 6h8M7 3l3 3-3 3" />
               </svg>
               <select
+                aria-label="Scale step"
                 value={mapping.step}
                 onChange={(event) =>
                   setMappings((current) =>

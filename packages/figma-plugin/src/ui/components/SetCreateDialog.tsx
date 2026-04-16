@@ -79,6 +79,7 @@ export function SetCreateDialog({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3"
       onClick={onClose}
+      role="presentation"
     >
       <div
         className="w-full max-w-[320px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"

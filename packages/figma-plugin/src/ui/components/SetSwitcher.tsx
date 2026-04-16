@@ -665,6 +665,7 @@ export function SetSwitcher({
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-16"
       onClick={onClose}
+      role="presentation"
     >
       <div
         className="mx-3 flex w-full flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-2xl"
@@ -2224,6 +2225,7 @@ function ManageView({
                           setFolderMergeError("");
                         }}
                         disabled={folderActionPending}
+                        aria-label="Merge destination folder"
                         className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)]"
                       >
                         {targetFolderOptions.map((folder) => (
@@ -2758,6 +2760,7 @@ function SetMergeInline({
           <select
             value={mergeTargetSet}
             onChange={(e) => onTargetChange(e.target.value)}
+            aria-label="Merge target set"
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           >
             {sets
