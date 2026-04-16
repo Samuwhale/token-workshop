@@ -1,7 +1,7 @@
 /**
  * UnifiedComparePanel — shared wrapper used by both the Tokens tab and the
  * Themes tab to show the three-mode comparison UI. Extracts the back-button
- * chrome that was previously duplicated inside ThemeManager.
+ * chrome that was previously duplicated inside CollectionManager.
  *
  * Both entry points use the same CompareView underneath; the only difference
  * is the `backLabel` and `onBack` callback.
@@ -9,7 +9,7 @@
 
 import { CompareView } from './CompareView';
 export type { CompareMode } from './CompareView';
-import type { ThemeDimension } from '@tokenmanager/core';
+import type { CollectionDefinition } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { CompareMode } from './CompareView';
 
@@ -25,12 +25,12 @@ export interface UnifiedComparePanelProps {
 
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
-  dimensions: ThemeDimension[];
+  dimensions: CollectionDefinition[];
   sets: string[];
 
-  themeOptionsKey: number;
-  themeOptionsDefaultA: string;
-  themeOptionsDefaultB: string;
+  modeOptionsKey: number;
+  modeOptionsDefaultA: string;
+  modeOptionsDefaultB: string;
 
   onEditToken: (set: string, path: string) => void;
   onCreateToken: (path: string, set: string, type: string, value?: string) => void;

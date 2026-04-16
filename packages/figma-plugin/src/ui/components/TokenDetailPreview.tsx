@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import { createRecipeOwnershipKey, type ThemeDimension } from "@tokenmanager/core";
+import { createRecipeOwnershipKey, type CollectionDefinition } from "@tokenmanager/core";
 import type { TokenRecipe } from "../hooks/useRecipes";
 import type { LintViolation } from "../hooks/useLint";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
@@ -23,7 +23,7 @@ interface TokenDetailPreviewProps {
   setName: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
-  dimensions?: ThemeDimension[];
+  dimensions?: CollectionDefinition[];
   activeThemes?: Record<string, string>;
   tokenUsageCounts?: Record<string, number>;
   recipes?: TokenRecipe[];

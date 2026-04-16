@@ -4,12 +4,12 @@ import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import type { DeleteConfirm, AffectedRef } from '../components/tokenListTypes';
 import type { TokenRecipe } from './useRecipes';
-import type { ThemeDimension } from '@tokenmanager/core';
+import type { CollectionDefinition } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
-import { computeRecipeImpacts, computeThemeImpacts } from '../shared/tokenImpact';
+import { computeRecipeImpacts, computeModeImpacts } from '../shared/tokenImpact';
 
 export interface UseTokenDeleteParams {
   connected: boolean;
@@ -19,7 +19,7 @@ export interface UseTokenDeleteParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
   recipes?: TokenRecipe[];
-  dimensions?: ThemeDimension[];
+  dimensions?: CollectionDefinition[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onSetOperationLoading: (msg: string | null) => void;
@@ -66,8 +66,8 @@ export function useTokenDelete({
     }
     const targetPaths = new Set([path]);
     const recipeImpacts = computeRecipeImpacts(targetPaths, recipes ?? []);
-    const themeImpacts = computeThemeImpacts(targetPaths, dimensions ?? [], source);
-    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, themeImpacts });
+    const modeImpacts = computeModeImpacts(targetPaths, dimensions ?? [], source);
+    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, modeImpacts });
   }, [connected, allTokensFlat, perSetFlat, recipes, dimensions]);
 
   const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
@@ -94,8 +94,8 @@ export function useTokenDelete({
       }
     }
     const recipeImpacts = computeRecipeImpacts(groupPaths, recipes ?? []);
-    const themeImpacts = computeThemeImpacts(groupPaths, dimensions ?? [], source);
-    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, themeImpacts });
+    const modeImpacts = computeModeImpacts(groupPaths, dimensions ?? [], source);
+    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, modeImpacts });
   }, [connected, allTokensFlat, perSetFlat, recipes, dimensions]);
 
   const requestBulkDelete = useCallback((selectedPaths: Set<string>) => {
@@ -115,8 +115,8 @@ export function useTokenDelete({
       }
     }
     const recipeImpacts = computeRecipeImpacts(selectedPaths, recipes ?? []);
-    const themeImpacts = computeThemeImpacts(selectedPaths, dimensions ?? [], source);
-    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, themeImpacts });
+    const modeImpacts = computeModeImpacts(selectedPaths, dimensions ?? [], source);
+    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, modeImpacts });
   }, [connected, allTokensFlat, perSetFlat, recipes, dimensions]);
 
   const executeDelete = useCallback(async () => {

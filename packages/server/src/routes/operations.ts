@@ -198,7 +198,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
             request.params.id,
             {
               tokenStore: fastify.tokenStore,
-              themesStore: fastify.dimensionsStore,
+              collectionsStore: fastify.collectionsStore,
               resolverLock: fastify.resolverLock,
               resolverStore: fastify.resolverStore,
               recipeService: fastify.recipeService,

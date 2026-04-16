@@ -714,7 +714,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.status(400).send({ error: "choices is required" });
         const result = await fastify.gitSync.applyDiffChoices(choices, {
           tokenStore: fastify.tokenStore,
-          dimensionsStore: fastify.dimensionsStore,
+          collectionsStore: fastify.collectionsStore,
           recipeService: fastify.recipeService,
           resolverStore: fastify.resolverStore,
         });

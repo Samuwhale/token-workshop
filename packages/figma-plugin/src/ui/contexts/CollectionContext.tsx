@@ -1,25 +1,25 @@
 /**
- * ThemeContext — split into two focused sub-contexts to minimise cascade
+ * CollectionContext — split into two focused sub-contexts to minimise cascade
  * re-renders caused by unrelated state changes:
  *
- *   ThemeSwitcherContext — collection/mode selection UI state, preview/active
- *                          selections, and the derived themedAllTokensFlat memo.
- *                          `previewThemes` changes on every hover, so this
+ *   CollectionSwitcherContext — collection/mode selection UI state, preview/active
+ *                          selections, and the derived modeResolvedTokensFlat memo.
+ *                          `previewModes` changes on every hover, so this
  *                          context is intentionally isolated from resolver state.
  *   ResolverContext      — DTCG resolver config and output previews.
  *                          Exposes the ResolverState interface directly so callers
  *                          can use `const resolverState = useResolverContext()`.
  *
- * `ThemeProvider` is a thin wrapper that stacks both providers. Resolver state
+ * `CollectionProvider` is a thin wrapper that stacks both providers. Resolver state
  * stays separate from the canonical collection-and-mode view exposed by
- * ThemeSwitcherContext.
+ * CollectionSwitcherContext.
  */
 
 import { createContext, useContext, useMemo } from 'react';
 import type { RefObject, ReactNode } from 'react';
 import { useConnectionContext } from './ConnectionContext';
 import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
-import { useThemeSwitcher } from '../hooks/useThemeSwitcher';
+import { useCollectionSwitcher } from '../hooks/useCollectionSwitcher';
 import { useResolvers } from '../hooks/useResolvers';
 import type {
   ResolverMeta,
@@ -27,7 +27,7 @@ import type {
   ResolverSelectionOrigin,
 } from '../hooks/useResolvers';
 import type { TokenMapEntry } from '../../shared/types';
-import type { ThemeDimension, ResolverFile } from '@tokenmanager/core';
+import type { CollectionDefinition, ResolverFile } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 
 // ---------------------------------------------------------------------------
@@ -56,25 +56,25 @@ export interface ResolverState {
   setPushUndo: (fn: ((slot: UndoSlot) => void) | undefined) => void;
 }
 
-export interface ThemeSwitcherContextValue {
-  // ---- useThemeSwitcher ---------------------------------------------------
-  dimensions: ThemeDimension[];
-  setDimensions: React.Dispatch<React.SetStateAction<ThemeDimension[]>>;
-  activeThemes: Record<string, string>;
-  setActiveThemes: (map: Record<string, string>) => void;
-  previewThemes: Record<string, string>;
-  setPreviewThemes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  openDimDropdown: string | null;
-  setOpenDimDropdown: React.Dispatch<React.SetStateAction<string | null>>;
-  dimBarExpanded: boolean;
-  setDimBarExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  dimDropdownRef: RefObject<HTMLDivElement>;
-  themesError: string | null;
-  retryThemes: () => void;
+export interface CollectionSwitcherContextValue {
+  // ---- useCollectionSwitcher ------------------------------------------------
+  collections: CollectionDefinition[];
+  setCollections: React.Dispatch<React.SetStateAction<CollectionDefinition[]>>;
+  activeModes: Record<string, string>;
+  setActiveModes: (map: Record<string, string>) => void;
+  previewModes: Record<string, string>;
+  setPreviewModes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  openCollectionDropdown: string | null;
+  setOpenCollectionDropdown: React.Dispatch<React.SetStateAction<string | null>>;
+  collectionBarExpanded: boolean;
+  setCollectionBarExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  collectionDropdownRef: RefObject<HTMLDivElement>;
+  collectionsError: string | null;
+  retryCollections: () => void;
 
   // ---- Derived memos -------------------------------------------------------
   /** Tokens resolved through the active collection/mode selections only. */
-  themedAllTokensFlat: Record<string, TokenMapEntry>;
+  modeResolvedTokensFlat: Record<string, TokenMapEntry>;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,17 +82,17 @@ export interface ThemeSwitcherContextValue {
 // ---------------------------------------------------------------------------
 
 const ResolverContext = createContext<ResolverState | null>(null);
-const ThemeSwitcherContext = createContext<ThemeSwitcherContextValue | null>(null);
+const CollectionSwitcherContext = createContext<CollectionSwitcherContextValue | null>(null);
 
 export function useResolverContext(): ResolverState {
   const ctx = useContext(ResolverContext);
-  if (!ctx) throw new Error('useResolverContext must be used inside ThemeProvider');
+  if (!ctx) throw new Error('useResolverContext must be used inside CollectionProvider');
   return ctx;
 }
 
-export function useThemeSwitcherContext(): ThemeSwitcherContextValue {
-  const ctx = useContext(ThemeSwitcherContext);
-  if (!ctx) throw new Error('useThemeSwitcherContext must be used inside ThemeProvider');
+export function useCollectionSwitcherContext(): CollectionSwitcherContextValue {
+  const ctx = useContext(CollectionSwitcherContext);
+  if (!ctx) throw new Error('useCollectionSwitcherContext must be used inside CollectionProvider');
   return ctx;
 }
 
@@ -158,7 +158,7 @@ function ResolverProvider({ children, serverUrl, connected }: {
   );
 }
 
-function ThemeSwitcherProvider({ children, serverUrl, connected }: {
+function CollectionSwitcherProvider({ children, serverUrl, connected }: {
   children: ReactNode;
   serverUrl: string;
   connected: boolean;
@@ -167,15 +167,15 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
   const { allTokensFlat, pathToSet } = useTokenFlatMapContext();
 
   const {
-    dimensions, setDimensions,
-    activeThemes, setActiveThemes,
-    previewThemes, setPreviewThemes,
-    openDimDropdown, setOpenDimDropdown,
-    dimBarExpanded, setDimBarExpanded,
-    dimDropdownRef,
-    themedAllTokensFlat: themeOnlyTokensFlat,
-    themesError, retryThemes,
-  } = useThemeSwitcher(
+    collections, setCollections,
+    activeModes, setActiveModes,
+    previewModes, setPreviewModes,
+    openCollectionDropdown, setOpenCollectionDropdown,
+    collectionBarExpanded, setCollectionBarExpanded,
+    collectionDropdownRef,
+    modeResolvedTokensFlat: modeOnlyTokensFlat,
+    collectionsError, retryCollections,
+  } = useCollectionSwitcher(
     serverUrl,
     connected,
     tokenRevision,
@@ -183,47 +183,47 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
     pathToSet,
   );
 
-  const value = useMemo<ThemeSwitcherContextValue>(
+  const value = useMemo<CollectionSwitcherContextValue>(
     () => ({
-      dimensions, setDimensions,
-      activeThemes, setActiveThemes,
-      previewThemes, setPreviewThemes,
-      openDimDropdown, setOpenDimDropdown,
-      dimBarExpanded, setDimBarExpanded,
-      dimDropdownRef, themesError, retryThemes,
-      themedAllTokensFlat: themeOnlyTokensFlat,
+      collections, setCollections,
+      activeModes, setActiveModes,
+      previewModes, setPreviewModes,
+      openCollectionDropdown, setOpenCollectionDropdown,
+      collectionBarExpanded, setCollectionBarExpanded,
+      collectionDropdownRef, collectionsError, retryCollections,
+      modeResolvedTokensFlat: modeOnlyTokensFlat,
     }),
     [
-      dimensions, setDimensions,
-      activeThemes, setActiveThemes,
-      previewThemes, setPreviewThemes,
-      openDimDropdown, setOpenDimDropdown,
-      dimBarExpanded, setDimBarExpanded,
-      dimDropdownRef, themesError, retryThemes,
-      themeOnlyTokensFlat,
+      collections, setCollections,
+      activeModes, setActiveModes,
+      previewModes, setPreviewModes,
+      openCollectionDropdown, setOpenCollectionDropdown,
+      collectionBarExpanded, setCollectionBarExpanded,
+      collectionDropdownRef, collectionsError, retryCollections,
+      modeOnlyTokensFlat,
     ],
   );
 
   return (
-    <ThemeSwitcherContext.Provider value={value}>
+    <CollectionSwitcherContext.Provider value={value}>
       {children}
-    </ThemeSwitcherContext.Provider>
+    </CollectionSwitcherContext.Provider>
   );
 }
 
 // ---------------------------------------------------------------------------
 // Public wrapper — stacks both providers (ResolverProvider first so
-// ThemeSwitcherProvider can read from it)
+// CollectionSwitcherProvider can read from it)
 // ---------------------------------------------------------------------------
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function CollectionProvider({ children }: { children: ReactNode }) {
   const { serverUrl, connected } = useConnectionContext();
 
   return (
     <ResolverProvider serverUrl={serverUrl} connected={connected}>
-      <ThemeSwitcherProvider serverUrl={serverUrl} connected={connected}>
+      <CollectionSwitcherProvider serverUrl={serverUrl} connected={connected}>
         {children}
-      </ThemeSwitcherProvider>
+      </CollectionSwitcherProvider>
     </ResolverProvider>
   );
 }

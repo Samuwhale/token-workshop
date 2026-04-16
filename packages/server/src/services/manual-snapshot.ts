@@ -4,8 +4,8 @@ import { randomUUID } from "node:crypto";
 import { flattenTokenGroup } from "@tokenmanager/core";
 import type {
   ResolverFile,
-  ThemeDimension,
-  ThemeViewPreset,
+  CollectionDefinition,
+  ViewPreset,
   Token,
   TokenRecipe,
   TokenGroup,
@@ -13,7 +13,7 @@ import type {
 import type { TokenStore } from "./token-store.js";
 import type { ResolverStore } from "./resolver-store.js";
 import type { RecipeService } from "./recipe-service.js";
-import type { DimensionsStore } from "../routes/themes.js";
+import type { CollectionsStore } from "../routes/themes.js";
 import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -38,8 +38,8 @@ type ManualSnapshotComparableState = Pick<
 
 interface RestoreWorkspaceState {
   setNames: string[];
-  dimensions: ThemeDimension[];
-  views?: ThemeViewPreset[];
+  dimensions: CollectionDefinition[];
+  views?: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
 }
@@ -56,8 +56,8 @@ type RestorePlanStep =
     })
   | (RestorePlanStepBase & {
       kind: "restore-themes";
-      dimensions: ThemeDimension[];
-      views: ThemeViewPreset[];
+      dimensions: CollectionDefinition[];
+      views: ViewPreset[];
     })
   | (RestorePlanStepBase & {
       kind: "restore-resolver";
@@ -85,8 +85,8 @@ interface RestorePlan {
   snapshotId: string;
   snapshotLabel: string;
   data: SnapshotTokenSets;
-  dimensions: ThemeDimension[];
-  views: ThemeViewPreset[];
+  dimensions: CollectionDefinition[];
+  views: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
   deleteSetNames: string[];
@@ -108,8 +108,8 @@ export interface ManualSnapshotEntry {
   timestamp: string;
   /** Flat map: setName -> (tokenPath -> token) */
   data: SnapshotTokenSets;
-  dimensions: ThemeDimension[];
-  views: ThemeViewPreset[];
+  dimensions: CollectionDefinition[];
+  views: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
 }
@@ -148,8 +148,8 @@ export interface ManualSnapshotDiff {
 
 const MAX_SNAPSHOTS = 20;
 const MAX_RECOVERY_RETRIES = 3;
-const THEMES_WORKSPACE_ID = "$themes";
-const RESTORE_THEMES_STEP_ID = "restore-themes";
+const COLLECTIONS_WORKSPACE_ID = "$collections";
+const RESTORE_COLLECTIONS_STEP_ID = "restore-themes";
 
 function isRecord(
   value: unknown,
@@ -217,10 +217,10 @@ function normalizeSnapshotEntry(raw: unknown): ManualSnapshotEntry {
         : new Date().toISOString(),
     data: isRecord(raw.data) ? (raw.data as SnapshotTokenSets) : {},
     dimensions: Array.isArray(raw.dimensions)
-      ? structuredClone(raw.dimensions as ThemeDimension[])
+      ? structuredClone(raw.dimensions as CollectionDefinition[])
       : [],
     views: Array.isArray(raw.views)
-      ? structuredClone(raw.views as ThemeViewPreset[])
+      ? structuredClone(raw.views as ViewPreset[])
       : [],
     resolvers: isRecord(raw.resolvers)
       ? cloneResolvers(raw.resolvers as SnapshotResolvers)
@@ -241,10 +241,10 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
     typeof raw.snapshotLabel === "string" ? raw.snapshotLabel : "Snapshot";
   const data = isRecord(raw.data) ? (raw.data as SnapshotTokenSets) : {};
   const dimensions = Array.isArray(raw.dimensions)
-    ? structuredClone(raw.dimensions as ThemeDimension[])
+    ? structuredClone(raw.dimensions as CollectionDefinition[])
     : [];
   const views = Array.isArray(raw.views)
-    ? structuredClone(raw.views as ThemeViewPreset[])
+    ? structuredClone(raw.views as ViewPreset[])
     : [];
   const resolvers = isRecord(raw.resolvers)
     ? cloneResolvers(raw.resolvers as SnapshotResolvers)
@@ -366,7 +366,7 @@ function listWorkspaceDiffs(
     const afterEmpty = after.dimensions.length === 0 && after.views.length === 0;
     diffs.push({
       kind: "themes",
-      id: THEMES_WORKSPACE_ID,
+      id: COLLECTIONS_WORKSPACE_ID,
       label: "Collection modes and preview presets",
       status: beforeEmpty ? "added" : afterEmpty ? "removed" : "modified",
     });
@@ -478,8 +478,8 @@ function buildSnapshotRestoreRollbackSteps({
   snapshotResolvers,
   snapshotRecipes,
 }: {
-  currentDimensions: ThemeDimension[];
-  currentViews: ThemeViewPreset[];
+  currentDimensions: CollectionDefinition[];
+  currentViews: ViewPreset[];
   currentResolvers: SnapshotResolvers;
   currentRecipes: SnapshotRecipes;
   snapshotResolvers: SnapshotResolvers;
@@ -568,11 +568,15 @@ export class ManualSnapshotStore {
   }
 
   private async deleteRestoreJournal(): Promise<void> {
-    await fs.unlink(this.journalPath).catch(() => {});
+    await fs.unlink(this.journalPath).catch((err) => {
+      console.error("[rollback-error] Cleanup failed: could not remove restore journal file", err);
+    });
   }
 
   private async cleanupStoreDir(): Promise<void> {
-    await fs.rmdir(path.dirname(this.filePath)).catch(() => {});
+    await fs.rmdir(path.dirname(this.filePath)).catch((err) => {
+      console.error("[rollback-error] Cleanup failed: could not remove snapshot store directory", err);
+    });
   }
 
   private async captureTokenSets(
@@ -615,13 +619,13 @@ export class ManualSnapshotStore {
 
   private async captureCurrentState(
     tokenStore: TokenStore,
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
   ): Promise<ManualSnapshotEntry> {
-    const [data, themeState, resolvers, recipes] = await Promise.all([
+    const [data, collectionState, resolvers, recipes] = await Promise.all([
       this.captureTokenSets(tokenStore),
-      dimensionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
+      collectionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
       this.captureCurrentResolvers(resolverStore),
       recipeService.getAllById(),
     ]);
@@ -631,8 +635,8 @@ export class ManualSnapshotStore {
       label: "",
       timestamp: "",
       data,
-      dimensions: themeState.dimensions,
-      views: themeState.views,
+      dimensions: collectionState.dimensions,
+      views: collectionState.views,
       resolvers,
       recipes,
     };
@@ -641,7 +645,7 @@ export class ManualSnapshotStore {
   save(
     label: string,
     tokenStore: TokenStore,
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
   ): Promise<ManualSnapshotEntry> {
@@ -650,7 +654,7 @@ export class ManualSnapshotStore {
 
       const current = await this.captureCurrentState(
         tokenStore,
-        dimensionsStore,
+        collectionsStore,
         resolverStore,
         recipeService,
       );
@@ -742,7 +746,7 @@ export class ManualSnapshotStore {
     }
 
     steps.push({
-      stepId: RESTORE_THEMES_STEP_ID,
+      stepId: RESTORE_COLLECTIONS_STEP_ID,
       kind: "restore-themes",
       dimensions: structuredClone(source.dimensions),
       views: structuredClone(source.views),
@@ -907,7 +911,7 @@ export class ManualSnapshotStore {
   async diff(
     id: string,
     tokenStore: TokenStore,
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
   ): Promise<ManualSnapshotDiff> {
@@ -919,7 +923,7 @@ export class ManualSnapshotStore {
 
     const current = await this.captureCurrentState(
       tokenStore,
-      dimensionsStore,
+      collectionsStore,
       resolverStore,
       recipeService,
     );
@@ -940,13 +944,13 @@ export class ManualSnapshotStore {
   }
 
   private async restoreThemes(
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     state: {
-      dimensions: ThemeDimension[];
-      views: ThemeViewPreset[];
+      dimensions: CollectionDefinition[];
+      views: ViewPreset[];
     },
   ): Promise<void> {
-    await dimensionsStore.withStateLock(async () => ({
+    await collectionsStore.withStateLock(async () => ({
       state: structuredClone(state),
       result: undefined,
     }));
@@ -974,21 +978,21 @@ export class ManualSnapshotStore {
 
   private async captureRestoreWorkspaceState(
     tokenStore: TokenStore,
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
   ): Promise<RestoreWorkspaceState> {
-    const [setNames, themeState, resolvers, recipes] = await Promise.all([
+    const [setNames, collectionState, resolvers, recipes] = await Promise.all([
       tokenStore.getSets(),
-      dimensionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
+      collectionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
       this.captureCurrentResolvers(resolverStore),
       recipeService.getAllById(),
     ]);
 
     return {
       setNames,
-      dimensions: themeState.dimensions,
-      views: themeState.views,
+      dimensions: collectionState.dimensions,
+      views: collectionState.views,
       resolvers,
       recipes,
     };
@@ -1024,7 +1028,7 @@ export class ManualSnapshotStore {
   private async executeRestoreStep(
     step: RestorePlanStep,
     tokenStore: TokenStore,
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
   ): Promise<void> {
@@ -1034,7 +1038,7 @@ export class ManualSnapshotStore {
         return;
       case "restore-themes":
         await resolverStore.lock.withLock(async () => {
-          await this.restoreThemes(dimensionsStore, {
+          await this.restoreThemes(collectionsStore, {
             dimensions: step.dimensions,
             views: step.views,
           });
@@ -1066,7 +1070,7 @@ export class ManualSnapshotStore {
     plan: RestorePlan,
     journal: RestoreJournal,
     tokenStore: TokenStore,
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
     options: { recoveryMode: boolean },
@@ -1090,7 +1094,7 @@ export class ManualSnapshotStore {
         await this.executeRestoreStep(
           step,
           tokenStore,
-          dimensionsStore,
+          collectionsStore,
           resolverStore,
           recipeService,
         );
@@ -1119,7 +1123,7 @@ export class ManualSnapshotStore {
   restore(
     id: string,
     tokenStore: TokenStore,
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
     currentWorkspaceState?: RestoreWorkspaceState,
@@ -1144,14 +1148,14 @@ export class ManualSnapshotStore {
         currentWorkspaceState ??
         (await this.captureRestoreWorkspaceState(
           tokenStore,
-          dimensionsStore,
+          collectionsStore,
           resolverStore,
           recipeService,
         ));
-      const currentThemeState =
+      const currentCollectionState =
         baseline.views !== undefined
           ? { dimensions: baseline.dimensions, views: baseline.views }
-          : await dimensionsStore.withReadStateLock((state) =>
+          : await collectionsStore.withReadStateLock((state) =>
               Promise.resolve(structuredClone(state)),
             );
       const resolvedBaseline =
@@ -1159,7 +1163,7 @@ export class ManualSnapshotStore {
           ? baseline
           : {
               ...baseline,
-              views: currentThemeState.views,
+              views: currentCollectionState.views,
             };
       const plan = this.buildRestorePlanFromSnapshot(
         snapshot,
@@ -1172,7 +1176,7 @@ export class ManualSnapshotStore {
         plan,
         journal,
         tokenStore,
-        dimensionsStore,
+        collectionsStore,
         resolverStore,
         recipeService,
         { recoveryMode: false },
@@ -1186,7 +1190,7 @@ export class ManualSnapshotStore {
 
   async recoverPendingRestore(
     tokenStore: TokenStore,
-    dimensionsStore: DimensionsStore,
+    collectionsStore: CollectionsStore,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
   ): Promise<void> {
@@ -1216,7 +1220,7 @@ export class ManualSnapshotStore {
       plan,
       journal,
       tokenStore,
-      dimensionsStore,
+      collectionsStore,
       resolverStore,
       recipeService,
       { recoveryMode: true },

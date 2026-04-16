@@ -4,7 +4,7 @@ import type { Density } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
 import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
 
-export type LibraryViewMode = "library" | "theme-options" | "active-theme" | "json";
+export type LibraryViewMode = "library" | "mode-options" | "active-mode" | "json";
 
 export interface ViewMenuProps {
   sortOrder: SortOrder;
@@ -18,8 +18,8 @@ export interface ViewMenuProps {
   onCondensedViewChange: (v: boolean) => void;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
-  themeLensEnabled: boolean;
-  onToggleThemeLens: () => void;
+  modeLensEnabled: boolean;
+  onToggleModeLens: () => void;
   hasDimensions: boolean;
   showPreviewSplit: boolean;
   onTogglePreviewSplit?: () => void;
@@ -237,9 +237,9 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
         <span>
           {props.currentLibraryViewMode === "library"
             ? "View"
-            : props.currentLibraryViewMode === "theme-options"
+            : props.currentLibraryViewMode === "mode-options"
               ? "View: Modes"
-              : props.currentLibraryViewMode === "active-theme"
+              : props.currentLibraryViewMode === "active-mode"
                 ? "View: Preview"
                 : "View: JSON"}
         </span>
@@ -260,15 +260,15 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
             {props.hasDimensions && (
               <MenuItem
                 label="Mode Columns"
-                checked={props.currentLibraryViewMode === "theme-options"}
-                onClick={() => runAndClose(() => props.onActivateViewMode("theme-options"))}
+                checked={props.currentLibraryViewMode === "mode-options"}
+                onClick={() => runAndClose(() => props.onActivateViewMode("mode-options"))}
               />
             )}
             {props.hasDimensions && (
               <MenuItem
                 label="Current Preview"
-                checked={props.currentLibraryViewMode === "active-theme"}
-                onClick={() => runAndClose(() => props.onActivateViewMode("active-theme"))}
+                checked={props.currentLibraryViewMode === "active-mode"}
+                onClick={() => runAndClose(() => props.onActivateViewMode("active-mode"))}
               />
             )}
             <MenuItem
@@ -345,8 +345,8 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
             {props.hasDimensions && (
               <MenuItem
                 label="Preview values"
-                checked={props.themeLensEnabled}
-                onClick={() => runAndClose(props.onToggleThemeLens)}
+                checked={props.modeLensEnabled}
+                onClick={() => runAndClose(props.onToggleModeLens)}
               />
             )}
             <MenuItem

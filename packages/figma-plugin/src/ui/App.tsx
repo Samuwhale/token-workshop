@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { TokenListImperativeHandle } from "./components/tokenListTypes";
-import type { ThemeManagerHandle } from "./components/ThemeManager";
+import type { CollectionManagerHandle } from "./components/CollectionManager";
 import type { PublishPanelHandle } from "./components/PublishPanel";
 import { ToastStack } from "./components/ToastStack";
 import { useToastStack } from "./hooks/useToastStack";
@@ -52,9 +52,9 @@ import {
   useRecipeContext,
 } from "./contexts/TokenDataContext";
 import {
-  useThemeSwitcherContext,
+  useCollectionSwitcherContext,
   useResolverContext,
-} from "./contexts/ThemeContext";
+} from "./contexts/CollectionContext";
 import {
   useSelectionContext,
   useHeatmapContext,
@@ -125,7 +125,7 @@ export function App() {
     setShowTokensCompare,
     setTokensCompareMode,
     setTokensComparePath,
-    setTokensCompareThemeKey,
+    setTokensCompareModeKey,
     switchContextualSurface,
   } = useEditorContext();
   const {
@@ -169,16 +169,16 @@ export function App() {
     recipesBySource,
   } = useRecipeContext();
   const {
-    dimensions,
-    activeThemes,
-    setActiveThemes,
-    previewThemes,
-    setPreviewThemes,
-    openDimDropdown,
-    setOpenDimDropdown,
-    dimDropdownRef,
-    themesError,
-  } = useThemeSwitcherContext();
+    collections: dimensions,
+    activeModes: activeThemes,
+    setActiveModes: setActiveThemes,
+    previewModes: previewThemes,
+    setPreviewModes: setPreviewThemes,
+    openCollectionDropdown: openDimDropdown,
+    setOpenCollectionDropdown: setOpenDimDropdown,
+    collectionDropdownRef: dimDropdownRef,
+    collectionsError: themesError,
+  } = useCollectionSwitcherContext();
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
@@ -601,18 +601,18 @@ export function App() {
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   // Imperative handle to TokenList compare actions — populated by TokenList via compareHandle prop
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
-  // Imperative handle to ThemeManager — populated by ThemeManager for command palette actions
-  const themeManagerHandleRef = useRef<ThemeManagerHandle | null>(null);
+  // Imperative handle to CollectionManager — populated by CollectionManager for command palette actions
+  const collectionManagerHandleRef = useRef<CollectionManagerHandle | null>(null);
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
-  // Open compare view within the Tokens tab in 'cross-theme' mode for a specific token
-  const handleOpenCrossThemeCompare = useCallback(
+  // Open compare view within the Tokens tab in 'cross-collection' mode for a specific token
+  const handleOpenCrossCollectionCompare = useCallback(
     (path: string) => {
       setEditingToken(null);
       setEditingRecipe(null);
       setPreviewingToken(null);
-      setTokensCompareMode("cross-theme");
+      setTokensCompareMode("cross-collection");
       setTokensComparePath(path);
-      setTokensCompareThemeKey((key) => key + 1);
+      setTokensCompareModeKey((key) => key + 1);
       setShowTokensCompare(true);
       navigateTo("tokens", "tokens");
     },
@@ -624,7 +624,7 @@ export function App() {
       setShowTokensCompare,
       setTokensCompareMode,
       setTokensComparePath,
-      setTokensCompareThemeKey,
+      setTokensCompareModeKey,
     ],
   );
   // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
@@ -1533,7 +1533,7 @@ export function App() {
       onTokenDragEnd: () => setTokenDragState(null),
       recentlyTouched,
       starredTokens,
-      handleOpenCrossThemeCompare,
+      handleOpenCrossCollectionCompare,
       handlePaletteDuplicate,
       handlePaletteRename,
       handlePaletteMove,
@@ -1542,7 +1542,7 @@ export function App() {
       handlePaletteDeleteToken,
     },
     themes: {
-      themeManagerHandleRef,
+      collectionManagerHandleRef,
     },
     apply: {
       triggerCreateToken,

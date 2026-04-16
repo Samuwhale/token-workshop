@@ -141,28 +141,28 @@ export interface TokenSet {
   filePath?: string;
 }
 
-export interface ThemeOption {
+export interface ModeOption {
   name: string;
 }
 
-export interface ThemeDimension {
+export interface CollectionDefinition {
   id: string;
   name: string;
-  options: ThemeOption[];
+  options: ModeOption[];
 }
 
-/** Active themes: one selected option per dimension. Key = dimension id, value = option name. */
-export type ActiveThemes = Record<string, string>;
+/** Active mode selections: one selected mode per collection. Key = collection id, value = mode name. */
+export type ActiveModeSelections = Record<string, string>;
 
-export interface ThemeViewPreset {
+export interface ViewPreset {
   id: string;
   name: string;
-  selections: ActiveThemes;
+  selections: ActiveModeSelections;
 }
 
-export interface ThemesFile {
-  $themes: ThemeDimension[];
-  $views?: ThemeViewPreset[];
+export interface CollectionsFile {
+  $collections: CollectionDefinition[];
+  $views?: ViewPreset[];
 }
 
 // ---------------------------------------------------------------------------

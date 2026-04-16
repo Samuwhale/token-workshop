@@ -18,7 +18,7 @@ import { apiFetch } from "../shared/apiFetch";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { hexToLuminance } from "../shared/colorUtils";
 import { normalizeHex } from "@tokenmanager/core";
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 import { LINT_RULE_BY_ID } from "../shared/lintRules";
 import {
   createTokenBody,
@@ -241,8 +241,8 @@ export interface HealthPanelProps {
   lintViolations: LintViolation[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
-  /** Theme dimensions — enables cross-theme contrast checking in the matrix */
-  dimensions?: ThemeDimension[];
+  /** Collection dimensions — enables cross-collection contrast checking in the matrix */
+  dimensions?: CollectionDefinition[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
   onNavigateTo: (topTab: "tokens" | "collections" | "inspect" | "sync", subTab?: string) => void;

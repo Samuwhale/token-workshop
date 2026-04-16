@@ -3,7 +3,7 @@ import { Spinner } from './Spinner';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenRecipe } from '../hooks/useRecipes';
-import { useThemeSwitcherContext, useResolverContext } from '../contexts/ThemeContext';
+import { useCollectionSwitcherContext, useResolverContext } from '../contexts/CollectionContext';
 
 interface BoundLayer {
   id: string;
@@ -88,7 +88,7 @@ export function TokenUsages({
   const [expanded, setExpanded] = useState(false);
 
   // Theme and resolver contexts for assignment data
-  const { dimensions } = useThemeSwitcherContext();
+  const { collections: dimensions } = useCollectionSwitcherContext();
   const { resolvers } = useResolverContext();
 
   // Which collection owns this token

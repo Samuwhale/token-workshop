@@ -7,7 +7,7 @@ import type {
   TokenMapEntry,
   SelectionNodeInfo,
 } from "../../../shared/types";
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 import type { MultiModeValue } from "../tokenListTypes";
 import type {
   TokenTreeGroupActionsContextType,
@@ -153,7 +153,7 @@ interface LeafStateDeps {
   showResolvedValues: boolean;
   condensedView?: boolean;
   starredPaths?: Set<string>;
-  dimensions?: ThemeDimension[];
+  dimensions?: CollectionDefinition[];
   activeThemes?: Record<string, string>;
   pendingRenameToken: string | null;
   pendingTabEdit: { path: string; columnId: string | null } | null;
@@ -161,7 +161,7 @@ interface LeafStateDeps {
   showDuplicates: boolean;
   multiModeEnabled: boolean;
   modeVariantPaths: Set<string>;
-  themeLensEnabled: boolean;
+  modeLensEnabled: boolean;
   tokenModeMissing?: Map<string, number>;
 }
 
@@ -193,8 +193,8 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       pendingTabEdit: deps.pendingTabEdit,
       rovingFocusPath: deps.effectiveRovingPath,
       showDuplicatesFilter: deps.showDuplicates,
-      modeVariantPaths: (!deps.multiModeEnabled || deps.themeLensEnabled) && deps.modeVariantPaths.size > 0 ? deps.modeVariantPaths : undefined,
-      themeLensEnabled: deps.themeLensEnabled,
+      modeVariantPaths: (!deps.multiModeEnabled || deps.modeLensEnabled) && deps.modeVariantPaths.size > 0 ? deps.modeVariantPaths : undefined,
+      modeLensEnabled: deps.modeLensEnabled,
       tokenModeMissing: deps.tokenModeMissing,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

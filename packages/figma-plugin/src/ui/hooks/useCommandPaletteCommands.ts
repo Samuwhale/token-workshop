@@ -18,14 +18,14 @@ import {
   useTokenFlatMapContext,
   useRecipeContext,
 } from "../contexts/TokenDataContext";
-import { useThemeSwitcherContext } from "../contexts/ThemeContext";
+import { useCollectionSwitcherContext } from "../contexts/CollectionContext";
 import { useSelectionContext } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
 import {
   useShellWorkspaceController,
   useSyncWorkspaceController,
-  useThemeWorkspaceController,
+  useCollectionWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 
@@ -48,7 +48,7 @@ export function useCommandPaletteCommands(): {
   const { allTokensFlat, pathToSet, perSetFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useRecipeContext();
   const { navigateTo, closeSecondarySurface } = useNavigationContext();
-  const { dimensions } = useThemeSwitcherContext();
+  const { collections: dimensions } = useCollectionSwitcherContext();
   const { selectedNodes } = useSelectionContext();
   const {
     highlightedToken,
@@ -57,7 +57,7 @@ export function useCommandPaletteCommands(): {
   } = useEditorContext();
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
-  const themes = useThemeWorkspaceController();
+  const themes = useCollectionWorkspaceController();
   const sync = useSyncWorkspaceController();
 
   const [exportPresetRev, setExportPresetRev] = useState(0);
@@ -325,8 +325,8 @@ export function useCommandPaletteCommands(): {
               description: "Open a side-by-side diff across collection modes",
               category: "Modes" as const,
               handler: () => {
-                themes.themeManagerHandleRef.current?.navigateToCompare(
-                  "theme-options",
+                themes.collectionManagerHandleRef.current?.navigateToCompare(
+                  "mode-options",
                 );
                 navigateTo("collections");
               },
@@ -341,8 +341,8 @@ export function useCommandPaletteCommands(): {
           description: `See token differences across ${dimension.name} modes`,
           category: "Modes" as const,
           handler: () => {
-            themes.themeManagerHandleRef.current?.navigateToCompare(
-              "theme-options",
+            themes.collectionManagerHandleRef.current?.navigateToCompare(
+              "mode-options",
               undefined,
               undefined,
               `${dimension.id}:${dimension.options[0].name}`,
@@ -352,7 +352,7 @@ export function useCommandPaletteCommands(): {
           },
         })),
     ];
-  }, [dimensions, navigateTo, themes.themeManagerHandleRef]);
+  }, [dimensions, navigateTo, themes.collectionManagerHandleRef]);
 
   const contextualCommands = useMemo<Command[]>(() => {
     const inActiveSet =
@@ -452,7 +452,7 @@ export function useCommandPaletteCommands(): {
                 "See how this token’s value varies across all collection modes",
               category: "Modes" as const,
               handler: () =>
-                tokens.handleOpenCrossThemeCompare(highlightedToken),
+                tokens.handleOpenCrossCollectionCompare(highlightedToken),
             },
           ]
         : []),
@@ -465,8 +465,8 @@ export function useCommandPaletteCommands(): {
                 "Focus a token first, then run this command to compare its values across collection modes",
               category: "Modes" as const,
               handler: () => {
-                themes.themeManagerHandleRef.current?.navigateToCompare(
-                  "cross-theme",
+                themes.collectionManagerHandleRef.current?.navigateToCompare(
+                  "cross-collection",
                 );
                 navigateTo("collections");
               },
@@ -482,7 +482,7 @@ export function useCommandPaletteCommands(): {
     navigateTo,
     pathToSet,
     setHighlightedToken,
-    themes.themeManagerHandleRef,
+    themes.collectionManagerHandleRef,
     tokens,
   ]);
 

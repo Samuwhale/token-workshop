@@ -2,10 +2,10 @@ import type { FastifyPluginAsync } from "fastify";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type {
-  ActiveThemes,
-  ThemeDimension,
-  ThemeViewPreset,
-  ThemesFile,
+  ActiveModeSelections,
+  CollectionDefinition,
+  ViewPreset,
+  CollectionsFile,
   Token,
 } from "@tokenmanager/core";
 import {
@@ -21,9 +21,9 @@ import {
 } from "../services/operation-log.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
-interface ThemeDocumentState {
-  dimensions: ThemeDimension[];
-  views: ThemeViewPreset[];
+interface CollectionDocumentState {
+  dimensions: CollectionDefinition[];
+  views: ViewPreset[];
 }
 
 type TokenModeMap = Record<string, Record<string, unknown>>;
@@ -38,9 +38,9 @@ function slugifyName(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-function normalizeThemeOption(
+function normalizeModeOption(
   value: unknown,
-): ThemeDimension["options"][number] | null {
+): CollectionDefinition["options"][number] | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
@@ -56,9 +56,9 @@ function normalizeThemeOption(
   return { name };
 }
 
-function normalizeThemeDimension(
+function normalizeCollectionDefinition(
   value: unknown,
-): ThemeDimension | null {
+): CollectionDefinition | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
@@ -75,16 +75,16 @@ function normalizeThemeDimension(
   const rawOptions = "options" in value ? value.options : [];
   const options = Array.isArray(rawOptions)
     ? rawOptions
-        .map((option) => normalizeThemeOption(option))
-        .filter((option): option is ThemeDimension["options"][number] => option !== null)
+        .map((option) => normalizeModeOption(option))
+        .filter((option): option is CollectionDefinition["options"][number] => option !== null)
     : [];
 
   return { id, name, options };
 }
 
-function normalizeThemeViewPreset(
+function normalizeViewPreset(
   value: unknown,
-): ThemeViewPreset | null {
+): ViewPreset | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
@@ -117,17 +117,23 @@ function normalizeThemeViewPreset(
   return { id, name, selections };
 }
 
-function normalizeThemeFile(data: ThemesFile | null | undefined): ThemeDocumentState {
+function normalizeCollectionsFile(data: CollectionsFile | null | undefined): CollectionDocumentState {
+  const rawCollections = (data as Record<string, unknown> | null | undefined);
+  const collections = Array.isArray(rawCollections?.$collections)
+    ? rawCollections.$collections
+    : Array.isArray((rawCollections as Record<string, unknown> | null | undefined)?.$themes)
+      ? (rawCollections as Record<string, unknown>).$themes
+      : undefined;
   return {
-    dimensions: Array.isArray(data?.$themes)
-      ? data.$themes
-          .map((dimension) => normalizeThemeDimension(dimension))
-          .filter((dimension): dimension is ThemeDimension => dimension !== null)
+    dimensions: Array.isArray(collections)
+      ? (collections as unknown[])
+          .map((dimension) => normalizeCollectionDefinition(dimension))
+          .filter((dimension): dimension is CollectionDefinition => dimension !== null)
       : [],
     views: Array.isArray(data?.$views)
       ? data.$views
-          .map((view) => normalizeThemeViewPreset(view))
-          .filter((view): view is ThemeViewPreset => view !== null)
+          .map((view) => normalizeViewPreset(view))
+          .filter((view): view is ViewPreset => view !== null)
       : [],
   };
 }
@@ -205,37 +211,37 @@ function groupSnapshotEntriesBySet(
   return grouped;
 }
 
-export interface DimensionsStore {
+export interface CollectionsStore {
   filePath: string;
-  load(): Promise<ThemeDimension[]>;
-  loadViews(): Promise<ThemeViewPreset[]>;
-  loadState(): Promise<ThemeDocumentState>;
+  load(): Promise<CollectionDefinition[]>;
+  loadViews(): Promise<ViewPreset[]>;
+  loadState(): Promise<CollectionDocumentState>;
   reloadFromDisk(): Promise<"changed" | "removed" | "unchanged">;
-  save(dimensions: ThemeDimension[]): Promise<void>;
-  saveViews(views: ThemeViewPreset[]): Promise<void>;
-  saveState(state: ThemeDocumentState): Promise<void>;
+  save(dimensions: CollectionDefinition[]): Promise<void>;
+  saveViews(views: ViewPreset[]): Promise<void>;
+  saveState(state: CollectionDocumentState): Promise<void>;
   reset(): Promise<void>;
   startWriteGuard(absoluteFilePath: string): void;
   endWriteGuard(absoluteFilePath: string): void;
   consumeWriteGuard(absoluteFilePath: string): boolean;
   withLock<T>(
     fn: (
-      dims: ThemeDimension[],
-    ) => Promise<{ dims: ThemeDimension[]; result: T }>,
+      dims: CollectionDefinition[],
+    ) => Promise<{ dims: CollectionDefinition[]; result: T }>,
   ): Promise<T>;
   withStateLock<T>(
     fn: (
-      state: ThemeDocumentState,
-    ) => Promise<{ state: ThemeDocumentState; result: T }>,
+      state: CollectionDocumentState,
+    ) => Promise<{ state: CollectionDocumentState; result: T }>,
   ): Promise<T>;
   withReadStateLock<T>(
-    fn: (state: ThemeDocumentState) => Promise<T>,
+    fn: (state: CollectionDocumentState) => Promise<T>,
   ): Promise<T>;
 }
 
-export function createDimensionsStore(tokenDir: string): DimensionsStore {
-  const filePath = path.join(tokenDir, "$themes.json");
-  let cache: ThemeDocumentState | null = null;
+export function createCollectionsStore(tokenDir: string): CollectionsStore {
+  const filePath = path.join(tokenDir, "$collections.json");
+  let cache: CollectionDocumentState | null = null;
   let cachedMtimeMs: number | null = null;
   const lock = new PromiseChainLock();
   const writingFiles = new Map<string, ReturnType<typeof setTimeout>>();
@@ -271,7 +277,7 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
   }
 
   async function loadStateFromDisk(): Promise<{
-    state: ThemeDocumentState;
+    state: CollectionDocumentState;
     mtimeMs: number | null;
     exists: boolean;
   }> {
@@ -285,15 +291,15 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
     }
 
     const content = await fs.readFile(filePath, "utf-8");
-    const data = JSON.parse(content) as ThemesFile;
+    const data = JSON.parse(content) as CollectionsFile;
     return {
-      state: normalizeThemeFile(data),
+      state: normalizeCollectionsFile(data),
       mtimeMs,
       exists: true,
     };
   }
 
-  async function ensureStateLoaded(): Promise<ThemeDocumentState> {
+  async function ensureStateLoaded(): Promise<CollectionDocumentState> {
     const mtimeMs = await fileMtimeMs();
     if (cache !== null && mtimeMs === cachedMtimeMs) {
       return structuredClone(cache);
@@ -313,20 +319,20 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
     return structuredClone(cache);
   }
 
-  const store: DimensionsStore = {
+  const store: CollectionsStore = {
     filePath,
 
-    async load(): Promise<ThemeDimension[]> {
+    async load(): Promise<CollectionDefinition[]> {
       const state = await ensureStateLoaded();
       return state.dimensions;
     },
 
-    async loadViews(): Promise<ThemeViewPreset[]> {
+    async loadViews(): Promise<ViewPreset[]> {
       const state = await ensureStateLoaded();
       return state.views;
     },
 
-    async loadState(): Promise<ThemeDocumentState> {
+    async loadState(): Promise<CollectionDocumentState> {
       return ensureStateLoaded();
     },
 
@@ -359,22 +365,22 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
       });
     },
 
-    async save(dimensions: ThemeDimension[]): Promise<void> {
+    async save(dimensions: CollectionDefinition[]): Promise<void> {
       const state = await ensureStateLoaded();
       await store.saveState({ ...state, dimensions });
     },
 
-    async saveViews(views: ThemeViewPreset[]): Promise<void> {
+    async saveViews(views: ViewPreset[]): Promise<void> {
       const state = await ensureStateLoaded();
       await store.saveState({ ...state, views });
     },
 
-    async saveState(state: ThemeDocumentState): Promise<void> {
+    async saveState(state: CollectionDocumentState): Promise<void> {
       if (JSON.stringify(cache) === JSON.stringify(state)) {
         return;
       }
-      const data: ThemesFile = {
-        $themes: state.dimensions,
+      const data: CollectionsFile = {
+        $collections: state.dimensions,
         ...(state.views.length > 0 ? { $views: state.views } : {}),
       };
       const tmp = `${filePath}.tmp`;
@@ -384,7 +390,9 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
         await fs.rename(tmp, filePath);
       } catch (err) {
         endWriteGuard(filePath);
-        await fs.unlink(tmp).catch(() => {});
+        await fs.unlink(tmp).catch((cleanupErr) => {
+          console.error("[rollback-error] Cleanup failed: could not remove temp file after collection state write failure", cleanupErr);
+        });
         throw err;
       }
       cache = structuredClone(state);
@@ -406,8 +414,8 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
 
     withLock<T>(
       fn: (
-        dims: ThemeDimension[],
-      ) => Promise<{ dims: ThemeDimension[]; result: T }>,
+        dims: CollectionDefinition[],
+      ) => Promise<{ dims: CollectionDefinition[]; result: T }>,
     ): Promise<T> {
       return lock.withLock(async () => {
         const dims = await store.load();
@@ -419,8 +427,8 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
 
     withStateLock<T>(
       fn: (
-        state: ThemeDocumentState,
-      ) => Promise<{ state: ThemeDocumentState; result: T }>,
+        state: CollectionDocumentState,
+      ) => Promise<{ state: CollectionDocumentState; result: T }>,
     ): Promise<T> {
       return lock.withLock(async () => {
         const state = await store.loadState();
@@ -430,7 +438,7 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
       });
     },
 
-    withReadStateLock<T>(fn: (state: ThemeDocumentState) => Promise<T>): Promise<T> {
+    withReadStateLock<T>(fn: (state: CollectionDocumentState) => Promise<T>): Promise<T> {
       return lock.withLock(async () => {
         const state = await store.loadState();
         return fn(structuredClone(state));
@@ -441,15 +449,15 @@ export function createDimensionsStore(tokenDir: string): DimensionsStore {
   return store;
 }
 
-export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
+export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   fastify,
   _opts,
 ) => {
-  const store = fastify.dimensionsStore;
+  const store = fastify.collectionsStore;
 
   async function normalizeCollectionState(
-    state: ThemeDocumentState,
-  ): Promise<ThemeDocumentState> {
+    state: CollectionDocumentState,
+  ): Promise<CollectionDocumentState> {
     const setNames = await fastify.tokenStore.getSets();
     const existingById = new Map(
       state.dimensions.map((dimension) => [dimension.id, dimension]),
@@ -485,10 +493,10 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   }
 
   function normalizeSelectionsForDimensions(
-    dimensions: ThemeDimension[],
-    selections: ActiveThemes,
-  ): ActiveThemes {
-    const next: ActiveThemes = {};
+    dimensions: CollectionDefinition[],
+    selections: ActiveModeSelections,
+  ): ActiveModeSelections {
+    const next: ActiveModeSelections = {};
 
     for (const dimension of dimensions) {
       const selectedOption = selections[dimension.id];
@@ -503,13 +511,13 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     return next;
   }
 
-  async function withThemeLock<T>(
+  async function withCollectionLock<T>(
     type: string,
     fn: (
-      dims: ThemeDimension[],
-    ) => Promise<{ dims: ThemeDimension[]; result: T; description: string }>,
+      dims: CollectionDefinition[],
+    ) => Promise<{ dims: CollectionDefinition[]; result: T; description: string }>,
   ): Promise<T> {
-    let capturedBefore: ThemeDimension[] | null = null;
+    let capturedBefore: CollectionDefinition[] | null = null;
     let capturedDescription = "";
     const result = await store.withLock(async (dims) => {
       const normalizedState = await normalizeCollectionState({
@@ -525,7 +533,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
       await fastify.operationLog.record({
         type,
         description: capturedDescription,
-        setName: "$themes",
+        setName: "$collections",
         affectedPaths: [],
         beforeSnapshot: {},
         afterSnapshot: {},
@@ -572,10 +580,10 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     return patchesBySet;
   }
 
-  async function withThemeStateAndTokenMutations<T>(
+  async function withCollectionStateAndTokenMutations<T>(
     type: string,
-    fn: (state: ThemeDocumentState) => Promise<{
-      state: ThemeDocumentState;
+    fn: (state: CollectionDocumentState) => Promise<{
+      state: CollectionDocumentState;
       result: T;
       description: string;
       tokenPatchesBySet?: TokenPatchesBySet;
@@ -584,7 +592,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     const beforeSnapshot: Record<string, SnapshotEntry> = {};
     const afterSnapshot: Record<string, SnapshotEntry> = {};
     const touchedPathsBySet = new Map<string, string[]>();
-    let beforeState: ThemeDocumentState | null = null;
+    let beforeState: CollectionDocumentState | null = null;
     let description = "";
 
     try {
@@ -622,11 +630,11 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
       );
 
       if (beforeState !== null) {
-        const previousState = beforeState as ThemeDocumentState;
+        const previousState = beforeState as CollectionDocumentState;
         await fastify.operationLog.record({
           type,
           description,
-          setName: "$themes",
+          setName: "$collections",
           affectedPaths: [
             ...new Set(
               Array.from(touchedPathsBySet.values()).flatMap((paths) => paths),
@@ -667,15 +675,15 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     }
   }
 
-  async function withThemeStateMutation<T>(
+  async function withCollectionStateMutation<T>(
     type: string,
-    fn: (state: ThemeDocumentState) => Promise<{
-      state: ThemeDocumentState;
+    fn: (state: CollectionDocumentState) => Promise<{
+      state: CollectionDocumentState;
       result: T;
       description: string;
     }>,
   ): Promise<T> {
-    let beforeState: ThemeDocumentState | null = null;
+    let beforeState: CollectionDocumentState | null = null;
     let description = "";
 
     const result = await store.withStateLock(async (state) => {
@@ -686,7 +694,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
       return { state: out.state, result: out.result };
     });
 
-    const previousState = beforeState as ThemeDocumentState | null;
+    const previousState = beforeState as CollectionDocumentState | null;
     if (!previousState) {
       return result;
     }
@@ -694,7 +702,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     await fastify.operationLog.record({
       type,
       description,
-      setName: "$themes",
+      setName: "$collections",
       affectedPaths: [],
       beforeSnapshot: {},
       afterSnapshot: {},
@@ -743,7 +751,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
       }
       const trimmedName = name.trim();
       try {
-        const { option, status } = await withThemeLock(
+        const { option, status } = await withCollectionLock(
           "theme-option-upsert",
           async (dimensions) => {
             const dimIdx = dimensions.findIndex((dimension) => dimension.id === id);
@@ -787,7 +795,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     }
     const newName = name.trim();
     try {
-      const option = await withThemeStateAndTokenMutations(
+      const option = await withCollectionStateAndTokenMutations(
         "theme-option-rename",
         async (state) => {
           const nextDimensions = structuredClone(state.dimensions);
@@ -881,7 +889,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
           .send({ error: "options must be an array of option name strings" });
       }
       try {
-        const dimension = await withThemeLock(
+        const dimension = await withCollectionLock(
           "theme-option-reorder",
           async (dimensions) => {
             const dimIdx = dimensions.findIndex((dimension) => dimension.id === id);
@@ -928,7 +936,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     async (request, reply) => {
       const { id, optionName } = request.params;
       try {
-        await withThemeStateAndTokenMutations(
+        await withCollectionStateAndTokenMutations(
           "theme-option-delete",
           async (state) => {
             const nextDimensions = structuredClone(state.dimensions);
@@ -992,7 +1000,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   );
 
   fastify.post<{
-    Body: { id: string; name: string; selections: ActiveThemes };
+    Body: { id: string; name: string; selections: ActiveModeSelections };
   }>("/previews", async (request, reply) => {
     const { id, name, selections } = request.body || {};
     if (!id || typeof id !== "string") {
@@ -1006,19 +1014,19 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     }
     try {
       const normalizedId = slugifyName(id);
-      const view = await withThemeStateMutation(
+      const view = await withCollectionStateMutation(
         "theme-view-create",
         async (state) => {
           if (state.views.some((item) => item.id === normalizedId)) {
             throw new ConflictError(`View "${normalizedId}" already exists`);
           }
 
-          const nextView: ThemeViewPreset = {
+          const nextView: ViewPreset = {
             id: normalizedId,
             name: name.trim(),
             selections: normalizeSelectionsForDimensions(
               state.dimensions,
-              selections as ActiveThemes,
+              selections as ActiveModeSelections,
             ),
           };
 
@@ -1040,7 +1048,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
 
   fastify.put<{
     Params: { id: string };
-    Body: { name: string; selections: ActiveThemes };
+    Body: { name: string; selections: ActiveModeSelections };
   }>("/previews/:id", async (request, reply) => {
     const { id } = request.params;
     const { name, selections } = request.body || {};
@@ -1051,7 +1059,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
       return reply.status(400).send({ error: "View selections are required" });
     }
     try {
-      const view = await withThemeStateMutation(
+      const view = await withCollectionStateMutation(
         "theme-view-update",
         async (state) => {
           const index = state.views.findIndex((item) => item.id === id);
@@ -1059,12 +1067,12 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
             throw new NotFoundError(`View "${id}" not found`);
           }
 
-          const nextView: ThemeViewPreset = {
+          const nextView: ViewPreset = {
             id,
             name: name.trim(),
             selections: normalizeSelectionsForDimensions(
               state.dimensions,
-              selections as ActiveThemes,
+              selections as ActiveModeSelections,
             ),
           };
           const nextViews = state.views.slice();
@@ -1091,7 +1099,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
     async (request, reply) => {
       const { id } = request.params;
       try {
-        await withThemeStateMutation(
+        await withCollectionStateMutation(
           "theme-view-delete",
           async (state) => {
             const view = state.views.find((item) => item.id === id);

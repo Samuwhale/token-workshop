@@ -2,7 +2,7 @@ import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import type { TokenRecipe } from './useRecipes';
-import type { ThemeDimension } from '@tokenmanager/core';
+import type { CollectionDefinition } from '@tokenmanager/core';
 import { useTokenRelocate } from './useTokenRelocate';
 import { useTokenRename } from './useTokenRename';
 import { useTokenDelete } from './useTokenDelete';
@@ -18,7 +18,7 @@ export interface UseTokenCrudParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
   recipes?: TokenRecipe[];
-  dimensions?: ThemeDimension[];
+  dimensions?: CollectionDefinition[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshRecipes?: () => void;

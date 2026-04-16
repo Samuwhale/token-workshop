@@ -744,3 +744,689 @@
     at J (http://localhost:3200/dist/ui.html:420:23)
     at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
 [ 2680518ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3147969ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3150984ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3159802ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3160431ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3160431ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3165449ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3165505ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165505ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165505ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165506ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165506ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165506ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165506ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165506ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165506ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165506ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3165544ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3210421ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3210431ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3210431ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3215438ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3215458ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215458ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215458ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215459ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215459ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215459ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215459ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215459ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215459ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215459ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3215465ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3218561ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3221580ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3223088ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3223575ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/tokens/validate:0
+[ 3223575ms] [WARNING] [useValidationCache] validation fetch failed: TypeError: Failed to fetch
+    at apiFetch (http://localhost:3200/dist/ui.html:8787:23)
+    at http://localhost:3200/dist/ui.html:87750:28
+    at http://localhost:3200/dist/ui.html:87792:9 @ http://localhost:3200/dist/ui.html:87765
+[ 3226099ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3226599ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3226893ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/tokens/lint:0
+[ 3229611ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3229878ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3230406ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/tokens/lint:0
+[ 3232894ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3234089ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3237099ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3251436ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3254470ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3255693ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3258711ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3259304ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3259503ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/tokens/lint:0
+[ 3262322ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3262737ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3263113ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/tokens/lint:0
+[ 3265738ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/events:0
+[ 3268741ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/events:0
+[ 3270432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3270432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3275431ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3275431ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3280431ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3280431ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3285431ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3285431ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3290432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3290432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3295431ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3295432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3300432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3300432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3305433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3305433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3310445ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3310445ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3315433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3315433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3320432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3320432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3325433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3325433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3330432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3330432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3335431ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3335431ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3340433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3340433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3345432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3345432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3350434ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3350434ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3355433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3355433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3360432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3360432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3365432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3365432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3370434ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3370434ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3375433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3375433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3380433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3380433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3385433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3385434ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3390433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3390433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3395433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3395433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3400433ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3400433ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3405432ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3405432ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3410430ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3410430ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3415430ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3415430ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3420428ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3420428ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3425427ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3425428ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3430426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3430426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3435427ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3435427ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3440426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3440426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3445425ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3445425ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3450426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3450426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3455426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3455426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3460426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3460426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3465427ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3465427ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3470429ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3470429ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3475426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3475426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3480427ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3480427ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3485427ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3485427ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3490428ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3490429ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3495428ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3495428ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3500427ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3500427ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3505426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3505426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3510426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3510426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3515463ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3515464ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3520426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3520426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3525426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3525426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3530441ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3530554ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: The user aborted a request. @ http://localhost:3200/dist/ui.html:9052
+[ 3530555ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: The user aborted a request. @ http://localhost:3200/dist/ui.html:9052
+[ 3530555ms] [ERROR] Failed to fetch token set "constants/web": AbortError: The user aborted a request. @ http://localhost:3200/dist/ui.html:9052
+[ 3530555ms] [ERROR] Failed to fetch token set "layout-component": AbortError: The user aborted a request. @ http://localhost:3200/dist/ui.html:9052
+[ 3530555ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: The user aborted a request. @ http://localhost:3200/dist/ui.html:9052
+[ 3530575ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3538821ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3540427ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3540427ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3545426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3545426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3550426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3550426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3555426ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3555426ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3560441ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3560452ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560452ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560452ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560452ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560452ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560453ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560453ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560453ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560453ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560453ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3560458ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3566825ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3569838ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3578268ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3581286ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3598690ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3601706ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3613721ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3616733ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3620714ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3620714ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/sync/status:0
+[ 3620714ms] [WARNING] [ConnectionProvider] git status check failed: TypeError: Failed to fetch
+    at apiFetch (http://localhost:3200/dist/ui.html:8787:23)
+    at check (http://localhost:3200/dist/ui.html:9340:30) @ http://localhost:3200/dist/ui.html:9345
+[ 3623726ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3671742ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3674759ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3676520ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3676757ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/tokens/validate:0
+[ 3676757ms] [WARNING] [useValidationCache] validation fetch failed: TypeError: Failed to fetch
+    at apiFetch (http://localhost:3200/dist/ui.html:8787:23)
+    at http://localhost:3200/dist/ui.html:87750:28
+    at http://localhost:3200/dist/ui.html:87792:9 @ http://localhost:3200/dist/ui.html:87765
+[ 3679541ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3685527ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3688546ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3689631ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3692639ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3693637ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3696654ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3864418ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3867431ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3872516ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3875531ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3886678ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3889705ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3895131ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3895427ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 3895427ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 3900437ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3900447ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900447ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 3900455ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3923495ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3926506ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 3927175ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 3927302ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/tokens/lint:0
+[ 3930195ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4491855ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 4494884ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4495106ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 4495429ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[ 4495429ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://localhost:3200/dist/ui.html:7336:29) @ http://localhost:3200/dist/ui.html:7345
+[ 4500437ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4500446ms] [ERROR] Failed to fetch token set "-0--color-primitives": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-dark": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "-1--color-semantic-modes/ids-light": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "-2--color-semantic": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "color-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "constants/mobile": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "constants/tablet": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "constants/web": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "layout-component": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500446ms] [ERROR] Failed to fetch token set "tokenmanager": AbortError: signal is aborted without reason
+    at http://localhost:3200/dist/ui.html:9447:33
+    at Mj (http://localhost:3200/dist/ui.html:4884:9)
+    at Pj (http://localhost:3200/dist/ui.html:4987:29)
+    at Hk (http://localhost:3200/dist/ui.html:6213:21)
+    at http://localhost:3200/dist/ui.html:6106:9
+    at J (http://localhost:3200/dist/ui.html:420:23)
+    at MessagePort.R (http://localhost:3200/dist/ui.html:448:17) @ http://localhost:3200/dist/ui.html:9052
+[ 4500464ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4521402ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 4524430ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4533050ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 4536067ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4541792ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 4544814ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4561245ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 4564268ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4589177ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 4592186ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0
+[ 4607648ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:9400/api/events:0
+[ 4610668ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9400/api/themes:0

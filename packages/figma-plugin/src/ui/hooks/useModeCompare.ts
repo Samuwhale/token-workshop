@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { CompareMode } from '../components/UnifiedComparePanel';
 
-export interface UseThemeCompareReturn {
+export interface UseModeCompareReturn {
   showCompare: boolean;
   setShowCompare: React.Dispatch<React.SetStateAction<boolean>>;
   compareMode: CompareMode;
@@ -10,12 +10,12 @@ export interface UseThemeCompareReturn {
   setCompareTokenPath: React.Dispatch<React.SetStateAction<string>>;
   compareTokenPaths: Set<string>;
   setCompareTokenPaths: React.Dispatch<React.SetStateAction<Set<string>>>;
-  compareThemeKey: number;
-  setCompareThemeKey: React.Dispatch<React.SetStateAction<number>>;
-  compareThemeDefaultA: string;
-  setCompareThemeDefaultA: React.Dispatch<React.SetStateAction<string>>;
-  compareThemeDefaultB: string;
-  setCompareThemeDefaultB: React.Dispatch<React.SetStateAction<string>>;
+  compareModeKey: number;
+  setCompareModeKey: React.Dispatch<React.SetStateAction<number>>;
+  compareModeDefaultA: string;
+  setCompareModeDefaultA: React.Dispatch<React.SetStateAction<string>>;
+  compareModeDefaultB: string;
+  setCompareModeDefaultB: React.Dispatch<React.SetStateAction<string>>;
   navigateToCompare: (
     mode: CompareMode,
     path?: string,
@@ -25,14 +25,14 @@ export interface UseThemeCompareReturn {
   ) => void;
 }
 
-export function useThemeCompare(): UseThemeCompareReturn {
+export function useModeCompare(): UseModeCompareReturn {
   const [showCompare, setShowCompare] = useState(false);
-  const [compareMode, setCompareMode] = useState<CompareMode>('theme-options');
+  const [compareMode, setCompareMode] = useState<CompareMode>('mode-options');
   const [compareTokenPath, setCompareTokenPath] = useState('');
   const [compareTokenPaths, setCompareTokenPaths] = useState<Set<string>>(new Set());
-  const [compareThemeKey, setCompareThemeKey] = useState(0);
-  const [compareThemeDefaultA, setCompareThemeDefaultA] = useState('');
-  const [compareThemeDefaultB, setCompareThemeDefaultB] = useState('');
+  const [compareModeKey, setCompareModeKey] = useState(0);
+  const [compareModeDefaultA, setCompareModeDefaultA] = useState('');
+  const [compareModeDefaultB, setCompareModeDefaultB] = useState('');
 
   const navigateToCompare = useCallback((
     mode: CompareMode,
@@ -44,9 +44,9 @@ export function useThemeCompare(): UseThemeCompareReturn {
     setCompareMode(mode);
     if (path !== undefined) setCompareTokenPath(path);
     if (tokenPaths !== undefined) setCompareTokenPaths(tokenPaths);
-    if (optionA !== undefined) setCompareThemeDefaultA(optionA);
-    if (optionB !== undefined) setCompareThemeDefaultB(optionB);
-    setCompareThemeKey(k => k + 1);
+    if (optionA !== undefined) setCompareModeDefaultA(optionA);
+    if (optionB !== undefined) setCompareModeDefaultB(optionB);
+    setCompareModeKey(k => k + 1);
     setShowCompare(true);
   }, []);
 
@@ -59,12 +59,12 @@ export function useThemeCompare(): UseThemeCompareReturn {
     setCompareTokenPath,
     compareTokenPaths,
     setCompareTokenPaths,
-    compareThemeKey,
-    setCompareThemeKey,
-    compareThemeDefaultA,
-    setCompareThemeDefaultA,
-    compareThemeDefaultB,
-    setCompareThemeDefaultB,
+    compareModeKey,
+    setCompareModeKey,
+    compareModeDefaultA,
+    setCompareModeDefaultA,
+    compareModeDefaultB,
+    setCompareModeDefaultB,
     navigateToCompare,
   };
 }

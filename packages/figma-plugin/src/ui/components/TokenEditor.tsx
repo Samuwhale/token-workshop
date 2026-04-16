@@ -7,8 +7,8 @@ import { apiFetch } from "../shared/apiFetch";
 import { createTokenValueBody } from "../shared/tokenMutations";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createRecipeOwnershipKey, resolveRefValue } from "@tokenmanager/core";
-import type { ThemeDimension } from "@tokenmanager/core";
-import { useThemeSwitcherContext } from "../contexts/ThemeContext";
+import type { CollectionDefinition } from "@tokenmanager/core";
+import { useCollectionSwitcherContext } from "../contexts/CollectionContext";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
@@ -69,7 +69,7 @@ interface TokenEditorProps {
     requestClose: () => void;
   };
   onSaved?: (savedPath: string) => void;
-  dimensions?: ThemeDimension[];
+  dimensions?: CollectionDefinition[];
   onRefresh?: () => void;
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   availableFonts?: string[];
@@ -110,7 +110,7 @@ export function TokenEditor({
   onNavigateToThemes,
   pushUndo,
 }: TokenEditorProps) {
-  const themeSwitcher = useThemeSwitcherContext();
+  const collectionSwitcher = useCollectionSwitcherContext();
   const uiState = useTokenEditorUIState({
     tokenPath,
   });
@@ -875,7 +875,7 @@ export function TokenEditor({
         <div className="flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30">
           <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Theme</span>
           {dimensions.map((dim) => {
-            const activeOption = themeSwitcher.activeThemes[dim.id] || dim.options[0]?.name || "";
+            const activeOption = collectionSwitcher.activeModes[dim.id] || dim.options[0]?.name || "";
             return (
               <button
                 key={dim.id}
@@ -885,8 +885,8 @@ export function TokenEditor({
                   const nextIdx = (idx + 1) % dim.options.length;
                   const nextOption = dim.options[nextIdx]?.name;
                   if (nextOption) {
-                    themeSwitcher.setActiveThemes({
-                      ...themeSwitcher.activeThemes,
+                    collectionSwitcher.setActiveModes({
+                      ...collectionSwitcher.activeModes,
                       [dim.id]: nextOption,
                     });
                   }
@@ -1526,9 +1526,9 @@ export function TokenEditor({
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
           onNavigateToThemes={onNavigateToThemes}
-          activeThemes={themeSwitcher.activeThemes}
+          activeThemes={collectionSwitcher.activeModes}
           serverUrl={serverUrl}
-          onDimensionCreated={themeSwitcher.retryThemes}
+          onDimensionCreated={collectionSwitcher.retryCollections}
         />
 
         {!aliasMode && referenceSection}

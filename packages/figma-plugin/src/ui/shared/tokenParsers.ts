@@ -559,8 +559,8 @@ export function isTokensStudioFormat(obj: Record<string, unknown>): boolean {
   if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
     if (Array.isArray((meta as Record<string, unknown>)['tokenSetOrder'])) return true;
   }
-  // Strong signal: $themes array
-  if (Array.isArray(obj['$themes'])) return true;
+  // Strong signal: $themes/$collections array
+  if (Array.isArray(obj['$themes']) || Array.isArray(obj['$collections'])) return true;
 
   // Moderate signal: old-format tokens anywhere in top-level non-$ groups
   const topKeys = Object.keys(obj).filter(k => !k.startsWith('$'));
@@ -609,7 +609,7 @@ export function parseTokensStudioFile(raw: string): TokensStudioParseResult {
     }
   }
 
-  const SKIP_KEYS = new Set(['$themes', '$metadata', '$sets']);
+  const SKIP_KEYS = new Set(['$themes', '$collections', '$metadata', '$sets']);
   const topKeys = Object.keys(obj).filter(k => !SKIP_KEYS.has(k));
 
   // Honour setOrder but also include any keys not listed in it

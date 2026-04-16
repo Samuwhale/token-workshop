@@ -1,7 +1,7 @@
 import type {
-  ActiveThemes,
-  ThemeDimension,
-  ThemeViewPreset,
+  ActiveModeSelections,
+  CollectionDefinition,
+  ViewPreset,
   TokenExtensions,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
@@ -9,24 +9,24 @@ import { resolveAllAliases } from "../../shared/resolveAlias";
 
 type TokenModeMap = Record<string, Record<string, unknown>>;
 
-export interface ThemeModeCoverageEntry {
+export interface ModeCoverageEntry {
   path: string;
   setName: string;
   type?: string;
 }
 
-export type ThemeModeCoverageMap = Record<
+export type ModeCoverageMap = Record<
   string,
   Record<
     string,
     {
       hasCoverage: boolean;
-      missing: ThemeModeCoverageEntry[];
+      missing: ModeCoverageEntry[];
     }
   >
 >;
 
-export interface ThemeModeCoverageSummary {
+export interface ModeCoverageSummary {
   mappedOptionCount: number;
   unmappedOptionCount: number;
   mappedOptionWithAssignmentIssuesCount: number;
@@ -34,15 +34,15 @@ export interface ThemeModeCoverageSummary {
   mappedSetCount: number;
 }
 
-export interface ThemeModeCoverageResult {
-  coverage: ThemeModeCoverageMap;
-  summary: ThemeModeCoverageSummary;
+export interface ModeCoverageResult {
+  coverage: ModeCoverageMap;
+  summary: ModeCoverageSummary;
 }
 
 export function getCollectionModeDefinition(
-  dimensions: ThemeDimension[],
+  dimensions: CollectionDefinition[],
   setName: string,
-): ThemeDimension | null {
+): CollectionDefinition | null {
   return dimensions.find((dimension) => dimension.id === setName) ?? null;
 }
 
@@ -61,8 +61,8 @@ function hasModeValue(value: unknown): boolean {
 }
 
 function compareCoverageEntries(
-  left: ThemeModeCoverageEntry,
-  right: ThemeModeCoverageEntry,
+  left: ModeCoverageEntry,
+  right: ModeCoverageEntry,
 ): number {
   if (left.setName !== right.setName) {
     return left.setName.localeCompare(right.setName);
@@ -71,12 +71,12 @@ function compareCoverageEntries(
   return left.path.localeCompare(right.path);
 }
 
-export function buildThemeModeCoverage(params: {
-  dimensions: ThemeDimension[];
+export function buildModeCoverage(params: {
+  dimensions: CollectionDefinition[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
-}): ThemeModeCoverageResult {
-  const coverage: ThemeModeCoverageMap = {};
+}): ModeCoverageResult {
+  const coverage: ModeCoverageMap = {};
   const mappedSetNames = new Set<string>();
   const tokenEntries = Object.entries(params.allTokensFlat).map(
     ([path, entry]) => ({
@@ -133,7 +133,7 @@ export function buildThemeModeCoverage(params: {
     coverage[dimension.id] = {};
 
     for (const option of dimension.options) {
-      const missing: ThemeModeCoverageEntry[] = [];
+      const missing: ModeCoverageEntry[] = [];
 
       for (const token of tokenCoverage) {
         if (!token.activeOptionNames.has(option.name)) {
@@ -176,10 +176,10 @@ export function buildThemeModeCoverage(params: {
   };
 }
 
-export function applyThemeSelectionsToTokens(
+export function applyModeSelectionsToTokens(
   allTokensFlat: Record<string, TokenMapEntry>,
-  dimensions: ThemeDimension[],
-  selections: ActiveThemes,
+  dimensions: CollectionDefinition[],
+  selections: ActiveModeSelections,
   pathToSet?: Record<string, string>,
 ): Record<string, TokenMapEntry> {
   if (dimensions.length === 0 || Object.keys(selections).length === 0) {
@@ -226,8 +226,8 @@ export function applyThemeSelectionsToTokens(
 }
 
 export function buildSelectionLabel(
-  dimensions: ThemeDimension[],
-  selections: ActiveThemes,
+  dimensions: CollectionDefinition[],
+  selections: ActiveModeSelections,
 ): string {
   return dimensions
     .map((dimension) => {
@@ -238,9 +238,9 @@ export function buildSelectionLabel(
     .join(" · ");
 }
 
-export function createThemeViewName(
-  dimensions: ThemeDimension[],
-  selections: ActiveThemes,
+export function createViewPresetName(
+  dimensions: CollectionDefinition[],
+  selections: ActiveModeSelections,
 ): string {
   const parts = dimensions
     .map((dimension) => selections[dimension.id])
@@ -248,11 +248,11 @@ export function createThemeViewName(
   return parts.join(" / ") || "New view";
 }
 
-export function normalizeThemeSelections(
-  dimensions: ThemeDimension[],
-  selections: ActiveThemes,
-): ActiveThemes {
-  const next: ActiveThemes = {};
+export function normalizeModeSelections(
+  dimensions: CollectionDefinition[],
+  selections: ActiveModeSelections,
+): ActiveModeSelections {
+  const next: ActiveModeSelections = {};
 
   for (const dimension of dimensions) {
     const selectedOption = selections[dimension.id];
@@ -267,16 +267,16 @@ export function normalizeThemeSelections(
   return next;
 }
 
-export function createThemeViewPreset(params: {
+export function createViewPreset(params: {
   id: string;
   name: string;
-  dimensions: ThemeDimension[];
-  selections: ActiveThemes;
-}): ThemeViewPreset {
+  dimensions: CollectionDefinition[];
+  selections: ActiveModeSelections;
+}): ViewPreset {
   const { id, name, dimensions, selections } = params;
   return {
     id,
     name,
-    selections: normalizeThemeSelections(dimensions, selections),
+    selections: normalizeModeSelections(dimensions, selections),
   };
 }

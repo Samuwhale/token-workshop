@@ -36,8 +36,8 @@ interface ToolbarStateChipsConfig {
   multiModeEnabled: boolean;
   multiModeDimensionName: string | null;
   toggleMultiMode: () => void;
-  themeLensEnabled: boolean;
-  setThemeLensEnabled: (v: boolean) => void;
+  modeLensEnabled: boolean;
+  setModeLensEnabled: (v: boolean) => void;
   condensedView: boolean;
   setCondensedView: (v: boolean) => void;
   showPreviewSplit: boolean;
@@ -55,7 +55,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossSetSearch, setCrossSetSearch,
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
-    themeLensEnabled, setThemeLensEnabled, condensedView, setCondensedView,
+    modeLensEnabled, setModeLensEnabled, condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation, activeFilterCount,
   } = config;
@@ -66,14 +66,14 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     if (inspectMode) count += 1;
     if (crossSetSearch) count += 1;
     if (multiModeEnabled) count += 1;
-    if (themeLensEnabled) count += 1;
+    if (modeLensEnabled) count += 1;
     if (condensedView) count += 1;
     if (showPreviewSplit) count += 1;
     if (showFlatSearchResults) count += 1;
     return count;
   }, [
     activeFilterCount, condensedView, crossSetSearch, inspectMode,
-    multiModeEnabled, themeLensEnabled, showFlatSearchResults,
+    multiModeEnabled, modeLensEnabled, showFlatSearchResults,
     showPreviewSplit, sortOrder,
   ]);
 
@@ -190,12 +190,12 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         onRemove: toggleMultiMode,
       });
     }
-    if (themeLensEnabled) {
+    if (modeLensEnabled) {
       chips.push({
         key: "view:theme-values",
         label: "Preview values",
         tone: "view",
-        onRemove: () => setThemeLensEnabled(false),
+        onRemove: () => setModeLensEnabled(false),
       });
     }
     if (condensedView) {
@@ -229,10 +229,10 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     multiModeDimensionName, multiModeEnabled, onToggleIssuesOnly,
     onTogglePreviewSplit, refFilter, removeQueryToken, setCondensedView,
     setCrossSetSearch, setInspectMode, setRefFilter,
-    setSearchResultPresentation, setThemeLensEnabled, setShowDuplicates,
+    setSearchResultPresentation, setModeLensEnabled, setShowDuplicates,
     setShowRecentlyTouched, setSortOrder, setTypeFilter, showDuplicates,
     showFlatSearchResults, showIssuesOnly, showPreviewSplit,
-    showRecentlyTouched, sortOrder, structuredFilterChips, themeLensEnabled,
+    showRecentlyTouched, sortOrder, structuredFilterChips, modeLensEnabled,
     toggleMultiMode, typeFilter,
   ]);
 

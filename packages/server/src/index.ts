@@ -15,7 +15,7 @@ const { version: SERVER_VERSION } = _require(_pkgPath) as { version: string };
 import { getHttpStatusCode, getErrorMessage } from "./errors.js";
 import { tokenRoutes } from "./routes/tokens.js";
 import { setRoutes } from "./routes/sets.js";
-import { themeRoutes } from "./routes/themes.js";
+import { collectionRoutes } from "./routes/themes.js";
 import { syncRoutes } from "./routes/sync.js";
 import { exportRoutes } from "./routes/export.js";
 import { healthRoutes } from "./routes/health.js";
@@ -35,8 +35,8 @@ import { snapshotRoutes } from "./routes/snapshots.js";
 import { PromiseChainLock } from "./utils/promise-chain-lock.js";
 import { RateLimiter } from "./services/rate-limiter.js";
 import {
-  createDimensionsStore,
-  type DimensionsStore,
+  createCollectionsStore,
+  type CollectionsStore,
 } from "./routes/themes.js";
 import { EventBus } from "./services/event-bus.js";
 
@@ -115,12 +115,12 @@ export async function startServer(config: ServerConfig) {
   // in-flight route-handler mutations.
   const tokenLock = tokenStore.lock;
 
-  const dimensionsStore = createDimensionsStore(config.tokenDir);
+  const collectionsStore = createCollectionsStore(config.tokenDir);
 
   // Replay any snapshot restore that was interrupted by a previous crash
   await manualSnapshots.recoverPendingRestore(
     tokenStore,
-    dimensionsStore,
+    collectionsStore,
     resolverStore,
     recipeService,
   );
@@ -131,7 +131,7 @@ export async function startServer(config: ServerConfig) {
 
   const emitWorkspaceFileEvent = (
     type: "workspace-file-changed" | "workspace-file-removed",
-    resourceType: "themes" | "recipes" | "resolver",
+    resourceType: "collections" | "recipes" | "resolver",
     setName: string,
   ) => {
     eventBus.push({ type, resourceType, setName });
@@ -139,27 +139,27 @@ export async function startServer(config: ServerConfig) {
 
   const recipesFilePath = path.join(config.tokenDir, "$recipes.json");
   const workspaceWatcher = watch(
-    [dimensionsStore.filePath, recipesFilePath],
+    [collectionsStore.filePath, recipesFilePath],
     {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200 },
     },
   );
 
-  const reloadThemesFromDisk = async () => {
+  const reloadCollectionsFromDisk = async () => {
     try {
-      const result = await dimensionsStore.reloadFromDisk();
+      const result = await collectionsStore.reloadFromDisk();
       if (result === "changed") {
-        emitWorkspaceFileEvent("workspace-file-changed", "themes", "$themes");
+        emitWorkspaceFileEvent("workspace-file-changed", "collections", "$collections");
       } else if (result === "removed") {
-        emitWorkspaceFileEvent("workspace-file-removed", "themes", "$themes");
+        emitWorkspaceFileEvent("workspace-file-removed", "collections", "$collections");
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.warn("[Themes] Failed to reload themes from disk:", err);
+      console.warn("[Collections] Failed to reload collections from disk:", err);
       tokenStore.emitEvent({
         type: "file-load-error",
-        setName: "$themes",
+        setName: "$collections",
         message,
       });
     }
@@ -196,9 +196,9 @@ export async function startServer(config: ServerConfig) {
   };
 
   workspaceWatcher.on("add", (filePath) => {
-    if (filePath === dimensionsStore.filePath) {
-      if (dimensionsStore.consumeWriteGuard(filePath)) return;
-      void reloadThemesFromDisk();
+    if (filePath === collectionsStore.filePath) {
+      if (collectionsStore.consumeWriteGuard(filePath)) return;
+      void reloadCollectionsFromDisk();
       return;
     }
     if (filePath === recipesFilePath) {
@@ -208,9 +208,9 @@ export async function startServer(config: ServerConfig) {
   });
 
   workspaceWatcher.on("change", (filePath) => {
-    if (filePath === dimensionsStore.filePath) {
-      if (dimensionsStore.consumeWriteGuard(filePath)) return;
-      void reloadThemesFromDisk();
+    if (filePath === collectionsStore.filePath) {
+      if (collectionsStore.consumeWriteGuard(filePath)) return;
+      void reloadCollectionsFromDisk();
       return;
     }
     if (filePath === recipesFilePath) {
@@ -220,9 +220,9 @@ export async function startServer(config: ServerConfig) {
   });
 
   workspaceWatcher.on("unlink", (filePath) => {
-    if (filePath === dimensionsStore.filePath) {
-      if (dimensionsStore.consumeWriteGuard(filePath)) return;
-      void reloadThemesFromDisk();
+    if (filePath === collectionsStore.filePath) {
+      if (collectionsStore.consumeWriteGuard(filePath)) return;
+      void reloadCollectionsFromDisk();
       return;
     }
     if (filePath === recipesFilePath) {
@@ -239,7 +239,7 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate("tokenStore", tokenStore);
   fastify.decorate("tokenLock", tokenLock);
   fastify.decorate("resolverLock", resolverStore.lock);
-  fastify.decorate("dimensionsStore", dimensionsStore);
+  fastify.decorate("collectionsStore", collectionsStore);
   fastify.decorate("gitSync", gitSync);
   fastify.decorate("recipeService", recipeService);
   fastify.decorate("operationLog", operationLog);
@@ -319,7 +319,7 @@ export async function startServer(config: ServerConfig) {
   });
   await fastify.register(tokenRoutes, { prefix: "/api" });
   await fastify.register(setRoutes, { prefix: "/api" });
-  await fastify.register(themeRoutes, {
+  await fastify.register(collectionRoutes, {
     prefix: "/api",
     tokenDir: config.tokenDir,
   });
@@ -361,7 +361,7 @@ declare module "fastify" {
     operationLog: OperationLog;
     resolverStore: ResolverStore;
     manualSnapshots: ManualSnapshotStore;
-    dimensionsStore: DimensionsStore;
+    collectionsStore: CollectionsStore;
     eventBus: EventBus;
   }
 }

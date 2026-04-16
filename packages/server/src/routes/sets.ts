@@ -5,8 +5,8 @@ import {
   type DTCGToken,
   type Token,
   type TokenGroup,
-  type ThemeDimension,
-  type ThemeViewPreset,
+  type CollectionDefinition,
+  type ViewPreset,
 } from "@tokenmanager/core";
 import type {
   FieldChange,
@@ -110,9 +110,9 @@ interface LoadedSetDependencyData {
   metadata: SetMetadataState;
 }
 
-interface ThemeDocumentState {
-  dimensions: ThemeDimension[];
-  views: ThemeViewPreset[];
+interface CollectionDocumentState {
+  dimensions: CollectionDefinition[];
+  views: ViewPreset[];
 }
 
 type TokenModeMap = Record<string, Record<string, unknown>>;
@@ -434,9 +434,9 @@ function rewriteTokenGroupCollectionModes(
 }
 
 function renameCollectionIdsInState(
-  state: ThemeDocumentState,
+  state: CollectionDocumentState,
   renames: FolderSetRename[],
-): ThemeDocumentState {
+): CollectionDocumentState {
   if (renames.length === 0) {
     return state;
   }
@@ -466,10 +466,10 @@ function renameCollectionIdsInState(
 }
 
 function copyCollectionIdsInState(
-  state: ThemeDocumentState,
+  state: CollectionDocumentState,
   sourceName: string,
   targetNames: string[],
-): ThemeDocumentState {
+): CollectionDocumentState {
   if (targetNames.length === 0) {
     return state;
   }
@@ -508,9 +508,9 @@ function copyCollectionIdsInState(
 }
 
 function deleteCollectionIdsFromState(
-  state: ThemeDocumentState,
+  state: CollectionDocumentState,
   setNames: string[],
-): ThemeDocumentState {
+): CollectionDocumentState {
   if (setNames.length === 0) {
     return state;
   }
@@ -858,33 +858,33 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.recipeService.updateSetName(oldName, newName);
   };
 
-  const loadCollectionModeState = async (): Promise<ThemeDocumentState> =>
-    structuredClone(await fastify.dimensionsStore.loadState());
+  const loadCollectionModeState = async (): Promise<CollectionDocumentState> =>
+    structuredClone(await fastify.collectionsStore.loadState());
 
   const restoreCollectionModeState = async (
-    state: ThemeDocumentState,
+    state: CollectionDocumentState,
   ): Promise<void> => {
-    await fastify.dimensionsStore.withStateLock(async () => ({
+    await fastify.collectionsStore.withStateLock(async () => ({
       state: structuredClone(state),
       result: undefined,
     }));
   };
 
-  const buildThemesRollbackStep = (state: ThemeDocumentState) => ({
+  const buildCollectionsRollbackStep = (state: CollectionDocumentState) => ({
     action: "write-themes" as const,
     dimensions: structuredClone(state.dimensions),
     views: structuredClone(state.views),
   });
 
   const renameCollectionModeState = async (renames: FolderSetRename[]) => {
-    await fastify.dimensionsStore.withStateLock(async (state) => ({
+    await fastify.collectionsStore.withStateLock(async (state) => ({
       state: renameCollectionIdsInState(state, renames),
       result: undefined,
     }));
   };
 
   const deleteCollectionModeState = async (setNames: string[]) => {
-    await fastify.dimensionsStore.withStateLock(async (state) => ({
+    await fastify.collectionsStore.withStateLock(async (state) => ({
       state: deleteCollectionIdsFromState(state, setNames),
       result: undefined,
     }));
@@ -894,7 +894,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     sourceName: string,
     targetNames: string[],
   ) => {
-    await fastify.dimensionsStore.withStateLock(async (state) => ({
+    await fastify.collectionsStore.withStateLock(async (state) => ({
       state: copyCollectionIdsInState(state, sourceName, targetNames),
       result: undefined,
     }));
@@ -924,6 +924,32 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       renameCollectionModes(modes, oldName, newName),
     );
     await replaceSetTokensIfNeeded(setName, rewritten.tokens, rewritten.changed);
+  };
+
+  /**
+   * Remove mode entries for the given collection IDs from all tokens in every
+   * remaining set. Call after deleting collections to prevent orphaned mode data.
+   */
+  const pruneOrphanedModeKeys = async (
+    deletedCollectionIds: string[],
+  ): Promise<void> => {
+    if (deletedCollectionIds.length === 0) return;
+    const idsToRemove = new Set(deletedCollectionIds);
+    const allSets = await fastify.tokenStore.getSets();
+    for (const setName of allSets) {
+      const set = await fastify.tokenStore.getSet(setName);
+      if (!set) continue;
+      const rewritten = rewriteTokenGroupCollectionModes(set.tokens, (modes) => {
+        const keysToRemove = Object.keys(modes).filter((k) => idsToRemove.has(k));
+        if (keysToRemove.length === 0) return null;
+        const nextModes = { ...modes };
+        for (const key of keysToRemove) {
+          delete nextModes[key];
+        }
+        return nextModes;
+      });
+      await replaceSetTokensIfNeeded(setName, rewritten.tokens, rewritten.changed);
+    }
   };
 
   const cloneTokenGroupForCollection = (
@@ -1187,9 +1213,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
 
       return withLock(async () => {
         let renamed = false;
-        let themeStateChanged = false;
+        let collectionStateChanged = false;
         let beforeSnapshot: Record<string, SnapshotEntry> = {};
-        const previousThemeState = await loadCollectionModeState();
+        const previousCollectionState = await loadCollectionModeState();
         try {
           beforeSnapshot = await snapshotSet(fastify.tokenStore, name);
           await fastify.tokenStore.renameSet(name, newName);
@@ -1197,7 +1223,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           await renameCollectionModesInSet(newName, name, newName);
           await renameDependentSetReferences(name, newName);
           await renameCollectionModeState([{ from: name, to: newName }]);
-          themeStateChanged = true;
+          collectionStateChanged = true;
           const afterSnapshot = await snapshotSet(fastify.tokenStore, newName);
           await fastify.operationLog.record({
             type: "set-rename",
@@ -1213,13 +1239,15 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             afterSnapshot,
             rollbackSteps: [
               { action: "rename-set", from: newName, to: name },
-              buildThemesRollbackStep(previousThemeState),
+              buildCollectionsRollbackStep(previousCollectionState),
             ],
           });
           return { ok: true, oldName: name, newName };
         } catch (err) {
-          if (themeStateChanged) {
-            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          if (collectionStateChanged) {
+            await restoreCollectionModeState(previousCollectionState).catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "set-rename", set: name }, "Rollback failed: could not restore collection mode state after failed set rename");
+            });
           }
           if (renamed) {
             await fastify.tokenStore
@@ -1228,7 +1256,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 await renameCollectionModesInSet(name, newName, name);
                 await renameDependentSetReferences(newName, name);
               })
-              .catch(() => {});
+              .catch((rollbackErr) => {
+                fastify.log.error({ err: rollbackErr, operation: "set-rename", from: newName, to: name }, "Rollback failed: could not revert set rename back to original name");
+              });
           }
           return handleRouteError(reply, err, "Failed to rename set");
         }
@@ -1292,8 +1322,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
 
       return withLock(async () => {
         const completedRenames: FolderSetRename[] = [];
-        let themeStateChanged = false;
-        const previousThemeState = await loadCollectionModeState();
+        let collectionStateChanged = false;
+        const previousCollectionState = await loadCollectionModeState();
         try {
           const allSets = await fastify.tokenStore.getSets();
           const folderSetNames = getFolderSetNames(allSets, fromFolder);
@@ -1330,7 +1360,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             completedRenames.push(rename);
           }
           await renameCollectionModeState(renames);
-          themeStateChanged = true;
+          collectionStateChanged = true;
           const renamedSetNames = renames.map(({ to }) => to);
           const afterSnapshot = await snapshotSets(
             fastify.tokenStore,
@@ -1349,7 +1379,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
               from,
               to,
             })),
-            buildThemesRollbackStep(previousThemeState),
+            buildCollectionsRollbackStep(previousCollectionState),
           ];
           await fastify.operationLog.record({
             type: "set-folder-rename",
@@ -1374,8 +1404,10 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             sets: await fastify.tokenStore.getSets(),
           };
         } catch (err) {
-          if (themeStateChanged) {
-            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          if (collectionStateChanged) {
+            await restoreCollectionModeState(previousCollectionState).catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "folder-rename", folder: fromFolder }, "Rollback failed: could not restore collection mode state after failed folder rename");
+            });
           }
           for (const rename of sortFolderRenamePairsForRollback(completedRenames)) {
             await fastify.tokenStore
@@ -1384,7 +1416,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 await renameCollectionModesInSet(rename.to, rename.from, rename.to);
                 await renameDependentSetReferences(rename.from, rename.to);
               })
-              .catch(() => {});
+              .catch((rollbackErr) => {
+                fastify.log.error({ err: rollbackErr, operation: "folder-rename", from: rename.from, to: rename.to }, "Rollback failed: could not revert set rename during folder rename rollback");
+              });
           }
           return handleRouteError(reply, err, "Failed to rename folder");
         }
@@ -1463,8 +1497,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
 
       return withLock(async () => {
         const completedRenames: FolderSetRename[] = [];
-        let themeStateChanged = false;
-        const previousThemeState = await loadCollectionModeState();
+        let collectionStateChanged = false;
+        const previousCollectionState = await loadCollectionModeState();
         try {
           const allSets = await fastify.tokenStore.getSets();
           const sourceSetNames = getFolderSetNames(allSets, sourceFolder);
@@ -1508,7 +1542,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             completedRenames.push(rename);
           }
           await renameCollectionModeState(renames);
-          themeStateChanged = true;
+          collectionStateChanged = true;
           const movedSetNames = renames.map(({ to }) => to);
           const afterSnapshot = await snapshotSets(
             fastify.tokenStore,
@@ -1527,7 +1561,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
               from,
               to,
             })),
-            buildThemesRollbackStep(previousThemeState),
+            buildCollectionsRollbackStep(previousCollectionState),
           ];
           await fastify.operationLog.record({
             type: "set-folder-merge",
@@ -1552,8 +1586,10 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             sets: await fastify.tokenStore.getSets(),
           };
         } catch (err) {
-          if (themeStateChanged) {
-            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          if (collectionStateChanged) {
+            await restoreCollectionModeState(previousCollectionState).catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "folder-merge", sourceFolder, targetFolder }, "Rollback failed: could not restore collection mode state after failed folder merge");
+            });
           }
           for (const rename of sortFolderRenamePairsForRollback(completedRenames)) {
             await fastify.tokenStore
@@ -1562,7 +1598,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 await renameCollectionModesInSet(rename.to, rename.from, rename.to);
                 await renameDependentSetReferences(rename.from, rename.to);
               })
-              .catch(() => {});
+              .catch((rollbackErr) => {
+                fastify.log.error({ err: rollbackErr, operation: "folder-merge", from: rename.from, to: rename.to }, "Rollback failed: could not revert set rename during folder merge rollback");
+              });
           }
           return handleRouteError(reply, err, "Failed to merge folders");
         }
@@ -1588,8 +1626,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         let beforeSnapshot: Record<string, SnapshotEntry> | null = null;
         const deletedSetNames: string[] = [];
-        let themeStateChanged = false;
-        const previousThemeState = await loadCollectionModeState();
+        let collectionStateChanged = false;
+        const previousCollectionState = await loadCollectionModeState();
 
         try {
           const allSets = await fastify.tokenStore.getSets();
@@ -1622,7 +1660,10 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             deletedSetNames.push(setName);
           }
           await deleteCollectionModeState(folderSetNames);
-          themeStateChanged = true;
+          collectionStateChanged = true;
+          await pruneOrphanedModeKeys(folderSetNames).catch((err) => {
+            fastify.log.error({ err, operation: "prune-orphaned-modes" }, "Failed to prune orphaned mode keys from remaining sets");
+          });
 
           await fastify.operationLog.record({
             type: "set-folder-delete",
@@ -1636,7 +1677,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                 action: "create-set" as const,
                 name: setName,
               })),
-              buildThemesRollbackStep(previousThemeState),
+              buildCollectionsRollbackStep(previousCollectionState),
             ],
             metadata: {
               folder,
@@ -1658,11 +1699,15 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
                   setName,
                   buildTokenGroupFromSnapshot(beforeSnapshot, setName),
                 )
-                .catch(() => {});
+                .catch((rollbackErr) => {
+                  fastify.log.error({ err: rollbackErr, operation: "folder-delete", set: setName, folder }, "Rollback failed: could not recreate deleted set during folder delete rollback");
+                });
             }
           }
-          if (themeStateChanged) {
-            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          if (collectionStateChanged) {
+            await restoreCollectionModeState(previousCollectionState).catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "folder-delete", folder }, "Rollback failed: could not restore collection mode state after failed folder delete");
+            });
           }
           return handleRouteError(reply, err, "Failed to delete folder");
         }
@@ -1685,7 +1730,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         try {
           await fastify.resolverLock.withLock(async () => {
             await fastify.tokenStore.clearAll();
-            await fastify.dimensionsStore.reset();
+            await fastify.collectionsStore.reset();
             await fastify.recipeService.reset();
             await fastify.resolverStore.reset();
             await fastify.operationLog.reset();
@@ -1709,8 +1754,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
 
       return withLock(async () => {
         let created = false;
-        let themeStateChanged = false;
-        const previousThemeState = await loadCollectionModeState();
+        let collectionStateChanged = false;
+        const previousCollectionState = await loadCollectionModeState();
         try {
           const source = await fastify.tokenStore.getSet(name);
           if (!source) {
@@ -1750,7 +1795,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           const set = await fastify.tokenStore.createSet(nextName, tokensCopy);
           created = true;
           await duplicateCollectionModeState(name, [nextName]);
-          themeStateChanged = true;
+          collectionStateChanged = true;
           const afterSnap = await snapshotSet(fastify.tokenStore, nextName);
           await fastify.operationLog.record({
             type: "set-create",
@@ -1761,18 +1806,22 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             afterSnapshot: afterSnap,
             rollbackSteps: [
               { action: "delete-set", name: nextName },
-              buildThemesRollbackStep(previousThemeState),
+              buildCollectionsRollbackStep(previousCollectionState),
             ],
           });
           return reply
             .status(201)
             .send({ ok: true, name: set.name, originalName: name });
         } catch (err) {
-          if (themeStateChanged) {
-            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          if (collectionStateChanged) {
+            await restoreCollectionModeState(previousCollectionState).catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "set-duplicate", set: name }, "Rollback failed: could not restore collection mode state after failed set duplicate");
+            });
           }
           if (created && nextName) {
-            await fastify.tokenStore.deleteSet(nextName).catch(() => {});
+            await fastify.tokenStore.deleteSet(nextName).catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "set-duplicate", set: nextName }, "Rollback failed: could not delete duplicated set during set duplicate rollback");
+            });
           }
           return handleRouteError(reply, err, "Failed to duplicate set");
         }
@@ -1913,7 +1962,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         if (targetMutated && beforeTargetTokens) {
           await fastify.tokenStore
             .replaceSetTokens(targetSet, beforeTargetTokens)
-            .catch(() => {});
+            .catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "set-merge", sourceSet: name, targetSet }, "Rollback failed: could not restore target set tokens after failed set merge");
+            });
         }
         return handleRouteError(reply, err, "Failed to merge set");
       }
@@ -1932,8 +1983,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       const createdNames: string[] = [];
       let sourceTokensForRollback: TokenGroup | null = null;
       let deletedOriginal = false;
-      let themeStateChanged = false;
-      const previousThemeState = await loadCollectionModeState();
+      let collectionStateChanged = false;
+      const previousCollectionState = await loadCollectionModeState();
       try {
         const sourceSet = await fastify.tokenStore.getSet(name);
         if (!sourceSet) {
@@ -2012,8 +2063,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         await duplicateCollectionModeState(name, createdNames);
         if (deleteOriginal) {
           await deleteCollectionModeState([name]);
+          await pruneOrphanedModeKeys([name]).catch((err) => {
+            fastify.log.error({ err, operation: "prune-orphaned-modes" }, "Failed to prune orphaned mode keys from remaining sets");
+          });
         }
-        themeStateChanged = true;
+        collectionStateChanged = true;
 
         const afterSnapshot = deleteOriginal
           ? await snapshotSets(fastify.tokenStore, createdNames)
@@ -2040,7 +2094,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             ...(deleteOriginal
               ? [{ action: "create-set" as const, name }]
               : []),
-            buildThemesRollbackStep(previousThemeState),
+            buildCollectionsRollbackStep(previousCollectionState),
           ],
           metadata: {
             sourceSet: name,
@@ -2060,15 +2114,21 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         for (let index = createdNames.length - 1; index >= 0; index -= 1) {
           await fastify.tokenStore
             .deleteSet(createdNames[index])
-            .catch(() => {});
+            .catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "set-split", set: createdNames[index], sourceSet: name }, "Rollback failed: could not delete created set during set split rollback");
+            });
         }
-        if (themeStateChanged) {
-          await restoreCollectionModeState(previousThemeState).catch(() => {});
+        if (collectionStateChanged) {
+          await restoreCollectionModeState(previousCollectionState).catch((rollbackErr) => {
+            fastify.log.error({ err: rollbackErr, operation: "set-split", sourceSet: name }, "Rollback failed: could not restore collection mode state after failed set split");
+          });
         }
         if (deletedOriginal && sourceTokensForRollback) {
           await fastify.tokenStore
             .createSet(name, sourceTokensForRollback)
-            .catch(() => {});
+            .catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "set-split", set: name }, "Rollback failed: could not recreate original set after failed set split");
+            });
         }
         return handleRouteError(reply, err, "Failed to split set");
       }
@@ -2209,8 +2269,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       const { name } = request.params;
       return withLock(async () => {
         let deleted = false;
-        let themeStateChanged = false;
-        const previousThemeState = await loadCollectionModeState();
+        let collectionStateChanged = false;
+        const previousCollectionState = await loadCollectionModeState();
         let beforeSnap: Record<string, SnapshotEntry> = {};
         try {
           const set = await fastify.tokenStore.getSet(name);
@@ -2243,7 +2303,10 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
               .send({ error: `Token set "${name}" not found` });
           }
           await deleteCollectionModeState([name]);
-          themeStateChanged = true;
+          collectionStateChanged = true;
+          await pruneOrphanedModeKeys([name]).catch((err) => {
+            fastify.log.error({ err, operation: "prune-orphaned-modes" }, "Failed to prune orphaned mode keys from remaining sets");
+          });
           const entry = await fastify.operationLog.record({
             type: "set-delete",
             description: `Delete set "${name}"`,
@@ -2253,18 +2316,22 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
             afterSnapshot: {},
             rollbackSteps: [
               { action: "create-set", name },
-              buildThemesRollbackStep(previousThemeState),
+              buildCollectionsRollbackStep(previousCollectionState),
             ],
           });
           return { ok: true, name, operationId: entry.id };
         } catch (err) {
-          if (themeStateChanged) {
-            await restoreCollectionModeState(previousThemeState).catch(() => {});
+          if (collectionStateChanged) {
+            await restoreCollectionModeState(previousCollectionState).catch((rollbackErr) => {
+              fastify.log.error({ err: rollbackErr, operation: "set-delete", set: name }, "Rollback failed: could not restore collection mode state after failed set delete");
+            });
           }
           if (deleted) {
             await fastify.tokenStore
               .createSet(name, buildTokenGroupFromSnapshot(beforeSnap, name))
-              .catch(() => {});
+              .catch((rollbackErr) => {
+                fastify.log.error({ err: rollbackErr, operation: "set-delete", set: name }, "Rollback failed: could not recreate deleted set during set delete rollback");
+              });
           }
           return handleRouteError(reply, err, "Failed to delete set");
         }

@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { apiFetch } from "../../shared/apiFetch";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { ModeValueEditor } from "./ModeValueEditor";
 import { summarizeModeCoverage } from "./modeCoverage";
-import { getCollectionModeDefinition } from "../../shared/themeModeUtils";
+import { getCollectionModeDefinition } from "../../shared/collectionModeUtils";
 
 const RICH_EDITOR_TYPES = new Set([
   "color",
@@ -17,7 +17,7 @@ const RICH_EDITOR_TYPES = new Set([
 
 export interface ModeValuesEditorProps {
   setName: string;
-  dimensions: ThemeDimension[];
+  dimensions: CollectionDefinition[];
   modeValues: Record<string, Record<string, unknown>>;
   onModeValuesChange: (modes: Record<string, Record<string, unknown>>) => void;
   tokenType: string;

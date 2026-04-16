@@ -53,7 +53,7 @@ import { useTokenSearch } from "../hooks/useTokenSearch";
 import { useTokenSelection } from "../hooks/useTokenSelection";
 import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
-import { applyThemeSelectionsToTokens } from "../shared/themeModeUtils";
+import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { TokenListToolbar } from "./TokenListToolbar";
 import { SelectModeToolbar } from "./SelectModeToolbar";
@@ -257,8 +257,8 @@ export function TokenList({
     multiModeDimId,
     setMultiModeDimId,
     toggleMultiMode,
-    themeLensEnabled,
-    setThemeLensEnabled,
+    modeLensEnabled,
+    setModeLensEnabled,
   } = viewState;
   const [runningStaleRecipes, setRunningStaleRecipes] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] =
@@ -476,7 +476,7 @@ export function TokenList({
       results.push({
         optionName: option.name,
         dimId: dim.id,
-        resolved: applyThemeSelectionsToTokens(
+        resolved: applyModeSelectionsToTokens(
           unthemedAllTokensFlat,
           dimensions,
           { [dim.id]: option.name },
@@ -515,7 +515,7 @@ export function TokenList({
     if (candidatePaths.size === 0) return new Set();
 
     const optionResults = dim.options.map((option) =>
-      applyThemeSelectionsToTokens(unthemedAllTokensFlat, collectionDimensions, {
+      applyModeSelectionsToTokens(unthemedAllTokensFlat, collectionDimensions, {
         [dim.id]: option.name,
       }, pathToSet),
     );
@@ -1012,7 +1012,7 @@ export function TokenList({
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossSetSearch, setCrossSetSearch,
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
-    themeLensEnabled, setThemeLensEnabled, condensedView, setCondensedView,
+    modeLensEnabled, setModeLensEnabled, condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation, activeFilterCount,
   });
@@ -1045,7 +1045,7 @@ export function TokenList({
           ? `mode columns for ${multiModeDimensionName}`
           : "mode columns",
       );
-    } else if (themeLensEnabled) {
+    } else if (modeLensEnabled) {
       viewLabels.push("current preview values");
     }
     if (inspectMode) {
@@ -1077,7 +1077,7 @@ export function TokenList({
     searchQuery,
     setName,
     showFlatSearchResults,
-    themeLensEnabled,
+    modeLensEnabled,
     viewMode,
     zoomRootPath,
   ]);
@@ -1712,7 +1712,7 @@ export function TokenList({
 
   const clearViewModes = useCallback(() => {
     if (multiModeEnabled) toggleMultiMode();
-    if (themeLensEnabled) setThemeLensEnabled(false);
+    if (modeLensEnabled) setModeLensEnabled(false);
     if (condensedView) setCondensedView(false);
     if (showPreviewSplit) onTogglePreviewSplit?.();
     if (showFlatSearchResults) setSearchResultPresentation("grouped");
@@ -1724,11 +1724,11 @@ export function TokenList({
     setCondensedView,
     setSearchResultPresentation,
     setSortOrder,
-    setThemeLensEnabled,
+    setModeLensEnabled,
     showPreviewSplit,
     showFlatSearchResults,
     sortOrder,
-    themeLensEnabled,
+    modeLensEnabled,
     toggleMultiMode,
   ]);
 
@@ -2098,7 +2098,7 @@ export function TokenList({
   const effectiveRovingPath =
     rovingFocusPath ?? flatItems[0]?.node.path ?? null;
 
-  const effectiveAllTokensFlat = themeLensEnabled || !unthemedAllTokensFlat
+  const effectiveAllTokensFlat = modeLensEnabled || !unthemedAllTokensFlat
     ? allTokensFlat
     : unthemedAllTokensFlat;
 
@@ -2129,7 +2129,7 @@ export function TokenList({
     searchHighlight, selectedNodes, dragOverReorder, selectedLeafNodes,
     showResolvedValues, condensedView, starredPaths, dimensions: collectionDimensions, activeThemes,
     pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
-    multiModeEnabled, modeVariantPaths, themeLensEnabled, tokenModeMissing,
+    multiModeEnabled, modeVariantPaths, modeLensEnabled, tokenModeMissing,
   });
 
   const tokenTreeLeafActions = useTokenTreeLeafActions({
@@ -2322,8 +2322,8 @@ export function TokenList({
             onCreateRecipe={onNavigateToNewRecipe}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
-            themeLensEnabled={themeLensEnabled}
-            onToggleThemeLens={() => setThemeLensEnabled((value) => !value)}
+            modeLensEnabled={modeLensEnabled}
+            onToggleModeLens={() => setModeLensEnabled((value) => !value)}
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
@@ -2343,8 +2343,8 @@ export function TokenList({
               onCondensedViewChange: setCondensedView,
               multiModeEnabled,
               onToggleMultiMode: toggleMultiMode,
-              themeLensEnabled,
-              onToggleThemeLens: () => setThemeLensEnabled((v) => !v),
+              modeLensEnabled,
+              onToggleModeLens: () => setModeLensEnabled((v) => !v),
               hasDimensions: dimensions.length > 0,
               showPreviewSplit,
               onTogglePreviewSplit,

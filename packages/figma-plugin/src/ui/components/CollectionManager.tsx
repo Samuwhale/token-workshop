@@ -6,23 +6,23 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { ThemeDimension, ThemeViewPreset } from "@tokenmanager/core";
+import type { CollectionDefinition, ViewPreset } from "@tokenmanager/core";
 import type { CompareMode } from "./UnifiedComparePanel";
 import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { Spinner } from "./Spinner";
-import { ThemeCompareScreen } from "./theme-manager/ThemeCompareScreen";
-import { useThemeSwitcherContext } from "../contexts/ThemeContext";
-import { useThemeCompare } from "../hooks/useThemeCompare";
+import { CollectionCompareScreen } from "./theme-manager/CollectionCompareScreen";
+import { useCollectionSwitcherContext } from "../contexts/CollectionContext";
+import { useModeCompare } from "../hooks/useModeCompare";
 import {
   buildSelectionLabel,
-  buildThemeModeCoverage,
-  createThemeViewName,
-  createThemeViewPreset,
-  normalizeThemeSelections,
-} from "../shared/themeModeUtils";
+  buildModeCoverage,
+  createViewPresetName,
+  createViewPreset,
+  normalizeModeSelections,
+} from "../shared/collectionModeUtils";
 
-export interface ThemeManagerHandle {
+export interface CollectionManagerHandle {
   navigateToCompare: (
     mode: CompareMode,
     path?: string,
@@ -32,18 +32,18 @@ export interface ThemeManagerHandle {
   ) => void;
 }
 
-interface ThemeManagerProps {
+interface CollectionManagerProps {
   serverUrl: string;
   connected: boolean;
   sets: string[];
-  onDimensionsChange?: (dimensions: ThemeDimension[]) => void;
+  onDimensionsChange?: (dimensions: CollectionDefinition[]) => void;
   onNavigateToToken?: (path: string, set: string) => void;
   onCreateToken?: (tokenPath: string, set: string) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
   onTokensCreated?: () => void;
   onGoToTokens?: () => void;
-  themeManagerHandle?: React.MutableRefObject<ThemeManagerHandle | null>;
+  collectionManagerHandle?: React.MutableRefObject<CollectionManagerHandle | null>;
 }
 
 type ManagerView = "collections" | "compare";
@@ -79,7 +79,7 @@ function CollectionSection({
   );
 }
 
-export function ThemeManager({
+export function CollectionManager({
   serverUrl,
   connected,
   sets,
@@ -90,18 +90,18 @@ export function ThemeManager({
   pathToSet = {},
   onTokensCreated,
   onGoToTokens,
-  themeManagerHandle,
-}: ThemeManagerProps) {
+  collectionManagerHandle,
+}: CollectionManagerProps) {
   const {
-    dimensions,
-    setDimensions,
-    activeThemes,
-    setActiveThemes,
-    themedAllTokensFlat,
-  } = useThemeSwitcherContext();
-  const compare = useThemeCompare();
+    collections: dimensions,
+    setCollections: setDimensions,
+    activeModes: activeThemes,
+    setActiveModes: setActiveThemes,
+    modeResolvedTokensFlat: themedAllTokensFlat,
+  } = useCollectionSwitcherContext();
+  const compare = useModeCompare();
   const [activeView, setActiveView] = useState<ManagerView>("collections");
-  const [views, setViews] = useState<ThemeViewPreset[]>([]);
+  const [views, setViews] = useState<ViewPreset[]>([]);
   const [viewsLoading, setViewsLoading] = useState(false);
   const [viewsError, setViewsError] = useState<string | null>(null);
   const [newViewName, setNewViewName] = useState("");
@@ -130,8 +130,8 @@ export function ThemeManager({
 
     try {
       const result = await apiFetch<{
-        collections?: ThemeDimension[];
-        previews?: ThemeViewPreset[];
+        collections?: CollectionDefinition[];
+        previews?: ViewPreset[];
       }>(`${serverUrl}/api/collections`, { signal: controller.signal });
       if (viewsAbortRef.current !== controller) return;
       const collections = result.collections ?? [];
@@ -162,7 +162,7 @@ export function ThemeManager({
   );
 
   const normalizedSelections = useMemo(
-    () => normalizeThemeSelections(dimensions, activeThemes),
+    () => normalizeModeSelections(dimensions, activeThemes),
     [dimensions, activeThemes],
   );
 
@@ -181,7 +181,7 @@ export function ThemeManager({
 
   const modeCoverage = useMemo(
     () =>
-      buildThemeModeCoverage({
+      buildModeCoverage({
         dimensions,
         allTokensFlat,
         pathToSet,
@@ -240,8 +240,8 @@ export function ThemeManager({
 
   const handleSaveView = useCallback(async () => {
     const proposedName =
-      newViewName.trim() || createThemeViewName(dimensions, normalizedSelections);
-    const view = createThemeViewPreset({
+      newViewName.trim() || createViewPresetName(dimensions, normalizedSelections);
+    const view = createViewPreset({
       id: `${Date.now()}`,
       name: proposedName,
       dimensions,
@@ -257,8 +257,8 @@ export function ThemeManager({
   }, [dimensions, newViewName, normalizedSelections, refreshCollectionsAndViews, serverUrl]);
 
   const handleApplyView = useCallback(
-    (view: ThemeViewPreset) => {
-      setActiveThemes(normalizeThemeSelections(dimensions, view.selections));
+    (view: ViewPreset) => {
+      setActiveThemes(normalizeModeSelections(dimensions, view.selections));
     },
     [dimensions, setActiveThemes],
   );
@@ -288,7 +288,7 @@ export function ThemeManager({
   );
 
   useImperativeHandle(
-    themeManagerHandle,
+    collectionManagerHandle,
     () => ({
       navigateToCompare: handleNavigateToCompare,
     }),
@@ -298,7 +298,7 @@ export function ThemeManager({
   if (activeView === "compare") {
     return (
       <div className="min-h-0 flex-1 overflow-hidden">
-        <ThemeCompareScreen
+        <CollectionCompareScreen
           focusLabel={compareFocusLabel}
           mode={compare.compareMode}
           onModeChange={compare.setCompareMode}
@@ -310,9 +310,9 @@ export function ThemeManager({
           pathToSet={pathToSet}
           dimensions={dimensions}
           sets={sets}
-          themeOptionsKey={compare.compareThemeKey}
-          themeOptionsDefaultA={compare.compareThemeDefaultA}
-          themeOptionsDefaultB={compare.compareThemeDefaultB}
+          modeOptionsKey={compare.compareModeKey}
+          modeOptionsDefaultA={compare.compareModeDefaultA}
+          modeOptionsDefaultB={compare.compareModeDefaultB}
           onEditToken={(setName, tokenPath) => onNavigateToToken?.(tokenPath, setName)}
           onCreateToken={(tokenPath, setName) => onCreateToken?.(tokenPath, setName)}
           onGoToTokens={() => onGoToTokens?.()}
@@ -542,7 +542,7 @@ export function ThemeManager({
                   type="text"
                   value={newViewName}
                   onChange={(event) => setNewViewName(event.target.value)}
-                  placeholder={createThemeViewName(dimensions, normalizedSelections)}
+                  placeholder={createViewPresetName(dimensions, normalizedSelections)}
                   className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)]"
                 />
                 <button

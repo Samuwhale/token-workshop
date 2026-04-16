@@ -45,7 +45,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         const entry = await fastify.manualSnapshots.save(
           label,
           fastify.tokenStore,
-          fastify.dimensionsStore,
+          fastify.collectionsStore,
           fastify.resolverStore,
           fastify.recipeService,
         );
@@ -98,7 +98,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
       const comparison = await fastify.manualSnapshots.diff(
         request.params.id,
         fastify.tokenStore,
-        fastify.dimensionsStore,
+        fastify.collectionsStore,
         fastify.resolverStore,
         fastify.recipeService,
       );
@@ -132,8 +132,8 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        const [beforeThemeState, beforeResolvers, beforeRecipes] = await Promise.all([
-          fastify.dimensionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
+        const [beforeCollectionState, beforeResolvers, beforeRecipes] = await Promise.all([
+          fastify.collectionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
           captureCurrentResolvers(fastify),
           captureCurrentRecipes(fastify),
         ]);
@@ -142,13 +142,13 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.manualSnapshots.restore(
           request.params.id,
           fastify.tokenStore,
-          fastify.dimensionsStore,
+          fastify.collectionsStore,
           fastify.resolverStore,
           fastify.recipeService,
           {
             setNames: currentSets,
-            dimensions: beforeThemeState.dimensions,
-            views: beforeThemeState.views,
+            dimensions: beforeCollectionState.dimensions,
+            views: beforeCollectionState.views,
             resolvers: beforeResolvers,
             recipes: beforeRecipes,
           },

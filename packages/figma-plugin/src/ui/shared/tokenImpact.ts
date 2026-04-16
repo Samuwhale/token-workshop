@@ -1,7 +1,7 @@
 import type { TokenRecipe } from '../hooks/useRecipes';
 import type { TokenMapEntry } from '../../shared/types';
-import type { ThemeDimension } from '@tokenmanager/core';
-import type { RecipeImpact, ThemeImpact } from '../components/tokenListTypes';
+import type { CollectionDefinition } from '@tokenmanager/core';
+import type { RecipeImpact, ModeImpact } from '../components/tokenListTypes';
 
 /**
  * Returns all $tokenRefs entries from a recipe's config as a flat
@@ -52,16 +52,16 @@ export function computeRecipeImpacts(
 }
 
 /**
- * Compute which theme options contain inline mode values for any of the given
+ * Compute which mode options contain inline mode values for any of the given
  * token paths across the authored collections.
  */
-export function computeThemeImpacts(
+export function computeModeImpacts(
   targetPaths: Set<string>,
-  dimensions: ThemeDimension[],
+  dimensions: CollectionDefinition[],
   perSetFlat: Record<string, Record<string, TokenMapEntry>>,
-): ThemeImpact[] {
+): ModeImpact[] {
   const seen = new Set<string>();
-  const impacts: ThemeImpact[] = [];
+  const impacts: ModeImpact[] = [];
   const tokenEntries = Object.values(perSetFlat).flatMap((flatSet) =>
     Object.entries(flatSet),
   );

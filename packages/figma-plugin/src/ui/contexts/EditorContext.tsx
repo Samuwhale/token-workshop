@@ -40,7 +40,7 @@ export type EditorContextualSurfaceTarget =
   | { surface: 'recipe-editor'; recipe: EditingRecipe }
   | { surface: 'token-preview'; token: PreviewingToken }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshThemeOptions?: boolean }
-  | { surface: 'compare'; mode: 'cross-theme'; path: string; refreshThemeOptions?: boolean };
+  | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshThemeOptions?: boolean };
 
 export interface TokensContextualSurfaceState {
   activeSurface: TokensLibraryContextualSurface | null;
@@ -73,8 +73,8 @@ export interface EditorContextValue {
   setTokensComparePaths: Dispatch<SetStateAction<Set<string>>>;
   tokensComparePath: string;
   setTokensComparePath: Dispatch<SetStateAction<string>>;
-  tokensCompareThemeKey: number;
-  setTokensCompareThemeKey: Dispatch<SetStateAction<number>>;
+  tokensCompareModeKey: number;
+  setTokensCompareModeKey: Dispatch<SetStateAction<number>>;
   tokensCompareDefaultA: string;
   tokensCompareDefaultB: string;
   tokensContextualSurfaceState: TokensContextualSurfaceState;
@@ -117,10 +117,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setCompareTokenPaths: setTokensComparePaths,
     compareTokenPath: tokensComparePath,
     setCompareTokenPath: setTokensComparePath,
-    compareThemeKey: tokensCompareThemeKey,
-    setCompareThemeKey: setTokensCompareThemeKey,
-    compareThemeDefaultA: tokensCompareDefaultA,
-    compareThemeDefaultB: tokensCompareDefaultB,
+    compareModeKey: tokensCompareModeKey,
+    setCompareModeKey: setTokensCompareModeKey,
+    compareModeDefaultA: tokensCompareDefaultA,
+    compareModeDefaultB: tokensCompareDefaultB,
   } = useCompareState();
 
   // Late-bound alias-not-found handler so App.tsx can inject the toast callback
@@ -182,13 +182,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       setTokensComparePaths(target.paths);
       setTokensComparePath('');
     } else {
-      setTokensCompareMode('cross-theme');
+      setTokensCompareMode('cross-collection');
       setTokensComparePath(target.path);
       setTokensComparePaths(new Set());
     }
 
     if (target.refreshThemeOptions ?? true) {
-      setTokensCompareThemeKey((themeKey) => themeKey + 1);
+      setTokensCompareModeKey((themeKey) => themeKey + 1);
     }
 
     setShowTokensCompare(true);
@@ -200,7 +200,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setTokensCompareMode,
     setTokensComparePath,
     setTokensComparePaths,
-    setTokensCompareThemeKey,
+    setTokensCompareModeKey,
   ]);
 
   const activeSurface = useMemo<TokensLibraryContextualSurface | null>(() => {
@@ -242,8 +242,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setTokensComparePaths,
     tokensComparePath,
     setTokensComparePath,
-    tokensCompareThemeKey,
-    setTokensCompareThemeKey,
+    tokensCompareModeKey,
+    setTokensCompareModeKey,
     tokensCompareDefaultA,
     tokensCompareDefaultB,
     tokensContextualSurfaceState,
@@ -272,8 +272,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setTokensComparePaths,
     tokensComparePath,
     setTokensComparePath,
-    tokensCompareThemeKey,
-    setTokensCompareThemeKey,
+    tokensCompareModeKey,
+    setTokensCompareModeKey,
     tokensCompareDefaultA,
     tokensCompareDefaultB,
     tokensContextualSurfaceState,

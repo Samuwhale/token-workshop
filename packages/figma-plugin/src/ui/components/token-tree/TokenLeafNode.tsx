@@ -126,7 +126,7 @@ export const TokenLeafNode = memo(
       rovingFocusPath,
       showDuplicatesFilter,
       modeVariantPaths,
-      themeLensEnabled,
+      modeLensEnabled,
       tokenModeMissing,
     } = useTokenTreeLeafState();
     const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
@@ -408,7 +408,7 @@ export const TokenLeafNode = memo(
       null;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
-    const isThemeLensVariant = themeLensEnabled && modeVariantPaths?.has(node.path);
+    const isModeLensVariant = modeLensEnabled && modeVariantPaths?.has(node.path);
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected && selectMode
@@ -416,7 +416,7 @@ export const TokenLeafNode = memo(
         : isPreviewed
           ? "bg-[var(--color-figma-accent)]/8"
           : "";
-    const themeLensClass = isThemeLensVariant
+    const modeLensClass = isModeLensVariant
       ? "border-l-2 border-l-[var(--color-figma-accent)]"
       : "";
     const duplicateCount = showDuplicatesFilter
@@ -964,7 +964,7 @@ export const TokenLeafNode = memo(
         <div
           role="treeitem"
           aria-level={depth + 1}
-          className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass} ${themeLensClass}`}
+          className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass} ${modeLensClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}
           tabIndex={rovingFocusPath === node.path ? 0 : -1}
           data-token-path={node.path}

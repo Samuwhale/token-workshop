@@ -17,7 +17,7 @@ import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import type { ValidationSnapshot } from '../hooks/useValidationCache';
 import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
 import { useNavigationContext } from '../contexts/NavigationContext';
-import { useResolverContext } from '../contexts/ThemeContext';
+import { useResolverContext } from '../contexts/CollectionContext';
 import { apiFetch } from '../shared/apiFetch';
 import type { PublishRoutingDraft } from '../hooks/usePublishRouting';
 import type {

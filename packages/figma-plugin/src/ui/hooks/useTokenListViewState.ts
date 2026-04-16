@@ -4,7 +4,7 @@ import { useSettingsListener } from "../components/SettingsPanel";
 import { DENSITY_ROW_HEIGHT } from "../components/tokenListTypes";
 import type { Density } from "../components/tokenListTypes";
 import type { SortOrder } from "../components/tokenListUtils";
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 
 const VALID_SORT_ORDERS: SortOrder[] = ["default", "alpha-asc", "by-type"];
 
@@ -16,7 +16,7 @@ function dispatchTokenListViewChanged(setName: string): void {
 
 export interface UseTokenListViewStateParams {
   setName: string;
-  dimensions: ThemeDimension[];
+  dimensions: CollectionDefinition[];
 }
 
 export function useTokenListViewState({
@@ -169,16 +169,16 @@ export function useTokenListViewState({
     }
   }, [multiModeEnabled, dimensions, multiModeDimId]);
 
-  // --- Theme lens (show themed values instead of base values) ---
-  const [themeLensEnabled, setThemeLensEnabledState] = useState<boolean>(
-    () => lsGet("tm_theme_lens") === "1",
+  // --- Mode lens (show mode-resolved values instead of base values) ---
+  const [modeLensEnabled, setModeLensEnabledState] = useState<boolean>(
+    () => lsGet("tm_mode_lens") === "1",
   );
 
-  const setThemeLensEnabled = useCallback(
+  const setModeLensEnabled = useCallback(
     (v: boolean | ((current: boolean) => boolean)) => {
-      setThemeLensEnabledState((current) => {
+      setModeLensEnabledState((current) => {
         const next = typeof v === "function" ? v(current) : v;
-        lsSet("tm_theme_lens", next ? "1" : "0");
+        lsSet("tm_mode_lens", next ? "1" : "0");
         dispatchTokenListViewChanged(setName);
         return next;
       });
@@ -208,7 +208,7 @@ export function useTokenListViewState({
     multiModeDimId,
     setMultiModeDimId,
     toggleMultiMode,
-    themeLensEnabled,
-    setThemeLensEnabled,
+    modeLensEnabled,
+    setModeLensEnabled,
   };
 }

@@ -1,14 +1,14 @@
 import { useState, useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 import { hexToLuminance, wcagContrast } from "../shared/colorUtils";
 import { normalizeHex, hexToLab } from "@tokenmanager/core";
-import { resolveThemeOption } from "../shared/comparisonUtils";
+import { resolveModeOption } from "../shared/comparisonUtils";
 
 export interface ContrastMatrixPanelProps {
   /** Non-alias color tokens sorted by luminance */
   colorTokens: { path: string; hex: string }[];
-  dimensions: ThemeDimension[];
+  dimensions: CollectionDefinition[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   onNavigateToToken?: (path: string, set: string) => void;
@@ -52,7 +52,7 @@ export function ContrastMatrixPanel({
         if (!activeContrastThemeKeys.has(key)) continue;
         result.set(
           key,
-          resolveThemeOption(
+          resolveModeOption(
             { dimensionId: dim.id, optionName: opt.name },
             dimensions,
             allTokensFlat,
@@ -386,7 +386,7 @@ export function ContrastMatrixPanel({
                           </span>
                         )}
                         {dim.options.map(
-                          (opt: ThemeDimension["options"][number]) => {
+                          (opt: CollectionDefinition["options"][number]) => {
                             const key = `${dim.id}:${opt.name}`;
                             const isActive = activeContrastThemeKeys.has(key);
                             return (

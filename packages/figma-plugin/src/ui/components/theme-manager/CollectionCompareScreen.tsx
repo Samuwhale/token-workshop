@@ -1,8 +1,8 @@
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 import { UnifiedComparePanel } from "../UnifiedComparePanel";
 import type { CompareMode } from "../UnifiedComparePanel";
 
-interface ThemeCompareScreenProps {
+interface CollectionCompareScreenProps {
   focusLabel: string | null;
   mode: CompareMode;
   onModeChange: (mode: CompareMode) => void;
@@ -12,11 +12,11 @@ interface ThemeCompareScreenProps {
   onClearTokenPath: () => void;
   allTokensFlat: Record<string, any>;
   pathToSet: Record<string, string>;
-  dimensions: ThemeDimension[];
+  dimensions: CollectionDefinition[];
   sets: string[];
-  themeOptionsKey: number;
-  themeOptionsDefaultA: string;
-  themeOptionsDefaultB: string;
+  modeOptionsKey: number;
+  modeOptionsDefaultA: string;
+  modeOptionsDefaultB: string;
   onEditToken: (setName: string, tokenPath: string) => void;
   onCreateToken: (tokenPath: string, setName: string) => void;
   onGoToTokens: () => void;
@@ -25,7 +25,7 @@ interface ThemeCompareScreenProps {
   onBack: () => void;
 }
 
-export function ThemeCompareScreen({
+export function CollectionCompareScreen({
   focusLabel,
   mode,
   onModeChange,
@@ -37,16 +37,16 @@ export function ThemeCompareScreen({
   pathToSet,
   dimensions,
   sets,
-  themeOptionsKey,
-  themeOptionsDefaultA,
-  themeOptionsDefaultB,
+  modeOptionsKey,
+  modeOptionsDefaultA,
+  modeOptionsDefaultB,
   onEditToken,
   onCreateToken,
   onGoToTokens,
   serverUrl,
   onTokensCreated,
   onBack,
-}: ThemeCompareScreenProps) {
+}: CollectionCompareScreenProps) {
   return (
     <>
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -100,9 +100,9 @@ export function ThemeCompareScreen({
           pathToSet={pathToSet}
           dimensions={dimensions}
           sets={sets}
-          themeOptionsKey={themeOptionsKey}
-          themeOptionsDefaultA={themeOptionsDefaultA}
-          themeOptionsDefaultB={themeOptionsDefaultB}
+          modeOptionsKey={modeOptionsKey}
+          modeOptionsDefaultA={modeOptionsDefaultA}
+          modeOptionsDefaultB={modeOptionsDefaultB}
           onEditToken={onEditToken}
           onCreateToken={onCreateToken}
           onGoToTokens={onGoToTokens}

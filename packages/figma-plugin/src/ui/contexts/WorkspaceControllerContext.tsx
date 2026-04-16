@@ -7,7 +7,7 @@ import type {
   SetStateAction,
 } from "react";
 import type { TokenListImperativeHandle } from "../components/tokenListTypes";
-import type { ThemeManagerHandle } from "../components/ThemeManager";
+import type { CollectionManagerHandle } from "../components/CollectionManager";
 import type { PublishPanelHandle } from "../components/PublishPanel";
 import type { StartHereBranch } from "../components/WelcomePrompt";
 import type { LintViolation } from "../hooks/useLint";
@@ -99,7 +99,7 @@ export interface TokensWorkspaceController {
   onTokenDragEnd: () => void;
   recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
-  handleOpenCrossThemeCompare: (path: string) => void;
+  handleOpenCrossCollectionCompare: (path: string) => void;
   handlePaletteDuplicate: (path: string) => Promise<void>;
   handlePaletteRename: (path: string) => void;
   handlePaletteMove: (path: string) => void;
@@ -107,8 +107,8 @@ export interface TokensWorkspaceController {
   handlePaletteDeleteToken: (path: string) => void;
 }
 
-export interface ThemeWorkspaceController {
-  themeManagerHandleRef: MutableRefObject<ThemeManagerHandle | null>;
+export interface CollectionWorkspaceController {
+  collectionManagerHandleRef: MutableRefObject<CollectionManagerHandle | null>;
 }
 
 export interface ApplyWorkspaceController {
@@ -216,7 +216,7 @@ export interface WorkspaceControllerValue {
   shell: ShellWorkspaceController;
   editor: EditorShellController;
   tokens: TokensWorkspaceController;
-  themes: ThemeWorkspaceController;
+  themes: CollectionWorkspaceController;
   apply: ApplyWorkspaceController;
   sync: SyncWorkspaceController;
   setManager: SetManagerWorkspaceController;
@@ -261,7 +261,7 @@ export function useTokensWorkspaceController(): TokensWorkspaceController {
   return useWorkspaceControllerContext().tokens;
 }
 
-export function useThemeWorkspaceController(): ThemeWorkspaceController {
+export function useCollectionWorkspaceController(): CollectionWorkspaceController {
   return useWorkspaceControllerContext().themes;
 }
 

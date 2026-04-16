@@ -65,8 +65,8 @@ export interface TokenListToolbarProps {
   onOpenCreateSet?: () => void;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
-  themeLensEnabled: boolean;
-  onToggleThemeLens: () => void;
+  modeLensEnabled: boolean;
+  onToggleModeLens: () => void;
   onCreateRecipe?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
@@ -82,15 +82,15 @@ export interface TokenListToolbarProps {
 function getCurrentLibraryViewMode({
   viewMode,
   multiModeEnabled,
-  themeLensEnabled,
+  modeLensEnabled,
 }: {
   viewMode: "tree" | "json";
   multiModeEnabled: boolean;
-  themeLensEnabled: boolean;
+  modeLensEnabled: boolean;
 }): LibraryViewMode {
   if (viewMode === "json") return "json";
-  if (multiModeEnabled) return "theme-options";
-  if (themeLensEnabled) return "active-theme";
+  if (multiModeEnabled) return "mode-options";
+  if (modeLensEnabled) return "active-mode";
   return "library";
 }
 
@@ -129,8 +129,8 @@ export function TokenListToolbar({
   onOpenCreateSet,
   multiModeEnabled,
   onToggleMultiMode,
-  themeLensEnabled,
-  onToggleThemeLens,
+  modeLensEnabled,
+  onToggleModeLens,
   onCreateRecipe,
   onSelectTokens,
   onBulkEdit,
@@ -187,7 +187,7 @@ export function TokenListToolbar({
   const currentLibraryViewMode = getCurrentLibraryViewMode({
     viewMode,
     multiModeEnabled,
-    themeLensEnabled,
+    modeLensEnabled,
   });
   const filterItems = toolbarStateChips.filter((chip) => chip.tone === "filter");
   const viewItems = toolbarStateChips.filter((chip) => chip.tone === "view");
@@ -207,25 +207,25 @@ export function TokenListToolbar({
 
       if (nextMode === "library") {
         if (multiModeEnabled) onToggleMultiMode();
-        if (themeLensEnabled) onToggleThemeLens();
+        if (modeLensEnabled) onToggleModeLens();
         return;
       }
 
-      if (nextMode === "theme-options") {
-        if (themeLensEnabled) onToggleThemeLens();
+      if (nextMode === "mode-options") {
+        if (modeLensEnabled) onToggleModeLens();
         if (!multiModeEnabled) onToggleMultiMode();
         return;
       }
 
       if (multiModeEnabled) onToggleMultiMode();
-      if (!themeLensEnabled) onToggleThemeLens();
+      if (!modeLensEnabled) onToggleModeLens();
     },
     [
       multiModeEnabled,
       onToggleMultiMode,
-      onToggleThemeLens,
+      onToggleModeLens,
       setViewMode,
-      themeLensEnabled,
+      modeLensEnabled,
       viewMode,
     ],
   );

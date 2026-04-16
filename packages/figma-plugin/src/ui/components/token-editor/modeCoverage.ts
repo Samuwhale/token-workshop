@@ -1,9 +1,9 @@
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 
 export interface ModeCoverageDimensionSummary {
   id: string;
   name: string;
-  options: ThemeDimension["options"];
+  options: CollectionDefinition["options"];
   optionCount: number;
   filledCount: number;
   missingCount: number;
@@ -24,7 +24,7 @@ function hasModeValue(value: unknown): boolean {
 }
 
 export function summarizeModeCoverage(
-  dimensions: ThemeDimension[],
+  dimensions: CollectionDefinition[],
   modeValues: Record<string, Record<string, unknown>>,
 ): ModeCoverageSummary {
   const dimensionsSummary: ModeCoverageDimensionSummary[] = dimensions.map(

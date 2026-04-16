@@ -4,7 +4,7 @@
  * existed in App.tsx. Adding a new tab requires: one entry in the lookup table
  * + one render function below.
  *
- * Reads ConnectionContext, TokenDataContext, ThemeContext, and InspectContext
+ * Reads ConnectionContext, TokenDataContext, CollectionContext, and InspectContext
  * directly so callers only pass App-local state as props.
  */
 
@@ -16,7 +16,7 @@ import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
 import { TokenRecipeDialog } from "../components/TokenRecipeDialog";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
-import { ThemeManager } from "../components/ThemeManager";
+import { CollectionManager } from "../components/CollectionManager";
 import { SetManager } from "../components/SetSwitcher";
 import { PublishPanel } from "../components/PublishPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
@@ -44,8 +44,8 @@ import {
   useRecipeContext,
 } from "../contexts/TokenDataContext";
 import {
-  useThemeSwitcherContext,
-} from "../contexts/ThemeContext";
+  useCollectionSwitcherContext,
+} from "../contexts/CollectionContext";
 import {
   useSelectionContext,
   useHeatmapContext,
@@ -60,7 +60,7 @@ import {
   useSetManagerWorkspaceController,
   useShellWorkspaceController,
   useSyncWorkspaceController,
-  useThemeWorkspaceController,
+  useCollectionWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
@@ -132,7 +132,7 @@ export function PanelRouter({
   const shell = useShellWorkspaceController();
   const editorShell = useEditorShellController();
   const tokensController = useTokensWorkspaceController();
-  const themeController = useThemeWorkspaceController();
+  const collectionController = useCollectionWorkspaceController();
   const applyController = useApplyWorkspaceController();
   const syncController = useSyncWorkspaceController();
   const setManagerController = useSetManagerWorkspaceController();
@@ -140,7 +140,7 @@ export function PanelRouter({
     ...shell,
     ...editorShell,
     ...tokensController,
-    ...themeController,
+    ...collectionController,
     ...applyController,
     ...syncController,
     onShowPasteModal: shell.openPasteModal,
@@ -195,8 +195,8 @@ export function PanelRouter({
     setTokensComparePaths,
     tokensComparePath,
     setTokensComparePath,
-    tokensCompareThemeKey,
-    setTokensCompareThemeKey: _setTokensCompareThemeKey,
+    tokensCompareModeKey,
+    setTokensCompareModeKey: _setTokensCompareModeKey,
     tokensCompareDefaultA,
     tokensCompareDefaultB,
     tokensContextualSurfaceState,
@@ -234,12 +234,12 @@ export function PanelRouter({
     derivedTokenPaths,
   } = useRecipeContext();
   const {
-    dimensions,
-    setDimensions,
-    activeThemes,
-    setActiveThemes,
-    themedAllTokensFlat,
-  } = useThemeSwitcherContext();
+    collections: dimensions,
+    setCollections: setDimensions,
+    activeModes: activeThemes,
+    setActiveModes: setActiveThemes,
+    modeResolvedTokensFlat: themedAllTokensFlat,
+  } = useCollectionSwitcherContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
     heatmapResult,
@@ -632,7 +632,7 @@ export function PanelRouter({
       controller.setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "compare",
-        mode: "cross-theme",
+        mode: "cross-collection",
         path,
       });
     },
@@ -700,9 +700,9 @@ export function PanelRouter({
       pathToSet={pathToSet}
       dimensions={dimensions}
       sets={sets}
-      themeOptionsKey={tokensCompareThemeKey}
-      themeOptionsDefaultA={tokensCompareDefaultA}
-      themeOptionsDefaultB={tokensCompareDefaultB}
+      modeOptionsKey={tokensCompareModeKey}
+      modeOptionsDefaultA={tokensCompareDefaultA}
+      modeOptionsDefaultB={tokensCompareDefaultB}
       onEditToken={(set, path) => {
         controller.guardEditorAction(() => {
           openTokenEditor({ path, set });
@@ -1349,7 +1349,7 @@ export function PanelRouter({
             panelName="Collections"
             onReset={() => navigateTo("tokens", "tokens")}
           >
-            <ThemeManager
+            <CollectionManager
               serverUrl={serverUrl}
               connected={connected}
               sets={sets}
@@ -1377,7 +1377,7 @@ export function PanelRouter({
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
               }}
-              themeManagerHandle={controller.themeManagerHandleRef}
+              collectionManagerHandle={controller.collectionManagerHandleRef}
             />
           </ErrorBoundary>
         </div>

@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useCallback, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
-import type { ThemeDimension } from '@tokenmanager/core';
+import type { CollectionDefinition } from '@tokenmanager/core';
 import type { TokenRecipe } from '../hooks/useRecipes';
 import type { LintViolation } from '../hooks/useLint';
 import { TokenDetailPreview } from './TokenDetailPreview';
@@ -10,7 +10,7 @@ import { lsGet, lsSet } from '../shared/storage';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
-  dimensions?: ThemeDimension[];
+  dimensions?: CollectionDefinition[];
   activeThemes?: Record<string, string>;
   onActiveThemesChange?: (themes: Record<string, string>) => void;
   onGoToTokens?: () => void;

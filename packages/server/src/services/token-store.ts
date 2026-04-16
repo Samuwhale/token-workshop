@@ -2325,5 +2325,5 @@ export interface ChangeEvent {
   tokenPath?: string;
   recipeId?: string;
   message?: string;
-  resourceType?: "themes" | "recipes" | "resolver";
+  resourceType?: "collections" | "recipes" | "resolver";
 }

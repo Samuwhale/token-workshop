@@ -1,22 +1,22 @@
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
-import { applyThemeSelectionsToTokens } from "./themeModeUtils";
+import { applyModeSelectionsToTokens } from "./collectionModeUtils";
 
-export interface ThemeComparisonOption {
+export interface ModeComparisonOption {
   dimensionId: string;
   optionName: string;
 }
 
-export function resolveThemeOption(
-  option: ThemeComparisonOption | null,
-  dimensions: ThemeDimension[],
+export function resolveModeOption(
+  option: ModeComparisonOption | null,
+  dimensions: CollectionDefinition[],
   allTokensFlat: Record<string, TokenMapEntry>,
   pathToSet: Record<string, string>,
 ): Record<string, TokenMapEntry> {
   if (!option) {
-    return applyThemeSelectionsToTokens(allTokensFlat, dimensions, {}, pathToSet);
+    return applyModeSelectionsToTokens(allTokensFlat, dimensions, {}, pathToSet);
   }
-  return applyThemeSelectionsToTokens(allTokensFlat, dimensions, {
+  return applyModeSelectionsToTokens(allTokensFlat, dimensions, {
     [option.dimensionId]: option.optionName,
   }, pathToSet);
 }

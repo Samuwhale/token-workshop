@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import type { TokenMapEntry } from '../../shared/types';
-import type { ThemeDimension, TokenValue } from '@tokenmanager/core';
+import type { CollectionDefinition, TokenValue } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { swatchBgColor } from '../shared/colorUtils';
-import { resolveThemeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
+import { resolveModeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
 import { apiFetch } from '../shared/apiFetch';
 
@@ -65,7 +65,7 @@ type FlatOption = {
   optionName: string;
 };
 
-function buildFlatOptions(dimensions: ThemeDimension[]): FlatOption[] {
+function buildFlatOptions(dimensions: CollectionDefinition[]): FlatOption[] {
   const result: FlatOption[] = [];
   for (const dim of dimensions) {
     for (const opt of dim.options) {
@@ -429,7 +429,7 @@ interface OptionResult {
 interface CrossThemeModeProps {
   tokenPath: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  dimensions: ThemeDimension[];
+  dimensions: CollectionDefinition[];
   pathToSet: Record<string, string>;
   onClose: () => void;
 }
@@ -447,7 +447,7 @@ function CrossThemeMode({
     const out: OptionResult[] = [];
     for (const dim of dimensions) {
       for (const option of dim.options) {
-        const resolved = resolveThemeOption(
+        const resolved = resolveModeOption(
           { dimensionId: dim.id, optionName: option.name },
           dimensions,
           allTokensFlat,
@@ -599,7 +599,7 @@ function CrossThemeMode({
 // Mode 3 – Theme options A vs B (diff list)
 
 interface ThemeOptionsModeProps {
-  dimensions: ThemeDimension[];
+  dimensions: CollectionDefinition[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
   onEditToken?: (set: string, path: string) => void;
@@ -618,7 +618,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
   const resolvedA = useMemo(() => {
     if (!optionKeyA) return null;
     const opt = flatOptions.find(o => o.key === optionKeyA) ?? null;
-    return resolveThemeOption(
+    return resolveModeOption(
       opt
         ? { dimensionId: opt.dimensionId, optionName: opt.optionName }
         : null,
@@ -631,7 +631,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
   const resolvedB = useMemo(() => {
     if (!optionKeyB) return null;
     const opt = flatOptions.find(o => o.key === optionKeyB) ?? null;
-    return resolveThemeOption(
+    return resolveModeOption(
       opt
         ? { dimensionId: opt.dimensionId, optionName: opt.optionName }
         : null,
@@ -1352,7 +1352,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
 
 // CompareView – main export (mode selector + routing)
 
-export type CompareMode = 'tokens' | 'cross-theme' | 'theme-options' | 'set-diff';
+export type CompareMode = 'tokens' | 'cross-collection' | 'mode-options' | 'set-diff';
 
 interface CompareViewProps {
   mode: CompareMode;
@@ -1366,12 +1366,12 @@ interface CompareViewProps {
 
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
-  dimensions: ThemeDimension[];
+  dimensions: CollectionDefinition[];
   sets: string[];
 
-  themeOptionsKey: number;
-  themeOptionsDefaultA: string;
-  themeOptionsDefaultB: string;
+  modeOptionsKey: number;
+  modeOptionsDefaultA: string;
+  modeOptionsDefaultB: string;
 
   onEditToken: (set: string, path: string) => void;
   onCreateToken: (path: string, set: string, type: string, value?: string) => void;
@@ -1384,8 +1384,8 @@ interface CompareViewProps {
 
 const MODES: { id: CompareMode; label: string }[] = [
   { id: 'tokens', label: 'Token values' },
-  { id: 'cross-theme', label: 'Token × modes' },
-  { id: 'theme-options', label: 'Mode pairs' },
+  { id: 'cross-collection', label: 'Token × modes' },
+  { id: 'mode-options', label: 'Mode pairs' },
   { id: 'set-diff', label: 'Collection diff' },
 ];
 
@@ -1400,9 +1400,9 @@ export function CompareView({
   pathToSet,
   dimensions,
   sets,
-  themeOptionsKey,
-  themeOptionsDefaultA,
-  themeOptionsDefaultB,
+  modeOptionsKey,
+  modeOptionsDefaultA,
+  modeOptionsDefaultB,
   onEditToken,
   onCreateToken,
   onGoToTokens,
@@ -1453,7 +1453,7 @@ export function CompareView({
           )
         )}
 
-        {mode === 'cross-theme' && (
+        {mode === 'cross-collection' && (
           tokenPath === '' || dimensions.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 px-3 text-center">
               {dimensions.length === 0 ? (
@@ -1483,14 +1483,14 @@ export function CompareView({
           )
         )}
 
-        {mode === 'theme-options' && (
+        {mode === 'mode-options' && (
           <ThemeOptionsMode
-            key={themeOptionsKey}
+            key={modeOptionsKey}
             dimensions={dimensions}
             allTokensFlat={allTokensFlat}
             pathToSet={pathToSet}
-            initialOptionKeyA={themeOptionsDefaultA}
-            initialOptionKeyB={themeOptionsDefaultB}
+            initialOptionKeyA={modeOptionsDefaultA}
+            initialOptionKeyB={modeOptionsDefaultB}
             onEditToken={onEditToken}
           />
         )}

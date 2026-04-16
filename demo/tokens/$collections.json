@@ -1,0 +1,14 @@
+{
+  "$collections": [
+    {
+      "id": "primitives",
+      "name": "primitives",
+      "options": []
+    },
+    {
+      "id": "semantic",
+      "name": "semantic",
+      "options": []
+    }
+  ]
+}

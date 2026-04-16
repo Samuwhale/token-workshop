@@ -1,7 +1,7 @@
 import type {
   AffectedRef,
   RecipeImpact,
-  ThemeImpact,
+  ModeImpact,
   DeleteConfirm,
 } from "../tokenListTypes";
 
@@ -12,7 +12,7 @@ export interface DeleteModalProps {
   pathList?: string[];
   affectedRefs?: AffectedRef[];
   recipeImpacts?: RecipeImpact[];
-  themeImpacts?: ThemeImpact[];
+  modeImpacts?: ModeImpact[];
 }
 
 export function getDeleteModalProps(
@@ -24,8 +24,8 @@ export function getDeleteModalProps(
       ? deleteConfirm.recipeImpacts
       : undefined;
   const thmImpacts =
-    deleteConfirm.themeImpacts.length > 0
-      ? deleteConfirm.themeImpacts
+    deleteConfirm.modeImpacts.length > 0
+      ? deleteConfirm.modeImpacts
       : undefined;
 
   if (deleteConfirm.type === "token") {
@@ -54,7 +54,7 @@ export function getDeleteModalProps(
       confirmLabel: "Delete",
       affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
       recipeImpacts: genImpacts,
-      themeImpacts: thmImpacts,
+      modeImpacts: thmImpacts,
     };
   }
 
@@ -82,7 +82,7 @@ export function getDeleteModalProps(
       confirmLabel: `Delete group (${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? "s" : ""})`,
       affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
       recipeImpacts: genImpacts,
-      themeImpacts: thmImpacts,
+      modeImpacts: thmImpacts,
     };
   }
 
@@ -109,6 +109,6 @@ export function getDeleteModalProps(
     pathList: paths,
     affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
     recipeImpacts: genImpacts,
-    themeImpacts: thmImpacts,
+    modeImpacts: thmImpacts,
   };
 }

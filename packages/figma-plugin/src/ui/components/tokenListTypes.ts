@@ -11,7 +11,7 @@ import type { LintViolation } from "../hooks/useLint";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { TokensLibraryRecipeEditorTarget } from "../shared/navigationTypes";
 import type { StartHereBranch } from "./WelcomePrompt";
-import type { ThemeDimension } from "@tokenmanager/core";
+import type { CollectionDefinition } from "@tokenmanager/core";
 
 /** Per-option resolved value for a single token in multi-mode view */
 export interface MultiModeValue {
@@ -103,7 +103,7 @@ export interface TokenListData {
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
   /** Theme dimensions for multi-mode column view */
-  dimensions?: ThemeDimension[];
+  dimensions?: CollectionDefinition[];
   /** Unthemed (raw) allTokensFlat — needed for per-option resolution */
   unthemedAllTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token paths to their source set name */
@@ -157,7 +157,7 @@ export interface TokenListActions {
   onSelectionChange?: (paths: string[]) => void;
   /** Open the unified compare view with the given token paths pre-loaded (navigates away from Tokens tab) */
   onOpenCompare?: (paths: Set<string>) => void;
-  /** Open the unified compare view in cross-theme mode for a specific token path */
+  /** Open the unified compare view in cross-collection mode for a specific token path */
   onOpenCrossThemeCompare?: (path: string) => void;
   /** Open the command palette in token-search mode pre-populated with the given query ("> query") */
   onOpenCommandPaletteWithQuery?: (query: string) => void;
@@ -236,7 +236,7 @@ export interface RecipeImpact {
   configField?: string;
 }
 
-export interface ThemeImpact {
+export interface ModeImpact {
   dimName: string;
   optionName: string;
 }
@@ -248,7 +248,7 @@ export type DeleteConfirm =
       orphanCount: number;
       affectedRefs: AffectedRef[];
       recipeImpacts: RecipeImpact[];
-      themeImpacts: ThemeImpact[];
+      modeImpacts: ModeImpact[];
     }
   | {
       type: "group";
@@ -258,7 +258,7 @@ export type DeleteConfirm =
       orphanCount: number;
       affectedRefs: AffectedRef[];
       recipeImpacts: RecipeImpact[];
-      themeImpacts: ThemeImpact[];
+      modeImpacts: ModeImpact[];
     }
   | {
       type: "bulk";
@@ -266,7 +266,7 @@ export type DeleteConfirm =
       orphanCount: number;
       affectedRefs: AffectedRef[];
       recipeImpacts: RecipeImpact[];
-      themeImpacts: ThemeImpact[];
+      modeImpacts: ModeImpact[];
     };
 
 export interface PromoteRow {
@@ -424,7 +424,7 @@ export interface TokenTreeLeafStateContextType {
   /** Set of starred token paths in the current set — for fast O(1) lookup */
   starredPaths?: Set<string>;
   /** Theme dimensions — for resolution chain debugger */
-  dimensions?: ThemeDimension[];
+  dimensions?: CollectionDefinition[];
   /** Currently active theme selections (dimId → optionName) — for resolution chain debugger */
   activeThemes?: Record<string, string>;
   /** Path of a token that should enter inline rename mode as soon as it renders */
@@ -440,7 +440,7 @@ export interface TokenTreeLeafStateContextType {
   /** Per-token missing mode value count — tokenPath → number of missing mode values */
   tokenModeMissing?: Map<string, number>;
   /** When true, the token list is showing themed values instead of base values */
-  themeLensEnabled?: boolean;
+  modeLensEnabled?: boolean;
 }
 
 export interface TokenTreeLeafActionsContextType {
@@ -470,7 +470,7 @@ export interface TokenTreeLeafActionsContextType {
   onRenameToken?: (oldPath: string, newPath: string) => void;
   /** Navigate to History panel filtered to this token path */
   onViewTokenHistory?: (path: string) => void;
-  /** Open cross-theme comparison panel for this token */
+  /** Open cross-collection comparison panel for this token */
   onCompareAcrossThemes?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;

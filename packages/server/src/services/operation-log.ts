@@ -3,8 +3,8 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type {
   ResolverFile,
-  ThemeDimension,
-  ThemeViewPreset,
+  CollectionDefinition,
+  ViewPreset,
   Token,
   TokenRecipe,
 } from "@tokenmanager/core";
@@ -193,8 +193,8 @@ export type RollbackStep =
     }
   | {
       action: "write-themes";
-      dimensions: ThemeDimension[];
-      views?: ThemeViewPreset[];
+      dimensions: CollectionDefinition[];
+      views?: ViewPreset[];
     }
   | { action: "write-resolver"; name: string; file: ResolverFile }
   | { action: "delete-resolver"; name: string }
@@ -202,27 +202,27 @@ export type RollbackStep =
   | { action: "delete-recipe"; id: string };
 
 /**
- * Minimal interface for serialized access to the $themes.json file.
- * Structurally compatible with DimensionsStore from routes/themes.ts.
+ * Minimal interface for serialized access to the $collections.json file.
+ * Structurally compatible with CollectionsStore from routes/themes.ts.
  */
-export interface ThemesWriteLock {
+export interface CollectionsWriteLock {
   withLock<T>(
     fn: (
-      dims: ThemeDimension[],
-    ) => Promise<{ dims: ThemeDimension[]; result: T }>,
+      dims: CollectionDefinition[],
+    ) => Promise<{ dims: CollectionDefinition[]; result: T }>,
   ): Promise<T>;
   withReadStateLock?<T>(
     fn: (state: {
-      dimensions: ThemeDimension[];
-      views: ThemeViewPreset[];
+      dimensions: CollectionDefinition[];
+      views: ViewPreset[];
     }) => Promise<T>,
   ): Promise<T>;
   withStateLock?<T>(
     fn: (state: {
-      dimensions: ThemeDimension[];
-      views: ThemeViewPreset[];
+      dimensions: CollectionDefinition[];
+      views: ViewPreset[];
     }) => Promise<{
-      state: { dimensions: ThemeDimension[]; views: ThemeViewPreset[] };
+      state: { dimensions: CollectionDefinition[]; views: ViewPreset[] };
       result: T;
     }>,
   ): Promise<T>;
@@ -232,11 +232,11 @@ export interface ThemesWriteLock {
 export interface RollbackContext {
   tokenStore: TokenStore;
   /**
-   * Provides serialized read/write access to $themes.json.
-   * Must be passed so that rollback does not bypass the DimensionsStore lock chain,
+   * Provides serialized read/write access to $collections.json.
+   * Must be passed so that rollback does not bypass the CollectionsStore lock chain,
    * which would race with concurrent theme mutations and corrupt the file.
    */
-  themesStore?: ThemesWriteLock;
+  collectionsStore?: CollectionsWriteLock;
   resolverLock?: {
     withLock<T>(fn: () => Promise<T>): Promise<T>;
   };
@@ -382,7 +382,9 @@ export class OperationLog {
   }
 
   private async cleanupStoreDir(): Promise<void> {
-    await fs.rmdir(path.dirname(this.filePath)).catch(() => {});
+    await fs.rmdir(path.dirname(this.filePath)).catch((err) => {
+      console.error("[rollback-error] Cleanup failed: could not remove operation log store directory", err);
+    });
   }
 
   /** Push a new entry and persist — must be called while holding the lock. */
@@ -526,18 +528,23 @@ export class OperationLog {
   // Themes file helpers (for structural rollback of theme operations)
   // ---------------------------------------------------------------------------
 
-  private async readThemesFile(): Promise<{
-    dimensions: ThemeDimension[];
-    views: ThemeViewPreset[];
+  private async readCollectionsFile(): Promise<{
+    dimensions: CollectionDefinition[];
+    views: ViewPreset[];
   }> {
     try {
       const content = await fs.readFile(
-        path.join(this.tokenDir, "$themes.json"),
+        path.join(this.tokenDir, "$collections.json"),
         "utf-8",
       );
       const data = JSON.parse(content);
+      const collections = Array.isArray(data.$collections)
+        ? data.$collections
+        : Array.isArray(data.$themes)
+          ? data.$themes
+          : [];
       return {
-        dimensions: Array.isArray(data.$themes) ? data.$themes : [],
+        dimensions: collections,
         views: Array.isArray(data.$views) ? data.$views : [],
       };
     } catch {
@@ -545,13 +552,13 @@ export class OperationLog {
     }
   }
 
-  private async writeThemesFile(state: {
-    dimensions: ThemeDimension[];
-    views: ThemeViewPreset[];
+  private async writeCollectionsFile(state: {
+    dimensions: CollectionDefinition[];
+    views: ViewPreset[];
   }): Promise<void> {
-    const dest = path.join(this.tokenDir, "$themes.json");
+    const dest = path.join(this.tokenDir, "$collections.json");
     const data = {
-      $themes: state.dimensions,
+      $collections: state.dimensions,
       ...(state.views.length > 0 ? { $views: state.views } : {}),
     };
     const tmp = `${dest}.tmp`;
@@ -616,21 +623,21 @@ export class OperationLog {
         }
         case "write-themes": {
           let currentState: {
-            dimensions: ThemeDimension[];
-            views: ThemeViewPreset[];
+            dimensions: CollectionDefinition[];
+            views: ViewPreset[];
           };
-          if (ctx.themesStore?.withReadStateLock) {
-            currentState = await ctx.themesStore.withReadStateLock((state) =>
+          if (ctx.collectionsStore?.withReadStateLock) {
+            currentState = await ctx.collectionsStore.withReadStateLock((state) =>
               Promise.resolve(structuredClone(state)),
             );
-          } else if (ctx.themesStore) {
-            const currentDims = await ctx.themesStore.withLock(async (dims) => ({
+          } else if (ctx.collectionsStore) {
+            const currentDims = await ctx.collectionsStore.withLock(async (dims) => ({
               dims,
               result: structuredClone(dims),
             }));
             currentState = { dimensions: currentDims, views: [] };
           } else {
-            currentState = await this.readThemesFile();
+            currentState = await this.readCollectionsFile();
           }
           inverse.push({
             action: "write-themes",
@@ -729,21 +736,21 @@ export class OperationLog {
           await ctx.tokenStore.updateSetPublishRoute(step.name, step.routing);
           break;
         case "write-themes":
-          if (ctx.themesStore?.withStateLock) {
-            await ctx.themesStore.withStateLock(async () => ({
+          if (ctx.collectionsStore?.withStateLock) {
+            await ctx.collectionsStore.withStateLock(async () => ({
               state: {
                 dimensions: step.dimensions,
                 views: step.views ?? [],
               },
               result: undefined,
             }));
-          } else if (ctx.themesStore) {
-            await ctx.themesStore.withLock(async () => ({
+          } else if (ctx.collectionsStore) {
+            await ctx.collectionsStore.withLock(async () => ({
               dims: step.dimensions,
               result: undefined,
             }));
           } else {
-            await this.writeThemesFile({
+            await this.writeCollectionsFile({
               dimensions: step.dimensions,
               views: step.views ?? [],
             });

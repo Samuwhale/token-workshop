@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import { flattenTokenGroup, type Token } from "@tokenmanager/core";
 import { BadRequestError, GitTimeoutError } from "../errors.js";
 import type { TokenStore } from "./token-store.js";
-import type { DimensionsStore } from "../routes/themes.js";
+import type { CollectionsStore } from "../routes/themes.js";
 import type { RecipeService } from "./recipe-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -946,7 +946,7 @@ export class GitSync {
     choices: Record<string, "push" | "pull" | "skip">,
     stores?: {
       tokenStore?: TokenStore;
-      dimensionsStore?: DimensionsStore;
+      collectionsStore?: CollectionsStore;
       recipeService?: RecipeService;
       resolverStore?: ResolverStore;
     },
@@ -976,10 +976,10 @@ export class GitSync {
             stores.tokenStore.startWriteGuard(absolutePath);
           }
           if (
-            stores?.dimensionsStore &&
-            path.basename(file) === "$themes.json"
+            stores?.collectionsStore &&
+            path.basename(file) === "$collections.json"
           ) {
-            stores.dimensionsStore.startWriteGuard(absolutePath);
+            stores.collectionsStore.startWriteGuard(absolutePath);
           }
           if (
             stores?.recipeService &&
@@ -1011,10 +1011,10 @@ export class GitSync {
               stores.tokenStore.endWriteGuard(absolutePath);
             }
             if (
-              stores?.dimensionsStore &&
-              path.basename(file) === "$themes.json"
+              stores?.collectionsStore &&
+              path.basename(file) === "$collections.json"
             ) {
-              stores.dimensionsStore.endWriteGuard(absolutePath);
+              stores.collectionsStore.endWriteGuard(absolutePath);
             }
             if (
               stores?.recipeService &&
@@ -1053,10 +1053,10 @@ export class GitSync {
               if (stores?.tokenStore && file.endsWith(".tokens.json")) {
                 await stores.tokenStore.reloadFile(file);
               } else if (
-                stores?.dimensionsStore &&
-                path.basename(file) === "$themes.json"
+                stores?.collectionsStore &&
+                path.basename(file) === "$collections.json"
               ) {
-                await stores.dimensionsStore.reloadFromDisk();
+                await stores.collectionsStore.reloadFromDisk();
               } else if (
                 stores?.recipeService &&
                 path.basename(file) === "$recipes.json"
