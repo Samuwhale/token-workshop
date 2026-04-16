@@ -18,7 +18,7 @@ type PrereqPhase = 'connect' | 'create-set' | null;
 interface SemanticData {
   tokens: GeneratedTokenResult[];
   targetGroup: string;
-  targetSet: string;
+  targetCollection: string;
   recipeType: RecipeType;
 }
 
@@ -554,7 +554,7 @@ export function QuickStartWizard({
         generatedTokens={semanticData.tokens}
         recipeType={semanticData.recipeType}
         targetGroup={semanticData.targetGroup}
-        targetSet={semanticData.targetSet}
+        targetCollection={semanticData.targetCollection}
         onClose={handleSemanticsClose}
         onCreated={handleSemanticsCreated}
       />

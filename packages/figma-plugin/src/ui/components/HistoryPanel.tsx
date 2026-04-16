@@ -87,8 +87,8 @@ function formatMetadataValue(value?: string) {
 
 function formatSnapshotWorkspaceCounts(snapshot: SnapshotSummary) {
   const parts: string[] = [];
-  if (snapshot.dimensionCount > 0) {
-    parts.push(`${snapshot.dimensionCount} ${snapshot.dimensionCount === 1 ? 'mode' : 'modes'}`);
+  if (snapshot.collectionCount > 0) {
+    parts.push(`${snapshot.collectionCount} ${snapshot.collectionCount === 1 ? 'mode' : 'modes'}`);
   }
   if (snapshot.resolverCount > 0) {
     parts.push(`${snapshot.resolverCount} ${snapshot.resolverCount === 1 ? 'resolver' : 'resolvers'}`);

@@ -33,7 +33,7 @@ interface DetailPopoverProps {
   containerHeight: number;
   onRun: (id: string) => void;
   onEdit: (id: string) => void;
-  onViewTokens: (targetGroup: string, targetSet: string) => void;
+  onViewTokens: (targetGroup: string, targetCollection: string) => void;
 }
 
 const POPOVER_W = 224; // w-56
@@ -75,7 +75,7 @@ function DetailPopover({
       <div className="mb-1.5 font-mono text-[var(--color-figma-text-secondary)] break-all">
         {recipe.sourceToken || 'standalone'}
         <span className="mx-1 text-[var(--color-figma-text-tertiary)]">&rarr;</span>
-        {recipe.targetGroup}.*{recipe.targetSet ? ` (${recipe.targetSet})` : ''}
+        {recipe.targetGroup}.*{recipe.targetCollection ? ` (${recipe.targetCollection})` : ''}
       </div>
 
       {/* Last run */}
@@ -107,7 +107,7 @@ function DetailPopover({
           Edit
         </button>
         <button
-          onClick={() => onViewTokens(recipe.targetGroup, recipe.targetSet)}
+          onClick={() => onViewTokens(recipe.targetGroup, recipe.targetCollection)}
           className="flex-1 py-1 rounded text-center border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
           Tokens
@@ -128,7 +128,7 @@ export interface NodeGraphCanvasProps {
   searchQuery?: string;
   onEditRecipe?: (recipeId: string) => void;
   onRunRecipe?: (recipeId: string) => void;
-  onViewTokens?: (targetGroup: string, targetSet: string) => void;
+  onViewTokens?: (targetGroup: string, targetCollection: string) => void;
 }
 
 export function NodeGraphCanvas({

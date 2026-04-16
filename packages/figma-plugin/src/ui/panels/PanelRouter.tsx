@@ -439,7 +439,7 @@ export function PanelRouter({
   const getViewTokensToastAction = useCallback(
     (info: RecipeSaveSuccessInfo): ToastAction => ({
       label: "View tokens",
-      onClick: () => openGeneratedTokens(info.targetGroup, info.targetSet),
+      onClick: () => openGeneratedTokens(info.targetGroup, info.targetCollection),
     }),
     [openGeneratedTokens],
   );
@@ -774,7 +774,7 @@ export function PanelRouter({
             setEditingRecipe(null);
             controller.refreshAll();
             if (info) {
-              openGeneratedTokens(info.targetGroup, info.targetSet);
+              openGeneratedTokens(info.targetGroup, info.targetCollection);
             }
           },
           getSuccessToastAction: getViewTokensToastAction,

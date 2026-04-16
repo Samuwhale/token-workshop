@@ -643,8 +643,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                     </p>
                     <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
                       {formatRelativeTime(new Date(s.timestamp))}{ticker >= 0 ? '' : ''} · {s.tokenCount} tokens · {s.setCount} {s.setCount === 1 ? 'set' : 'sets'}
-                      {(s.dimensionCount + s.resolverCount + s.recipeCount) > 0 ? ` · ${[
-                        s.dimensionCount > 0 ? `${s.dimensionCount} theme ${s.dimensionCount === 1 ? 'dimension' : 'dimensions'}` : '',
+                      {(s.collectionCount + s.resolverCount + s.recipeCount) > 0 ? ` · ${[
+                        s.collectionCount > 0 ? `${s.collectionCount} ${s.collectionCount === 1 ? 'collection' : 'collections'}` : '',
                         s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',
                         s.recipeCount > 0 ? `${s.recipeCount} ${s.recipeCount === 1 ? 'recipe' : 'recipes'}` : '',
                       ].filter(Boolean).join(' · ')}` : ''}

@@ -39,7 +39,7 @@ interface DetachOutputsBody {
 type SnapshotMap = Record<string, SnapshotEntry>;
 type RecipeSnapshotTarget = Pick<
   TokenRecipe,
-  'targetSet' | 'targetSetTemplate' | 'inputTable' | 'targetGroup' | 'semanticLayer'
+  'targetCollection' | 'targetCollectionTemplate' | 'inputTable' | 'targetGroup' | 'semanticLayer'
 >;
 
 interface LoggedRecipeMutationConfig<TResult> {
@@ -68,17 +68,17 @@ interface DeleteRecipeResult {
   tokensDeleted: number;
 }
 
-function getRecipeSetNames(recipe: Pick<TokenRecipe, 'targetSet' | 'targetSetTemplate' | 'inputTable'>): string[] {
+function getRecipeCollectionIds(recipe: Pick<TokenRecipe, 'targetCollection' | 'targetCollectionTemplate' | 'inputTable'>): string[] {
   if (!recipe.inputTable?.rows.length) {
-    return recipe.targetSet ? [recipe.targetSet] : [];
+    return recipe.targetCollection ? [recipe.targetCollection] : [];
   }
   const setNames = new Set<string>();
   for (const row of recipe.inputTable.rows) {
     if (!row.brand.trim()) continue;
     setNames.add(
-      recipe.targetSetTemplate
-        ? recipe.targetSetTemplate.replace('{brand}', row.brand)
-        : recipe.targetSet,
+      recipe.targetCollectionTemplate
+        ? recipe.targetCollectionTemplate.replace('{brand}', row.brand)
+        : recipe.targetCollection,
     );
   }
   return [...setNames];
@@ -125,7 +125,7 @@ async function snapshotRecipeOutputs(
           )
       : [];
 
-  for (const setName of getRecipeSetNames(recipe)) {
+  for (const setName of getRecipeCollectionIds(recipe)) {
     Object.assign(snapshot, await snapshotGroup(tokenStore, setName, recipe.targetGroup));
     if (semanticPaths.length > 0) {
       Object.assign(snapshot, await snapshotTokenPaths(tokenStore, setName, semanticPaths));
@@ -238,10 +238,10 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/recipes — create a new recipe and run it immediately
   fastify.post<{ Body: CreateBody }>('/recipes', async (request, reply) => {
-    const { type, sourceToken, inlineValue, targetSet, targetGroup, name, config, overrides, inputTable, targetSetTemplate } = request.body ?? {} as CreateBody;
-    if (typeof type !== 'string' || typeof targetSet !== 'string' || typeof targetGroup !== 'string' || !type || !targetSet || !targetGroup) {
+    const { type, sourceToken, inlineValue, targetCollection, targetGroup, name, config, overrides, inputTable, targetCollectionTemplate } = request.body ?? {} as CreateBody;
+    if (typeof type !== 'string' || typeof targetCollection !== 'string' || typeof targetGroup !== 'string' || !type || !targetCollection || !targetGroup) {
       return reply.status(400).send({
-        error: 'type, targetSet, and targetGroup are required',
+        error: 'type, targetCollection, and targetGroup are required',
       });
     }
     return withLock(async () => {
@@ -249,12 +249,12 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(201).send(await executeLoggedRecipeMutation({
           type: 'recipe-create',
           description: (recipe) => `Create recipe "${recipe.name}" → ${recipe.targetGroup}`,
-          setName: targetSet,
+          setName: targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, {
-            targetSet,
+            targetCollection,
             targetGroup,
             inputTable,
-            targetSetTemplate: targetSetTemplate ?? undefined,
+            targetCollectionTemplate: targetCollectionTemplate ?? undefined,
             semanticLayer: request.body?.semanticLayer,
           } as RecipeSnapshotTarget),
           mutate: async () => {
@@ -262,13 +262,13 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
               type,
               sourceToken: sourceToken ?? undefined,
               inlineValue: inlineValue ?? undefined,
-              targetSet,
+              targetCollection,
               targetGroup,
               name: typeof name === 'string' ? name : sourceToken ? `${sourceToken} ${type}` : type,
               config,
               overrides,
               inputTable,
-              targetSetTemplate: targetSetTemplate ?? undefined,
+              targetCollectionTemplate: targetCollectionTemplate ?? undefined,
               semanticLayer: request.body?.semanticLayer,
             });
             await fastify.recipeService.run(recipe.id, fastify.tokenStore);
@@ -297,8 +297,8 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           sourceToken: body.sourceToken,
           inlineValue: body.inlineValue,
           targetGroup: body.targetGroup ?? '',
-          targetSet: body.targetSet ?? '',
-          targetSetTemplate: body.targetSetTemplate,
+          targetCollection: body.targetCollection ?? '',
+          targetCollectionTemplate: body.targetCollectionTemplate,
           config: body.config,
           overrides: body.overrides,
           inputTable: body.inputTable,
@@ -342,9 +342,9 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         if (typeof body.name === 'string') updates.name = body.name;
         if (typeof body.enabled === 'boolean') updates.enabled = body.enabled;
         if (typeof body.sourceToken === 'string') updates.sourceToken = body.sourceToken;
-        if (typeof body.targetSet === 'string') updates.targetSet = body.targetSet;
+        if (typeof body.targetCollection === 'string') updates.targetCollection = body.targetCollection;
         if (typeof body.targetGroup === 'string') updates.targetGroup = body.targetGroup;
-        if (typeof body.targetSetTemplate === 'string') updates.targetSetTemplate = body.targetSetTemplate;
+        if (typeof body.targetCollectionTemplate === 'string') updates.targetCollectionTemplate = body.targetCollectionTemplate;
         if (body.inlineValue !== undefined) updates.inlineValue = body.inlineValue;
         if (body.type !== undefined) updates.type = body.type;
         if (body.overrides !== undefined) updates.overrides = body.overrides;
@@ -355,7 +355,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         return await executeLoggedRecipeMutation({
           type: 'recipe-update',
           description: (recipe) => `Update recipe "${recipe.name}"`,
-          setName: (recipe) => recipe.targetSet,
+          setName: (recipe) => recipe.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, existing),
           mutate: async () => {
             const recipe = await fastify.recipeService.update(
@@ -428,7 +428,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
             scope === 'group'
               ? `Detach ${detachResult.detachedCount} outputs from recipe "${detachResult.recipe.name}"`
               : `Detach "${detachResult.detachedPaths[0]}" from recipe "${detachResult.recipe.name}"`,
-          setName: () => recipe.targetSet,
+          setName: () => recipe.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, recipe),
           mutate: () =>
             fastify.recipeService.detachOutputPaths(
@@ -470,7 +470,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
             description: ({ tokensDeleted }) => tokensDeleted > 0
               ? `Delete recipe "${gen.name}" and ${tokensDeleted} tokens`
               : `Delete recipe "${gen.name}"`,
-            setName: gen.targetSet,
+            setName: gen.targetCollection,
             captureBefore: () =>
               willDeleteTokens
                 ? snapshotRecipeOutputs(fastify.tokenStore, gen)
@@ -533,7 +533,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         const results = await executeLoggedRecipeMutation<GeneratedTokenResult[]>({
           type: 'recipe-run',
           description: `Run recipe "${gen.name}"`,
-          setName: gen.targetSet,
+          setName: gen.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, gen),
           mutate: () => fastify.recipeService.run(request.params.id, fastify.tokenStore),
           captureAfter: () => snapshotRecipeOutputs(fastify.tokenStore, gen),
@@ -574,7 +574,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'recipe-step-override-set',
           description: (recipe) =>
             `Set step override "${request.params.stepName}" on recipe "${recipe.name}"`,
-          setName: (recipe) => recipe.targetSet,
+          setName: (recipe) => recipe.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, gen),
           mutate: async () => {
             const recipe = await fastify.recipeService.setStepOverride(
@@ -606,7 +606,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'recipe-step-override-clear',
           description: (recipe) =>
             `Clear step override "${request.params.stepName}" on recipe "${recipe.name}"`,
-          setName: (recipe) => recipe.targetSet,
+          setName: (recipe) => recipe.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, gen),
           mutate: async () => {
             const recipe = await fastify.recipeService.setStepOverride(

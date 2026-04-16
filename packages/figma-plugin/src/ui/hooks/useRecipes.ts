@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   createRecipeOwnershipKey,
   getRecipeManagedOutputs,
-  getRecipeOutputSetNames,
+  getRecipeOutputCollectionIds,
 } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
@@ -35,7 +35,7 @@ export type RecipeDashboardStatus =
 export interface RecipeDependency {
   id: string;
   name: string;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
   status: RecipeDashboardStatus;
 }
@@ -211,14 +211,14 @@ export interface TokenRecipe {
   name: string;
   sourceToken?: string;
   inlineValue?: unknown;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
   config: RecipeConfig;
   semanticLayer?: RecipeSemanticLayer;
   detachedPaths?: string[];
   overrides?: Record<string, StepOverride>;
   inputTable?: InputTable;
-  targetSetTemplate?: string;
+  targetCollectionTemplate?: string;
   /** When false, the recipe is disabled and skipped during auto-run. Defaults to true. */
   enabled?: boolean;
   createdAt: string;
@@ -332,11 +332,11 @@ export function useRecipes(serverUrl: string, connected: boolean): UseRecipesRes
   const recipesByTargetGroup = useMemo(() => {
     const map = new Map<string, TokenRecipe>();
     for (const gen of recipes) {
-      const outputSetNames = getRecipeOutputSetNames(gen);
+      const outputCollectionIds = getRecipeOutputCollectionIds(gen);
       const hasManagedOutputs = getRecipeManagedOutputs(gen).length > 0;
       if (!gen.targetGroup || !hasManagedOutputs) continue;
-      for (const setName of outputSetNames) {
-        map.set(createRecipeOwnershipKey(setName, gen.targetGroup), gen);
+      for (const collectionId of outputCollectionIds) {
+        map.set(createRecipeOwnershipKey(collectionId, gen.targetGroup), gen);
       }
     }
     return map;

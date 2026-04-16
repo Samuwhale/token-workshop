@@ -313,41 +313,119 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
 ) => {
   const store = fastify.collectionsStore;
 
-  async function normalizeCollectionState(
+  async function validateCollectionState(
     state: CollectionState,
   ): Promise<CollectionState> {
-    const collectionIds = await fastify.tokenStore.getSets();
-    const existingById = new Map(
-      state.collections.map((collection) => [collection.id, collection]),
-    );
+    const nextState = structuredClone(state);
+    const setIds = await fastify.tokenStore.getSets();
+    const setIdSet = new Set(setIds);
+    const collectionIdSet = new Set<string>();
+    const duplicateCollectionIds = new Set<string>();
 
-    const collections = collectionIds.map((collectionId) => {
-      const existing = existingById.get(collectionId);
-      return {
-        id: collectionId,
-        name: collectionId,
-        modes: structuredClone(existing?.modes ?? []),
-      };
-    });
+    for (const collection of nextState.collections) {
+      if (!collection.id.trim()) {
+        throw new ConflictError("Collection state contains a collection with an empty id");
+      }
+      if (!collection.name.trim()) {
+        throw new ConflictError(
+          `Collection "${collection.id}" has an empty name in persisted state`,
+        );
+      }
+      if (collectionIdSet.has(collection.id)) {
+        duplicateCollectionIds.add(collection.id);
+      } else {
+        collectionIdSet.add(collection.id);
+      }
 
-    const validOptionsById = new Map(
-      collections.map((collection) => [
+      const modeNames = new Set<string>();
+      const duplicateModeNames = new Set<string>();
+      for (const mode of collection.modes) {
+        if (!mode.name.trim()) {
+          throw new ConflictError(
+            `Collection "${collection.id}" contains a mode with an empty name`,
+          );
+        }
+        if (modeNames.has(mode.name)) {
+          duplicateModeNames.add(mode.name);
+        } else {
+          modeNames.add(mode.name);
+        }
+      }
+
+      if (duplicateModeNames.size > 0) {
+        throw new ConflictError(
+          `Collection "${collection.id}" contains duplicate modes: ${[...duplicateModeNames].join(", ")}`,
+        );
+      }
+    }
+
+    if (duplicateCollectionIds.size > 0) {
+      throw new ConflictError(
+        `Collection state contains duplicate collection ids: ${[...duplicateCollectionIds].join(", ")}`,
+      );
+    }
+
+    const missingCollectionIds = setIds.filter((setId) => !collectionIdSet.has(setId));
+    const orphanedCollectionIds = nextState.collections
+      .map((collection) => collection.id)
+      .filter((collectionId) => !setIdSet.has(collectionId));
+
+    if (missingCollectionIds.length > 0 || orphanedCollectionIds.length > 0) {
+      const details = [
+        missingCollectionIds.length > 0
+          ? `missing collections for sets: ${missingCollectionIds.join(", ")}`
+          : null,
+        orphanedCollectionIds.length > 0
+          ? `orphaned collections without matching sets: ${orphanedCollectionIds.join(", ")}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("; ");
+      throw new ConflictError(
+        `Collection state is out of sync with token storage: ${details}`,
+      );
+    }
+
+    const validModesByCollectionId = new Map(
+      nextState.collections.map((collection) => [
         collection.id,
         new Set(collection.modes.map((mode) => mode.name)),
       ]),
     );
+    const viewIds = new Set<string>();
 
-    const views = state.views.map((view) => ({
-      ...view,
-      selections: Object.fromEntries(
-        Object.entries(view.selections).filter(([collectionId, optionName]) => {
-          const validOptions = validOptionsById.get(collectionId);
-          return validOptions?.has(optionName) ?? false;
-        }),
-      ),
-    }));
+    for (const view of nextState.views) {
+      if (!view.id.trim()) {
+        throw new ConflictError("Collection view state contains a view with an empty id");
+      }
+      if (!view.name.trim()) {
+        throw new ConflictError(
+          `View "${view.id}" has an empty name in persisted state`,
+        );
+      }
+      if (viewIds.has(view.id)) {
+        throw new ConflictError(
+          `Collection view state contains duplicate view ids: ${view.id}`,
+        );
+      }
+      viewIds.add(view.id);
 
-    return { collections, views };
+      for (const [collectionId, modeName] of Object.entries(view.selections)) {
+        const validModes = validModesByCollectionId.get(collectionId);
+        if (!validModes) {
+          throw new ConflictError(
+            `View "${view.id}" references unknown collection "${collectionId}"`,
+          );
+        }
+        if (!validModes.has(modeName)) {
+          throw new ConflictError(
+            `View "${view.id}" references unknown mode "${modeName}" in collection "${collectionId}"`,
+          );
+        }
+      }
+    }
+
+    return nextState;
   }
 
   async function withCollectionLock<T>(
@@ -363,14 +441,18 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     let capturedBefore: TokenCollection[] | null = null;
     let capturedDescription = "";
     const result = await store.withLock(async (collections) => {
-      const normalizedState = await normalizeCollectionState({
+      const validatedState = await validateCollectionState({
         collections,
         views: [],
       });
-      capturedBefore = structuredClone(normalizedState.collections);
-      const out = await fn(normalizedState.collections);
+      capturedBefore = structuredClone(validatedState.collections);
+      const out = await fn(validatedState.collections);
       capturedDescription = out.description;
-      return { collections: out.collections, result: out.result };
+      const nextState = await validateCollectionState({
+        collections: out.collections,
+        views: [],
+      });
+      return { collections: nextState.collections, result: out.result };
     });
     if (capturedBefore !== null) {
       await fastify.operationLog.record({
@@ -441,9 +523,9 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     try {
       const result = await fastify.tokenLock.withLock(async () =>
         store.withStateLock(async (state) => {
-          const normalizedState = await normalizeCollectionState(state);
-          beforeState = structuredClone(normalizedState);
-          const out = await fn(normalizedState);
+          const validatedState = await validateCollectionState(state);
+          beforeState = structuredClone(validatedState);
+          const out = await fn(validatedState);
           description = out.description;
 
           for (const [setName, patches] of out.tokenPatchesBySet ?? []) {
@@ -468,7 +550,8 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
             );
           }
 
-          return { state: out.state, result: out.result };
+          const nextState = await validateCollectionState(out.state);
+          return { state: nextState, result: out.result };
         }),
       );
 
@@ -530,11 +613,12 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     let description = "";
 
     const result = await store.withStateLock(async (state) => {
-      const normalizedState = await normalizeCollectionState(state);
-      beforeState = structuredClone(normalizedState);
-      const out = await fn(normalizedState);
+      const validatedState = await validateCollectionState(state);
+      beforeState = structuredClone(validatedState);
+      const out = await fn(validatedState);
       description = out.description;
-      return { state: out.state, result: out.result };
+      const nextState = await validateCollectionState(out.state);
+      return { state: nextState, result: out.result };
     });
 
     const previousState = beforeState as CollectionState | null;
@@ -561,14 +645,9 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     return result;
   }
 
-  await store.withStateLock(async (state) => ({
-    state: await normalizeCollectionState(state),
-    result: undefined,
-  }));
-
   fastify.get("/collections", async (_request, reply) => {
     try {
-      const state = await normalizeCollectionState(await store.loadState());
+      const state = await validateCollectionState(await store.loadState());
       return {
         collections: serializeTokenCollections(state.collections),
         previews: state.views,
@@ -674,23 +753,23 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
               ? undefined
               : await collectModeMutationPatches((token) => {
                   const nextModes = readTokenCollectionModeValues(token);
-                  const dimModes = nextModes[id];
-                  if (!dimModes || !(optionName in dimModes)) {
+                  const collectionModes = nextModes[id];
+                  if (!collectionModes || !(optionName in collectionModes)) {
                     return null;
                   }
 
                   if (
-                    newName in dimModes &&
-                    JSON.stringify(dimModes[newName]) !==
-                      JSON.stringify(dimModes[optionName])
+                    newName in collectionModes &&
+                    JSON.stringify(collectionModes[newName]) !==
+                      JSON.stringify(collectionModes[optionName])
                   ) {
                     throw new ConflictError(
                       `Token-authored mode data already exists under "${newName}" in collection "${id}"`,
                     );
                   }
 
-                  dimModes[newName] = dimModes[optionName];
-                  delete dimModes[optionName];
+                  collectionModes[newName] = collectionModes[optionName];
+                  delete collectionModes[optionName];
                   return nextModes;
                 });
 
@@ -736,7 +815,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
           .send({ error: "options must be an array of option name strings" });
       }
       try {
-        const dimension = await withCollectionLock(
+        const collection = await withCollectionLock(
           "theme-option-reorder",
           async (collections) => {
             const collectionIndex = collections.findIndex(
@@ -773,7 +852,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
             };
           },
         );
-        return { ok: true, dimension: serializeTokenCollections([dimension])[0] };
+        return { ok: true, dimension: serializeTokenCollections([collection])[0] };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to reorder modes");
       }
@@ -808,13 +887,13 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
 
             const tokenPatchesBySet = await collectModeMutationPatches((token) => {
               const nextModes = readTokenCollectionModeValues(token);
-              const dimModes = nextModes[id];
-              if (!dimModes || !(optionName in dimModes)) {
+              const collectionModes = nextModes[id];
+              if (!collectionModes || !(optionName in collectionModes)) {
                 return null;
               }
 
-              delete dimModes[optionName];
-              if (Object.keys(dimModes).length === 0) {
+              delete collectionModes[optionName];
+              if (Object.keys(collectionModes).length === 0) {
                 delete nextModes[id];
               }
               return nextModes;

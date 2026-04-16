@@ -18,11 +18,11 @@ import { RiskDetailSections } from './RiskDetailSections';
 export interface StepSaveProps {
   name: string;
   targetGroup: string;
-  targetSet: string;
+  targetCollection: string;
   isEditing: boolean;
   isMultiBrand: boolean;
   inputTable: InputTable | undefined;
-  targetSetTemplate: string;
+  targetCollectionTemplate: string;
   previewTokens: GeneratedTokenResult[];
   previewAnalysis: RecipePreviewAnalysis | null;
   existingOverwritePathSet: Set<string>;
@@ -73,11 +73,11 @@ function ImpactSummaryLine({ previewAnalysis }: { previewAnalysis: RecipePreview
 export function StepSave({
   name: _name,
   targetGroup: _targetGroup,
-  targetSet,
+  targetCollection,
   isEditing: _isEditing,
   isMultiBrand,
   inputTable,
-  targetSetTemplate,
+  targetCollectionTemplate,
   previewTokens: _previewTokens,
   previewAnalysis,
   existingOverwritePathSet: _existingOverwritePathSet,
@@ -127,7 +127,7 @@ export function StepSave({
 
       {/* Risk detail sections (expandable) */}
       {previewAnalysis && (
-        <RiskDetailSections previewAnalysis={previewAnalysis} targetSet={targetSet} />
+        <RiskDetailSections previewAnalysis={previewAnalysis} targetCollection={targetCollection} />
       )}
 
       {/* Multi-brand destinations (condensed) */}
@@ -135,7 +135,7 @@ export function StepSave({
         <div className="px-2.5 py-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)]">
           Publishing to {inputTable.rows.filter(r => r.brand.trim()).length} sets via{' '}
           <span className="font-mono text-[var(--color-figma-text)]">
-            {(targetSetTemplate || 'brands/{brand}').replace('{brand}', '*')}
+            {(targetCollectionTemplate || 'brands/{brand}').replace('{brand}', '*')}
           </span>
         </div>
       )}

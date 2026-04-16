@@ -533,7 +533,7 @@ export class OperationLog {
   // ---------------------------------------------------------------------------
 
   private async readCollectionsFile(): Promise<{
-    dimensions: TokenCollection[];
+    collections: TokenCollection[];
     views: ViewPreset[];
   }> {
     try {
@@ -546,21 +546,21 @@ export class OperationLog {
         ? data.$collections
         : [];
       return {
-        dimensions: deserializeTokenCollections(collections),
+        collections: deserializeTokenCollections(collections),
         views: Array.isArray(data.$views) ? data.$views : [],
       };
     } catch {
-      return { dimensions: [], views: [] };
+      return { collections: [], views: [] };
     }
   }
 
   private async writeCollectionsFile(state: {
-    dimensions: TokenCollection[];
+    collections: TokenCollection[];
     views: ViewPreset[];
   }): Promise<void> {
     const dest = path.join(this.tokenDir, "$collections.json");
     const data = {
-      $collections: serializeTokenCollections(state.dimensions),
+      $collections: serializeTokenCollections(state.collections),
       ...(state.views.length > 0 ? { $views: state.views } : {}),
     };
     const tmp = `${dest}.tmp`;
@@ -643,7 +643,7 @@ export class OperationLog {
           } else {
             const fileState = await this.readCollectionsFile();
             currentState = {
-              collections: fileState.dimensions,
+              collections: fileState.collections,
               views: fileState.views,
             };
           }
@@ -759,7 +759,7 @@ export class OperationLog {
             }));
           } else {
             await this.writeCollectionsFile({
-              dimensions: step.dimensions,
+              collections: step.dimensions,
               views: step.views ?? [],
             });
           }

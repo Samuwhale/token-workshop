@@ -25,7 +25,7 @@ export interface GraphNode {
   // Source and target
   sourceToken: string | null;
   targetGroup: string;
-  targetSet: string;
+  targetCollection: string;
   // Status
   status: RecipeDashboardStatus;
   enabled: boolean;
@@ -234,7 +234,7 @@ export function recipesToGraph(recipes: TokenRecipe[]): NodeGraphState {
       recipeType: gen.type,
       sourceToken: gen.sourceToken ?? null,
       targetGroup: gen.targetGroup,
-      targetSet: gen.targetSet,
+      targetCollection: gen.targetCollection,
       status,
       enabled: gen.enabled !== false,
       lastRunAt: gen.lastRunAt,

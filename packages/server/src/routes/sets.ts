@@ -38,7 +38,7 @@ interface SetResolverMeta {
 interface SetRecipeMeta {
   id: string;
   name: string;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
 }
 
@@ -524,7 +524,7 @@ function buildRecipeTargets(
   recipes: SetRecipeMeta[],
 ): SetRecipeTargetImpact[] {
   return recipes
-    .filter((recipe) => recipe.targetSet === setName)
+    .filter((recipe) => recipe.targetCollection === setName)
     .map((recipe) => ({
       recipeId: recipe.id,
       recipeName: recipe.name,
@@ -940,7 +940,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         .map((recipe) => ({
           id: recipe.id,
           name: recipe.name,
-          targetSet: recipe.targetSet,
+          targetCollection: recipe.targetCollection,
           targetGroup: recipe.targetGroup,
         })),
       allOwnedTokens: fastify.tokenStore.findTokensByRecipeId("*"),

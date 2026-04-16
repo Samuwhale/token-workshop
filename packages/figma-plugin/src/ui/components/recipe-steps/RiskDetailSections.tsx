@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 
 export interface RiskDetailSectionsProps {
   previewAnalysis: RecipePreviewAnalysis;
-  targetSet: string;
+  targetCollection: string;
 }
 
 function RiskSection({
@@ -36,7 +36,7 @@ function RiskSection({
   );
 }
 
-export function RiskDetailSections({ previewAnalysis, targetSet }: RiskDetailSectionsProps) {
+export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDetailSectionsProps) {
   const nonRecipeOverwriteEntries = previewAnalysis.nonRecipeOverwrites ?? [];
   const manualConflictEntries = previewAnalysis.manualEditConflicts ?? [];
   const deletedOutputEntries = previewAnalysis.deletedOutputs ?? [];
@@ -64,7 +64,7 @@ export function RiskDetailSections({ previewAnalysis, targetSet }: RiskDetailSec
               <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
                 <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
                   {entry.path}
-                  {entry.setName !== targetSet && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
+                  {entry.setName !== targetCollection && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
                 </span>
                 {entry.changesValue ? (
                   <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
@@ -105,7 +105,7 @@ export function RiskDetailSections({ previewAnalysis, targetSet }: RiskDetailSec
               <div key={`${entry.setName}:${entry.path}`} className="flex flex-wrap items-start gap-2 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
                 <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.setName}:${entry.path}`}>
                   {entry.path}
-                  {entry.setName !== targetSet && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
+                  {entry.setName !== targetCollection && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
                 </span>
                 <span className="text-[10px] text-[var(--color-figma-warning)] shrink-0">Removed on save</span>
               </div>

@@ -180,7 +180,7 @@ export {
   createRecipeOwnershipKey,
   getRecipeManagedOutputPaths,
   getRecipeManagedOutputs,
-  getRecipeOutputSetNames,
+  getRecipeOutputCollectionIds,
   getRecipeStepNames,
   validateStepName,
 } from './recipe-types.js';

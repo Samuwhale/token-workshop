@@ -312,16 +312,16 @@ describe('TokenResolver', () => {
     });
   });
 
-  describe('setName', () => {
-    it('attaches setName to resolved tokens', () => {
+  describe('collectionId', () => {
+    it('attaches collectionId to resolved tokens', () => {
       const tokens: Record<string, Token> = {
         'x': makeToken(1, 'number'),
       };
 
-      const resolver = new TokenResolver(tokens, 'my-set');
+      const resolver = new TokenResolver(tokens, 'my-collection');
       const result = resolver.resolve('x');
 
-      expect(result.setName).toBe('my-set');
+      expect(result.collectionId).toBe('my-collection');
     });
   });
 

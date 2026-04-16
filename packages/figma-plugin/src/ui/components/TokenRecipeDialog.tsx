@@ -44,7 +44,7 @@ export interface TokenRecipeDialogProps {
   onInterceptSemanticMapping?: (data: {
     tokens: import("../hooks/useRecipes").GeneratedTokenResult[];
     targetGroup: string;
-    targetSet: string;
+    targetCollection: string;
     recipeType: import("../hooks/useRecipes").RecipeType;
   }) => void;
   getSuccessToastAction?: (
@@ -153,15 +153,15 @@ export function TokenRecipeDialog({
   // Destination props passed into StepSource's inline output section
   const destinationProps: Omit<StepWhereProps, 'onToggleMultiBrand' | 'inputTable' | 'onInputTableChange'> = {
     name: dialog.name,
-    targetSet: dialog.targetSet,
+    targetCollection: dialog.targetCollection,
     targetGroup: dialog.targetGroup,
     allSets,
     isMultiBrand: dialog.isMultiBrand,
-    targetSetTemplate: dialog.targetSetTemplate,
+    targetCollectionTemplate: dialog.targetCollectionTemplate,
     onNameChange: dialog.handleNameChange,
-    onTargetSetChange: dialog.setTargetSet,
+    onTargetCollectionChange: dialog.setTargetCollection,
     onTargetGroupChange: dialog.setTargetGroup,
-    onTargetSetTemplateChange: dialog.setTargetSetTemplate,
+    onTargetCollectionTemplateChange: dialog.setTargetCollectionTemplate,
   };
 
   // --- Save logic ---
@@ -407,11 +407,11 @@ export function TokenRecipeDialog({
             <StepSave
               name={dialog.name}
               targetGroup={dialog.targetGroup}
-              targetSet={dialog.targetSet}
+              targetCollection={dialog.targetCollection}
               isEditing={dialog.isEditing}
               isMultiBrand={dialog.isMultiBrand}
               inputTable={dialog.inputTable}
-              targetSetTemplate={dialog.targetSetTemplate}
+              targetCollectionTemplate={dialog.targetCollectionTemplate}
               previewTokens={dialog.previewTokens}
               previewAnalysis={dialog.previewAnalysis}
               existingOverwritePathSet={dialog.existingOverwritePathSet}

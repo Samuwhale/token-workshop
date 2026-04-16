@@ -112,8 +112,8 @@ export type RecipePreviewInput = Pick<
   | "sourceToken"
   | "inlineValue"
   | "targetGroup"
-  | "targetSet"
-  | "targetSetTemplate"
+  | "targetCollection"
+  | "targetCollectionTemplate"
   | "inputTable"
   | "semanticLayer"
 > & {
@@ -191,7 +191,7 @@ export interface RecipePreviewResult {
 export interface RecipeSetDependencyMeta {
   id: string;
   name: string;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
 }
 
@@ -218,7 +218,7 @@ export type RecipeDashboardStatus =
 export interface RecipeDashboardDependency {
   id: string;
   name: string;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
   status: RecipeDashboardStatus;
 }
@@ -290,7 +290,7 @@ function buildRecipeDependency(
   return {
     id: recipe.id,
     name: recipe.name,
-    targetSet: recipe.targetSet,
+    targetCollection: recipe.targetCollection,
     targetGroup: recipe.targetGroup,
     status,
   };
@@ -973,8 +973,8 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
     throw new BadRequestError('missing or invalid "id"');
   if (typeof raw.name !== "string")
     throw new BadRequestError('missing or invalid "name"');
-  if (typeof raw.targetSet !== "string")
-    throw new BadRequestError('missing or invalid "targetSet"');
+  if (typeof raw.targetCollection !== "string")
+    throw new BadRequestError('missing or invalid "targetCollection"');
   if (typeof raw.targetGroup !== "string")
     throw new BadRequestError('missing or invalid "targetGroup"');
   if (typeof raw.createdAt !== "string")
@@ -985,11 +985,11 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
     throw new BadRequestError("sourceToken must be a string when provided");
   }
   if (
-    raw.targetSetTemplate !== undefined &&
-    typeof raw.targetSetTemplate !== "string"
+    raw.targetCollectionTemplate !== undefined &&
+    typeof raw.targetCollectionTemplate !== "string"
   ) {
     throw new BadRequestError(
-      "targetSetTemplate must be a string when provided",
+      "targetCollectionTemplate must be a string when provided",
     );
   }
   if (raw.enabled !== undefined && typeof raw.enabled !== "boolean") {
@@ -1011,15 +1011,15 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
     name: raw.name,
     ...(raw.sourceToken !== undefined && { sourceToken: raw.sourceToken }),
     ...(raw.inlineValue !== undefined && { inlineValue: raw.inlineValue }),
-    targetSet: raw.targetSet,
+    targetCollection: raw.targetCollection,
     targetGroup: raw.targetGroup,
     config: normalizeRecipeConfig(type, raw.config),
     ...(semanticLayer && { semanticLayer }),
     ...(detachedPaths && { detachedPaths }),
     ...(overrides && { overrides }),
     ...(inputTable && { inputTable }),
-    ...(raw.targetSetTemplate !== undefined && {
-      targetSetTemplate: raw.targetSetTemplate,
+    ...(raw.targetCollectionTemplate !== undefined && {
+      targetCollectionTemplate: raw.targetCollectionTemplate,
     }),
     ...(raw.enabled !== undefined && { enabled: raw.enabled }),
     createdAt: raw.createdAt,
@@ -1276,7 +1276,7 @@ export class RecipeService {
     return Array.from(this.recipes.values()).map((recipe) => ({
       id: recipe.id,
       name: recipe.name,
-      targetSet: recipe.targetSet,
+      targetCollection: recipe.targetCollection,
       targetGroup: recipe.targetGroup,
     }));
   }
@@ -1528,14 +1528,14 @@ export class RecipeService {
 
   /**
    * Update recipe references when a token set is renamed.
-   * Updates targetSet for any recipe pointing at the old set name.
+   * Updates targetCollection for any recipe pointing at the old set name.
    * Returns the count of recipes updated.
    */
   async updateSetName(oldSetName: string, newSetName: string): Promise<number> {
     let count = 0;
     for (const [id, gen] of this.recipes) {
-      if (gen.targetSet === oldSetName) {
-        this.recipes.set(id, { ...gen, targetSet: newSetName });
+      if (gen.targetCollection === oldSetName) {
+        this.recipes.set(id, { ...gen, targetCollection: newSetName });
         count++;
       }
     }
@@ -1749,20 +1749,20 @@ export class RecipeService {
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
       inputTable?: InputTable;
-      targetSetTemplate?: string;
+      targetCollectionTemplate?: string;
       semanticLayer?: RecipeSemanticLayer;
     } = {
       sourceToken: data.sourceToken,
       inlineValue: data.inlineValue,
       targetGroup: data.targetGroup,
-      targetSet: data.targetSet,
+      targetCollection: data.targetCollection,
       baseRecipeId: data.baseRecipeId,
       type,
       config: normalizeRecipeConfig(type, data.config),
       overrides: normalizeOverrides(data.overrides),
       ...(inputTable && { inputTable }),
-      ...(typeof data.targetSetTemplate === "string" && {
-        targetSetTemplate: data.targetSetTemplate,
+      ...(typeof data.targetCollectionTemplate === "string" && {
+        targetCollectionTemplate: data.targetCollectionTemplate,
       }),
       ...(semanticLayer && { semanticLayer }),
       ...(detachedPaths && { detachedPaths }),
@@ -1812,14 +1812,14 @@ export class RecipeService {
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
       inputTable?: InputTable;
-      targetSetTemplate?: string;
+      targetCollectionTemplate?: string;
       semanticLayer?: RecipeSemanticLayer;
     },
     preview: GeneratedTokenResult[],
     tokenStore: TokenStore,
     baseRecipe?: TokenRecipe,
   ): Promise<RecipePreviewAnalysis> {
-    const targetSet = data.targetSet;
+    const targetCollection = data.targetCollection;
     const existingPathSet = new Set<string>();
     const safeUpdates: RecipePreviewChangeEntry[] = [];
     const nonRecipeOverwrites: RecipePreviewOverwriteEntry[] = [];
@@ -1841,8 +1841,8 @@ export class RecipeService {
       : new Map<string, GeneratedTokenResult>();
 
     for (const result of preview) {
-      const existing = targetSet
-        ? await tokenStore.getToken(targetSet, result.path)
+      const existing = targetCollection
+        ? await tokenStore.getToken(targetCollection, result.path)
         : undefined;
       if (!existing) {
         diffCreated.push({
@@ -1861,7 +1861,7 @@ export class RecipeService {
       if (detachedPathSet.has(result.path)) {
         detachedOutputs.push({
           path: result.path,
-          setName: targetSet,
+          setName: targetCollection,
           type: result.type,
           currentValue: existing.$value,
           newValue: result.value,
@@ -1876,7 +1876,7 @@ export class RecipeService {
         if (manualEditDetected && changesValue) {
           manualEditConflicts.push({
             path: result.path,
-            setName: targetSet,
+            setName: targetCollection,
             type: result.type,
             currentValue: existing.$value,
             newValue: result.value,
@@ -1886,7 +1886,7 @@ export class RecipeService {
         } else if (changesValue) {
           safeUpdates.push({
             path: result.path,
-            setName: targetSet,
+            setName: targetCollection,
             type: result.type,
             currentValue: existing.$value,
             newValue: result.value,
@@ -1896,7 +1896,7 @@ export class RecipeService {
       } else {
         nonRecipeOverwrites.push({
           path: result.path,
-          setName: targetSet,
+          setName: targetCollection,
           type: result.type,
           currentValue: existing.$value,
           newValue: result.value,
@@ -1955,13 +1955,13 @@ export class RecipeService {
 
       for (const detachedPath of detachedPathSet) {
         if (previewPathSet.has(detachedPath)) continue;
-        const token = targetSet
-          ? await tokenStore.getToken(targetSet, detachedPath)
+        const token = targetCollection
+          ? await tokenStore.getToken(targetCollection, detachedPath)
           : undefined;
         if (!token) continue;
         detachedOutputs.push({
           path: detachedPath,
-          setName: targetSet,
+          setName: targetCollection,
           type: token.$type || "unknown",
           currentValue: token.$value,
           state: "preserved",
@@ -1993,7 +1993,7 @@ export class RecipeService {
     return {
       ...analysisWithoutFingerprint,
       fingerprint: this.buildPreviewFingerprint({
-        targetSet,
+        targetCollection,
         preview,
         analysis: analysisWithoutFingerprint,
       }),
@@ -2031,7 +2031,7 @@ export class RecipeService {
     const recipe = this.recipes.get(id);
     if (!recipe) throw new NotFoundError(`Recipe "${id}" not found`);
     const preview = await this.computeResults(recipe, tokenStore);
-    const effectiveTargetSet = recipe.targetSet;
+    const effectiveTargetCollection = recipe.targetCollection;
     const modified: {
       path: string;
       setName: string;
@@ -2040,7 +2040,7 @@ export class RecipeService {
     }[] = [];
     for (const result of preview) {
       const existing = await tokenStore.getToken(
-        effectiveTargetSet,
+        effectiveTargetCollection,
         result.path,
       );
       if (
@@ -2052,7 +2052,7 @@ export class RecipeService {
         if (ext?.recipeId === id) {
           modified.push({
             path: result.path,
-            setName: effectiveTargetSet,
+            setName: effectiveTargetCollection,
             currentValue: existing.$value,
             newValue: result.value,
           });
@@ -2091,7 +2091,7 @@ export class RecipeService {
     if (!recipe) throw new NotFoundError(`Recipe "${id}" not found`);
 
     const preview = await this.computeResults(recipe, tokenStore);
-    const targetSet = recipe.targetSet;
+    const targetCollection = recipe.targetCollection;
 
     const created: Array<{ path: string; value: unknown; type: string }> = [];
     const updated: Array<{
@@ -2105,7 +2105,7 @@ export class RecipeService {
 
     for (const result of preview) {
       previewPaths.add(result.path);
-      const existing = await tokenStore.getToken(targetSet, result.path);
+      const existing = await tokenStore.getToken(targetCollection, result.path);
       if (!existing) {
         created.push({
           path: result.path,
@@ -2132,7 +2132,7 @@ export class RecipeService {
 
     // Detect tokens that belong to this recipe but would be removed because
     // they are no longer in the preview results (e.g. a step was deleted).
-    const flatTokens = await tokenStore.getFlatTokensForSet(targetSet);
+    const flatTokens = await tokenStore.getFlatTokensForSet(targetCollection);
     const prefix = recipe.targetGroup ? recipe.targetGroup + "." : "";
     const deleted: Array<{ path: string; currentValue: unknown }> = [];
     for (const [path, token] of Object.entries(flatTokens)) {
@@ -2384,7 +2384,7 @@ export class RecipeService {
       results = await this.executeSingleBrand(
         recipe,
         tokenStore,
-        recipe.targetSet,
+        recipe.targetCollection,
       );
     }
 
@@ -2487,29 +2487,29 @@ export class RecipeService {
 
   private buildDesiredGeneratedOutputs(
     recipe: Pick<TokenRecipe, "targetGroup" | "semanticLayer">,
-    effectiveTargetSet: string,
+    effectiveTargetCollection: string,
     results: GeneratedTokenResult[],
   ): Array<{ setName: string; path: string }> {
     return [
       ...results.map((result) => ({
-        setName: effectiveTargetSet,
+        setName: effectiveTargetCollection,
         path: result.path,
       })),
       ...this.buildSemanticAliasResults(recipe, results).map((result) => ({
-        setName: effectiveTargetSet,
+        setName: effectiveTargetCollection,
         path: result.path,
       })),
     ];
   }
 
-  private getEffectiveTargetSet(
-    recipe: Pick<TokenRecipe, "targetSet" | "targetSetTemplate">,
+  private getEffectiveTargetCollection(
+    recipe: Pick<TokenRecipe, "targetCollection" | "targetCollectionTemplate">,
     brand?: string,
   ): string {
-    if (brand && recipe.targetSetTemplate) {
-      return recipe.targetSetTemplate.replace("{brand}", brand);
+    if (brand && recipe.targetCollectionTemplate) {
+      return recipe.targetCollectionTemplate.replace("{brand}", brand);
     }
-    return recipe.targetSet;
+    return recipe.targetCollection;
   }
 
   private async collectDesiredPreviewOutputs(
@@ -2519,7 +2519,7 @@ export class RecipeService {
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
       inputTable?: InputTable;
-      targetSetTemplate?: string;
+      targetCollectionTemplate?: string;
       semanticLayer?: RecipeSemanticLayer;
     },
     preview: GeneratedTokenResult[],
@@ -2537,12 +2537,12 @@ export class RecipeService {
         if (!brand) continue;
         const sourceValue = row.inputs[data.inputTable.inputKey];
         if (sourceValue === undefined) continue;
-        const effectiveTargetSet = this.getEffectiveTargetSet(data, brand);
+        const effectiveTargetCollection = this.getEffectiveTargetCollection(data, brand);
         const results = await this.computeResultsWithValue(data, sourceValue);
         desiredOutputs.push(
           ...this.buildDesiredGeneratedOutputs(
             recipeShape,
-            effectiveTargetSet,
+            effectiveTargetCollection,
             results,
           ),
         );
@@ -2552,7 +2552,7 @@ export class RecipeService {
 
     return this.buildDesiredGeneratedOutputs(
       recipeShape,
-      data.targetSet,
+      data.targetCollection,
       preview,
     );
   }
@@ -2560,7 +2560,7 @@ export class RecipeService {
   private async syncSemanticLayer(
     recipe: TokenRecipe,
     tokenStore: TokenStore,
-    effectiveTargetSet: string,
+    effectiveTargetCollection: string,
     results: GeneratedTokenResult[],
     brand?: string,
   ): Promise<void> {
@@ -2578,11 +2578,11 @@ export class RecipeService {
         $description: `Semantic reference for ${recipe.targetGroup}.${result.sourceStep}`,
         $extensions: extensions,
       };
-      const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
+      const existing = await tokenStore.getToken(effectiveTargetCollection, result.path);
       if (existing) {
-        await tokenStore.updateToken(effectiveTargetSet, result.path, token);
+        await tokenStore.updateToken(effectiveTargetCollection, result.path, token);
       } else {
-        await tokenStore.createToken(effectiveTargetSet, result.path, token);
+        await tokenStore.createToken(effectiveTargetCollection, result.path, token);
       }
     }
   }
@@ -2625,11 +2625,11 @@ export class RecipeService {
     }
   }
 
-  /** Original single-brand execution path. Writes to `effectiveTargetSet`. */
+  /** Original single-brand execution path. Writes to `effectiveTargetCollection`. */
   private async executeSingleBrand(
     recipe: TokenRecipe,
     tokenStore: TokenStore,
-    effectiveTargetSet: string,
+    effectiveTargetCollection: string,
     sourceValueOverride?: unknown,
   ): Promise<GeneratedTokenResult[]> {
     const results =
@@ -2639,7 +2639,7 @@ export class RecipeService {
 
     await this.clearNonLockedOverrides(recipe);
 
-    const snapshotSetNames = new Set([effectiveTargetSet]);
+    const snapshotSetNames = new Set([effectiveTargetCollection]);
     for (const owned of tokenStore.findTokensByRecipeId(recipe.id)) {
       snapshotSetNames.add(owned.setName);
     }
@@ -2659,7 +2659,7 @@ export class RecipeService {
     try {
       const desiredOutputs = this.buildDesiredGeneratedOutputs(
         recipe,
-        effectiveTargetSet,
+        effectiveTargetCollection,
         results,
       );
       tokenStore.beginBatch();
@@ -2671,13 +2671,13 @@ export class RecipeService {
             $extensions: extensions,
           };
           const existing = await tokenStore.getToken(
-            effectiveTargetSet,
+            effectiveTargetCollection,
             result.path,
           );
           if (existing) {
-            await tokenStore.updateToken(effectiveTargetSet, result.path, token);
+            await tokenStore.updateToken(effectiveTargetCollection, result.path, token);
           } else {
-            await tokenStore.createToken(effectiveTargetSet, result.path, token);
+            await tokenStore.createToken(effectiveTargetCollection, result.path, token);
           }
         }
       } finally {
@@ -2686,7 +2686,7 @@ export class RecipeService {
       await this.syncSemanticLayer(
         recipe,
         tokenStore,
-        effectiveTargetSet,
+        effectiveTargetCollection,
         results,
       );
       await this.cleanupStaleGeneratedOutputs(
@@ -2749,7 +2749,7 @@ export class RecipeService {
     recipe: TokenRecipe,
     tokenStore: TokenStore,
   ): Promise<GeneratedTokenResult[]> {
-    const { inputTable, targetSetTemplate, targetSet } = recipe;
+    const { inputTable, targetCollectionTemplate, targetCollection } = recipe;
     const allResults: GeneratedTokenResult[] = [];
 
     // Determine all sets that will be written to so we can snapshot them before any writes.
@@ -2759,9 +2759,9 @@ export class RecipeService {
     }
     for (const row of inputTable!.rows) {
       if (!row.brand.trim()) continue;
-      const setName = targetSetTemplate
-        ? targetSetTemplate.replace("{brand}", row.brand)
-        : targetSet!;
+      const setName = targetCollectionTemplate
+        ? targetCollectionTemplate.replace("{brand}", row.brand)
+        : targetCollection!;
       affectedSets.add(setName);
     }
 
@@ -2784,9 +2784,9 @@ export class RecipeService {
         const sourceValue = row.inputs[inputTable!.inputKey];
         if (sourceValue === undefined) continue;
 
-        const effectiveTargetSet = targetSetTemplate
-          ? targetSetTemplate.replace("{brand}", row.brand)
-          : targetSet;
+        const effectiveTargetCollection = targetCollectionTemplate
+          ? targetCollectionTemplate.replace("{brand}", row.brand)
+          : targetCollection;
 
         const results = await this.computeResultsWithValue(
           recipe,
@@ -2795,7 +2795,7 @@ export class RecipeService {
         desiredOutputs.push(
           ...this.buildDesiredGeneratedOutputs(
             recipe,
-            effectiveTargetSet,
+            effectiveTargetCollection,
             results,
           ),
         );
@@ -2814,18 +2814,18 @@ export class RecipeService {
               $extensions: extensions,
             };
             const existing = await tokenStore.getToken(
-              effectiveTargetSet,
+              effectiveTargetCollection,
               result.path,
             );
             if (existing) {
               await tokenStore.updateToken(
-                effectiveTargetSet,
+                effectiveTargetCollection,
                 result.path,
                 token,
               );
             } else {
               await tokenStore.createToken(
-                effectiveTargetSet,
+                effectiveTargetCollection,
                 result.path,
                 token,
               );
@@ -2837,7 +2837,7 @@ export class RecipeService {
         await this.syncSemanticLayer(
           recipe,
           tokenStore,
-          effectiveTargetSet,
+          effectiveTargetCollection,
           results,
           row.brand,
         );

@@ -319,8 +319,8 @@ export interface TokenRecipe {
    * For dimension recipes: a { value, unit } object (e.g. { value: 16, unit: "px" }).
    */
   inlineValue?: unknown;
-  /** Name of the token set where derived tokens will be written */
-  targetSet: string;
+  /** Name of the collection where derived tokens will be written */
+  targetCollection: string;
   /**
    * Dot-delimited group prefix for all derived tokens,
    * e.g. "colors.brand" → tokens become "colors.brand.50", "colors.brand.100", …
@@ -341,16 +341,16 @@ export interface TokenRecipe {
   overrides?: Record<string, { value: unknown; locked: boolean }>;
   /**
    * When present, the recipe runs once per row using each row's input value
-   * as the source, writing to the set derived from `targetSetTemplate`.
+   * as the source, writing to the collection derived from `targetCollectionTemplate`.
    */
   inputTable?: InputTable;
   /**
-   * Template for the target set name when `inputTable` is present.
+   * Template for the target collection name when `inputTable` is present.
    * `{brand}` is replaced with each row's `brand` slug.
    * e.g. "brands/{brand}" → "brands/berry", "brands/mango"
-   * Falls back to `targetSet` when absent.
+   * Falls back to `targetCollection` when absent.
    */
-  targetSetTemplate?: string;
+  targetCollectionTemplate?: string;
   /**
    * When false, the recipe is disabled and will be skipped during auto-run cascades
    * triggered by source token changes. Manual re-runs still work.
@@ -412,7 +412,7 @@ export interface InputTable {
 }
 
 export interface RecipeManagedOutput {
-  setName: string;
+  collectionId: string;
   path: string;
   stepName: string;
   key: string;
@@ -456,10 +456,10 @@ export function validateStepName(stepName: string): void {
 }
 
 export function createRecipeOwnershipKey(
-  setName: string,
+  collectionId: string,
   path: string,
 ): string {
-  return `${setName}\u0000${path}`;
+  return `${collectionId}\u0000${path}`;
 }
 
 export function getRecipeStepNames(
@@ -485,20 +485,20 @@ export function getRecipeStepNames(
   return [];
 }
 
-export function getRecipeOutputSetNames(
-  recipe: Pick<TokenRecipe, "targetSet" | "targetSetTemplate" | "inputTable">,
+export function getRecipeOutputCollectionIds(
+  recipe: Pick<TokenRecipe, "targetCollection" | "targetCollectionTemplate" | "inputTable">,
 ): string[] {
   if (!recipe.inputTable?.rows.length) {
-    return [recipe.targetSet];
+    return [recipe.targetCollection];
   }
-  const setNames = new Set<string>();
+  const collectionIds = new Set<string>();
   for (const row of recipe.inputTable.rows) {
-    const setName = recipe.targetSetTemplate
-      ? recipe.targetSetTemplate.replace("{brand}", row.brand)
-      : recipe.targetSet;
-    setNames.add(setName);
+    const collectionId = recipe.targetCollectionTemplate
+      ? recipe.targetCollectionTemplate.replace("{brand}", row.brand)
+      : recipe.targetCollection;
+    collectionIds.add(collectionId);
   }
-  return [...setNames];
+  return [...collectionIds];
 }
 
 export function getRecipeManagedOutputs(
@@ -508,13 +508,13 @@ export function getRecipeManagedOutputs(
     | "detachedPaths"
     | "inputTable"
     | "targetGroup"
-    | "targetSet"
-    | "targetSetTemplate"
+    | "targetCollection"
+    | "targetCollectionTemplate"
   >,
 ): RecipeManagedOutput[] {
   const detachedPathSet = new Set(recipe.detachedPaths ?? []);
   const stepNames = getRecipeStepNames(recipe.config);
-  return getRecipeOutputSetNames(recipe).flatMap((setName) =>
+  return getRecipeOutputCollectionIds(recipe).flatMap((collectionId) =>
     stepNames.flatMap((stepName) => {
       const path = `${recipe.targetGroup}.${stepName}`;
       if (detachedPathSet.has(path)) {
@@ -522,10 +522,10 @@ export function getRecipeManagedOutputs(
       }
       return [
         {
-          setName,
+          collectionId,
           path,
           stepName,
-          key: createRecipeOwnershipKey(setName, path),
+          key: createRecipeOwnershipKey(collectionId, path),
         },
       ];
     }),
@@ -539,8 +539,8 @@ export function getRecipeManagedOutputPaths(
     | "detachedPaths"
     | "inputTable"
     | "targetGroup"
-    | "targetSet"
-    | "targetSetTemplate"
+    | "targetCollection"
+    | "targetCollectionTemplate"
   >,
 ): string[] {
   return [...new Set(getRecipeManagedOutputs(recipe).map((output) => output.path))];

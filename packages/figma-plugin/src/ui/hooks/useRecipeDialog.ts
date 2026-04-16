@@ -49,7 +49,7 @@ interface UseRecipeDialogParams {
   onInterceptSemanticMapping?: (data: {
     tokens: GeneratedTokenResult[];
     targetGroup: string;
-    targetSet: string;
+    targetCollection: string;
     recipeType: RecipeType;
   }) => void;
   getSuccessToastAction?: (
@@ -62,7 +62,7 @@ export interface RecipeDialogInitialDraft {
   selectedType?: RecipeType;
   name?: string;
   nameIsAuto?: boolean;
-  targetSet?: string;
+  targetCollection?: string;
   targetGroup?: string;
   inlineValue?: unknown;
   configs?: Partial<Record<RecipeType, RecipeConfig>>;
@@ -115,7 +115,7 @@ export function createRecipeDraftFromTemplate(
       ? autoName(options.sourceTokenPath, template.recipeType)
       : template.label,
     nameIsAuto: Boolean(options.sourceTokenPath),
-    targetSet: activeSet,
+    targetCollection: activeSet,
     targetGroup,
     configs: {
       [template.recipeType]: cloneRecipeDraftValue(template.config),
@@ -132,14 +132,14 @@ export function createRecipeDraftFromTemplate(
 interface RecipeDirtySnapshot {
   selectedType: RecipeType;
   name: string;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
   editableSourcePath: string;
   inlineValue: unknown;
   configs: Partial<Record<RecipeType, RecipeConfig>>;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   inputTable: InputTable | undefined;
-  targetSetTemplate: string;
+  targetCollectionTemplate: string;
   semanticEnabled: boolean;
   semanticPrefix: string;
   semanticMappings: Array<{ semantic: string; step: string }>;
@@ -219,12 +219,12 @@ interface UseRecipeDialogReturn {
   // State
   selectedType: RecipeType;
   name: string;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
   editableSourcePath: string;
   inlineValue: unknown;
   inputTable: InputTable | undefined;
-  targetSetTemplate: string;
+  targetCollectionTemplate: string;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   previewTokens: GeneratedTokenResult[];
   previewLoading: boolean;
@@ -250,9 +250,9 @@ interface UseRecipeDialogReturn {
   // Handlers
   handleTypeChange: (type: RecipeType) => void;
   handleNameChange: (value: string) => void;
-  setTargetSet: (value: string) => void;
+  setTargetCollection: (value: string) => void;
   setTargetGroup: (value: string) => void;
-  setTargetSetTemplate: (value: string) => void;
+  setTargetCollectionTemplate: (value: string) => void;
   setEditableSourcePath: (value: string) => void;
   setInlineValue: (value: unknown) => void;
   handleConfigChange: (type: RecipeType, cfg: RecipeConfig) => void;
@@ -337,9 +337,9 @@ export function useRecipeDialog({
     existingRecipe?.name ??
     resolvedInitialDraft?.name ??
     autoName(sourceTokenPath, initialType);
-  const initialTargetSet =
-    existingRecipe?.targetSet ??
-    resolvedInitialDraft?.targetSet ??
+  const initialTargetCollection =
+    existingRecipe?.targetCollection ??
+    resolvedInitialDraft?.targetCollection ??
     activeSet;
   const initialTargetGroup =
     existingRecipe?.targetGroup ??
@@ -369,8 +369,8 @@ export function useRecipeDialog({
     resolvedInitialDraft?.pendingOverrides ??
     {};
   const initialInputTable = existingRecipe?.inputTable ?? undefined;
-  const initialTargetSetTemplate =
-    existingRecipe?.targetSetTemplate ?? "brands/{brand}";
+  const initialTargetCollectionTemplate =
+    existingRecipe?.targetCollectionTemplate ?? "brands/{brand}";
   const initialSemanticEnabled =
     resolvedInitialDraft?.semanticEnabled ??
     Boolean(existingRecipe?.semanticLayer?.mappings.length);
@@ -389,7 +389,7 @@ export function useRecipeDialog({
 
   const [selectedType, setSelectedType] = useState<RecipeType>(initialType);
   const [name, setName] = useState(initialName);
-  const [targetSet, setTargetSet] = useState(initialTargetSet);
+  const [targetCollection, setTargetCollection] = useState(initialTargetCollection);
   const [targetGroup, setTargetGroup] = useState(initialTargetGroup);
   const [inlineValue, setInlineValueRaw] = useState<unknown>(initialInlineValue);
 
@@ -404,8 +404,8 @@ export function useRecipeDialog({
   const [inputTable, setInputTable] = useState<InputTable | undefined>(() =>
     cloneOptionalDraftValue(initialInputTable),
   );
-  const [targetSetTemplate, setTargetSetTemplate] = useState<string>(
-    initialTargetSetTemplate,
+  const [targetCollectionTemplate, setTargetCollectionTemplate] = useState<string>(
+    initialTargetCollectionTemplate,
   );
 
   const nameWasAutoRef = useRef(
@@ -416,14 +416,14 @@ export function useRecipeDialog({
     createRecipeDirtySnapshot({
       selectedType: initialType,
       name: initialName,
-      targetSet: initialTargetSet,
+      targetCollection: initialTargetCollection,
       targetGroup: initialTargetGroup,
       editableSourcePath: existingRecipe?.sourceToken ?? sourceTokenPath ?? "",
       inlineValue: initialInlineValue,
       configs: initialConfigs,
       pendingOverrides: initialPendingOverrides,
       inputTable: initialInputTable,
-      targetSetTemplate: initialTargetSetTemplate,
+      targetCollectionTemplate: initialTargetCollectionTemplate,
       semanticEnabled: initialSemanticEnabled,
       semanticPrefix: initialSemanticPrefix,
       semanticMappings: initialSemanticMappings,
@@ -569,12 +569,12 @@ export function useRecipeDialog({
     sourceTokenPath: effectiveSourcePath,
     inlineValue,
     targetGroup,
-    targetSet,
+    targetCollection,
     config: currentConfig,
     pendingOverrides,
     isMultiBrand,
     inputTable,
-    targetSetTemplate,
+    targetCollectionTemplate,
     existingRecipeId: existingRecipe?.id,
     detachedPaths: existingRecipe?.detachedPaths,
     refreshNonce: previewRefreshNonce,
@@ -608,13 +608,13 @@ export function useRecipeDialog({
     name,
     sourceTokenPath: effectiveSourcePath,
     inlineValue,
-    targetSet,
+    targetCollection,
     targetGroup,
     config: currentConfig,
     pendingOverrides,
     isMultiBrand,
     inputTable,
-    targetSetTemplate,
+    targetCollectionTemplate,
     typeNeedsValue,
     hasValue,
     previewTokens,
@@ -636,14 +636,14 @@ export function useRecipeDialog({
     const currentSnapshot = createRecipeDirtySnapshot({
       selectedType,
       name,
-      targetSet,
+      targetCollection,
       targetGroup,
       editableSourcePath,
       inlineValue,
       configs,
       pendingOverrides,
       inputTable,
-      targetSetTemplate,
+      targetCollectionTemplate,
       semanticEnabled,
       semanticPrefix,
       semanticMappings,
@@ -665,8 +665,8 @@ export function useRecipeDialog({
     semanticMappings,
     semanticPrefix,
     targetGroup,
-    targetSet,
-    targetSetTemplate,
+    targetCollection,
+    targetCollectionTemplate,
   ]);
 
   // --- Config handlers ---
@@ -729,9 +729,9 @@ export function useRecipeDialog({
     setPendingOverrides({});
   };
 
-  const setTargetSetDirty = useCallback(
+  const setTargetCollectionDirty = useCallback(
     (v: string) => {
-      setTargetSet(v);
+      setTargetCollection(v);
     },
     [],
   );
@@ -741,9 +741,9 @@ export function useRecipeDialog({
     },
     [],
   );
-  const setTargetSetTemplateDirty = useCallback(
+  const setTargetCollectionTemplateDirty = useCallback(
     (v: string) => {
-      setTargetSetTemplate(v);
+      setTargetCollectionTemplate(v);
     },
     [],
   );
@@ -805,12 +805,12 @@ export function useRecipeDialog({
     // State
     selectedType,
     name,
-    targetSet,
+    targetCollection,
     targetGroup,
     editableSourcePath,
     inlineValue,
     inputTable,
-    targetSetTemplate,
+    targetCollectionTemplate,
     pendingOverrides,
     previewTokens,
     previewLoading,
@@ -836,9 +836,9 @@ export function useRecipeDialog({
     // Handlers
     handleTypeChange,
     handleNameChange,
-    setTargetSet: setTargetSetDirty,
+    setTargetCollection: setTargetCollectionDirty,
     setTargetGroup: setTargetGroupDirty,
-    setTargetSetTemplate: setTargetSetTemplateDirty,
+    setTargetCollectionTemplate: setTargetCollectionTemplateDirty,
     setEditableSourcePath,
     setInlineValue,
     handleConfigChange,

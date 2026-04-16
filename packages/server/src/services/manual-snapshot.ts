@@ -120,7 +120,7 @@ export interface ManualSnapshotSummary {
   timestamp: string;
   tokenCount: number;
   setCount: number;
-  dimensionCount: number;
+  collectionCount: number;
   viewCount: number;
   resolverCount: number;
   recipeCount: number;
@@ -696,7 +696,7 @@ export class ManualSnapshotStore {
           0,
         ),
         setCount: Object.keys(snapshot.data).length,
-        dimensionCount: snapshot.dimensions.length,
+        collectionCount: snapshot.dimensions.length,
         viewCount: snapshot.views.length,
         resolverCount: Object.keys(snapshot.resolvers).length,
         recipeCount: Object.keys(snapshot.recipes).length,
@@ -1157,7 +1157,7 @@ export class ManualSnapshotStore {
         ));
       const currentCollectionState =
         baseline.views !== undefined
-          ? { dimensions: baseline.dimensions, views: baseline.views }
+          ? { collections: baseline.dimensions, views: baseline.views }
           : await collectionsStore.withReadStateLock((state) =>
               Promise.resolve(structuredClone(state)),
             );

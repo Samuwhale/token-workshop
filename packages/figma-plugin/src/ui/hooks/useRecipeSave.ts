@@ -20,7 +20,7 @@ import {
 
 export interface RecipeSaveSuccessInfo {
   targetGroup: string;
-  targetSet: string;
+  targetCollection: string;
 }
 
 interface UseRecipeSaveParams {
@@ -31,13 +31,13 @@ interface UseRecipeSaveParams {
   name: string;
   sourceTokenPath?: string;
   inlineValue?: unknown;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
   config: RecipeConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   isMultiBrand: boolean;
   inputTable: InputTable | undefined;
-  targetSetTemplate: string;
+  targetCollectionTemplate: string;
   typeNeedsValue: boolean;
   hasValue: boolean;
   previewTokens: GeneratedTokenResult[];
@@ -47,7 +47,7 @@ interface UseRecipeSaveParams {
   onInterceptSemanticMapping?: (data: {
     tokens: GeneratedTokenResult[];
     targetGroup: string;
-    targetSet: string;
+    targetCollection: string;
     recipeType: RecipeType;
   }) => void;
   getSuccessToastAction?: (
@@ -91,13 +91,13 @@ export function useRecipeSave({
   name,
   sourceTokenPath,
   inlineValue,
-  targetSet,
+  targetCollection,
   targetGroup,
   config,
   pendingOverrides,
   isMultiBrand,
   inputTable,
-  targetSetTemplate,
+  targetCollectionTemplate,
   typeNeedsValue,
   hasValue,
   previewTokens: _previewTokens,
@@ -133,10 +133,10 @@ export function useRecipeSave({
   >(initialSelectedSemanticPatternId);
   const overwriteCheckRequestIdRef = useRef(0);
   const getToastAction = useCallback(
-    (targetGroupAtSave: string, targetSetAtSave: string) =>
+    (targetGroupAtSave: string, targetCollectionAtSave: string) =>
       getSuccessToastAction?.({
         targetGroup: targetGroupAtSave,
-        targetSet: targetSetAtSave,
+        targetCollection: targetCollectionAtSave,
       }),
     [getSuccessToastAction],
   );
@@ -157,7 +157,7 @@ export function useRecipeSave({
       return false;
     }
     if (isMultiBrand && inputTable) {
-      if (!targetSetTemplate.trim()) {
+      if (!targetCollectionTemplate.trim()) {
         setSaveError("Target set template is required for multi-brand mode.");
         return false;
       }
@@ -189,7 +189,7 @@ export function useRecipeSave({
     typeNeedsValue,
     hasValue,
     inputTable,
-    targetSetTemplate,
+    targetCollectionTemplate,
   ]);
 
   /** Inner save logic — commits the recipe to the server. */
@@ -199,7 +199,7 @@ export function useRecipeSave({
       semanticPrefixAtSave: string,
       semanticMappingsAtSave: Array<{ semantic: string; step: string }>,
       targetGroupAtSave: string,
-      targetSetAtSave: string,
+      targetCollectionAtSave: string,
     ) => {
       setSaving(true);
       setSaveError("");
@@ -212,7 +212,7 @@ export function useRecipeSave({
             !sourceTokenPath && inlineValue !== undefined && inlineValue !== ""
               ? inlineValue
               : undefined,
-          targetSet: targetSetAtSave,
+          targetCollection: targetCollectionAtSave,
           targetGroup: targetGroupAtSave,
           config,
           semanticLayer:
@@ -232,7 +232,7 @@ export function useRecipeSave({
               ? pendingOverrides
               : undefined,
           ...(isMultiBrand && inputTable
-            ? { inputTable, targetSetTemplate: targetSetTemplate.trim() }
+            ? { inputTable, targetCollectionTemplate: targetCollectionTemplate.trim() }
             : {}),
         };
         const saveUrl =
@@ -254,13 +254,13 @@ export function useRecipeSave({
               name: prevGen.name,
               sourceToken: prevGen.sourceToken,
               inlineValue: prevGen.inlineValue,
-              targetSet: prevGen.targetSet,
+              targetCollection: prevGen.targetCollection,
               targetGroup: prevGen.targetGroup,
               config: prevGen.config,
               semanticLayer: prevGen.semanticLayer ?? null,
               overrides: prevGen.overrides,
               inputTable: prevGen.inputTable,
-              targetSetTemplate: prevGen.targetSetTemplate,
+              targetCollectionTemplate: prevGen.targetCollectionTemplate,
             };
             pushUndo({
               description: `Edited recipe "${prevGen.name}"`,
@@ -300,11 +300,11 @@ export function useRecipeSave({
             ? `Recipe "${name.trim()}" updated`
             : `Recipe "${name.trim()}" created`,
           "success",
-          getToastAction(targetGroupAtSave, targetSetAtSave),
+          getToastAction(targetGroupAtSave, targetCollectionAtSave),
         );
         onSaved({
           targetGroup: targetGroupAtSave,
-          targetSet: targetSetAtSave,
+          targetCollection: targetCollectionAtSave,
         });
         return true;
       } catch (err) {
@@ -325,7 +325,7 @@ export function useRecipeSave({
       pendingOverrides,
       isMultiBrand,
       inputTable,
-      targetSetTemplate,
+      targetCollectionTemplate,
       onSaved,
       getToastAction,
       pushUndo,
@@ -346,13 +346,13 @@ export function useRecipeSave({
         sourceTokenPath: isMultiBrand ? undefined : sourceTokenPath,
         inlineValue,
         targetGroup,
-        targetSet,
+        targetCollection,
         config,
         pendingOverrides,
         baseRecipeId: existingRecipe?.id,
         detachedPaths: existingRecipe?.detachedPaths,
         inputTable: isMultiBrand ? inputTable : undefined,
-        targetSetTemplate: isMultiBrand ? targetSetTemplate : undefined,
+        targetCollectionTemplate: isMultiBrand ? targetCollectionTemplate : undefined,
       });
       if (overwriteCheckRequestIdRef.current !== requestId) return false;
       setOverwritePendingPaths(
@@ -394,8 +394,8 @@ export function useRecipeSave({
     serverUrl,
     sourceTokenPath,
     targetGroup,
-    targetSet,
-    targetSetTemplate,
+    targetCollection,
+    targetCollectionTemplate,
   ]);
 
   /** Step 1: Validate inputs and either commit directly (no risks) or show
@@ -416,7 +416,7 @@ export function useRecipeSave({
           semanticPrefix,
           semanticMappings,
           targetGroup.trim(),
-          targetSet,
+          targetCollection,
         );
       }
       // Revalidation revealed issues — show confirmation so user can review
@@ -441,7 +441,7 @@ export function useRecipeSave({
     semanticMappings,
     semanticPrefix,
     targetGroup,
-    targetSet,
+    targetCollection,
     validateBeforeSave,
   ]);
 
@@ -455,7 +455,7 @@ export function useRecipeSave({
       semanticPrefix,
       semanticMappings,
       targetGroup.trim(),
-      targetSet,
+      targetCollection,
     );
   }, [
     validateBeforeSave,
@@ -466,7 +466,7 @@ export function useRecipeSave({
     semanticPrefix,
     semanticMappings,
     targetGroup,
-    targetSet,
+    targetCollection,
   ]);
 
   /** Step 2: Commit the save. Overwrites are already known (shown in review view).
@@ -490,7 +490,7 @@ export function useRecipeSave({
       semanticPrefix,
       semanticMappings,
       targetGroup.trim(),
-      targetSet,
+      targetCollection,
     );
   }, [
     commitSave,
@@ -501,7 +501,7 @@ export function useRecipeSave({
     semanticPrefix,
     semanticMappings,
     targetGroup,
-    targetSet,
+    targetCollection,
   ]);
 
   const handleCancelConfirmation = useCallback(() => {

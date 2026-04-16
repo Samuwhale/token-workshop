@@ -21,7 +21,7 @@ export interface SnapshotSummary {
   timestamp: string;
   tokenCount: number;
   setCount: number;
-  dimensionCount: number;
+  collectionCount: number;
   resolverCount: number;
   recipeCount: number;
 }

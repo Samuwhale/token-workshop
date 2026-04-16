@@ -68,15 +68,15 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
 
 export interface StepWhereProps {
   name: string;
-  targetSet: string;
+  targetCollection: string;
   targetGroup: string;
   allSets: string[];
   isMultiBrand: boolean;
-  targetSetTemplate: string;
+  targetCollectionTemplate: string;
   onNameChange: (v: string) => void;
-  onTargetSetChange: (v: string) => void;
+  onTargetCollectionChange: (v: string) => void;
   onTargetGroupChange: (v: string) => void;
-  onTargetSetTemplateChange: (v: string) => void;
+  onTargetCollectionTemplateChange: (v: string) => void;
   onToggleMultiBrand: () => void;
   inputTable: InputTable | undefined;
   onInputTableChange: (t: InputTable) => void;
@@ -86,15 +86,15 @@ export interface StepWhereProps {
 
 export function StepWhere({
   name,
-  targetSet,
+  targetCollection,
   targetGroup,
   allSets,
   isMultiBrand,
-  targetSetTemplate,
+  targetCollectionTemplate,
   onNameChange,
-  onTargetSetChange,
+  onTargetCollectionChange,
   onTargetGroupChange,
-  onTargetSetTemplateChange,
+  onTargetCollectionTemplateChange,
   onToggleMultiBrand,
   inputTable,
   onInputTableChange,
@@ -139,8 +139,8 @@ export function StepWhere({
               <label htmlFor="step-where-target-set" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Token collection</label>
               <select
                 id="step-where-target-set"
-                value={targetSet}
-                onChange={e => onTargetSetChange(e.target.value)}
+                value={targetCollection}
+                onChange={e => onTargetCollectionChange(e.target.value)}
                 className={AUTHORING.recipeControl}
               >
                 {allSets.map(s => <option key={s} value={s}>{s}</option>)}
@@ -153,8 +153,8 @@ export function StepWhere({
               <input
                 id="step-where-set-template"
                 type="text"
-                value={targetSetTemplate}
-                onChange={e => onTargetSetTemplateChange(e.target.value)}
+                value={targetCollectionTemplate}
+                onChange={e => onTargetCollectionTemplateChange(e.target.value)}
                 placeholder="brands/{brand}"
                 className={AUTHORING.recipeControlMono}
               />

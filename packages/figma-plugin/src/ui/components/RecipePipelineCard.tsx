@@ -184,7 +184,7 @@ export interface RecipePipelineCardProps {
   focusRef?: React.RefObject<HTMLDivElement | null>;
   serverUrl: string;
   onRefresh: () => void;
-  onViewTokens?: (targetGroup: string, targetSet: string) => void;
+  onViewTokens?: (targetGroup: string, targetCollection: string) => void;
   onEditRecipe?: (recipeId: string) => void;
   onContextMenu?: (event: React.MouseEvent, recipe: TokenRecipe) => void;
 }
@@ -249,7 +249,7 @@ export function RecipePipelineCard({
         onViewTokens
           ? {
               label: "View tokens",
-              onClick: () => onViewTokens(recipe.targetGroup, recipe.targetSet),
+              onClick: () => onViewTokens(recipe.targetGroup, recipe.targetCollection),
             }
           : undefined,
       );
@@ -259,7 +259,7 @@ export function RecipePipelineCard({
     } finally {
       setRunning(false);
     }
-  }, [recipe.id, recipe.targetGroup, recipe.targetSet, onRefresh, onViewTokens, serverUrl]);
+  }, [recipe.id, recipe.targetGroup, recipe.targetCollection, onRefresh, onViewTokens, serverUrl]);
 
   const handlePrimaryAction = useCallback(() => {
     if (isPaused) {
@@ -267,11 +267,11 @@ export function RecipePipelineCard({
       return;
     }
     if (status === "upToDate") {
-      onViewTokens?.(recipe.targetGroup, recipe.targetSet);
+      onViewTokens?.(recipe.targetGroup, recipe.targetCollection);
       return;
     }
     void handleRun();
-  }, [recipe.targetGroup, recipe.targetSet, handleRun, handleToggleEnabled, isPaused, onViewTokens, status]);
+  }, [recipe.targetGroup, recipe.targetCollection, handleRun, handleToggleEnabled, isPaused, onViewTokens, status]);
 
   const actionLabel = isPaused
     ? "Resume"

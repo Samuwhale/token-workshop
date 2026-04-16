@@ -92,14 +92,14 @@ export interface RecipePreviewRequest {
   sourceTokenPath?: string;
   inlineValue?: unknown;
   targetGroup: string;
-  targetSet: string;
+  targetCollection: string;
   config: RecipeConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   sourceValue?: unknown;
   baseRecipeId?: string;
   detachedPaths?: string[];
   inputTable?: InputTable;
-  targetSetTemplate?: string;
+  targetCollectionTemplate?: string;
   signal?: AbortSignal;
 }
 
@@ -109,27 +109,27 @@ export async function requestRecipePreview({
   sourceTokenPath,
   inlineValue,
   targetGroup,
-  targetSet,
+  targetCollection,
   config,
   pendingOverrides,
   sourceValue,
   baseRecipeId,
   detachedPaths,
   inputTable,
-  targetSetTemplate,
+  targetCollectionTemplate,
   signal,
 }: RecipePreviewRequest): Promise<RecipePreviewResponse> {
   const body: Record<string, unknown> = {
     type: selectedType,
     targetGroup,
-    targetSet,
+    targetCollection,
     config,
     overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
     sourceValue,
     baseRecipeId,
     detachedPaths,
     inputTable,
-    targetSetTemplate,
+    targetCollectionTemplate,
   };
 
   if (sourceTokenPath) {
@@ -152,12 +152,12 @@ interface UseRecipePreviewParams {
   sourceTokenPath?: string;
   inlineValue?: unknown;
   targetGroup: string;
-  targetSet: string;
+  targetCollection: string;
   config: RecipeConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   isMultiBrand: boolean;
   inputTable?: InputTable;
-  targetSetTemplate: string;
+  targetCollectionTemplate: string;
   existingRecipeId?: string;
   detachedPaths?: string[];
   refreshNonce?: number;
@@ -201,12 +201,12 @@ export function useRecipePreview({
   sourceTokenPath,
   inlineValue,
   targetGroup,
-  targetSet,
+  targetCollection,
   config,
   pendingOverrides,
   isMultiBrand,
   inputTable,
-  targetSetTemplate,
+  targetCollectionTemplate,
   existingRecipeId,
   detachedPaths,
   refreshNonce = 0,
@@ -251,14 +251,14 @@ export function useRecipePreview({
           sourceTokenPath,
           inlineValue,
           targetGroup,
-          targetSet,
+          targetCollection,
           config,
           pendingOverrides,
           sourceValue: isMultiBrand && firstBrandRow ? firstBrandRow.inputs[inputTable!.inputKey] : undefined,
           baseRecipeId: existingRecipeId,
           detachedPaths,
           inputTable: isMultiBrand ? inputTable : undefined,
-          targetSetTemplate: isMultiBrand ? targetSetTemplate : undefined,
+          targetCollectionTemplate: isMultiBrand ? targetCollectionTemplate : undefined,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
@@ -287,8 +287,8 @@ export function useRecipePreview({
     serverUrl,
     sourceTokenPath,
     targetGroup,
-    targetSet,
-    targetSetTemplate,
+    targetCollection,
+    targetCollectionTemplate,
   ]);
 
   useEffect(() => {
@@ -322,7 +322,7 @@ export function useRecipePreview({
             serverUrl,
             selectedType,
             targetGroup,
-            targetSet,
+            targetCollection,
             config,
             pendingOverrides,
             sourceValue: row.inputs[inputTable!.inputKey],
@@ -362,8 +362,8 @@ export function useRecipePreview({
     selectedType,
     serverUrl,
     targetGroup,
-    targetSet,
-    targetSetTemplate,
+    targetCollection,
+    targetCollectionTemplate,
   ]);
 
   useEffect(() => {

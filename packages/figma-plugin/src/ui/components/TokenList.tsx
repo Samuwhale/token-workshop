@@ -313,7 +313,7 @@ export function TokenList({
     () =>
       (recipes ?? []).filter(
         (recipe) =>
-          recipe.targetSet === setName && recipe.isStale === true,
+          recipe.targetCollection === setName && recipe.isStale === true,
       ),
     [recipes, setName],
   );

@@ -391,3 +391,95 @@ The right move is:
 - then simplify the UI on top of that clean foundation
 
 If this refactor is done in that order, the product gets clearer for designers and the code gets safer for future agents.
+
+## Boundary Inventory
+
+Remaining identifiers that still encode the old `set` or `theme` model.
+Generated at the end of Phase 1 to guide Phases 2 and 3.
+
+### Phase 2 — Server-Owned Identifiers
+
+#### Operation-Log Action Names (persisted in undo history)
+
+| Current | Suggested | Location |
+|---|---|---|
+| `create-set` | `create-collection` | `operation-log.ts` |
+| `delete-set` | `delete-collection` | `operation-log.ts` |
+| `rename-set` | `rename-collection` | `operation-log.ts` |
+| `reorder-sets` | `reorder-collections` | `operation-log.ts` |
+| `write-set-metadata` | `write-collection-metadata` | `operation-log.ts` |
+| `write-themes` | `write-collections` | `operation-log.ts` |
+
+#### API Route Paths
+
+| Current | Suggested | Location |
+|---|---|---|
+| `GET /api/sets` | `/api/collections` | `sets.ts` |
+| `GET /api/sets/:name` | `/api/collections/:name` | `sets.ts` |
+| `POST /api/sets` | `/api/collections` | `sets.ts` |
+| `PATCH /api/sets/:name/metadata` | `/api/collections/:name/metadata` | `sets.ts` |
+| `POST /api/sets/:name/rename` | `/api/collections/:name/rename` | `sets.ts` |
+| `PUT /api/sets/reorder` | `/api/collections/reorder` | `sets.ts` |
+| `POST /api/sets/:name/duplicate` | `/api/collections/:name/duplicate` | `sets.ts` |
+| `POST /api/sets/:name/merge` | `/api/collections/:name/merge` | `sets.ts` |
+| `POST /api/sets/:name/split` | `/api/collections/:name/split` | `sets.ts` |
+| `POST /api/sets/:name/preflight` | `/api/collections/:name/preflight` | `sets.ts` |
+| `DELETE /api/sets/:name` | `/api/collections/:name` | `sets.ts` |
+
+#### Token Store Methods
+
+| Current | Suggested | Location |
+|---|---|---|
+| `getSets()` | `getCollections()` | `token-store.ts` |
+| `getSet(name)` | `getCollection(name)` | `token-store.ts` |
+| `createSet(name, tokens)` | `createCollection(name, tokens)` | `token-store.ts` |
+| `deleteSet(name)` | `deleteCollection(name)` | `token-store.ts` |
+| `renameSet(old, new)` | `renameCollection(old, new)` | `token-store.ts` |
+| `getSetCounts()` | `getCollectionCounts()` | `token-store.ts` |
+| `getSetDescriptions()` | `getCollectionDescriptions()` | `token-store.ts` |
+| `getSetMetadata(name)` | `getCollectionMetadata(name)` | `token-store.ts` |
+| `getSetPublishRoute(name)` | `getCollectionPublishRoute(name)` | `token-store.ts` |
+
+### Phase 3 — Client-Owned Identifiers
+
+#### Plugin Message Names
+
+| Current | Suggested | Location |
+|---|---|---|
+| `get-active-themes` | `get-selected-modes` | `shared/types.ts` |
+| `set-active-themes` | `set-selected-modes` | `shared/types.ts` |
+| `active-themes-loaded` | `selected-modes-loaded` | `shared/types.ts` |
+
+#### Local Storage Keys
+
+| Current Key | Current Value | Suggested Key | Location |
+|---|---|---|---|
+| `ACTIVE_SET` | `tm_active_set` | `ACTIVE_COLLECTION` | `storage.ts` |
+| `ACTIVE_MODES` | `tm_active_themes` | `SELECTED_MODES` | `storage.ts` |
+| `IMPORT_TARGET_SET` | `importTargetSet` | `IMPORT_TARGET_COLLECTION` | `storage.ts` |
+| `CROSS_SET_RECENTS` | `tm_cross_set_recents` | `CROSS_COLLECTION_RECENTS` | `storage.ts` |
+| Per-set builders | `token-sort:{setName}` etc. | Parameter rename: `collectionId` | `storage.ts` |
+
+#### App State Variables
+
+| Current | Suggested | Location |
+|---|---|---|
+| `activeSet` | `activeCollection` | `App.tsx` |
+| `setActiveSet` | `setActiveCollection` | `App.tsx` |
+| `pathToSet` | `pathToCollection` | `App.tsx` |
+| `addSetToState` | `addCollectionToState` | `App.tsx` |
+| `removeSetFromState` | `removeCollectionFromState` | `App.tsx` |
+
+#### Context Exports
+
+| Current | Suggested | Location |
+|---|---|---|
+| `TokenSetsContext` | `TokenCollectionsContext` | `TokenDataContext.tsx` |
+| `useTokenSetsContext()` | `useTokenCollectionsContext()` | `TokenDataContext.tsx` |
+| `TokenSetsContextValue` | `TokenCollectionsContextValue` | `TokenDataContext.tsx` |
+
+#### Figma pluginData Fields
+
+| Current | Suggested | Location |
+|---|---|---|
+| `tokenSet` | `tokenCollection` | `variableSync.ts`, `controller.ts` |

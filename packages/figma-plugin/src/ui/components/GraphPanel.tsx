@@ -38,7 +38,7 @@ export interface GraphPanelProps {
   focusRecipeId?: string | null;
   onClearFocusRecipe?: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  onViewTokens?: (targetGroup: string, targetSet: string) => void;
+  onViewTokens?: (targetGroup: string, targetCollection: string) => void;
   openCreateDialog?: boolean;
 }
 
@@ -63,7 +63,7 @@ export function GraphPanel({
   openCreateDialog = false,
 }: GraphPanelProps) {
   const setRecipes = useMemo(
-    () => recipes.filter((recipe) => recipe.targetSet === activeSet),
+    () => recipes.filter((recipe) => recipe.targetCollection === activeSet),
     [activeSet, recipes],
   );
   const focusRef = useRef<HTMLDivElement>(null);
@@ -233,7 +233,7 @@ export function GraphPanel({
       onViewTokens
         ? {
             label: "View tokens",
-            onClick: () => onViewTokens(info.targetGroup, info.targetSet),
+            onClick: () => onViewTokens(info.targetGroup, info.targetCollection),
           }
         : undefined,
     [onViewTokens],
@@ -278,7 +278,7 @@ export function GraphPanel({
         onViewTokens
           ? {
               label: "View tokens",
-              onClick: () => onViewTokens(recipe.targetGroup, recipe.targetSet),
+              onClick: () => onViewTokens(recipe.targetGroup, recipe.targetCollection),
             }
           : undefined,
       );

@@ -16,7 +16,7 @@ export interface SemanticMappingDialogProps {
   generatedTokens: GeneratedTokenResult[];
   recipeType: string;
   targetGroup: string;
-  targetSet: string;
+  targetCollection: string;
   onClose: () => void;
   onCreated?: (count: number) => void;
   initialPrefix?: string;
@@ -32,7 +32,7 @@ export function SemanticMappingDialog({
   generatedTokens,
   recipeType,
   targetGroup,
-  targetSet,
+  targetCollection,
   onClose,
   onCreated,
   initialPrefix,
@@ -125,7 +125,7 @@ export function SemanticMappingDialog({
         });
         await upsertToken(
           serverUrl,
-          targetSet,
+          targetCollection,
           fullPath,
           body,
           (err): err is ApiError =>
@@ -180,7 +180,7 @@ export function SemanticMappingDialog({
 
   const title = isLayerEditor ? "Semantic Layer" : "Create Semantic Tokens";
   const subtitle = isLayerEditor
-    ? `Semantic aliases for ${targetGroup}.* in ${targetSet}`
+    ? `Semantic aliases for ${targetGroup}.* in ${targetCollection}`
     : `Reference tokens that point to ${targetGroup}`;
 
   const bodyContent = (
