@@ -60,8 +60,8 @@ interface PriorityIssue {
 
 function statusColor(status: HealthStatus | null): string {
   if (status === "critical") return "text-[var(--color-figma-error)]";
-  if (status === "warning") return "text-amber-500";
-  return "text-[var(--color-figma-success,#18a058)]";
+  if (status === "warning") return "text-[var(--color-figma-warning)]";
+  return "text-[var(--color-figma-success)]";
 }
 
 

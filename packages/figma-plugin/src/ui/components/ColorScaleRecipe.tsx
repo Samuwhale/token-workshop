@@ -92,7 +92,7 @@ function Sparkline({ steps }: { steps: ScaleStep[] }) {
             cx={x}
             cy={y}
             r={3}
-            fill={isOutlier ? '#f97316' : 'var(--color-figma-accent)'}
+            fill={isOutlier ? 'var(--color-figma-warning)' : 'var(--color-figma-accent)'}
           >
             <title>{`${steps[i].label}: L*=${steps[i].L.toFixed(1)}`}</title>
           </circle>
@@ -167,7 +167,7 @@ export function ColorScaleRecipe({ serverUrl, activeSet, existingPaths, onClose,
   const lastStep = scale[scale.length - 1]?.label ?? '900';
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+    <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-end justify-center z-50">
       <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
@@ -250,7 +250,7 @@ export function ColorScaleRecipe({ serverUrl, activeSet, existingPaths, onClose,
               </summary>
               <div className="mt-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
                 <div className="text-[8px] text-[var(--color-figma-text-secondary)] mb-1">
-                  <span className="text-orange-500">●</span> marks uneven steps
+                  <span className="text-[var(--color-figma-warning)]">●</span> marks uneven steps
                 </div>
                 <Sparkline steps={scale} />
                 <div className="flex justify-between mt-0.5">

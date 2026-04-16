@@ -65,7 +65,7 @@ export function ReviewPanelOverlay({
       {/* Backdrop — click to dismiss */}
       <button
         type="button"
-        className="flex-1 bg-black/30 cursor-default"
+        className="flex-1 bg-[var(--color-figma-overlay)] cursor-default"
         onClick={onClose}
         aria-label="Close review panel"
         tabIndex={-1}
@@ -128,7 +128,7 @@ export function VariableDiffReviewPanel({
           )}
           {pending.modified > 0 && (
             <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-2 py-1.5 last:border-b-0">
-              <span className="font-medium text-yellow-600">
+              <span className="font-medium text-[var(--color-figma-warning)]">
                 ~{pending.modified}
               </span>
               <span>

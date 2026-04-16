@@ -980,7 +980,7 @@ export function SettingsPanel({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="mt-px shrink-0 text-amber-500"
+                  className="mt-px shrink-0 text-[var(--color-figma-warning)]"
                   aria-hidden="true"
                 >
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -1000,7 +1000,7 @@ export function SettingsPanel({
                 </button>
                 <button
                   onClick={handleApplyImport}
-                  className="flex-1 rounded bg-amber-500 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-amber-600"
+                  className="flex-1 rounded bg-[var(--color-figma-warning)] px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-warning)]"
                 >
                   Restore & reload
                 </button>

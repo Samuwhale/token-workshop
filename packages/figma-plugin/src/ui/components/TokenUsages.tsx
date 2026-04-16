@@ -76,8 +76,8 @@ function formatDiffValue(val: any, type: string): string {
 const RECIPE_TYPE_STYLES: Record<string, { label: string; classes: string }> = {
   colorRamp: { label: 'Color Ramp', classes: 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' },
   typeScale: { label: 'Type Scale', classes: 'bg-purple-500/15 text-purple-600' },
-  spacingScale: { label: 'Spacing', classes: 'bg-green-500/15 text-green-600' },
-  opacityScale: { label: 'Opacity', classes: 'bg-orange-500/15 text-orange-600' },
+  spacingScale: { label: 'Spacing', classes: 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' },
+  opacityScale: { label: 'Opacity', classes: 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]' },
 };
 
 export function TokenUsages({
@@ -409,7 +409,7 @@ export function TokenUsages({
           {/* Layer scan error */}
           {layersScanned && layersScanError && (
             <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
-              <span className="text-orange-500" title={layersScanError}>Layer scan failed — {layersScanError}</span>
+              <span className="text-[var(--color-figma-warning)]" title={layersScanError}>Layer scan failed — {layersScanError}</span>
             </div>
           )}
 
@@ -421,7 +421,7 @@ export function TokenUsages({
             </div>
           ) : variablesScanned && variablesScanError ? (
             <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
-              <span className="text-orange-500" title={variablesScanError}>Variable scan failed — {variablesScanError}</span>
+              <span className="text-[var(--color-figma-warning)]" title={variablesScanError}>Variable scan failed — {variablesScanError}</span>
             </div>
           ) : variablesScanned && variables.length > 0 ? (
             <>
@@ -461,7 +461,7 @@ export function TokenUsages({
                     </svg>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Managed by</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                      RECIPE_TYPE_STYLES[producingRecipe.type]?.classes ?? 'bg-gray-500/15 text-gray-600'
+                      RECIPE_TYPE_STYLES[producingRecipe.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
                       {RECIPE_TYPE_STYLES[producingRecipe.type]?.label ?? producingRecipe.type}
                     </span>
@@ -488,7 +488,7 @@ export function TokenUsages({
                     </svg>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Source for</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
-                      RECIPE_TYPE_STYLES[gen.type]?.classes ?? 'bg-gray-500/15 text-gray-600'
+                      RECIPE_TYPE_STYLES[gen.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
                       {RECIPE_TYPE_STYLES[gen.type]?.label ?? gen.type}
                     </span>

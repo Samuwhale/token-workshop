@@ -46,7 +46,7 @@ function normalizeLifecycle(lifecycle?: UnusedToken['$lifecycle']): LifecycleVal
 function getActionBadgeClass(action: CleanupAction): string {
   return action === 'delete'
     ? 'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'
-    : 'border-gray-400/40 bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
+    : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
 }
 
 export function UnusedTokensPanel({
@@ -355,7 +355,7 @@ export function UnusedTokensPanel({
                           <button
                             onClick={() => stageTokens(filteredTokens, 'deprecate')}
                             disabled={filteredTokens.length === 0}
-                            className="text-[10px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                           >
                             Stage visible to deprecate
                           </button>
@@ -436,7 +436,7 @@ export function UnusedTokensPanel({
                               <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 flex flex-wrap items-center justify-end gap-1">
                                 <button
                                   onClick={() => stageTokens(groupTokens, 'deprecate')}
-                                  className="text-[9px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                                 >
                                   Stage set to deprecate
                                 </button>
@@ -505,7 +505,7 @@ export function UnusedTokensPanel({
                                                 <button
                                                   onClick={() => stageTokens([token], 'deprecate')}
                                                   disabled={isBusy}
-                                                  className="text-[9px] px-2 py-1 rounded border border-gray-400/40 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                                 >
                                                   Stage deprecate
                                                 </button>

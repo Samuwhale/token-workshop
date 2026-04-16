@@ -154,7 +154,7 @@ export const DimensionEditor = memo(function DimensionEditor({ value, onChange, 
         </div>
       )}
       {conversionWarning && (
-        <div className="px-2 py-1.5 rounded text-[10px] text-amber-700 bg-amber-50 border border-amber-200">
+        <div className="px-2 py-1.5 rounded text-[10px] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30">
           {conversionWarning}
         </div>
       )}

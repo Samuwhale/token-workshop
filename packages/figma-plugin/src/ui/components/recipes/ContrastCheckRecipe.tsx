@@ -62,21 +62,21 @@ export function ContrastCheckPreview({ tokens, config, overrides = {}, onOverrid
   return (
     <div className="flex flex-col gap-0.5">
       {failCount > 0 ? (
-        <div className="flex items-center gap-1.5 px-1 py-1 mb-1 rounded bg-amber-500/10 border border-amber-500/20">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 shrink-0" aria-hidden="true">
+        <div className="flex items-center gap-1.5 px-1 py-1 mb-1 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/20">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-warning)] shrink-0" aria-hidden="true">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          <span className="text-[10px] text-amber-700 font-medium">
+          <span className="text-[10px] text-[var(--color-figma-warning)] font-medium">
             {failCount} step{failCount !== 1 ? 's' : ''} fail{failCount === 1 ? 's' : ''} {strictestLabel}
           </span>
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 px-1 py-1 mb-1 rounded bg-green-500/10 border border-green-500/20">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 shrink-0" aria-hidden="true">
+        <div className="flex items-center gap-1.5 px-1 py-1 mb-1 rounded bg-[var(--color-figma-success)]/10 border border-[var(--color-figma-success)]/20">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
-          <span className="text-[10px] text-green-700 font-medium">All steps pass {strictestLabel}</span>
+          <span className="text-[10px] text-[var(--color-figma-success)] font-medium">All steps pass {strictestLabel}</span>
         </div>
       )}
       {tokens.map(t => {
@@ -102,12 +102,12 @@ export function ContrastCheckPreview({ tokens, config, overrides = {}, onOverrid
               {ratio !== null ? ratio.toFixed(2) + ':1' : '—'}
             </span>
             {enforcedLevels.includes('AA') && (
-              <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAA ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-500'}`}>
+              <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAA ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]'}`}>
                 AA
               </span>
             )}
             {enforcedLevels.includes('AAA') && (
-              <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAAA ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-500'}`}>
+              <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAAA ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)]'}`}>
                 AAA
               </span>
             )}
@@ -275,7 +275,7 @@ export function ContrastCheckConfigEditor({ config, onChange, allTokensFlat, pat
                   aria-label={`Color step ${step.name} hex value`}
                   className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
                 {ratio !== null && (
-                  <span className={`text-[8px] font-medium shrink-0 ${passAA ? 'text-green-600' : 'text-red-500'}`}>
+                  <span className={`text-[8px] font-medium shrink-0 ${passAA ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
                     {ratio.toFixed(1)}
                   </span>
                 )}

@@ -324,7 +324,7 @@ export function PasteTokensModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onKeyDown={handleKeyDown} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50" onKeyDown={handleKeyDown} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div
         ref={dialogRef}
         className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl flex flex-col"
@@ -462,13 +462,13 @@ export function PasteTokensModal({
               <div className="flex items-center gap-2 text-[10px]">
                 <span className="text-[var(--color-figma-text)] font-medium">{effectiveRows.length} token{effectiveRows.length !== 1 ? 's' : ''}</span>
                 {toCreate.length > 0 && (
-                  <span className="text-green-700">+{toCreate.length} new</span>
+                  <span className="text-[var(--color-figma-success)]">+{toCreate.length} new</span>
                 )}
                 {invalidRows.length > 0 && (
                   <span className="text-[var(--color-figma-error)]">{invalidRows.length} invalid</span>
                 )}
                 {conflicts.length > 0 && (
-                  <span className="text-amber-600">{conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''}</span>
+                  <span className="text-[var(--color-figma-warning)]">{conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''}</span>
                 )}
                 {skipped.length > 0 && (
                   <span className="text-[var(--color-figma-text-secondary)]">{skipped.length} skipped</span>
@@ -492,7 +492,7 @@ export function PasteTokensModal({
             {effectiveRows.map(row => (
               <div
                 key={row.path}
-                className={`flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] ${row.validationError ? 'bg-[var(--color-figma-error)]/5' : row.conflict ? 'bg-amber-50/60' : ''}`}
+                className={`flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] ${row.validationError ? 'bg-[var(--color-figma-error)]/5' : row.conflict ? 'bg-[var(--color-figma-warning)]/10' : ''}`}
               >
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
@@ -502,7 +502,7 @@ export function PasteTokensModal({
                       <span className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1 shrink-0">invalid</span>
                     )}
                     {!row.validationError && row.conflict && !row.overwrite && (
-                      <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 shrink-0">skip</span>
+                      <span className="text-[10px] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 rounded px-1 shrink-0">skip</span>
                     )}
                     {!row.validationError && row.conflict && row.overwrite && (
                       <span className="text-[10px] text-blue-600 bg-blue-50 border border-blue-200 rounded px-1 shrink-0">overwrite</span>

@@ -901,7 +901,7 @@ export function TokenEditor({
         </div>
       )}
       {pendingDraft && !isCreateMode && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-400/40 bg-amber-50/80 dark:bg-amber-900/20 text-[11px]">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-[11px]">
           <svg
             width="11"
             height="11"
@@ -911,19 +911,19 @@ export function TokenEditor({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="shrink-0 text-amber-600 dark:text-amber-400"
+            className="shrink-0 text-[var(--color-figma-warning)]"
             aria-hidden="true"
           >
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <span className="flex-1 text-amber-800 dark:text-amber-200 truncate">
+          <span className="flex-1 text-[var(--color-figma-warning)] truncate">
             Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
           </span>
           <button
             type="button"
             onClick={() => applyDraft(pendingDraft)}
-            className="shrink-0 text-[10px] font-medium text-amber-700 dark:text-amber-300 hover:underline"
+            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-warning)] hover:underline"
           >
             Restore
           </button>
@@ -933,7 +933,7 @@ export function TokenEditor({
               setPendingDraft(null);
               clearEditorDraft(setName, tokenPath);
             }}
-            className="shrink-0 text-[10px] text-amber-500 hover:underline"
+            className="shrink-0 text-[10px] text-[var(--color-figma-warning)] hover:underline"
           >
             Dismiss
           </button>
@@ -1271,7 +1271,7 @@ export function TokenEditor({
 
         {/* Type-change confirmation — shown when a type switch would reset a non-default value */}
         {pendingTypeChange && (
-          <div className="px-2 py-2 rounded border border-amber-500/30 bg-amber-500/10 text-[10px]">
+          <div className="px-2 py-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 text-[10px]">
             <p className="text-[var(--color-figma-text)] mb-2">
               Switch to <strong>{pendingTypeChange}</strong>? This will reset
               the current value.
@@ -1280,7 +1280,7 @@ export function TokenEditor({
                   <button
                     type="button"
                     onClick={() => setShowPendingDependents((v) => !v)}
-                    className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors"
+                    className="flex items-center gap-1 text-[var(--color-figma-warning)] hover:text-[var(--color-figma-warning)] transition-colors"
                   >
                     <svg
                       width="8"
@@ -1307,7 +1307,7 @@ export function TokenEditor({
                               setPendingTypeChange(null);
                               onShowReferences(dep.path);
                             }}
-                            className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-[9px] text-[var(--color-figma-text)] hover:bg-amber-500/20 hover:text-amber-300 transition-colors text-left w-full"
+                            className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-[9px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-warning)]/20 hover:text-[var(--color-figma-warning)] transition-colors text-left w-full"
                             title={`Open ${dep.path} in dependency graph`}
                           >
                             <svg
@@ -1327,7 +1327,7 @@ export function TokenEditor({
                             </svg>
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                             {dep.setName !== setName && (
-                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-amber-500/20 text-amber-400 ml-auto">
+                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
                                 {dep.setName}
                               </span>
                             )}
@@ -1339,7 +1339,7 @@ export function TokenEditor({
                           >
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                             {dep.setName !== setName && (
-                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-amber-500/20 text-amber-400 ml-auto">
+                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
                                 {dep.setName}
                               </span>
                             )}
@@ -1347,7 +1347,7 @@ export function TokenEditor({
                         ),
                       )}
                       {dependents.length > 20 && (
-                        <span className="px-1 py-0.5 text-[9px] text-amber-400/70 italic">
+                        <span className="px-1 py-0.5 text-[9px] text-[var(--color-figma-warning)]/70 italic">
                           and {dependents.length - 20} more…
                         </span>
                       )}
@@ -1370,7 +1370,7 @@ export function TokenEditor({
               <button
                 type="button"
                 onClick={() => applyTypeChange(pendingTypeChange)}
-                className="flex-1 px-2 py-1 rounded bg-amber-500 text-white hover:bg-amber-600"
+                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-warning)] text-white hover:bg-[var(--color-figma-warning)]"
               >
                 Switch type
               </button>
@@ -1533,7 +1533,7 @@ export function TokenEditor({
         {!aliasMode && referenceSection}
 
         {activeProducingRecipe && !isCreateMode && (
-          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+          <div className="rounded-md border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-3 py-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
@@ -1640,9 +1640,9 @@ export function TokenEditor({
                     className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
                       lifecycle === lc
                         ? lc === "draft"
-                          ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40"
+                          ? "bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ring-1 ring-[var(--color-figma-warning)]/40"
                           : lc === "deprecated"
-                            ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/40"
+                            ? "bg-[var(--color-figma-text-tertiary)]/20 text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-text-tertiary)]/40"
                             : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
                         : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                     }`}

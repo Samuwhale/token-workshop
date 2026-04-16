@@ -154,7 +154,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 <span className="text-[11px] font-medium truncate max-w-[140px]" title={git.gitStatus.branch || 'main'}>{git.gitStatus.branch || 'main'}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={`text-[10px] font-medium ${git.allChanges.length > 0 ? 'text-yellow-600' : 'text-[var(--color-figma-success)]'}`}>
+                <span className={`text-[10px] font-medium ${git.allChanges.length > 0 ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-success)]'}`}>
                   {git.allChanges.length > 0 ? `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
                 </span>
                 {git.gitStatus.remote && (git.gitStatus.status?.ahead ?? 0) > 0 && (
@@ -163,7 +163,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   </span>
                 )}
                 {git.gitStatus.remote && (git.gitStatus.status?.behind ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Pull`} className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-500/10 text-amber-600">
+                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Pull`} className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
                     ↓{git.gitStatus.status!.behind}
                   </span>
                 )}
@@ -517,7 +517,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                       {filteredFiles.map(({ file, cat }) => {
                         const choice = git.diffChoices[file] ?? 'skip';
                         const catLabel = cat === 'local' ? 'Local only' : cat === 'remote' ? 'Remote only' : 'Values differ';
-                        const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-yellow-600';
+                        const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-warning)]';
                         return (
                           <div key={file} className="flex items-center gap-2 px-3 py-1.5">
                             <span className={`text-[10px] font-medium shrink-0 w-20 ${catColor}`}>{catLabel}</span>

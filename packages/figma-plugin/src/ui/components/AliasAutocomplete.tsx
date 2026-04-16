@@ -190,10 +190,10 @@ export function AliasAutocomplete({
 
           {/* Lifecycle badge */}
           {entry.$lifecycle === 'draft' && (
-            <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">draft</span>
+            <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">draft</span>
           )}
           {entry.$lifecycle === 'deprecated' && (
-            <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-gray-300/40 text-gray-500 dark:text-gray-400">deprecated</span>
+            <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-[var(--color-figma-text-tertiary)]/20 text-[var(--color-figma-text-secondary)]">deprecated</span>
           )}
 
           {/* Set name */}

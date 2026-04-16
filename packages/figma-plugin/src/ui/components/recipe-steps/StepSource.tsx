@@ -386,7 +386,7 @@ export function StepSource({
       {destination && (
         <div className={AUTHORING.recipeSectionCard}>
           {detachedCount > 0 && (
-            <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 mb-2 text-[10px] text-[var(--color-figma-text)]">
+            <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-1.5 mb-2 text-[10px] text-[var(--color-figma-text)]">
               {detachedCount} detached output{detachedCount === 1 ? '' : 's'}
             </div>
           )}

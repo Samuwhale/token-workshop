@@ -157,14 +157,14 @@ function SuggestionCard({
               )}
               <div className="flex items-center gap-1 shrink-0">
                 {isColor && <ColorSwatch hex={String(match.actualValue)} />}
-                <span className="text-[10px] text-amber-600 tabular-nums">
+                <span className="text-[10px] text-[var(--color-figma-warning)] tabular-nums">
                   {formatValue(match.actualValue, match.property)}
                 </span>
                 <svg width="8" height="6" viewBox="0 0 8 6" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
                   <path d="M1 3h6M5 1l2 2-2 2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 {isColor && <ColorSwatch hex={String(match.tokenValue)} />}
-                <span className="text-[10px] text-emerald-600 tabular-nums">
+                <span className="text-[10px] text-[var(--color-figma-success)] tabular-nums">
                   {formatValue(match.tokenValue, match.property)}
                 </span>
               </div>
@@ -321,7 +321,7 @@ export function ConsistencyPanel({
         {scanning ? (
           <button
             onClick={handleCancel}
-            className="ml-auto px-3 py-1 rounded text-[10px] font-medium bg-red-500 text-white hover:opacity-90 transition-opacity"
+            className="ml-auto px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity"
           >
             Cancel
           </button>
@@ -346,7 +346,7 @@ export function ConsistencyPanel({
 
         {/* Error */}
         {error && (
-          <div className="m-3 p-3 rounded border border-red-300 bg-red-50 text-[10px] text-red-700">
+          <div className="m-3 p-3 rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 text-[10px] text-[var(--color-figma-error)]">
             {error}
           </div>
         )}
@@ -402,7 +402,7 @@ export function ConsistencyPanel({
 
             {visibleSuggestions.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-3 text-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
                 <p className="text-[11px] font-medium text-[var(--color-figma-text)]">All consistent</p>

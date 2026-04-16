@@ -188,7 +188,7 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
       <div ref={dialogRef} className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="rename-confirm-dialog-title">
@@ -330,7 +330,7 @@ function ExtractToAliasModal() {
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onSetExtractToken(null); }}
     >
       <div ref={dialogRef} className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col" style={{ maxHeight: '80vh' }} role="dialog" aria-modal="true" aria-labelledby="extract-to-alias-dialog-title">
@@ -677,7 +677,7 @@ export function TokenListModals() {
 
       {/* New group dialog */}
       {newGroupDialogParent !== null && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onMouseDown={(e) => { if (e.target === e.currentTarget) { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); } }}>
+        <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50" onMouseDown={(e) => { if (e.target === e.currentTarget) { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); } }}>
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3" role="dialog" aria-modal="true" aria-labelledby="new-group-dialog-title">
             <div id="new-group-dialog-title" className="text-[12px] font-medium text-[var(--color-figma-text)]">New group</div>
             {newGroupDialogParent && (
@@ -760,7 +760,7 @@ export function TokenListModals() {
 
       {/* Move group to set modal */}
       {movingGroup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
             <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move group to set</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
@@ -799,7 +799,7 @@ export function TokenListModals() {
 
       {/* Copy group to set modal */}
       {copyingGroup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
             <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Copy group to set</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
@@ -839,7 +839,7 @@ export function TokenListModals() {
       {/* Move selected tokens to group modal */}
       {showMoveToGroup && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); } }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
@@ -883,7 +883,7 @@ export function TokenListModals() {
       {/* Batch move selected tokens to another set */}
       {showBatchMoveToSet && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) onSetShowBatchMoveToSet(false); }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
@@ -925,7 +925,7 @@ export function TokenListModals() {
       {/* Batch copy selected tokens to another set */}
       {showBatchCopyToSet && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) onSetShowBatchCopyToSet(false); }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">

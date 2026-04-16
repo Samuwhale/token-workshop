@@ -2291,7 +2291,7 @@ export function App() {
 
       {/* Group Scope Editor */}
       {groupScopesPath && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
@@ -2353,7 +2353,7 @@ export function App() {
               ))}
             </div>
             {groupScopesError && (
-              <div className="px-3 py-2 mx-3 mb-2 rounded bg-red-50 border border-red-200 text-[10px] text-red-700 flex items-center gap-1.5">
+              <div className="px-3 py-2 mx-3 mb-2 rounded bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30 text-[10px] text-[var(--color-figma-error)] flex items-center gap-1.5">
                 <svg
                   width="10"
                   height="10"

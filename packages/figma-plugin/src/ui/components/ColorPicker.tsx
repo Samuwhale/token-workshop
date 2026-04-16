@@ -728,7 +728,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
             aria-label="Hex color"
             value={hexInput}
             onChange={e => onHexInputChange(e.target.value)}
-            className={inputClass + ' text-left' + (hexInputError ? ' !border-red-500' : '')}
+            className={inputClass + ' text-left' + (hexInputError ? ' !border-[var(--color-figma-error)]' : '')}
             title={hexInputError ? 'Invalid hex — use #RRGGBB or #RRGGBBAA' : undefined}
           />
         </div>

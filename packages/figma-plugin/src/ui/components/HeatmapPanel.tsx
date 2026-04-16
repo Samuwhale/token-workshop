@@ -50,9 +50,9 @@ interface HeatmapPanelProps {
 }
 
 const STATUS_COLORS = {
-  green: { text: 'text-emerald-600', bar: 'bg-emerald-500', label: 'Fully bound' },
-  yellow: { text: 'text-amber-600', bar: 'bg-amber-400', label: 'Partially bound' },
-  red: { text: 'text-red-600', bar: 'bg-red-500', label: 'No bindings' },
+  green: { text: 'text-[var(--color-figma-success)]', bar: 'bg-[var(--color-figma-success)]', label: 'Fully bound' },
+  yellow: { text: 'text-[var(--color-figma-warning)]', bar: 'bg-[var(--color-figma-warning)]', label: 'Partially bound' },
+  red: { text: 'text-[var(--color-figma-error)]', bar: 'bg-[var(--color-figma-error)]', label: 'No bindings' },
 };
 
 /** Distinct shape per status so meaning isn't conveyed by color alone. */
@@ -60,7 +60,7 @@ function StatusIcon({ status, size = 8 }: { status: 'green' | 'yellow' | 'red'; 
   if (status === 'green') {
     // Checkmark
     return (
-      <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-emerald-500" aria-label="Fully bound">
+      <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-success)]" aria-label="Fully bound">
         <path d="M2 5.5l2.5 2.5L8 3" />
       </svg>
     );
@@ -68,14 +68,14 @@ function StatusIcon({ status, size = 8 }: { status: 'green' | 'yellow' | 'red'; 
   if (status === 'yellow') {
     // Dash / minus
     return (
-      <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-amber-500" aria-label="Partially bound">
+      <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-[var(--color-figma-warning)]" aria-label="Partially bound">
         <path d="M2.5 5h5" />
       </svg>
     );
   }
   // X mark
   return (
-    <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-red-500" aria-label="No bindings">
+    <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-error)]" aria-label="No bindings">
       <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
     </svg>
   );
@@ -233,11 +233,11 @@ export function HeatmapPanel({
               <svg className="absolute w-0 h-0" aria-hidden="true">
                 <defs>
                   <pattern id="hm-pat-red" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                    <rect width="6" height="6" fill="#ef4444" />
+                    <rect width="6" height="6" fill="var(--color-figma-error)" />
                     <line x1="0" y1="0" x2="0" y2="6" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.35" />
                   </pattern>
                   <pattern id="hm-pat-yellow" width="4" height="4" patternUnits="userSpaceOnUse">
-                    <rect width="4" height="4" fill="#fbbf24" />
+                    <rect width="4" height="4" fill="var(--color-figma-warning)" />
                     <circle cx="2" cy="2" r="0.8" fill="#fff" fillOpacity="0.4" />
                   </pattern>
                 </defs>
@@ -245,7 +245,7 @@ export function HeatmapPanel({
               {result.red > 0 && (
                 <div
                   style={{ flex: result.red, background: 'url(#hm-pat-red)' }}
-                  className="bg-red-500"
+                  className="bg-[var(--color-figma-error)]"
                   title={`${result.red} unbound`}
                 >
                   <svg className="w-full h-full"><rect width="100%" height="100%" fill="url(#hm-pat-red)" /></svg>
@@ -254,7 +254,7 @@ export function HeatmapPanel({
               {result.yellow > 0 && (
                 <div
                   style={{ flex: result.yellow, background: 'url(#hm-pat-yellow)' }}
-                  className="bg-amber-400"
+                  className="bg-[var(--color-figma-warning)]"
                   title={`${result.yellow} partial`}
                 >
                   <svg className="w-full h-full"><rect width="100%" height="100%" fill="url(#hm-pat-yellow)" /></svg>
@@ -262,7 +262,7 @@ export function HeatmapPanel({
               )}
               {result.green > 0 && (
                 <div
-                  className="bg-emerald-500"
+                  className="bg-[var(--color-figma-success)]"
                   style={{ flex: result.green }}
                   title={`${result.green} fully bound`}
                 />
@@ -320,7 +320,7 @@ export function HeatmapPanel({
       {/* Error state */}
       {!loading && error && (
         <div className="flex-1 flex flex-col items-center justify-center gap-2 p-3 text-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 opacity-70" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-error)] opacity-70" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>

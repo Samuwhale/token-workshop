@@ -446,7 +446,7 @@ function getRowMetadataToneClass(
     case "accent":
       return "text-[var(--color-figma-accent)]";
     case "warning":
-      return "text-amber-600";
+      return "text-[var(--color-figma-warning)]";
     case "danger":
       return "text-[var(--color-figma-error)]";
     default:
@@ -777,7 +777,7 @@ const TokenGroupNode = memo(
           data-group-path={node.path}
           data-node-name={node.name}
           onFocus={() => onGroupRovingFocus(node.path)}
-          className={`relative flex items-center gap-1 px-1.5 ${pyClass} cursor-pointer transition-colors group/group token-row-hover ${targetRecipe ? "bg-amber-500/[0.03] hover:bg-amber-500/[0.08]" : "bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)]"} ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
+          className={`relative flex items-center gap-1 px-1.5 ${pyClass} cursor-pointer transition-colors group/group token-row-hover ${targetRecipe ? "bg-[var(--color-figma-warning)]/[0.03] hover:bg-[var(--color-figma-warning)]/[0.08]" : "bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)]"} ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
           data-roving-focus={groupRovingFocusPath === node.path || undefined}
           style={{
             paddingLeft: `${computePaddingLeft(depth, condensedView, 8)}px`,
@@ -951,7 +951,7 @@ const TokenGroupNode = memo(
               disabled={!targetRecipe.id || !onNavigateToRecipe}
               className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${
                 targetRecipe.isStale
-                  ? "bg-amber-500/10 text-amber-600"
+                  ? "bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]"
                   : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               } disabled:cursor-default disabled:opacity-100`}
               title={`${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"}`}
@@ -2786,12 +2786,12 @@ const TokenLeafNode = memo(
                     aria-label="Token value"
                     aria-invalid={inlineEditError ? "true" : undefined}
                     autoFocus
-                    className={`text-[11px] text-[var(--color-figma-text)] w-[96px] bg-[var(--color-figma-bg)] border rounded px-1 outline-none ${inlineEditError ? "border-red-400 focus:border-red-400" : "border-[var(--color-figma-accent)]"}`}
+                    className={`text-[11px] text-[var(--color-figma-text)] w-[96px] bg-[var(--color-figma-bg)] border rounded px-1 outline-none ${inlineEditError ? "border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]" : "border-[var(--color-figma-accent)]"}`}
                   />
                   {inlineEditError && (
                     <div
                       role="alert"
-                      className="absolute top-full left-0 mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-red-400 rounded px-1.5 py-0.5 text-[10px] text-red-400 whitespace-nowrap shadow-sm pointer-events-none"
+                      className="absolute top-full left-0 mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-error)] rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-error)] whitespace-nowrap shadow-sm pointer-events-none"
                     >
                       {inlineEditError}
                     </div>
@@ -2953,7 +2953,7 @@ const TokenLeafNode = memo(
           {/* Passive favorite indicator — always visible when starred */}
           {isFavorite && (
             <span
-              className="shrink-0 text-amber-400 ml-0.5"
+              className="shrink-0 text-[var(--color-figma-warning)] ml-0.5"
               title="Favorited"
               aria-label="Favorited"
             >
@@ -3273,7 +3273,7 @@ const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onToggleStar(node.path); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${isFavorite ? "text-amber-400" : "opacity-60"}`}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${isFavorite ? "text-[var(--color-figma-warning)]" : "opacity-60"}`}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                       <span className="flex-1">{isFavorite ? "Remove favorite" : "Add to favorites"}</span>
                     </button>
                   )}

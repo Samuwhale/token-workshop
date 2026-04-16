@@ -233,7 +233,7 @@ export function RecipeSummaryRow({
               {recipe.name}
             </span>
             {recipe.isStale && (
-              <span className="font-medium text-amber-600">
+              <span className="font-medium text-[var(--color-figma-warning)]">
                 Source changed
               </span>
             )}

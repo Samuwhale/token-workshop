@@ -1078,7 +1078,7 @@ export function BatchEditor({
             {typeChangeInfo.currentTypes.join(', ')} → <span className="text-[var(--color-figma-text)] font-medium">{newType}</span>
             {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
             {typeChangeInfo.incompatible.length > 0 && (
-              <span className="text-[var(--color-figma-error,#ef4444)]">
+              <span className="text-[var(--color-figma-error)]">
                 {' '}— {typeChangeInfo.incompatible.length} with incompatible value{typeChangeInfo.incompatible.length === 1 ? '' : 's'}
               </span>
             )}
@@ -1087,8 +1087,8 @@ export function BatchEditor({
         {showTypeConfirm && typeChangeInfo && (
           <div className={`rounded border px-2 py-1.5 space-y-1 ${
             typeChangeInfo.incompatible.length > 0
-              ? 'border-[var(--color-figma-error,#ef4444)] bg-[rgba(239,68,68,0.08)]'
-              : 'border-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning-bg,rgba(245,158,11,0.08))]'
+              ? 'border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/8'
+              : 'border-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/8'
           }`}>
             <p className="text-[10px] text-[var(--color-figma-text)] leading-snug">
               Change type of <strong>{typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}</strong>{' '}
@@ -1099,7 +1099,7 @@ export function BatchEditor({
             </p>
             {typeChangeInfo.incompatible.length > 0 ? (
               <div className="space-y-0.5">
-                <p className="text-[10px] text-[var(--color-figma-error,#ef4444)] leading-snug font-medium">
+                <p className="text-[10px] text-[var(--color-figma-error)] leading-snug font-medium">
                   {typeChangeInfo.incompatible.length} token{typeChangeInfo.incompatible.length === 1 ? ' has a' : 's have'} value{typeChangeInfo.incompatible.length === 1 ? '' : 's'} incompatible with {newType}:
                 </p>
                 {(expandedPreviews['typeIncompat'] ? typeChangeInfo.incompatible : typeChangeInfo.incompatible.slice(0, PREVIEW_MAX)).map(({ path, error }) => (
@@ -1129,7 +1129,7 @@ export function BatchEditor({
                 onClick={handleApply}
                 className={`flex-1 min-w-[96px] px-2 py-0.5 rounded text-[10px] font-medium text-white hover:opacity-90 transition-opacity ${
                   typeChangeInfo.incompatible.length > 0
-                    ? 'bg-[var(--color-figma-error,#ef4444)]'
+                    ? 'bg-[var(--color-figma-error)]'
                     : 'bg-[var(--color-figma-accent)]'
                 }`}
               >
@@ -1446,7 +1446,7 @@ export function BatchEditor({
           </div>
           {scaleAliasCount > 0 && numericTransformActive && (
             <div className={AUTHORING.previewCard}>
-              <span className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] leading-tight font-medium">
+              <span className="text-[10px] text-[var(--color-figma-warning)] leading-tight font-medium">
                 {scaleAliasCount === scalableCount
                   ? 'All numeric tokens use reference values and cannot be transformed:'
                   : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (reference values cannot be transformed):`}
@@ -1893,11 +1893,11 @@ export function BatchEditor({
                     <BatchPreviewPath path={path} className="text-[var(--color-figma-text-secondary)]" />
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                      <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium', conflict && 'text-[var(--color-figma-warning,#f59e0b)]')} title={`${targetSet}: ${path}${conflict ? ' (already exists)' : ''}`}>
+                      <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium', conflict && 'text-[var(--color-figma-warning)]')} title={`${targetSet}: ${path}${conflict ? ' (already exists)' : ''}`}>
                         {targetSet}: {path}
                       </span>
                       {conflict && (
-                        <span className="text-[var(--color-figma-warning,#f59e0b)] shrink-0 text-[10px]">conflict</span>
+                        <span className="text-[var(--color-figma-warning)] shrink-0 text-[10px]">conflict</span>
                       )}
                     </div>
                   </div>
@@ -1908,7 +1908,7 @@ export function BatchEditor({
                   </button>
                 )}
                 {movePreview.conflicts > 0 && (
-                  <div className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] font-medium leading-snug pt-0.5">
+                  <div className="text-[10px] text-[var(--color-figma-warning)] font-medium leading-snug pt-0.5">
                     {movePreview.conflicts} conflict{movePreview.conflicts === 1 ? '' : 's'} in &quot;{targetSet}&quot; — will overwrite
                   </div>
                 )}

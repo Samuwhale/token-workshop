@@ -52,7 +52,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
                   const type = e.target.value as ColorModifierOp['type'];
                   setColorModifiers(colorModifiers.map((m, idx) => {
                     if (idx !== i) return m;
-                    if (type === 'mix') return { type, color: '#888888', ratio: 0.5 };
+                    if (type === 'mix') return { type, color: 'var(--color-figma-text-tertiary)', ratio: 0.5 };
                     if (type === 'alpha') return { type, amount: 0.5 };
                     return { type, amount: 20 };
                   }));

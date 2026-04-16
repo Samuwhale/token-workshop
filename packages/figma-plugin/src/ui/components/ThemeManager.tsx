@@ -980,7 +980,7 @@ export function ThemeManager({
       ) : null}
 
       {dimensionDeleteConfirm ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)] p-4">
           <div className="w-full max-w-[320px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3">
             <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
               Delete mode axis?

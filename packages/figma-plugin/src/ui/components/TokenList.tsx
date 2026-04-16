@@ -3821,7 +3821,7 @@ export function TokenList({
               type="button"
               onClick={handleRegenerateAllStaleRecipes}
               disabled={runningStaleRecipes}
-              className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-amber-500/15 text-amber-700 font-medium hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] font-medium hover:bg-[var(--color-figma-warning)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {runningStaleRecipes && <Spinner size="xs" />}
               <span>
@@ -3840,7 +3840,7 @@ export function TokenList({
                   <button
                     type="button"
                     onClick={() => onNavigateToRecipe(recipe.id)}
-                    className="underline decoration-amber-500/40 hover:decoration-amber-600 hover:text-amber-800 transition-colors"
+                    className="underline decoration-[var(--color-figma-warning)]/40 hover:decoration-[var(--color-figma-warning)] hover:text-[var(--color-figma-warning)] transition-colors"
                   >
                     {recipe.name}
                   </button>

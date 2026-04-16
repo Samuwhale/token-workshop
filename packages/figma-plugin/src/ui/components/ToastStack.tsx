@@ -129,13 +129,13 @@ function UndoRow({
 /* ---- Message row (supports all toast variants) ---- */
 
 const TOAST_ICON: Record<string, { cls: string; d: string; extra?: string }> = {
-  success: { cls: "text-green-400", d: "M20 6L9 17l-5-5" },
+  success: { cls: "text-[var(--color-figma-success)]", d: "M20 6L9 17l-5-5" },
   error: {
-    cls: "text-red-400",
+    cls: "text-[var(--color-figma-error)]",
     d: "M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z",
   },
   warning: {
-    cls: "text-amber-400",
+    cls: "text-[var(--color-figma-warning)]",
     d: "M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z",
   },
   info: {

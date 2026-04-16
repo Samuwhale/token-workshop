@@ -159,7 +159,7 @@ export function CanvasCreateTokenDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)] p-2"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !creating) {
           onClose();

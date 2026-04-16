@@ -288,7 +288,7 @@ export function WelcomePrompt({
   const branchTitle = branchCopy.title;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[85vh] w-full max-w-[320px] flex-col overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="dialog" aria-modal="true" aria-labelledby="welcome-dialog-title">
         <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
           <div className="flex items-start justify-between gap-3">

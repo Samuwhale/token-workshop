@@ -339,7 +339,7 @@ function FlowNodeCard({
     <div
       className={`group/card absolute rounded border text-xs select-none transition-shadow ${
         cyclic
-          ? "border-red-500/60 bg-red-500/5"
+          ? "border-[var(--color-figma-error)]/60 bg-[var(--color-figma-error)]/5"
           : isCenter
             ? "border-[var(--color-figma-accent)] shadow-md bg-[var(--color-figma-bg)]"
             : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:border-[var(--color-figma-accent)] hover:shadow cursor-pointer"
@@ -355,7 +355,7 @@ function FlowNodeCard({
             height="10"
             viewBox="0 0 16 16"
             fill="currentColor"
-            className="flex-shrink-0 text-red-500"
+            className="flex-shrink-0 text-[var(--color-figma-error)]"
             aria-hidden="true"
           >
             <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5v5h-1.5v-5zm0 6h1.5v1.5h-1.5V10.5z" />
@@ -369,12 +369,12 @@ function FlowNodeCard({
         )}
         {cyclic && node.resolvedHex && (
           <span
-            className="inline-block w-3 h-3 rounded-sm border border-red-500/30 flex-shrink-0 opacity-50"
+            className="inline-block w-3 h-3 rounded-sm border border-[var(--color-figma-error)]/30 flex-shrink-0 opacity-50"
             style={{ backgroundColor: swatchBgColor(node.resolvedHex) }}
           />
         )}
         <span
-          className={`font-medium truncate ${cyclic ? "text-red-500" : ""}`}
+          className={`font-medium truncate ${cyclic ? "text-[var(--color-figma-error)]" : ""}`}
         >
           {node.path.split(".").pop()}
         </span>
@@ -501,7 +501,7 @@ function FlowEdges({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M0 0L10 3.5L0 7z" fill="#ef4444" />
+          <path d="M0 0L10 3.5L0 7z" fill="var(--color-figma-error)" />
         </marker>
       </defs>
       {edges.map((e, i) => (
@@ -509,7 +509,7 @@ function FlowEdges({
           key={i}
           d={edgePath(e.x1, e.y1, e.x2, e.y2)}
           fill="none"
-          stroke={e.isCyclic ? "#ef4444" : "var(--color-figma-accent)"}
+          stroke={e.isCyclic ? "var(--color-figma-error)" : "var(--color-figma-accent)"}
           strokeWidth={e.isCyclic ? 1.5 : 1.5}
           strokeOpacity={e.isCyclic ? 0.8 : 0.5}
           strokeDasharray={e.isCyclic ? "4 3" : undefined}
@@ -877,7 +877,7 @@ export function TokenFlowPanel({
 
       {/* Cycle warning banner */}
       {graphData?.hasCycles && (
-        <div className="flex-shrink-0 flex items-start gap-2 px-3 py-2 bg-red-500/10 border-b border-red-500/20 text-[11px] text-red-500">
+        <div className="flex-shrink-0 flex items-start gap-2 px-3 py-2 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 text-[11px] text-[var(--color-figma-error)]">
           <svg
             width="12"
             height="12"

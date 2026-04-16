@@ -77,7 +77,7 @@ export const AssetEditor = memo(function AssetEditor({ value, onChange }: { valu
             </div>
           )}
           {isDataUri && !loadError && (
-            <span className="absolute bottom-1 right-1 text-[9px] px-1 py-0.5 rounded bg-black/40 text-white/80">{dataUriSize}KB</span>
+            <span className="absolute bottom-1 right-1 text-[9px] px-1 py-0.5 rounded bg-[var(--color-figma-overlay)] text-white/80">{dataUriSize}KB</span>
           )}
         </div>
       )}

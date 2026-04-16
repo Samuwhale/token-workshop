@@ -839,7 +839,7 @@ export function ContrastMatrixPanel({
                           <td
                             key={bg.path}
                             title={tooltip}
-                            className={`px-1 py-0.5 text-center ${aaa ? "bg-[var(--color-figma-success)]/20" : aa ? (partialFail ? "bg-amber-500/20" : "bg-[var(--color-figma-warning)]/10") : "bg-[var(--color-figma-error)]/10"}`}
+                            className={`px-1 py-0.5 text-center ${aaa ? "bg-[var(--color-figma-success)]/20" : aa ? (partialFail ? "bg-[var(--color-figma-warning)]/20" : "bg-[var(--color-figma-warning)]/10") : "bg-[var(--color-figma-error)]/10"}`}
                           >
                             <span
                               className={
@@ -847,7 +847,7 @@ export function ContrastMatrixPanel({
                                   ? "text-[var(--color-figma-success)]"
                                   : aa
                                     ? partialFail
-                                      ? "text-amber-500"
+                                      ? "text-[var(--color-figma-warning)]"
                                       : "text-[var(--color-figma-warning)]"
                                     : "text-[var(--color-figma-error)]"
                               }
@@ -881,7 +881,7 @@ export function ContrastMatrixPanel({
                 </span>
                 {isMultiMode && (
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded bg-amber-500/20 border border-amber-500/40" />
+                    <span className="w-2 h-2 rounded bg-[var(--color-figma-warning)]/20 border border-[var(--color-figma-warning)]/40" />
                     AA in some themes
                   </span>
                 )}

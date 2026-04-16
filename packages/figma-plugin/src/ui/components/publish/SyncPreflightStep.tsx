@@ -84,7 +84,7 @@ function ClusterGroup({
 }) {
   const toneClasses = tone === 'danger'
     ? 'border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/5'
-    : 'border-amber-400/25 bg-amber-400/8';
+    : 'border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/8';
 
   return (
     <div className={`rounded-[16px] border p-3 ${toneClasses}`}>
