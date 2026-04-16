@@ -32,6 +32,13 @@ That split creates two kinds of confusion:
 
 This is not just a naming problem. It is a domain-model problem.
 
+## Root Cause
+
+- The codebase duplicates identity. In many places, `set` and `collection` point at the same real thing.
+- The codebase mixes authored data and view state. Mode values, selected modes, and hover preview are too easy to confuse.
+- The codebase mixes product vocabulary and implementation vocabulary. Designers see `collection` and `mode`, while the code still routes major behavior through `set` and leftover `theme` naming.
+- Advanced systems are exposed too close to the default authoring path. Recipes, compare tools, and preview/preset concepts are too easy to read as competing authoring models.
+
 ## Evidence In The Current Code
 
 - [`ModeValuesEditor.tsx`](/Users/samuel/Documents/Projects/TokenManager/packages/figma-plugin/src/ui/components/token-editor/ModeValuesEditor.tsx) looks up a collection definition by `setName`, which means the current token set is also being treated as the current collection.
@@ -55,6 +62,13 @@ After the refactor:
 - `Recipe` is advanced automation attached to authored tokens, not a competing workspace model
 
 The code should make those boundaries obvious enough that a future agent can navigate the system without reconstructing the intended model from implementation accidents.
+
+## Solution Shape
+
+- Unify the model around collections as the only first-class authoring container.
+- Separate authored data from viewing state so selection, preview, compare, and presets never look like authoring ownership.
+- Push advanced systems to the edges so they support the authoring model instead of redefining it.
+- Delete old concepts instead of translating between old and new names forever.
 
 ## Non-Goals
 
@@ -82,6 +96,13 @@ The code should make those boundaries obvious enough that a future agent can nav
 - `preview state` as user-facing terminology
 - `activeThemes` and `previewThemes` as long-term names
 - `Themes` or `Collections` as competing primary workspaces
+
+## Set Removal Rule
+
+- `set` should be removed from the domain model, shared types, server business logic, client state, and UI.
+- Today it acts as a second name for `collection`, which is one of the main sources of confusion.
+- If `set` survives anywhere, it should survive only at a narrow storage or external-format boundary that cannot be renamed yet.
+- Do not reintroduce `set` as a first-class product or business-logic concept during the refactor.
 
 ## Canonical Model
 
@@ -125,6 +146,7 @@ Responsibilities:
 - controls how authored tokens are resolved for display
 - can be saved into view presets if that feature remains
 - never owns authored token data
+- if persisted, it must remain separate from collection identity and collection lifecycle data
 
 ### Hover Preview
 
@@ -152,6 +174,29 @@ Responsibilities:
 - UI labels should be downstream from code vocabulary, not compensating for it.
 - If a route or store exists only because the model is split, it should be collapsed or removed.
 - The normal designer workflow must map directly to the canonical model.
+- Boundary identifiers should be renamed in the phase that owns that boundary, not all at once during domain cleanup.
+
+## Core Invariants
+
+- A collection has one canonical identifier across domain logic, routes, storage, and client state. Do not replace `set` versus `collection` confusion with a new `id` versus `name` split unless there is a real product need.
+- A token belongs to one collection.
+- A mode belongs to one collection.
+- A token can vary only through the modes of its own collection.
+- Selected modes and hover preview are view state only. They never own authored token data.
+- View presets are view artifacts, not collection metadata.
+- Recipes may generate or manage tokens, but they do not define the primary authoring model.
+- The refactor should remove duplicated concepts, not preserve them behind aliases.
+
+## Boundary Rename Rule
+
+- Phase 1 defines the canonical names and inventories old identifiers that must change.
+- Phase 2 renames server-owned boundary identifiers.
+  Examples: route payload names, operation-log action names, collection persistence shapes.
+- Phase 3 renames client-owned boundary identifiers.
+  Examples: plugin message names, local storage keys, client runtime state payloads.
+- When a boundary identifier changes, update every reader and writer for that boundary in the same phase.
+- Do not keep fallback reads, alias payloads, or compatibility shims to old names.
+- Do not keep dual naming, alias layers, or compatibility shims.
 
 ## Phases
 
@@ -164,15 +209,18 @@ Replace the current ambiguous `set` versus `collection` model with one explicit 
 #### Deliverables
 
 - Introduce canonical shared types for `TokenCollection`, `CollectionMode`, and selected mode state.
-- Decide whether `set` is fully removed from the shared API or retained only as a file-storage detail.
+- Remove `set` from the shared API and domain model, except for any unavoidable storage-boundary translation point.
 - Document the one-to-one relationship between collection identity and token storage.
 - Remove remaining `theme` vocabulary from shared domain types.
+- Inventory boundary identifiers that still encode the old model so later phases can rename them cleanly.
+- Keep transport contracts and persistence contracts out of scope for direct renaming in this phase unless they are purely internal domain symbols.
 
 #### Changes
 
 - Update shared types in [`packages/core/src/types.ts`](/Users/samuel/Documents/Projects/TokenManager/packages/core/src/types.ts).
 - Introduce a dedicated domain module for collection concepts instead of scattering them across token and route utilities.
 - Rename shared helpers so they describe collections and modes, not themes or sets.
+- Define the target names for transport and persistence identifiers, but do not execute every boundary rename in this phase.
 
 #### Exit Criteria
 
@@ -189,6 +237,7 @@ Make the server expose one canonical collection model instead of reconstructing 
 - A single collection service that owns collection metadata, modes, and collection lifecycle operations.
 - Clear distinction between storage concerns and domain concerns.
 - Elimination of cross-route synchronization logic whose only purpose is keeping sets and collections aligned.
+- One target persistence shape for collections. Do not keep mirrored `set` and `collection` stores that must be normalized back into each other.
 
 #### Changes
 
@@ -196,6 +245,12 @@ Make the server expose one canonical collection model instead of reconstructing 
 - Refactor [`packages/server/src/routes/sets.ts`](/Users/samuel/Documents/Projects/TokenManager/packages/server/src/routes/sets.ts) so structural collection operations are owned by the collection model rather than patching collection state as a side effect.
 - Move collection normalization logic out of route handlers and into a single service.
 - Remove server-side terminology that treats collections as a derived overlay on top of sets.
+- Rename server-owned identifiers that still encode the old model.
+  Examples: operation-log action names, route descriptions, persisted collection payload field names.
+- Update server consumers of renamed identifiers in the same phase.
+  Examples: history views, undo/rollback flows, and any route clients inside the app.
+- Update server-owned collection dependencies in the same phase.
+  Examples: recipe targets and ownership, resolver references, snapshot logic, publish routing, and lint/config systems that still key off collection identity.
 
 #### Exit Criteria
 
@@ -220,10 +275,14 @@ Replace split client state with one collection-centered authoring state model.
 - Replace `previewThemes` with `hoverPreviewModes` or similar transient-only naming.
 - Update token resolution helpers to consume the new collection-centered state directly.
 - Remove mixed naming in storage keys where practical.
+- Rename client-owned identifiers that still encode the old model.
+  Examples: plugin message names and local storage keys.
+- Stop reading old client keys and message names once the new ones land.
 
 #### Exit Criteria
 
 - The client state tree clearly separates authored data from view state.
+- The client is no longer coupled to server concepts that only exist to preserve the old `set` model.
 
 ### Phase 4: Refactor Authoring Surfaces To Match The Model
 
@@ -261,6 +320,7 @@ Keep advanced capabilities without letting them redefine the authoring model.
 - Recipes remain available, but clearly as automation.
 - Collection review, compare, and health tools become contextual support tools.
 - Saved presets remain viewing tools, not authoring containers.
+- This phase is about product placement and UX, not deferred collection-identity cleanup in server logic.
 
 #### Changes
 
@@ -304,6 +364,7 @@ Finish the refactor by removing compatibility names and stale mental-model artif
 6. Dead code deletion and doc cleanup
 
 Do not start with navigation polish. Navigation should be the expression of the cleaned-up model, not the mechanism used to hide it.
+Do not start Phase 4 until Phases 2 and 3 have produced a stable collection-centered server and client model.
 
 ## Success Criteria
 
