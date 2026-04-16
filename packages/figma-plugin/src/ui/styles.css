@@ -89,6 +89,102 @@
   --color-depth-5: rgba(170, 100, 240, 0.55);
 }
 
+/* Light mode — Figma injects .figma-light on the iframe <html> element */
+html.figma-light {
+  --color-figma-bg: #ffffff;
+  --color-figma-bg-secondary: #f5f5f5;
+  --color-figma-bg-hover: #ebebeb;
+  --color-figma-bg-selected: #0d99ff1f;
+  --color-figma-text: #1e1e1e;
+  --color-figma-text-secondary: #666666;
+  --color-figma-text-tertiary: #b3b3b3;
+  --color-figma-border: #e0e0e0;
+  --color-figma-accent: #0c8ce9;
+  --color-figma-accent-hover: #0a7dd4;
+  --color-figma-success: #14ae5c;
+  --color-figma-warning: #f2a20d;
+  --color-figma-error: #f24822;
+
+  /* Token badge colors — lower-opacity backgrounds, darker saturated text */
+  --token-badge-color-bg: #e74c3c1a;
+  --token-badge-color-text: #c0392b;
+  --token-badge-dimension-bg: #3498db1a;
+  --token-badge-dimension-text: #2471a3;
+  --token-badge-typography-bg: #9b59b61a;
+  --token-badge-typography-text: #76448a;
+  --token-badge-shadow-bg: #2c3e501a;
+  --token-badge-shadow-text: #2c3e50;
+  --token-badge-border-bg: #e67e221a;
+  --token-badge-border-text: #c46c15;
+  --token-badge-number-bg: #1abc9c1a;
+  --token-badge-number-text: #148f77;
+  --token-badge-string-bg: #f39c121a;
+  --token-badge-string-text: #d4850a;
+  --token-badge-boolean-bg: #2ecc711a;
+  --token-badge-boolean-text: #1e8449;
+  --token-badge-gradient-bg: #e056fd1a;
+  --token-badge-gradient-text: #a435c9;
+  --token-badge-duration-bg: #00cec91a;
+  --token-badge-duration-text: #0e948f;
+  --token-badge-fontFamily-bg: #9b59b61a;
+  --token-badge-fontFamily-text: #76448a;
+  --token-badge-composition-bg: #e056fd1a;
+  --token-badge-composition-text: #a435c9;
+  --token-badge-asset-bg: #636e721a;
+  --token-badge-asset-text: #4d5656;
+  --token-badge-cubicBezier-bg: #00cec91a;
+  --token-badge-cubicBezier-text: #0e948f;
+  --token-badge-transition-bg: #e056fd1a;
+  --token-badge-transition-text: #a435c9;
+  --token-badge-fontStyle-bg: #9b59b61a;
+  --token-badge-fontStyle-text: #76448a;
+  --token-badge-lineHeight-bg: #3498db1a;
+  --token-badge-lineHeight-text: #2471a3;
+  --token-badge-letterSpacing-bg: #3498db1a;
+  --token-badge-letterSpacing-text: #2471a3;
+  --token-badge-percentage-bg: #3498db1a;
+  --token-badge-percentage-text: #2471a3;
+  --token-badge-link-bg: #0d99ff1a;
+  --token-badge-link-text: #0a7dd4;
+  --token-badge-textDecoration-bg: #9b59b61a;
+  --token-badge-textDecoration-text: #76448a;
+  --token-badge-textTransform-bg: #9b59b61a;
+  --token-badge-textTransform-text: #76448a;
+  --token-badge-custom-bg: #636e721a;
+  --token-badge-custom-text: #4d5656;
+  --token-badge-fontWeight-bg: #9b59b61a;
+  --token-badge-fontWeight-text: #76448a;
+  --token-badge-strokeStyle-bg: #e67e221a;
+  --token-badge-strokeStyle-text: #c46c15;
+
+  /* Token type colors — stats bar segments */
+  --color-token-type-color: #c0392b;
+  --color-token-type-dimension: #2471a3;
+  --color-token-type-spacing: #1e8449;
+  --color-token-type-typography: #76448a;
+  --color-token-type-fontFamily: #8e3aad;
+  --color-token-type-fontSize: #c46c15;
+  --color-token-type-fontWeight: #148f77;
+  --color-token-type-lineHeight: #b8860b;
+  --color-token-type-number: #2874a6;
+  --color-token-type-string: #6c8c22;
+  --color-token-type-shadow: #a435c9;
+  --color-token-type-border: #b7950b;
+  --color-token-type-fallback: #6b6b88;
+
+  /* Depth guide-bar colors — reduced opacity for light backgrounds */
+  --color-depth-0: transparent;
+  --color-depth-1: rgba(24, 160, 251, 0.4);
+  --color-depth-2: rgba(90, 210, 140, 0.4);
+  --color-depth-3: rgba(255, 180, 50, 0.4);
+  --color-depth-4: rgba(230, 100, 80, 0.4);
+  --color-depth-5: rgba(170, 100, 240, 0.4);
+}
+
+/* Light mode scrollbar */
+html.figma-light ::-webkit-scrollbar-thumb { background: #d4d4d4; }
+html.figma-light ::-webkit-scrollbar-thumb:hover { background: #999999; }
+
 html,
 body,
 #root {
