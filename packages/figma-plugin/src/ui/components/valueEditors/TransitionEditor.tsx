@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { labelClass } from '../../shared/editorClasses';
 import { DimensionSubProp } from './valueEditorShared';
 import { CubicBezierEditor } from './CubicBezierEditor';
 
-export function TransitionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string> }) {
+export const TransitionEditor = memo(function TransitionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string> }) {
   const val = typeof value === 'object' && value !== null ? value : {};
   const duration = val.duration ?? { value: 200, unit: 'ms' };
   const delay = val.delay ?? { value: 0, unit: 'ms' };
@@ -41,4 +42,4 @@ export function TransitionEditor({ value, onChange, allTokensFlat = {}, pathToSe
       </div>
     </div>
   );
-}
+});

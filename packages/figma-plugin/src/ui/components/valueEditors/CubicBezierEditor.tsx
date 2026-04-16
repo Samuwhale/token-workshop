@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { labelClass, inputClass } from '../../shared/editorClasses';
 
 const BEZIER_PRESETS: { label: string; value: [number, number, number, number] }[] = [
@@ -8,7 +9,7 @@ const BEZIER_PRESETS: { label: string; value: [number, number, number, number] }
   { label: 'ease-in-out', value: [0.42, 0, 0.58, 1] },
 ];
 
-export function CubicBezierEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const pts: [number, number, number, number] = Array.isArray(value) && value.length === 4
     ? value as [number, number, number, number]
     : [0, 0, 1, 1];
@@ -74,4 +75,4 @@ export function CubicBezierEditor({ value, onChange }: { value: any; onChange: (
       </div>
     </div>
   );
-}
+});

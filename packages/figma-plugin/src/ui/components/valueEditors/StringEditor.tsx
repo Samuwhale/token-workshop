@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { inputClass } from '../../shared/editorClasses';
 
-export function StringEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
+export const StringEditor = memo(function StringEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
   return (
     <input
       type="text"
@@ -11,4 +12,4 @@ export function StringEditor({ value, onChange, autoFocus }: { value: any; onCha
       className={inputClass}
     />
   );
-}
+});

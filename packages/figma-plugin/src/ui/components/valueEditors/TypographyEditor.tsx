@@ -1,4 +1,4 @@
-import { useState, useMemo, type Ref } from 'react';
+import { useState, useMemo, memo, type Ref } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { inputClass, labelClass, fieldBorderClass } from '../../shared/editorClasses';
 import { FieldMessage } from '../../shared/FieldMessage';
@@ -12,7 +12,7 @@ import {
   FONT_WEIGHTS,
 } from './valueEditorShared';
 
-export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef, baseValue, availableFonts, fontWeightsByFamily }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any; availableFonts?: string[]; fontWeightsByFamily?: Record<string, number[]> }) {
+export const TypographyEditor = memo(function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef, baseValue, availableFonts, fontWeightsByFamily }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any; availableFonts?: string[]; fontWeightsByFamily?: Record<string, number[]> }) {
   const rawVal = typeof value === 'object' ? value : {};
   // When extending, merge base + overrides for display, but only emit overrides on change
   const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
@@ -230,4 +230,4 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
       </div>
     </div>
   );
-}
+});

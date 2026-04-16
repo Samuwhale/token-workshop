@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import { FontFamilyPicker } from '../FontFamilyPicker';
 import { inputClass } from '../../shared/editorClasses';
 import { FONT_WEIGHTS } from './valueEditorShared';
 
-export function FontFamilyEditor({ value, onChange, autoFocus, availableFonts }: { value: any; onChange: (v: any) => void; autoFocus?: boolean; availableFonts?: string[] }) {
+export const FontFamilyEditor = memo(function FontFamilyEditor({ value, onChange, autoFocus, availableFonts }: { value: any; onChange: (v: any) => void; autoFocus?: boolean; availableFonts?: string[] }) {
   return (
     <FontFamilyPicker
       value={typeof value === 'string' ? value : ''}
@@ -11,9 +12,9 @@ export function FontFamilyEditor({ value, onChange, autoFocus, availableFonts }:
       autoFocus={autoFocus}
     />
   );
-}
+});
 
-export function FontWeightEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const FontWeightEditor = memo(function FontWeightEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const w = typeof value === 'number' ? value : 400;
   return (
     <select
@@ -26,4 +27,4 @@ export function FontWeightEditor({ value, onChange }: { value: any; onChange: (v
       ))}
     </select>
   );
-}
+});

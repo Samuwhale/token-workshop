@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { ColorPicker } from '../ColorPicker';
 import { Spinner } from '../Spinner';
@@ -8,7 +8,7 @@ import { STORAGE_KEYS, lsGet, lsSet } from '../../shared/storage';
 import { useSettingsListener } from '../SettingsPanel';
 import { inputClass } from '../../shared/editorClasses';
 
-export function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { color: string; onChange: (hex: string) => void; className?: string }) {
+export const ColorSwatchButton = memo(function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { color: string; onChange: (hex: string) => void; className?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative shrink-0">
@@ -25,11 +25,11 @@ export function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { 
       )}
     </div>
   );
-}
+});
 
 const FORMAT_CYCLE: ColorFormat[] = ['hex', 'rgb', 'hsl', 'oklch', 'p3'];
 
-export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { value: any; onChange: (v: any) => void; autoFocus?: boolean; allTokensFlat?: Record<string, TokenMapEntry> }) {
+export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { value: any; onChange: (v: any) => void; autoFocus?: boolean; allTokensFlat?: Record<string, TokenMapEntry> }) {
   const colorStr = typeof value === 'string' ? value : '#000000';
   const [pickerOpen, setPickerOpen] = useState(false);
   const [format, setFormat] = useState<ColorFormat>(() => {
@@ -190,4 +190,4 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
       )}
     </div>
   );
-}
+});

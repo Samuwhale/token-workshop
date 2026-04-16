@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import { inputClass } from '../../shared/editorClasses';
 
 const DURATION_PRESETS = [100, 150, 200, 300, 500];
 
-export function DurationEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
+export const DurationEditor = memo(function DurationEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
   const ms = typeof value?.value === 'number' ? value.value : typeof value === 'number' ? value : 200;
   const unit: 'ms' | 's' = value?.unit === 's' ? 's' : 'ms';
   const update = (patch: { value?: number; unit?: 'ms' | 's' }) =>
@@ -41,4 +42,4 @@ export function DurationEditor({ value, onChange, autoFocus }: { value: any; onC
       </div>
     </div>
   );
-}
+});

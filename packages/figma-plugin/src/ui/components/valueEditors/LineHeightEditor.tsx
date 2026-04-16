@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import { inputClass } from '../../shared/editorClasses';
 
 const LINE_HEIGHT_UNITS = ['px', 'rem', 'em', '%'];
 
-export function LineHeightEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const LineHeightEditor = memo(function LineHeightEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const isDimension = typeof value === 'object' && value !== null && 'value' in value;
   const num = isDimension ? (value.value ?? 0) : (typeof value === 'number' ? value : 1.5);
   const unit: string = isDimension ? (value.unit || 'px') : '';
@@ -56,4 +57,4 @@ export function LineHeightEditor({ value, onChange }: { value: any; onChange: (v
       </button>
     </div>
   );
-}
+});
