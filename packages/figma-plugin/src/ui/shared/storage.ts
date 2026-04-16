@@ -180,6 +180,7 @@ export const STORAGE_KEYS = {
   ACTIVE_RESOLVER:          'tm_active_resolver',
   RESOLVER_INPUT:           'tm_resolver_input',
   EDITOR_WIDTH:             'tm_editor_width',
+  SIDEBAR_COLLAPSED:        'tm_sidebar_collapsed',
 } as const;
 
 /** Per-set dynamic key builders */

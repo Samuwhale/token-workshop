@@ -37,9 +37,10 @@ import {
   APP_SHELL_NAVIGATION,
   CONTEXTUAL_PANEL_MIN_WIDTH,
   CONTEXTUAL_PANEL_TRANSITIONS,
-  WORKSPACE_SIDEBAR_SECTIONS,
+  SIDEBAR_GROUPS,
   resolveWorkspaceSummary,
 } from "./shared/navigationTypes";
+import type { SidebarItem } from "./shared/navigationTypes";
 import type {
   ThemeAuthoringStage,
   ThemeWorkspaceShellState,
@@ -90,7 +91,7 @@ import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { tokenPathToUrlSegment } from "./shared/utils";
 import { SHORTCUT_KEYS, matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, ApiError } from "./shared/apiFetch";
-import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
+import { STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 
 function formatCount(
@@ -1835,117 +1836,136 @@ export function App() {
     activeSecondarySurface === null ? workspacePrimaryAction : null;
   const notificationCount = notificationHistory.length;
 
-  const workspaceIcon = (id: WorkspaceId) => {
-    const props = { width: 14, height: 14, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: 1.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
-    switch (id) {
-      case "tokens":
-        return (<svg {...props}><path d="M2 5l6-3 6 3-6 3-6-3Z" /><path d="M2 8l6 3 6-3" /><path d="M2 11l6 3 6-3" /></svg>);
-      case "recipes":
-        return (<svg {...props}><path d="M4 2v4l4 2 4-2V2" /><path d="M4 6v4l4 2 4-2V6" /><path d="M4 10v2l4 2 4-2v-2" /></svg>);
-      case "themes":
-        return (<svg {...props}><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5A5.5 5.5 0 0 1 8 13.5Z" fill="currentColor" opacity="0.2" stroke="none" /></svg>);
-      case "inspect":
-        return (<svg {...props}><circle cx="8" cy="8" r="4.5" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" /></svg>);
-      case "sync":
-        return (<svg {...props}><path d="M13 5.5A5.5 5.5 0 0 0 4.5 3.5" /><path d="M3 10.5a5.5 5.5 0 0 0 8.5 2" /><path d="M6 2l-2 2 2 2" /><path d="M10 14l2-2-2-2" /></svg>);
-    }
-  };
-
   const showThemePreviewControls =
     !themesError &&
     dimensions.length > 0 &&
     activeSecondarySurface === null &&
     (activeTopTab === "tokens" || activeTopTab === "inspect");
 
-  const sidebarSections = WORKSPACE_SIDEBAR_SECTIONS[activeWorkspaceId] ?? [];
   const activeThemeStage = activeWorkspaceId === "themes" ? themeWorkflowSummary.currentStage : null;
 
-  const handleSidebarSectionClick = (section: (typeof sidebarSections)[number]) => {
-    if (section.themeStage) {
+  // Collapsible sidebar groups
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(
+    () => lsGetJson<Record<string, boolean>>(STORAGE_KEYS.SIDEBAR_COLLAPSED, {}),
+  );
+  const toggleGroupCollapsed = useCallback((groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = { ...prev, [groupId]: !prev[groupId] };
+      lsSetJson(STORAGE_KEYS.SIDEBAR_COLLAPSED, next);
+      return next;
+    });
+  }, []);
+
+  const handleSidebarItemClick = useCallback((item: SidebarItem) => {
+    if (item.themeStage) {
       guardEditorAction(() => {
         navigateTo("themes", "themes");
         closeSecondarySurface();
-        setPendingThemeStage(section.themeStage as ThemeAuthoringStage);
+        setPendingThemeStage(item.themeStage as ThemeAuthoringStage);
       });
-    } else if (section.subTab) {
+    } else {
       guardEditorAction(() => {
-        const topTab = activeWorkspace.topTab;
-        navigateTo(topTab, section.subTab!);
+        navigateTo(item.topTab, item.subTab);
+        closeSecondarySurface();
         clearHandoff();
-        if (section.subTab === "canvas-analysis") {
+        if (item.subTab === "canvas-analysis") {
           triggerHeatmapScan();
         }
       });
     }
-  };
+  }, [guardEditorAction, navigateTo, closeSecondarySurface, clearHandoff, setPendingThemeStage, triggerHeatmapScan]);
 
-  const isSidebarSectionActive = (section: (typeof sidebarSections)[number]) => {
-    if (section.themeStage) {
-      return activeThemeStage === section.themeStage;
+  const isSidebarItemActive = useCallback((item: SidebarItem) => {
+    if (activeSecondarySurface !== null) return false;
+    if (item.themeStage) {
+      return activeWorkspaceId === "themes" && activeThemeStage === item.themeStage;
     }
-    return section.subTab === activeSubTab;
-  };
+    return item.topTab === activeTopTab && item.subTab === activeSubTab;
+  }, [activeSecondarySurface, activeWorkspaceId, activeThemeStage, activeTopTab, activeSubTab]);
 
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">
       {/* Labeled sidebar */}
       <nav className="flex w-[208px] shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]" aria-label="Workspaces">
-        {/* Primary workspaces */}
-        <div className="flex flex-col gap-px px-2 pt-3 pb-1" role="tablist" aria-label="Workspaces">
-          {APP_SHELL_NAVIGATION.workspaces.map((workspace) => {
-            const isActive = workspace.id === activeWorkspaceId && activeSecondarySurface === null;
+        {/* Grouped navigation */}
+        <div className="flex flex-1 flex-col gap-0 overflow-y-auto px-2 pt-2 pb-1">
+          {SIDEBAR_GROUPS.map((group) => {
+            const isCollapsed = !!collapsedGroups[group.id];
+            const groupHasActiveItem = group.items.some(
+              (item) =>
+                isSidebarItemActive(item) ||
+                item.children?.some((child) => isSidebarItemActive(child)),
+            );
             return (
-              <button
-                key={workspace.id}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() =>
-                  guardEditorAction(() => {
-                    clearHandoff();
-                    navigateTo(workspace.topTab, workspace.subTab);
-                    closeSecondarySurface();
-                  })
-                }
-                className={`relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[11px] font-medium outline-none transition-colors ${
-                  isActive
-                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
-                }`}
-              >
-                <span className="shrink-0 opacity-70">{workspaceIcon(workspace.id)}</span>
-                <span>{workspace.label}</span>
-              </button>
+              <div key={group.id} className="mb-1">
+                <button
+                  onClick={() => toggleGroupCollapsed(group.id)}
+                  className="group flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-left outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 8 8"
+                    fill="none"
+                    className={`shrink-0 text-[var(--color-figma-text-tertiary)] transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+                    aria-hidden="true"
+                  >
+                    <path d="M2 1l4 3-4 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${
+                    groupHasActiveItem && !isCollapsed
+                      ? "text-[var(--color-figma-text-secondary)]"
+                      : "text-[var(--color-figma-text-tertiary)]"
+                  }`}>
+                    {group.label}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="flex flex-col gap-px pt-0.5">
+                    {group.items.map((item) => {
+                      const isActive = isSidebarItemActive(item);
+                      const showChildren = item.children && item.workspaceId === activeWorkspaceId && activeSecondarySurface === null;
+                      return (
+                        <div key={item.id}>
+                          <button
+                            onClick={() => handleSidebarItemClick(item)}
+                            className={`w-full rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                              isActive
+                                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                          {showChildren && (
+                            <div className="flex flex-col gap-px py-0.5 pl-2.5">
+                              {item.children!.map((child) => {
+                                const isChildActive = isSidebarItemActive(child);
+                                return (
+                                  <button
+                                    key={child.id}
+                                    onClick={() => handleSidebarItemClick(child)}
+                                    className={`w-full rounded-md px-2 py-0.5 text-left text-[10px] outline-none transition-colors ${
+                                      isChildActive
+                                        ? "text-[var(--color-figma-text)] font-medium"
+                                        : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+                                    }`}
+                                  >
+                                    {child.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
-
-        {/* Workspace-specific sections */}
-        {sidebarSections.length > 1 && activeSecondarySurface === null && (
-          <div className="flex flex-col gap-px px-2 pt-1.5 pb-1">
-            <div className="px-2.5 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)]">
-              {activeWorkspace.label}
-            </div>
-            {sidebarSections.map((section) => {
-              const isActive = isSidebarSectionActive(section);
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => handleSidebarSectionClick(section)}
-                  className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-                    isActive
-                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
-                  }`}
-                >
-                  {section.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1" />
 
         {/* Bottom utilities */}
         <div className="flex flex-col gap-px border-t border-[var(--color-figma-border)] px-2 py-2">

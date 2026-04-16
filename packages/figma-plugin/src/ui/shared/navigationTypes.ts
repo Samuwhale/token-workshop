@@ -399,14 +399,66 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
 
 export type ThemeSidebarStage = "axes" | "options" | "token-modes" | "preview";
 
-export interface WorkspaceSidebarSection {
+// ---------------------------------------------------------------------------
+// Sidebar groups — collapsible sections that organize workspaces/items
+// ---------------------------------------------------------------------------
+
+export interface SidebarItem {
   id: string;
   label: string;
-  /** Route-based section — changes activeSubTab */
-  subTab?: SubTab;
-  /** Stage-based section — calls into ThemeManager imperative handle */
+  topTab: TopTab;
+  subTab: SubTab;
+  /** Stage-based item — for Theme sub-stages */
   themeStage?: ThemeSidebarStage;
+  /** Nested children shown when this item's workspace is active */
+  children?: SidebarItem[];
+  /** Which WorkspaceId this item belongs to (for highlight matching) */
+  workspaceId: WorkspaceId;
 }
+
+export interface SidebarGroup {
+  id: string;
+  label: string;
+  items: SidebarItem[];
+}
+
+export const SIDEBAR_GROUPS: SidebarGroup[] = [
+  {
+    id: "design",
+    label: "Design",
+    items: [
+      { id: "tokens", label: "Tokens", topTab: "tokens", subTab: "tokens", workspaceId: "tokens" },
+      { id: "recipes", label: "Recipes", topTab: "recipes", subTab: "recipes", workspaceId: "recipes" },
+      {
+        id: "themes", label: "Themes", topTab: "themes", subTab: "themes", workspaceId: "themes",
+        children: [
+          { id: "axes", label: "Axes", topTab: "themes", subTab: "themes", themeStage: "axes", workspaceId: "themes" },
+          { id: "options", label: "Options", topTab: "themes", subTab: "themes", themeStage: "options", workspaceId: "themes" },
+          { id: "token-modes", label: "Token modes", topTab: "themes", subTab: "themes", themeStage: "token-modes", workspaceId: "themes" },
+          { id: "preview", label: "Preview", topTab: "themes", subTab: "themes", themeStage: "preview", workspaceId: "themes" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "inspect",
+    label: "Inspect",
+    items: [
+      { id: "selection", label: "Selection", topTab: "inspect", subTab: "inspect", workspaceId: "inspect" },
+      { id: "canvas", label: "Canvas", topTab: "inspect", subTab: "canvas-analysis", workspaceId: "inspect" },
+    ],
+  },
+  {
+    id: "distribute",
+    label: "Distribute",
+    items: [
+      { id: "publish", label: "Publish", topTab: "sync", subTab: "publish", workspaceId: "sync" },
+      { id: "export", label: "Export", topTab: "sync", subTab: "export", workspaceId: "sync" },
+      { id: "history", label: "History", topTab: "sync", subTab: "history", workspaceId: "sync" },
+      { id: "health", label: "Health", topTab: "sync", subTab: "health", workspaceId: "sync" },
+    ],
+  },
+];
 
 export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
@@ -458,30 +510,6 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
 ];
 
-export const WORKSPACE_SIDEBAR_SECTIONS: Record<WorkspaceId, WorkspaceSidebarSection[]> = {
-  tokens: [
-    { id: "library", label: "Library", subTab: "tokens" },
-  ],
-  recipes: [
-    { id: "overview", label: "Overview", subTab: "recipes" },
-  ],
-  themes: [
-    { id: "axes", label: "Axes", themeStage: "axes" },
-    { id: "options", label: "Options", themeStage: "options" },
-    { id: "token-modes", label: "Token modes", themeStage: "token-modes" },
-    { id: "preview", label: "Preview", themeStage: "preview" },
-  ],
-  inspect: [
-    { id: "selection", label: "Selection", subTab: "inspect" },
-    { id: "canvas", label: "Canvas", subTab: "canvas-analysis" },
-  ],
-  sync: [
-    { id: "publish", label: "Publish", subTab: "publish" },
-    { id: "export", label: "Export", subTab: "export" },
-    { id: "history", label: "History", subTab: "history" },
-    { id: "health", label: "Health", subTab: "health" },
-  ],
-};
 
 export const SECONDARY_SURFACES: SecondarySurface[] = [
   {
