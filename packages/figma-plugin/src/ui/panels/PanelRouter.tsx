@@ -1203,10 +1203,10 @@ export function PanelRouter(): ReactNode {
                   setSubTab(seg.id);
                   if (seg.id === "canvas-analysis") triggerHeatmapScan();
                 }}
-                className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
                   isActive
                     ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                    : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                 }`}
               >
                 {seg.label}
@@ -1385,7 +1385,7 @@ export function PanelRouter(): ReactNode {
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Themes"
+            panelName="Modes"
             onReset={() => navigateTo("tokens", "tokens")}
           >
             <ThemeManager
@@ -1395,14 +1395,14 @@ export function PanelRouter(): ReactNode {
               onDimensionsChange={setDimensions}
               onNavigateToToken={(path, set) => {
                 beginHandoff({
-                  reason: "View or edit this token, then return to Themes",
+                  reason: "View or edit this token, then return to Modes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(set, path);
               }}
               onCreateToken={(tokenPath, set) => {
                 beginHandoff({
-                  reason: "Create this token, then return to Themes",
+                  reason: "Create this token, then return to Modes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 setEditingToken({ path: tokenPath, set, isCreate: true });
@@ -1414,7 +1414,7 @@ export function PanelRouter(): ReactNode {
               onTokensCreated={controller.refreshAll}
               onGoToTokens={() => {
                 beginHandoff({
-                  reason: "Browse tokens, then return to Themes",
+                  reason: "Browse tokens, then return to Modes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
               }}

@@ -36,7 +36,16 @@ export function useThemeDimensions({
   const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchDimensions = useCallback(async () => {
-    if (!connected) { setLoading(false); return; }
+    if (!connected) {
+      fetchAbortRef.current?.abort();
+      setDimensions([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
@@ -59,8 +68,12 @@ export function useThemeDimensions({
     if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current);
     debounceFetchTimer.current = setTimeout(() => {
       debounceFetchTimer.current = null;
-      fetchDimensions();
+      void fetchDimensions();
     }, 600);
+  }, [fetchDimensions]);
+
+  useEffect(() => {
+    void fetchDimensions();
   }, [fetchDimensions]);
 
   useEffect(() => () => {
@@ -74,7 +87,6 @@ export function useThemeDimensions({
     connected,
     dimensions,
     setDimensions,
-    fetchDimensions,
     debouncedFetchDimensions,
     setError,
     onPushUndo,

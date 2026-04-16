@@ -17,7 +17,6 @@ export interface UseThemeDimensionsCrudParams {
   connected: boolean;
   dimensions: ThemeDimension[];
   setDimensions: React.Dispatch<React.SetStateAction<ThemeDimension[]>>;
-  fetchDimensions: () => Promise<void>;
   debouncedFetchDimensions: () => void;
   setError: (msg: string | null) => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -70,7 +69,6 @@ export function useThemeDimensionsCrud({
   connected,
   dimensions,
   setDimensions,
-  fetchDimensions,
   debouncedFetchDimensions,
   setError,
   onPushUndo,

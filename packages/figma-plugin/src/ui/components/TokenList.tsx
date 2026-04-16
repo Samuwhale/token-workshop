@@ -12,7 +12,6 @@ import {
   isAlias,
   extractAliasPath,
   resolveTokenValue,
-  resolveAllAliases,
 } from "../../shared/resolveAlias";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import type { NodeCapabilities, TokenMapEntry } from "../../shared/types";
@@ -215,7 +214,7 @@ export function TokenList({
     onOpenCreateSet,
     onTokenDragStart,
     onTokenDragEnd,
-    onOpenStartHere,
+    onOpenStartHere: _onOpenStartHere,
     onTogglePreviewSplit,
   },
   recentlyTouched,
@@ -586,7 +585,34 @@ export function TokenList({
     [multiModeData, pathToSet],
   );
 
-  // Pre-compute per-group theme coverage for the coverage badge
+  // Pre-compute per-group theme coverage and per-token missing mode counts
+  const totalOptionCount = useMemo(
+    () =>
+      dimensions
+        ? dimensions.reduce((sum, d) => sum + d.options.length, 0)
+        : 0,
+    [dimensions],
+  );
+
+  const tokenModeMissing = useMemo(() => {
+    if (!dimensions || dimensions.length === 0 || totalOptionCount === 0)
+      return undefined;
+    const map = new Map<string, number>();
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      let filled = 0;
+      for (const dim of dimensions) {
+        const dimModes = getInlineModeValues(entry, dim.id);
+        for (const opt of dim.options) {
+          const v = dimModes[opt.name];
+          if (v !== undefined && v !== null && v !== "") filled++;
+        }
+      }
+      const missing = totalOptionCount - filled;
+      if (missing > 0) map.set(path, missing);
+    }
+    return map.size > 0 ? map : undefined;
+  }, [allTokensFlat, dimensions, totalOptionCount]);
+
   const themeCoverage = useMemo(() => {
     if (!dimensions || dimensions.length === 0) return undefined;
     const themedTokenPaths = new Set<string>();
@@ -600,27 +626,35 @@ export function TokenList({
         }
       }
     }
-    if (themedTokenPaths.size === 0) return undefined;
-    const map = new Map<string, { themed: number; total: number }>();
-    function walk(nodes: TokenNode[]): { themed: number; total: number } {
+    if (themedTokenPaths.size === 0 && !tokenModeMissing) return undefined;
+    const map = new Map<
+      string,
+      { themed: number; total: number; totalMissing: number }
+    >();
+    function walk(
+      nodes: TokenNode[],
+    ): { themed: number; total: number; totalMissing: number } {
       let themed = 0,
-        total = 0;
+        total = 0,
+        totalMissing = 0;
       for (const node of nodes) {
         if (node.isGroup && node.children) {
           const sub = walk(node.children);
           themed += sub.themed;
           total += sub.total;
+          totalMissing += sub.totalMissing;
           map.set(node.path, sub);
         } else if (!node.isGroup) {
           total++;
           if (themedTokenPaths.has(node.path)) themed++;
+          totalMissing += tokenModeMissing?.get(node.path) ?? 0;
         }
       }
-      return { themed, total };
+      return { themed, total, totalMissing };
     }
     walk(tokens);
     return map;
-  }, [allTokensFlat, dimensions, tokens]);
+  }, [allTokensFlat, dimensions, tokens, tokenModeMissing]);
 
   // JSON editor state
   const {
@@ -3223,6 +3257,7 @@ export function TokenList({
       showDuplicatesFilter: showDuplicates,
       modeVariantPaths: (!multiModeEnabled || themeLensEnabled) && modeVariantPaths.size > 0 ? modeVariantPaths : undefined,
       themeLensEnabled,
+      tokenModeMissing,
     }),
     [
       density,
@@ -3252,6 +3287,7 @@ export function TokenList({
       multiModeEnabled,
       modeVariantPaths,
       themeLensEnabled,
+      tokenModeMissing,
     ],
   );
 

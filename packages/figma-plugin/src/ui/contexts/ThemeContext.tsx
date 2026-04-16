@@ -167,7 +167,7 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
   connected: boolean;
 }) {
   const { tokenRevision } = useTokenSetsContext();
-  const { allTokensFlat, pathToSet } = useTokenFlatMapContext();
+  const { allTokensFlat } = useTokenFlatMapContext();
 
   const {
     dimensions, setDimensions,
@@ -178,7 +178,7 @@ function ThemeSwitcherProvider({ children, serverUrl, connected }: {
     dimDropdownRef,
     themedAllTokensFlat: themeOnlyTokensFlat,
     themesError, retryThemes,
-  } = useThemeSwitcher(serverUrl, connected, tokenRevision, allTokensFlat, pathToSet);
+  } = useThemeSwitcher(serverUrl, connected, tokenRevision, allTokensFlat);
 
   const value = useMemo<ThemeSwitcherContextValue>(
     () => ({

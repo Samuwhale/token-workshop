@@ -65,7 +65,6 @@ export function ContrastMatrixPanel({
     contrastMultiTheme,
     dimensions,
     allTokensFlat,
-    pathToSet,
     activeContrastThemeKeys,
   ]);
 

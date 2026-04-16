@@ -500,10 +500,10 @@ function CrossThemeMode({
     return (
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Compare across themes</span>
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Compare across modes</span>
           <button onClick={onClose} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">Close</button>
         </div>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No themes found. Add modes in the Themes tab to compare across options.</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No modes found. Add modes in the Modes workspace to compare across options.</p>
       </div>
     );
   }
@@ -521,7 +521,7 @@ function CrossThemeMode({
               {tokenType}
             </span>
           )}
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">across themes</span>
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">across modes</span>
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
           <button
@@ -771,7 +771,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
       ) : diffs.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
-            These themes produce identical resolved values.
+            These modes produce identical resolved values.
           </p>
         </div>
       ) : (
@@ -1451,11 +1451,11 @@ export function CompareView({
             <div className="flex flex-col items-center justify-center h-full gap-2 px-3 text-center">
               {dimensions.length === 0 ? (
                 <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-                  No themes are configured. Set up modes first.
+                  No modes are configured. Set up modes first.
                 </p>
               ) : (
                 <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-                  Right-click any token in the Tokens tab and choose <strong>Compare across themes</strong> to see how its value changes across each option.
+                  Right-click any token in the Tokens tab and choose <strong>Compare across modes</strong> to see how its value changes across each option.
                 </p>
               )}
               <button

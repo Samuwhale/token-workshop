@@ -54,7 +54,6 @@ export function useCommandPaletteCommands(): {
     highlightedToken,
     setHighlightedToken,
     setEditingToken,
-    switchContextualSurface,
   } = useEditorContext();
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
@@ -292,10 +291,8 @@ export function useCommandPaletteCommands(): {
     selectedNodes.length,
     setEditingToken,
     shell,
-    switchContextualSurface,
     closeSecondarySurface,
     tokens,
-    themes,
     sync,
     tokenListViewRev,
   ]);

@@ -625,7 +625,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
               <polyline points="7 3 7 8 15 8" />
             </svg>
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              Save your current workspace before making changes. Come back to compare or restore token sets, themes, resolvers, and recipes anytime.
+              Save your current workspace before making changes. Come back to compare or restore token sets, modes, resolvers, and recipes anytime.
             </p>
           </div>
         )}

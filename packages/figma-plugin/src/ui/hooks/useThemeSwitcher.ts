@@ -12,7 +12,6 @@ export function useThemeSwitcher(
   connected: boolean,
   tokenRevision: number,
   allTokensFlat: Record<string, TokenMapEntry>,
-  pathToSet: Record<string, string>,
 ) {
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
   const [themesError, setThemesError] = useState<string | null>(null);
@@ -79,7 +78,12 @@ export function useThemeSwitcher(
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchThemesInner = useCallback((signal: AbortSignal) => {
-    if (!connected) return;
+    if (!connected) {
+      pendingDimensionsForPruneRef.current = null;
+      setDimensions([]);
+      setThemesError(null);
+      return;
+    }
     setThemesError(null);
     apiFetch<{ dimensions?: ThemeDimension[] }>(`${serverUrl}/api/themes`, { signal: createFetchSignal(signal) })
       .then(data => {

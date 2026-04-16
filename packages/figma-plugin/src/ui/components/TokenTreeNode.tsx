@@ -907,10 +907,16 @@ const TokenGroupNode = memo(
             themeCoverageSummary &&
             themeCoverageSummary.total > 0 && (
               <span
-                className={`shrink-0 text-[9px] ${themeCoverageSummary.themed === themeCoverageSummary.total ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-text-tertiary)]"}`}
-                title={`${themeCoverageSummary.themed} of ${themeCoverageSummary.total} tokens have themed overrides`}
+                className={`shrink-0 text-[9px] ${themeCoverageSummary.totalMissing > 0 ? "text-[var(--color-figma-warning)]" : themeCoverageSummary.themed === themeCoverageSummary.total ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-text-tertiary)]"}`}
+                title={
+                  themeCoverageSummary.totalMissing > 0
+                    ? `${themeCoverageSummary.totalMissing} mode value${themeCoverageSummary.totalMissing === 1 ? "" : "s"} missing across ${themeCoverageSummary.total} tokens`
+                    : `${themeCoverageSummary.themed} of ${themeCoverageSummary.total} tokens have themed overrides`
+                }
               >
-                {themeCoverageSummary.themed}/{themeCoverageSummary.total}
+                {themeCoverageSummary.totalMissing > 0
+                  ? `${themeCoverageSummary.totalMissing} missing`
+                  : `${themeCoverageSummary.themed}/${themeCoverageSummary.total}`}
               </span>
             )}
         {!renamingGroup && isGroupActive && targetRecipe && (
@@ -1457,6 +1463,7 @@ const TokenLeafNode = memo(
       showDuplicatesFilter,
       modeVariantPaths,
       themeLensEnabled,
+      tokenModeMissing,
     } = useTokenTreeLeafState();
     const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
     const {
@@ -2030,7 +2037,14 @@ const TokenLeafNode = memo(
         title: provenanceLabel,
       });
     }
-    if (modeVariantPaths?.has(node.path) && !multiModeValues) {
+    const missingModeCount = tokenModeMissing?.get(node.path);
+    if (missingModeCount && missingModeCount > 0) {
+      leafMetadataSegments.push({
+        label: `${missingModeCount} mode value${missingModeCount === 1 ? "" : "s"} missing`,
+        title: `${missingModeCount} mode value${missingModeCount === 1 ? "" : "s"} still need authoring`,
+        tone: "warning",
+      });
+    } else if (modeVariantPaths?.has(node.path) && !multiModeValues) {
       leafMetadataSegments.push({
         label: "Theme overrides",
         title: "Has per-theme-option overrides",
@@ -3211,7 +3225,7 @@ const TokenLeafNode = memo(
                       className={MENU_ITEM_CLASS}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-                      <span className="flex-1">Compare across themes</span>
+                      <span className="flex-1">Compare across modes</span>
                     </button>
                   )}
                   {onViewTokenHistory && (

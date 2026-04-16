@@ -124,20 +124,22 @@ function ThemeSection({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--color-figma-border)] px-3 py-2">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-figma-border)] px-3 py-2">
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
             {title}
           </div>
-          <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-            {description}
-          </p>
+          {description ? (
+            <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+              {description}
+            </p>
+          ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
@@ -278,10 +280,6 @@ export function ThemeManager({
     }
   }, [activeThemes, normalizedSelections, setActiveThemes]);
 
-  const selectionLabel = useMemo(
-    () => buildSelectionLabel(dimensions, normalizedSelections),
-    [dimensions, normalizedSelections],
-  );
 
   const themeModeCoverage = useMemo(
     () =>
@@ -311,22 +309,6 @@ export function ThemeManager({
     [themedAllTokensFlat],
   );
 
-  const shellStatus = useMemo(() => {
-    switch (workflowSummary.currentStage) {
-      case "axes":
-        return "Define the mode axes the token system actually needs.";
-      case "options":
-        return `${workflowSummary.axesMissingOptionsCount} axis still needs options before token variations can be reviewed.`;
-      case "token-modes":
-        return `${workflowSummary.totalMissingModeValueCount} token mode values still need authoring in Tokens.`;
-      case "preview":
-        return workflowSummary.previewReady
-          ? "Structure is ready. Review a state or generate handoff when needed."
-          : "Finish the system before previewing or handing off output.";
-      default:
-        return "";
-    }
-  }, [workflowSummary]);
 
   const canOpenReview = workflowSummary.previewReady;
   const canOpenHandoff = workflowSummary.currentStage === "preview";
@@ -567,36 +549,21 @@ export function ThemeManager({
 
       {activeView === "authoring" ? (
         <>
-          <div className="shrink-0 border-b border-[var(--color-figma-border)] px-3 py-2.5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-                  Themes
-                </div>
-                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
-                  Supporting workspace for mode structure, cross-collection review, and implementation handoff. Author token values in Tokens.
-                </p>
+          <div className="shrink-0 border-b border-[var(--color-figma-border)] px-3 py-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                Modes
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 {onGoToTokens ? (
                   <button
                     type="button"
                     onClick={() => onGoToTokens()}
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                    className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                   >
                     Edit tokens
                   </button>
                 ) : null}
-              </div>
-            </div>
-            <div className="mt-2 flex items-start justify-between gap-3 text-[10px] leading-snug">
-              <div className="min-w-0 text-[var(--color-figma-text-tertiary)]">
-                {selectionLabel
-                  ? `Current review state: ${selectionLabel}`
-                  : "Current review state follows the selected option in each axis."}
-              </div>
-              <div className="max-w-[220px] text-right text-[var(--color-figma-text-secondary)]">
-                {shellStatus}
               </div>
             </div>
           </div>
@@ -605,7 +572,6 @@ export function ThemeManager({
             <div className="space-y-3">
               <ThemeSection
                 title="Structure"
-                description="Define axes and options here. Coverage stays lightweight so this workspace can support the authored token system without replacing it."
                 action={
                   !showCreateDim ? (
                     <button
@@ -721,24 +687,14 @@ export function ThemeManager({
                             normalizedSelections[dimension.id] === option.name;
                           const gapRowId = `${dimension.id}:${option.name}`;
                           const gapsExpanded = expandedGapRows[gapRowId] ?? false;
-                          const coverageLabel = !hasCoverage
-                            ? "No token values authored yet"
-                            : missing.length === 0
-                              ? "Complete"
-                              : `${missing.length} token mode value${missing.length === 1 ? "" : "s"} still missing`;
                           return (
                             <div
                               key={option.name}
                               className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2"
                             >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                                    {option.name}
-                                  </div>
-                                  <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                    {coverageLabel}
-                                  </div>
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                                  {option.name}
                                 </div>
                                 <div className="flex shrink-0 items-center gap-1">
                                   {hasCoverage && missing.length > 0 ? (
@@ -747,7 +703,7 @@ export function ThemeManager({
                                       onClick={() => toggleGapRow(gapRowId)}
                                       className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                                     >
-                                      {gapsExpanded ? "Hide gaps" : "Review gaps"}
+                                      {gapsExpanded ? "Hide" : `${missing.length} gaps`}
                                     </button>
                                   ) : null}
                                   <button
@@ -758,13 +714,13 @@ export function ThemeManager({
                                         [dimension.id]: option.name,
                                       })
                                     }
-                                    className={`rounded px-2 py-1 text-[10px] font-medium ${
+                                    className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${
                                       isActive
-                                        ? "bg-[var(--color-figma-accent)] text-white"
-                                        : "text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+                                        ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                                     }`}
                                   >
-                                    {isActive ? "Selected" : "Use"}
+                                    Use
                                   </button>
                                 </div>
                               </div>
@@ -843,177 +799,147 @@ export function ThemeManager({
                 </div>
               </ThemeSection>
 
-              <ThemeSection
-                title="Secondary tools"
-                description="Review states, handoff, and resolved samples stay behind the core structure workflow."
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView("compare");
+                    setAuthoringMode("preview");
+                  }}
+                  disabled={!canOpenReview}
+                  className="rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Review
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView("output");
+                    setAuthoringMode("authoring");
+                  }}
+                  disabled={!canOpenHandoff}
+                  className="rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Handoff
+                </button>
+              </div>
+
+              <Collapsible
+                open={savedStatesOpen}
+                onToggle={() => setSavedStatesOpen((previous) => !previous)}
+                label={`Saved states${views.length > 0 ? ` (${views.length})` : ""}`}
               >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                      Use review to compare authored states. Generate handoff only after token coverage is complete.
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveView("compare");
-                          setAuthoringMode("preview");
-                        }}
-                        disabled={!canOpenReview}
-                        className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
-                      >
-                        Review
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveView("output");
-                          setAuthoringMode("authoring");
-                        }}
-                        disabled={!canOpenHandoff}
-                        className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
-                      >
-                        Handoff
-                      </button>
-                    </div>
+                <div className="mt-2 space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newViewName}
+                      onChange={(event) => setNewViewName(event.target.value)}
+                      placeholder={createThemeViewName(dimensions, normalizedSelections)}
+                      className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void saveView()}
+                      className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white"
+                    >
+                      Save
+                    </button>
                   </div>
-
-                  <Collapsible
-                    open={savedStatesOpen}
-                    onToggle={() => setSavedStatesOpen((previous) => !previous)}
-                    label={`Saved review states${views.length > 0 ? ` (${views.length})` : ""}`}
-                  >
-                    <div className="mt-2 space-y-2">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newViewName}
-                          onChange={(event) => setNewViewName(event.target.value)}
-                          placeholder={createThemeViewName(dimensions, normalizedSelections)}
-                          className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => void saveView()}
-                          className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white"
-                        >
-                          Save
-                        </button>
-                      </div>
-                      {viewsLoading ? <Spinner /> : null}
-                      {viewsError ? (
-                        <div className="text-[10px] text-[var(--color-figma-error)]">
-                          {viewsError}
+                  {viewsLoading ? <Spinner /> : null}
+                  {viewsError ? (
+                    <div className="text-[10px] text-[var(--color-figma-error)]">
+                      {viewsError}
+                    </div>
+                  ) : null}
+                  <div className="space-y-2">
+                    {views.map((view) => (
+                      <div
+                        key={view.id}
+                        className="flex items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] px-2.5 py-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                            {view.name}
+                          </div>
+                          <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+                            {buildSelectionLabel(dimensions, view.selections)}
+                          </div>
                         </div>
-                      ) : null}
-                      <div className="space-y-2">
-                        {views.map((view) => (
-                          <div
-                            key={view.id}
-                            className="flex items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] px-2.5 py-2"
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => applyView(view)}
+                            className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
                           >
-                            <div className="min-w-0">
-                              <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                                {view.name}
-                              </div>
-                              <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                                {buildSelectionLabel(dimensions, view.selections)}
-                              </div>
-                            </div>
-                            <div className="flex gap-1">
-                              <button
-                                type="button"
-                                onClick={() => applyView(view)}
-                                className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
-                              >
-                                Apply
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void deleteView(view.id)}
-                                className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {views.length === 0 && !viewsLoading ? (
-                          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                            No saved states yet.
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </Collapsible>
-
-                  <Collapsible
-                    open={resolvedSampleOpen}
-                    onToggle={() => setResolvedSampleOpen((previous) => !previous)}
-                    label={`Resolved sample${previewTokens.length > 0 ? ` (${previewTokens.length})` : ""}`}
-                  >
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                          {selectionLabel || "Select a state to inspect resolved values."}
+                            Apply
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deleteView(view.id)}
+                            className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                          >
+                            Delete
+                          </button>
                         </div>
+                      </div>
+                    ))}
+                    {views.length === 0 && !viewsLoading ? (
+                      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        No saved states yet.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </Collapsible>
+
+              <Collapsible
+                open={resolvedSampleOpen}
+                onToggle={() => setResolvedSampleOpen((previous) => !previous)}
+                label={`Resolved sample${previewTokens.length > 0 ? ` (${previewTokens.length})` : ""}`}
+              >
+                <div className="mt-2 max-h-[220px] overflow-auto">
+                  <div className="space-y-1">
+                    {previewTokens.map(([tokenPath, entry]) => (
+                      <div
+                        key={tokenPath}
+                        className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]"
+                      >
                         <button
                           type="button"
-                          onClick={() => {
-                            setActiveView("compare");
-                            setAuthoringMode("preview");
-                          }}
-                          disabled={!canOpenReview}
-                          className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 disabled:cursor-not-allowed disabled:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+                          onClick={() =>
+                            onNavigateToToken?.(
+                              tokenPath,
+                              pathToSet[tokenPath] ?? sets[0] ?? "",
+                            )
+                          }
+                          className="min-w-0 flex-1 truncate text-left text-[10px] text-[var(--color-figma-text)]"
+                          title={tokenPath}
                         >
-                          Open review
+                          {tokenPath}
                         </button>
-                      </div>
-                      <div className="max-h-[220px] overflow-auto">
-                        <div className="space-y-1">
-                          {previewTokens.map(([tokenPath, entry]) => (
-                            <div
-                              key={tokenPath}
-                              className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]"
-                            >
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onNavigateToToken?.(
-                                    tokenPath,
-                                    pathToSet[tokenPath] ?? sets[0] ?? "",
-                                  )
-                                }
-                                className="min-w-0 flex-1 truncate text-left text-[10px] text-[var(--color-figma-text)]"
-                                title={tokenPath}
-                              >
-                                {tokenPath}
-                              </button>
-                              <div className="max-w-[45%] truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                                {typeof entry.$value === "object"
-                                  ? JSON.stringify(entry.$value)
-                                  : String(entry.$value)}
-                              </div>
-                            </div>
-                          ))}
-                          {previewTokens.length === 0 ? (
-                            <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                              No preview values yet.
-                            </div>
-                          ) : null}
+                        <div className="max-w-[45%] truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+                          {typeof entry.$value === "object"
+                            ? JSON.stringify(entry.$value)
+                            : String(entry.$value)}
                         </div>
                       </div>
-                    </div>
-                  </Collapsible>
+                    ))}
+                    {previewTokens.length === 0 ? (
+                      <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        No preview values yet.
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </ThemeSection>
+              </Collapsible>
           </div>
           </div>
         </>
       ) : null}
 
       {dimensionDeleteConfirm ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
           <div className="w-full max-w-[320px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3">
             <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
               Delete mode axis?

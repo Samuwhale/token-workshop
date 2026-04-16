@@ -1526,6 +1526,8 @@ export function TokenEditor({
           pathToSet={pathToSet}
           onNavigateToThemes={onNavigateToThemes}
           activeThemes={themeSwitcher.activeThemes}
+          serverUrl={serverUrl}
+          onDimensionCreated={themeSwitcher.retryThemes}
         />
 
         {!aliasMode && referenceSection}

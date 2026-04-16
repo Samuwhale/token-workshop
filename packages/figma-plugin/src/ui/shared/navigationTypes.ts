@@ -86,8 +86,8 @@ export const TOP_TABS: {
   },
   {
     id: "themes",
-    label: "Themes",
-    subTabs: [{ id: "themes", label: "Themes" }],
+    label: "Modes",
+    subTabs: [{ id: "themes", label: "Modes" }],
   },
   {
     id: "inspect",
@@ -398,8 +398,8 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
   {
     id: "themes",
-    label: "Themes",
-    summaryTitle: "Themes",
+    label: "Modes",
+    summaryTitle: "Modes",
     topTab: "themes",
     subTab: "themes",
     transition: workspaceTransition("Manage mode structure and coverage."),

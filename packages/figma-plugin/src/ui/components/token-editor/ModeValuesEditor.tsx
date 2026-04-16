@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
+import { apiFetch } from '../../shared/apiFetch';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import { Collapsible } from '../Collapsible';
 import { ModeValueEditor } from './ModeValueEditor';
@@ -8,6 +9,10 @@ import { summarizeModeCoverage } from './modeCoverage';
 
 // Token types that have a compact inline editor
 const RICH_EDITOR_TYPES = new Set(['color', 'dimension', 'number', 'boolean', 'duration']);
+
+function slugify(name: string): string {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
 
 export interface ModeValuesEditorProps {
   dimensions: ThemeDimension[];
@@ -21,6 +26,8 @@ export interface ModeValuesEditorProps {
   pathToSet?: Record<string, string>;
   onNavigateToThemes?: () => void;
   activeThemes?: Record<string, string>;
+  serverUrl?: string;
+  onDimensionCreated?: () => void;
 }
 
 function updateNestedMode(
@@ -64,6 +71,8 @@ export function ModeValuesEditor({
   pathToSet = {},
   onNavigateToThemes,
   activeThemes = {},
+  serverUrl,
+  onDimensionCreated,
 }: ModeValuesEditorProps) {
   const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
   // Track which rows the user has toggled to alias input mode
@@ -83,7 +92,99 @@ export function ModeValuesEditor({
   const hasTokens = Object.keys(allTokensFlat).length > 0;
   const useRichEditor = RICH_EDITOR_TYPES.has(tokenType);
 
+  const [inlineCreating, setInlineCreating] = useState(false);
+  const [inlineDimName, setInlineDimName] = useState('');
+  const [inlineOptions, setInlineOptions] = useState('');
+  const [inlineError, setInlineError] = useState<string | null>(null);
+  const [inlineSaving, setInlineSaving] = useState(false);
+
+  const handleInlineCreate = useCallback(async () => {
+    if (!serverUrl) return;
+    const name = inlineDimName.trim();
+    if (!name) { setInlineError('Name is required'); return; }
+    const id = slugify(name);
+    if (!id) { setInlineError('Name must contain at least one letter or number'); return; }
+    const optionNames = inlineOptions
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (optionNames.length < 2) { setInlineError('Enter at least two options (comma-separated)'); return; }
+    setInlineSaving(true);
+    setInlineError(null);
+    try {
+      await apiFetch(`${serverUrl}/api/themes/dimensions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name }),
+      });
+      for (const optName of optionNames) {
+        await apiFetch(
+          `${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}/options`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: optName }),
+          },
+        );
+      }
+      setInlineCreating(false);
+      setInlineDimName('');
+      setInlineOptions('');
+      onDimensionCreated?.();
+    } catch (err) {
+      setInlineError(err instanceof Error ? err.message : 'Failed to create axis');
+    } finally {
+      setInlineSaving(false);
+    }
+  }, [serverUrl, inlineDimName, inlineOptions, onDimensionCreated]);
+
   if (dimensions.length === 0) {
+    if (inlineCreating && serverUrl) {
+      return (
+        <div className="flex flex-col gap-2 rounded-md border border-dashed border-[var(--color-figma-border)] px-2.5 py-2">
+          <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            Create a mode axis
+          </p>
+          <input
+            type="text"
+            value={inlineDimName}
+            onChange={e => { setInlineDimName(e.target.value); setInlineError(null); }}
+            placeholder="Axis name, e.g. Color mode"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+            autoFocus
+          />
+          <input
+            type="text"
+            value={inlineOptions}
+            onChange={e => { setInlineOptions(e.target.value); setInlineError(null); }}
+            placeholder="Options, e.g. Light, Dark"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+            onKeyDown={e => { if (e.key === 'Enter') void handleInlineCreate(); }}
+          />
+          {inlineError && (
+            <p className="text-[10px] text-[var(--color-figma-error)]">{inlineError}</p>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => { setInlineCreating(false); setInlineError(null); }}
+              className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleInlineCreate()}
+              disabled={inlineSaving}
+              className="rounded bg-[var(--color-figma-accent)] px-3 py-1 text-[10px] font-medium text-white disabled:opacity-40"
+            >
+              {inlineSaving ? 'Creating\u2026' : 'Create'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
         <div className="min-w-0">
@@ -94,15 +195,26 @@ export function ModeValuesEditor({
             No mode axes yet. Define axes to author token variations here.
           </p>
         </div>
-        {onNavigateToThemes && (
-          <button
-            type="button"
-            onClick={onNavigateToThemes}
-            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-          >
-            Set up modes
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {serverUrl && (
+            <button
+              type="button"
+              onClick={() => setInlineCreating(true)}
+              className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+            >
+              Create axis
+            </button>
+          )}
+          {onNavigateToThemes && (
+            <button
+              type="button"
+              onClick={onNavigateToThemes}
+              className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:underline"
+            >
+              Modes workspace
+            </button>
+          )}
+        </div>
       </div>
     );
   }

@@ -2087,9 +2087,9 @@ export function App() {
                               title={isActive ? `${dim.name}: ${opt.name} (active — click to deselect)` : `Preview ${dim.name}: ${opt.name}`}
                               className={`px-1.5 py-0.5 text-[10px] transition-colors ${
                                 isActive
-                                  ? "bg-[var(--color-figma-accent)] text-white font-medium"
+                                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
                                   : isPreviewing
-                                    ? "bg-[var(--color-figma-accent)] text-white opacity-60"
+                                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] opacity-60"
                                     : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                               }`}
                             >
@@ -2110,7 +2110,7 @@ export function App() {
                       aria-label={`${dim.name}: ${activeOption || "None"}`}
                       className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                         activeOption
-                          ? "bg-[var(--color-figma-accent)] text-white font-medium"
+                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
                           : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                       }`}
                     >

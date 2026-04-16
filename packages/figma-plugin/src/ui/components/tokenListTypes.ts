@@ -351,8 +351,8 @@ export interface TokenTreeGroupStateContextType {
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
   recipesByTargetGroup?: Map<string, TokenRecipe>;
-  /** Pre-computed theme coverage per group: groupPath → { themed, total } */
-  themeCoverage?: Map<string, { themed: number; total: number }>;
+  /** Pre-computed theme coverage per group: groupPath → { themed, total, totalMissing } */
+  themeCoverage?: Map<string, { themed: number; total: number; totalMissing: number }>;
   /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
   condensedView?: boolean;
   /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
@@ -437,6 +437,8 @@ export interface TokenTreeLeafStateContextType {
   showDuplicatesFilter?: boolean;
   /** Token paths that have different values across mode variants (for indicator when columns are hidden) */
   modeVariantPaths?: Set<string>;
+  /** Per-token missing mode value count — tokenPath → number of missing mode values */
+  tokenModeMissing?: Map<string, number>;
   /** When true, the token list is showing themed values instead of base values */
   themeLensEnabled?: boolean;
 }
