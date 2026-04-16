@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { GraphPanel } from "../components/GraphPanel";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
@@ -1157,6 +1158,9 @@ export function PanelRouter(): ReactNode {
     tokens: {
       tokens: renderDefineTokens,
     },
+    recipes: {
+      recipes: renderRecipes,
+    },
     themes: {
       themes: renderDefineThemes,
     },
@@ -1172,54 +1176,9 @@ export function PanelRouter(): ReactNode {
     },
   };
 
-  // For multi-view tabs (inspect, sync), render an internal segment control
-  const multiViewTabs: Partial<Record<TopTab, { id: SubTab; label: string }[]>> = {
-    inspect: [
-      { id: "inspect", label: "Selection" },
-      { id: "canvas-analysis", label: "Canvas" },
-    ],
-    sync: [
-      { id: "publish", label: "Publish" },
-      { id: "export", label: "Export" },
-      { id: "history", label: "History" },
-      { id: "health", label: "Health" },
-    ],
-  };
-
-  const segments = multiViewTabs[activeTopTab];
+  // Sub-tab switching is now driven by the sidebar — no in-panel segment controls
   const renderer = PANEL_MAP[activeTopTab]?.[activeSubTab];
-  const panelContent = renderer ? renderer() : null;
-
-  if (segments && segments.length > 1) {
-    return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center gap-px border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
-          {segments.map((seg) => {
-            const isActive = seg.id === activeSubTab;
-            return (
-              <button
-                key={seg.id}
-                onClick={() => {
-                  setSubTab(seg.id);
-                  if (seg.id === "canvas-analysis") triggerHeatmapScan();
-                }}
-                className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
-                  isActive
-                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                {seg.label}
-              </button>
-            );
-          })}
-        </div>
-        <div className="min-h-0 flex-1 overflow-hidden">{panelContent}</div>
-      </div>
-    );
-  }
-
-  return panelContent;
+  return renderer ? renderer() : null;
 
   // ---------------------------------------------------------------------------
   // Panel render functions — each closes over context + props
@@ -1385,7 +1344,7 @@ export function PanelRouter(): ReactNode {
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Modes"
+            panelName="Themes"
             onReset={() => navigateTo("tokens", "tokens")}
           >
             <ThemeManager
@@ -1395,14 +1354,14 @@ export function PanelRouter(): ReactNode {
               onDimensionsChange={setDimensions}
               onNavigateToToken={(path, set) => {
                 beginHandoff({
-                  reason: "View or edit this token, then return to Modes",
+                  reason: "View or edit this token, then return to Themes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 controller.handleNavigateToSet(set, path);
               }}
               onCreateToken={(tokenPath, set) => {
                 beginHandoff({
-                  reason: "Create this token, then return to Modes",
+                  reason: "Create this token, then return to Themes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
                 setEditingToken({ path: tokenPath, set, isCreate: true });
@@ -1414,7 +1373,7 @@ export function PanelRouter(): ReactNode {
               onTokensCreated={controller.refreshAll}
               onGoToTokens={() => {
                 beginHandoff({
-                  reason: "Browse tokens, then return to Modes",
+                  reason: "Browse tokens, then return to Themes",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
               }}
@@ -1442,6 +1401,27 @@ export function PanelRouter(): ReactNode {
           </ErrorBoundary>
         </div>
       </div>
+    );
+  }
+
+  function renderRecipes(): ReactNode {
+    return (
+      <ErrorBoundary
+        panelName="Recipes"
+        onReset={() => navigateTo("tokens", "tokens")}
+      >
+        <GraphPanel
+          serverUrl={serverUrl}
+          activeSet={activeSet}
+          allSets={sets}
+          recipes={recipes}
+          connected={connected}
+          onRefresh={controller.refreshAll}
+          onPushUndo={controller.pushUndo}
+          allTokensFlat={allTokensFlat}
+          onViewTokens={openGeneratedTokens}
+        />
+      </ErrorBoundary>
     );
   }
 

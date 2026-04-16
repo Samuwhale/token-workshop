@@ -8,12 +8,13 @@ import { STORAGE_KEYS } from "./storage";
 import type { RecipeDialogInitialDraft } from "../hooks/useRecipeDialog";
 import type { RecipeTemplate } from "../hooks/useRecipes";
 
-export type TopTab = "tokens" | "themes" | "inspect" | "sync";
+export type TopTab = "tokens" | "recipes" | "themes" | "inspect" | "sync";
 type TokensSubTab = "tokens";
+type RecipesSubTab = "recipes";
 type ThemesSubTab = "themes";
 type InspectSubTab = "inspect" | "canvas-analysis";
 type SyncSubTab = "publish" | "export" | "history" | "health";
-export type SubTab = TokensSubTab | ThemesSubTab | InspectSubTab | SyncSubTab;
+export type SubTab = TokensSubTab | RecipesSubTab | ThemesSubTab | InspectSubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
   | "sets"
@@ -85,9 +86,14 @@ export const TOP_TABS: {
     subTabs: [{ id: "tokens", label: "Tokens" }],
   },
   {
+    id: "recipes",
+    label: "Recipes",
+    subTabs: [{ id: "recipes", label: "Recipes" }],
+  },
+  {
     id: "themes",
-    label: "Modes",
-    subTabs: [{ id: "themes", label: "Modes" }],
+    label: "Themes",
+    subTabs: [{ id: "themes", label: "Themes" }],
   },
   {
     id: "inspect",
@@ -99,7 +105,7 @@ export const TOP_TABS: {
   },
   {
     id: "sync",
-    label: "Sync",
+    label: "Publish",
     subTabs: [
       { id: "publish", label: "Publish" },
       { id: "export", label: "Export" },
@@ -111,6 +117,7 @@ export const TOP_TABS: {
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   tokens: "tokens",
+  recipes: "recipes",
   themes: "themes",
   inspect: "inspect",
   sync: "publish",
@@ -118,6 +125,7 @@ export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   tokens: STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
+  recipes: STORAGE_KEYS.ACTIVE_SUB_TAB_RECIPES,
   themes: STORAGE_KEYS.ACTIVE_SUB_TAB_THEMES,
   inspect: STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
@@ -127,7 +135,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "tokens" | "themes" | "inspect" | "sync";
+export type WorkspaceId = "tokens" | "recipes" | "themes" | "inspect" | "sync";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -295,7 +303,9 @@ const transientOverlayTransition = (
   usage,
 });
 
-export const CONTEXTUAL_PANEL_MIN_WIDTH = 450;
+/** Minimum window width to show the contextual editor as a side panel.
+ *  Accounts for the 208px labeled sidebar so the library + editor have room. */
+export const CONTEXTUAL_PANEL_MIN_WIDTH = 920;
 export const CONTEXTUAL_PANEL_TRANSITIONS = {
   sidePanel: {
     kind: "contextual-panel",
@@ -387,6 +397,17 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
   };
 };
 
+export type ThemeSidebarStage = "axes" | "options" | "token-modes" | "preview";
+
+export interface WorkspaceSidebarSection {
+  id: string;
+  label: string;
+  /** Route-based section — changes activeSubTab */
+  subTab?: SubTab;
+  /** Stage-based section — calls into ThemeManager imperative handle */
+  themeStage?: ThemeSidebarStage;
+}
+
 export const WORKSPACE_TABS: WorkspaceTab[] = [
   {
     id: "tokens",
@@ -397,12 +418,20 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     transition: workspaceTransition("Browse and edit tokens."),
   },
   {
+    id: "recipes",
+    label: "Recipes",
+    summaryTitle: "Recipes",
+    topTab: "recipes",
+    subTab: "recipes",
+    transition: workspaceTransition("Manage token generators."),
+  },
+  {
     id: "themes",
-    label: "Modes",
-    summaryTitle: "Modes",
+    label: "Themes",
+    summaryTitle: "Themes",
     topTab: "themes",
     subTab: "themes",
-    transition: workspaceTransition("Manage mode structure and coverage."),
+    transition: workspaceTransition("Manage theme structure and coverage."),
   },
   {
     id: "inspect",
@@ -415,8 +444,8 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
   {
     id: "sync",
-    label: "Sync",
-    summaryTitle: "Sync",
+    label: "Publish",
+    summaryTitle: "Publish",
     topTab: "sync",
     subTab: "publish",
     transition: workspaceTransition("Sync, export, and review."),
@@ -428,6 +457,31 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     ],
   },
 ];
+
+export const WORKSPACE_SIDEBAR_SECTIONS: Record<WorkspaceId, WorkspaceSidebarSection[]> = {
+  tokens: [
+    { id: "library", label: "Library", subTab: "tokens" },
+  ],
+  recipes: [
+    { id: "overview", label: "Overview", subTab: "recipes" },
+  ],
+  themes: [
+    { id: "axes", label: "Axes", themeStage: "axes" },
+    { id: "options", label: "Options", themeStage: "options" },
+    { id: "token-modes", label: "Token modes", themeStage: "token-modes" },
+    { id: "preview", label: "Preview", themeStage: "preview" },
+  ],
+  inspect: [
+    { id: "selection", label: "Selection", subTab: "inspect" },
+    { id: "canvas", label: "Canvas", subTab: "canvas-analysis" },
+  ],
+  sync: [
+    { id: "publish", label: "Publish", subTab: "publish" },
+    { id: "export", label: "Export", subTab: "export" },
+    { id: "history", label: "History", subTab: "history" },
+    { id: "health", label: "Health", subTab: "health" },
+  ],
+};
 
 export const SECONDARY_SURFACES: SecondarySurface[] = [
   {

@@ -134,7 +134,7 @@ export function TokenDetailPreview({
   }, [lintViolations]);
   if (!entry) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-figma-border)]">
           <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">
             Token not found
@@ -159,7 +159,7 @@ export function TokenDetailPreview({
             </svg>
           </button>
         </div>
-        <div className="flex-1 flex items-center justify-center p-4 text-[10px] text-[var(--color-figma-text-tertiary)]">
+        <div className="flex min-h-0 flex-1 items-center justify-center p-4 text-[10px] text-[var(--color-figma-text-tertiary)]">
           Token not found
         </div>
       </div>
@@ -167,7 +167,7 @@ export function TokenDetailPreview({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
         <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate mr-2">
@@ -195,7 +195,7 @@ export function TokenDetailPreview({
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {/* Token path + type */}
         <div className="px-3 pt-1.5 pb-1.5">
           <div className="flex items-center gap-1.5 mb-1.5">

@@ -31,13 +31,13 @@ import { useWindowExpand } from "./hooks/useWindowExpand";
 import { useWindowResize } from "./hooks/useWindowResize";
 import type {
   SecondarySurfaceId,
-  UtilityActionId,
   WorkspaceId,
 } from "./shared/navigationTypes";
 import {
   APP_SHELL_NAVIGATION,
   CONTEXTUAL_PANEL_MIN_WIDTH,
   CONTEXTUAL_PANEL_TRANSITIONS,
+  WORKSPACE_SIDEBAR_SECTIONS,
   resolveWorkspaceSummary,
 } from "./shared/navigationTypes";
 import type {
@@ -50,7 +50,6 @@ import {
   DEFAULT_PUBLISH_PREFLIGHT_STATE,
   type PublishPreflightState,
 } from "./shared/syncWorkflow";
-import { NoticeFieldMessage } from "./shared/noticeSystem";
 import { useConnectionContext } from "./contexts/ConnectionContext";
 import {
   useTokenSetsContext,
@@ -63,6 +62,7 @@ import {
 } from "./contexts/ThemeContext";
 import {
   useSelectionContext,
+  useHeatmapContext,
   useUsageContext,
 } from "./contexts/InspectContext";
 import { useNavigationContext } from "./contexts/NavigationContext";
@@ -87,9 +87,8 @@ import {
 } from "./contexts/WorkspaceControllerContext";
 import type { TokenMapEntry } from "../shared/types";
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
-import { adaptShortcut, tokenPathToUrlSegment } from "./shared/utils";
+import { tokenPathToUrlSegment } from "./shared/utils";
 import { SHORTCUT_KEYS, matchesShortcut } from "./shared/shortcutRegistry";
-import { getMenuItems, handleMenuArrowKeys } from "./hooks/useMenuKeyboard";
 import { apiFetch, ApiError } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
@@ -189,16 +188,10 @@ export function App() {
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
+  const { triggerHeatmapScan } = useHeatmapContext();
   const { triggerUsageScan } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } =
     useAvailableFonts();
-  // Utilities menu owns the connection editor so recovery stays available without
-  // pinning a disconnect banner across every workspace.
-  const [connectionUrlInput, setConnectionUrlInput] = useState(serverUrl);
-  const [connectionConnectResult, setConnectionConnectResult] = useState<
-    "ok" | "fail" | null
-  >(null);
-  const [showConnectionEditor, setShowConnectionEditor] = useState(false);
   const {
     showPasteModal,
     setShowPasteModal,
@@ -311,12 +304,6 @@ export function App() {
     window.addEventListener("publish-preflight-state", handler);
     return () => window.removeEventListener("publish-preflight-state", handler);
   }, []);
-  // Collapse the utilities connection editor once the server is reachable again.
-  useEffect(() => {
-    if (!connected) return;
-    setShowConnectionEditor(false);
-    setConnectionConnectResult(null);
-  }, [connected]);
   // Wire the alias-not-found toast into EditorContext
   useEffect(() => {
     setAliasNotFoundHandler((p) =>
@@ -391,9 +378,6 @@ export function App() {
   const activeWorkspaceSection = activeWorkspaceSummary.section;
   const activeWorkspaceId = activeWorkspace.id;
   const [pendingThemeStage, setPendingThemeStage] = useState<ThemeAuthoringStage | null>(null);
-  const shellMenuSurfaces = APP_SHELL_NAVIGATION.secondarySurfaces.filter(
-    (surface) => surface.access === "shell-menu",
-  );
   const themeModeCoverage = useMemo(
     () =>
       buildThemeModeCoverage({
@@ -799,7 +783,6 @@ export function App() {
     paths: string[];
     label: string;
   } | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
   useEffect(() => {
     const onResize = () => setWindowWidth(window.innerWidth);
@@ -1177,34 +1160,6 @@ export function App() {
       triggerUsageScan();
     }
   }, [activeTopTab, activeSubTab, tokens.length, triggerUsageScan]);
-
-  // Utilities menu: autofocus the first item, support arrow-key navigation,
-  // and close when clicking outside the menu.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const frame = requestAnimationFrame(() => {
-      if (menuRef.current) getMenuItems(menuRef.current)[0]?.focus();
-    });
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setMenuOpen(false);
-        return;
-      }
-      if (menuRef.current) handleMenuArrowKeys(e, menuRef.current);
-    };
-    const handlePointerDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("mousedown", handlePointerDown);
-    };
-  }, [menuOpen]);
 
   const openSecondaryPanel = useCallback(
     (panel: SecondarySurfaceId) => {
@@ -1878,58 +1833,15 @@ export function App() {
   }, [activeHandoff, activeSecondarySurface, activeSubTab, activeTopTab]);
   const shellPrimaryAction =
     activeSecondarySurface === null ? workspacePrimaryAction : null;
-  const handleUtilityAction = useCallback(
-    (actionId: UtilityActionId) => {
-      setMenuOpen(false);
-      switch (actionId) {
-        case "command-palette":
-          setCommandPaletteInitialQuery("");
-          setShowCommandPalette(true);
-          return;
-        case "paste-tokens":
-          setShowPasteModal(true);
-          return;
-        case "window-size":
-          toggleExpand();
-          return;
-      }
-    },
-    [
-      setCommandPaletteInitialQuery,
-      setShowCommandPalette,
-      setMenuOpen,
-      setShowPasteModal,
-      toggleExpand,
-    ],
-  );
-
-  const utilityActionDetail = useCallback(
-    (actionId: UtilityActionId): string => {
-      switch (actionId) {
-        case "command-palette":
-          return adaptShortcut(SHORTCUT_KEYS.OPEN_PALETTE);
-        case "paste-tokens":
-          return adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS);
-        case "window-size":
-          return isExpanded ? "Windowed" : "Expanded";
-      }
-    },
-    [isExpanded],
-  );
-
   const notificationCount = notificationHistory.length;
-  const utilitiesAttention = !connected || notificationCount > 0;
-  const utilitiesStatusLabel = checking
-    ? `Checking ${serverUrl}`
-    : connected
-      ? `Connected to ${serverUrl}`
-      : `Server offline · ${serverUrl}`;
 
   const workspaceIcon = (id: WorkspaceId) => {
     const props = { width: 14, height: 14, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: 1.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
     switch (id) {
       case "tokens":
         return (<svg {...props}><path d="M2 5l6-3 6 3-6 3-6-3Z" /><path d="M2 8l6 3 6-3" /><path d="M2 11l6 3 6-3" /></svg>);
+      case "recipes":
+        return (<svg {...props}><path d="M4 2v4l4 2 4-2V2" /><path d="M4 6v4l4 2 4-2V6" /><path d="M4 10v2l4 2 4-2v-2" /></svg>);
       case "themes":
         return (<svg {...props}><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5A5.5 5.5 0 0 1 8 13.5Z" fill="currentColor" opacity="0.2" stroke="none" /></svg>);
       case "inspect":
@@ -1939,204 +1851,219 @@ export function App() {
     }
   };
 
+  const showThemePreviewControls =
+    !themesError &&
+    dimensions.length > 0 &&
+    activeSecondarySurface === null &&
+    (activeTopTab === "tokens" || activeTopTab === "inspect");
+
+  const sidebarSections = WORKSPACE_SIDEBAR_SECTIONS[activeWorkspaceId] ?? [];
+  const activeThemeStage = activeWorkspaceId === "themes" ? themeWorkflowSummary.currentStage : null;
+
+  const handleSidebarSectionClick = (section: (typeof sidebarSections)[number]) => {
+    if (section.themeStage) {
+      guardEditorAction(() => {
+        navigateTo("themes", "themes");
+        closeSecondarySurface();
+        setPendingThemeStage(section.themeStage as ThemeAuthoringStage);
+      });
+    } else if (section.subTab) {
+      guardEditorAction(() => {
+        const topTab = activeWorkspace.topTab;
+        navigateTo(topTab, section.subTab!);
+        clearHandoff();
+        if (section.subTab === "canvas-analysis") {
+          triggerHeatmapScan();
+        }
+      });
+    }
+  };
+
+  const isSidebarSectionActive = (section: (typeof sidebarSections)[number]) => {
+    if (section.themeStage) {
+      return activeThemeStage === section.themeStage;
+    }
+    return section.subTab === activeSubTab;
+  };
+
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">
-      {/* Navigation rail */}
-      <nav className="flex w-11 shrink-0 flex-col items-center border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1.5" aria-label="Workspaces">
-        <div className="flex flex-col items-center gap-0.5" role="tablist" aria-label="Workspaces">
+      {/* Labeled sidebar */}
+      <nav className="flex w-[208px] shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]" aria-label="Workspaces">
+        {/* Primary workspaces */}
+        <div className="flex flex-col gap-px px-2 pt-3 pb-1" role="tablist" aria-label="Workspaces">
           {APP_SHELL_NAVIGATION.workspaces.map((workspace) => {
-            const isActive = workspace.id === activeWorkspaceId;
+            const isActive = workspace.id === activeWorkspaceId && activeSecondarySurface === null;
             return (
               <button
                 key={workspace.id}
                 role="tab"
                 aria-selected={isActive}
-                title={workspace.label}
                 onClick={() =>
                   guardEditorAction(() => {
                     clearHandoff();
                     navigateTo(workspace.topTab, workspace.subTab);
+                    closeSecondarySurface();
                   })
                 }
-                className={`relative flex h-8 w-8 items-center justify-center rounded-lg outline-none transition-colors ${
+                className={`relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[11px] font-medium outline-none transition-colors ${
                   isActive
-                    ? "bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]/40"
-                    : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text-secondary)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]/30"
+                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
                 }`}
               >
-                {isActive && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-[var(--color-figma-accent)]" aria-hidden="true" />
-                )}
-                {workspaceIcon(workspace.id)}
+                <span className="shrink-0 opacity-70">{workspaceIcon(workspace.id)}</span>
+                <span>{workspace.label}</span>
               </button>
             );
           })}
         </div>
-        <div className="mt-auto flex flex-col items-center gap-0.5">
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-figma-text-tertiary)] outline-none hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]/30 transition-colors"
-              aria-label="Tools"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              title="Tools"
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6.8 1.6h2.4l.3 1.8.9.4 1.5-1 1.7 1.7-1 1.5.4.9 1.8.3v2.4l-1.8.3-.4.9 1 1.5-1.7 1.7-1.5-1-.9.4-.3 1.8H6.8l-.3-1.8-.9-.4-1.5 1-1.7-1.7 1-1.5-.4-.9-1.8-.3V6.8l1.8-.3.4-.9-1-1.5L4.1 2.4l1.5 1 .9-.4z" />
-                <circle cx="8" cy="8" r="2" />
-              </svg>
-              {utilitiesAttention && (
-                <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${!connected && !checking ? "bg-[var(--color-figma-error)]" : "bg-[var(--color-figma-accent)]"}`} aria-hidden="true" />
-              )}
-            </button>
-            {menuOpen && (
-              <div className="absolute left-full bottom-0 z-50 ml-1 w-52 overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="menu">
-                <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-                  <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{utilitiesStatusLabel}</div>
-                  {!connected && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <button onClick={retryConnection} disabled={checking} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50">{checking ? "Checking…" : "Retry"}</button>
-                      <button onClick={() => { setShowConnectionEditor((v) => !v); setConnectionUrlInput(serverUrl); setConnectionConnectResult(null); }} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]">{showConnectionEditor ? "Hide URL" : "Change URL"}</button>
-                    </div>
-                  )}
-                  {showConnectionEditor && (
-                    <div className="mt-2 flex flex-col gap-1.5">
-                      <div className="flex gap-1.5">
-                        <input type="text" value={connectionUrlInput} onChange={(e) => { setConnectionUrlInput(e.target.value); setConnectionConnectResult(null); }} onKeyDown={async (e) => { if (e.key !== "Enter") return; const url = connectionUrlInput.trim(); if (!url) return; setConnectionConnectResult(null); const ok = await updateServerUrlAndConnect(url); setConnectionConnectResult(ok ? "ok" : "fail"); if (ok) setShowConnectionEditor(false); }} placeholder="http://localhost:9400" autoFocus className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]" />
-                        <button onClick={async () => { const url = connectionUrlInput.trim(); if (!url) return; setConnectionConnectResult(null); const ok = await updateServerUrlAndConnect(url); setConnectionConnectResult(ok ? "ok" : "fail"); if (ok) setShowConnectionEditor(false); }} disabled={checking || !connectionUrlInput.trim()} className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">Connect</button>
-                      </div>
-                      {connectionConnectResult === "fail" && (<NoticeFieldMessage severity="error">Cannot reach server. Check the URL and try again.</NoticeFieldMessage>)}
-                    </div>
-                  )}
-                </div>
-                {shellMenuSurfaces.length > 0 && (
-                  <div className="py-0.5">
-                    {shellMenuSurfaces.map((surface) => (
-                      <button key={surface.id} role="menuitem" tabIndex={-1} onClick={() => { setMenuOpen(false); toggleSecondarySurface(surface.id); }} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={surface.transition.usage}>
-                        <span>{surface.label}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                          {surface.id === "notifications"
-                            ? notificationCount > 0
-                              ? `${notificationCount}`
-                              : ""
-                            : adaptShortcut(SHORTCUT_KEYS.OPEN_SETTINGS)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {APP_SHELL_NAVIGATION.utilityMenu.sections.map((section) => (
-                  <div key={section.id} className="border-t border-[var(--color-figma-border)] py-0.5">
-                    {section.actions.map((action) => (
-                      <button key={action.id} role="menuitem" tabIndex={-1} onClick={() => handleUtilityAction(action.id)} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] outline-none focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[var(--color-figma-text)]" title={action.transition?.usage ?? action.description}>
-                        <span>{action.id === "window-size" ? isExpanded ? "Restore window" : "Expand window" : action.label}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{utilityActionDetail(action.id)}</span>
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
+
+        {/* Workspace-specific sections */}
+        {sidebarSections.length > 1 && activeSecondarySurface === null && (
+          <div className="flex flex-col gap-px px-2 pt-1.5 pb-1">
+            <div className="px-2.5 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)]">
+              {activeWorkspace.label}
+            </div>
+            {sidebarSections.map((section) => {
+              const isActive = isSidebarSectionActive(section);
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => handleSidebarSectionClick(section)}
+                  className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                    isActive
+                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+                  }`}
+                >
+                  {section.label}
+                </button>
+              );
+            })}
           </div>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Bottom utilities */}
+        <div className="flex flex-col gap-px border-t border-[var(--color-figma-border)] px-2 py-2">
+          <button
+            onClick={() => toggleSecondarySurface("import")}
+            className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+              activeSecondarySurface === "import"
+                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            }`}
+          >
+            Import
+          </button>
+          <button
+            onClick={() => toggleSecondarySurface("sets")}
+            className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+              activeSecondarySurface === "sets"
+                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            }`}
+          >
+            Manage sets
+          </button>
+          <button
+            onClick={() => toggleSecondarySurface("notifications")}
+            className={`flex items-center justify-between rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+              activeSecondarySurface === "notifications"
+                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            }`}
+          >
+            <span>Notifications</span>
+            {notificationCount > 0 && (
+              <span className="text-[9px] tabular-nums text-[var(--color-figma-text-tertiary)]">{notificationCount}</span>
+            )}
+          </button>
+          <button
+            onClick={() => toggleSecondarySurface("settings")}
+            className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+              activeSecondarySurface === "settings"
+                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            }`}
+          >
+            Settings
+          </button>
+          <button
+            onClick={toggleExpand}
+            className="rounded-md px-2.5 py-1 text-left text-[11px] text-[var(--color-figma-text-secondary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          >
+            {isExpanded ? "Compact" : "Wide"}
+          </button>
+          {!connected && (
+            <div className="mt-1 rounded-md bg-[var(--color-figma-error)]/8 px-2.5 py-1.5">
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                {checking ? "Connecting…" : "Server offline"}
+              </div>
+              {!checking && (
+                <button
+                  onClick={retryConnection}
+                  className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                >
+                  Retry connection
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </nav>
 
       {/* Content area */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Simplified top bar */}
         <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
           <div className="flex items-center gap-1.5 px-3 py-1.5">
-            {visibleHandoff && returnFromHandoff && (
+            {visibleHandoff && returnFromHandoff ? (
               <button
                 onClick={returnFromHandoff}
-                aria-label={`Back to ${visibleHandoff.returnLabel}`}
+                aria-label={visibleHandoff.returnLabel}
                 className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
                 &larr; {visibleHandoff.returnLabel}
               </button>
+            ) : (
+              <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                {activeSecondarySurface
+                  ? APP_SHELL_NAVIGATION.secondarySurfaces.find((s) => s.id === activeSecondarySurface)?.label
+                  : activeWorkspaceSummary.currentLabel}
+              </span>
             )}
 
-            {/* Theme mode controls */}
-            {!themesError && dimensions.length > 0 && (
-            <div ref={dimDropdownRef} className="flex items-center gap-1">
-              {dimensions.map((dim) => {
-                const activeOption = activeThemes[dim.id];
-                const previewOption = previewThemes[dim.id];
-                const isOpen = openDimDropdown === dim.id;
-                if (dim.options.length <= 3) {
-                  return (
-                    <div
-                      key={dim.id}
-                      className="flex items-center"
-                      title={dim.name}
-                      onMouseLeave={() => {
-                        setPreviewThemes((prev) => {
-                          const next = { ...prev };
-                          delete next[dim.id];
-                          return next;
-                        });
-                      }}
-                    >
-                      <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)] divide-x divide-[var(--color-figma-border)]">
-                        {dim.options.map((opt: { name: string }) => {
-                          const isActive = activeOption === opt.name;
-                          const isPreviewing = previewOption === opt.name && previewOption !== activeOption;
-                          return (
-                            <button
-                              key={opt.name}
-                              onClick={() => {
-                                if (isActive) {
-                                  const next = { ...activeThemes };
-                                  delete next[dim.id];
-                                  setActiveThemes(next);
-                                } else {
-                                  setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
-                                }
-                                setPreviewThemes((prev) => {
-                                  const next = { ...prev };
-                                  delete next[dim.id];
-                                  return next;
-                                });
-                              }}
-                              onMouseEnter={() => setPreviewThemes((prev) => ({ ...prev, [dim.id]: opt.name }))}
-                              title={isActive ? `${dim.name}: ${opt.name} (active — click to deselect)` : `Preview ${dim.name}: ${opt.name}`}
-                              className={`px-1.5 py-0.5 text-[10px] transition-colors ${
-                                isActive
-                                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                                  : isPreviewing
-                                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] opacity-60"
-                                    : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                              }`}
-                            >
-                              {opt.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                }
-                return (
-                  <div key={dim.id} className="relative flex items-center" title={dim.name}>
-                    <button
-                      onClick={() => setOpenDimDropdown(isOpen ? null : dim.id)}
-                      aria-expanded={isOpen}
-                      aria-haspopup="listbox"
-                      aria-label={`${dim.name}: ${activeOption || "None"}`}
-                      className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
-                        activeOption
-                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                          : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                      }`}
-                    >
-                      {activeOption || dim.name}
-                      <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>
-                        <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {isOpen && (
+            {/* Current set context — shown for Tokens workspace */}
+            {activeTopTab === "tokens" && activeSecondarySurface === null && activeSet && (
+              <button
+                onClick={toggleSetSwitcher}
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                title={`Set: ${activeSet}`}
+              >
+                <span className="max-w-[120px] truncate">{activeSet}</span>
+                <svg width="6" height="6" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+                  <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+
+            {/* Theme preview selectors — only in token/inspect contexts */}
+            {showThemePreviewControls && (
+              <div ref={dimDropdownRef} className="flex items-center gap-1">
+                {dimensions.map((dim) => {
+                  const activeOption = activeThemes[dim.id];
+                  const previewOption = previewThemes[dim.id];
+                  const isOpen = openDimDropdown === dim.id;
+                  if (dim.options.length <= 3) {
+                    return (
                       <div
-                        className="absolute left-0 top-full z-50 mt-1 min-w-[90px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
+                        key={dim.id}
+                        className="flex items-center"
+                        title={dim.name}
                         onMouseLeave={() => {
                           setPreviewThemes((prev) => {
                             const next = { ...prev };
@@ -2145,81 +2072,149 @@ export function App() {
                           });
                         }}
                       >
-                        <button
-                          onClick={() => {
-                            const next = { ...activeThemes };
-                            delete next[dim.id];
-                            setActiveThemes(next);
-                            setOpenDimDropdown(null);
-                          }}
-                          onMouseEnter={() => {
+                        <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)] divide-x divide-[var(--color-figma-border)]">
+                          {dim.options.map((opt: { name: string }) => {
+                            const isActive = activeOption === opt.name;
+                            const isPreviewing = previewOption === opt.name && previewOption !== activeOption;
+                            return (
+                              <button
+                                key={opt.name}
+                                onClick={() => {
+                                  if (isActive) {
+                                    const next = { ...activeThemes };
+                                    delete next[dim.id];
+                                    setActiveThemes(next);
+                                  } else {
+                                    setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
+                                  }
+                                  setPreviewThemes((prev) => {
+                                    const next = { ...prev };
+                                    delete next[dim.id];
+                                    return next;
+                                  });
+                                }}
+                                onMouseEnter={() => setPreviewThemes((prev) => ({ ...prev, [dim.id]: opt.name }))}
+                                title={isActive ? `${dim.name}: ${opt.name} (active — click to deselect)` : `Preview ${dim.name}: ${opt.name}`}
+                                className={`px-1.5 py-0.5 text-[10px] transition-colors ${
+                                  isActive
+                                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                                    : isPreviewing
+                                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] opacity-60"
+                                      : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                                }`}
+                              >
+                                {opt.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={dim.id} className="relative flex items-center" title={dim.name}>
+                      <button
+                        onClick={() => setOpenDimDropdown(isOpen ? null : dim.id)}
+                        aria-expanded={isOpen}
+                        aria-haspopup="listbox"
+                        aria-label={`${dim.name}: ${activeOption || "None"}`}
+                        className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+                          activeOption
+                            ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                            : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                        }`}
+                      >
+                        {activeOption || dim.name}
+                        <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>
+                          <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      {isOpen && (
+                        <div
+                          className="absolute left-0 top-full z-50 mt-1 min-w-[90px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
+                          onMouseLeave={() => {
                             setPreviewThemes((prev) => {
                               const next = { ...prev };
                               delete next[dim.id];
                               return next;
                             });
                           }}
-                          className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
-                            !activeOption ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
-                          }`}
                         >
-                          None
-                        </button>
-                        {dim.options.map((opt: { name: string }) => (
                           <button
-                            key={opt.name}
                             onClick={() => {
-                              setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
+                              const next = { ...activeThemes };
+                              delete next[dim.id];
+                              setActiveThemes(next);
                               setOpenDimDropdown(null);
+                            }}
+                            onMouseEnter={() => {
                               setPreviewThemes((prev) => {
                                 const next = { ...prev };
                                 delete next[dim.id];
                                 return next;
                               });
                             }}
-                            onMouseEnter={() => setPreviewThemes((prev) => ({ ...prev, [dim.id]: opt.name }))}
                             className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
-                              activeOption === opt.name ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
+                              !activeOption ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
                             }`}
                           >
-                            {opt.name}
+                            None
                           </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="flex shrink-0 items-center gap-1 ml-auto">
-            {shellPrimaryAction && (
-              <button
-                onClick={shellPrimaryAction.onClick}
-                disabled={shellPrimaryAction.disabled}
-                className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-[background-color,transform,opacity,box-shadow] duration-150 ease-out outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {shellPrimaryAction.label}
-              </button>
+                          {dim.options.map((opt: { name: string }) => (
+                            <button
+                              key={opt.name}
+                              onClick={() => {
+                                setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
+                                setOpenDimDropdown(null);
+                                setPreviewThemes((prev) => {
+                                  const next = { ...prev };
+                                  delete next[dim.id];
+                                  return next;
+                                });
+                              }}
+                              onMouseEnter={() => setPreviewThemes((prev) => ({ ...prev, [dim.id]: opt.name }))}
+                              className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
+                                activeOption === opt.name ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
+                              }`}
+                            >
+                              {opt.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
-            <button onClick={executeUndo} disabled={!canUndo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
-            </button>
-            <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
-            </button>
+
+            <div className="flex shrink-0 items-center gap-1 ml-auto">
+              {shellPrimaryAction && (
+                <button
+                  onClick={shellPrimaryAction.onClick}
+                  disabled={shellPrimaryAction.disabled}
+                  className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-[background-color,transform,opacity,box-shadow] duration-150 ease-out outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {shellPrimaryAction.label}
+                </button>
+              )}
+              <button onClick={executeUndo} disabled={!canUndo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
+              </button>
+              <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <WorkspaceControllerProvider value={workspaceControllers}>
-        <ErrorBoundary>
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <PanelRouter />
-          </div>
-        </ErrorBoundary>
-      </WorkspaceControllerProvider>
+        <WorkspaceControllerProvider value={workspaceControllers}>
+          <ErrorBoundary>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <PanelRouter />
+            </div>
+          </ErrorBoundary>
+        </WorkspaceControllerProvider>
       </div>
 
       {/* Command palette delete confirmation */}

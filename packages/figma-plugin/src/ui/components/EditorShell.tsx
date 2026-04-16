@@ -60,7 +60,7 @@ export function EditorShell({
   return (
     <div
       className={joinClasses(
-        "flex h-full min-h-0 flex-col",
+        "flex h-full min-h-0 flex-col overflow-hidden",
         isAuthoringSurface && "tm-authoring-surface",
         className,
       )}

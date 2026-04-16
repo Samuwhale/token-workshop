@@ -129,12 +129,15 @@ function storageEntries(kind: BrowserStorageKind): Array<[string, string]> {
 
 export const STORAGE_KEYS = {
   EXPANDED:              'tm_expanded',
+  WINDOW_WIDTH:          'tm_window_width',
+  WINDOW_HEIGHT:         'tm_window_height',
   PREVIEW_SPLIT:         'tm_preview_split',
   PREVIEW_SPLIT_RATIO:   'tm_preview_split_ratio',
   ACTIVE_SET:            'tm_active_set',
   ACTIVE_TAB:            'tm_active_tab',
   ACTIVE_TOP_TAB:        'tm_active_top_tab',
   ACTIVE_SUB_TAB_TOKENS:  'tm_sub_tab_tokens',
+  ACTIVE_SUB_TAB_RECIPES: 'tm_sub_tab_recipes',
   ACTIVE_SUB_TAB_THEMES:  'tm_sub_tab_themes',
   ACTIVE_SUB_TAB_INSPECT: 'tm_sub_tab_inspect',
   ACTIVE_SUB_TAB_SYNC:    'tm_sub_tab_sync',
@@ -201,6 +204,7 @@ const WORKSPACE_RECOVERY_RESET_KEYS = [
   STORAGE_KEYS.ACTIVE_TAB,
   STORAGE_KEYS.ACTIVE_TOP_TAB,
   STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
+  STORAGE_KEYS.ACTIVE_SUB_TAB_RECIPES,
   STORAGE_KEYS.ACTIVE_SUB_TAB_THEMES,
   STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
