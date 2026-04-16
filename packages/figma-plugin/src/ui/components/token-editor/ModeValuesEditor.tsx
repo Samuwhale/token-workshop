@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { apiFetch } from "../../shared/apiFetch";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { ModeValueEditor } from "./ModeValueEditor";
 import { summarizeModeCoverage } from "./modeCoverage";
-import { getCollectionModeDefinition } from "../../shared/collectionModeUtils";
+import { getTokenCollection } from "../../shared/collectionModeUtils";
 
 const RICH_EDITOR_TYPES = new Set([
   "color",
@@ -16,8 +16,8 @@ const RICH_EDITOR_TYPES = new Set([
 ]);
 
 export interface ModeValuesEditorProps {
-  setName: string;
-  dimensions: CollectionDefinition[];
+  collectionId: string;
+  collections: TokenCollection[];
   modeValues: Record<string, Record<string, unknown>>;
   onModeValuesChange: (modes: Record<string, Record<string, unknown>>) => void;
   tokenType: string;
@@ -25,40 +25,40 @@ export interface ModeValuesEditorProps {
   reference: string;
   value: unknown;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
-  onNavigateToThemes?: () => void;
-  activeThemes?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
+  onNavigateToCollections?: () => void;
+  selectedModes?: Record<string, string>;
   serverUrl?: string;
-  onDimensionCreated?: () => void;
+  onCollectionModeCreated?: () => void;
 }
 
 function updateCollectionMode(
   modeValues: Record<string, Record<string, unknown>>,
-  setName: string,
-  optionName: string,
+  collectionId: string,
+  modeName: string,
   value: unknown,
 ): Record<string, Record<string, unknown>> {
   return {
     ...modeValues,
-    [setName]: {
-      ...(modeValues[setName] ?? {}),
-      [optionName]: value,
+    [collectionId]: {
+      ...(modeValues[collectionId] ?? {}),
+      [modeName]: value,
     },
   };
 }
 
 function clearCollectionMode(
   modeValues: Record<string, Record<string, unknown>>,
-  setName: string,
-  optionName: string,
+  collectionId: string,
+  modeName: string,
 ): Record<string, Record<string, unknown>> {
-  const currentCollection = { ...(modeValues[setName] ?? {}) };
-  delete currentCollection[optionName];
+  const currentCollection = { ...(modeValues[collectionId] ?? {}) };
+  delete currentCollection[modeName];
   const next = { ...modeValues };
   if (Object.keys(currentCollection).length === 0) {
-    delete next[setName];
+    delete next[collectionId];
   } else {
-    next[setName] = currentCollection;
+    next[collectionId] = currentCollection;
   }
   return next;
 }
@@ -68,8 +68,8 @@ function isAliasValue(value: unknown): boolean {
 }
 
 export function ModeValuesEditor({
-  setName,
-  dimensions,
+  collectionId,
+  collections,
   modeValues,
   onModeValuesChange,
   tokenType,
@@ -77,11 +77,11 @@ export function ModeValuesEditor({
   reference,
   value,
   allTokensFlat = {},
-  pathToSet = {},
-  onNavigateToThemes,
-  activeThemes = {},
+  pathToCollectionId = {},
+  onNavigateToCollections,
+  selectedModes = {},
   serverUrl,
-  onDimensionCreated,
+  onCollectionModeCreated,
 }: ModeValuesEditorProps) {
   const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(
     null,
@@ -93,12 +93,12 @@ export function ModeValuesEditor({
   const [inlineSaving, setInlineSaving] = useState(false);
 
   const collectionDefinition = useMemo(
-    () => getCollectionModeDefinition(dimensions, setName),
-    [dimensions, setName],
+    () => getTokenCollection(collections, collectionId),
+    [collections, collectionId],
   );
   const collectionDimensions = collectionDefinition ? [collectionDefinition] : [];
   const coverage = summarizeModeCoverage(collectionDimensions, modeValues);
-  const collectionCoverage = coverage.dimensions[0] ?? null;
+  const collectionCoverage = coverage.collections[0] ?? null;
   const hasTokens = Object.keys(allTokensFlat).length > 0;
   const useRichEditor = RICH_EDITOR_TYPES.has(tokenType);
 
@@ -118,7 +118,7 @@ export function ModeValuesEditor({
     try {
       for (const modeName of modeNames) {
         await apiFetch(
-          `${serverUrl}/api/collections/${encodeURIComponent(setName)}/modes`,
+          `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -128,7 +128,7 @@ export function ModeValuesEditor({
       }
       setInlineCreating(false);
       setInlineModes("");
-      onDimensionCreated?.();
+      onCollectionModeCreated?.();
     } catch (error) {
       setInlineError(
         error instanceof Error ? error.message : "Failed to save collection modes",
@@ -136,9 +136,9 @@ export function ModeValuesEditor({
     } finally {
       setInlineSaving(false);
     }
-  }, [inlineModes, onDimensionCreated, serverUrl, setName]);
+  }, [collectionId, inlineModes, onCollectionModeCreated, serverUrl]);
 
-  if (!collectionDefinition || collectionDefinition.options.length === 0) {
+  if (!collectionDefinition || collectionDefinition.modes.length === 0) {
     if (inlineCreating && serverUrl) {
       return (
         <div className="flex flex-col gap-2 rounded-md border border-dashed border-[var(--color-figma-border)] px-2.5 py-2">
@@ -211,10 +211,10 @@ export function ModeValuesEditor({
               Add modes
             </button>
           ) : null}
-          {onNavigateToThemes ? (
+          {onNavigateToCollections ? (
             <button
               type="button"
-              onClick={onNavigateToThemes}
+              onClick={onNavigateToCollections}
               className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:underline"
             >
               Open collections
@@ -257,11 +257,11 @@ export function ModeValuesEditor({
       ) : null}
 
       <div className="divide-y divide-[var(--color-figma-border)]/50 overflow-hidden rounded-md border border-[var(--color-figma-border)]/65">
-        {collectionDefinition.options.map((option) => {
-          const modeValue = modeValues[setName]?.[option.name] ?? "";
+        {collectionDefinition.modes.map((option) => {
+          const modeValue = modeValues[collectionId]?.[option.name] ?? "";
           const modeValueString =
             typeof modeValue === "string" ? modeValue : "";
-          const autocompleteKey = `${setName}:${option.name}`;
+          const autocompleteKey = `${collectionId}:${option.name}`;
           const showingAutocomplete = autocompleteModeKey === autocompleteKey;
           const baseValueString = aliasMode
             ? reference
@@ -275,7 +275,7 @@ export function ModeValuesEditor({
             !isAlias &&
             !forceAliasInput &&
             !showingAutocomplete;
-          const isCurrentPreview = activeThemes[setName] === option.name;
+          const isCurrentPreview = selectedModes[collectionId] === option.name;
 
           return (
             <div
@@ -302,14 +302,14 @@ export function ModeValuesEditor({
                         onModeValuesChange(
                           updateCollectionMode(
                             modeValues,
-                            setName,
+                            collectionId,
                             option.name,
                             nextValue,
                           ),
                         )
                       }
                       allTokensFlat={allTokensFlat}
-                      pathToSet={pathToSet}
+                      pathToSet={pathToCollectionId}
                     />
                   </div>
                 ) : (
@@ -322,7 +322,7 @@ export function ModeValuesEditor({
                         onModeValuesChange(
                           updateCollectionMode(
                             modeValues,
-                            setName,
+                            collectionId,
                             option.name,
                             nextValue,
                           ),
@@ -379,13 +379,13 @@ export function ModeValuesEditor({
                             : ""
                         }
                         allTokensFlat={allTokensFlat}
-                        pathToSet={pathToSet}
+                        pathToSet={pathToCollectionId}
                         filterType={tokenType}
                         onSelect={(path) => {
                           onModeValuesChange(
                             updateCollectionMode(
                               modeValues,
-                              setName,
+                              collectionId,
                               option.name,
                               `{${path}}`,
                             ),
@@ -441,7 +441,7 @@ export function ModeValuesEditor({
                       type="button"
                       onClick={() =>
                         onModeValuesChange(
-                          clearCollectionMode(modeValues, setName, option.name),
+                          clearCollectionMode(modeValues, collectionId, option.name),
                         )
                       }
                       title={`Clear ${option.name} override`}

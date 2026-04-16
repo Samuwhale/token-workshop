@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import { createRecipeOwnershipKey, type CollectionDefinition } from "@tokenmanager/core";
+import { createRecipeOwnershipKey, type TokenCollection } from "@tokenmanager/core";
 import type { TokenRecipe } from "../hooks/useRecipes";
 import type { LintViolation } from "../hooks/useLint";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
@@ -20,11 +20,9 @@ import { TokenStateSummary } from "./token-editor/TokenStateSummary";
 interface TokenDetailPreviewProps {
   tokenPath: string;
   tokenName?: string;
-  setName: string;
+  storageSetName: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
-  dimensions?: CollectionDefinition[];
-  activeThemes?: Record<string, string>;
   tokenUsageCounts?: Record<string, number>;
   recipes?: TokenRecipe[];
   recipesBySource?: Map<string, TokenRecipe[]>;
@@ -42,11 +40,9 @@ interface TokenDetailPreviewProps {
 export function TokenDetailPreview({
   tokenPath,
   tokenName,
-  setName,
+  storageSetName,
   allTokensFlat,
   pathToSet,
-  dimensions: _dimensions,
-  activeThemes: _activeThemes,
   tokenUsageCounts,
   recipes,
   recipesBySource,
@@ -115,9 +111,12 @@ export function TokenDetailPreview({
     );
   }, [recipesBySource, recipes, tokenPath]);
   const derivedRecipe = derivedTokenPaths?.get(
-    createRecipeOwnershipKey(pathToSet?.[tokenPath] ?? setName, tokenPath),
+    createRecipeOwnershipKey(
+      pathToSet?.[tokenPath] ?? storageSetName,
+      tokenPath,
+    ),
   );
-  const tokenSetName = pathToSet?.[tokenPath] ?? setName;
+  const tokenSetName = pathToSet?.[tokenPath] ?? storageSetName;
   const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
   const presentation = readTokenPresentationMetadata(entry);
   const syncChanged = useMemo(() => {
@@ -434,7 +433,7 @@ export function TokenDetailPreview({
                           node.path.split(".").pop() ?? node.path,
                         )}
                       </span>
-                      {node.setName && node.setName !== setName && (
+                      {node.setName && node.setName !== storageSetName && (
                         <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-px text-[8px] text-[var(--color-figma-text-secondary)]">
                           {node.setName}
                         </span>

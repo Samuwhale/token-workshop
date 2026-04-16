@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useCallback, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
-import type { CollectionDefinition } from '@tokenmanager/core';
+import type { TokenCollection } from '@tokenmanager/core';
 import type { TokenRecipe } from '../hooks/useRecipes';
 import type { LintViolation } from '../hooks/useLint';
 import { TokenDetailPreview } from './TokenDetailPreview';
@@ -10,9 +10,9 @@ import { lsGet, lsSet } from '../shared/storage';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
-  dimensions?: CollectionDefinition[];
-  activeThemes?: Record<string, string>;
-  onActiveThemesChange?: (themes: Record<string, string>) => void;
+  collections?: TokenCollection[];
+  selectedModes?: Record<string, string>;
+  onSelectedModesChange?: (selectedModes: Record<string, string>) => void;
   onGoToTokens?: () => void;
   onNavigateToToken?: (path: string) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
@@ -227,7 +227,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}, onActiveThemesChange, onGoToTokens, onNavigateToToken, onNavigateToRecipe, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = {}, onSelectedModesChange, onGoToTokens, onNavigateToToken, onNavigateToRecipe, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = lsGet(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -422,11 +422,9 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
         <TokenDetailPreview
           tokenPath={focusedToken.path}
           tokenName={focusedToken.name}
-          setName={focusedToken.set}
+          storageSetName={focusedToken.set}
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
-          dimensions={dimensions}
-          activeThemes={activeThemes}
           tokenUsageCounts={tokenUsageCounts}
           recipes={recipes}
           recipesBySource={recipesBySource}
@@ -481,19 +479,19 @@ export function PreviewPanel({ allTokensFlat, dimensions = [], activeThemes = {}
             {darkMode ? 'Light' : 'Dark'}
           </button>
         </div>
-        {dimensions.length > 0 && (
+        {collections.length > 0 && (
           <div className="flex items-center gap-1.5 px-2 pb-1.5 flex-wrap">
-            {dimensions.map(dim => {
-              const activeOption = activeThemes[dim.id] ?? dim.options[0]?.name ?? '';
+            {collections.map(collection => {
+              const activeOption = selectedModes[collection.id] ?? collection.modes[0]?.name ?? '';
               return (
-                <label key={dim.id} className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  <span className="shrink-0">{dim.name}</span>
+                <label key={collection.id} className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <span className="shrink-0">{collection.name}</span>
                   <select
                     value={activeOption}
-                    onChange={e => onActiveThemesChange?.({ ...activeThemes, [dim.id]: e.target.value })}
+                    onChange={e => onSelectedModesChange?.({ ...selectedModes, [collection.id]: e.target.value })}
                     className="text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] cursor-pointer"
                   >
-                    {dim.options.map(opt => (
+                    {collection.modes.map(opt => (
                       <option key={opt.name} value={opt.name}>{opt.name}</option>
                     ))}
                   </select>

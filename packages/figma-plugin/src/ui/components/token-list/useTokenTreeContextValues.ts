@@ -7,7 +7,7 @@ import type {
   TokenMapEntry,
   SelectionNodeInfo,
 } from "../../../shared/types";
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import type { MultiModeValue } from "../tokenListTypes";
 import type {
   TokenTreeGroupActionsContextType,
@@ -44,7 +44,10 @@ interface GroupStateDeps {
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
   recipesByTargetGroup?: Map<string, TokenRecipe>;
-  themeCoverage?: Map<string, { themed: number; total: number; totalMissing: number }>;
+  collectionCoverage?: Map<
+    string,
+    { configured: number; total: number; totalMissing: number }
+  >;
   condensedView?: boolean;
   effectiveRovingPath: string | null;
 }
@@ -63,7 +66,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       dragOverGroupIsInvalid: deps.dragOverGroupIsInvalid,
       dragSource: deps.dragSource,
       recipesByTargetGroup: deps.recipesByTargetGroup,
-      themeCoverage: deps.themeCoverage,
+      collectionCoverage: deps.collectionCoverage,
       condensedView: deps.condensedView,
       rovingFocusPath: deps.effectiveRovingPath,
     }),
@@ -71,7 +74,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       deps.density, deps.setName, deps.selectMode, deps.expandedPaths,
       deps.highlightedToken, deps.searchHighlight, deps.dragOverGroup,
       deps.dragOverGroupIsInvalid, deps.dragSource, deps.recipesByTargetGroup,
-      deps.themeCoverage, deps.condensedView, deps.effectiveRovingPath,
+      deps.collectionCoverage, deps.condensedView, deps.effectiveRovingPath,
     ],
   );
 }
@@ -153,8 +156,8 @@ interface LeafStateDeps {
   showResolvedValues: boolean;
   condensedView?: boolean;
   starredPaths?: Set<string>;
-  dimensions?: CollectionDefinition[];
-  activeThemes?: Record<string, string>;
+  collections?: TokenCollection[];
+  selectedModes?: Record<string, string>;
   pendingRenameToken: string | null;
   pendingTabEdit: { path: string; columnId: string | null } | null;
   effectiveRovingPath: string | null;
@@ -187,8 +190,8 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       showResolvedValues: deps.showResolvedValues,
       condensedView: deps.condensedView,
       starredPaths: deps.starredPaths,
-      dimensions: deps.dimensions,
-      activeThemes: deps.activeThemes,
+      collections: deps.collections,
+      selectedModes: deps.selectedModes,
       pendingRenameToken: deps.pendingRenameToken,
       pendingTabEdit: deps.pendingTabEdit,
       rovingFocusPath: deps.effectiveRovingPath,
@@ -220,8 +223,8 @@ interface LeafActionsDeps {
   handleInlineSave: (path: string, type: string, newValue: any, previousState?: { type?: string; value: unknown }) => void;
   handleRenameToken: (oldPath: string, newPath: string) => void;
   onViewTokenHistory?: (path: string) => void;
-  dimensionsLength: number;
-  handleCompareAcrossThemes: (path: string) => void;
+  collectionsLength: number;
+  handleCompareAcrossCollections: (path: string) => void;
   handleDragStartNotify: (paths: string[], names: string[]) => void;
   handleDragEndNotify: () => void;
   handleDragOverToken: (path: string, name: string, position: "before" | "after") => void;
@@ -257,8 +260,10 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onInlineSave: deps.handleInlineSave,
       onRenameToken: deps.handleRenameToken,
       onViewTokenHistory: deps.onViewTokenHistory,
-      onCompareAcrossThemes:
-        deps.dimensionsLength > 0 ? deps.handleCompareAcrossThemes : undefined,
+      onCompareAcrossCollections:
+        deps.collectionsLength > 0
+          ? deps.handleCompareAcrossCollections
+          : undefined,
       onDragStart: deps.handleDragStartNotify,
       onDragEnd: deps.handleDragEndNotify,
       onDragOverToken: deps.handleDragOverToken,

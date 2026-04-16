@@ -73,7 +73,7 @@ export const TokenGroupNode = memo(
       dragOverGroupIsInvalid,
       dragSource,
       recipesByTargetGroup,
-      themeCoverage,
+      collectionCoverage,
       condensedView = false,
       rovingFocusPath: groupRovingFocusPath,
     } = useTokenTreeGroupState();
@@ -198,7 +198,7 @@ export const TokenGroupNode = memo(
       if (!targetRecipe) return 0;
       return getManagedRecipeLeafCount(node, targetRecipe);
     }, [node, targetRecipe]);
-    const themeCoverageSummary = themeCoverage?.get(node.path) ?? null;
+    const collectionCoverageSummary = collectionCoverage?.get(node.path) ?? null;
     const groupPresentation = readTokenPresentationMetadata(node);
     const groupScopeSummary =
       node.$type && groupPresentation.scopes.length > 0
@@ -476,19 +476,19 @@ export const TokenGroupNode = memo(
           )}
           {!renamingGroup &&
             isGroupActive &&
-            themeCoverageSummary &&
-            themeCoverageSummary.total > 0 && (
+            collectionCoverageSummary &&
+            collectionCoverageSummary.total > 0 && (
               <span
-                className={`shrink-0 text-[9px] ${themeCoverageSummary.totalMissing > 0 ? "text-[var(--color-figma-warning)]" : themeCoverageSummary.themed === themeCoverageSummary.total ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-text-tertiary)]"}`}
+                className={`shrink-0 text-[9px] ${collectionCoverageSummary.totalMissing > 0 ? "text-[var(--color-figma-warning)]" : collectionCoverageSummary.configured === collectionCoverageSummary.total ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-text-tertiary)]"}`}
                 title={
-                  themeCoverageSummary.totalMissing > 0
-                    ? `${themeCoverageSummary.totalMissing} mode value${themeCoverageSummary.totalMissing === 1 ? "" : "s"} missing across ${themeCoverageSummary.total} tokens`
-                    : `${themeCoverageSummary.themed} of ${themeCoverageSummary.total} tokens have themed overrides`
+                  collectionCoverageSummary.totalMissing > 0
+                    ? `${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} missing across ${collectionCoverageSummary.total} tokens`
+                    : `${collectionCoverageSummary.configured} of ${collectionCoverageSummary.total} tokens have collection mode overrides`
                 }
               >
-                {themeCoverageSummary.totalMissing > 0
-                  ? `${themeCoverageSummary.totalMissing} missing`
-                  : `${themeCoverageSummary.themed}/${themeCoverageSummary.total}`}
+                {collectionCoverageSummary.totalMissing > 0
+                  ? `${collectionCoverageSummary.totalMissing} missing`
+                  : `${collectionCoverageSummary.configured}/${collectionCoverageSummary.total}`}
               </span>
             )}
         {!renamingGroup && isGroupActive && targetRecipe && (

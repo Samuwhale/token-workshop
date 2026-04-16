@@ -26,7 +26,7 @@ interface MutationCommandServices {
 interface LoggedMutationConfig<TResult> {
   type: string;
   description: string | ((result: TResult) => string);
-  setName: string;
+  collectionId: string;
   captureBefore: () => Promise<SnapshotMap>;
   mutate: () => Promise<TResult>;
   captureAfter: (result: TResult) => Promise<SnapshotMap>;
@@ -50,23 +50,23 @@ function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
 
 async function captureQualifiedPathsSnapshot(
   tokenStore: TokenStore,
-  setName: string,
+  collectionId: string,
   paths: string[],
 ): Promise<SnapshotMap> {
   return qualifySnapshotEntries(
-    setName,
-    await snapshotPaths(tokenStore, setName, paths),
+    collectionId,
+    await snapshotPaths(tokenStore, collectionId, paths),
   );
 }
 
 async function captureQualifiedGroupSnapshot(
   tokenStore: TokenStore,
-  setName: string,
+  collectionId: string,
   groupPath: string,
 ): Promise<SnapshotMap> {
   return qualifySnapshotEntries(
-    setName,
-    await snapshotGroup(tokenStore, setName, groupPath),
+    collectionId,
+    await snapshotGroup(tokenStore, collectionId, groupPath),
   );
 }
 
@@ -84,7 +84,7 @@ async function executeLoggedMutation<TResult>(
       typeof config.description === "function"
         ? config.description(result)
         : config.description,
-    setName: config.setName,
+    setName: config.collectionId,
     affectedPaths:
       config.affectedPaths?.(beforeSnapshot, afterSnapshot, result) ??
       listAffectedPaths(beforeSnapshot, afterSnapshot),
@@ -104,26 +104,28 @@ async function executeLoggedMutation<TResult>(
 export async function renameGroupCommand(
   services: MutationCommandServices,
   input: {
-    setName: string;
+    collectionId: string;
     oldGroupPath: string;
     newGroupPath: string;
     updateAliases: boolean;
   },
 ) {
-  const { setName, oldGroupPath, newGroupPath, updateAliases } = input;
+  const { collectionId, oldGroupPath, newGroupPath, updateAliases } = input;
   return executeLoggedMutation(services, {
     type: "group-rename",
-    description: `Rename group "${oldGroupPath}" → "${newGroupPath}" in ${setName}`,
-    setName,
-    captureBefore: () => snapshotGroup(services.tokenStore, setName, oldGroupPath),
+    description: `Rename group "${oldGroupPath}" → "${newGroupPath}" in ${collectionId}`,
+    collectionId,
+    captureBefore: () =>
+      snapshotGroup(services.tokenStore, collectionId, oldGroupPath),
     mutate: () =>
       services.tokenStore.renameGroup(
-        setName,
+        collectionId,
         oldGroupPath,
         newGroupPath,
         updateAliases,
       ),
-    captureAfter: () => snapshotGroup(services.tokenStore, setName, newGroupPath),
+    captureAfter: () =>
+      snapshotGroup(services.tokenStore, collectionId, newGroupPath),
     pathRenames: (result) => result.pathRenames,
     recipeUpdates: () => [
       { scope: "group", oldPath: oldGroupPath, newPath: newGroupPath },
@@ -133,62 +135,103 @@ export async function renameGroupCommand(
 
 export async function moveGroupCommand(
   services: MutationCommandServices,
-  input: { fromSet: string; groupPath: string; toSet: string },
+  input: {
+    sourceCollectionId: string;
+    groupPath: string;
+    targetCollectionId: string;
+  },
 ) {
-  const { fromSet, groupPath, toSet } = input;
+  const { sourceCollectionId, groupPath, targetCollectionId } = input;
   return executeLoggedMutation(services, {
     type: "group-move",
-    description: `Move group "${groupPath}" from ${fromSet} to ${toSet}`,
-    setName: fromSet,
+    description: `Move group "${groupPath}" from ${sourceCollectionId} to ${targetCollectionId}`,
+    collectionId: sourceCollectionId,
     captureBefore: async () =>
       mergeSnapshots(
-        await snapshotGroup(services.tokenStore, fromSet, groupPath),
-        await captureQualifiedGroupSnapshot(services.tokenStore, toSet, groupPath),
+        await snapshotGroup(services.tokenStore, sourceCollectionId, groupPath),
+        await captureQualifiedGroupSnapshot(
+          services.tokenStore,
+          targetCollectionId,
+          groupPath,
+        ),
       ),
-    mutate: () => services.tokenStore.moveGroup(fromSet, groupPath, toSet),
+    mutate: () =>
+      services.tokenStore.moveGroup(
+        sourceCollectionId,
+        groupPath,
+        targetCollectionId,
+      ),
     captureAfter: async () =>
       mergeSnapshots(
-        await snapshotGroup(services.tokenStore, fromSet, groupPath),
-        await captureQualifiedGroupSnapshot(services.tokenStore, toSet, groupPath),
+        await snapshotGroup(services.tokenStore, sourceCollectionId, groupPath),
+        await captureQualifiedGroupSnapshot(
+          services.tokenStore,
+          targetCollectionId,
+          groupPath,
+        ),
       ),
   });
 }
 
 export async function copyGroupCommand(
   services: MutationCommandServices,
-  input: { fromSet: string; groupPath: string; toSet: string },
+  input: {
+    sourceCollectionId: string;
+    groupPath: string;
+    targetCollectionId: string;
+  },
 ) {
-  const { fromSet, groupPath, toSet } = input;
+  const { sourceCollectionId, groupPath, targetCollectionId } = input;
   return executeLoggedMutation(services, {
     type: "group-copy",
-    description: `Copy group "${groupPath}" from ${fromSet} to ${toSet}`,
-    setName: fromSet,
+    description: `Copy group "${groupPath}" from ${sourceCollectionId} to ${targetCollectionId}`,
+    collectionId: sourceCollectionId,
     captureBefore: () =>
-      captureQualifiedGroupSnapshot(services.tokenStore, toSet, groupPath),
-    mutate: () => services.tokenStore.copyGroup(fromSet, groupPath, toSet),
+      captureQualifiedGroupSnapshot(
+        services.tokenStore,
+        targetCollectionId,
+        groupPath,
+      ),
+    mutate: () =>
+      services.tokenStore.copyGroup(
+        sourceCollectionId,
+        groupPath,
+        targetCollectionId,
+      ),
     captureAfter: () =>
-      captureQualifiedGroupSnapshot(services.tokenStore, toSet, groupPath),
+      captureQualifiedGroupSnapshot(
+        services.tokenStore,
+        targetCollectionId,
+        groupPath,
+      ),
   });
 }
 
 export async function renameTokenCommand(
   services: MutationCommandServices,
   input: {
-    setName: string;
+    collectionId: string;
     oldPath: string;
     newPath: string;
     updateAliases: boolean;
   },
 ) {
-  const { setName, oldPath, newPath, updateAliases } = input;
+  const { collectionId, oldPath, newPath, updateAliases } = input;
   return executeLoggedMutation(services, {
     type: "token-rename",
-    description: `Rename token "${oldPath}" → "${newPath}" in ${setName}`,
-    setName,
-    captureBefore: () => snapshotPaths(services.tokenStore, setName, [oldPath]),
+    description: `Rename token "${oldPath}" → "${newPath}" in ${collectionId}`,
+    collectionId,
+    captureBefore: () =>
+      snapshotPaths(services.tokenStore, collectionId, [oldPath]),
     mutate: () =>
-      services.tokenStore.renameToken(setName, oldPath, newPath, updateAliases),
-    captureAfter: () => snapshotPaths(services.tokenStore, setName, [newPath]),
+      services.tokenStore.renameToken(
+        collectionId,
+        oldPath,
+        newPath,
+        updateAliases,
+      ),
+    captureAfter: () =>
+      snapshotPaths(services.tokenStore, collectionId, [newPath]),
     pathRenames: (result) => result.pathRenames,
     recipeUpdates: (result) =>
       result.pathRenames.map(({ oldPath: sourcePath, newPath: targetPath }) => ({
@@ -201,64 +244,104 @@ export async function renameTokenCommand(
 
 export async function moveTokenCommand(
   services: MutationCommandServices,
-  input: { fromSet: string; tokenPath: string; toSet: string },
+  input: {
+    sourceCollectionId: string;
+    tokenPath: string;
+    targetCollectionId: string;
+  },
 ) {
-  const { fromSet, tokenPath, toSet } = input;
+  const { sourceCollectionId, tokenPath, targetCollectionId } = input;
   return executeLoggedMutation(services, {
     type: "token-move",
-    description: `Move token "${tokenPath}" from ${fromSet} to ${toSet}`,
-    setName: fromSet,
+    description: `Move token "${tokenPath}" from ${sourceCollectionId} to ${targetCollectionId}`,
+    collectionId: sourceCollectionId,
     captureBefore: async () =>
       mergeSnapshots(
-        await snapshotPaths(services.tokenStore, fromSet, [tokenPath]),
-        await captureQualifiedPathsSnapshot(services.tokenStore, toSet, [tokenPath]),
+        await snapshotPaths(services.tokenStore, sourceCollectionId, [tokenPath]),
+        await captureQualifiedPathsSnapshot(
+          services.tokenStore,
+          targetCollectionId,
+          [tokenPath],
+        ),
       ),
-    mutate: () => services.tokenStore.moveToken(fromSet, tokenPath, toSet),
+    mutate: () =>
+      services.tokenStore.moveToken(
+        sourceCollectionId,
+        tokenPath,
+        targetCollectionId,
+      ),
     captureAfter: async () =>
       mergeSnapshots(
-        await snapshotPaths(services.tokenStore, fromSet, [tokenPath]),
-        await captureQualifiedPathsSnapshot(services.tokenStore, toSet, [tokenPath]),
+        await snapshotPaths(services.tokenStore, sourceCollectionId, [tokenPath]),
+        await captureQualifiedPathsSnapshot(
+          services.tokenStore,
+          targetCollectionId,
+          [tokenPath],
+        ),
       ),
   });
 }
 
 export async function copyTokenCommand(
   services: MutationCommandServices,
-  input: { fromSet: string; tokenPath: string; toSet: string },
+  input: {
+    sourceCollectionId: string;
+    tokenPath: string;
+    targetCollectionId: string;
+  },
 ) {
-  const { fromSet, tokenPath, toSet } = input;
+  const { sourceCollectionId, tokenPath, targetCollectionId } = input;
   return executeLoggedMutation(services, {
     type: "token-copy",
-    description: `Copy token "${tokenPath}" from ${fromSet} to ${toSet}`,
-    setName: toSet,
+    description: `Copy token "${tokenPath}" from ${sourceCollectionId} to ${targetCollectionId}`,
+    collectionId: targetCollectionId,
     captureBefore: () =>
-      captureQualifiedPathsSnapshot(services.tokenStore, toSet, [tokenPath]),
-    mutate: () => services.tokenStore.copyToken(fromSet, tokenPath, toSet),
+      captureQualifiedPathsSnapshot(
+        services.tokenStore,
+        targetCollectionId,
+        [tokenPath],
+      ),
+    mutate: () =>
+      services.tokenStore.copyToken(
+        sourceCollectionId,
+        tokenPath,
+        targetCollectionId,
+      ),
     captureAfter: () =>
-      captureQualifiedPathsSnapshot(services.tokenStore, toSet, [tokenPath]),
+      captureQualifiedPathsSnapshot(
+        services.tokenStore,
+        targetCollectionId,
+        [tokenPath],
+      ),
   });
 }
 
 export async function batchRenameTokensCommand(
   services: MutationCommandServices,
   input: {
-    setName: string;
+    collectionId: string;
     renames: Array<{ oldPath: string; newPath: string }>;
     updateAliases: boolean;
   },
 ) {
-  const { setName, renames, updateAliases } = input;
+  const { collectionId, renames, updateAliases } = input;
   const oldPaths = renames.map(({ oldPath }) => oldPath);
   const newPaths = renames.map(({ newPath }) => newPath);
 
   return executeLoggedMutation(services, {
     type: "batch-rename",
-    description: `Batch rename ${renames.length} token${renames.length === 1 ? "" : "s"} in ${setName}`,
-    setName,
-    captureBefore: () => snapshotPaths(services.tokenStore, setName, oldPaths),
+    description: `Batch rename ${renames.length} token${renames.length === 1 ? "" : "s"} in ${collectionId}`,
+    collectionId,
+    captureBefore: () =>
+      snapshotPaths(services.tokenStore, collectionId, oldPaths),
     mutate: () =>
-      services.tokenStore.batchRenameTokens(setName, renames, updateAliases),
-    captureAfter: () => snapshotPaths(services.tokenStore, setName, newPaths),
+      services.tokenStore.batchRenameTokens(
+        collectionId,
+        renames,
+        updateAliases,
+      ),
+    captureAfter: () =>
+      snapshotPaths(services.tokenStore, collectionId, newPaths),
     pathRenames: (result) => result.pathRenames,
     recipeUpdates: (result) =>
       result.pathRenames.map(({ oldPath, newPath }) => ({
@@ -271,42 +354,76 @@ export async function batchRenameTokensCommand(
 
 export async function batchMoveTokensCommand(
   services: MutationCommandServices,
-  input: { fromSet: string; paths: string[]; toSet: string },
+  input: {
+    sourceCollectionId: string;
+    paths: string[];
+    targetCollectionId: string;
+  },
 ) {
-  const { fromSet, paths, toSet } = input;
+  const { sourceCollectionId, paths, targetCollectionId } = input;
   return executeLoggedMutation(services, {
     type: "batch-move",
     description: (result) =>
-      `Move ${result.moved} token${result.moved === 1 ? "" : "s"} from ${fromSet} to ${toSet}`,
-    setName: fromSet,
+      `Move ${result.moved} token${result.moved === 1 ? "" : "s"} from ${sourceCollectionId} to ${targetCollectionId}`,
+    collectionId: sourceCollectionId,
     captureBefore: async () =>
       mergeSnapshots(
-        await snapshotPaths(services.tokenStore, fromSet, paths),
-        await captureQualifiedPathsSnapshot(services.tokenStore, toSet, paths),
+        await snapshotPaths(services.tokenStore, sourceCollectionId, paths),
+        await captureQualifiedPathsSnapshot(
+          services.tokenStore,
+          targetCollectionId,
+          paths,
+        ),
       ),
-    mutate: () => services.tokenStore.batchMoveTokens(fromSet, paths, toSet),
+    mutate: () =>
+      services.tokenStore.batchMoveTokens(
+        sourceCollectionId,
+        paths,
+        targetCollectionId,
+      ),
     captureAfter: async () =>
       mergeSnapshots(
-        await snapshotPaths(services.tokenStore, fromSet, paths),
-        await captureQualifiedPathsSnapshot(services.tokenStore, toSet, paths),
+        await snapshotPaths(services.tokenStore, sourceCollectionId, paths),
+        await captureQualifiedPathsSnapshot(
+          services.tokenStore,
+          targetCollectionId,
+          paths,
+        ),
       ),
   });
 }
 
 export async function batchCopyTokensCommand(
   services: MutationCommandServices,
-  input: { fromSet: string; paths: string[]; toSet: string },
+  input: {
+    sourceCollectionId: string;
+    paths: string[];
+    targetCollectionId: string;
+  },
 ) {
-  const { fromSet, paths, toSet } = input;
+  const { sourceCollectionId, paths, targetCollectionId } = input;
   return executeLoggedMutation(services, {
     type: "batch-copy",
     description: (result) =>
-      `Copy ${result.copied} token${result.copied === 1 ? "" : "s"} from ${fromSet} to ${toSet}`,
-    setName: toSet,
+      `Copy ${result.copied} token${result.copied === 1 ? "" : "s"} from ${sourceCollectionId} to ${targetCollectionId}`,
+    collectionId: targetCollectionId,
     captureBefore: () =>
-      captureQualifiedPathsSnapshot(services.tokenStore, toSet, paths),
-    mutate: () => services.tokenStore.batchCopyTokens(fromSet, paths, toSet),
+      captureQualifiedPathsSnapshot(
+        services.tokenStore,
+        targetCollectionId,
+        paths,
+      ),
+    mutate: () =>
+      services.tokenStore.batchCopyTokens(
+        sourceCollectionId,
+        paths,
+        targetCollectionId,
+      ),
     captureAfter: () =>
-      captureQualifiedPathsSnapshot(services.tokenStore, toSet, paths),
+      captureQualifiedPathsSnapshot(
+        services.tokenStore,
+        targetCollectionId,
+        paths,
+      ),
   });
 }

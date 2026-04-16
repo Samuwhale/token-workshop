@@ -20,7 +20,7 @@ export interface ViewMenuProps {
   onToggleMultiMode: () => void;
   modeLensEnabled: boolean;
   onToggleModeLens: () => void;
-  hasDimensions: boolean;
+  hasCollections: boolean;
   showPreviewSplit: boolean;
   onTogglePreviewSplit?: () => void;
   canToggleSearchResultPresentation: boolean;
@@ -257,14 +257,14 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
               checked={props.currentLibraryViewMode === "library"}
               onClick={() => runAndClose(() => props.onActivateViewMode("library"))}
             />
-            {props.hasDimensions && (
+            {props.hasCollections && (
               <MenuItem
                 label="Mode Columns"
                 checked={props.currentLibraryViewMode === "mode-options"}
                 onClick={() => runAndClose(() => props.onActivateViewMode("mode-options"))}
               />
             )}
-            {props.hasDimensions && (
+            {props.hasCollections && (
               <MenuItem
                 label="Current Preview"
                 checked={props.currentLibraryViewMode === "active-mode"}
@@ -335,14 +335,14 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
                 )
               }
             />
-            {props.hasDimensions && (
+            {props.hasCollections && (
               <MenuItem
                 label="Mode columns"
                 checked={props.multiModeEnabled}
                 onClick={() => runAndClose(props.onToggleMultiMode)}
               />
             )}
-            {props.hasDimensions && (
+            {props.hasCollections && (
               <MenuItem
                 label="Preview values"
                 checked={props.modeLensEnabled}

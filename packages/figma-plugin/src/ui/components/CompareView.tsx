@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import type { TokenMapEntry } from '../../shared/types';
-import type { CollectionDefinition, TokenValue } from '@tokenmanager/core';
+import type { TokenCollection, TokenValue } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
@@ -57,22 +57,25 @@ function fmtProp(value: unknown, key: string): string {
   return String(v);
 }
 
-/** Flat list of all options across dimensions, used by ThemeOptionsMode. */
+/** Flat list of all options across collections, used by ModePairsMode. */
 type FlatOption = {
   label: string;
   key: string;
-  dimensionId: string;
+  collectionId: string;
   optionName: string;
 };
 
-function buildFlatOptions(dimensions: CollectionDefinition[]): FlatOption[] {
+function buildFlatOptions(collections: TokenCollection[]): FlatOption[] {
   const result: FlatOption[] = [];
-  for (const dim of dimensions) {
-    for (const opt of dim.options) {
+  for (const collection of collections) {
+    for (const opt of collection.modes) {
       result.push({
-        label: dimensions.length > 1 ? `${dim.name} / ${opt.name}` : opt.name,
-        key: `${dim.id}:${opt.name}`,
-        dimensionId: dim.id,
+        label:
+          collections.length > 1
+            ? `${collection.name} / ${opt.name}`
+            : opt.name,
+        key: `${collection.id}:${opt.name}`,
+        collectionId: collection.id,
         optionName: opt.name,
       });
     }
@@ -413,11 +416,11 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
   );
 }
 
-// Mode 2 – Token × themes (one token, value for every theme option)
+// Mode 2 – Token × collection modes (one token, value for every mode option)
 
 interface OptionResult {
-  dimId: string;
-  dimName: string;
+  collectionId: string;
+  collectionName: string;
   optionName: string;
   entry: TokenMapEntry | undefined;
   resolvedValue: unknown;
@@ -426,32 +429,32 @@ interface OptionResult {
   missing: boolean;
 }
 
-interface CrossThemeModeProps {
+interface CrossCollectionModeProps {
   tokenPath: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  dimensions: CollectionDefinition[];
-  pathToSet: Record<string, string>;
+  collections: TokenCollection[];
+  pathToCollectionId: Record<string, string>;
   onClose: () => void;
 }
 
-function CrossThemeMode({
+function CrossCollectionMode({
   tokenPath,
   allTokensFlat,
-  dimensions,
-  pathToSet,
+  collections,
+  pathToCollectionId,
   onClose,
-}: CrossThemeModeProps) {
+}: CrossCollectionModeProps) {
   const [copied, triggerCopy] = useCopyFeedback();
 
   const results = useMemo((): OptionResult[] => {
     const out: OptionResult[] = [];
-    for (const dim of dimensions) {
-      for (const option of dim.options) {
+    for (const collection of collections) {
+      for (const option of collection.modes) {
         const resolved = resolveModeOption(
-          { dimensionId: dim.id, optionName: option.name },
-          dimensions,
+          { collectionId: collection.id, optionName: option.name },
+          collections,
           allTokensFlat,
-          pathToSet,
+          pathToCollectionId,
         );
         const entry = resolved[tokenPath];
         const rawEntry = allTokensFlat[tokenPath];
@@ -461,8 +464,8 @@ function CrossThemeMode({
           aliasRef = typeof rawEntry.$value === 'string' ? rawEntry.$value.replace(/^\{|\}$/g, '') : undefined;
         }
         out.push({
-          dimId: dim.id,
-          dimName: dim.name,
+          collectionId: collection.id,
+          collectionName: collection.name,
           optionName: option.name,
           entry,
           resolvedValue: entry?.$value,
@@ -473,33 +476,43 @@ function CrossThemeMode({
       }
     }
     return out;
-  }, [dimensions, allTokensFlat, pathToSet, tokenPath]);
+  }, [collections, allTokensFlat, pathToCollectionId, tokenPath]);
 
-  const dimStats = useMemo(() => {
+  const collectionStats = useMemo(() => {
     const map = new Map<string, { allSame: boolean; anyMissing: boolean }>();
-    for (const dim of dimensions) {
-      const dimResults = results.filter(r => r.dimId === dim.id);
-      const vals = dimResults.map(r => JSON.stringify(r.resolvedValue));
-      map.set(dim.id, {
+    for (const collection of collections) {
+      const collectionResults = results.filter(
+        (result) => result.collectionId === collection.id,
+      );
+      const vals = collectionResults.map((result) =>
+        JSON.stringify(result.resolvedValue),
+      );
+      map.set(collection.id, {
         allSame: new Set(vals).size <= 1,
-        anyMissing: dimResults.some(r => r.missing),
+        anyMissing: collectionResults.some((result) => result.missing),
       });
     }
     return map;
-  }, [dimensions, results]);
+  }, [collections, results]);
 
   const tokenType = allTokensFlat[tokenPath]?.$type ?? '';
   const tokenName = tokenPath.split('.').pop() ?? tokenPath;
 
   const handleCopyTsv = useCallback(async () => {
-    const rows: string[][] = [['Dimension', 'Option', 'Value']];
+    const rows: string[][] = [["Collection", "Mode", "Value"]];
     for (const r of results) {
-      rows.push([r.dimName, r.optionName, r.missing ? '(not set)' : formatTokenValueForDisplay(tokenType, r.resolvedValue)]);
+      rows.push([
+        r.collectionName,
+        r.optionName,
+        r.missing
+          ? "(not set)"
+          : formatTokenValueForDisplay(tokenType, r.resolvedValue),
+      ]);
     }
     await triggerCopy(rows.map(r => r.join('\t')).join('\n'));
   }, [results, tokenType, triggerCopy]);
 
-  if (dimensions.length === 0) {
+  if (collections.length === 0) {
     return (
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
         <div className="flex items-center justify-between mb-1">
@@ -543,14 +556,18 @@ function CrossThemeMode({
         </div>
       </div>
 
-      {/* Per-dimension sections */}
-      {dimensions.map(dim => {
-        const stats = dimStats.get(dim.id)!;
-        const dimResults = results.filter(r => r.dimId === dim.id);
+      {/* Per-collection sections */}
+      {collections.map((collection) => {
+        const stats = collectionStats.get(collection.id)!;
+        const collectionResults = results.filter(
+          (result) => result.collectionId === collection.id,
+        );
         return (
-          <div key={dim.id}>
+          <div key={collection.id}>
             <div className="flex items-center gap-2 px-3 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-              <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">{dim.name}</span>
+              <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
+                {collection.name}
+              </span>
               {stats.allSame && !stats.anyMissing && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">Identical</span>
               )}
@@ -561,7 +578,7 @@ function CrossThemeMode({
 
             <table className="w-full text-[10px] border-collapse">
               <tbody>
-                {dimResults.map(r => {
+                {collectionResults.map(r => {
                   const formatted = r.missing ? '(not set)' : formatTokenValueForDisplay(tokenType, r.resolvedValue);
                   const isColor = tokenType === 'color' && typeof r.resolvedValue === 'string';
                   return (
@@ -596,50 +613,59 @@ function CrossThemeMode({
   );
 }
 
-// Mode 3 – Theme options A vs B (diff list)
+// Mode 3 – Mode pairs A vs B (diff list)
 
-interface ThemeOptionsModeProps {
-  dimensions: CollectionDefinition[];
+interface ModePairsModeProps {
+  collections: TokenCollection[];
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
+  pathToStorageSet: Record<string, string>;
   onEditToken?: (set: string, path: string) => void;
   initialOptionKeyA?: string;
   initialOptionKeyB?: string;
 }
 
-function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, initialOptionKeyA, initialOptionKeyB }: ThemeOptionsModeProps) {
+function ModePairsMode({
+  collections,
+  allTokensFlat,
+  pathToCollectionId,
+  pathToStorageSet,
+  onEditToken,
+  initialOptionKeyA,
+  initialOptionKeyB,
+}: ModePairsModeProps) {
   const [optionKeyA, setOptionKeyA] = useState<string>(initialOptionKeyA ?? '');
   const [optionKeyB, setOptionKeyB] = useState<string>(initialOptionKeyB ?? '');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const flatOptions = useMemo(() => buildFlatOptions(dimensions), [dimensions]);
+  const flatOptions = useMemo(() => buildFlatOptions(collections), [collections]);
 
   const resolvedA = useMemo(() => {
     if (!optionKeyA) return null;
     const opt = flatOptions.find(o => o.key === optionKeyA) ?? null;
     return resolveModeOption(
       opt
-        ? { dimensionId: opt.dimensionId, optionName: opt.optionName }
+        ? { collectionId: opt.collectionId, optionName: opt.optionName }
         : null,
-      dimensions,
+      collections,
       allTokensFlat,
-      pathToSet,
+      pathToCollectionId,
     );
-  }, [optionKeyA, flatOptions, dimensions, allTokensFlat, pathToSet]);
+  }, [optionKeyA, flatOptions, collections, allTokensFlat, pathToCollectionId]);
 
   const resolvedB = useMemo(() => {
     if (!optionKeyB) return null;
     const opt = flatOptions.find(o => o.key === optionKeyB) ?? null;
     return resolveModeOption(
       opt
-        ? { dimensionId: opt.dimensionId, optionName: opt.optionName }
+        ? { collectionId: opt.collectionId, optionName: opt.optionName }
         : null,
-      dimensions,
+      collections,
       allTokensFlat,
-      pathToSet,
+      pathToCollectionId,
     );
-  }, [optionKeyB, flatOptions, dimensions, allTokensFlat, pathToSet]);
+  }, [optionKeyB, flatOptions, collections, allTokensFlat, pathToCollectionId]);
 
   const diffs = useMemo(() => {
     if (!resolvedA || !resolvedB) return [];
@@ -665,13 +691,13 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
           type: entA?.$type ?? entB?.$type ?? 'unknown',
           valueA: valA,
           valueB: valB,
-          setA: pathToSet[path] ?? null,
-          setB: pathToSet[path] ?? null,
+          setA: pathToStorageSet[path] ?? null,
+          setB: pathToStorageSet[path] ?? null,
         });
       }
     }
     return result.sort((a, b) => a.path.localeCompare(b.path));
-  }, [resolvedA, resolvedB, pathToSet]);
+  }, [resolvedA, resolvedB, pathToStorageSet]);
 
   const availableTypes = useMemo(() => {
     const types = new Set(diffs.map(d => d.type));
@@ -718,7 +744,7 @@ function ThemeOptionsMode({ dimensions, allTokensFlat, pathToSet, onEditToken, i
       d.type,
     ]);
     exportCsvFile(
-      `theme-compare-${labelA.replace(/\W+/g, '_')}-vs-${labelB.replace(/\W+/g, '_')}.csv`,
+      `mode-compare-${labelA.replace(/\W+/g, '_')}-vs-${labelB.replace(/\W+/g, '_')}.csv`,
       [header, ...rows],
     );
   }, [filteredDiffs, labelA, labelB]);
@@ -1365,8 +1391,9 @@ interface CompareViewProps {
   onClearTokenPath: () => void;
 
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
-  dimensions: CollectionDefinition[];
+  pathToCollectionId: Record<string, string>;
+  pathToStorageSet: Record<string, string>;
+  collections: TokenCollection[];
   sets: string[];
 
   modeOptionsKey: number;
@@ -1386,7 +1413,7 @@ const MODES: { id: CompareMode; label: string }[] = [
   { id: 'tokens', label: 'Token values' },
   { id: 'cross-collection', label: 'Token × modes' },
   { id: 'mode-options', label: 'Mode pairs' },
-  { id: 'set-diff', label: 'Collection diff' },
+  { id: 'set-diff', label: 'Set diff' },
 ];
 
 export function CompareView({
@@ -1397,8 +1424,9 @@ export function CompareView({
   tokenPath,
   onClearTokenPath,
   allTokensFlat,
-  pathToSet,
-  dimensions,
+  pathToCollectionId,
+  pathToStorageSet,
+  collections,
   sets,
   modeOptionsKey,
   modeOptionsDefaultA,
@@ -1454,9 +1482,9 @@ export function CompareView({
         )}
 
         {mode === 'cross-collection' && (
-          tokenPath === '' || dimensions.length === 0 ? (
+          tokenPath === '' || collections.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 px-3 text-center">
-              {dimensions.length === 0 ? (
+              {collections.length === 0 ? (
                 <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
                   No modes are configured. Set up modes first.
                 </p>
@@ -1473,22 +1501,23 @@ export function CompareView({
               </button>
             </div>
           ) : (
-            <CrossThemeMode
+            <CrossCollectionMode
               tokenPath={tokenPath}
               allTokensFlat={allTokensFlat}
-              dimensions={dimensions}
-              pathToSet={pathToSet}
+              collections={collections}
+              pathToCollectionId={pathToCollectionId}
               onClose={onClearTokenPath}
             />
           )
         )}
 
         {mode === 'mode-options' && (
-          <ThemeOptionsMode
+          <ModePairsMode
             key={modeOptionsKey}
-            dimensions={dimensions}
+            collections={collections}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
+            pathToStorageSet={pathToStorageSet}
             initialOptionKeyA={modeOptionsDefaultA}
             initialOptionKeyB={modeOptionsDefaultB}
             onEditToken={onEditToken}

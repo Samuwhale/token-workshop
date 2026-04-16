@@ -30,11 +30,11 @@ interface ZoomBreadcrumbSegment {
 
 interface MultiModeDataResult {
   optionName: string;
-  dimId: string;
+  collectionId: string;
 }
 
 interface MultiModeData {
-  dim: { id: string; options: { name: string }[]; name?: string };
+  collection: { id: string; modes: { name: string }[]; name?: string };
   results: MultiModeDataResult[];
 }
 
@@ -96,7 +96,7 @@ interface TokenListTreeBodyProps {
   multiModeData: MultiModeData | null;
   multiModeDimId: string | null;
   multiModeDimensionName: string | null;
-  dimensions: { id: string; name: string; options: { name: string }[] }[];
+  collections: { id: string; name: string; modes: { name: string }[] }[];
   setMultiModeDimId: (v: string) => void;
   getMultiModeValues: (tokenPath: string) => MultiModeValue[] | undefined;
 
@@ -173,7 +173,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     multiModeData,
     multiModeDimId,
     multiModeDimensionName,
-    dimensions,
+    collections,
     setMultiModeDimId,
     getMultiModeValues,
     selectedPaths,
@@ -204,14 +204,16 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const multiModeHeaders = multiModeData && viewMode === "tree" ? (
     <div className="sticky top-0 z-20 flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
       <div className="flex-1 min-w-0 px-2 py-1 flex items-center gap-1">
-        {dimensions.length > 1 ? (
+        {collections.length > 1 ? (
           <select
             value={multiModeDimId ?? ""}
             onChange={(e) => setMultiModeDimId(e.target.value)}
             className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           >
-            {dimensions.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
+            {collections.map((collection) => (
+              <option key={collection.id} value={collection.id}>
+                {collection.name}
+              </option>
             ))}
           </select>
         ) : (

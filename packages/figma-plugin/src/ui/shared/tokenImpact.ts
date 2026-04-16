@@ -1,6 +1,6 @@
 import type { TokenRecipe } from '../hooks/useRecipes';
 import type { TokenMapEntry } from '../../shared/types';
-import type { CollectionDefinition } from '@tokenmanager/core';
+import type { TokenCollection } from '@tokenmanager/core';
 import type { RecipeImpact, ModeImpact } from '../components/tokenListTypes';
 
 /**
@@ -57,7 +57,7 @@ export function computeRecipeImpacts(
  */
 export function computeModeImpacts(
   targetPaths: Set<string>,
-  dimensions: CollectionDefinition[],
+  collections: TokenCollection[],
   perSetFlat: Record<string, Record<string, TokenMapEntry>>,
 ): ModeImpact[] {
   const seen = new Set<string>();
@@ -66,8 +66,8 @@ export function computeModeImpacts(
     Object.entries(flatSet),
   );
 
-  for (const dimension of dimensions) {
-    for (const option of dimension.options) {
+  for (const collection of collections) {
+    for (const option of collection.modes) {
       for (const [path, entry] of tokenEntries) {
         if (!targetPaths.has(path)) continue;
         const modes = (entry.$extensions as {
@@ -75,12 +75,15 @@ export function computeModeImpacts(
             modes?: Record<string, Record<string, unknown>>;
           };
         } | undefined)?.tokenmanager?.modes;
-        if (modes?.[dimension.id]?.[option.name] === undefined) continue;
+        if (modes?.[collection.id]?.[option.name] === undefined) continue;
 
-        const impactKey = `${dimension.id}:${option.name}`;
+        const impactKey = `${collection.id}:${option.name}`;
         if (!seen.has(impactKey)) {
           seen.add(impactKey);
-          impacts.push({ dimName: dimension.name, optionName: option.name });
+          impacts.push({
+            collectionName: collection.name,
+            optionName: option.name,
+          });
         }
         break;
       }

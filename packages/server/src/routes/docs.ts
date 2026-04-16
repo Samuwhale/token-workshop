@@ -230,7 +230,7 @@ export async function docsRoutes(fastify: FastifyInstance) {
       }
       const resolved: ResolvedToken[] = await fastify.tokenStore.resolveTokens();
       const flat: FlatToken[] = resolved
-        .filter(t => t.setName === set)
+        .filter(t => t.collectionId === set)
         .map(t => ({
           path: t.path,
           $type: t.$type || 'string',

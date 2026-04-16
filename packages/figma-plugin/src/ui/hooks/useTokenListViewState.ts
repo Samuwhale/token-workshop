@@ -4,7 +4,7 @@ import { useSettingsListener } from "../components/SettingsPanel";
 import { DENSITY_ROW_HEIGHT } from "../components/tokenListTypes";
 import type { Density } from "../components/tokenListTypes";
 import type { SortOrder } from "../components/tokenListUtils";
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 
 const VALID_SORT_ORDERS: SortOrder[] = ["default", "alpha-asc", "by-type"];
 
@@ -16,12 +16,12 @@ function dispatchTokenListViewChanged(setName: string): void {
 
 export interface UseTokenListViewStateParams {
   setName: string;
-  dimensions: CollectionDefinition[];
+  collections: TokenCollection[];
 }
 
 export function useTokenListViewState({
   setName,
-  dimensions,
+  collections,
 }: UseTokenListViewStateParams) {
   // --- Recently touched filter ---
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
@@ -139,7 +139,7 @@ export function useTokenListViewState({
   const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
     const stored = lsGet("tm_multi_mode");
     if (stored !== null) return stored === "1";
-    return dimensions.length > 0;
+    return collections.length > 0;
   });
   const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
 
@@ -151,23 +151,24 @@ export function useTokenListViewState({
     });
   }, []);
 
-  // Auto-enable when dimensions appear for the first time (no stored preference)
+  // Auto-enable when collections appear for the first time (no stored preference)
   useEffect(() => {
-    if (dimensions.length > 0 && lsGet("tm_multi_mode") === null) {
+    if (collections.length > 0 && lsGet("tm_multi_mode") === null) {
       setMultiModeEnabled(true);
     }
-  }, [dimensions.length]);
+  }, [collections.length]);
 
-  // Auto-select first dimension when multi-mode is enabled and no dimension is selected
+  // Auto-select first collection when multi-mode is enabled and no collection is selected.
   useEffect(() => {
     if (
       multiModeEnabled &&
-      dimensions.length > 0 &&
-      (!multiModeDimId || !dimensions.some((d) => d.id === multiModeDimId))
+      collections.length > 0 &&
+      (!multiModeDimId ||
+        !collections.some((collection) => collection.id === multiModeDimId))
     ) {
-      setMultiModeDimId(dimensions[0].id);
+      setMultiModeDimId(collections[0].id);
     }
-  }, [multiModeEnabled, dimensions, multiModeDimId]);
+  }, [collections, multiModeDimId, multiModeEnabled]);
 
   // --- Mode lens (show mode-resolved values instead of base values) ---
   const [modeLensEnabled, setModeLensEnabledState] = useState<boolean>(

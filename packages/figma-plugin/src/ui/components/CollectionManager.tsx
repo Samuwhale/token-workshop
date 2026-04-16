@@ -6,7 +6,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { CollectionDefinition, ViewPreset } from "@tokenmanager/core";
+import {
+  deserializeTokenCollections,
+  type SerializedTokenCollection,
+  type TokenCollection,
+  type ViewPreset,
+} from "@tokenmanager/core";
 import type { CompareMode } from "./UnifiedComparePanel";
 import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
@@ -36,11 +41,12 @@ interface CollectionManagerProps {
   serverUrl: string;
   connected: boolean;
   sets: string[];
-  onDimensionsChange?: (dimensions: CollectionDefinition[]) => void;
+  onCollectionsChange?: (collections: TokenCollection[]) => void;
   onNavigateToToken?: (path: string, set: string) => void;
   onCreateToken?: (tokenPath: string, set: string) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
+  pathToStorageSet?: Record<string, string>;
   onTokensCreated?: () => void;
   onGoToTokens?: () => void;
   collectionManagerHandle?: React.MutableRefObject<CollectionManagerHandle | null>;
@@ -83,21 +89,22 @@ export function CollectionManager({
   serverUrl,
   connected,
   sets,
-  onDimensionsChange,
+  onCollectionsChange,
   onNavigateToToken,
   onCreateToken,
   allTokensFlat = {},
-  pathToSet = {},
+  pathToCollectionId = {},
+  pathToStorageSet = {},
   onTokensCreated,
   onGoToTokens,
   collectionManagerHandle,
 }: CollectionManagerProps) {
   const {
-    collections: dimensions,
-    setCollections: setDimensions,
-    activeModes: activeThemes,
-    setActiveModes: setActiveThemes,
-    modeResolvedTokensFlat: themedAllTokensFlat,
+    collections,
+    setCollections,
+    selectedModes,
+    setSelectedModes,
+    modeResolvedTokensFlat,
   } = useCollectionSwitcherContext();
   const compare = useModeCompare();
   const [activeView, setActiveView] = useState<ManagerView>("collections");
@@ -111,8 +118,8 @@ export function CollectionManager({
   const viewsAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    onDimensionsChange?.(dimensions);
-  }, [dimensions, onDimensionsChange]);
+    onCollectionsChange?.(collections);
+  }, [collections, onCollectionsChange]);
 
   const refreshCollectionsAndViews = useCallback(async () => {
     if (!connected) {
@@ -130,12 +137,12 @@ export function CollectionManager({
 
     try {
       const result = await apiFetch<{
-        collections?: CollectionDefinition[];
+        collections?: SerializedTokenCollection[];
         previews?: ViewPreset[];
       }>(`${serverUrl}/api/collections`, { signal: controller.signal });
       if (viewsAbortRef.current !== controller) return;
-      const collections = result.collections ?? [];
-      setDimensions(collections);
+      const collections = deserializeTokenCollections(result.collections ?? []);
+      setCollections(collections);
       setViews(result.previews ?? []);
     } catch (error) {
       if (viewsAbortRef.current !== controller) return;
@@ -148,7 +155,7 @@ export function CollectionManager({
         setViewsLoading(false);
       }
     }
-  }, [connected, serverUrl, setDimensions]);
+  }, [connected, serverUrl, setCollections]);
 
   useEffect(() => {
     void refreshCollectionsAndViews();
@@ -162,39 +169,39 @@ export function CollectionManager({
   );
 
   const normalizedSelections = useMemo(
-    () => normalizeModeSelections(dimensions, activeThemes),
-    [dimensions, activeThemes],
+    () => normalizeModeSelections(collections, selectedModes),
+    [collections, selectedModes],
   );
 
   useEffect(() => {
     if (
-      JSON.stringify(normalizedSelections) !== JSON.stringify(activeThemes)
+      JSON.stringify(normalizedSelections) !== JSON.stringify(selectedModes)
     ) {
-      setActiveThemes(normalizedSelections);
+      setSelectedModes(normalizedSelections);
     }
-  }, [activeThemes, normalizedSelections, setActiveThemes]);
+  }, [normalizedSelections, selectedModes, setSelectedModes]);
 
   const compareFocusLabel = useMemo(() => {
-    const parts = buildSelectionLabel(dimensions, normalizedSelections);
+    const parts = buildSelectionLabel(collections, normalizedSelections);
     return parts.length > 0 ? parts : null;
-  }, [dimensions, normalizedSelections]);
+  }, [collections, normalizedSelections]);
 
   const modeCoverage = useMemo(
     () =>
       buildModeCoverage({
-        dimensions,
+        collections,
         allTokensFlat,
-        pathToSet,
+        pathToCollectionId,
       }),
-    [allTokensFlat, dimensions, pathToSet],
+    [allTokensFlat, collections, pathToCollectionId],
   );
 
   const previewTokens = useMemo(
     () =>
-      Object.entries(themedAllTokensFlat)
+      Object.entries(modeResolvedTokensFlat)
         .sort(([left], [right]) => left.localeCompare(right))
         .slice(0, 16),
-    [themedAllTokensFlat],
+    [modeResolvedTokensFlat],
   );
 
   const handleSaveMode = useCallback(
@@ -240,11 +247,11 @@ export function CollectionManager({
 
   const handleSaveView = useCallback(async () => {
     const proposedName =
-      newViewName.trim() || createViewPresetName(dimensions, normalizedSelections);
+      newViewName.trim() || createViewPresetName(collections, normalizedSelections);
     const view = createViewPreset({
       id: `${Date.now()}`,
       name: proposedName,
-      dimensions,
+      collections,
       selections: normalizedSelections,
     });
     await apiFetch(`${serverUrl}/api/previews`, {
@@ -254,13 +261,13 @@ export function CollectionManager({
     });
     setNewViewName("");
     await refreshCollectionsAndViews();
-  }, [dimensions, newViewName, normalizedSelections, refreshCollectionsAndViews, serverUrl]);
+  }, [collections, newViewName, normalizedSelections, refreshCollectionsAndViews, serverUrl]);
 
   const handleApplyView = useCallback(
     (view: ViewPreset) => {
-      setActiveThemes(normalizeModeSelections(dimensions, view.selections));
+      setSelectedModes(normalizeModeSelections(collections, view.selections));
     },
-    [dimensions, setActiveThemes],
+    [collections, setSelectedModes],
   );
 
   const handleDeleteView = useCallback(
@@ -307,8 +314,9 @@ export function CollectionManager({
           tokenPath={compare.compareTokenPath}
           onClearTokenPath={() => compare.setCompareTokenPath("")}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          dimensions={dimensions}
+          pathToCollectionId={pathToCollectionId}
+          pathToStorageSet={pathToStorageSet}
+          collections={collections}
           sets={sets}
           modeOptionsKey={compare.compareModeKey}
           modeOptionsDefaultA={compare.compareModeDefaultA}
@@ -359,7 +367,7 @@ export function CollectionManager({
             description="Choose modes only where you want to review them. This is a preview lens over authored tokens, not a second authoring system."
           >
             <div className="space-y-2">
-              {dimensions.map((dimension) => {
+              {collections.map((dimension) => {
                 const selected = normalizedSelections[dimension.id] ?? "";
                 return (
                   <div
@@ -371,8 +379,8 @@ export function CollectionManager({
                         {dimension.name}
                       </div>
                       <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                        {dimension.options.length} mode
-                        {dimension.options.length === 1 ? "" : "s"}
+                        {dimension.modes.length} mode
+                        {dimension.modes.length === 1 ? "" : "s"}
                       </div>
                     </div>
                     <select
@@ -384,12 +392,12 @@ export function CollectionManager({
                         } else {
                           delete nextSelections[dimension.id];
                         }
-                        setActiveThemes(nextSelections);
+                        setSelectedModes(nextSelections);
                       }}
                       className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)]"
                     >
                       <option value="">No preview</option>
-                      {dimension.options.map((option) => (
+                      {dimension.modes.map((option) => (
                         <option key={option.name} value={option.name}>
                           {option.name}
                         </option>
@@ -398,7 +406,7 @@ export function CollectionManager({
                   </div>
                 );
               })}
-              {dimensions.length === 0 ? (
+              {collections.length === 0 ? (
                 <div className="rounded border border-dashed border-[var(--color-figma-border)] px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
                   No collections are available yet.
                 </div>
@@ -411,7 +419,7 @@ export function CollectionManager({
             description="Each collection owns its own modes, just like Figma. Tokens vary only through the modes of their own collection."
           >
             <div className="space-y-3">
-              {dimensions.map((dimension) => {
+              {collections.map((dimension) => {
                 const coverageByMode = modeCoverage.coverage[dimension.id] ?? {};
                 return (
                   <section
@@ -425,8 +433,8 @@ export function CollectionManager({
                             {dimension.name}
                           </div>
                           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                            {dimension.options.length} mode
-                            {dimension.options.length === 1 ? "" : "s"}
+                            {dimension.modes.length} mode
+                            {dimension.modes.length === 1 ? "" : "s"}
                           </div>
                         </div>
                         {onGoToTokens ? (
@@ -441,7 +449,7 @@ export function CollectionManager({
                       </div>
                     </div>
                     <div className="space-y-2 px-3 py-3">
-                      {dimension.options.map((option) => {
+                      {dimension.modes.map((option) => {
                         const missing = coverageByMode[option.name]?.missing ?? [];
                         return (
                           <div
@@ -475,13 +483,16 @@ export function CollectionManager({
                               <div className="mt-2 space-y-1 border-t border-[var(--color-figma-border)] pt-2">
                                 {missing.slice(0, 4).map((entry) => (
                                   <button
-                                    key={`${entry.setName}:${entry.path}`}
+                                    key={`${entry.collectionId}:${entry.path}`}
                                     type="button"
                                     onClick={() =>
-                                      onNavigateToToken?.(entry.path, entry.setName || dimension.id)
+                                      onNavigateToToken?.(
+                                        entry.path,
+                                        entry.collectionId || dimension.id,
+                                      )
                                     }
                                     className="block w-full truncate text-left text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                                    title={`${entry.setName || dimension.id} · ${entry.path}`}
+                                    title={`${entry.collectionId || dimension.id} · ${entry.path}`}
                                   >
                                     {entry.path}
                                   </button>
@@ -542,7 +553,7 @@ export function CollectionManager({
                   type="text"
                   value={newViewName}
                   onChange={(event) => setNewViewName(event.target.value)}
-                  placeholder={createViewPresetName(dimensions, normalizedSelections)}
+                  placeholder={createViewPresetName(collections, normalizedSelections)}
                   className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)]"
                 />
                 <button
@@ -573,7 +584,7 @@ export function CollectionManager({
                       {view.name}
                     </div>
                     <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                      {buildSelectionLabel(dimensions, view.selections)}
+                      {buildSelectionLabel(collections, view.selections)}
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -610,7 +621,7 @@ export function CollectionManager({
                   <button
                     type="button"
                     onClick={() =>
-                      onNavigateToToken?.(tokenPath, pathToSet[tokenPath] ?? sets[0] ?? "")
+                      onNavigateToToken?.(tokenPath, pathToCollectionId[tokenPath] ?? sets[0] ?? "")
                     }
                     className="min-w-0 flex-1 truncate text-left text-[10px] text-[var(--color-figma-text)]"
                     title={tokenPath}

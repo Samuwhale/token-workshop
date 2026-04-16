@@ -4,7 +4,6 @@ import { watch } from "chokidar";
 import {
   type Token,
   type TokenGroup,
-  type TokenSet,
   type TokenType,
   type ResolvedToken,
   isFormula,
@@ -45,6 +44,12 @@ export interface PublishRouteState {
   modeName?: string;
 }
 
+interface StoredTokenSet {
+  name: string;
+  tokens: TokenGroup;
+  filePath?: string;
+}
+
 interface PlannedTokenRename {
   oldPath: string;
   newPath: string;
@@ -62,7 +67,7 @@ interface PlannedGroupLeafToken {
 }
 
 interface PlannedGroupRename {
-  set: TokenSet;
+  set: StoredTokenSet;
   oldGroupPath: string;
   newGroupPath: string;
   groupObject?: TokenGroup;
@@ -71,8 +76,8 @@ interface PlannedGroupRename {
 }
 
 interface PlannedGroupTransfer {
-  source: TokenSet;
-  target: TokenSet;
+  source: StoredTokenSet;
+  target: StoredTokenSet;
   groupPath: string;
   groupObject?: TokenGroup;
   leafTokens: PlannedGroupLeafToken[];
@@ -82,7 +87,7 @@ export class TokenStore {
   /** Shared async mutex — route handlers and watcher callbacks serialize through this single lock. */
   readonly lock = new PromiseChainLock();
   private dir: string;
-  private sets: Map<string, TokenSet> = new Map();
+  private sets: Map<string, StoredTokenSet> = new Map();
   private flatTokens: Map<string, Array<{ token: Token; setName: string }>> =
     new Map();
   private resolver: TokenResolver | null = null;
@@ -535,7 +540,7 @@ export class TokenStore {
   }
 
   reorderSets(names: string[]): void {
-    const newMap = new Map<string, TokenSet>();
+    const newMap = new Map<string, StoredTokenSet>();
     for (const name of names) {
       const set = this.sets.get(name);
       if (set) newMap.set(name, set);
@@ -700,7 +705,7 @@ export class TokenStore {
     await this.saveSet(name);
   }
 
-  async getSet(name: string): Promise<TokenSet | undefined> {
+  async getSet(name: string): Promise<StoredTokenSet | undefined> {
     return this.sets.get(name);
   }
 
@@ -726,7 +731,7 @@ export class TokenStore {
   private async _createSetNoRebuild(
     name: string,
     tokens: TokenGroup = {},
-  ): Promise<TokenSet> {
+  ): Promise<StoredTokenSet> {
     const filename = `${name}.tokens.json`;
     const filePath = path.join(this.dir, filename);
     const tmpPath = filePath + ".tmp";
@@ -734,12 +739,12 @@ export class TokenStore {
     await fs.writeFile(tmpPath, JSON.stringify(tokens, null, 2));
     this._startWriteGuard(filePath);
     await fs.rename(tmpPath, filePath);
-    const set: TokenSet = { name, tokens, filePath };
+    const set: StoredTokenSet = { name, tokens, filePath };
     this.sets.set(name, set);
     return set;
   }
 
-  async createSet(name: string, tokens?: TokenGroup): Promise<TokenSet> {
+  async createSet(name: string, tokens?: TokenGroup): Promise<StoredTokenSet> {
     const set = await this._createSetNoRebuild(name, tokens);
     this.rebuildFlatTokens();
     return set;
@@ -828,7 +833,7 @@ export class TokenStore {
     this._startWriteGuard(newFilePath);
     try {
       await fs.rename(oldFilePath, newFilePath);
-      const newSet: TokenSet = {
+      const newSet: StoredTokenSet = {
         name: newName,
         tokens: set.tokens,
         filePath: newFilePath,
@@ -1151,12 +1156,12 @@ export class TokenStore {
       // Emit one result per set that defines this token
       if (entries && entries.length > 1) {
         for (const entry of entries) {
-          results.push({ ...resolved, setName: entry.setName });
+          results.push({ ...resolved, collectionId: entry.setName });
         }
       } else {
         results.push({
           ...resolved,
-          setName: entries?.[0]?.setName ?? resolved.setName,
+          collectionId: entries?.[0]?.setName ?? resolved.collectionId,
         });
       }
     }
@@ -1170,7 +1175,7 @@ export class TokenStore {
       const resolved = this.resolver.resolve(tokenPath);
       return {
         ...resolved,
-        setName: entries[0].setName,
+        collectionId: entries[0].setName,
       };
     } catch {
       return undefined;
@@ -1406,7 +1411,7 @@ export class TokenStore {
     return result;
   }
 
-  private getSetOrThrow(name: string): TokenSet {
+  private getSetOrThrow(name: string): StoredTokenSet {
     const set = this.sets.get(name);
     if (!set) {
       throw new NotFoundError(`Set "${name}" not found`);
@@ -1481,7 +1486,7 @@ export class TokenStore {
   private planTokenRenames(
     setName: string,
     renames: TokenPathRename[],
-  ): { set: TokenSet; plannedRenames: PlannedTokenRename[]; pathMap: Map<string, string> } {
+  ): { set: StoredTokenSet; plannedRenames: PlannedTokenRename[]; pathMap: Map<string, string> } {
     const set = this.getSetOrThrow(setName);
     const plannedRenames: PlannedTokenRename[] = [];
     const pathMap = new Map<string, string>();
@@ -1517,8 +1522,8 @@ export class TokenStore {
     toSet: string,
     options: { overwriteExisting: boolean },
   ): {
-    source: TokenSet;
-    target: TokenSet;
+    source: StoredTokenSet;
+    target: StoredTokenSet;
     plannedTransfers: PlannedTokenTransfer[];
   } {
     if (fromSet === toSet) {

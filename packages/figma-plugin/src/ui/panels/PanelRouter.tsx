@@ -234,11 +234,11 @@ export function PanelRouter({
     derivedTokenPaths,
   } = useRecipeContext();
   const {
-    collections: dimensions,
-    setCollections: setDimensions,
-    activeModes: activeThemes,
-    setActiveModes: setActiveThemes,
-    modeResolvedTokensFlat: themedAllTokensFlat,
+    collections,
+    setCollections,
+    selectedModes,
+    setSelectedModes,
+    modeResolvedTokensFlat,
   } = useCollectionSwitcherContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
@@ -628,7 +628,7 @@ export function PanelRouter({
         paths,
       });
     },
-    onOpenCrossThemeCompare: (path: string) => {
+    onOpenCrossCollectionCompare: (path: string) => {
       controller.setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "compare",
@@ -653,10 +653,12 @@ export function PanelRouter({
         tokenPath: editingToken.path,
         tokenName: editingToken.name,
         setName: editingToken.set,
+        collectionId: pathToSet[editingToken.path] ?? editingToken.set,
         serverUrl,
         onBack: handleTokenEditorBack,
         allTokensFlat,
         pathToSet,
+        pathToCollectionId: pathToSet,
         recipes,
         isCreateMode: editingToken.isCreate,
         initialType: editingToken.initialType,
@@ -667,7 +669,7 @@ export function PanelRouter({
         },
         onSaved: handleTokenEditorSaved,
         onSaveAndCreateAnother: handleTokenEditorSaveAndCreateAnother,
-        dimensions,
+        collections,
         onRefresh: controller.refreshAll,
         availableFonts: controller.availableFonts,
         fontWeightsByFamily: controller.fontWeightsByFamily,
@@ -684,7 +686,7 @@ export function PanelRouter({
           }),
         onNavigateToRecipe: controller.handleNavigateToRecipe,
         onOpenRecipeEditor: openRecipeEditor,
-        onNavigateToThemes: () => navigateTo("collections", "collections"),
+        onNavigateToCollections: () => navigateTo("collections", "collections"),
       }
     : null;
 
@@ -697,8 +699,9 @@ export function PanelRouter({
       tokenPath={tokensComparePath}
       onClearTokenPath={() => setTokensComparePath("")}
       allTokensFlat={allTokensFlat}
-      pathToSet={pathToSet}
-      dimensions={dimensions}
+      pathToCollectionId={pathToSet}
+      pathToStorageSet={pathToSet}
+      collections={collections}
       sets={sets}
       modeOptionsKey={tokensCompareModeKey}
       modeOptionsDefaultA={tokensCompareDefaultA}
@@ -829,11 +832,9 @@ export function PanelRouter({
             <TokenDetailPreview
               tokenPath={previewingToken.path}
               tokenName={previewingToken.name}
-              setName={previewingToken.set}
+              storageSetName={previewingToken.set}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
-              dimensions={dimensions}
-              activeThemes={activeThemes}
               tokenUsageCounts={tokenUsageCounts}
               recipes={recipes}
               derivedTokenPaths={derivedTokenPaths}
@@ -882,7 +883,7 @@ export function PanelRouter({
         ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
         data={{
           tokens,
-          allTokensFlat: themedAllTokensFlat,
+          allTokensFlat: modeResolvedTokensFlat,
           lintViolations: controller.lintViolations,
           syncSnapshot:
             Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
@@ -894,10 +895,11 @@ export function PanelRouter({
           perSetFlat,
           collectionMap,
           modeMap,
-          dimensions,
+          collections,
           unthemedAllTokensFlat: allTokensFlat,
           pathToSet,
-          activeThemes,
+          pathToCollectionId: pathToSet,
+          selectedModes,
         }}
         actions={tokenListActions}
         recentlyTouched={controller.recentlyTouched}
@@ -1293,10 +1295,10 @@ export function PanelRouter({
                 onReset={() => navigateTo("tokens", "tokens")}
               >
                 <PreviewPanel
-                  allTokensFlat={themedAllTokensFlat}
-                  dimensions={dimensions}
-                  activeThemes={activeThemes}
-                  onActiveThemesChange={setActiveThemes}
+                  allTokensFlat={modeResolvedTokensFlat}
+                  collections={collections}
+                  selectedModes={selectedModes}
+                  onSelectedModesChange={setSelectedModes}
                   onGoToTokens={() => navigateTo("tokens", "tokens")}
                   onNavigateToToken={(path) => {
                     const name = path.split(".").pop();
@@ -1353,7 +1355,7 @@ export function PanelRouter({
               serverUrl={serverUrl}
               connected={connected}
               sets={sets}
-              onDimensionsChange={setDimensions}
+              onCollectionsChange={setCollections}
               onNavigateToToken={(path, set) => {
                 beginHandoff({
                   reason: "View or edit this token, then return to Collections",
@@ -1369,7 +1371,8 @@ export function PanelRouter({
                 setEditingToken({ path: tokenPath, set, isCreate: true });
               }}
               allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
+              pathToCollectionId={pathToSet}
+              pathToStorageSet={pathToSet}
               onTokensCreated={controller.refreshAll}
               onGoToTokens={() => {
                 beginHandoff({
@@ -1558,7 +1561,8 @@ export function PanelRouter({
           lintViolations={controller.lintViolations}
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
-          dimensions={dimensions}
+          pathToCollectionId={pathToSet}
+          collections={collections}
           tokenUsageCounts={tokenUsageCounts}
           heatmapResult={heatmapResult}
           onNavigateTo={(topTab, subTab) =>

@@ -1,12 +1,15 @@
 import type { FastifyPluginAsync } from "fastify";
 import {
+  readTokenCollectionModeValues,
+  writeTokenCollectionModeValues,
   flattenTokenGroup,
   isDTCGToken,
   type DTCGToken,
   type Token,
   type TokenGroup,
-  type CollectionDefinition,
+  type TokenCollection,
   type ViewPreset,
+  type TokenModeValues,
 } from "@tokenmanager/core";
 import type {
   FieldChange,
@@ -110,12 +113,12 @@ interface LoadedSetDependencyData {
   metadata: SetMetadataState;
 }
 
-interface CollectionDocumentState {
-  dimensions: CollectionDefinition[];
+interface CollectionState {
+  collections: TokenCollection[];
   views: ViewPreset[];
 }
 
-type TokenModeMap = Record<string, Record<string, unknown>>;
+type TokenModeMap = TokenModeValues;
 
 interface SetDependencySnapshot {
   resolvers: SetResolverMeta[];
@@ -247,62 +250,8 @@ function findFolderRenameConflicts(
   return [...conflicts].sort((a, b) => a.localeCompare(b));
 }
 
-function readTokenModes(token: Token): TokenModeMap {
-  const rawModes = (
-    token.$extensions?.tokenmanager as Record<string, unknown> | undefined
-  )?.modes;
-  if (!rawModes || typeof rawModes !== "object" || Array.isArray(rawModes)) {
-    return {};
-  }
-
-  const modes: TokenModeMap = {};
-  for (const [collectionId, optionMap] of Object.entries(rawModes)) {
-    if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
-      continue;
-    }
-    modes[collectionId] = { ...(optionMap as Record<string, unknown>) };
-  }
-  return modes;
-}
-
-function buildExtensionsWithModes(
-  token: Token,
-  nextModes: TokenModeMap,
-): Token["$extensions"] | undefined {
-  const nextExtensions = token.$extensions
-    ? structuredClone(token.$extensions)
-    : {};
-  const existingTokenManager =
-    nextExtensions.tokenmanager &&
-    typeof nextExtensions.tokenmanager === "object" &&
-    !Array.isArray(nextExtensions.tokenmanager)
-      ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
-      : {};
-
-  if (Object.keys(nextModes).length > 0) {
-    existingTokenManager.modes = nextModes;
-    nextExtensions.tokenmanager = existingTokenManager;
-  } else if (Object.keys(existingTokenManager).length > 0) {
-    delete existingTokenManager.modes;
-    if (Object.keys(existingTokenManager).length > 0) {
-      nextExtensions.tokenmanager = existingTokenManager;
-    } else {
-      delete nextExtensions.tokenmanager;
-    }
-  } else {
-    delete nextExtensions.tokenmanager;
-  }
-
-  return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
-}
-
 function writeTokenModes(token: Token, nextModes: TokenModeMap): void {
-  const nextExtensions = buildExtensionsWithModes(token, nextModes);
-  if (nextExtensions) {
-    token.$extensions = nextExtensions;
-    return;
-  }
-  delete token.$extensions;
+  writeTokenCollectionModeValues(token, nextModes);
 }
 
 function renameCollectionModes(
@@ -345,7 +294,7 @@ function prepareTokenForCollectionMerge(
     structuredClone(token as DTCGToken),
   );
   const nextModes = copyCollectionModesToNewCollection(
-    readTokenModes(sanitized),
+    readTokenCollectionModeValues(sanitized),
     sourceCollection,
     targetCollection,
   );
@@ -367,7 +316,7 @@ function mergeIncomingModesIntoTargetToken(params: {
   targetModeValues: Record<string, unknown>;
 } {
   const { targetToken, incomingToken, targetCollection } = params;
-  const incomingModes = readTokenModes(incomingToken);
+  const incomingModes = readTokenCollectionModeValues(incomingToken);
   const incomingCollectionModes = incomingModes[targetCollection];
   if (!incomingCollectionModes) {
     return {
@@ -380,7 +329,7 @@ function mergeIncomingModesIntoTargetToken(params: {
   }
 
   const nextToken = structuredClone(targetToken);
-  const nextModes = readTokenModes(nextToken);
+  const nextModes = readTokenCollectionModeValues(nextToken);
   const existingCollectionModes = {
     ...(nextModes[targetCollection] ?? {}),
   };
@@ -422,7 +371,7 @@ function rewriteTokenGroupCollectionModes(
   let changed = false;
 
   for (const [, token] of flattenTokenGroup(nextTokens)) {
-    const nextModes = rewrite(readTokenModes(token as Token));
+    const nextModes = rewrite(readTokenCollectionModeValues(token as Token));
     if (!nextModes) {
       continue;
     }
@@ -434,20 +383,20 @@ function rewriteTokenGroupCollectionModes(
 }
 
 function renameCollectionIdsInState(
-  state: CollectionDocumentState,
+  state: CollectionState,
   renames: FolderSetRename[],
-): CollectionDocumentState {
+): CollectionState {
   if (renames.length === 0) {
     return state;
   }
 
   const renameMap = new Map(renames.map(({ from, to }) => [from, to]));
   return {
-    dimensions: state.dimensions.map((dimension) => {
-      const nextId = renameMap.get(dimension.id);
+    collections: state.collections.map((collection) => {
+      const nextId = renameMap.get(collection.id);
       return nextId
-        ? { ...dimension, id: nextId, name: nextId }
-        : dimension;
+        ? { ...collection, id: nextId, name: nextId }
+        : collection;
     }),
     views: state.views.map((view) => {
       let changed = false;
@@ -466,31 +415,31 @@ function renameCollectionIdsInState(
 }
 
 function copyCollectionIdsInState(
-  state: CollectionDocumentState,
+  state: CollectionState,
   sourceName: string,
   targetNames: string[],
-): CollectionDocumentState {
+): CollectionState {
   if (targetNames.length === 0) {
     return state;
   }
 
-  const source = state.dimensions.find((dimension) => dimension.id === sourceName);
+  const source = state.collections.find((collection) => collection.id === sourceName);
   return {
-    dimensions:
+    collections:
       source &&
       targetNames.every(
         (targetName) =>
-          !state.dimensions.some((dimension) => dimension.id === targetName),
+          !state.collections.some((collection) => collection.id === targetName),
       )
         ? [
-            ...state.dimensions,
+            ...state.collections,
             ...targetNames.map((targetName) => ({
               id: targetName,
               name: targetName,
-              options: structuredClone(source.options),
+              modes: structuredClone(source.modes),
             })),
           ]
-        : state.dimensions,
+        : state.collections,
     views: state.views.map((view) => {
       if (!(sourceName in view.selections)) {
         return view;
@@ -508,17 +457,17 @@ function copyCollectionIdsInState(
 }
 
 function deleteCollectionIdsFromState(
-  state: CollectionDocumentState,
+  state: CollectionState,
   setNames: string[],
-): CollectionDocumentState {
+): CollectionState {
   if (setNames.length === 0) {
     return state;
   }
 
   const deletedSetNames = new Set(setNames);
   return {
-    dimensions: state.dimensions.filter(
-      (dimension) => !deletedSetNames.has(dimension.id),
+    collections: state.collections.filter(
+      (collection) => !deletedSetNames.has(collection.id),
     ),
     views: state.views.map((view) => {
       let changed = false;
@@ -858,11 +807,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.recipeService.updateSetName(oldName, newName);
   };
 
-  const loadCollectionModeState = async (): Promise<CollectionDocumentState> =>
+  const loadCollectionModeState = async (): Promise<CollectionState> =>
     structuredClone(await fastify.collectionsStore.loadState());
 
   const restoreCollectionModeState = async (
-    state: CollectionDocumentState,
+    state: CollectionState,
   ): Promise<void> => {
     await fastify.collectionsStore.withStateLock(async () => ({
       state: structuredClone(state),
@@ -870,9 +819,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     }));
   };
 
-  const buildCollectionsRollbackStep = (state: CollectionDocumentState) => ({
+  const buildCollectionsRollbackStep = (state: CollectionState) => ({
     action: "write-themes" as const,
-    dimensions: structuredClone(state.dimensions),
+    dimensions: structuredClone(state.collections),
     views: structuredClone(state.views),
   });
 

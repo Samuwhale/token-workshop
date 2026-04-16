@@ -48,7 +48,7 @@ export function useCommandPaletteCommands(): {
   const { allTokensFlat, pathToSet, perSetFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useRecipeContext();
   const { navigateTo, closeSecondarySurface } = useNavigationContext();
-  const { collections: dimensions } = useCollectionSwitcherContext();
+  const { collections } = useCollectionSwitcherContext();
   const { selectedNodes } = useSelectionContext();
   const {
     highlightedToken,
@@ -57,7 +57,7 @@ export function useCommandPaletteCommands(): {
   } = useEditorContext();
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
-  const themes = useCollectionWorkspaceController();
+  const collectionsWorkspace = useCollectionWorkspaceController();
   const sync = useSyncWorkspaceController();
 
   const [exportPresetRev, setExportPresetRev] = useState(0);
@@ -317,7 +317,7 @@ export function useCommandPaletteCommands(): {
 
   const modeCompareCommands = useMemo<Command[]>(() => {
     return [
-      ...(dimensions.length > 0
+      ...(collections.length > 0
         ? [
             {
               id: "compare-mode-options",
@@ -325,7 +325,7 @@ export function useCommandPaletteCommands(): {
               description: "Open a side-by-side diff across collection modes",
               category: "Modes" as const,
               handler: () => {
-                themes.collectionManagerHandleRef.current?.navigateToCompare(
+                collectionsWorkspace.collectionManagerHandleRef.current?.navigateToCompare(
                   "mode-options",
                 );
                 navigateTo("collections");
@@ -333,26 +333,26 @@ export function useCommandPaletteCommands(): {
             },
           ]
         : []),
-      ...dimensions
-        .filter((dimension) => dimension.options.length >= 2)
-        .map((dimension) => ({
-          id: `compare-dim-${dimension.id}`,
-          label: `Compare ${dimension.name} modes: ${dimension.options[0].name} vs ${dimension.options[1].name}`,
-          description: `See token differences across ${dimension.name} modes`,
+      ...collections
+        .filter((collection) => collection.modes.length >= 2)
+        .map((collection) => ({
+          id: `compare-collection-${collection.id}`,
+          label: `Compare ${collection.name} modes: ${collection.modes[0].name} vs ${collection.modes[1].name}`,
+          description: `See token differences across ${collection.name} modes`,
           category: "Modes" as const,
           handler: () => {
-            themes.collectionManagerHandleRef.current?.navigateToCompare(
+            collectionsWorkspace.collectionManagerHandleRef.current?.navigateToCompare(
               "mode-options",
               undefined,
               undefined,
-              `${dimension.id}:${dimension.options[0].name}`,
-              `${dimension.id}:${dimension.options[1].name}`,
+              `${collection.id}:${collection.modes[0].name}`,
+              `${collection.id}:${collection.modes[1].name}`,
             );
             navigateTo("collections");
           },
         })),
     ];
-  }, [dimensions, navigateTo, themes.collectionManagerHandleRef]);
+  }, [collections, navigateTo, collectionsWorkspace.collectionManagerHandleRef]);
 
   const contextualCommands = useMemo<Command[]>(() => {
     const inActiveSet =
@@ -443,7 +443,7 @@ export function useCommandPaletteCommands(): {
             },
           ]
         : []),
-      ...(dimensions.length > 0 && highlightedToken
+      ...(collections.length > 0 && highlightedToken
         ? [
             {
               id: "compare-across-modes",
@@ -456,7 +456,7 @@ export function useCommandPaletteCommands(): {
             },
           ]
         : []),
-      ...(dimensions.length > 0 && !highlightedToken
+      ...(collections.length > 0 && !highlightedToken
         ? [
             {
               id: "compare-across-modes-pick",
@@ -465,7 +465,7 @@ export function useCommandPaletteCommands(): {
                 "Focus a token first, then run this command to compare its values across collection modes",
               category: "Modes" as const,
               handler: () => {
-                themes.collectionManagerHandleRef.current?.navigateToCompare(
+                collectionsWorkspace.collectionManagerHandleRef.current?.navigateToCompare(
                   "cross-collection",
                 );
                 navigateTo("collections");
@@ -477,12 +477,12 @@ export function useCommandPaletteCommands(): {
   }, [
     activeSet,
     allTokensFlat,
-    dimensions.length,
+    collections.length,
     highlightedToken,
     navigateTo,
     pathToSet,
     setHighlightedToken,
-    themes.collectionManagerHandleRef,
+    collectionsWorkspace.collectionManagerHandleRef,
     tokens,
   ]);
 

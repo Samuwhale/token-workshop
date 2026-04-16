@@ -192,7 +192,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     }
     if (modeLensEnabled) {
       chips.push({
-        key: "view:theme-values",
+        key: "view:mode-values",
         label: "Preview values",
         tone: "view",
         onRemove: () => setModeLensEnabled(false),

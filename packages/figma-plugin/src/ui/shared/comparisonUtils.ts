@@ -1,24 +1,34 @@
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { applyModeSelectionsToTokens } from "./collectionModeUtils";
 
 export interface ModeComparisonOption {
-  dimensionId: string;
+  collectionId: string;
   optionName: string;
 }
 
 export function resolveModeOption(
   option: ModeComparisonOption | null,
-  dimensions: CollectionDefinition[],
+  collections: TokenCollection[],
   allTokensFlat: Record<string, TokenMapEntry>,
-  pathToSet: Record<string, string>,
+  pathToCollectionId: Record<string, string>,
 ): Record<string, TokenMapEntry> {
   if (!option) {
-    return applyModeSelectionsToTokens(allTokensFlat, dimensions, {}, pathToSet);
+    return applyModeSelectionsToTokens(
+      allTokensFlat,
+      collections,
+      {},
+      pathToCollectionId,
+    );
   }
-  return applyModeSelectionsToTokens(allTokensFlat, dimensions, {
-    [option.dimensionId]: option.optionName,
-  }, pathToSet);
+  return applyModeSelectionsToTokens(
+    allTokensFlat,
+    collections,
+    {
+      [option.collectionId]: option.optionName,
+    },
+    pathToCollectionId,
+  );
 }
 
 export function exportCsvFile(filename: string, rows: string[][]): void {

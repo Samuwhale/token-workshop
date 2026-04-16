@@ -169,15 +169,15 @@ export function App() {
     recipesBySource,
   } = useRecipeContext();
   const {
-    collections: dimensions,
-    activeModes: activeThemes,
-    setActiveModes: setActiveThemes,
-    previewModes: previewThemes,
-    setPreviewModes: setPreviewThemes,
-    openCollectionDropdown: openDimDropdown,
-    setOpenCollectionDropdown: setOpenDimDropdown,
-    collectionDropdownRef: dimDropdownRef,
-    collectionsError: themesError,
+    collections,
+    selectedModes,
+    setSelectedModes,
+    hoverPreviewModes,
+    setHoverPreviewModes,
+    openCollectionDropdown,
+    setOpenCollectionDropdown,
+    collectionDropdownRef,
+    collectionsError,
   } = useCollectionSwitcherContext();
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
@@ -1541,7 +1541,7 @@ export function App() {
         setPaletteDeleteConfirm({ paths, label }),
       handlePaletteDeleteToken,
     },
-    themes: {
+    collections: {
       collectionManagerHandleRef,
     },
     apply: {
@@ -1738,9 +1738,9 @@ export function App() {
     activeSecondarySurface === null ? workspacePrimaryAction : null;
   const notificationCount = notificationHistory.length;
 
-  const showThemePreviewControls =
-    !themesError &&
-    dimensions.length > 0 &&
+  const showCollectionModeControls =
+    !collectionsError &&
+    collections.length > 0 &&
     activeSecondarySurface === null &&
     (activeTopTab === "tokens" || activeTopTab === "inspect");
 
@@ -1965,29 +1965,29 @@ export function App() {
               </button>
             )}
 
-            {/* Theme preview selectors — only in token/inspect contexts */}
-            {showThemePreviewControls && (
-              <div ref={dimDropdownRef} className="flex items-center gap-1">
-                {dimensions.map((dim) => {
-                  const activeOption = activeThemes[dim.id];
-                  const previewOption = previewThemes[dim.id];
-                  const isOpen = openDimDropdown === dim.id;
-                  if (dim.options.length <= 3) {
+            {/* Collection mode selectors — only in token/inspect contexts */}
+            {showCollectionModeControls && (
+              <div ref={collectionDropdownRef} className="flex items-center gap-1">
+                {collections.map((collection) => {
+                  const activeOption = selectedModes[collection.id];
+                  const previewOption = hoverPreviewModes[collection.id];
+                  const isOpen = openCollectionDropdown === collection.id;
+                  if (collection.modes.length <= 3) {
                     return (
                       <div
-                        key={dim.id}
+                        key={collection.id}
                         className="flex items-center"
-                        title={dim.name}
+                        title={collection.name}
                         onMouseLeave={() => {
-                          setPreviewThemes((prev) => {
+                          setHoverPreviewModes((prev) => {
                             const next = { ...prev };
-                            delete next[dim.id];
+                            delete next[collection.id];
                             return next;
                           });
                         }}
                       >
                         <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)] divide-x divide-[var(--color-figma-border)]">
-                          {dim.options.map((opt: { name: string }) => {
+                          {collection.modes.map((opt: { name: string }) => {
                             const isActive = activeOption === opt.name;
                             const isPreviewing = previewOption === opt.name && previewOption !== activeOption;
                             return (
@@ -1995,20 +1995,20 @@ export function App() {
                                 key={opt.name}
                                 onClick={() => {
                                   if (isActive) {
-                                    const next = { ...activeThemes };
-                                    delete next[dim.id];
-                                    setActiveThemes(next);
+                                    const next = { ...selectedModes };
+                                    delete next[collection.id];
+                                    setSelectedModes(next);
                                   } else {
-                                    setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
+                                    setSelectedModes({ ...selectedModes, [collection.id]: opt.name });
                                   }
-                                  setPreviewThemes((prev) => {
+                                  setHoverPreviewModes((prev) => {
                                     const next = { ...prev };
-                                    delete next[dim.id];
+                                    delete next[collection.id];
                                     return next;
                                   });
                                 }}
-                                onMouseEnter={() => setPreviewThemes((prev) => ({ ...prev, [dim.id]: opt.name }))}
-                                title={isActive ? `${dim.name}: ${opt.name} (active — click to deselect)` : `Preview ${dim.name}: ${opt.name}`}
+                                onMouseEnter={() => setHoverPreviewModes((prev) => ({ ...prev, [collection.id]: opt.name }))}
+                                title={isActive ? `${collection.name}: ${opt.name} (active — click to deselect)` : `Preview ${collection.name}: ${opt.name}`}
                                 className={`px-1.5 py-0.5 text-[10px] transition-colors ${
                                   isActive
                                     ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
@@ -2026,19 +2026,19 @@ export function App() {
                     );
                   }
                   return (
-                    <div key={dim.id} className="relative flex items-center" title={dim.name}>
+                    <div key={collection.id} className="relative flex items-center" title={collection.name}>
                       <button
-                        onClick={() => setOpenDimDropdown(isOpen ? null : dim.id)}
+                        onClick={() => setOpenCollectionDropdown(isOpen ? null : collection.id)}
                         aria-expanded={isOpen}
                         aria-haspopup="listbox"
-                        aria-label={`${dim.name}: ${activeOption || "None"}`}
+                        aria-label={`${collection.name}: ${activeOption || "None"}`}
                         className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                           activeOption
                             ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
                             : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                         }`}
                       >
-                        {activeOption || dim.name}
+                        {activeOption || collection.name}
                         <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>
                           <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -2047,24 +2047,24 @@ export function App() {
                         <div
                           className="absolute left-0 top-full z-50 mt-1 min-w-[90px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
                           onMouseLeave={() => {
-                            setPreviewThemes((prev) => {
+                            setHoverPreviewModes((prev) => {
                               const next = { ...prev };
-                              delete next[dim.id];
+                              delete next[collection.id];
                               return next;
                             });
                           }}
                         >
                           <button
                             onClick={() => {
-                              const next = { ...activeThemes };
-                              delete next[dim.id];
-                              setActiveThemes(next);
-                              setOpenDimDropdown(null);
+                              const next = { ...selectedModes };
+                              delete next[collection.id];
+                              setSelectedModes(next);
+                              setOpenCollectionDropdown(null);
                             }}
                             onMouseEnter={() => {
-                              setPreviewThemes((prev) => {
+                              setHoverPreviewModes((prev) => {
                                 const next = { ...prev };
-                                delete next[dim.id];
+                                delete next[collection.id];
                                 return next;
                               });
                             }}
@@ -2074,19 +2074,19 @@ export function App() {
                           >
                             None
                           </button>
-                          {dim.options.map((opt: { name: string }) => (
+                          {collection.modes.map((opt: { name: string }) => (
                             <button
                               key={opt.name}
                               onClick={() => {
-                                setActiveThemes({ ...activeThemes, [dim.id]: opt.name });
-                                setOpenDimDropdown(null);
-                                setPreviewThemes((prev) => {
+                                setSelectedModes({ ...selectedModes, [collection.id]: opt.name });
+                                setOpenCollectionDropdown(null);
+                                setHoverPreviewModes((prev) => {
                                   const next = { ...prev };
-                                  delete next[dim.id];
+                                  delete next[collection.id];
                                   return next;
                                 });
                               }}
-                              onMouseEnter={() => setPreviewThemes((prev) => ({ ...prev, [dim.id]: opt.name }))}
+                              onMouseEnter={() => setHoverPreviewModes((prev) => ({ ...prev, [collection.id]: opt.name }))}
                               className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
                                 activeOption === opt.name ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
                               }`}

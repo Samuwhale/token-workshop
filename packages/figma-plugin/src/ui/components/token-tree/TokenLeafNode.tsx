@@ -146,7 +146,7 @@ export const TokenLeafNode = memo(
       onInlineSave,
       onRenameToken,
       onViewTokenHistory,
-      onCompareAcrossThemes,
+      onCompareAcrossCollections,
       onDragStart,
       onDragEnd,
       onDragOverToken,
@@ -1880,12 +1880,15 @@ export const TokenLeafNode = memo(
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
                     <span className="flex-1">Find references</span>
                   </button>
-                  {onCompareAcrossThemes && (
+                  {onCompareAcrossCollections && (
                     <button
                       role="menuitem"
                       tabIndex={-1}
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => { closeTokenMenus(); onCompareAcrossThemes(node.path); }}
+                      onClick={() => {
+                        closeTokenMenus();
+                        onCompareAcrossCollections(node.path);
+                      }}
                       className={MENU_ITEM_CLASS}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
@@ -2127,7 +2130,7 @@ export const TokenLeafNode = memo(
                   tokenType={node.$type}
                   value={mv.resolved}
                   targetSet={mv.targetSet}
-                  dimId={mv.dimId}
+                  collectionId={mv.collectionId}
                   optionName={mv.optionName}
                   onSave={onMultiModeInlineSave}
                   isTabPending={

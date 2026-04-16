@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
 import type { TokenRecipe } from './useRecipes';
-import type { CollectionDefinition } from '@tokenmanager/core';
+import type { TokenCollection } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { computeRecipeImpacts, computeModeImpacts } from '../shared/tokenImpact';
@@ -12,7 +12,7 @@ export interface UseTokenRenameParams {
   serverUrl: string;
   setName: string;
   recipes?: TokenRecipe[];
-  dimensions?: CollectionDefinition[];
+  collections?: TokenCollection[];
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
   allTokensFlat?: Record<string, TokenMapEntry>;
   onRefresh: () => void;
@@ -27,7 +27,7 @@ export function useTokenRename({
   serverUrl,
   setName,
   recipes,
-  dimensions,
+  collections,
   perSetFlat,
   allTokensFlat,
   onRefresh,
@@ -129,7 +129,7 @@ export function useTokenRename({
     const targetPaths = new Set([oldPath]);
     const source = perSetFlat ?? (allTokensFlat ? { '': allTokensFlat } : {});
     const recipeImpacts = computeRecipeImpacts(targetPaths, recipes ?? []);
-    const modeImpacts = computeModeImpacts(targetPaths, dimensions ?? [], source);
+    const modeImpacts = computeModeImpacts(targetPaths, collections ?? [], source);
     if (data.count > 0 || recipeImpacts.length > 0 || modeImpacts.length > 0) {
       setRenameTokenConfirm({
         oldPath,
@@ -142,7 +142,7 @@ export function useTokenRename({
     } else {
       await executeTokenRename(oldPath, newPath);
     }
-  }, [connected, serverUrl, setName, recipes, dimensions, perSetFlat, allTokensFlat, executeTokenRename, onError]);
+  }, [connected, serverUrl, setName, recipes, collections, perSetFlat, allTokensFlat, executeTokenRename, onError]);
 
   return {
     renameTokenConfirm,

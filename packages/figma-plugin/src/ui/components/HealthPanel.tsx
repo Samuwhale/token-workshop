@@ -18,7 +18,7 @@ import { apiFetch } from "../shared/apiFetch";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { hexToLuminance } from "../shared/colorUtils";
 import { normalizeHex } from "@tokenmanager/core";
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import { LINT_RULE_BY_ID } from "../shared/lintRules";
 import {
   createTokenBody,
@@ -241,8 +241,9 @@ export interface HealthPanelProps {
   lintViolations: LintViolation[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
-  /** Collection dimensions — enables cross-collection contrast checking in the matrix */
-  dimensions?: CollectionDefinition[];
+  pathToCollectionId: Record<string, string>;
+  /** Collections enable cross-collection contrast checking in the matrix. */
+  collections?: TokenCollection[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
   onNavigateTo: (topTab: "tokens" | "collections" | "inspect" | "sync", subTab?: string) => void;
@@ -269,7 +270,8 @@ export function HealthPanel({
   lintViolations,
   allTokensFlat,
   pathToSet,
-  dimensions = [],
+  pathToCollectionId,
+  collections = [],
   tokenUsageCounts,
   heatmapResult,
   onNavigateTo,
@@ -1991,8 +1993,9 @@ export function HealthPanel({
             {/* Color Contrast Matrix */}
             <ContrastMatrixPanel
               colorTokens={colorTokens}
-              dimensions={dimensions}
+              collections={collections}
               allTokensFlat={allTokensFlat}
+              pathToCollectionId={pathToCollectionId}
               pathToSet={pathToSet}
               onNavigateToToken={onNavigateToToken}
             />

@@ -267,6 +267,7 @@ Replace split client state with one collection-centered authoring state model.
 - One hook or state module that owns current collection, selected modes, and hover preview.
 - Removal of `activeSet` as a competing primary concept in authoring flows.
 - Renamed client state that matches the canonical vocabulary.
+- Define the canonical client-only hover preview state shape, separate from shared domain types and separate from persisted selected mode state.
 
 #### Changes
 
@@ -278,6 +279,7 @@ Replace split client state with one collection-centered authoring state model.
 - Rename client-owned identifiers that still encode the old model.
   Examples: plugin message names and local storage keys.
 - Stop reading old client keys and message names once the new ones land.
+- Model hover preview as transient per-collection client state, not shared domain state and not persisted state.
 
 #### Exit Criteria
 

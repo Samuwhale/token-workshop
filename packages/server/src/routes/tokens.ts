@@ -242,7 +242,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              setName: set,
+              collectionId: set,
               oldGroupPath,
               newGroupPath,
               updateAliases: updateAliases !== false,
@@ -281,9 +281,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              fromSet: set,
+              sourceCollectionId: set,
               groupPath,
-              toSet: targetSet,
+              targetCollectionId: targetSet,
             },
           );
           return { ok: true, movedCount: result.movedCount };
@@ -315,9 +315,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              fromSet: set,
+              sourceCollectionId: set,
               groupPath,
-              toSet: targetSet,
+              targetCollectionId: targetSet,
             },
           );
           return { ok: true, copiedCount: result.copiedCount };
@@ -720,7 +720,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             recipeService: fastify.recipeService,
           },
           {
-            setName: set,
+            collectionId: set,
             renames,
             updateAliases: updateAliases !== false,
           },
@@ -757,9 +757,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             recipeService: fastify.recipeService,
           },
           {
-            fromSet: set,
+            sourceCollectionId: set,
             paths,
-            toSet: targetSet,
+            targetCollectionId: targetSet,
           },
         );
         return { ok: true, moved: result.moved, operationId };
@@ -794,9 +794,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             recipeService: fastify.recipeService,
           },
           {
-            fromSet: set,
+            sourceCollectionId: set,
             paths,
-            toSet: targetSet,
+            targetCollectionId: targetSet,
           },
         );
         return { ok: true, copied: result.copied, operationId };
@@ -1133,7 +1133,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              setName: set,
+              collectionId: set,
               oldPath,
               newPath,
               updateAliases: updateAliases !== false,
@@ -1168,9 +1168,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              fromSet: set,
+              sourceCollectionId: set,
               tokenPath,
-              toSet: targetSet,
+              targetCollectionId: targetSet,
             },
           );
           return { ok: true };
@@ -1202,9 +1202,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              fromSet: set,
+              sourceCollectionId: set,
               tokenPath,
-              toSet: targetSet,
+              targetCollectionId: targetSet,
             },
           );
           return { ok: true };

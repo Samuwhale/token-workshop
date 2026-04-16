@@ -7,7 +7,7 @@ import { apiFetch } from "../shared/apiFetch";
 import { createTokenValueBody } from "../shared/tokenMutations";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createRecipeOwnershipKey, resolveRefValue } from "@tokenmanager/core";
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import { useCollectionSwitcherContext } from "../contexts/CollectionContext";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
@@ -55,10 +55,12 @@ interface TokenEditorProps {
   tokenPath: string;
   tokenName?: string;
   setName: string;
+  collectionId?: string;
   serverUrl: string;
   onBack: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   recipes?: TokenRecipe[];
   isCreateMode?: boolean;
   initialType?: string;
@@ -69,7 +71,7 @@ interface TokenEditorProps {
     requestClose: () => void;
   };
   onSaved?: (savedPath: string) => void;
-  dimensions?: CollectionDefinition[];
+  collections?: TokenCollection[];
   onRefresh?: () => void;
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   availableFonts?: string[];
@@ -79,7 +81,7 @@ interface TokenEditorProps {
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
   onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
-  onNavigateToThemes?: () => void;
+  onNavigateToCollections?: () => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
 
@@ -87,10 +89,12 @@ export function TokenEditor({
   tokenPath,
   tokenName,
   setName,
+  collectionId: explicitCollectionId,
   serverUrl,
   onBack,
   allTokensFlat = {},
   pathToSet = {},
+  pathToCollectionId = {},
   recipes = [],
   isCreateMode = false,
   initialType,
@@ -98,7 +102,7 @@ export function TokenEditor({
   editorSessionHost,
   onSaved,
   onSaveAndCreateAnother,
-  dimensions = [],
+  collections = [],
   onRefresh,
   availableFonts = [],
   fontWeightsByFamily = {},
@@ -107,10 +111,26 @@ export function TokenEditor({
   onNavigateToToken,
   onNavigateToRecipe,
   onOpenRecipeEditor,
-  onNavigateToThemes,
+  onNavigateToCollections,
   pushUndo,
 }: TokenEditorProps) {
   const collectionSwitcher = useCollectionSwitcherContext();
+  const effectivePathToCollectionId =
+    Object.keys(pathToCollectionId).length > 0 ? pathToCollectionId : pathToSet;
+  const collectionId = useMemo(
+    () =>
+      explicitCollectionId ??
+      (isCreateMode
+        ? setName
+        : effectivePathToCollectionId[tokenPath] ?? setName),
+    [
+      explicitCollectionId,
+      effectivePathToCollectionId,
+      isCreateMode,
+      setName,
+      tokenPath,
+    ],
+  );
   const uiState = useTokenEditorUIState({
     tokenPath,
   });
@@ -648,16 +668,16 @@ export function TokenEditor({
     }
 
     const cleanModes: Record<string, Record<string, unknown>> = {};
-    for (const [dimId, options] of Object.entries(modeValues)) {
-      if (!options || typeof options !== "object") continue;
+    for (const [collectionKey, collectionModes] of Object.entries(modeValues)) {
+      if (!collectionModes || typeof collectionModes !== "object") continue;
       const cleanOptions = Object.fromEntries(
-        Object.entries(options).filter(
+        Object.entries(collectionModes).filter(
           ([, modeValue]) =>
             modeValue !== "" && modeValue !== undefined && modeValue !== null,
         ),
       );
       if (Object.keys(cleanOptions).length > 0) {
-        cleanModes[dimId] = cleanOptions;
+        cleanModes[collectionKey] = cleanOptions;
       }
     }
 
@@ -871,30 +891,36 @@ export function TokenEditor({
 
   const afterHeader = (
     <>
-      {dimensions.length > 0 && !isCreateMode && (
+      {collections.length > 0 && !isCreateMode && (
         <div className="flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30">
-          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Theme</span>
-          {dimensions.map((dim) => {
-            const activeOption = collectionSwitcher.activeModes[dim.id] || dim.options[0]?.name || "";
+          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Mode</span>
+          {collections.map((collection) => {
+            const activeOption =
+              collectionSwitcher.selectedModes[collection.id] ||
+              collection.modes[0]?.name ||
+              "";
             return (
               <button
-                key={dim.id}
+                key={collection.id}
                 type="button"
                 onClick={() => {
-                  const idx = dim.options.findIndex((o) => o.name === activeOption);
-                  const nextIdx = (idx + 1) % dim.options.length;
-                  const nextOption = dim.options[nextIdx]?.name;
+                  const idx = collection.modes.findIndex(
+                    (mode) => mode.name === activeOption,
+                  );
+                  const nextIdx = (idx + 1) % collection.modes.length;
+                  const nextOption = collection.modes[nextIdx]?.name;
                   if (nextOption) {
-                    collectionSwitcher.setActiveModes({
-                      ...collectionSwitcher.activeModes,
-                      [dim.id]: nextOption,
+                    collectionSwitcher.setSelectedModes({
+                      ...collectionSwitcher.selectedModes,
+                      [collection.id]: nextOption,
                     });
                   }
                 }}
                 className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-accent)] transition-colors"
-                title={`${dim.name}: ${activeOption} (click to cycle)`}
+                title={`${collection.name}: ${activeOption} (click to cycle)`}
               >
-                {dimensions.length > 1 ? `${dim.name}: ` : ""}{activeOption}
+                {collections.length > 1 ? `${collection.name}: ` : ""}
+                {activeOption}
               </button>
             );
           })}
@@ -1515,8 +1541,8 @@ export function TokenEditor({
         )}
 
         <ModeValuesEditor
-          setName={setName}
-          dimensions={dimensions}
+          collectionId={collectionId}
+          collections={collections}
           modeValues={modeValues}
           onModeValuesChange={setModeValues}
           tokenType={tokenType}
@@ -1524,11 +1550,11 @@ export function TokenEditor({
           reference={reference}
           value={value}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          onNavigateToThemes={onNavigateToThemes}
-          activeThemes={collectionSwitcher.activeModes}
+          pathToCollectionId={effectivePathToCollectionId}
+          onNavigateToCollections={onNavigateToCollections}
+          selectedModes={collectionSwitcher.selectedModes}
           serverUrl={serverUrl}
-          onDimensionCreated={collectionSwitcher.retryCollections}
+          onCollectionModeCreated={collectionSwitcher.retryCollections}
         />
 
         {!aliasMode && referenceSection}

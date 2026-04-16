@@ -61,8 +61,8 @@ export function useTokenSave({
     // entry from allTokensFlat. For composite tokens (shadow, typography, etc.) whose
     // sub-properties may be aliases, restoring the resolved value on undo would bake
     // the resolved values into the file and destroy the alias references. Using the
-    // per-set entry also ensures undo is captured when the token lives in a theme-
-    // disabled set that's absent from allTokensFlat.
+    // per-set entry also ensures undo is captured when the token lives in a set
+    // outside the current collection-resolved flat map.
     const oldEntry = perSetFlat?.[setName]?.[path] ?? allTokensFlat[path];
     const previousSnapshot = previousState
       ? {
@@ -163,7 +163,7 @@ export function useTokenSave({
     _type: string,
     newValue: unknown,
     targetSet: string,
-    _dimId: string,
+    _collectionId: string,
     optionName: string,
     _previousState?: { type?: string; value: unknown },
   ) => {

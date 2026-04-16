@@ -1,5 +1,5 @@
 /**
- * MultiModeCell — compact inline-editable value cell for a single theme option.
+ * MultiModeCell — compact inline-editable value cell for a single collection mode.
  * Extracted from TokenTreeNode.tsx.
  */
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -19,7 +19,7 @@ export function MultiModeCell({
   tokenType,
   value,
   targetSet,
-  dimId,
+  collectionId,
   optionName,
   onSave,
   isTabPending,
@@ -31,14 +31,14 @@ export function MultiModeCell({
   tokenType: string | undefined;
   value: TokenMapEntry | undefined;
   targetSet: string | null;
-  dimId: string;
+  collectionId: string;
   optionName: string;
   onSave?: (
     path: string,
     type: string,
     newValue: any,
     targetSet: string,
-    dimId: string,
+    collectionId: string,
     optionName: string,
     previousState?: { type?: string; value: unknown },
   ) => void;
@@ -115,11 +115,11 @@ export function MultiModeCell({
     const parsed = parseInlineValue(tokenType, raw);
     if (parsed === null) return;
     setEditing(false);
-    onSave(tokenPath, tokenType, parsed, targetSet, dimId, optionName, {
+    onSave(tokenPath, tokenType, parsed, targetSet, collectionId, optionName, {
       type: value?.$type ?? tokenType,
       value: value?.$value,
     });
-  }, [editing, editValue, tokenType, targetSet, dimId, optionName, tokenPath, onSave, value]);
+  }, [editing, editValue, tokenType, targetSet, collectionId, optionName, tokenPath, onSave, value]);
 
   const openAliasEditor = useCallback(
     (e: React.MouseEvent) => {
@@ -171,10 +171,18 @@ export function MultiModeCell({
           onBlur={(e) => {
             const newHex = e.target.value + colorAlphaSuffix;
             if (newHex !== colorHex) {
-              onSave!(tokenPath, "color", newHex, targetSet!, dimId, optionName, {
-                type: value?.$type ?? "color",
-                value: value?.$value,
-              });
+              onSave!(
+                tokenPath,
+                "color",
+                newHex,
+                targetSet!,
+                collectionId,
+                optionName,
+                {
+                  type: value?.$type ?? "color",
+                  value: value?.$value,
+                },
+              );
             }
           }}
         />
@@ -252,10 +260,18 @@ export function MultiModeCell({
                 if (raw) {
                   const parsed = parseInlineValue(tokenType, raw);
                   if (parsed !== null) {
-                    onSave(tokenPath, tokenType, parsed, targetSet, dimId, optionName, {
-                      type: value?.$type ?? tokenType,
-                      value: value?.$value,
-                    });
+                    onSave(
+                      tokenPath,
+                      tokenType,
+                      parsed,
+                      targetSet,
+                      collectionId,
+                      optionName,
+                      {
+                        type: value?.$type ?? tokenType,
+                        value: value?.$value,
+                      },
+                    );
                   }
                 }
               }
@@ -317,7 +333,7 @@ export function MultiModeCell({
                       tokenType || value.$type || "color",
                       `{${path}}`,
                       targetSet!,
-                      dimId,
+                      collectionId,
                       optionName,
                       { type: value.$type, value: value.$value },
                     );

@@ -1,22 +1,22 @@
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 
-export interface ModeCoverageDimensionSummary {
+export interface ModeCoverageCollectionSummary {
   id: string;
   name: string;
-  options: CollectionDefinition["options"];
+  options: TokenCollection["modes"];
   optionCount: number;
   filledCount: number;
   missingCount: number;
 }
 
 export interface ModeCoverageSummary {
-  dimensionCount: number;
-  configuredDimensionCount: number;
-  unconfiguredDimensionCount: number;
+  collectionCount: number;
+  configuredCollectionCount: number;
+  unconfiguredCollectionCount: number;
   optionCount: number;
   filledCount: number;
   missingCount: number;
-  dimensions: ModeCoverageDimensionSummary[];
+  collections: ModeCoverageCollectionSummary[];
 }
 
 function hasModeValue(value: unknown): boolean {
@@ -24,22 +24,22 @@ function hasModeValue(value: unknown): boolean {
 }
 
 export function summarizeModeCoverage(
-  dimensions: CollectionDefinition[],
+  collections: TokenCollection[],
   modeValues: Record<string, Record<string, unknown>>,
 ): ModeCoverageSummary {
-  const dimensionsSummary: ModeCoverageDimensionSummary[] = dimensions.map(
-    (dimension) => {
-      const optionCount = dimension.options.length;
-      const filledCount = Object.entries(modeValues[dimension.id] ?? {}).filter(
+  const collectionsSummary: ModeCoverageCollectionSummary[] = collections.map(
+    (collection) => {
+      const optionCount = collection.modes.length;
+      const filledCount = Object.entries(modeValues[collection.id] ?? {}).filter(
         ([optionName, value]) =>
-          dimension.options.some((option) => option.name === optionName) &&
+          collection.modes.some((option) => option.name === optionName) &&
           hasModeValue(value),
       ).length;
 
       return {
-        id: dimension.id,
-        name: dimension.name,
-        options: dimension.options,
+        id: collection.id,
+        name: collection.name,
+        options: collection.modes,
         optionCount,
         filledCount,
         missingCount: Math.max(0, optionCount - filledCount),
@@ -47,25 +47,25 @@ export function summarizeModeCoverage(
     },
   );
 
-  const optionCount = dimensionsSummary.reduce(
-    (sum, dimension) => sum + dimension.optionCount,
+  const optionCount = collectionsSummary.reduce(
+    (sum, collection) => sum + collection.optionCount,
     0,
   );
-  const filledCount = dimensionsSummary.reduce(
-    (sum, dimension) => sum + dimension.filledCount,
+  const filledCount = collectionsSummary.reduce(
+    (sum, collection) => sum + collection.filledCount,
     0,
   );
-  const configuredDimensionCount = dimensionsSummary.filter(
-    (dimension) => dimension.optionCount > 0,
+  const configuredCollectionCount = collectionsSummary.filter(
+    (collection) => collection.optionCount > 0,
   ).length;
 
   return {
-    dimensionCount: dimensions.length,
-    configuredDimensionCount,
-    unconfiguredDimensionCount: dimensions.length - configuredDimensionCount,
+    collectionCount: collections.length,
+    configuredCollectionCount,
+    unconfiguredCollectionCount: collections.length - configuredCollectionCount,
     optionCount,
     filledCount,
     missingCount: Math.max(0, optionCount - filledCount),
-    dimensions: dimensionsSummary,
+    collections: collectionsSummary,
   };
 }

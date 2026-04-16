@@ -216,7 +216,7 @@ export interface WorkspaceControllerValue {
   shell: ShellWorkspaceController;
   editor: EditorShellController;
   tokens: TokensWorkspaceController;
-  themes: CollectionWorkspaceController;
+  collections: CollectionWorkspaceController;
   apply: ApplyWorkspaceController;
   sync: SyncWorkspaceController;
   setManager: SetManagerWorkspaceController;
@@ -262,7 +262,7 @@ export function useTokensWorkspaceController(): TokensWorkspaceController {
 }
 
 export function useCollectionWorkspaceController(): CollectionWorkspaceController {
-  return useWorkspaceControllerContext().themes;
+  return useWorkspaceControllerContext().collections;
 }
 
 export function useApplyWorkspaceController(): ApplyWorkspaceController {

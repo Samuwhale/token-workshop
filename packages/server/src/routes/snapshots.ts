@@ -147,7 +147,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           fastify.recipeService,
           {
             setNames: currentSets,
-            dimensions: beforeCollectionState.dimensions,
+            dimensions: beforeCollectionState.collections,
             views: beforeCollectionState.views,
             resolvers: beforeResolvers,
             recipes: beforeRecipes,

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import { hexToLuminance, wcagContrast } from "../shared/colorUtils";
 import { normalizeHex, hexToLab } from "@tokenmanager/core";
 import { resolveModeOption } from "../shared/comparisonUtils";
@@ -8,16 +8,18 @@ import { resolveModeOption } from "../shared/comparisonUtils";
 export interface ContrastMatrixPanelProps {
   /** Non-alias color tokens sorted by luminance */
   colorTokens: { path: string; hex: string }[];
-  dimensions: CollectionDefinition[];
+  collections: TokenCollection[];
   allTokensFlat: Record<string, TokenMapEntry>;
+  pathToCollectionId: Record<string, string>;
   pathToSet: Record<string, string>;
   onNavigateToToken?: (path: string, set: string) => void;
 }
 
 export function ContrastMatrixPanel({
   colorTokens,
-  dimensions,
+  collections,
   allTokensFlat,
+  pathToCollectionId,
   pathToSet,
   onNavigateToToken,
 }: ContrastMatrixPanelProps) {
@@ -29,74 +31,76 @@ export function ContrastMatrixPanel({
   const [contrastSortMode, setContrastSortMode] = useState<
     "luminance" | "failures"
   >("luminance");
-  const [contrastMultiTheme, setContrastMultiTheme] = useState(false);
-  const [contrastThemeFilter, setContrastThemeFilter] =
+  const [contrastMultiMode, setContrastMultiMode] = useState(false);
+  const [contrastModeFilter, setContrastModeFilter] =
     useState<Set<string> | null>(null);
 
-  const allThemeOptionKeys = useMemo(() => {
+  const allModeOptionKeys = useMemo(() => {
     const keys = new Set<string>();
-    for (const dim of dimensions) {
-      for (const opt of dim.options) keys.add(`${dim.id}:${opt.name}`);
+    for (const collection of collections) {
+      for (const opt of collection.modes) {
+        keys.add(`${collection.id}:${opt.name}`);
+      }
     }
     return keys;
-  }, [dimensions]);
+  }, [collections]);
 
-  const activeContrastThemeKeys = contrastThemeFilter ?? allThemeOptionKeys;
+  const activeContrastModeKeys = contrastModeFilter ?? allModeOptionKeys;
 
-  const perThemeResolved = useMemo(() => {
-    if (!contrastMultiTheme || dimensions.length === 0) return null;
+  const perModeResolved = useMemo(() => {
+    if (!contrastMultiMode || collections.length === 0) return null;
     const result = new Map<string, Record<string, TokenMapEntry>>();
-    for (const dim of dimensions) {
-      for (const opt of dim.options) {
-        const key = `${dim.id}:${opt.name}`;
-        if (!activeContrastThemeKeys.has(key)) continue;
+    for (const collection of collections) {
+      for (const opt of collection.modes) {
+        const key = `${collection.id}:${opt.name}`;
+        if (!activeContrastModeKeys.has(key)) continue;
         result.set(
           key,
           resolveModeOption(
-            { dimensionId: dim.id, optionName: opt.name },
-            dimensions,
+            { collectionId: collection.id, optionName: opt.name },
+            collections,
             allTokensFlat,
-            pathToSet,
+            pathToCollectionId,
           ),
         );
       }
     }
     return result.size > 0 ? result : null;
   }, [
-    contrastMultiTheme,
-    dimensions,
+    contrastMultiMode,
+    collections,
     allTokensFlat,
-    pathToSet,
-    activeContrastThemeKeys,
+    pathToCollectionId,
+    activeContrastModeKeys,
   ]);
 
-  const multiThemeColorTokens = useMemo(():
-    | { path: string; hexByTheme: Map<string, string> }[]
+  const multiModeColorTokens = useMemo(():
+    | { path: string; hexByMode: Map<string, string> }[]
     | null => {
-    if (!perThemeResolved) return null;
-    const hexByThemePerPath = new Map<string, Map<string, string>>();
+    if (!perModeResolved) return null;
+    const hexByModePerPath = new Map<string, Map<string, string>>();
     const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-    for (const [themeKey, resolved] of perThemeResolved) {
+    for (const [modeKey, resolved] of perModeResolved) {
       for (const [path, entry] of Object.entries(resolved)) {
         if (entry.$type !== "color") continue;
         const v = entry.$value;
         if (typeof v !== "string" || !HEX_RE.test(v)) continue;
-        let themeMap = hexByThemePerPath.get(path);
-        if (!themeMap) {
-          themeMap = new Map();
-          hexByThemePerPath.set(path, themeMap);
+        let modeMap = hexByModePerPath.get(path);
+        if (!modeMap) {
+          modeMap = new Map();
+          hexByModePerPath.set(path, modeMap);
         }
-        themeMap.set(themeKey, normalizeHex(v));
+        modeMap.set(modeKey, normalizeHex(v));
       }
     }
-    const result = [...hexByThemePerPath.entries()].map(
-      ([path, hexByTheme]) => ({ path, hexByTheme }),
+    const result = [...hexByModePerPath.entries()].map(
+      ([path, hexByMode]) => ({ path, hexByMode }),
     );
     result.sort((a, b) => {
       const avgLum = (t: typeof a) => {
         let sum = 0;
         let cnt = 0;
-        for (const hex of t.hexByTheme.values()) {
+        for (const hex of t.hexByMode.values()) {
           const l = hexToLuminance(hex);
           if (l !== null) {
             sum += l;
@@ -108,33 +112,33 @@ export function ContrastMatrixPanel({
       return avgLum(a) - avgLum(b);
     });
     return result;
-  }, [perThemeResolved]);
+  }, [perModeResolved]);
 
   const CONTRAST_PAGE_SIZE = 16;
-  const hasMultiThemeOptions = dimensions.some((d) => d.options.length >= 2);
+  const hasMultiModeOptions = collections.some((collection) => collection.modes.length >= 2);
   const isMultiMode =
-    contrastMultiTheme &&
-    multiThemeColorTokens !== null &&
-    multiThemeColorTokens.length >= 2;
+    contrastMultiMode &&
+    multiModeColorTokens !== null &&
+    multiModeColorTokens.length >= 2;
 
-  const themeKeyLabel = (key: string): string => {
-    const [dimId, optName] = key.split(":");
-    const dim = dimensions.find((d) => d.id === dimId);
-    return dimensions.length > 1 && dim
-      ? `${dim.name}: ${optName}`
+  const modeKeyLabel = (key: string): string => {
+    const [collectionId, optName] = key.split(":");
+    const collection = collections.find((item) => item.id === collectionId);
+    return collections.length > 1 && collection
+      ? `${collection.name}: ${optName}`
       : (optName ?? key);
   };
 
   type MatrixToken = {
     path: string;
     hex: string;
-    hexByTheme?: Map<string, string>;
+    hexByMode?: Map<string, string>;
   };
   const sourceTokens: MatrixToken[] = isMultiMode
-    ? multiThemeColorTokens!.map((t) => {
+    ? multiModeColorTokens!.map((t) => {
         const firstHex =
-          (t.hexByTheme.values().next().value as string) ?? "#000000";
-        return { path: t.path, hex: firstHex, hexByTheme: t.hexByTheme };
+          (t.hexByMode.values().next().value as string) ?? "#000000";
+        return { path: t.path, hex: firstHex, hexByMode: t.hexByMode };
       })
     : colorTokens;
 
@@ -154,26 +158,26 @@ export function ContrastMatrixPanel({
   ): {
     ratio: number | null;
     tooltip: string;
-    failingThemeCount: number;
-    totalThemeCount: number;
+    failingModeCount: number;
+    totalModeCount: number;
   } => {
-    if (isMultiMode && fg.hexByTheme && bg.hexByTheme && perThemeResolved) {
-      const perTheme: { label: string; ratio: number | null }[] = [];
-      for (const themeKey of perThemeResolved.keys()) {
-        const fgHex = fg.hexByTheme.get(themeKey);
-        const bgHex = bg.hexByTheme.get(themeKey);
-        perTheme.push({
-          label: themeKeyLabel(themeKey),
+    if (isMultiMode && fg.hexByMode && bg.hexByMode && perModeResolved) {
+      const perMode: { label: string; ratio: number | null }[] = [];
+      for (const modeKey of perModeResolved.keys()) {
+        const fgHex = fg.hexByMode.get(modeKey);
+        const bgHex = bg.hexByMode.get(modeKey);
+        perMode.push({
+          label: modeKeyLabel(modeKey),
           ratio: fgHex && bgHex ? wcagContrast(fgHex, bgHex) : null,
         });
       }
-      const valid = perTheme.filter(
+      const valid = perMode.filter(
         (t): t is { label: string; ratio: number } => t.ratio !== null,
       );
       const minRatio =
         valid.length > 0 ? Math.min(...valid.map((t) => t.ratio)) : null;
       const failCount = valid.filter((t) => t.ratio < 4.5).length;
-      const tooltip = perTheme
+      const tooltip = perMode
         .map(
           (t) =>
             `${t.label}: ${t.ratio !== null ? t.ratio.toFixed(1) + ":1" : "N/A"}`,
@@ -182,16 +186,16 @@ export function ContrastMatrixPanel({
       return {
         ratio: minRatio,
         tooltip,
-        failingThemeCount: failCount,
-        totalThemeCount: valid.length,
+        failingModeCount: failCount,
+        totalModeCount: valid.length,
       };
     }
     const r = wcagContrast(fg.hex, bg.hex);
     return {
       ratio: r,
       tooltip: `${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`,
-      failingThemeCount: 0,
-      totalThemeCount: 0,
+      failingModeCount: 0,
+      totalModeCount: 0,
     };
   };
 
@@ -238,15 +242,15 @@ export function ContrastMatrixPanel({
       let passes = false;
       if (
         isMultiMode &&
-        candidate.hexByTheme &&
-        bg.hexByTheme &&
-        perThemeResolved
+        candidate.hexByMode &&
+        bg.hexByMode &&
+        perModeResolved
       ) {
-        // Multi-theme: must pass AA in every active theme
+        // Multi-mode: must pass AA in every active mode.
         passes = true;
-        for (const themeKey of perThemeResolved.keys()) {
-          const cHex = candidate.hexByTheme.get(themeKey);
-          const bgHex = bg.hexByTheme.get(themeKey);
+        for (const modeKey of perModeResolved.keys()) {
+          const cHex = candidate.hexByMode.get(modeKey);
+          const bgHex = bg.hexByMode.get(modeKey);
           if (!cHex || !bgHex) {
             passes = false;
             break;
@@ -278,15 +282,15 @@ export function ContrastMatrixPanel({
     fg: MatrixToken;
     bg: MatrixToken;
     ratio: number;
-    failingThemeCount: number;
-    totalThemeCount: number;
+    failingModeCount: number;
+    totalModeCount: number;
     suggestedFix: { path: string; hex: string } | null;
   };
   const allFailingPairs: FailPair[] = [];
   for (let i = 0; i < displayTokens.length; i++) {
     for (let j = 0; j < displayTokens.length; j++) {
       if (i === j) continue;
-      const { ratio, failingThemeCount, totalThemeCount } = getCellContrast(
+      const { ratio, failingModeCount, totalModeCount } = getCellContrast(
         displayTokens[i],
         displayTokens[j],
       );
@@ -300,8 +304,8 @@ export function ContrastMatrixPanel({
           fg: displayTokens[i],
           bg: displayTokens[j],
           ratio,
-          failingThemeCount,
-          totalThemeCount,
+          failingModeCount,
+          totalModeCount,
           suggestedFix,
         });
       }
@@ -328,7 +332,7 @@ export function ContrastMatrixPanel({
               ? sourceTokens.length
               : displayTokens.length}{" "}
             tokens{isMultiMode
-              ? ` · ${activeContrastThemeKeys.size} theme${activeContrastThemeKeys.size !== 1 ? "s" : ""}`
+              ? ` · ${activeContrastModeKeys.size} mode${activeContrastModeKeys.size !== 1 ? "s" : ""}`
               : ""})
         </span>
         <svg
@@ -344,16 +348,16 @@ export function ContrastMatrixPanel({
       </button>
       {showContrastMatrix && (
         <div className="overflow-auto max-h-96 p-2">
-          {/* Cross-theme toggle */}
-          {hasMultiThemeOptions && (
+          {/* Cross-mode toggle */}
+          {hasMultiModeOptions && (
             <div className="flex items-center gap-2 mb-2 px-1 pb-2 border-b border-[var(--color-figma-border)]">
               <button
                 onClick={() => {
-                  setContrastMultiTheme((v) => !v);
+                  setContrastMultiMode((v) => !v);
                   setContrastPage(0);
-                  setContrastThemeFilter(null);
+                  setContrastModeFilter(null);
                 }}
-                className={`flex items-center gap-1.5 px-2 py-0.5 text-[9px] rounded border transition-colors ${contrastMultiTheme ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                className={`flex items-center gap-1.5 px-2 py-0.5 text-[9px] rounded border transition-colors ${contrastMultiMode ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 title="Check contrast across multiple mode options simultaneously — shows worst-case ratio"
               >
                 <svg
@@ -370,32 +374,32 @@ export function ContrastMatrixPanel({
                   <circle cx="9" cy="12" r="7" />
                   <circle cx="15" cy="12" r="7" />
                 </svg>
-                Cross-theme
+                Cross-mode
               </button>
-              {contrastMultiTheme && (
+              {contrastMultiMode && (
                 <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
-                  {dimensions.map((dim) =>
-                    dim.options.length >= 2 ? (
+                  {collections.map((collection) =>
+                    collection.modes.length >= 2 ? (
                       <div
-                        key={dim.id}
+                        key={collection.id}
                         className="flex items-center gap-1 flex-wrap"
                       >
-                        {dimensions.length > 1 && (
+                        {collections.length > 1 && (
                           <span className="text-[8px] text-[var(--color-figma-text-secondary)]">
-                            {dim.name}:
+                            {collection.name}:
                           </span>
                         )}
-                        {dim.options.map(
-                          (opt: CollectionDefinition["options"][number]) => {
-                            const key = `${dim.id}:${opt.name}`;
-                            const isActive = activeContrastThemeKeys.has(key);
+                        {collection.modes.map(
+                          (opt: TokenCollection["modes"][number]) => {
+                            const key = `${collection.id}:${opt.name}`;
+                            const isActive = activeContrastModeKeys.has(key);
                             return (
                               <button
                                 key={key}
                                 onClick={() => {
                                   setContrastPage(0);
-                                  setContrastThemeFilter((prev) => {
-                                    const current = prev ?? allThemeOptionKeys;
+                                  setContrastModeFilter((prev) => {
+                                    const current = prev ?? allModeOptionKeys;
                                     const next = new Set(current);
                                     if (next.has(key)) {
                                       if (next.size > 1) next.delete(key);
@@ -419,9 +423,9 @@ export function ContrastMatrixPanel({
               )}
             </div>
           )}
-          {contrastMultiTheme && multiThemeColorTokens === null && (
+          {contrastMultiMode && multiModeColorTokens === null && (
             <div className="text-[9px] text-[var(--color-figma-text-secondary)] px-1 mb-2">
-              Resolving theme tokens…
+              Resolving collection modes…
             </div>
           )}
           <div className="flex items-center justify-between mb-2 px-1">
@@ -455,20 +459,20 @@ export function ContrastMatrixPanel({
             <button
               onClick={() => {
                 const rows: string[] = isMultiMode
-                  ? ["fg_token,bg_token,theme,contrast_ratio,level"]
+                  ? ["fg_token,bg_token,mode,contrast_ratio,level"]
                   : ["fg_token,bg_token,contrast_ratio,level"];
                 for (const fg of displayTokens) {
                   for (const bg of displayTokens) {
                     if (fg.path === bg.path) continue;
                     if (
                       isMultiMode &&
-                      fg.hexByTheme &&
-                      bg.hexByTheme &&
-                      perThemeResolved
+                      fg.hexByMode &&
+                      bg.hexByMode &&
+                      perModeResolved
                     ) {
-                      for (const themeKey of perThemeResolved.keys()) {
-                        const fgHex = fg.hexByTheme.get(themeKey);
-                        const bgHex = bg.hexByTheme.get(themeKey);
+                      for (const modeKey of perModeResolved.keys()) {
+                        const fgHex = fg.hexByMode.get(modeKey);
+                        const bgHex = bg.hexByMode.get(modeKey);
                         const r =
                           fgHex && bgHex ? wcagContrast(fgHex, bgHex) : null;
                         const level =
@@ -480,7 +484,7 @@ export function ContrastMatrixPanel({
                                 ? "AA"
                                 : "Fail";
                         rows.push(
-                          `"${fg.path}","${bg.path}","${themeKeyLabel(themeKey)}",${r !== null ? r.toFixed(2) : ""},"${level}"`,
+                          `"${fg.path}","${bg.path}","${modeKeyLabel(modeKey)}",${r !== null ? r.toFixed(2) : ""},"${level}"`,
                         );
                       }
                     } else {
@@ -628,8 +632,8 @@ export function ContrastMatrixPanel({
                       fg,
                       bg,
                       ratio,
-                      failingThemeCount,
-                      totalThemeCount,
+                      failingModeCount,
+                      totalModeCount,
                       suggestedFix,
                     }) => {
                       const fixRatio = suggestedFix
@@ -680,7 +684,7 @@ export function ContrastMatrixPanel({
                           </td>
                           {isMultiMode && (
                             <td className="px-1 py-0.5 text-right text-[var(--color-figma-text-secondary)]">
-                              {failingThemeCount}/{totalThemeCount}
+                              {failingModeCount}/{totalModeCount}
                             </td>
                           )}
                           <td className="px-1 py-0.5">
@@ -830,13 +834,13 @@ export function ContrastMatrixPanel({
                         const {
                           ratio: r,
                           tooltip,
-                          failingThemeCount,
-                          totalThemeCount,
+                          failingModeCount,
+                          totalModeCount,
                         } = getCellContrast(fg, bg);
                         const aa = r !== null && r >= 4.5;
                         const aaa = r !== null && r >= 7;
                         const partialFail =
-                          isMultiMode && aa && failingThemeCount > 0;
+                          isMultiMode && aa && failingModeCount > 0;
                         return (
                           <td
                             key={bg.path}
@@ -859,10 +863,10 @@ export function ContrastMatrixPanel({
                             </span>
                             {isMultiMode &&
                               !aaa &&
-                              failingThemeCount > 0 &&
-                              totalThemeCount > 0 && (
+                              failingModeCount > 0 &&
+                              totalModeCount > 0 && (
                                 <span className="block text-[6px] leading-none mt-0.5 text-[var(--color-figma-text-secondary)]">
-                                  {failingThemeCount}/{totalThemeCount}
+                                  {failingModeCount}/{totalModeCount}
                                 </span>
                               )}
                           </td>
@@ -884,7 +888,7 @@ export function ContrastMatrixPanel({
                 {isMultiMode && (
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded bg-[var(--color-figma-warning)]/20 border border-[var(--color-figma-warning)]/40" />
-                    AA in some themes
+                    AA in some modes
                   </span>
                 )}
                 <span className="flex items-center gap-1">
@@ -894,8 +898,8 @@ export function ContrastMatrixPanel({
               </div>
               {isMultiMode && (
                 <p className="mt-1 px-1 text-[8px] text-[var(--color-figma-text-secondary)]">
-                  Ratio shown is the worst case across selected themes. Hover a
-                  cell to see per-theme breakdown.
+                  Ratio shown is the worst case across selected modes. Hover a
+                  cell to see the per-mode breakdown.
                 </p>
               )}
             </>

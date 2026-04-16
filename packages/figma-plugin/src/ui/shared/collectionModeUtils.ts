@@ -1,17 +1,25 @@
 import type {
-  ActiveModeSelections,
-  CollectionDefinition,
+  SelectedModes,
+  TokenCollection,
   ViewPreset,
-  TokenExtensions,
+  TokenModeValues,
+} from "@tokenmanager/core";
+import {
+  buildSelectedModesLabel,
+  createViewPreset as createCanonicalViewPreset,
+  createViewPresetName as createCanonicalViewPresetName,
+  findCollectionById,
+  normalizeSelectedModes,
+  readTokenCollectionModeValues,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { resolveAllAliases } from "../../shared/resolveAlias";
 
-type TokenModeMap = Record<string, Record<string, unknown>>;
+type TokenModeMap = TokenModeValues;
 
 export interface ModeCoverageEntry {
   path: string;
-  setName: string;
+  collectionId: string;
   type?: string;
 }
 
@@ -31,7 +39,7 @@ export interface ModeCoverageSummary {
   unmappedOptionCount: number;
   mappedOptionWithAssignmentIssuesCount: number;
   totalMissingModeValueCount: number;
-  mappedSetCount: number;
+  mappedCollectionCount: number;
 }
 
 export interface ModeCoverageResult {
@@ -39,21 +47,18 @@ export interface ModeCoverageResult {
   summary: ModeCoverageSummary;
 }
 
-export function getCollectionModeDefinition(
-  dimensions: CollectionDefinition[],
-  setName: string,
-): CollectionDefinition | null {
-  return dimensions.find((dimension) => dimension.id === setName) ?? null;
+export function getTokenCollection(
+  collections: TokenCollection[],
+  collectionId: string,
+): TokenCollection | null {
+  return findCollectionById(collections, collectionId);
 }
 
 function readTokenModes(
   entry: TokenMapEntry | undefined,
 ): TokenModeMap | null {
-  const modes = (
-    entry?.$extensions as TokenExtensions | undefined
-  )?.tokenmanager?.modes;
-  if (!modes || typeof modes !== "object" || Array.isArray(modes)) return null;
-  return modes as TokenModeMap;
+  const modes = readTokenCollectionModeValues(entry);
+  return Object.keys(modes).length > 0 ? modes : null;
 }
 
 function hasModeValue(value: unknown): boolean {
@@ -64,26 +69,26 @@ function compareCoverageEntries(
   left: ModeCoverageEntry,
   right: ModeCoverageEntry,
 ): number {
-  if (left.setName !== right.setName) {
-    return left.setName.localeCompare(right.setName);
+  if (left.collectionId !== right.collectionId) {
+    return left.collectionId.localeCompare(right.collectionId);
   }
 
   return left.path.localeCompare(right.path);
 }
 
 export function buildModeCoverage(params: {
-  dimensions: CollectionDefinition[];
+  collections: TokenCollection[];
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }): ModeCoverageResult {
   const coverage: ModeCoverageMap = {};
-  const mappedSetNames = new Set<string>();
+  const mappedCollectionIds = new Set<string>();
   const tokenEntries = Object.entries(params.allTokensFlat).map(
     ([path, entry]) => ({
       path,
       entry,
       tokenModes: readTokenModes(entry),
-      setName: params.pathToSet?.[path] ?? "",
+      collectionId: params.pathToCollectionId?.[path] ?? "",
     }),
   );
 
@@ -92,25 +97,21 @@ export function buildModeCoverage(params: {
   let mappedOptionWithAssignmentIssuesCount = 0;
   let totalMissingModeValueCount = 0;
 
-  for (const dimension of params.dimensions) {
+  for (const collection of params.collections) {
     const optionNames = new Set(
-      dimension.options.map((option) => option.name),
+      collection.modes.map((option) => option.name),
     );
     const tokenCoverage = tokenEntries.flatMap((token) => {
-      if (token.setName !== dimension.id) {
+      if (token.collectionId !== collection.id) {
         return [];
       }
-      const dimensionModes = token.tokenModes?.[dimension.id];
-      if (
-        !dimensionModes ||
-        typeof dimensionModes !== "object" ||
-        Array.isArray(dimensionModes)
-      ) {
+      const collectionModes = token.tokenModes?.[collection.id];
+      if (!collectionModes || typeof collectionModes !== "object" || Array.isArray(collectionModes)) {
         return [];
       }
 
       const activeOptionNames = new Set(
-        Object.entries(dimensionModes)
+        Object.entries(collectionModes)
           .filter(
             ([optionName, value]) =>
               optionNames.has(optionName) && hasModeValue(value),
@@ -122,24 +123,24 @@ export function buildModeCoverage(params: {
         return [];
       }
 
-      if (token.setName) {
-        mappedSetNames.add(token.setName);
+      if (token.collectionId) {
+        mappedCollectionIds.add(token.collectionId);
       }
 
       return [{ token, activeOptionNames }];
     });
-    const dimensionHasCoverage = tokenCoverage.length > 0;
+    const collectionHasCoverage = tokenCoverage.length > 0;
 
-    coverage[dimension.id] = {};
+    coverage[collection.id] = {};
 
-    for (const option of dimension.options) {
+    for (const option of collection.modes) {
       const missing: ModeCoverageEntry[] = [];
 
       for (const token of tokenCoverage) {
         if (!token.activeOptionNames.has(option.name)) {
           missing.push({
             path: token.token.path,
-            setName: token.token.setName,
+            collectionId: token.token.collectionId,
             type: token.token.entry.$type,
           });
         }
@@ -151,16 +152,16 @@ export function buildModeCoverage(params: {
         totalMissingModeValueCount += missing.length;
       }
 
-      coverage[dimension.id][option.name] = {
-        hasCoverage: dimensionHasCoverage,
+      coverage[collection.id][option.name] = {
+        hasCoverage: collectionHasCoverage,
         missing,
       };
     }
 
-    if (dimensionHasCoverage) {
-      mappedOptionCount += dimension.options.length;
+    if (collectionHasCoverage) {
+      mappedOptionCount += collection.modes.length;
     } else {
-      unmappedOptionCount += dimension.options.length;
+      unmappedOptionCount += collection.modes.length;
     }
   }
 
@@ -171,49 +172,49 @@ export function buildModeCoverage(params: {
       unmappedOptionCount,
       mappedOptionWithAssignmentIssuesCount,
       totalMissingModeValueCount,
-      mappedSetCount: mappedSetNames.size,
+      mappedCollectionCount: mappedCollectionIds.size,
     },
   };
 }
 
 export function applyModeSelectionsToTokens(
   allTokensFlat: Record<string, TokenMapEntry>,
-  dimensions: CollectionDefinition[],
-  selections: ActiveModeSelections,
-  pathToSet?: Record<string, string>,
+  collections: TokenCollection[],
+  selections: SelectedModes,
+  pathToCollectionId?: Record<string, string>,
 ): Record<string, TokenMapEntry> {
-  if (dimensions.length === 0 || Object.keys(selections).length === 0) {
+  if (collections.length === 0 || Object.keys(selections).length === 0) {
     return resolveAllAliases(allTokensFlat);
   }
 
-  const dimensionsById = new Map(
-    dimensions.map((dimension) => [dimension.id, dimension]),
+  const collectionsById = new Map(
+    collections.map((collection) => [collection.id, collection]),
   );
-  const themedEntries: Record<string, TokenMapEntry> = {};
+  const collectionResolvedEntries: Record<string, TokenMapEntry> = {};
 
   for (const [path, entry] of Object.entries(allTokensFlat)) {
     const tokenModes = readTokenModes(entry);
     if (!tokenModes) {
-      themedEntries[path] = entry;
+      collectionResolvedEntries[path] = entry;
       continue;
     }
 
     let nextValue = entry.$value;
-    const setName = pathToSet?.[path];
-    if (!setName || !dimensionsById.has(setName)) {
-      themedEntries[path] = entry;
+    const collectionId = pathToCollectionId?.[path];
+    if (!collectionId || !collectionsById.has(collectionId)) {
+      collectionResolvedEntries[path] = entry;
       continue;
     }
 
-    const optionName = selections[setName];
+    const optionName = selections[collectionId];
     if (optionName) {
-      const overrideValue = tokenModes[setName]?.[optionName];
+      const overrideValue = tokenModes[collectionId]?.[optionName];
       if (overrideValue !== undefined) {
         nextValue = overrideValue as TokenMapEntry["$value"];
       }
     }
 
-    themedEntries[path] =
+    collectionResolvedEntries[path] =
       nextValue === entry.$value
         ? entry
         : {
@@ -222,61 +223,41 @@ export function applyModeSelectionsToTokens(
           };
   }
 
-  return resolveAllAliases(themedEntries);
+  return resolveAllAliases(collectionResolvedEntries);
 }
 
 export function buildSelectionLabel(
-  dimensions: CollectionDefinition[],
-  selections: ActiveModeSelections,
+  collections: TokenCollection[],
+  selections: SelectedModes,
 ): string {
-  return dimensions
-    .map((dimension) => {
-      const optionName = selections[dimension.id];
-      return optionName ? `${dimension.name} · ${optionName}` : null;
-    })
-    .filter(Boolean)
-    .join(" · ");
+  return buildSelectedModesLabel(collections, selections);
 }
 
 export function createViewPresetName(
-  dimensions: CollectionDefinition[],
-  selections: ActiveModeSelections,
+  collections: TokenCollection[],
+  selections: SelectedModes,
 ): string {
-  const parts = dimensions
-    .map((dimension) => selections[dimension.id])
-    .filter((value): value is string => Boolean(value));
-  return parts.join(" / ") || "New view";
+  return createCanonicalViewPresetName(collections, selections);
 }
 
 export function normalizeModeSelections(
-  dimensions: CollectionDefinition[],
-  selections: ActiveModeSelections,
-): ActiveModeSelections {
-  const next: ActiveModeSelections = {};
-
-  for (const dimension of dimensions) {
-    const selectedOption = selections[dimension.id];
-    if (
-      selectedOption &&
-      dimension.options.some((option) => option.name === selectedOption)
-    ) {
-      next[dimension.id] = selectedOption;
-    }
-  }
-
-  return next;
+  collections: TokenCollection[],
+  selections: SelectedModes,
+): SelectedModes {
+  return normalizeSelectedModes(collections, selections);
 }
 
 export function createViewPreset(params: {
   id: string;
   name: string;
-  dimensions: CollectionDefinition[];
-  selections: ActiveModeSelections;
+  collections: TokenCollection[];
+  selections: SelectedModes;
 }): ViewPreset {
-  const { id, name, dimensions, selections } = params;
-  return {
+  const { id, name, collections, selections } = params;
+  return createCanonicalViewPreset({
     id,
     name,
-    selections: normalizeModeSelections(dimensions, selections),
-  };
+    collections,
+    selections,
+  });
 }

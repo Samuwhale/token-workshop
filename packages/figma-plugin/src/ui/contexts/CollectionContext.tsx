@@ -2,9 +2,9 @@
  * CollectionContext — split into two focused sub-contexts to minimise cascade
  * re-renders caused by unrelated state changes:
  *
- *   CollectionSwitcherContext — collection/mode selection UI state, preview/active
- *                          selections, and the derived modeResolvedTokensFlat memo.
- *                          `previewModes` changes on every hover, so this
+ *   CollectionSwitcherContext — collection/mode selection UI state, selected
+ *                          modes, hover preview, and the derived modeResolvedTokensFlat memo.
+ *                          `hoverPreviewModes` changes on every hover, so this
  *                          context is intentionally isolated from resolver state.
  *   ResolverContext      — DTCG resolver config and output previews.
  *                          Exposes the ResolverState interface directly so callers
@@ -27,7 +27,7 @@ import type {
   ResolverSelectionOrigin,
 } from '../hooks/useResolvers';
 import type { TokenMapEntry } from '../../shared/types';
-import type { CollectionDefinition, ResolverFile } from '@tokenmanager/core';
+import type { SelectedModes, TokenCollection, ResolverFile } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 
 // ---------------------------------------------------------------------------
@@ -58,12 +58,12 @@ export interface ResolverState {
 
 export interface CollectionSwitcherContextValue {
   // ---- useCollectionSwitcher ------------------------------------------------
-  collections: CollectionDefinition[];
-  setCollections: React.Dispatch<React.SetStateAction<CollectionDefinition[]>>;
-  activeModes: Record<string, string>;
-  setActiveModes: (map: Record<string, string>) => void;
-  previewModes: Record<string, string>;
-  setPreviewModes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  collections: TokenCollection[];
+  setCollections: React.Dispatch<React.SetStateAction<TokenCollection[]>>;
+  selectedModes: SelectedModes;
+  setSelectedModes: (map: SelectedModes) => void;
+  hoverPreviewModes: SelectedModes;
+  setHoverPreviewModes: React.Dispatch<React.SetStateAction<SelectedModes>>;
   openCollectionDropdown: string | null;
   setOpenCollectionDropdown: React.Dispatch<React.SetStateAction<string | null>>;
   collectionBarExpanded: boolean;
@@ -164,12 +164,12 @@ function CollectionSwitcherProvider({ children, serverUrl, connected }: {
   connected: boolean;
 }) {
   const { tokenRevision } = useTokenSetsContext();
-  const { allTokensFlat, pathToSet } = useTokenFlatMapContext();
+  const { allTokensFlat, pathToSet: pathToCollectionId } = useTokenFlatMapContext();
 
   const {
     collections, setCollections,
-    activeModes, setActiveModes,
-    previewModes, setPreviewModes,
+    selectedModes, setSelectedModes,
+    hoverPreviewModes, setHoverPreviewModes,
     openCollectionDropdown, setOpenCollectionDropdown,
     collectionBarExpanded, setCollectionBarExpanded,
     collectionDropdownRef,
@@ -180,14 +180,14 @@ function CollectionSwitcherProvider({ children, serverUrl, connected }: {
     connected,
     tokenRevision,
     allTokensFlat,
-    pathToSet,
+    pathToCollectionId,
   );
 
   const value = useMemo<CollectionSwitcherContextValue>(
     () => ({
       collections, setCollections,
-      activeModes, setActiveModes,
-      previewModes, setPreviewModes,
+      selectedModes, setSelectedModes,
+      hoverPreviewModes, setHoverPreviewModes,
       openCollectionDropdown, setOpenCollectionDropdown,
       collectionBarExpanded, setCollectionBarExpanded,
       collectionDropdownRef, collectionsError, retryCollections,
@@ -195,8 +195,8 @@ function CollectionSwitcherProvider({ children, serverUrl, connected }: {
     }),
     [
       collections, setCollections,
-      activeModes, setActiveModes,
-      previewModes, setPreviewModes,
+      selectedModes, setSelectedModes,
+      hoverPreviewModes, setHoverPreviewModes,
       openCollectionDropdown, setOpenCollectionDropdown,
       collectionBarExpanded, setCollectionBarExpanded,
       collectionDropdownRef, collectionsError, retryCollections,

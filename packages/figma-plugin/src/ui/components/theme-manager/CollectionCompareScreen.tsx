@@ -1,4 +1,4 @@
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import { UnifiedComparePanel } from "../UnifiedComparePanel";
 import type { CompareMode } from "../UnifiedComparePanel";
 
@@ -11,8 +11,9 @@ interface CollectionCompareScreenProps {
   tokenPath: string;
   onClearTokenPath: () => void;
   allTokensFlat: Record<string, any>;
-  pathToSet: Record<string, string>;
-  dimensions: CollectionDefinition[];
+  pathToCollectionId: Record<string, string>;
+  pathToStorageSet: Record<string, string>;
+  collections: TokenCollection[];
   sets: string[];
   modeOptionsKey: number;
   modeOptionsDefaultA: string;
@@ -34,8 +35,9 @@ export function CollectionCompareScreen({
   tokenPath,
   onClearTokenPath,
   allTokensFlat,
-  pathToSet,
-  dimensions,
+  pathToCollectionId,
+  pathToStorageSet,
+  collections,
   sets,
   modeOptionsKey,
   modeOptionsDefaultA,
@@ -97,8 +99,9 @@ export function CollectionCompareScreen({
           tokenPath={tokenPath}
           onClearTokenPath={onClearTokenPath}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          dimensions={dimensions}
+          pathToCollectionId={pathToCollectionId}
+          pathToStorageSet={pathToStorageSet}
+          collections={collections}
           sets={sets}
           modeOptionsKey={modeOptionsKey}
           modeOptionsDefaultA={modeOptionsDefaultA}

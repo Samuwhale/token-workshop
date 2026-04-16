@@ -58,12 +58,12 @@ export class TokenResolver {
   /** Current DFS recursion stack (for cycle path reconstruction). */
   private dfsStack: string[] = [];
 
-  /** Name of the token set (attached to every ResolvedToken). */
-  private setName: string;
+  /** Canonical collection identifier attached to every resolved token. */
+  private collectionId: string;
 
-  constructor(tokens: Record<string, Token>, setName = 'default') {
+  constructor(tokens: Record<string, Token>, collectionId = 'default') {
     this.tokens = new Map(Object.entries(tokens));
-    this.setName = setName;
+    this.collectionId = collectionId;
     this.buildGraph();
   }
 
@@ -389,7 +389,7 @@ export class TokenResolver {
         $description: token.$description,
         $extensions: extensions,
         rawValue: token.$value,
-        setName: this.setName,
+        collectionId: this.collectionId,
       });
 
       this.color.set(path, Color.Black);

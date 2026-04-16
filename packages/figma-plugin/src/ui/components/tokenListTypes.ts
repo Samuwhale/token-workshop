@@ -11,12 +11,12 @@ import type { LintViolation } from "../hooks/useLint";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { TokensLibraryRecipeEditorTarget } from "../shared/navigationTypes";
 import type { StartHereBranch } from "./WelcomePrompt";
-import type { CollectionDefinition } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 
 /** Per-option resolved value for a single token in multi-mode view */
 export interface MultiModeValue {
   optionName: string;
-  dimId: string;
+  collectionId: string;
   resolved: TokenMapEntry | undefined;
   /** The set name to target when inline-editing this option's value */
   targetSet: string | null;
@@ -102,14 +102,16 @@ export interface TokenListData {
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
-  /** Theme dimensions for multi-mode column view */
-  dimensions?: CollectionDefinition[];
-  /** Unthemed (raw) allTokensFlat — needed for per-option resolution */
+  /** Collections available for multi-mode column view */
+  collections?: TokenCollection[];
+  /** Raw allTokensFlat before applying collection mode selections */
   unthemedAllTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token paths to their source set name */
   pathToSet?: Record<string, string>;
-  /** Currently active theme selections (dimId → optionName) */
-  activeThemes?: Record<string, string>;
+  /** Maps token paths to their collection id */
+  pathToCollectionId?: Record<string, string>;
+  /** Currently selected collection modes (collectionId → modeName) */
+  selectedModes?: Record<string, string>;
 }
 
 export interface TokenListActions {
@@ -158,7 +160,7 @@ export interface TokenListActions {
   /** Open the unified compare view with the given token paths pre-loaded (navigates away from Tokens tab) */
   onOpenCompare?: (paths: Set<string>) => void;
   /** Open the unified compare view in cross-collection mode for a specific token path */
-  onOpenCrossThemeCompare?: (path: string) => void;
+  onOpenCrossCollectionCompare?: (path: string) => void;
   /** Open the command palette in token-search mode pre-populated with the given query ("> query") */
   onOpenCommandPaletteWithQuery?: (query: string) => void;
   /** Open the global paste tokens modal */
@@ -237,7 +239,7 @@ export interface RecipeImpact {
 }
 
 export interface ModeImpact {
-  dimName: string;
+  collectionName: string;
   optionName: string;
 }
 
@@ -351,8 +353,8 @@ export interface TokenTreeGroupStateContextType {
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
   recipesByTargetGroup?: Map<string, TokenRecipe>;
-  /** Pre-computed theme coverage per group: groupPath → { themed, total, totalMissing } */
-  themeCoverage?: Map<string, { themed: number; total: number; totalMissing: number }>;
+  /** Pre-computed collection mode coverage per group: groupPath → { configured, total, totalMissing } */
+  collectionCoverage?: Map<string, { configured: number; total: number; totalMissing: number }>;
   /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
   condensedView?: boolean;
   /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
@@ -423,10 +425,10 @@ export interface TokenTreeLeafStateContextType {
   condensedView?: boolean;
   /** Set of starred token paths in the current set — for fast O(1) lookup */
   starredPaths?: Set<string>;
-  /** Theme dimensions — for resolution chain debugger */
-  dimensions?: CollectionDefinition[];
-  /** Currently active theme selections (dimId → optionName) — for resolution chain debugger */
-  activeThemes?: Record<string, string>;
+  /** Collections used for resolution-chain debugging */
+  collections?: TokenCollection[];
+  /** Currently selected collection modes (collectionId → modeName) — for resolution chain debugger */
+  selectedModes?: Record<string, string>;
   /** Path of a token that should enter inline rename mode as soon as it renders */
   pendingRenameToken: string | null;
   /** Tab navigation: token + optional multi-mode column that should enter edit mode */
@@ -439,7 +441,7 @@ export interface TokenTreeLeafStateContextType {
   modeVariantPaths?: Set<string>;
   /** Per-token missing mode value count — tokenPath → number of missing mode values */
   tokenModeMissing?: Map<string, number>;
-  /** When true, the token list is showing themed values instead of base values */
+  /** When true, the token list is showing collection-mode-resolved values instead of base values */
   modeLensEnabled?: boolean;
 }
 
@@ -471,7 +473,7 @@ export interface TokenTreeLeafActionsContextType {
   /** Navigate to History panel filtered to this token path */
   onViewTokenHistory?: (path: string) => void;
   /** Open cross-collection comparison panel for this token */
-  onCompareAcrossThemes?: (path: string) => void;
+  onCompareAcrossCollections?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
   onDragOverToken?: (
@@ -490,7 +492,7 @@ export interface TokenTreeLeafActionsContextType {
     type: string,
     newValue: any,
     targetSet: string,
-    dimId: string,
+    collectionId: string,
     optionName: string,
     previousState?: { type?: string; value: unknown },
   ) => void;

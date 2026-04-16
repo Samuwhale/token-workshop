@@ -3,10 +3,14 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type {
   ResolverFile,
-  CollectionDefinition,
+  TokenCollection,
   ViewPreset,
   Token,
   TokenRecipe,
+} from "@tokenmanager/core";
+import {
+  deserializeTokenCollections,
+  serializeTokenCollections,
 } from "@tokenmanager/core";
 import type {
   PublishRouteState,
@@ -193,7 +197,7 @@ export type RollbackStep =
     }
   | {
       action: "write-themes";
-      dimensions: CollectionDefinition[];
+      dimensions: TokenCollection[];
       views?: ViewPreset[];
     }
   | { action: "write-resolver"; name: string; file: ResolverFile }
@@ -208,21 +212,21 @@ export type RollbackStep =
 export interface CollectionsWriteLock {
   withLock<T>(
     fn: (
-      dims: CollectionDefinition[],
-    ) => Promise<{ dims: CollectionDefinition[]; result: T }>,
+      collections: TokenCollection[],
+    ) => Promise<{ collections: TokenCollection[]; result: T }>,
   ): Promise<T>;
   withReadStateLock?<T>(
     fn: (state: {
-      dimensions: CollectionDefinition[];
+      collections: TokenCollection[];
       views: ViewPreset[];
     }) => Promise<T>,
   ): Promise<T>;
   withStateLock?<T>(
     fn: (state: {
-      dimensions: CollectionDefinition[];
+      collections: TokenCollection[];
       views: ViewPreset[];
     }) => Promise<{
-      state: { dimensions: CollectionDefinition[]; views: ViewPreset[] };
+      state: { collections: TokenCollection[]; views: ViewPreset[] };
       result: T;
     }>,
   ): Promise<T>;
@@ -525,11 +529,11 @@ export class OperationLog {
   }
 
   // ---------------------------------------------------------------------------
-  // Themes file helpers (for structural rollback of theme operations)
+  // Collections file helpers for structural rollback of collection operations.
   // ---------------------------------------------------------------------------
 
   private async readCollectionsFile(): Promise<{
-    dimensions: CollectionDefinition[];
+    dimensions: TokenCollection[];
     views: ViewPreset[];
   }> {
     try {
@@ -540,11 +544,9 @@ export class OperationLog {
       const data = JSON.parse(content);
       const collections = Array.isArray(data.$collections)
         ? data.$collections
-        : Array.isArray(data.$themes)
-          ? data.$themes
-          : [];
+        : [];
       return {
-        dimensions: collections,
+        dimensions: deserializeTokenCollections(collections),
         views: Array.isArray(data.$views) ? data.$views : [],
       };
     } catch {
@@ -553,12 +555,12 @@ export class OperationLog {
   }
 
   private async writeCollectionsFile(state: {
-    dimensions: CollectionDefinition[];
+    dimensions: TokenCollection[];
     views: ViewPreset[];
   }): Promise<void> {
     const dest = path.join(this.tokenDir, "$collections.json");
     const data = {
-      $collections: state.dimensions,
+      $collections: serializeTokenCollections(state.dimensions),
       ...(state.views.length > 0 ? { $views: state.views } : {}),
     };
     const tmp = `${dest}.tmp`;
@@ -623,7 +625,7 @@ export class OperationLog {
         }
         case "write-themes": {
           let currentState: {
-            dimensions: CollectionDefinition[];
+            collections: TokenCollection[];
             views: ViewPreset[];
           };
           if (ctx.collectionsStore?.withReadStateLock) {
@@ -631,17 +633,23 @@ export class OperationLog {
               Promise.resolve(structuredClone(state)),
             );
           } else if (ctx.collectionsStore) {
-            const currentDims = await ctx.collectionsStore.withLock(async (dims) => ({
-              dims,
-              result: structuredClone(dims),
-            }));
-            currentState = { dimensions: currentDims, views: [] };
+            const currentCollections = await ctx.collectionsStore.withLock(
+              async (collections) => ({
+                collections,
+                result: structuredClone(collections),
+              }),
+            );
+            currentState = { collections: currentCollections, views: [] };
           } else {
-            currentState = await this.readCollectionsFile();
+            const fileState = await this.readCollectionsFile();
+            currentState = {
+              collections: fileState.dimensions,
+              views: fileState.views,
+            };
           }
           inverse.push({
             action: "write-themes",
-            dimensions: currentState.dimensions,
+            dimensions: currentState.collections,
             views: currentState.views,
           });
           break;
@@ -739,14 +747,14 @@ export class OperationLog {
           if (ctx.collectionsStore?.withStateLock) {
             await ctx.collectionsStore.withStateLock(async () => ({
               state: {
-                dimensions: step.dimensions,
+                collections: step.dimensions,
                 views: step.views ?? [],
               },
               result: undefined,
             }));
           } else if (ctx.collectionsStore) {
             await ctx.collectionsStore.withLock(async () => ({
-              dims: step.dimensions,
+              collections: step.dimensions,
               result: undefined,
             }));
           } else {

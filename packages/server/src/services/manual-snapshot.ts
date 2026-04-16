@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { flattenTokenGroup } from "@tokenmanager/core";
 import type {
   ResolverFile,
-  CollectionDefinition,
+  TokenCollection,
   ViewPreset,
   Token,
   TokenRecipe,
@@ -38,7 +38,7 @@ type ManualSnapshotComparableState = Pick<
 
 interface RestoreWorkspaceState {
   setNames: string[];
-  dimensions: CollectionDefinition[];
+  dimensions: TokenCollection[];
   views?: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
@@ -56,7 +56,7 @@ type RestorePlanStep =
     })
   | (RestorePlanStepBase & {
       kind: "restore-themes";
-      dimensions: CollectionDefinition[];
+      dimensions: TokenCollection[];
       views: ViewPreset[];
     })
   | (RestorePlanStepBase & {
@@ -85,7 +85,7 @@ interface RestorePlan {
   snapshotId: string;
   snapshotLabel: string;
   data: SnapshotTokenSets;
-  dimensions: CollectionDefinition[];
+  dimensions: TokenCollection[];
   views: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
@@ -108,7 +108,7 @@ export interface ManualSnapshotEntry {
   timestamp: string;
   /** Flat map: setName -> (tokenPath -> token) */
   data: SnapshotTokenSets;
-  dimensions: CollectionDefinition[];
+  dimensions: TokenCollection[];
   views: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
@@ -217,7 +217,7 @@ function normalizeSnapshotEntry(raw: unknown): ManualSnapshotEntry {
         : new Date().toISOString(),
     data: isRecord(raw.data) ? (raw.data as SnapshotTokenSets) : {},
     dimensions: Array.isArray(raw.dimensions)
-      ? structuredClone(raw.dimensions as CollectionDefinition[])
+      ? structuredClone(raw.dimensions as TokenCollection[])
       : [],
     views: Array.isArray(raw.views)
       ? structuredClone(raw.views as ViewPreset[])
@@ -241,7 +241,7 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
     typeof raw.snapshotLabel === "string" ? raw.snapshotLabel : "Snapshot";
   const data = isRecord(raw.data) ? (raw.data as SnapshotTokenSets) : {};
   const dimensions = Array.isArray(raw.dimensions)
-    ? structuredClone(raw.dimensions as CollectionDefinition[])
+    ? structuredClone(raw.dimensions as TokenCollection[])
     : [];
   const views = Array.isArray(raw.views)
     ? structuredClone(raw.views as ViewPreset[])
@@ -478,7 +478,7 @@ function buildSnapshotRestoreRollbackSteps({
   snapshotResolvers,
   snapshotRecipes,
 }: {
-  currentDimensions: CollectionDefinition[];
+  currentDimensions: TokenCollection[];
   currentViews: ViewPreset[];
   currentResolvers: SnapshotResolvers;
   currentRecipes: SnapshotRecipes;
@@ -635,7 +635,7 @@ export class ManualSnapshotStore {
       label: "",
       timestamp: "",
       data,
-      dimensions: collectionState.dimensions,
+      dimensions: collectionState.collections,
       views: collectionState.views,
       resolvers,
       recipes,
@@ -946,12 +946,15 @@ export class ManualSnapshotStore {
   private async restoreThemes(
     collectionsStore: CollectionsStore,
     state: {
-      dimensions: CollectionDefinition[];
+      dimensions: TokenCollection[];
       views: ViewPreset[];
     },
   ): Promise<void> {
     await collectionsStore.withStateLock(async () => ({
-      state: structuredClone(state),
+      state: {
+        collections: structuredClone(state.dimensions),
+        views: structuredClone(state.views),
+      },
       result: undefined,
     }));
   }
@@ -991,7 +994,7 @@ export class ManualSnapshotStore {
 
     return {
       setNames,
-      dimensions: collectionState.dimensions,
+      dimensions: collectionState.collections,
       views: collectionState.views,
       resolvers,
       recipes,

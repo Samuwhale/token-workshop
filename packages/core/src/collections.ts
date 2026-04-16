@@ -1,0 +1,248 @@
+import type {
+  CollectionMode,
+  SelectedModes,
+  SerializedTokenCollection,
+  Token,
+  TokenCollection,
+  TokenModeValues,
+  TokenExtensions,
+  ViewPreset,
+} from "./types.js";
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isModeValuesRecord(value: unknown): value is TokenModeValues {
+  return isPlainObject(value);
+}
+
+function normalizeCollectionMode(value: unknown): CollectionMode | null {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  const name = typeof value.name === "string" ? value.name.trim() : "";
+  return name ? { name } : null;
+}
+
+function normalizeSerializedTokenCollection(
+  value: unknown,
+): SerializedTokenCollection | null {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  const id = typeof value.id === "string" ? value.id.trim() : "";
+  const name = typeof value.name === "string" ? value.name.trim() : "";
+  if (!id || !name) {
+    return null;
+  }
+
+  const options = Array.isArray(value.options)
+    ? value.options
+        .map((option) => normalizeCollectionMode(option))
+        .filter((option): option is CollectionMode => option !== null)
+    : [];
+
+  return { id, name, options };
+}
+
+function normalizeSelectedModesRecord(value: unknown): SelectedModes | null {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  const selections: SelectedModes = {};
+  for (const [collectionId, modeName] of Object.entries(value)) {
+    if (collectionId.trim().length === 0 || typeof modeName !== "string") {
+      continue;
+    }
+    selections[collectionId] = modeName;
+  }
+  return selections;
+}
+
+function normalizeViewPreset(value: unknown): ViewPreset | null {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  const id = typeof value.id === "string" ? value.id.trim() : "";
+  const name = typeof value.name === "string" ? value.name.trim() : "";
+  const selections = normalizeSelectedModesRecord(value.selections);
+  if (!id || !name || !selections) {
+    return null;
+  }
+
+  return { id, name, selections };
+}
+
+export function findCollectionById(
+  collections: TokenCollection[],
+  collectionId: string,
+): TokenCollection | null {
+  return collections.find((collection) => collection.id === collectionId) ?? null;
+}
+
+export function readTokenCollectionModeValues(
+  token: Pick<Token, "$extensions"> | undefined,
+): TokenModeValues {
+  const rawModes = (token?.$extensions as TokenExtensions | undefined)?.tokenmanager?.modes;
+  if (!isModeValuesRecord(rawModes)) {
+    return {};
+  }
+
+  const modes: TokenModeValues = {};
+  for (const [collectionId, modeValues] of Object.entries(rawModes)) {
+    if (!isModeValuesRecord(modeValues)) {
+      continue;
+    }
+    modes[collectionId] = { ...modeValues };
+  }
+  return modes;
+}
+
+export function buildTokenExtensionsWithCollectionModes(
+  token: Pick<Token, "$extensions">,
+  nextModes: TokenModeValues,
+): Token["$extensions"] | undefined {
+  const nextExtensions = token.$extensions
+    ? { ...token.$extensions }
+    : {};
+  const existingTokenManager =
+    nextExtensions.tokenmanager &&
+    typeof nextExtensions.tokenmanager === "object" &&
+    !Array.isArray(nextExtensions.tokenmanager)
+      ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
+      : {};
+
+  if (Object.keys(nextModes).length > 0) {
+    existingTokenManager.modes = nextModes;
+    nextExtensions.tokenmanager = existingTokenManager;
+  } else if (Object.keys(existingTokenManager).length > 0) {
+    delete existingTokenManager.modes;
+    if (Object.keys(existingTokenManager).length > 0) {
+      nextExtensions.tokenmanager = existingTokenManager;
+    } else {
+      delete nextExtensions.tokenmanager;
+    }
+  } else {
+    delete nextExtensions.tokenmanager;
+  }
+
+  return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
+}
+
+export function writeTokenCollectionModeValues(
+  token: Token,
+  nextModes: TokenModeValues,
+): void {
+  const nextExtensions = buildTokenExtensionsWithCollectionModes(token, nextModes);
+  if (nextExtensions) {
+    token.$extensions = nextExtensions;
+    return;
+  }
+  delete token.$extensions;
+}
+
+export function normalizeSelectedModes(
+  collections: TokenCollection[],
+  selections: SelectedModes,
+): SelectedModes {
+  const next: SelectedModes = {};
+
+  for (const collection of collections) {
+    const selectedMode = selections[collection.id];
+    if (
+      selectedMode &&
+      collection.modes.some((mode) => mode.name === selectedMode)
+    ) {
+      next[collection.id] = selectedMode;
+    }
+  }
+
+  return next;
+}
+
+export function buildSelectedModesLabel(
+  collections: TokenCollection[],
+  selections: SelectedModes,
+): string {
+  return collections
+    .map((collection) => {
+      const modeName = selections[collection.id];
+      return modeName ? `${collection.name} · ${modeName}` : null;
+    })
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export function createViewPresetName(
+  collections: TokenCollection[],
+  selections: SelectedModes,
+): string {
+  const parts = collections
+    .map((collection) => selections[collection.id])
+    .filter((value): value is string => Boolean(value));
+  return parts.join(" / ") || "New view";
+}
+
+export function createViewPreset(params: {
+  id: string;
+  name: string;
+  collections: TokenCollection[];
+  selections: SelectedModes;
+}): ViewPreset {
+  const { id, name, collections, selections } = params;
+  return {
+    id,
+    name,
+    selections: normalizeSelectedModes(collections, selections),
+  };
+}
+
+export function deserializeTokenCollections(
+  collections: SerializedTokenCollection[],
+): TokenCollection[] {
+  return collections.map((collection) => ({
+    id: collection.id,
+    name: collection.name,
+    modes: collection.options.map((mode) => ({ name: mode.name })),
+  }));
+}
+
+export function serializeTokenCollections(
+  collections: TokenCollection[],
+): SerializedTokenCollection[] {
+  return collections.map((collection) => ({
+    id: collection.id,
+    name: collection.name,
+    options: collection.modes.map((mode: CollectionMode) => ({ name: mode.name })),
+  }));
+}
+
+export function readCollectionsFileState(
+  file: unknown,
+): {
+  collections: TokenCollection[];
+  views: ViewPreset[];
+} {
+  const data = isPlainObject(file) ? file : null;
+  const rawCollections = Array.isArray(data?.$collections) ? data.$collections : [];
+  const rawViews = Array.isArray(data?.$views) ? data.$views : [];
+  const collections = deserializeTokenCollections(
+    rawCollections
+      .map((collection) => normalizeSerializedTokenCollection(collection))
+      .filter(
+        (collection): collection is SerializedTokenCollection => collection !== null,
+      ),
+  );
+
+  return {
+    collections,
+    views: rawViews
+      .map((view) => normalizeViewPreset(view))
+      .filter((view): view is ViewPreset => view !== null),
+  };
+}

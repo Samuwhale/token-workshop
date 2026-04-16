@@ -132,36 +132,37 @@ export interface TokenGroup {
 }
 
 // ---------------------------------------------------------------------------
-// Token Sets
+// Collections & Modes
 // ---------------------------------------------------------------------------
 
-export interface TokenSet {
-  name: string;
-  tokens: TokenGroup;
-  filePath?: string;
-}
-
-export interface ModeOption {
+export interface CollectionMode {
   name: string;
 }
 
-export interface CollectionDefinition {
+export interface TokenCollection {
   id: string;
   name: string;
-  options: ModeOption[];
+  modes: CollectionMode[];
 }
 
-/** Active mode selections: one selected mode per collection. Key = collection id, value = mode name. */
-export type ActiveModeSelections = Record<string, string>;
+/** One selected mode per collection. Key = collection id, value = mode name. */
+export type SelectedModes = Record<string, string>;
 
 export interface ViewPreset {
   id: string;
   name: string;
-  selections: ActiveModeSelections;
+  selections: SelectedModes;
+}
+
+/** Serialized file shape for `$collections.json`. */
+export interface SerializedTokenCollection {
+  id: string;
+  name: string;
+  options: CollectionMode[];
 }
 
 export interface CollectionsFile {
-  $collections: CollectionDefinition[];
+  $collections: SerializedTokenCollection[];
   $views?: ViewPreset[];
 }
 
@@ -184,6 +185,8 @@ export type ColorModifierOp =
 // ---------------------------------------------------------------------------
 
 /** Fields stored under `$extensions.tokenmanager` by the TokenManager engine. */
+export type TokenModeValues = Record<string, Record<string, unknown>>;
+
 export interface TokenManagerExtensions {
   /** Formula expression string, e.g. "{spacing.base} * 2". Set by resolver/store for formula tokens. */
   formula?: string;
@@ -195,8 +198,8 @@ export interface TokenManagerExtensions {
   source?: 'figma-variables' | 'figma-styles' | 'json' | 'css' | 'tailwind' | (string & {});
   /** Dot-path to a base token this token inherits from (composite inheritance). */
   extends?: string;
-  /** Per-dimension mode overrides keyed by dimension id, then option name. */
-  modes?: Record<string, Record<string, unknown>>;
+  /** Per-collection mode overrides keyed by collection id, then mode name. */
+  modes?: TokenModeValues;
   /** Resolver-driven Figma publish configuration for mapping contexts to modes. */
   resolverPublish?: ResolverFigmaPublishConfig;
 }
@@ -249,8 +252,8 @@ export interface ResolvedToken {
   $extensions?: TokenExtensions;
   /** Original value before resolution (may contain references). */
   rawValue: TokenValue | TokenReference;
-  /** Name of the token set this token belongs to. */
-  setName: string;
+  /** Canonical collection identifier for the token. */
+  collectionId: string;
 }
 
 // ---------------------------------------------------------------------------

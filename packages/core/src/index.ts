@@ -43,12 +43,13 @@ export type {
   TokenReference,
   Token,
   TokenGroup,
-  TokenSet,
-  ModeOption,
-  CollectionDefinition,
-  ActiveModeSelections,
+  CollectionMode,
+  TokenCollection,
+  SelectedModes,
   ViewPreset,
+  SerializedTokenCollection,
   CollectionsFile,
+  TokenModeValues,
   ResolvedToken,
   TokenLifecycle,
   ResolverRef,
@@ -62,6 +63,19 @@ export type {
   ResolverFigmaPublishConfig,
 } from './types.js';
 export { getTokenManagerExt } from './types.js';
+export {
+  findCollectionById,
+  readTokenCollectionModeValues,
+  buildTokenExtensionsWithCollectionModes,
+  writeTokenCollectionModeValues,
+  normalizeSelectedModes,
+  buildSelectedModesLabel,
+  createViewPresetName,
+  createViewPreset,
+  deserializeTokenCollections,
+  serializeTokenCollections,
+  readCollectionsFileState,
+} from './collections.js';
 
 // DTCG file-format types & utilities
 export type { DTCGToken, DTCGGroup, DTCGFile } from './dtcg-types.js';

@@ -87,32 +87,40 @@ export function TokenUsages({
 }: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
 
-  // Theme and resolver contexts for assignment data
-  const { collections: dimensions } = useCollectionSwitcherContext();
+  // Collection and resolver contexts for assignment data.
+  const { collections } = useCollectionSwitcherContext();
   const { resolvers } = useResolverContext();
 
   // Which collection owns this token
   const owningSet = pathToSet[tokenPath] ?? setName;
 
-  // Theme mode values defined directly on this token
-  const themeAssignments = useMemo(() => {
-    const result: Array<{ dimName: string; optionName: string; status: "mode" }> = [];
+  // Collection mode values defined directly on this token.
+  const collectionAssignments = useMemo(() => {
+    const result: Array<{
+      collectionName: string;
+      optionName: string;
+      status: "mode";
+    }> = [];
     const entry = allTokensFlat[tokenPath];
     const modes = entry?.$extensions?.tokenmanager?.modes;
     if (!modes || typeof modes !== "object" || Array.isArray(modes)) {
       return result;
     }
-    for (const dim of dimensions) {
-      const dimModes = (modes as Record<string, Record<string, unknown>>)[dim.id];
-      if (!dimModes || typeof dimModes !== "object") continue;
-      for (const option of dim.options) {
-        if (option.name in dimModes) {
-          result.push({ dimName: dim.name, optionName: option.name, status: "mode" });
+    for (const collection of collections) {
+      const collectionModes = (modes as Record<string, Record<string, unknown>>)[collection.id];
+      if (!collectionModes || typeof collectionModes !== "object") continue;
+      for (const option of collection.modes) {
+        if (option.name in collectionModes) {
+          result.push({
+            collectionName: collection.name,
+            optionName: option.name,
+            status: "mode",
+          });
         }
       }
     }
     return result;
-  }, [allTokensFlat, dimensions, tokenPath]);
+  }, [allTokensFlat, collections, tokenPath]);
 
   // Resolvers that reference this token's set
   const resolverAssignments = useMemo(() => {
@@ -222,7 +230,7 @@ export function TokenUsages({
   const variableCount = variablesScanned ? variables.length : 0;
   const layerCount = layersScanned ? layersTotal : 0;
   const knownTotal = dependents.length + variableCount + layerCount + recipeCount +
-    themeAssignments.length + resolverAssignments.length;
+    collectionAssignments.length + resolverAssignments.length;
   const hasUnscannedSections = !layersScanned || !variablesScanned;
 
   const countLabel = dependentsLoading
@@ -240,7 +248,7 @@ export function TokenUsages({
   const oldColorHex = tokenType === 'color' && typeof initialValue === 'string' ? initialValue.slice(0, 7) : null;
   const newColorHex = tokenType === 'color' && typeof value === 'string' ? value.slice(0, 7) : null;
 
-  const hasAnyContent = dependents.length > 0 || recipeCount > 0 || themeAssignments.length > 0 ||
+  const hasAnyContent = dependents.length > 0 || recipeCount > 0 || collectionAssignments.length > 0 ||
     resolverAssignments.length > 0 || (variablesScanned && variables.length > 0) || (layersScanned && layers.length > 0);
   const nothingFound = !dependentsLoading && !layersLoading && !variablesLoading &&
     layersScanned && variablesScanned && !hasAnyContent;
@@ -501,20 +509,20 @@ export function TokenUsages({
             </>
           )}
 
-          {/* Theme assignments */}
-          {themeAssignments.length > 0 && (
+          {/* Collection assignments */}
+          {collectionAssignments.length > 0 && (
             <>
               <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                Theme modes ({themeAssignments.length})
+                Collection modes ({collectionAssignments.length})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
-                {themeAssignments.map(({ dimName, optionName, status }) => (
-                  <div key={`${dimName}/${optionName}`} className="px-3 py-1.5 flex items-center gap-2">
+                {collectionAssignments.map(({ collectionName, optionName, status }) => (
+                  <div key={`${collectionName}/${optionName}`} className="px-3 py-1.5 flex items-center gap-2">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
-                    <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate" title={`${dimName} / ${optionName}`}>
-                      <span className="opacity-60">{dimName} / </span>{optionName}
+                    <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate" title={`${collectionName} / ${optionName}`}>
+                      <span className="opacity-60">{collectionName} / </span>{optionName}
                     </span>
                     <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]">
                       {status}
@@ -604,7 +612,7 @@ export function TokenUsages({
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No usages found</p>
-              <p className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, recipe, layer, theme option, or resolver.</p>
+              <p className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, recipe, layer, collection mode, or resolver.</p>
             </div>
           )}
         </div>

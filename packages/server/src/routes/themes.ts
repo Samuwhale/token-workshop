@@ -2,11 +2,18 @@ import type { FastifyPluginAsync } from "fastify";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type {
-  ActiveModeSelections,
-  CollectionDefinition,
+  TokenCollection,
+  SelectedModes,
   ViewPreset,
-  CollectionsFile,
   Token,
+  TokenModeValues,
+} from "@tokenmanager/core";
+import {
+  buildTokenExtensionsWithCollectionModes,
+  normalizeSelectedModes,
+  readTokenCollectionModeValues,
+  readCollectionsFileState,
+  serializeTokenCollections,
 } from "@tokenmanager/core";
 import {
   handleRouteError,
@@ -21,12 +28,12 @@ import {
 } from "../services/operation-log.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
-interface CollectionDocumentState {
-  dimensions: CollectionDefinition[];
+interface CollectionState {
+  collections: TokenCollection[];
   views: ViewPreset[];
 }
 
-type TokenModeMap = Record<string, Record<string, unknown>>;
+type TokenModeMap = TokenModeValues;
 type TokenPatch = { path: string; patch: Partial<Token> };
 type TokenPatchesBySet = Map<string, TokenPatch[]>;
 
@@ -36,155 +43,6 @@ function slugifyName(name: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
-
-function normalizeModeOption(
-  value: unknown,
-): CollectionDefinition["options"][number] | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const name =
-    "name" in value && typeof value.name === "string"
-      ? value.name.trim()
-      : "";
-  if (!name) {
-    return null;
-  }
-
-  return { name };
-}
-
-function normalizeCollectionDefinition(
-  value: unknown,
-): CollectionDefinition | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const id = "id" in value && typeof value.id === "string" ? value.id.trim() : "";
-  const name =
-    "name" in value && typeof value.name === "string"
-      ? value.name.trim()
-      : "";
-  if (!id || !name) {
-    return null;
-  }
-
-  const rawOptions = "options" in value ? value.options : [];
-  const options = Array.isArray(rawOptions)
-    ? rawOptions
-        .map((option) => normalizeModeOption(option))
-        .filter((option): option is CollectionDefinition["options"][number] => option !== null)
-    : [];
-
-  return { id, name, options };
-}
-
-function normalizeViewPreset(
-  value: unknown,
-): ViewPreset | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const id = "id" in value && typeof value.id === "string" ? value.id.trim() : "";
-  const name =
-    "name" in value && typeof value.name === "string"
-      ? value.name.trim()
-      : "";
-  if (!id || !name) {
-    return null;
-  }
-
-  const rawSelections = "selections" in value ? value.selections : null;
-  if (
-    !rawSelections ||
-    typeof rawSelections !== "object" ||
-    Array.isArray(rawSelections)
-  ) {
-    return null;
-  }
-
-  const selections = Object.fromEntries(
-    Object.entries(rawSelections).filter(
-      ([dimensionId, optionName]) =>
-        dimensionId.trim().length > 0 && typeof optionName === "string",
-    ),
-  );
-
-  return { id, name, selections };
-}
-
-function normalizeCollectionsFile(data: CollectionsFile | null | undefined): CollectionDocumentState {
-  const rawCollections = (data as Record<string, unknown> | null | undefined);
-  const collections = Array.isArray(rawCollections?.$collections)
-    ? rawCollections.$collections
-    : Array.isArray((rawCollections as Record<string, unknown> | null | undefined)?.$themes)
-      ? (rawCollections as Record<string, unknown>).$themes
-      : undefined;
-  return {
-    dimensions: Array.isArray(collections)
-      ? (collections as unknown[])
-          .map((dimension) => normalizeCollectionDefinition(dimension))
-          .filter((dimension): dimension is CollectionDefinition => dimension !== null)
-      : [],
-    views: Array.isArray(data?.$views)
-      ? data.$views
-          .map((view) => normalizeViewPreset(view))
-          .filter((view): view is ViewPreset => view !== null)
-      : [],
-  };
-}
-
-function readTokenModes(token: Token): TokenModeMap {
-  const rawModes = (
-    token.$extensions?.tokenmanager as Record<string, unknown> | undefined
-  )?.modes;
-  if (!rawModes || typeof rawModes !== "object" || Array.isArray(rawModes)) {
-    return {};
-  }
-
-  const modes: TokenModeMap = {};
-  for (const [dimensionId, optionMap] of Object.entries(rawModes)) {
-    if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
-      continue;
-    }
-    modes[dimensionId] = { ...(optionMap as Record<string, unknown>) };
-  }
-  return modes;
-}
-
-function buildExtensionsWithModes(
-  token: Token,
-  nextModes: TokenModeMap,
-): Token["$extensions"] | undefined {
-  const nextExtensions = token.$extensions
-    ? structuredClone(token.$extensions)
-    : {};
-  const existingTokenManager =
-    nextExtensions.tokenmanager &&
-    typeof nextExtensions.tokenmanager === "object" &&
-    !Array.isArray(nextExtensions.tokenmanager)
-      ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
-      : {};
-
-  if (Object.keys(nextModes).length > 0) {
-    existingTokenManager.modes = nextModes;
-    nextExtensions.tokenmanager = existingTokenManager;
-  } else if (Object.keys(existingTokenManager).length > 0) {
-    delete existingTokenManager.modes;
-    if (Object.keys(existingTokenManager).length > 0) {
-      nextExtensions.tokenmanager = existingTokenManager;
-    } else {
-      delete nextExtensions.tokenmanager;
-    }
-  } else {
-    delete nextExtensions.tokenmanager;
-  }
-
-  return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
 }
 
 function mergeSetSnapshot(
@@ -213,35 +71,35 @@ function groupSnapshotEntriesBySet(
 
 export interface CollectionsStore {
   filePath: string;
-  load(): Promise<CollectionDefinition[]>;
+  load(): Promise<TokenCollection[]>;
   loadViews(): Promise<ViewPreset[]>;
-  loadState(): Promise<CollectionDocumentState>;
+  loadState(): Promise<CollectionState>;
   reloadFromDisk(): Promise<"changed" | "removed" | "unchanged">;
-  save(dimensions: CollectionDefinition[]): Promise<void>;
+  save(collections: TokenCollection[]): Promise<void>;
   saveViews(views: ViewPreset[]): Promise<void>;
-  saveState(state: CollectionDocumentState): Promise<void>;
+  saveState(state: CollectionState): Promise<void>;
   reset(): Promise<void>;
   startWriteGuard(absoluteFilePath: string): void;
   endWriteGuard(absoluteFilePath: string): void;
   consumeWriteGuard(absoluteFilePath: string): boolean;
   withLock<T>(
     fn: (
-      dims: CollectionDefinition[],
-    ) => Promise<{ dims: CollectionDefinition[]; result: T }>,
+      collections: TokenCollection[],
+    ) => Promise<{ collections: TokenCollection[]; result: T }>,
   ): Promise<T>;
   withStateLock<T>(
     fn: (
-      state: CollectionDocumentState,
-    ) => Promise<{ state: CollectionDocumentState; result: T }>,
+      state: CollectionState,
+    ) => Promise<{ state: CollectionState; result: T }>,
   ): Promise<T>;
   withReadStateLock<T>(
-    fn: (state: CollectionDocumentState) => Promise<T>,
+    fn: (state: CollectionState) => Promise<T>,
   ): Promise<T>;
 }
 
 export function createCollectionsStore(tokenDir: string): CollectionsStore {
   const filePath = path.join(tokenDir, "$collections.json");
-  let cache: CollectionDocumentState | null = null;
+  let cache: CollectionState | null = null;
   let cachedMtimeMs: number | null = null;
   const lock = new PromiseChainLock();
   const writingFiles = new Map<string, ReturnType<typeof setTimeout>>();
@@ -277,29 +135,29 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
   }
 
   async function loadStateFromDisk(): Promise<{
-    state: CollectionDocumentState;
+    state: CollectionState;
     mtimeMs: number | null;
     exists: boolean;
   }> {
     const mtimeMs = await fileMtimeMs();
     if (mtimeMs === null) {
       return {
-        state: { dimensions: [], views: [] },
+        state: { collections: [], views: [] },
         mtimeMs: null,
         exists: false,
       };
     }
 
     const content = await fs.readFile(filePath, "utf-8");
-    const data = JSON.parse(content) as CollectionsFile;
+    const data = JSON.parse(content) as unknown;
     return {
-      state: normalizeCollectionsFile(data),
+      state: readCollectionsFileState(data),
       mtimeMs,
       exists: true,
     };
   }
 
-  async function ensureStateLoaded(): Promise<CollectionDocumentState> {
+  async function ensureStateLoaded(): Promise<CollectionState> {
     const mtimeMs = await fileMtimeMs();
     if (cache !== null && mtimeMs === cachedMtimeMs) {
       return structuredClone(cache);
@@ -311,7 +169,7 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
       cachedMtimeMs = exists ? mtimeMs : null;
     } catch {
       if (cache === null) {
-        cache = { dimensions: [], views: [] };
+        cache = { collections: [], views: [] };
         cachedMtimeMs = null;
       }
     }
@@ -322,9 +180,9 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
   const store: CollectionsStore = {
     filePath,
 
-    async load(): Promise<CollectionDefinition[]> {
+    async load(): Promise<TokenCollection[]> {
       const state = await ensureStateLoaded();
-      return state.dimensions;
+      return state.collections;
     },
 
     async loadViews(): Promise<ViewPreset[]> {
@@ -332,7 +190,7 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
       return state.views;
     },
 
-    async loadState(): Promise<CollectionDocumentState> {
+    async loadState(): Promise<CollectionState> {
       return ensureStateLoaded();
     },
 
@@ -346,10 +204,10 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
         if (!exists) {
           const hadData =
             cache !== null &&
-            (cache.dimensions.length > 0 ||
+            (cache.collections.length > 0 ||
               cache.views.length > 0 ||
               cachedMtimeMs !== null);
-          cache = { dimensions: [], views: [] };
+          cache = { collections: [], views: [] };
           cachedMtimeMs = null;
           return hadData ? "removed" : "unchanged";
         }
@@ -365,9 +223,9 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
       });
     },
 
-    async save(dimensions: CollectionDefinition[]): Promise<void> {
+    async save(collections: TokenCollection[]): Promise<void> {
       const state = await ensureStateLoaded();
-      await store.saveState({ ...state, dimensions });
+      await store.saveState({ ...state, collections });
     },
 
     async saveViews(views: ViewPreset[]): Promise<void> {
@@ -375,12 +233,12 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
       await store.saveState({ ...state, views });
     },
 
-    async saveState(state: CollectionDocumentState): Promise<void> {
+    async saveState(state: CollectionState): Promise<void> {
       if (JSON.stringify(cache) === JSON.stringify(state)) {
         return;
       }
-      const data: CollectionsFile = {
-        $collections: state.dimensions,
+      const data = {
+        $collections: serializeTokenCollections(state.collections),
         ...(state.views.length > 0 ? { $views: state.views } : {}),
       };
       const tmp = `${filePath}.tmp`;
@@ -403,7 +261,7 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
       return lock.withLock(async () => {
         startWriteGuard(filePath);
         await fs.rm(filePath, { force: true });
-        cache = { dimensions: [], views: [] };
+        cache = { collections: [], views: [] };
         cachedMtimeMs = null;
       });
     },
@@ -414,12 +272,12 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
 
     withLock<T>(
       fn: (
-        dims: CollectionDefinition[],
-      ) => Promise<{ dims: CollectionDefinition[]; result: T }>,
+        collections: TokenCollection[],
+      ) => Promise<{ collections: TokenCollection[]; result: T }>,
     ): Promise<T> {
       return lock.withLock(async () => {
-        const dims = await store.load();
-        const { dims: updated, result } = await fn(dims);
+        const collections = await store.load();
+        const { collections: updated, result } = await fn(collections);
         await store.save(updated);
         return result;
       });
@@ -427,8 +285,8 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
 
     withStateLock<T>(
       fn: (
-        state: CollectionDocumentState,
-      ) => Promise<{ state: CollectionDocumentState; result: T }>,
+        state: CollectionState,
+      ) => Promise<{ state: CollectionState; result: T }>,
     ): Promise<T> {
       return lock.withLock(async () => {
         const state = await store.loadState();
@@ -438,7 +296,7 @@ export function createCollectionsStore(tokenDir: string): CollectionsStore {
       });
     },
 
-    withReadStateLock<T>(fn: (state: CollectionDocumentState) => Promise<T>): Promise<T> {
+    withReadStateLock<T>(fn: (state: CollectionState) => Promise<T>): Promise<T> {
       return lock.withLock(async () => {
         const state = await store.loadState();
         return fn(structuredClone(state));
@@ -456,26 +314,26 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
   const store = fastify.collectionsStore;
 
   async function normalizeCollectionState(
-    state: CollectionDocumentState,
-  ): Promise<CollectionDocumentState> {
-    const setNames = await fastify.tokenStore.getSets();
+    state: CollectionState,
+  ): Promise<CollectionState> {
+    const collectionIds = await fastify.tokenStore.getSets();
     const existingById = new Map(
-      state.dimensions.map((dimension) => [dimension.id, dimension]),
+      state.collections.map((collection) => [collection.id, collection]),
     );
 
-    const dimensions = setNames.map((setName) => {
-      const existing = existingById.get(setName);
+    const collections = collectionIds.map((collectionId) => {
+      const existing = existingById.get(collectionId);
       return {
-        id: setName,
-        name: setName,
-        options: structuredClone(existing?.options ?? []),
+        id: collectionId,
+        name: collectionId,
+        modes: structuredClone(existing?.modes ?? []),
       };
     });
 
     const validOptionsById = new Map(
-      dimensions.map((dimension) => [
-        dimension.id,
-        new Set(dimension.options.map((option) => option.name)),
+      collections.map((collection) => [
+        collection.id,
+        new Set(collection.modes.map((mode) => mode.name)),
       ]),
     );
 
@@ -489,45 +347,30 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
       ),
     }));
 
-    return { dimensions, views };
-  }
-
-  function normalizeSelectionsForDimensions(
-    dimensions: CollectionDefinition[],
-    selections: ActiveModeSelections,
-  ): ActiveModeSelections {
-    const next: ActiveModeSelections = {};
-
-    for (const dimension of dimensions) {
-      const selectedOption = selections[dimension.id];
-      if (
-        selectedOption &&
-        dimension.options.some((option) => option.name === selectedOption)
-      ) {
-        next[dimension.id] = selectedOption;
-      }
-    }
-
-    return next;
+    return { collections, views };
   }
 
   async function withCollectionLock<T>(
     type: string,
     fn: (
-      dims: CollectionDefinition[],
-    ) => Promise<{ dims: CollectionDefinition[]; result: T; description: string }>,
+      collections: TokenCollection[],
+    ) => Promise<{
+      collections: TokenCollection[];
+      result: T;
+      description: string;
+    }>,
   ): Promise<T> {
-    let capturedBefore: CollectionDefinition[] | null = null;
+    let capturedBefore: TokenCollection[] | null = null;
     let capturedDescription = "";
-    const result = await store.withLock(async (dims) => {
+    const result = await store.withLock(async (collections) => {
       const normalizedState = await normalizeCollectionState({
-        dimensions: dims,
+        collections,
         views: [],
       });
-      capturedBefore = structuredClone(normalizedState.dimensions);
-      const out = await fn(normalizedState.dimensions);
+      capturedBefore = structuredClone(normalizedState.collections);
+      const out = await fn(normalizedState.collections);
       capturedDescription = out.description;
-      return { dims: out.dims, result: out.result };
+      return { collections: out.collections, result: out.result };
     });
     if (capturedBefore !== null) {
       await fastify.operationLog.record({
@@ -558,7 +401,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
         const nextModes = mutateModes(token);
         if (nextModes === null) continue;
 
-        const nextExtensions = buildExtensionsWithModes(token, nextModes);
+        const nextExtensions = buildTokenExtensionsWithCollectionModes(token, nextModes);
         if (
           JSON.stringify(nextExtensions ?? null) ===
           JSON.stringify(token.$extensions ?? null)
@@ -582,8 +425,8 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
 
   async function withCollectionStateAndTokenMutations<T>(
     type: string,
-    fn: (state: CollectionDocumentState) => Promise<{
-      state: CollectionDocumentState;
+    fn: (state: CollectionState) => Promise<{
+      state: CollectionState;
       result: T;
       description: string;
       tokenPatchesBySet?: TokenPatchesBySet;
@@ -592,7 +435,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     const beforeSnapshot: Record<string, SnapshotEntry> = {};
     const afterSnapshot: Record<string, SnapshotEntry> = {};
     const touchedPathsBySet = new Map<string, string[]>();
-    let beforeState: CollectionDocumentState | null = null;
+    let beforeState: CollectionState | null = null;
     let description = "";
 
     try {
@@ -630,7 +473,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
       );
 
       if (beforeState !== null) {
-        const previousState = beforeState as CollectionDocumentState;
+        const previousState = beforeState as CollectionState;
         await fastify.operationLog.record({
           type,
           description,
@@ -645,7 +488,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
           rollbackSteps: [
             {
               action: "write-themes",
-              dimensions: previousState.dimensions,
+              dimensions: previousState.collections,
               views: previousState.views,
             },
           ],
@@ -677,13 +520,13 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
 
   async function withCollectionStateMutation<T>(
     type: string,
-    fn: (state: CollectionDocumentState) => Promise<{
-      state: CollectionDocumentState;
+    fn: (state: CollectionState) => Promise<{
+      state: CollectionState;
       result: T;
       description: string;
     }>,
   ): Promise<T> {
-    let beforeState: CollectionDocumentState | null = null;
+    let beforeState: CollectionState | null = null;
     let description = "";
 
     const result = await store.withStateLock(async (state) => {
@@ -694,7 +537,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
       return { state: out.state, result: out.result };
     });
 
-    const previousState = beforeState as CollectionDocumentState | null;
+    const previousState = beforeState as CollectionState | null;
     if (!previousState) {
       return result;
     }
@@ -709,7 +552,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
       rollbackSteps: [
         {
           action: "write-themes",
-          dimensions: previousState.dimensions,
+          dimensions: previousState.collections,
           views: previousState.views,
         },
       ],
@@ -727,7 +570,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     try {
       const state = await normalizeCollectionState(await store.loadState());
       return {
-        collections: state.dimensions,
+        collections: serializeTokenCollections(state.collections),
         previews: state.views,
       };
     } catch (err) {
@@ -753,27 +596,29 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
       try {
         const { option, status } = await withCollectionLock(
           "theme-option-upsert",
-          async (dimensions) => {
-            const dimIdx = dimensions.findIndex((dimension) => dimension.id === id);
-            if (dimIdx === -1) {
+          async (collections) => {
+            const collectionIndex = collections.findIndex(
+              (collection) => collection.id === id,
+            );
+            if (collectionIndex === -1) {
               throw new NotFoundError(`Collection "${id}" not found`);
             }
-            const nextDimensions = structuredClone(dimensions);
-            const dimension = nextDimensions[dimIdx];
-            const optIdx = dimension.options.findIndex(
+            const nextCollections = structuredClone(collections);
+            const collection = nextCollections[collectionIndex];
+            const optIdx = collection.modes.findIndex(
               (option) => option.name === trimmedName,
             );
             const option = { name: trimmedName };
             const isUpdate = optIdx >= 0;
             if (isUpdate) {
-              dimension.options[optIdx] = option;
+              collection.modes[optIdx] = option;
             } else {
-              dimension.options.push(option);
+              collection.modes.push(option);
             }
             return {
-              dims: nextDimensions,
+              collections: nextCollections,
               result: { option, status: isUpdate ? 200 : 201 },
-              description: `${isUpdate ? "Update" : "Add"} mode "${trimmedName}" in collection "${dimension.name}"`,
+              description: `${isUpdate ? "Update" : "Add"} mode "${trimmedName}" in collection "${collection.name}"`,
             };
           },
         );
@@ -795,17 +640,19 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     }
     const newName = name.trim();
     try {
-      const option = await withCollectionStateAndTokenMutations(
-        "theme-option-rename",
-        async (state) => {
-          const nextDimensions = structuredClone(state.dimensions);
-          const dimIdx = nextDimensions.findIndex((dimension) => dimension.id === id);
-          if (dimIdx === -1) {
+        const option = await withCollectionStateAndTokenMutations(
+          "theme-option-rename",
+          async (state) => {
+          const nextCollections = structuredClone(state.collections);
+          const collectionIndex = nextCollections.findIndex(
+            (collection) => collection.id === id,
+          );
+          if (collectionIndex === -1) {
             throw new NotFoundError(`Collection "${id}" not found`);
           }
 
-          const dimension = nextDimensions[dimIdx];
-          const optionIndex = dimension.options.findIndex(
+          const collection = nextCollections[collectionIndex];
+          const optionIndex = collection.modes.findIndex(
             (option) => option.name === optionName,
           );
           if (optionIndex === -1) {
@@ -815,7 +662,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
           }
           if (
             newName !== optionName &&
-            dimension.options.some((option) => option.name === newName)
+            collection.modes.some((option) => option.name === newName)
           ) {
             throw new ConflictError(
               `Mode "${newName}" already exists in this collection`,
@@ -826,7 +673,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
             newName === optionName
               ? undefined
               : await collectModeMutationPatches((token) => {
-                  const nextModes = readTokenModes(token);
+                  const nextModes = readTokenCollectionModeValues(token);
                   const dimModes = nextModes[id];
                   if (!dimModes || !(optionName in dimModes)) {
                     return null;
@@ -847,11 +694,11 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
                   return nextModes;
                 });
 
-          dimension.options[optionIndex] = { name: newName };
+          collection.modes[optionIndex] = { name: newName };
 
           return {
             state: {
-              dimensions: nextDimensions,
+              collections: nextCollections,
               views: state.views.map((view) => ({
                 ...view,
                 selections:
@@ -863,8 +710,8 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
                     : view.selections,
               })),
             },
-            result: dimension.options[optionIndex],
-            description: `Rename mode "${optionName}" → "${newName}" in collection "${dimension.name}"`,
+            result: collection.modes[optionIndex],
+            description: `Rename mode "${optionName}" → "${newName}" in collection "${collection.name}"`,
             tokenPatchesBySet,
           };
         },
@@ -891,15 +738,17 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
       try {
         const dimension = await withCollectionLock(
           "theme-option-reorder",
-          async (dimensions) => {
-            const dimIdx = dimensions.findIndex((dimension) => dimension.id === id);
-            if (dimIdx === -1) {
+          async (collections) => {
+            const collectionIndex = collections.findIndex(
+              (collection) => collection.id === id,
+            );
+            if (collectionIndex === -1) {
               throw new NotFoundError(`Collection "${id}" not found`);
             }
-            const nextDimensions = structuredClone(dimensions);
-            const dimension = nextDimensions[dimIdx];
+            const nextCollections = structuredClone(collections);
+            const collection = nextCollections[collectionIndex];
             const byName = new Map(
-              dimension.options.map((option) => [option.name, option]),
+              collection.modes.map((option) => [option.name, option]),
             );
             for (const optionName of options) {
               if (!byName.has(optionName)) {
@@ -909,22 +758,22 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
               }
             }
             if (
-              options.length !== dimension.options.length ||
-              new Set(options).size !== dimension.options.length
+              options.length !== collection.modes.length ||
+              new Set(options).size !== collection.modes.length
             ) {
               throw new BadRequestError(
                 "options must list every mode name exactly once",
               );
             }
-            dimension.options = options.map((optionName) => byName.get(optionName)!);
+            collection.modes = options.map((optionName) => byName.get(optionName)!);
             return {
-              dims: nextDimensions,
-              result: dimension,
-              description: `Reorder modes in collection "${dimension.name}"`,
+              collections: nextCollections,
+              result: collection,
+              description: `Reorder modes in collection "${collection.name}"`,
             };
           },
         );
-        return { ok: true, dimension };
+        return { ok: true, dimension: serializeTokenCollections([dimension])[0] };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to reorder modes");
       }
@@ -939,24 +788,26 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
         await withCollectionStateAndTokenMutations(
           "theme-option-delete",
           async (state) => {
-            const nextDimensions = structuredClone(state.dimensions);
-            const dimIdx = nextDimensions.findIndex((dimension) => dimension.id === id);
-            if (dimIdx === -1) {
+            const nextCollections = structuredClone(state.collections);
+            const collectionIndex = nextCollections.findIndex(
+              (collection) => collection.id === id,
+            );
+            if (collectionIndex === -1) {
               throw new NotFoundError(`Collection "${id}" not found`);
             }
 
-            const dimension = nextDimensions[dimIdx];
-            const filteredOptions = dimension.options.filter(
+            const collection = nextCollections[collectionIndex];
+            const filteredOptions = collection.modes.filter(
               (option) => option.name !== optionName,
             );
-            if (filteredOptions.length === dimension.options.length) {
+            if (filteredOptions.length === collection.modes.length) {
               throw new NotFoundError(
                 `Mode "${optionName}" not found in collection "${id}"`,
               );
             }
 
             const tokenPatchesBySet = await collectModeMutationPatches((token) => {
-              const nextModes = readTokenModes(token);
+              const nextModes = readTokenCollectionModeValues(token);
               const dimModes = nextModes[id];
               if (!dimModes || !(optionName in dimModes)) {
                 return null;
@@ -969,11 +820,11 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
               return nextModes;
             });
 
-            dimension.options = filteredOptions;
+            collection.modes = filteredOptions;
 
             return {
               state: {
-                dimensions: nextDimensions,
+                collections: nextCollections,
                 views: state.views.map((view) => {
                   if (view.selections[id] !== optionName) {
                     return view;
@@ -987,7 +838,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
                 }),
               },
               result: undefined,
-              description: `Delete mode "${optionName}" from collection "${dimension.name}"`,
+              description: `Delete mode "${optionName}" from collection "${collection.name}"`,
               tokenPatchesBySet,
             };
           },
@@ -1000,7 +851,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
   );
 
   fastify.post<{
-    Body: { id: string; name: string; selections: ActiveModeSelections };
+    Body: { id: string; name: string; selections: SelectedModes };
   }>("/previews", async (request, reply) => {
     const { id, name, selections } = request.body || {};
     if (!id || typeof id !== "string") {
@@ -1024,9 +875,9 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
           const nextView: ViewPreset = {
             id: normalizedId,
             name: name.trim(),
-            selections: normalizeSelectionsForDimensions(
-              state.dimensions,
-              selections as ActiveModeSelections,
+            selections: normalizeSelectedModes(
+              state.collections,
+              selections as SelectedModes,
             ),
           };
 
@@ -1048,7 +899,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
 
   fastify.put<{
     Params: { id: string };
-    Body: { name: string; selections: ActiveModeSelections };
+    Body: { name: string; selections: SelectedModes };
   }>("/previews/:id", async (request, reply) => {
     const { id } = request.params;
     const { name, selections } = request.body || {};
@@ -1070,9 +921,9 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
           const nextView: ViewPreset = {
             id,
             name: name.trim(),
-            selections: normalizeSelectionsForDimensions(
-              state.dimensions,
-              selections as ActiveModeSelections,
+            selections: normalizeSelectedModes(
+              state.collections,
+              selections as SelectedModes,
             ),
           };
           const nextViews = state.views.slice();
