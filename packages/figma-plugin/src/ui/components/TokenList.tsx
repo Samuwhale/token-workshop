@@ -8,26 +8,17 @@ import {
 } from "react";
 import { Spinner } from "./Spinner";
 import type { TokenNode } from "../hooks/useTokens";
-import {
-  isAlias,
-  extractAliasPath,
-  resolveTokenValue,
-} from "../../shared/resolveAlias";
-import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import type { NodeCapabilities, TokenMapEntry } from "../../shared/types";
 import { BatchEditor } from "./BatchEditor";
-import { stableStringify, getErrorMessage } from "../shared/utils";
-import { apiFetch, ApiError } from "../shared/apiFetch";
+import { stableStringify } from "../shared/utils";
+import { apiFetch } from "../shared/apiFetch";
 import {
   STORAGE_KEY,
-  STORAGE_KEYS,
   lsGet,
   lsRemove,
   lsSet,
 } from "../shared/storage";
-import type { PreferredCopyFormat } from "./SettingsPanel";
 import {
-  nodeParentPath,
   flattenVisible,
   pruneDeletedPaths,
   sortTokenNodes,
@@ -40,26 +31,12 @@ import type { LintViolation } from "../hooks/useLint";
 import type {
   TokenListProps,
   MultiModeValue,
-  AffectedRef,
-  RecipeImpact,
-  ThemeImpact,
-  TokenTreeGroupActionsContextType,
-  TokenTreeGroupStateContextType,
-  TokenTreeLeafActionsContextType,
-  TokenTreeLeafStateContextType,
-  TokenTreeSharedDataContextType,
 } from "./tokenListTypes";
 import { VIRTUAL_OVERSCAN } from "./tokenListTypes";
-import {
-  highlightMatch,
-} from "./tokenListHelpers";
-import { TokenTreeNode } from "./TokenTreeNode";
 import { TokenTreeProvider } from "./TokenTreeContext";
 import { TokenListModals } from "./TokenListModals";
 import { TokenListModalsProvider } from "./TokenListModalsContext";
-import type { TokenListModalsState } from "./TokenListModalsContext";
 import { useExtractToAlias } from "../hooks/useExtractToAlias";
-import { matchesShortcut } from "../shared/shortcutRegistry";
 import { useTokenCreate } from "../hooks/useTokenCreate";
 import { useTableCreate } from "../hooks/useTableCreate";
 import { useFindReplace } from "../hooks/useFindReplace";
@@ -77,18 +54,21 @@ import { useTokenSelection } from "../hooks/useTokenSelection";
 import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { applyThemeSelectionsToTokens } from "../shared/themeModeUtils";
-import { JsonEditorView } from "./JsonEditorView";
 import { dispatchToast } from "../shared/toastBus";
-import { NoticeBanner } from "../shared/noticeSystem";
 import { TokenListToolbar } from "./TokenListToolbar";
 import { SelectModeToolbar } from "./SelectModeToolbar";
 import { TableCreateForm } from "./TableCreateForm";
 import { WhereIsOverlay } from "./WhereIsOverlay";
-import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import {
-  TokenListFilteredEmptyState,
   TokenListReviewOverlays,
 } from "./token-list/TokenListStates";
+import { TokenListStatsBar } from "./token-list/TokenListStatsBar";
+import { TokenListTreeBody } from "./token-list/TokenListTreeBody";
+import { useTokenListClipboard } from "./token-list/TokenListClipboard";
+import { useTokenListBatchOperations } from "./token-list/TokenListBatchOperations";
+import { useTokenListKeyboardHandler } from "./token-list/TokenListKeyboardHandler";
+import { useTokenListApplyOperations } from "./token-list/TokenListApplyOperations";
+import { getDeleteModalProps } from "./token-list/TokenListDeleteModalProps";
 import type {
   VariableDiffPendingState,
 } from "../shared/tokenListModalTypes";
@@ -96,22 +76,17 @@ import type {
   StylesAppliedMessage,
   VariablesReadMessage,
 } from "../../shared/types";
+import { useTokenListModalContext } from "./token-list/useTokenListModalContext";
+import { useToolbarStateChips } from "./token-list/useToolbarStateChips";
+import { TokenListStaleRecipeBanner } from "./token-list/TokenListStaleRecipeBanner";
+import {
+  useTokenTreeSharedData,
+  useTokenTreeGroupState,
+  useTokenTreeGroupActions,
+  useTokenTreeLeafState,
+  useTokenTreeLeafActions,
+} from "./token-list/useTokenTreeContextValues";
 
-const TOKEN_TYPE_COLORS: Record<string, string> = {
-  color: "var(--color-token-type-color)",
-  dimension: "var(--color-token-type-dimension)",
-  spacing: "var(--color-token-type-spacing)",
-  typography: "var(--color-token-type-typography)",
-  fontFamily: "var(--color-token-type-fontFamily)",
-  fontSize: "var(--color-token-type-fontSize)",
-  fontWeight: "var(--color-token-type-fontWeight)",
-  lineHeight: "var(--color-token-type-lineHeight)",
-  number: "var(--color-token-type-number)",
-  string: "var(--color-token-type-string)",
-  shadow: "var(--color-token-type-shadow)",
-  border: "var(--color-token-type-border)",
-};
-const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 const EMPTY_PATH_SET = new Set<string>();
 const TOKENS_LIBRARY_BODY_SURFACE = "library-body";
 
@@ -472,24 +447,6 @@ export function TokenList({
     [allTokensFlat],
   );
 
-  const flattenTokens = (nodes: TokenNode[]): any[] => {
-    const result: any[] = [];
-    const walk = (list: TokenNode[]) => {
-      for (const node of list) {
-        if (!node.isGroup) {
-          result.push({
-            path: node.path,
-            $type: node.$type,
-            $value: node.$value,
-            setName,
-          });
-        }
-        if (node.children) walk(node.children);
-      }
-    };
-    walk(nodes);
-    return result;
-  };
 
   // Compute per-option resolved token maps for the selected dimension
   const multiModeData = useMemo(() => {
@@ -1022,226 +979,28 @@ export function TokenList({
     [displayedLeafNodesWithAncestors],
   );
 
-  const viewOptionsActiveCount = useMemo(() => {
-    let count = activeFilterCount;
-    if (sortOrder !== "default") count += 1;
-    if (inspectMode) count += 1;
-    if (crossSetSearch) count += 1;
-    if (multiModeEnabled) count += 1;
-    if (themeLensEnabled) count += 1;
-    if (condensedView) count += 1;
-    if (showPreviewSplit) count += 1;
-    if (showFlatSearchResults) count += 1;
-    return count;
-  }, [
-    activeFilterCount,
-    condensedView,
-    crossSetSearch,
-    inspectMode,
-    multiModeEnabled,
-    themeLensEnabled,
-    showFlatSearchResults,
-    showPreviewSplit,
-    sortOrder,
-  ]);
-
   const multiModeDimensionName = useMemo(
     () => dimensions.find((d) => d.id === multiModeDimId)?.name ?? null,
     [dimensions, multiModeDimId],
   );
 
-  const activeFilterSummary = useMemo(() => {
-    const items: string[] = [];
-    if (sortOrder !== "default")
-      items.push(sortOrder === "alpha-asc" ? "Sorted A to Z" : "Sorted by type");
-    if (refFilter !== "all")
-      items.push(refFilter === "aliases" ? "Alias tokens only" : "Direct values only");
-    if (showDuplicates) items.push("Duplicate values");
-    if (showIssuesOnly)
-      items.push(
-        lintViolations.length > 0
-          ? `Issues only (${lintViolations.length})`
-          : "Issues only",
-      );
-    if (showRecentlyTouched) items.push("Recently touched");
-    if (typeFilter !== "") items.push(`Type: ${typeFilter}`);
-    if (inspectMode) items.push("Bound to selection");
-    if (crossSetSearch) items.push("Search all sets");
-    return items;
-  }, [
-    crossSetSearch,
-    inspectMode,
-    lintViolations.length,
-    refFilter,
-    showDuplicates,
-    showIssuesOnly,
-    showRecentlyTouched,
-    sortOrder,
-    typeFilter,
-  ]);
-
   const hasStructuredFilters = structuredFilterChips.length > 0;
-  const toolbarStateChips = useMemo(() => {
-    const chips: Array<{
-      key: string;
-      label: string;
-      tone: "filter" | "view";
-      onRemove?: () => void;
-    }> = [];
 
-    for (const chip of structuredFilterChips) {
-      chips.push({
-        key: `query:${chip.token}`,
-        label: chip.label,
-        tone: "filter",
-        onRemove: () => removeQueryToken(chip.token),
-      });
-    }
-
-    if (sortOrder !== "default") {
-      chips.push({
-        key: `sort:${sortOrder}`,
-        label: sortOrder === "alpha-asc" ? "Sorted A to Z" : "Sorted by type",
-        tone: "view",
-        onRemove: () => setSortOrder("default"),
-      });
-    }
-    if (refFilter !== "all") {
-      chips.push({
-        key: `refs:${refFilter}`,
-        label: refFilter === "aliases" ? "Alias tokens only" : "Direct values only",
-        tone: "filter",
-        onRemove: () => setRefFilter("all"),
-      });
-    }
-    if (showDuplicates) {
-      chips.push({
-        key: "duplicates",
-        label: "Duplicate values",
-        tone: "filter",
-        onRemove: () => setShowDuplicates(false),
-      });
-    }
-    if (showIssuesOnly && onToggleIssuesOnly) {
-      chips.push({
-        key: "issues-only",
-        label:
-          lintViolations.length > 0
-            ? `Issues only (${lintViolations.length})`
-            : "Issues only",
-        tone: "filter",
-        onRemove: onToggleIssuesOnly,
-      });
-    }
-    if (showRecentlyTouched) {
-      chips.push({
-        key: "recent",
-        label: "Recently touched",
-        tone: "filter",
-        onRemove: () => setShowRecentlyTouched(false),
-      });
-    }
-    if (typeFilter !== "") {
-      chips.push({
-        key: `type:${typeFilter}`,
-        label: `Type: ${typeFilter}`,
-        tone: "filter",
-        onRemove: () => setTypeFilter(""),
-      });
-    }
-    if (inspectMode) {
-      chips.push({
-        key: "inspect",
-        label: "Bound to selection",
-        tone: "filter",
-        onRemove: () => setInspectMode(false),
-      });
-    }
-    if (crossSetSearch) {
-      chips.push({
-        key: "cross-set",
-        label: "Search all sets",
-        tone: "filter",
-        onRemove: () => setCrossSetSearch(false),
-      });
-    }
-    if (multiModeEnabled) {
-      chips.push({
-        key: "view:modes",
-        label:
-          multiModeDimensionName
-            ? `Theme options: ${multiModeDimensionName}`
-            : "Theme options",
-        tone: "view",
-        onRemove: toggleMultiMode,
-      });
-    }
-    if (themeLensEnabled) {
-      chips.push({
-        key: "view:theme-values",
-        label: "Active theme values",
-        tone: "view",
-        onRemove: () => setThemeLensEnabled(false),
-      });
-    }
-    if (condensedView) {
-      chips.push({
-        key: "view:condensed",
-        label: "Condensed rows",
-        tone: "view",
-        onRemove: () => setCondensedView(false),
-      });
-    }
-    if (showPreviewSplit && onTogglePreviewSplit) {
-      chips.push({
-        key: "view:split",
-        label: "Preview pane",
-        tone: "view",
-        onRemove: onTogglePreviewSplit,
-      });
-    }
-    if (showFlatSearchResults) {
-      chips.push({
-        key: "view:flat-results",
-        label: "Flat search results",
-        tone: "view",
-        onRemove: () => setSearchResultPresentation("grouped"),
-      });
-    }
-
-    return chips;
-  }, [
-    condensedView,
-    crossSetSearch,
-    inspectMode,
-    lintViolations.length,
-    multiModeDimensionName,
-    multiModeEnabled,
-    onToggleIssuesOnly,
-    onTogglePreviewSplit,
-    refFilter,
-    removeQueryToken,
-    setCondensedView,
-    setCrossSetSearch,
-    setInspectMode,
-    setRefFilter,
-    setSearchResultPresentation,
-    setThemeLensEnabled,
-    setShowDuplicates,
-    setShowRecentlyTouched,
-    setSortOrder,
-    setTypeFilter,
-    showDuplicates,
-    showFlatSearchResults,
-    showIssuesOnly,
-    showPreviewSplit,
-    showRecentlyTouched,
-    sortOrder,
-    structuredFilterChips,
-    themeLensEnabled,
-    toggleMultiMode,
-    typeFilter,
-  ]);
+  const {
+    viewOptionsActiveCount,
+    activeFilterSummary,
+    toolbarStateChips,
+  } = useToolbarStateChips({
+    structuredFilterChips, removeQueryToken, sortOrder, setSortOrder,
+    refFilter, setRefFilter, showDuplicates, setShowDuplicates,
+    showIssuesOnly, onToggleIssuesOnly, lintViolationsLength: lintViolations.length,
+    showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
+    inspectMode, setInspectMode, crossSetSearch, setCrossSetSearch,
+    multiModeEnabled, multiModeDimensionName, toggleMultiMode,
+    themeLensEnabled, setThemeLensEnabled, condensedView, setCondensedView,
+    showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
+    setSearchResultPresentation, activeFilterCount,
+  });
 
   const contextSummary = useMemo(() => {
     if (viewMode === "json") {
@@ -1829,455 +1588,46 @@ export function TokenList({
     return () => window.cancelAnimationFrame(frameId);
   }, [pendingBatchEditorFocus, showBatchEditor]);
 
-  // handleListKeyDown is defined after custom hook calls to avoid TDZ
-  // Container-level keyboard shortcut handler for the token list
-  const handleListKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      const target = e.target as HTMLElement;
-      const isTyping =
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.tagName === "SELECT";
-      const activeEl = document.activeElement as HTMLElement | null;
-      const focusedTokenPath = activeEl?.dataset?.tokenPath;
-      const focusedGroupPath = activeEl?.dataset?.groupPath;
-
-      // Escape: close create form, exit select mode, exit zoom, or blur search
-      if (e.key === "Escape") {
-        if (selectMode) {
-          e.preventDefault();
-          setSelectMode(false);
-          setSelectedPaths(new Set());
-          setShowBatchEditor(false);
-          return;
-        }
-        if (zoomRootPath) {
-          e.preventDefault();
-          setZoomRootPath(null);
-          setVirtualScrollTop(0);
-          if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
-          return;
-        }
-        return;
-      }
-
-      // Cmd/Ctrl+C: copy selected tokens as DTCG JSON
-      if (matchesShortcut(e, "TOKEN_COPY")) {
-        if (selectMode && selectedPaths.size > 0) {
-          e.preventDefault();
-          const nodes = displayedLeafNodesRef.current.filter((n) =>
-            selectedPaths.has(n.path),
-          );
-          copyTokensAsJsonRef.current(nodes);
-          return;
-        }
-        // Single focused token row — copy that token
-        if (!isTyping) {
-          const focusedPath = (document.activeElement as HTMLElement)?.dataset
-            ?.tokenPath;
-          if (focusedPath) {
-            const node = displayedLeafNodesRef.current.find(
-              (n) => n.path === focusedPath,
-            );
-            if (node) {
-              e.preventDefault();
-              copyTokensAsJsonRef.current([node]);
-              return;
-            }
-          }
-        }
-      }
-
-      // Cmd/Ctrl+Shift+C: copy selected tokens in preferred format (configured in Settings)
-      if (matchesShortcut(e, "TOKEN_COPY_CSS_VAR")) {
-        if (selectMode && selectedPaths.size > 0) {
-          e.preventDefault();
-          const nodes = displayedLeafNodesRef.current.filter((n) =>
-            selectedPaths.has(n.path),
-          );
-          copyTokensAsPreferredRef.current(nodes);
-          return;
-        }
-        // Single focused token row — copy that token
-        if (!isTyping) {
-          const focusedPath = (document.activeElement as HTMLElement)?.dataset
-            ?.tokenPath;
-          if (focusedPath) {
-            const node = displayedLeafNodesRef.current.find(
-              (n) => n.path === focusedPath,
-            );
-            if (node) {
-              e.preventDefault();
-              copyTokensAsPreferredRef.current([node]);
-              return;
-            }
-          }
-        }
-      }
-
-      // Cmd/Ctrl+Alt+C: copy selected tokens as DTCG alias reference ({path.to.token})
-      if (
-        e.key === "c" &&
-        (e.metaKey || e.ctrlKey) &&
-        e.altKey &&
-        !e.shiftKey
-      ) {
-        if (selectMode && selectedPaths.size > 0) {
-          e.preventDefault();
-          const nodes = displayedLeafNodesRef.current.filter((n) =>
-            selectedPaths.has(n.path),
-          );
-          copyTokensAsDtcgRefRef.current(nodes);
-          return;
-        }
-        // Single focused token row — copy that token
-        if (!isTyping) {
-          const focusedPath = (document.activeElement as HTMLElement)?.dataset
-            ?.tokenPath;
-          if (focusedPath) {
-            const node = displayedLeafNodesRef.current.find(
-              (n) => n.path === focusedPath,
-            );
-            if (node) {
-              e.preventDefault();
-              copyTokensAsDtcgRefRef.current([node]);
-              return;
-            }
-          }
-        }
-      }
-
-      // Cmd/Ctrl+] / Cmd/Ctrl+[: navigate to next/previous token in the editor (works from list when side panel is visible)
-      if (
-        (matchesShortcut(e, "EDITOR_NEXT_TOKEN") ||
-          matchesShortcut(e, "EDITOR_PREV_TOKEN")) &&
-        editingTokenPath
-      ) {
-        e.preventDefault();
-        const nodes = displayedLeafNodesRef.current;
-        const idx = nodes.findIndex((n) => n.path === editingTokenPath);
-        if (idx !== -1) {
-          const next = matchesShortcut(e, "EDITOR_NEXT_TOKEN")
-            ? nodes[idx + 1]
-            : nodes[idx - 1];
-          if (next) onEdit(next.path, next.name);
-        }
-        return;
-      }
-
-      // Don't handle shortcuts when typing in a form field
-      if (isTyping) return;
-
-      // Cmd/Ctrl+A: select all visible leaf tokens (auto-enters select mode)
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        !e.shiftKey &&
-        !e.altKey &&
-        e.key.toLowerCase() === "a"
-      ) {
-        e.preventDefault();
-        if (!selectMode) setSelectMode(true);
-        setSelectedPaths(
-          new Set(displayedLeafNodesRef.current.map((n) => n.path)),
-        );
-        return;
-      }
-
-      // ⌫/Del: bulk delete when in select mode with tokens selected
-      if (
-        matchesShortcut(e, "TOKEN_DELETE") &&
-        selectMode &&
-        selectedPaths.size > 0 &&
-        (focusedTokenPath || focusedGroupPath)
-      ) {
-        e.preventDefault();
-        requestBulkDeleteFromHook(selectedPaths);
-        return;
-      }
-
-      // ⌘⇧M: batch move selected tokens to another set
-      if (
-        matchesShortcut(e, "TOKEN_BATCH_MOVE_TO_SET") &&
-        selectMode &&
-        selectedPaths.size > 0
-      ) {
-        e.preventDefault();
-        setBatchMoveToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
-        setShowBatchMoveToSet(true);
-        return;
-      }
-
-      // ⌘⇧Y: batch copy selected tokens to another set
-      if (
-        matchesShortcut(e, "TOKEN_BATCH_COPY_TO_SET") &&
-        selectMode &&
-        selectedPaths.size > 0
-      ) {
-        e.preventDefault();
-        setBatchCopyToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
-        setShowBatchCopyToSet(true);
-        return;
-      }
-
-      // m: toggle multi-select mode
-      if (matchesShortcut(e, "TOKEN_MULTI_SELECT")) {
-        e.preventDefault();
-        if (selectMode) {
-          setSelectMode(false);
-          setSelectedPaths(new Set());
-          setShowBatchEditor(false);
-        } else {
-          setSelectMode(true);
-        }
-        return;
-      }
-
-      // e: open/toggle batch editor when in select mode with tokens selected
-      if (e.key === "e" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        if (selectMode && selectedPaths.size > 0) {
-          e.preventDefault();
-          setShowBatchEditor((v) => !v);
-          return;
-        }
-      }
-
-      // n: open create form / drawer, pre-filling path from focused group or token's parent group
-      if (matchesShortcut(e, "TOKEN_NEW")) {
-        e.preventDefault();
-        const groupPath = focusedGroupPath;
-        const tokenPath = focusedTokenPath;
-
-        let prefixPath = "";
-        if (groupPath) {
-          prefixPath = groupPath;
-        } else if (tokenPath) {
-          const groups = Array.from(
-            document.querySelectorAll<HTMLElement>("[data-group-path]"),
-          );
-          const parentGroup = groups
-            .filter((el) =>
-              tokenPath.startsWith((el.dataset.groupPath ?? "") + "."),
-            )
-            .sort(
-              (a, b) =>
-                (b.dataset.groupPath?.length ?? 0) -
-                (a.dataset.groupPath?.length ?? 0),
-            )[0];
-          prefixPath = parentGroup?.dataset?.groupPath ?? "";
-        }
-
-        if (prefixPath) {
-          handleOpenCreateSibling(prefixPath, "color");
-        } else if (onCreateNew) {
-          onCreateNew();
-        }
-        return;
-      }
-
-      // /: focus search input
-      if (matchesShortcut(e, "TOKEN_SEARCH")) {
-        e.preventDefault();
-        searchRef.current?.focus();
-        return;
-      }
-
-      // Alt+↑/↓: move focused token/group up or down within its parent group
-      if (
-        e.altKey &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        (e.key === "ArrowUp" || e.key === "ArrowDown")
-      ) {
-        const activeEl = document.activeElement as HTMLElement;
-        const nodePath =
-          activeEl?.dataset?.tokenPath ?? activeEl?.dataset?.groupPath;
-        const nodeName = activeEl?.dataset?.nodeName;
-        if (nodePath && nodeName && sortOrder === "default" && connected) {
-          const direction = e.key === "ArrowUp" ? "up" : "down";
-          const parentPath = nodeParentPath(nodePath, nodeName) ?? "";
-          const siblings = siblingOrderMap.get(parentPath) ?? [];
-          const idx = siblings.indexOf(nodeName);
-          const newIdx = direction === "up" ? idx - 1 : idx + 1;
-          if (idx >= 0 && newIdx >= 0 && newIdx < siblings.length) {
-            e.preventDefault();
-            handleMoveTokenInGroup(nodePath, nodeName, direction);
-          }
-        }
-        return;
-      }
-
-      // ↑/↓: navigate between visible token and group rows
-      // Shift+↑/↓ in select mode: extend/shrink range selection
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-        const rows = Array.from(
-          document.querySelectorAll<HTMLElement>(
-            "[data-token-path],[data-group-path]",
-          ),
-        );
-        if (rows.length === 0) return;
-        const currentIndex = rows.findIndex(
-          (el) => el === document.activeElement,
-        );
-        let targetRow: HTMLElement | undefined;
-        if (e.key === "ArrowUp") {
-          e.preventDefault();
-          targetRow =
-            currentIndex > 0 ? rows[currentIndex - 1] : rows[rows.length - 1];
-        } else {
-          e.preventDefault();
-          targetRow =
-            currentIndex < rows.length - 1 ? rows[currentIndex + 1] : rows[0];
-        }
-        targetRow?.focus();
-        targetRow?.scrollIntoView({ block: "nearest" });
-
-        // Shift+Arrow: extend/shrink range selection (auto-enters select mode)
-        if (e.shiftKey && targetRow) {
-          const targetPath =
-            targetRow.dataset.tokenPath || targetRow.dataset.groupPath;
-          if (targetPath) {
-            if (!selectMode) setSelectMode(true);
-            // Set anchor on first shift-arrow if none exists
-            if (lastSelectedPathRef.current === null) {
-              const currentRow =
-                currentIndex >= 0 ? rows[currentIndex] : undefined;
-              const currentPath =
-                currentRow?.dataset.tokenPath || currentRow?.dataset.groupPath;
-              if (currentPath) {
-                lastSelectedPathRef.current = currentPath;
-                setSelectedPaths((prev) => {
-                  const next = new Set(prev);
-                  next.add(currentPath);
-                  return next;
-                });
-              }
-            }
-            handleTokenSelect(targetPath, { shift: true, ctrl: false });
-          }
-        }
-      }
-
-      // Alt+←: navigate back in alias navigation history
-      if (
-        e.altKey &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        e.key === "ArrowLeft" &&
-        (navHistoryLength ?? 0) > 0
-      ) {
-        e.preventDefault();
-        onNavigateBack?.();
-        return;
-      }
-
-      // Cmd/Ctrl+→: expand all groups; Cmd/Ctrl+←: collapse all groups
-      if (matchesShortcut(e, "TOKEN_EXPAND_ALL")) {
-        e.preventDefault();
-        handleExpandAll();
-        return;
-      }
-      if (matchesShortcut(e, "TOKEN_COLLAPSE_ALL")) {
-        e.preventDefault();
-        handleCollapseAll();
-        return;
-      }
-
-      // ←/→: expand/collapse groups (standard tree keyboard pattern)
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        const activeEl = document.activeElement as HTMLElement;
-        const groupPath = activeEl?.dataset?.groupPath;
-        const tokenPath = activeEl?.dataset?.tokenPath;
-
-        if (groupPath) {
-          const isExpanded = expandedPaths.has(groupPath);
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            if (!isExpanded) {
-              handleToggleExpand(groupPath);
-            } else {
-              const rows = Array.from(
-                document.querySelectorAll<HTMLElement>(
-                  "[data-token-path],[data-group-path]",
-                ),
-              );
-              const idx = rows.indexOf(activeEl);
-              if (idx >= 0 && idx < rows.length - 1) {
-                rows[idx + 1]?.focus();
-                rows[idx + 1]?.scrollIntoView({ block: "nearest" });
-              }
-            }
-          } else {
-            e.preventDefault();
-            if (isExpanded) {
-              handleToggleExpand(groupPath);
-            } else {
-              const parentPath = nodeParentPath(
-                groupPath,
-                activeEl.dataset.nodeName ?? "",
-              );
-              if (parentPath) {
-                const parentEl = document.querySelector<HTMLElement>(
-                  `[data-group-path="${CSS.escape(parentPath)}"]`,
-                );
-                if (parentEl) {
-                  parentEl.focus();
-                  parentEl.scrollIntoView({ block: "nearest" });
-                }
-              }
-            }
-          }
-        } else if (tokenPath && e.key === "ArrowLeft") {
-          e.preventDefault();
-          const parentPath = nodeParentPath(
-            tokenPath,
-            activeEl.dataset.nodeName ?? "",
-          );
-          if (parentPath) {
-            const parentEl = document.querySelector<HTMLElement>(
-              `[data-group-path="${CSS.escape(parentPath)}"]`,
-            );
-            if (parentEl) {
-              parentEl.focus();
-              parentEl.scrollIntoView({ block: "nearest" });
-            }
-          }
-        }
-      }
-    },
-    [
-      selectMode,
-      selectedPaths,
-      handleOpenCreateSibling,
-      onCreateNew,
-      expandedPaths,
-      handleToggleExpand,
-      handleExpandAll,
-      handleCollapseAll,
-      zoomRootPath,
-      navHistoryLength,
-      onNavigateBack,
-      handleMoveTokenInGroup,
-      siblingOrderMap,
-      sortOrder,
-      connected,
-      requestBulkDeleteFromHook,
-      sets,
-      setName,
-      setBatchMoveToSetTarget,
-      setShowBatchMoveToSet,
-      setBatchCopyToSetTarget,
-      setShowBatchCopyToSet,
-      editingTokenPath,
-      handleTokenSelect,
-      lastSelectedPathRef,
-      onEdit,
-      searchRef,
-      setSelectMode,
-      setSelectedPaths,
-      setShowBatchEditor,
-      setVirtualScrollTop,
-    ],
-  );
+  const handleListKeyDown = useTokenListKeyboardHandler({
+    selectMode,
+    selectedPaths,
+    expandedPaths,
+    zoomRootPath,
+    sortOrder,
+    connected,
+    navHistoryLength,
+    editingTokenPath,
+    siblingOrderMap,
+    displayedLeafNodesRef,
+    copyTokensAsJsonRef,
+    copyTokensAsCssVarRef: copyTokensAsCssVarRef,
+    copyTokensAsPreferredRef,
+    copyTokensAsDtcgRefRef,
+    lastSelectedPathRef,
+    searchRef,
+    virtualListRef,
+    sets,
+    setName,
+    setSelectMode,
+    setSelectedPaths,
+    setShowBatchEditor,
+    setZoomRootPath,
+    setVirtualScrollTop,
+    setBatchMoveToSetTarget,
+    setShowBatchMoveToSet,
+    setBatchCopyToSetTarget,
+    setShowBatchCopyToSet,
+    handleOpenCreateSibling,
+    onCreateNew,
+    handleToggleExpand,
+    handleExpandAll,
+    handleCollapseAll,
+    handleMoveTokenInGroup,
+    handleTokenSelect,
+    requestBulkDeleteFromHook,
+    onNavigateBack,
+    onEdit,
+  });
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -2415,476 +1765,80 @@ export function TokenList({
     requestBulkDeleteFromHook(selectedPaths);
   }, [requestBulkDeleteFromHook, selectedPaths]);
 
-  const handleBatchMoveToGroup = useCallback(async () => {
-    const target = moveToGroupTarget.trim();
-    if (!target || selectedPaths.size === 0 || !connected) return;
-
-    const renames = [...selectedPaths].map((oldPath) => {
-      const name = oldPath.split(".").pop()!;
-      const newPath = `${target}.${name}`;
-      return { oldPath, newPath };
-    });
-
-    const newPaths = renames.map((r) => r.newPath);
-    if (new Set(newPaths).size !== newPaths.length) {
-      setMoveToGroupError(
-        "Some selected tokens have the same name — resolve conflicts before moving",
-      );
-      return;
-    }
-
-    setShowMoveToGroup(false);
-    setMoveToGroupError("");
-    setOperationLoading(
-      `Moving ${selectedPaths.size} token${selectedPaths.size !== 1 ? "s" : ""}…`,
-    );
-    try {
-      await apiFetch(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-rename-paths`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ renames, updateAliases: true }),
-        },
-      );
-      setSelectedPaths(new Set());
-      setSelectMode(false);
-    } catch (err) {
-      onError?.(
-        err instanceof ApiError ? err.message : "Move failed: network error",
-      );
-    }
-    setOperationLoading(null);
-    onRefresh();
-  }, [
-    moveToGroupTarget,
-    selectedPaths,
+  const batchOps = useTokenListBatchOperations({
     connected,
     serverUrl,
     setName,
+    selectedPaths,
     onRefresh,
     onError,
     setSelectMode,
     setSelectedPaths,
-  ]);
+    setOperationLoading,
+  });
+
+  const handleBatchMoveToGroup = useCallback(async () => {
+    await batchOps.handleBatchMoveToGroup(
+      moveToGroupTarget,
+      setShowMoveToGroup,
+      setMoveToGroupError,
+    );
+  }, [batchOps, moveToGroupTarget]);
 
   const handleBatchMoveToSet = useCallback(async () => {
-    const target = batchMoveToSetTarget.trim();
-    if (!target || selectedPaths.size === 0 || !connected) return;
-    setShowBatchMoveToSet(false);
-    setOperationLoading(
-      `Moving ${selectedPaths.size} token${selectedPaths.size !== 1 ? "s" : ""} to ${target}…`,
+    await batchOps.handleBatchMoveToSet(
+      batchMoveToSetTarget,
+      setShowBatchMoveToSet,
     );
-    try {
-      await apiFetch(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-move`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paths: [...selectedPaths],
-            targetSet: target,
-          }),
-        },
-      );
-      setSelectedPaths(new Set());
-      setSelectMode(false);
-    } catch (err) {
-      onError?.(
-        err instanceof ApiError
-          ? err.message
-          : "Move to set failed: network error",
-      );
-    }
-    setOperationLoading(null);
-    onRefresh();
-  }, [
-    batchMoveToSetTarget,
-    selectedPaths,
-    connected,
-    serverUrl,
-    setName,
-    onRefresh,
-    onError,
-    setSelectMode,
-    setSelectedPaths,
-  ]);
+  }, [batchOps, batchMoveToSetTarget]);
 
   const handleBatchCopyToSet = useCallback(async () => {
-    const target = batchCopyToSetTarget.trim();
-    if (!target || selectedPaths.size === 0 || !connected) return;
-    setShowBatchCopyToSet(false);
-    setOperationLoading(
-      `Copying ${selectedPaths.size} token${selectedPaths.size !== 1 ? "s" : ""} to ${target}…`,
+    await batchOps.handleBatchCopyToSet(
+      batchCopyToSetTarget,
+      setShowBatchCopyToSet,
     );
-    try {
-      await apiFetch(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-copy`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paths: [...selectedPaths],
-            targetSet: target,
-          }),
-        },
-      );
-    } catch (err) {
-      onError?.(
-        err instanceof ApiError
-          ? err.message
-          : "Copy to set failed: network error",
-      );
-    }
-    setOperationLoading(null);
-    onRefresh();
-  }, [
-    batchCopyToSetTarget,
-    selectedPaths,
-    connected,
-    serverUrl,
-    setName,
-    onRefresh,
-    onError,
-  ]);
+  }, [batchOps, batchCopyToSetTarget]);
 
   // handleTokenSelect, displayedLeafPaths, selectedLeafNodes, handleSelectAll, handleSelectGroupChildren
   // are managed by useTokenSelection (destructured above)
 
-  /** Build nested DTCG JSON from a list of token nodes and copy to clipboard. */
-  const copyTokensAsJson = useCallback((nodes: TokenNode[]) => {
-    if (nodes.length === 0) return;
-    // Build a nested DTCG object from flat token paths
-    const root: Record<string, any> = {};
-    for (const node of nodes) {
-      if (node.isGroup) continue;
-      const segments = node.path.split(".");
-      let cursor = root;
-      for (let i = 0; i < segments.length - 1; i++) {
-        if (!(segments[i] in cursor)) cursor[segments[i]] = {};
-        cursor = cursor[segments[i]];
-      }
-      const leaf: Record<string, unknown> = {
-        $value: node.$value,
-        $type: node.$type,
-      };
-      if (node.$description) leaf.$description = node.$description;
-      cursor[segments[segments.length - 1]] = leaf;
-    }
-    const json = JSON.stringify(root, null, 2);
-    navigator.clipboard
-      .writeText(json)
-      .then(() => {
-        setCopyFeedback(true);
-        setTimeout(() => setCopyFeedback(false), 1500);
-      })
-      .catch((err) => console.warn("[TokenList] clipboard write failed:", err));
-  }, []);
+  const {
+    copyTokensAsJson,
+    copyTokensAsCssVar,
+    copyTokensAsDtcgRef,
+    copyTokensAsPreferred,
+  } = useTokenListClipboard({
+    setCopyFeedback,
+    setCopyCssFeedback,
+    setCopyPreferredFeedback,
+    setCopyAliasFeedback,
+  });
   copyTokensAsJsonRef.current = copyTokensAsJson;
-
-  /** Convert token paths to CSS custom property references and copy to clipboard. */
-  const copyTokensAsCssVar = useCallback((nodes: TokenNode[]) => {
-    const leafNodes = nodes.filter((n) => !n.isGroup);
-    if (leafNodes.length === 0) return;
-    const text = leafNodes
-      .map((n) => `var(--${n.path.replace(/\./g, "-")})`)
-      .join("\n");
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopyCssFeedback(true);
-        setTimeout(() => setCopyCssFeedback(false), 1500);
-      })
-      .catch((err) => console.warn("[TokenList] clipboard write failed:", err));
-  }, []);
   copyTokensAsCssVarRef.current = copyTokensAsCssVar;
-
-  /** Copy token paths as DTCG alias reference syntax ({path.to.token}) — ⌘⌥C. */
-  const copyTokensAsDtcgRef = useCallback((nodes: TokenNode[]) => {
-    const leafNodes = nodes.filter((n) => !n.isGroup);
-    if (leafNodes.length === 0) return;
-    const text = leafNodes.map((n) => `{${n.path}}`).join("\n");
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopyAliasFeedback(true);
-        setTimeout(() => setCopyAliasFeedback(false), 1500);
-      })
-      .catch((err) => console.warn("[TokenList] clipboard write failed:", err));
-  }, []);
   copyTokensAsDtcgRefRef.current = copyTokensAsDtcgRef;
-
-  /** Copy the focused/selected token(s) in the user's preferred format (⌘⇧C). */
-  const copyTokensAsPreferred = useCallback((nodes: TokenNode[]) => {
-    const leafNodes = nodes.filter((n) => !n.isGroup);
-    if (leafNodes.length === 0) return;
-
-    const fmt = (lsGet(STORAGE_KEYS.PREFERRED_COPY_FORMAT) ??
-      "css-var") as PreferredCopyFormat;
-
-    let text: string;
-    if (fmt === "json") {
-      const root: Record<string, any> = {};
-      for (const node of leafNodes) {
-        const segments = node.path.split(".");
-        let cursor = root;
-        for (let i = 0; i < segments.length - 1; i++) {
-          if (!(segments[i] in cursor)) cursor[segments[i]] = {};
-          cursor = cursor[segments[i]];
-        }
-        const leaf: Record<string, unknown> = {
-          $value: node.$value,
-          $type: node.$type,
-        };
-        if (node.$description) leaf.$description = node.$description;
-        cursor[segments[segments.length - 1]] = leaf;
-      }
-      text = JSON.stringify(root, null, 2);
-    } else if (fmt === "raw") {
-      text = leafNodes
-        .map((n) =>
-          typeof n.$value === "string" ? n.$value : JSON.stringify(n.$value),
-        )
-        .join("\n");
-    } else if (fmt === "dtcg-ref") {
-      text = leafNodes.map((n) => `{${n.path}}`).join("\n");
-    } else if (fmt === "scss") {
-      text = leafNodes.map((n) => `$${n.path.replace(/\./g, "-")}`).join("\n");
-    } else {
-      // css-var (default)
-      text = leafNodes
-        .map((n) => `var(--${n.path.replace(/\./g, "-")})`)
-        .join("\n");
-    }
-
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopyPreferredFeedback(true);
-        setTimeout(() => setCopyPreferredFeedback(false), 1500);
-      })
-      .catch((err) => console.warn("[TokenList] clipboard write failed:", err));
-  }, []);
   copyTokensAsPreferredRef.current = copyTokensAsPreferred;
 
-  const resolveFlat = (flat: any[]) =>
-    flat.map((t) => {
-      if (t.$type === "gradient" && Array.isArray(t.$value)) {
-        const resolvedStops = t.$value.map(
-          (stop: { color: string; position: number }) => {
-            if (isAlias(stop.color)) {
-              const refPath = extractAliasPath(stop.color)!;
-              const refEntry = allTokensFlat[refPath];
-              if (refEntry) {
-                const inner = resolveTokenValue(
-                  refEntry.$value,
-                  refEntry.$type,
-                  allTokensFlat,
-                );
-                return { ...stop, color: inner.value ?? refEntry.$value };
-              }
-            }
-            return stop;
-          },
-        );
-        return { ...t, $value: resolvedStops };
-      }
-      const resolved = resolveTokenValue(t.$value, t.$type, allTokensFlat);
-      return {
-        ...t,
-        $value: resolved.value ?? t.$value,
-        $type: resolved.$type,
-      };
-    });
+  const {
+    doApplyVariables,
+    handleApplyVariables,
+    handleApplyStyles,
+  } = useTokenListApplyOperations({
+    tokens,
+    allTokensFlat,
+    setName,
+    collectionMap,
+    modeMap,
+    varReadPendingRef,
+    onRefresh,
+    onError,
+    setApplying,
+    setVarDiffLoading,
+    setVarDiffPending,
+    closeLongLivedReviewSurfaces,
+    sendStyleApply,
+  });
 
-  const doApplyVariables = useCallback(
-    (flat: any[]) => {
-      parent.postMessage(
-        {
-          pluginMessage: {
-            type: "apply-variables",
-            tokens: flat,
-            collectionMap,
-            modeMap,
-          },
-        },
-        "*",
-      );
-      dispatchToast(`Applied ${flat.length} variables`, "success");
-    },
-    [collectionMap, modeMap],
-  );
-
-  const handleApplyVariables = async () => {
-    closeLongLivedReviewSurfaces();
-    const flat = resolveFlat(flattenTokens(tokens)).map((t: any) => ({
-      ...t,
-      setName,
-    }));
-    setVarDiffLoading(true);
-    try {
-      const figmaTokens: any[] = await new Promise((resolve, reject) => {
-        const cid = `tl-vars-${Date.now()}-${Math.random()}`;
-        const timeout = setTimeout(() => {
-          varReadPendingRef.current.delete(cid);
-          reject(new Error("timeout"));
-        }, 8000);
-        varReadPendingRef.current.set(cid, (toks) => {
-          clearTimeout(timeout);
-          resolve(toks);
-        });
-        parent.postMessage(
-          { pluginMessage: { type: "read-variables", correlationId: cid } },
-          "*",
-        );
-      });
-      const figmaMap = new Map(
-        figmaTokens.map((t: any) => [t.path, String(t.$value ?? "")]),
-      );
-      let added = 0,
-        modified = 0,
-        unchanged = 0;
-      for (const t of flat) {
-        if (!figmaMap.has(t.path)) added++;
-        else if (figmaMap.get(t.path) !== String(t.$value ?? "")) modified++;
-        else unchanged++;
-      }
-      setVarDiffPending({ added, modified, unchanged, flat });
-    } catch (err) {
-      // Figma not reachable — show count-only confirmation
-      console.warn("[TokenList] Figma variable diff failed:", err);
-      setVarDiffPending({
-        added: flat.length,
-        modified: 0,
-        unchanged: 0,
-        flat,
-      });
-    } finally {
-      setVarDiffLoading(false);
-    }
-  };
-
-  const handleApplyStyles = async () => {
-    setApplying(true);
-    const flat = resolveFlat(flattenTokens(tokens));
-    try {
-      const result = await sendStyleApply("apply-styles", { tokens: flat });
-      dispatchToast(`Applied ${result.count} styles`, "success");
-      if (result.failures.length > 0) {
-        const failedPaths = result.failures.map((f) => f.path).join(", ");
-        onError?.(
-          `${result.count}/${result.total} styles created. Failed: ${failedPaths}`,
-        );
-      }
-    } catch (err) {
-      onError?.(getErrorMessage(err, "Failed to apply styles"));
-    } finally {
-      setApplying(false);
-    }
-  };
-
-  const getDeleteModalProps = (): {
-    title: string;
-    description?: string;
-    confirmLabel: string;
-    pathList?: string[];
-    affectedRefs?: AffectedRef[];
-    recipeImpacts?: RecipeImpact[];
-    themeImpacts?: ThemeImpact[];
-  } | null => {
-    if (!deleteConfirm) return null;
-    const genImpacts =
-      deleteConfirm.recipeImpacts.length > 0
-        ? deleteConfirm.recipeImpacts
-        : undefined;
-    const thmImpacts =
-      deleteConfirm.themeImpacts.length > 0
-        ? deleteConfirm.themeImpacts
-        : undefined;
-    if (deleteConfirm.type === "token") {
-      const name = deleteConfirm.path.split(".").pop() ?? deleteConfirm.path;
-      const { orphanCount, affectedRefs } = deleteConfirm;
-      const setCount = new Set(affectedRefs.map((r) => r.setName)).size;
-      const parts: string[] = [];
-      if (orphanCount > 0)
-        parts.push(
-          `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${setCount} set${setCount !== 1 ? "s" : ""}`,
-        );
-      if (genImpacts)
-        parts.push(
-          `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
-        );
-      if (thmImpacts)
-        parts.push(
-          `affect ${thmImpacts.length} mode option${thmImpacts.length !== 1 ? "s" : ""}`,
-        );
-      return {
-        title: `Delete "${name}"?`,
-        description:
-          parts.length > 0
-            ? `This will ${parts.join(", ")}.`
-            : `Token path: ${deleteConfirm.path}`,
-        confirmLabel: "Delete",
-        affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-        recipeImpacts: genImpacts,
-        themeImpacts: thmImpacts,
-      };
-    }
-    if (deleteConfirm.type === "group") {
-      const { orphanCount, affectedRefs } = deleteConfirm;
-      const setCount = new Set(affectedRefs.map((r) => r.setName)).size;
-      const parts: string[] = [
-        `delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? "s" : ""}`,
-      ];
-      if (orphanCount > 0)
-        parts.push(
-          `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${setCount} set${setCount !== 1 ? "s" : ""}`,
-        );
-      if (genImpacts)
-        parts.push(
-          `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
-        );
-      if (thmImpacts)
-        parts.push(
-          `affect ${thmImpacts.length} mode option${thmImpacts.length !== 1 ? "s" : ""}`,
-        );
-      return {
-        title: `Delete group "${deleteConfirm.name}"?`,
-        description: `This will ${parts.join(", ")}.`,
-        confirmLabel: `Delete group (${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? "s" : ""})`,
-        affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-        recipeImpacts: genImpacts,
-        themeImpacts: thmImpacts,
-      };
-    }
-    const { paths, orphanCount, affectedRefs } = deleteConfirm;
-    const setCount = new Set(affectedRefs.map((r) => r.setName)).size;
-    const parts: string[] = [];
-    if (orphanCount > 0)
-      parts.push(
-        `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${setCount} set${setCount !== 1 ? "s" : ""}`,
-      );
-    if (genImpacts)
-      parts.push(
-        `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
-      );
-    if (thmImpacts)
-      parts.push(
-        `affect ${thmImpacts.length} mode option${thmImpacts.length !== 1 ? "s" : ""}`,
-      );
-    return {
-      title: `Delete ${paths.length} token${paths.length !== 1 ? "s" : ""}?`,
-      description:
-        parts.length > 0 ? `This will ${parts.join(", ")}.` : undefined,
-      confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? "s" : ""}`,
-      pathList: paths,
-      affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-      recipeImpacts: genImpacts,
-      themeImpacts: thmImpacts,
-    };
-  };
-
-  const modalProps = getDeleteModalProps();
+  const modalProps = getDeleteModalProps(deleteConfirm);
 
   // handleJumpToGroup is managed by useTokenVirtualScroll (destructured above)
 
@@ -3133,478 +2087,87 @@ export function TokenList({
     ? allTokensFlat
     : unthemedAllTokensFlat;
 
-  const tokenTreeSharedData = useMemo<TokenTreeSharedDataContextType>(
-    () => ({
-      allTokensFlat: effectiveAllTokensFlat,
-      pathToSet,
-    }),
-    [effectiveAllTokensFlat, pathToSet],
-  );
+  const tokenTreeSharedData = useTokenTreeSharedData({
+    effectiveAllTokensFlat, pathToSet,
+  });
 
-  const tokenTreeGroupState = useMemo<TokenTreeGroupStateContextType>(
-    () => ({
-      density,
-      setName,
-      selectMode,
-      expandedPaths,
-      highlightedToken: highlightedToken ?? null,
-      previewedPath: highlightedToken ?? null,
-      searchHighlight,
-      dragOverGroup,
-      dragOverGroupIsInvalid,
-      dragSource,
-      recipesByTargetGroup,
-      themeCoverage,
-      condensedView,
-      rovingFocusPath: effectiveRovingPath,
-    }),
-    [
-      density,
-      setName,
-      selectMode,
-      expandedPaths,
-      highlightedToken,
-      searchHighlight,
-      dragOverGroup,
-      dragOverGroupIsInvalid,
-      dragSource,
-      recipesByTargetGroup,
-      themeCoverage,
-      condensedView,
-      effectiveRovingPath,
-    ],
-  );
+  const tokenTreeGroupState = useTokenTreeGroupState({
+    density, setName, selectMode, expandedPaths, highlightedToken,
+    searchHighlight, dragOverGroup, dragOverGroupIsInvalid, dragSource,
+    recipesByTargetGroup, themeCoverage, condensedView,
+    effectiveRovingPath,
+  });
 
-  const tokenTreeGroupActions = useMemo<TokenTreeGroupActionsContextType>(
-    () => ({
-      onToggleExpand: handleToggleExpand,
-      onDeleteGroup: requestDeleteGroup,
-      onCreateSibling: handleOpenCreateSibling,
-      onCreateGroup: setNewGroupDialogParent,
-      onRenameGroup: handleRenameGroup,
-      onUpdateGroupMeta: handleUpdateGroupMeta,
-      onRequestMoveGroup: handleRequestMoveGroup,
-      onRequestCopyGroup: handleRequestCopyGroup,
-      onDuplicateGroup: handleDuplicateGroup,
-      onSyncGroup,
-      onSyncGroupStyles,
-      onSetGroupScopes,
-      onGenerateScaleFromGroup,
-      onZoomIntoGroup: handleZoomIntoGroup,
-      onDragOverGroup: handleDragOverGroup,
-      onDropOnGroup: handleDropOnGroup,
-      onEditRecipe,
-      onNavigateToRecipe,
-      onRegenerateRecipe: handleRegenerateRecipe,
-      onDetachRecipeGroup: handleDetachRecipeGroup,
-      onNavigateToToken: onNavigateToAlias
-        ? (path: string) => onNavigateToAlias(path)
-        : undefined,
-      onRovingFocus: setRovingFocusPath,
-    }),
-    [
-      handleToggleExpand,
-      requestDeleteGroup,
-      handleOpenCreateSibling,
-      setNewGroupDialogParent,
-      handleRenameGroup,
-      handleUpdateGroupMeta,
-      handleRequestMoveGroup,
-      handleRequestCopyGroup,
-      handleDuplicateGroup,
-      onSyncGroup,
-      onSyncGroupStyles,
-      onSetGroupScopes,
-      onGenerateScaleFromGroup,
-      handleZoomIntoGroup,
-      handleDragOverGroup,
-      handleDropOnGroup,
-      onEditRecipe,
-      onNavigateToRecipe,
-      handleRegenerateRecipe,
-      handleDetachRecipeGroup,
-      onNavigateToAlias,
-      setRovingFocusPath,
-    ],
-  );
+  const tokenTreeGroupActions = useTokenTreeGroupActions({
+    handleToggleExpand, requestDeleteGroup, handleOpenCreateSibling,
+    setNewGroupDialogParent, handleRenameGroup, handleUpdateGroupMeta,
+    handleRequestMoveGroup, handleRequestCopyGroup, handleDuplicateGroup,
+    onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
+    handleZoomIntoGroup, handleDragOverGroup, handleDropOnGroup,
+    onEditRecipe, onNavigateToRecipe, handleRegenerateRecipe,
+    handleDetachRecipeGroup, onNavigateToAlias, setRovingFocusPath,
+  });
 
-  const tokenTreeLeafState = useMemo<TokenTreeLeafStateContextType>(
-    () => ({
-      density,
-      serverUrl,
-      setName,
-      sets,
-      selectionCapabilities,
-      duplicateCounts,
-      selectMode,
-      highlightedToken: highlightedToken ?? null,
-      previewedPath: highlightedToken ?? null,
-      inspectMode,
-      syncSnapshot,
-      derivedTokenPaths,
-      searchHighlight,
-      selectedNodes,
-      dragOverReorder,
-      selectedLeafNodes,
-      showResolvedValues,
-      condensedView,
-      starredPaths,
-      dimensions,
-      activeThemes,
-      pendingRenameToken,
-      pendingTabEdit,
-      rovingFocusPath: effectiveRovingPath,
-      showDuplicatesFilter: showDuplicates,
-      modeVariantPaths: (!multiModeEnabled || themeLensEnabled) && modeVariantPaths.size > 0 ? modeVariantPaths : undefined,
-      themeLensEnabled,
-      tokenModeMissing,
-    }),
-    [
-      density,
-      serverUrl,
-      setName,
-      sets,
-      selectionCapabilities,
-      duplicateCounts,
-      selectMode,
-      highlightedToken,
-      inspectMode,
-      syncSnapshot,
-      derivedTokenPaths,
-      searchHighlight,
-      selectedNodes,
-      dragOverReorder,
-      selectedLeafNodes,
-      showResolvedValues,
-      condensedView,
-      starredPaths,
-      dimensions,
-      activeThemes,
-      pendingRenameToken,
-      pendingTabEdit,
-      effectiveRovingPath,
-      showDuplicates,
-      multiModeEnabled,
-      modeVariantPaths,
-      themeLensEnabled,
-      tokenModeMissing,
-    ],
-  );
+  const tokenTreeLeafState = useTokenTreeLeafState({
+    density, serverUrl, setName, sets, selectionCapabilities, duplicateCounts,
+    selectMode, highlightedToken, inspectMode, syncSnapshot, derivedTokenPaths,
+    searchHighlight, selectedNodes, dragOverReorder, selectedLeafNodes,
+    showResolvedValues, condensedView, starredPaths, dimensions, activeThemes,
+    pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
+    multiModeEnabled, modeVariantPaths, themeLensEnabled, tokenModeMissing,
+  });
 
-  const tokenTreeLeafActions = useMemo<TokenTreeLeafActionsContextType>(
-    () => ({
-      onEdit,
-      onPreview,
-      onDelete: requestDeleteToken,
-      onToggleSelect: handleTokenSelect,
-      onNavigateToAlias,
-      onRefresh,
-      onPushUndo,
-      onRequestMoveToken: handleRequestMoveTokenReview,
-      onRequestCopyToken: handleRequestCopyTokenReview,
-      onDuplicateToken: handleDuplicateToken,
-      onDetachFromRecipe: handleDetachFromRecipe,
-      onExtractToAlias: handleOpenExtractToAlias,
-      onHoverToken: handleHoverToken,
-      onFilterByType: setTypeFilter,
-      onInlineSave: handleInlineSave,
-      onRenameToken: handleRenameToken,
-      onViewTokenHistory,
-      onCompareAcrossThemes:
-        dimensions.length > 0 ? handleCompareAcrossThemes : undefined,
-      onDragStart: handleDragStartNotify,
-      onDragEnd: handleDragEndNotify,
-      onDragOverToken: handleDragOverToken,
-      onDragLeaveToken: handleDragLeaveToken,
-      onDropOnToken: handleDropReorder,
-      onMultiModeInlineSave: multiModeData
-        ? handleMultiModeInlineSave
-        : undefined,
-      onOpenRecipeEditor,
-      onToggleStar,
-      clearPendingRename: handleClearPendingRename,
-      clearPendingTabEdit: handleClearPendingTabEdit,
-      onTabToNext: handleTabToNext,
-      onRovingFocus: setRovingFocusPath,
-    }),
-    [
-      onEdit,
-      onPreview,
-      requestDeleteToken,
-      handleTokenSelect,
-      onNavigateToAlias,
-      onRefresh,
-      onPushUndo,
-      handleRequestMoveTokenReview,
-      handleRequestCopyTokenReview,
-      handleDuplicateToken,
-      handleDetachFromRecipe,
-      handleOpenExtractToAlias,
-      handleHoverToken,
-      setTypeFilter,
-      handleInlineSave,
-      handleRenameToken,
-      onViewTokenHistory,
-      dimensions.length,
-      handleCompareAcrossThemes,
-      handleDragStartNotify,
-      handleDragEndNotify,
-      handleDragOverToken,
-      handleDragLeaveToken,
-      handleDropReorder,
-      multiModeData,
-      handleMultiModeInlineSave,
-      onOpenRecipeEditor,
-      onToggleStar,
-      handleClearPendingRename,
-      handleClearPendingTabEdit,
-      handleTabToNext,
-      setRovingFocusPath,
-    ],
-  );
+  const tokenTreeLeafActions = useTokenTreeLeafActions({
+    onEdit, onPreview, requestDeleteToken, handleTokenSelect, onNavigateToAlias,
+    onRefresh, onPushUndo, handleRequestMoveTokenReview, handleRequestCopyTokenReview,
+    handleDuplicateToken, handleDetachFromRecipe, handleOpenExtractToAlias,
+    handleHoverToken, setTypeFilter, handleInlineSave, handleRenameToken,
+    onViewTokenHistory, dimensionsLength: dimensions.length,
+    handleCompareAcrossThemes, handleDragStartNotify, handleDragEndNotify,
+    handleDragOverToken, handleDragLeaveToken, handleDropReorder,
+    multiModeData, handleMultiModeInlineSave, onOpenRecipeEditor, onToggleStar,
+    handleClearPendingRename, handleClearPendingTabEdit, handleTabToNext,
+    setRovingFocusPath,
+  });
 
-  // Build modal context value — memoized so TokenListModals only re-renders when
-  // modal-related state actually changes, not on every TokenList render.
-  const modalContextValue = useMemo<TokenListModalsState>(
-    () => ({
-      setName,
-      sets,
-      allTokensFlat,
-      connected,
-      deleteConfirm,
-      modalProps,
-      executeDelete,
-      onSetDeleteConfirm: setDeleteConfirm,
-      newGroupDialogParent,
-      newGroupName,
-      newGroupError,
-      onSetNewGroupName: setNewGroupName,
-      onSetNewGroupError: setNewGroupError,
-      handleCreateGroup,
-      onSetNewGroupDialogParent: setNewGroupDialogParent,
-      renameTokenConfirm,
-      executeTokenRename,
-      onSetRenameTokenConfirm: setRenameTokenConfirm,
-      renameGroupConfirm,
-      executeGroupRename,
-      onSetRenameGroupConfirm: setRenameGroupConfirm,
-      varDiffPending,
-      doApplyVariables,
-      onSetVarDiffPending: setVarDiffPending,
-      extractToken,
-      extractMode,
-      onSetExtractMode: setExtractMode,
-      newPrimitivePath,
-      onSetNewPrimitivePath: setNewPrimitivePath,
-      newPrimitiveSet,
-      onSetNewPrimitiveSet: setNewPrimitiveSet,
-      existingAlias,
-      onSetExistingAlias: setExistingAlias,
-      existingAliasSearch,
-      onSetExistingAliasSearch: setExistingAliasSearch,
-      extractError,
-      onSetExtractError: setExtractError,
-      handleConfirmExtractToAlias,
-      onSetExtractToken: setExtractToken,
-      showFindReplace,
-      frFind,
-      frReplace,
-      frIsRegex,
-      frScope,
-      frTarget,
-      frError,
-      frBusy,
-      frRegexError,
-      frPreview,
-      frValuePreview,
-      frConflictCount,
-      frRenameCount,
-      frValueCount,
-      frAliasImpact,
-      frTypeFilter,
-      frAvailableTypes,
-      onSetFrFind: setFrFind,
-      onSetFrReplace: setFrReplace,
-      onSetFrIsRegex: setFrIsRegex,
-      onSetFrScope: setFrScope,
-      onSetFrTarget: setFrTarget,
-      onSetFrTypeFilter: setFrTypeFilter,
-      onSetFrError: setFrError,
-      onSetShowFindReplace: setShowFindReplace,
-      handleFindReplace,
-      cancelFindReplace,
-      promoteRows,
-      promoteBusy,
-      onSetPromoteRows: setPromoteRows,
-      handleConfirmPromote,
-      movingToken,
-      movingGroup,
-      moveTargetSet: movingGroup ? moveGroupTargetSet : moveTokenTargetSet,
-      onSetMoveTargetSet: movingGroup
-        ? setMoveGroupTargetSet
-        : handleChangeMoveTokenTargetSet,
-      onSetMovingToken: setMovingToken,
-      onSetMovingGroup: setMovingGroup,
-      handleConfirmMoveToken,
-      handleConfirmMoveGroup,
-      moveConflict: movingToken ? moveConflict : null,
-      moveConflictAction,
-      onSetMoveConflictAction: setMoveConflictAction,
-      moveConflictNewPath,
-      onSetMoveConflictNewPath: setMoveConflictNewPath,
-      moveSourceToken: movingToken
-        ? (allTokensFlat[movingToken] ?? null)
-        : null,
-      copyingToken,
-      copyingGroup,
-      copyTargetSet: copyingGroup ? copyGroupTargetSet : copyTokenTargetSet,
-      onSetCopyTargetSet: copyingGroup
-        ? setCopyGroupTargetSet
-        : handleChangeCopyTokenTargetSet,
-      onSetCopyingToken: setCopyingToken,
-      onSetCopyingGroup: setCopyingGroup,
-      handleConfirmCopyToken,
-      handleConfirmCopyGroup,
-      copyConflict: copyingToken ? copyConflict : null,
-      copyConflictAction,
-      onSetCopyConflictAction: setCopyConflictAction,
-      copyConflictNewPath,
-      onSetCopyConflictNewPath: setCopyConflictNewPath,
-      copySourceToken: copyingToken
-        ? (allTokensFlat[copyingToken] ?? null)
-        : null,
-      showMoveToGroup,
-      moveToGroupTarget,
-      moveToGroupError,
-      selectedMoveCount: selectedPaths.size,
-      onSetShowMoveToGroup: setShowMoveToGroup,
-      onSetMoveToGroupTarget: setMoveToGroupTarget,
-      onSetMoveToGroupError: setMoveToGroupError,
-      handleBatchMoveToGroup,
-      showBatchMoveToSet,
-      batchMoveToSetTarget,
-      onSetBatchMoveToSetTarget: setBatchMoveToSetTarget,
-      onSetShowBatchMoveToSet: setShowBatchMoveToSet,
-      handleBatchMoveToSet,
-      showBatchCopyToSet,
-      batchCopyToSetTarget,
-      onSetBatchCopyToSetTarget: setBatchCopyToSetTarget,
-      onSetShowBatchCopyToSet: setShowBatchCopyToSet,
-      handleBatchCopyToSet,
-    }),
-    [
-      setName,
-      sets,
-      allTokensFlat,
-      connected,
-      deleteConfirm,
-      modalProps,
-      executeDelete,
-      newGroupDialogParent,
-      newGroupName,
-      newGroupError,
-      handleCreateGroup,
-      renameTokenConfirm,
-      executeTokenRename,
-      renameGroupConfirm,
-      executeGroupRename,
-      varDiffPending,
-      doApplyVariables,
-      extractToken,
-      extractMode,
-      newPrimitivePath,
-      newPrimitiveSet,
-      existingAlias,
-      existingAliasSearch,
-      extractError,
-      handleConfirmExtractToAlias,
-      showFindReplace,
-      frFind,
-      frReplace,
-      frIsRegex,
-      frScope,
-      frTarget,
-      frError,
-      frBusy,
-      frRegexError,
-      frPreview,
-      frValuePreview,
-      frConflictCount,
-      frRenameCount,
-      frValueCount,
-      frAliasImpact,
-      frTypeFilter,
-      frAvailableTypes,
-      handleFindReplace,
-      cancelFindReplace,
-      promoteRows,
-      promoteBusy,
-      handleConfirmPromote,
-      movingToken,
-      movingGroup,
-      moveGroupTargetSet,
-      moveTokenTargetSet,
-      setMoveGroupTargetSet,
-      handleChangeMoveTokenTargetSet,
-      handleConfirmMoveToken,
-      handleConfirmMoveGroup,
-      moveConflict,
-      moveConflictAction,
-      setMoveConflictAction,
-      moveConflictNewPath,
-      setMoveConflictNewPath,
-      copyingToken,
-      copyingGroup,
-      copyGroupTargetSet,
-      copyTokenTargetSet,
-      setCopyGroupTargetSet,
-      handleChangeCopyTokenTargetSet,
-      handleConfirmCopyToken,
-      handleConfirmCopyGroup,
-      copyConflict,
-      copyConflictAction,
-      setCopyConflictAction,
-      copyConflictNewPath,
-      setCopyConflictNewPath,
-      showMoveToGroup,
-      moveToGroupTarget,
-      moveToGroupError,
-      selectedPaths,
-      handleBatchMoveToGroup,
-      showBatchMoveToSet,
-      batchMoveToSetTarget,
-      handleBatchMoveToSet,
-      showBatchCopyToSet,
-      batchCopyToSetTarget,
-      handleBatchCopyToSet,
-      setCopyingGroup,
-      setCopyingToken,
-      setDeleteConfirm,
-      setExistingAlias,
-      setExistingAliasSearch,
-      setExtractError,
-      setExtractMode,
-      setExtractToken,
-      setFrError,
-      setFrFind,
-      setFrIsRegex,
-      setFrReplace,
-      setFrScope,
-      setFrTarget,
-      setFrTypeFilter,
-      setMovingGroup,
-      setMovingToken,
-      setNewGroupDialogParent,
-      setNewGroupError,
-      setNewGroupName,
-      setNewPrimitivePath,
-      setNewPrimitiveSet,
-      setPromoteRows,
-      setRenameGroupConfirm,
-      setRenameTokenConfirm,
-      setShowFindReplace,
-    ],
-  );
+  const modalContextValue = useTokenListModalContext({
+    setName, sets, allTokensFlat, connected,
+    deleteConfirm, modalProps, executeDelete, setDeleteConfirm,
+    newGroupDialogParent, newGroupName, newGroupError,
+    setNewGroupName, setNewGroupError, handleCreateGroup, setNewGroupDialogParent,
+    renameTokenConfirm, executeTokenRename, setRenameTokenConfirm,
+    renameGroupConfirm, executeGroupRename, setRenameGroupConfirm,
+    varDiffPending, doApplyVariables, setVarDiffPending,
+    extractToken, extractMode, setExtractMode,
+    newPrimitivePath, setNewPrimitivePath, newPrimitiveSet, setNewPrimitiveSet,
+    existingAlias, setExistingAlias, existingAliasSearch, setExistingAliasSearch,
+    extractError, setExtractError, handleConfirmExtractToAlias, setExtractToken,
+    showFindReplace,
+    frFind, frReplace, frIsRegex, frScope, frTarget, frError, frBusy,
+    frRegexError, frPreview, frValuePreview, frConflictCount, frRenameCount,
+    frValueCount, frAliasImpact, frTypeFilter, frAvailableTypes,
+    setFrFind, setFrReplace, setFrIsRegex, setFrScope, setFrTarget,
+    setFrTypeFilter, setFrError, setShowFindReplace,
+    handleFindReplace, cancelFindReplace,
+    promoteRows, promoteBusy, setPromoteRows, handleConfirmPromote,
+    movingToken, movingGroup, moveGroupTargetSet, moveTokenTargetSet,
+    setMoveGroupTargetSet, handleChangeMoveTokenTargetSet,
+    setMovingToken, setMovingGroup, handleConfirmMoveToken, handleConfirmMoveGroup,
+    moveConflict, moveConflictAction, setMoveConflictAction,
+    moveConflictNewPath, setMoveConflictNewPath,
+    copyingToken, copyingGroup, copyGroupTargetSet, copyTokenTargetSet,
+    setCopyGroupTargetSet, handleChangeCopyTokenTargetSet,
+    setCopyingToken, setCopyingGroup, handleConfirmCopyToken, handleConfirmCopyGroup,
+    copyConflict, copyConflictAction, setCopyConflictAction,
+    copyConflictNewPath, setCopyConflictNewPath,
+    showMoveToGroup, moveToGroupTarget, moveToGroupError, selectedPaths,
+    setShowMoveToGroup, setMoveToGroupTarget, setMoveToGroupError,
+    handleBatchMoveToGroup,
+    showBatchMoveToSet, batchMoveToSetTarget, setBatchMoveToSetTarget,
+    setShowBatchMoveToSet, handleBatchMoveToSet,
+    showBatchCopyToSet, batchCopyToSetTarget, setBatchCopyToSetTarget,
+    setShowBatchCopyToSet, handleBatchCopyToSet,
+  });
 
   const showStaleRecipeBanner =
     staleRecipesForSet.length > 0 &&
@@ -3808,83 +2371,21 @@ export function TokenList({
         {searchQuery ? `${displayedLeafNodes.length} tokens found` : ""}
       </div>
       {showStaleRecipeBanner && (
-        <NoticeBanner
-          severity="warning"
-          onDismiss={
-            !runningStaleRecipes
-              ? handleDismissStaleRecipeBanner
-              : undefined
-          }
-          dismissLabel="Dismiss"
-          actions={
-            <button
-              type="button"
-              onClick={handleRegenerateAllStaleRecipes}
-              disabled={runningStaleRecipes}
-              className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] font-medium hover:bg-[var(--color-figma-warning)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {runningStaleRecipes && <Spinner size="xs" />}
-              <span>
-                {runningStaleRecipes ? "Re-running…" : "Re-run all"}
-              </span>
-            </button>
-          }
-        >
-          <span>
-            {staleRecipesForSet.length === 1 ? "1 recipe is" : `${staleRecipesForSet.length} recipes are`}{" "}
-            out of date:{" "}
-            {staleRecipesForSet.map((recipe, i) => (
-              <span key={recipe.id}>
-                {i > 0 && ", "}
-                {onNavigateToRecipe ? (
-                  <button
-                    type="button"
-                    onClick={() => onNavigateToRecipe(recipe.id)}
-                    className="underline decoration-[var(--color-figma-warning)]/40 hover:decoration-[var(--color-figma-warning)] hover:text-[var(--color-figma-warning)] transition-colors"
-                  >
-                    {recipe.name}
-                  </button>
-                ) : (
-                  recipe.name
-                )}
-              </span>
-            ))}
-          </span>
-        </NoticeBanner>
+        <TokenListStaleRecipeBanner
+          staleRecipesForSet={staleRecipesForSet}
+          runningStaleRecipes={runningStaleRecipes}
+          onDismiss={handleDismissStaleRecipeBanner}
+          onRegenerateAll={handleRegenerateAllStaleRecipes}
+          onNavigateToRecipe={onNavigateToRecipe}
+        />
       )}
       {/* Token stats bar — compact single row with type breakdown */}
-      {statsBarOpen && statsTotalTokens > 0 && (
-        <div className="shrink-0 border-b border-[var(--color-figma-border)]">
-          <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
-            <span className="font-medium text-[var(--color-figma-text)]">
-              {statsTotalTokens}
-            </span>
-            <span>token{statsTotalTokens !== 1 ? "s" : ""}</span>
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden flex gap-px">
-              {statsByType.map(([type, count]) => (
-                <div
-                  key={type}
-                  style={{
-                    width: `${(count / statsTotalTokens) * 100}%`,
-                    backgroundColor:
-                      TOKEN_TYPE_COLORS[type] ?? "var(--color-token-type-fallback)",
-                  }}
-                  title={`${type}: ${count}`}
-                />
-              ))}
-            </div>
-            <button
-              onClick={() => setStatsBarOpen(false)}
-              className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              aria-label="Hide token statistics"
-              title="Hide token statistics"
-            >
-              <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      {statsBarOpen && (
+        <TokenListStatsBar
+          statsTotalTokens={statsTotalTokens}
+          statsByType={statsByType}
+          onClose={() => setStatsBarOpen(false)}
+        />
       )}
       {/* Operation loading indicator */}
       {operationLoading && (
@@ -3913,438 +2414,73 @@ export function TokenList({
           leafState={tokenTreeLeafState}
           leafActions={tokenTreeLeafActions}
         >
-          {/* Multi-mode column headers */}
-          {multiModeData && viewMode === "tree" && (
-            <div className="sticky top-0 z-20 flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <div className="flex-1 min-w-0 px-2 py-1 flex items-center gap-1">
-                {dimensions.length > 1 ? (
-                  <select
-                    value={multiModeDimId ?? ""}
-                    onChange={(e) => setMultiModeDimId(e.target.value)}
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                  >
-                    {dimensions.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                    {multiModeDimensionName ?? "Token"}
-                  </span>
-                )}
-              </div>
-              {multiModeData.results.map((r) => (
-                <div
-                  key={r.optionName}
-                  className="w-[48px] shrink-0 px-0.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate border-l border-[var(--color-figma-border)]"
-                  title={r.optionName}
-                >
-                  {r.optionName}
-                </div>
-              ))}
-            </div>
-          )}
-          {crossSetResults !== null ? (
-            /* Cross-set search results */
-            crossSetResults.length === 0 ? (
-              <div className="py-3">
-                <FeedbackPlaceholder
-                  variant="no-results"
-                  size="section"
-                  title="No tokens found across all sets"
-                  description="Try a broader search or switch to a specific set."
-                />
-                {searchQuery &&
-                  (() => {
-                    const q = searchQuery.trim();
-                    const qLower = q.toLowerCase();
-                    const matchingType =
-                      availableTypes.find((t) => t.toLowerCase() === qLower) ||
-                      availableTypes.find((t) =>
-                        t.toLowerCase().startsWith(qLower),
-                      );
-                    if (matchingType && typeFilter !== matchingType) {
-                      return (
-                        <div className="mt-2 text-center">
-                          <button
-                            onClick={() => {
-                              setSearchQuery("");
-                              setTypeFilter(matchingType);
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
-                          >
-                            Filter by type: {matchingType}{" "}
-                            <span aria-hidden="true">&rarr;</span>
-                          </button>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-              </div>
-            ) : (
-              <div>
-                {sets
-                  .filter((sn) => crossSetResults.some((r) => r.setName === sn))
-                  .map((sn) => {
-                    const setResults = crossSetResults.filter(
-                      (r) => r.setName === sn,
-                    );
-                    return (
-                      <div key={sn}>
-                        <div className="px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
-                          {sn}{" "}
-                          <span className="font-normal opacity-60">
-                            ({setResults.length})
-                          </span>
-                        </div>
-                        {setResults.map((r) => (
-                          <button
-                            key={r.path}
-                            onClick={() => onNavigateToSet?.(r.setName, r.path)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] border-b border-[var(--color-figma-border)]/50"
-                          >
-                            {r.entry.$type === "color" &&
-                              typeof r.entry.$value === "string" &&
-                              r.entry.$value.startsWith("#") && (
-                                <span
-                                  className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
-                                  style={{ background: r.entry.$value }}
-                                />
-                              )}
-                            <span
-                              className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate"
-                              title={r.path}
-                            >
-                              {highlightMatch(
-                                r.path,
-                                searchHighlight?.nameTerms ?? [],
-                              )}
-                            </span>
-                            <span
-                              className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[r.entry.$type] ?? "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"}`}
-                            >
-                              {r.entry.$type}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })}
-                {crossSetTotal > crossSetResults.length && (
-                  <div className="px-3 py-2 flex items-center justify-between border-t border-[var(--color-figma-border)]">
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                      {crossSetResults.length} of {crossSetTotal} shown
-                    </span>
-                    <button
-                      className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                      onClick={() => setCrossSetOffset(crossSetResults.length)}
-                    >
-                      Load{" "}
-                      {Math.min(
-                        CROSS_SET_PAGE_SIZE,
-                        crossSetTotal - crossSetResults.length,
-                      )}{" "}
-                      more
-                    </button>
-                  </div>
-                )}
-              </div>
-            )
-          ) : inspectMode && selectedNodes.length === 0 ? (
-            <FeedbackPlaceholder
-              variant="empty"
-              title="Select a layer to inspect"
-              description="Bound tokens will appear here."
-              icon={
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                  <path d="M10 17l5-5-5-5" />
-                  <path d="M13 12H3" />
-                </svg>
-              }
-            />
-          ) : viewMode === "json" ? (
-            <JsonEditorView
-              jsonText={jsonText}
-              jsonDirty={jsonDirty}
-              jsonError={jsonError}
-              jsonSaving={jsonSaving}
-              jsonBrokenRefs={jsonBrokenRefs}
-              jsonTextareaRef={jsonTextareaRef}
-              connected={connected}
-              hasTokens={tokens.length > 0}
-              onChange={handleJsonChange}
-              onSave={handleJsonSave}
-              onRevert={handleJsonRevert}
-            />
-          ) : tokens.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
-              <FeedbackPlaceholder
-                variant="empty"
-                size="section"
-                className="w-full max-w-[320px]"
-                icon={
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-                  </svg>
-                }
-                title="This set is empty"
-                description="Use the Create menu to add tokens."
-              />
-            </div>
-          ) : displayedTokens.length === 0 && filtersActive ? (
-            <TokenListFilteredEmptyState
-              searchQuery={searchQuery}
-              availableTypes={availableTypes}
-              typeFilter={typeFilter}
-              connected={connected}
-              onClearFilters={clearFilters}
-              onSetSearchQuery={setSearchQuery}
-              onSetTypeFilter={setTypeFilter}
-              onCreateNew={onCreateNew}
-              onAddQueryQualifierValue={addQueryQualifierValue}
-              onInsertSearchQualifier={insertSearchQualifier}
-            />
-          ) : (
-            <div className="py-1">
-              {zoomBreadcrumb ? (
-                <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px]">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={handleZoomUpOneLevel}
-                      disabled={!zoomParentPath}
-                      className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-default disabled:opacity-40"
-                      title={
-                        zoomParentPath
-                          ? "Move up one group"
-                          : "Already at the top scoped branch"
-                      }
-                    >
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M12 19V5" />
-                        <path d="m5 12 7-7 7 7" />
-                      </svg>
-                      <span>Up</span>
-                    </button>
-                    <button
-                      onClick={handleZoomOut}
-                      className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                      title="Clear the scoped branch (Esc)"
-                    >
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M18 6 6 18" />
-                        <path d="M6 6l12 12" />
-                      </svg>
-                      <span>All tokens</span>
-                    </button>
-                    <div className="min-w-0 flex items-center gap-0.5 overflow-x-auto">
-                      {zoomBreadcrumb.map((seg, i) => (
-                        <span
-                          key={seg.path}
-                          className="flex items-center gap-0.5 shrink-0"
-                        >
-                          {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
-                          {i < zoomBreadcrumb.length - 1 ? (
-                            <button
-                              className="truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline max-w-[200px]"
-                              title={seg.path}
-                              onClick={() => handleZoomToAncestor(seg.path)}
-                            >
-                              {seg.name}
-                            </button>
-                          ) : (
-                            <span
-                              className="truncate font-medium text-[var(--color-figma-text)] max-w-[200px]"
-                              title={seg.path}
-                            >
-                              {seg.name}
-                            </span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  {zoomSiblingBranches.length > 0 && (
-                    <div className="mt-1 flex items-center gap-1 overflow-x-auto">
-                      <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                        Other branches
-                      </span>
-                      {zoomSiblingBranches.map((branch) => (
-                        <button
-                          key={branch.path}
-                          onClick={() => handleZoomToAncestor(branch.path)}
-                          className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
-                          title={`Scope to ${branch.path}`}
-                        >
-                          {branch.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
-                <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] group/breadcrumb">
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    className="shrink-0 opacity-40 mr-0.5"
-                  >
-                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                  </svg>
-                  {breadcrumbSegments.map((seg, i) => (
-                    <span key={seg.path} className="flex items-center gap-0.5">
-                      {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
-                      {i < breadcrumbSegments.length - 1 ? (
-                        <button
-                          className="hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[200px]"
-                          title={`Jump to ${seg.path}`}
-                          onClick={() => handleJumpToGroup(seg.path)}
-                        >
-                          {seg.name}
-                        </button>
-                      ) : (
-                        <span
-                          className="font-medium text-[var(--color-figma-text)] truncate max-w-[200px]"
-                          title={seg.path}
-                        >
-                          {seg.name}
-                        </span>
-                      )}
-                    </span>
-                  ))}
-                  <button
-                    className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/breadcrumb:opacity-100 group-focus-within/breadcrumb:opacity-100 transition-opacity text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
-                    title="Collapse and jump to group"
-                    onClick={() =>
-                      handleCollapseBelow(
-                        breadcrumbSegments[breadcrumbSegments.length - 1].path,
-                      )
-                    }
-                  >
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M18 15l-6-6-6 6" />
-                    </svg>
-                    <span>Collapse</span>
-                  </button>
-                </div>
-              ) : null}
-              <div style={{ height: virtualTopPad }} aria-hidden="true" />
-              {flatItems
-                .slice(virtualStartIdx, virtualEndIdx)
-                .map(({ node, depth, ancestorPathLabel }) => {
-                  const moveEnabled = sortOrder === "default" && connected;
-                  const parentPath = moveEnabled
-                    ? (nodeParentPath(node.path, node.name) ?? "")
-                    : "";
-                  const siblings = moveEnabled
-                    ? (siblingOrderMap.get(parentPath) ?? [])
-                    : [];
-                  const sibIdx = moveEnabled ? siblings.indexOf(node.name) : -1;
-                  return (
-                    <TokenTreeNode
-                      key={node.path}
-                      node={node}
-                      depth={depth}
-                      skipChildren
-                      isSelected={
-                        node.isGroup ? false : selectedPaths.has(node.path)
-                      }
-                      lintViolations={
-                        lintViolationsMap.get(node.path) ??
-                        EMPTY_LINT_VIOLATIONS
-                      }
-                      chainExpanded={expandedChains.has(node.path)}
-                      ancestorPathLabel={ancestorPathLabel}
-                      showFullPath={showRecentlyTouched}
-                      onMoveUp={
-                        moveEnabled && sibIdx > 0
-                          ? () =>
-                              handleMoveTokenInGroup(node.path, node.name, "up")
-                          : undefined
-                      }
-                      onMoveDown={
-                        moveEnabled &&
-                        sibIdx >= 0 &&
-                        sibIdx < siblings.length - 1
-                          ? () =>
-                              handleMoveTokenInGroup(
-                                node.path,
-                                node.name,
-                                "down",
-                              )
-                          : undefined
-                      }
-                      multiModeValues={
-                        multiModeData
-                          ? getMultiModeValues(node.path)
-                          : undefined
-                      }
-                    />
-                  );
-                })}
-              <div style={{ height: virtualBottomPad }} aria-hidden="true" />
-            </div>
-          )}
+          <TokenListTreeBody
+            viewMode={viewMode}
+            crossSetSearch={crossSetSearch}
+            crossSetResults={crossSetResults}
+            crossSetTotal={crossSetTotal}
+            setCrossSetOffset={setCrossSetOffset}
+            CROSS_SET_PAGE_SIZE={CROSS_SET_PAGE_SIZE}
+            sets={sets}
+            searchQuery={searchQuery}
+            searchHighlight={searchHighlight}
+            availableTypes={availableTypes}
+            typeFilter={typeFilter}
+            filtersActive={filtersActive}
+            setSearchQuery={setSearchQuery}
+            setTypeFilter={setTypeFilter}
+            addQueryQualifierValue={addQueryQualifierValue}
+            insertSearchQualifier={insertSearchQualifier}
+            inspectMode={inspectMode}
+            selectedNodes={selectedNodes}
+            jsonEditorProps={{
+              jsonText,
+              jsonDirty,
+              jsonError,
+              jsonSaving,
+              jsonBrokenRefs,
+              jsonTextareaRef,
+              connected,
+              onChange: handleJsonChange,
+              onSave: handleJsonSave,
+              onRevert: handleJsonRevert,
+            }}
+            tokens={tokens}
+            displayedTokens={displayedTokens}
+            flatItems={flatItems}
+            virtualStartIdx={virtualStartIdx}
+            virtualEndIdx={virtualEndIdx}
+            virtualTopPad={virtualTopPad}
+            virtualBottomPad={virtualBottomPad}
+            multiModeData={multiModeData}
+            multiModeDimId={multiModeDimId}
+            multiModeDimensionName={multiModeDimensionName}
+            dimensions={dimensions}
+            setMultiModeDimId={setMultiModeDimId}
+            getMultiModeValues={getMultiModeValues}
+            selectedPaths={selectedPaths}
+            sortOrder={sortOrder}
+            connected={connected}
+            setName={setName}
+            siblingOrderMap={siblingOrderMap}
+            showRecentlyTouched={showRecentlyTouched}
+            showFlatSearchResults={showFlatSearchResults}
+            lintViolationsMap={lintViolationsMap}
+            expandedChains={expandedChains}
+            handleMoveTokenInGroup={handleMoveTokenInGroup}
+            zoomBreadcrumb={zoomBreadcrumb}
+            zoomParentPath={zoomParentPath}
+            zoomSiblingBranches={zoomSiblingBranches}
+            handleZoomUpOneLevel={handleZoomUpOneLevel}
+            handleZoomOut={handleZoomOut}
+            handleZoomToAncestor={handleZoomToAncestor}
+            breadcrumbSegments={breadcrumbSegments}
+            handleJumpToGroup={handleJumpToGroup}
+            handleCollapseBelow={handleCollapseBelow}
+            onNavigateToSet={onNavigateToSet}
+            onCreateNew={onCreateNew}
+            clearFilters={clearFilters}
+          />
         </TokenTreeProvider>
         </div>
 
