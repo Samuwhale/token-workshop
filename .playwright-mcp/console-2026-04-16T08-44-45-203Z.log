@@ -1,0 +1,54 @@
+[     243ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[     243ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29)
+    at http://127.0.0.1:3200/dist/ui.html:7352:7
+    at Qj (http://127.0.0.1:3200/dist/ui.html:4998:25)
+    at Hk (http://127.0.0.1:3200/dist/ui.html:6233:23)
+    at http://127.0.0.1:3200/dist/ui.html:6103:9
+    at J (http://127.0.0.1:3200/dist/ui.html:417:23)
+    at MessagePort.R (http://127.0.0.1:3200/dist/ui.html:445:17) @ http://127.0.0.1:3200/dist/ui.html:7341
+[    5251ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[    5251ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   10252ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   10252ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   15252ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   15252ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   20250ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   20251ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   25260ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   25260ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   30268ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   30268ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   35273ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   35273ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   40281ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   40281ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   45284ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   45284ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   50286ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   50286ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   55285ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   55285ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   60286ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   60286ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   65290ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   65290ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   70291ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   70291ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
+[   75288ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:9400/api/health:0
+[   75288ms] [WARNING] [useServerConnection] health poll failed: TypeError: Failed to fetch
+    at check (http://127.0.0.1:3200/dist/ui.html:7332:29) @ http://127.0.0.1:3200/dist/ui.html:7341
