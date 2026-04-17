@@ -32,28 +32,28 @@ interface FolderRenameResponse {
   ok: true;
   folder: string;
   newFolder: string;
-  renamedSets: Array<{ from: string; to: string }>;
-  sets: string[];
+  renamedCollections: Array<{ from: string; to: string }>;
+  collections: string[];
 }
 
 interface FolderMergeResponse {
   ok: true;
   sourceFolder: string;
   targetFolder: string;
-  movedSets: Array<{ from: string; to: string }>;
-  sets: string[];
+  movedCollections: Array<{ from: string; to: string }>;
+  collections: string[];
 }
 
 interface FolderDeleteResponse {
   ok: true;
   folder: string;
-  deletedSets: string[];
-  sets: string[];
+  deletedCollections: string[];
+  collections: string[];
 }
 
 interface FolderReorderResponse {
   ok: true;
-  sets: string[];
+  collections: string[];
 }
 
 interface SetSwitcherProps {
@@ -124,7 +124,7 @@ interface SetManagerProps {
   onMergeConfirm?: () => void | Promise<void>;
   onMergeClose?: () => void;
   splittingSet?: string | null;
-  splitPreview?: Array<{ key: string; newName: string; count: number }>;
+  splitPreview?: Array<{ key: string; newCollectionId: string; count: number }>;
   splitDeleteOriginal?: boolean;
   splitLoading?: boolean;
   setSplitDeleteOriginal?: (value: boolean) => void;
@@ -135,13 +135,13 @@ interface SetManagerProps {
 function useSetStructuralPreflight({
   operation,
   setName,
-  targetSet,
+  targetCollection,
   deleteOriginal,
   enabled,
 }: {
   operation: SetStructuralOperation;
   setName: string | null;
-  targetSet?: string;
+  targetCollection?: string;
   deleteOriginal?: boolean;
   enabled: boolean;
 }) {
@@ -157,7 +157,7 @@ function useSetStructuralPreflight({
       setError(null);
       return;
     }
-    if (operation === "merge" && !targetSet) {
+    if (operation === "merge" && !targetCollection) {
       setData(null);
       setLoading(false);
       setError(null);
@@ -168,13 +168,13 @@ function useSetStructuralPreflight({
     setLoading(true);
     setError(null);
     apiFetch<SetStructuralPreflight>(
-      `${serverUrl}/api/sets/${encodeURIComponent(setName)}/preflight`,
+      `${serverUrl}/api/collections/${encodeURIComponent(setName)}/preflight`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           operation,
-          ...(targetSet ? { targetSet } : {}),
+          ...(targetCollection ? { targetCollection } : {}),
           ...(typeof deleteOriginal === "boolean" ? { deleteOriginal } : {}),
         }),
         signal: createFetchSignal(
@@ -212,7 +212,7 @@ function useSetStructuralPreflight({
     operation,
     serverUrl,
     setName,
-    targetSet,
+    targetCollection,
   ]);
 
   return { data, loading, error };
@@ -240,7 +240,7 @@ function SetPreflightCard({
             </div>
           )}
           <div className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">
-            {impact.name}
+            {impact.collectionId}
           </div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
             {impact.tokenCount} token{impact.tokenCount === 1 ? "" : "s"}
@@ -343,7 +343,7 @@ function getPreflightImpactLabel(params: {
   targetSetName?: string;
   splitPreview?: Array<{
     key: string;
-    newName: string;
+    newCollectionId: string;
     count: number;
     existing?: boolean;
   }>;
@@ -366,7 +366,7 @@ function getPreflightImpactLabel(params: {
     if (impactName === sourceSetName) return "Collection being split";
     if (
       splitPreview.some(
-        (entry) => entry.existing && entry.newName === impactName,
+        (entry) => entry.existing && entry.newCollectionId === impactName,
       )
     ) {
       return "Existing split destination";
@@ -390,7 +390,7 @@ function StructuralPreflightSummary({
   targetSetName?: string;
   splitPreview?: Array<{
     key: string;
-    newName: string;
+    newCollectionId: string;
     count: number;
     existing?: boolean;
   }>;
@@ -443,13 +443,13 @@ function StructuralPreflightSummary({
         </div>
       )}
       <div className="flex flex-col gap-2">
-        {preflight.affectedSets.map((impact) => (
+        {preflight.affectedCollections.map((impact) => (
           <SetPreflightCard
-            key={impact.name}
+            key={impact.collectionId}
             impact={impact}
             label={getPreflightImpactLabel({
               operation: preflight.operation,
-              impactName: impact.name,
+              impactName: impact.collectionId,
               sourceSetName,
               targetSetName,
               splitPreview,
@@ -912,7 +912,7 @@ export function SetManager({
   const mergePreflight = useSetStructuralPreflight({
     operation: "merge",
     setName: mergingSet,
-    targetSet: mergeTargetSet,
+    targetCollection: mergeTargetSet,
     enabled: !!mergingSet && !!mergeTargetSet && !!onMergeConfirm,
   });
   const splitPreflight = useSetStructuralPreflight({
@@ -1339,7 +1339,7 @@ function ManageView({
     setFolderRenameError("");
     try {
       const response = await apiFetch<FolderRenameResponse>(
-        `${serverUrl}/api/set-folders/rename`,
+        `${serverUrl}/api/collections/folders/rename`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1350,10 +1350,10 @@ function ManageView({
           signal: createFetchSignal(getDisconnectSignal()),
         },
       );
-      response.renamedSets.forEach(({ from, to }) =>
+      response.renamedCollections.forEach(({ from, to }) =>
         renameSetInState(from, to),
       );
-      setSets(response.sets);
+      setSets(response.collections);
       if (isSetInFolder(activeSet, renamingFolder)) {
         setActiveSet(
           replaceFolderPrefix(activeSet, renamingFolder, nextFolder),
@@ -1400,7 +1400,7 @@ function ManageView({
     setFolderMergeError("");
     try {
       const response = await apiFetch<FolderMergeResponse>(
-        `${serverUrl}/api/set-folders/merge`,
+        `${serverUrl}/api/collections/folders/merge`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1411,8 +1411,8 @@ function ManageView({
           signal: createFetchSignal(getDisconnectSignal()),
         },
       );
-      response.movedSets.forEach(({ from, to }) => renameSetInState(from, to));
-      setSets(response.sets);
+      response.movedCollections.forEach(({ from, to }) => renameSetInState(from, to));
+      setSets(response.collections);
       if (isSetInFolder(activeSet, mergingFolder)) {
         setActiveSet(
           replaceFolderPrefix(activeSet, mergingFolder, folderMergeTarget),
@@ -1452,7 +1452,7 @@ function ManageView({
     setFolderDeleteError("");
     try {
       const response = await apiFetch<FolderDeleteResponse>(
-        `${serverUrl}/api/set-folders/delete`,
+        `${serverUrl}/api/collections/folders/delete`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1460,15 +1460,15 @@ function ManageView({
           signal: createFetchSignal(getDisconnectSignal()),
         },
       );
-      response.deletedSets.forEach((setName) => removeSetFromState(setName));
-      setSets(response.sets);
+      response.deletedCollections.forEach((setName) => removeSetFromState(setName));
+      setSets(response.collections);
       if (isSetInFolder(activeSet, deletingFolder)) {
-        const nextActive = response.sets[0] ?? "";
+        const nextActive = response.collections[0] ?? "";
         setActiveSet(nextActive);
       }
       cancelFolderDelete();
       dispatchToast(
-        `Deleted folder "${deletingFolder}" (${response.deletedSets.length} collection${response.deletedSets.length === 1 ? "" : "s"})`,
+        `Deleted folder "${deletingFolder}" (${response.deletedCollections.length} collection${response.deletedCollections.length === 1 ? "" : "s"})`,
         "success",
       );
     } catch (err) {
@@ -1500,7 +1500,7 @@ function ManageView({
     setFolderActionPending(true);
     try {
       const response = await apiFetch<FolderReorderResponse>(
-        `${serverUrl}/api/set-folders/reorder`,
+        `${serverUrl}/api/collections/folders/reorder`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1508,7 +1508,7 @@ function ManageView({
           signal: createFetchSignal(getDisconnectSignal()),
         },
       );
-      setSets(response.sets);
+      setSets(response.collections);
       dispatchToast(`Reordered folder "${folder}"`, "success");
     } catch (err) {
       handleFolderActionError(err, "Failed to reorder folders");
@@ -2549,7 +2549,7 @@ function SetSplitDialog({
   preflight: SetStructuralPreflight | null;
   preflightLoading: boolean;
   preflightError: string | null;
-  splitPreview: Array<{ key: string; newName: string; count: number }>;
+  splitPreview: Array<{ key: string; newCollectionId: string; count: number }>;
   splitDeleteOriginal: boolean;
   splitLoading: boolean;
   onSetDeleteOriginal: (value: boolean) => void;
@@ -2610,7 +2610,7 @@ function SetSplitDialog({
                     className="flex items-center justify-between rounded bg-[var(--color-figma-bg-hover)] px-2 py-1"
                   >
                     <span className="truncate font-mono text-[11px] text-[var(--color-figma-text)]">
-                      {preview.newName}
+                      {preview.newCollectionId}
                     </span>
                     <span className="ml-2 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">
                       {preview.count} token{preview.count !== 1 ? "s" : ""}
@@ -2619,7 +2619,7 @@ function SetSplitDialog({
                 ))}
               </div>
               {effectiveSplitPreview.some((preview) =>
-                sets.includes(preview.newName),
+                sets.includes(preview.newCollectionId),
               ) && (
                 <p className="text-[10px] text-[var(--color-figma-warning)]">
                   Some collections already exist and will be skipped.

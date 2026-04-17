@@ -20,7 +20,7 @@ export interface SnapshotSummary {
   label: string;
   timestamp: string;
   tokenCount: number;
-  setCount: number;
+  collectionStorageCount: number;
   collectionCount: number;
   resolverCount: number;
   recipeCount: number;
@@ -28,7 +28,7 @@ export interface SnapshotSummary {
 
 export interface SnapshotDiff {
   path: string;
-  set: string;
+  collectionId: string;
   status: ChangeStatus;
   changedFields?: string[];
   before?: { $value: unknown; $type?: string; $description?: string };
@@ -36,7 +36,7 @@ export interface SnapshotDiff {
 }
 
 export interface WorkspaceDiff {
-  kind: 'themes' | 'resolver' | 'recipe';
+  kind: 'collections' | 'resolver' | 'recipe';
   id: string;
   label: string;
   status: ChangeStatus;
@@ -57,7 +57,7 @@ export interface OperationEntry {
   timestamp: string;
   type: string;
   description: string;
-  setName: string;
+  resourceId: string;
   affectedPaths: string[];
   rolledBack: boolean;
   metadata?: {
@@ -107,7 +107,7 @@ export function snapshotDiffToChange(d: SnapshotDiff): TokenChange {
   const type = d.before?.$type ?? d.after?.$type ?? '';
   return {
     path: d.path,
-    set: d.set,
+    set: d.collectionId,
     type,
     status: d.status,
     before: d.before?.$value,

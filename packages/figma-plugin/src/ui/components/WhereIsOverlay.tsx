@@ -1,7 +1,7 @@
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 
 export interface WhereIsResult {
-  setName: string;
+  collectionId: string;
   $type: string;
   $value: unknown;
   $description?: string;
@@ -14,7 +14,7 @@ export interface WhereIsOverlayProps {
   whereIsResults: WhereIsResult[] | null;
   whereIsLoading: boolean;
   onClose: () => void;
-  onNavigateToSet?: (setName: string, path: string) => void;
+  onNavigateToSet?: (collectionId: string, path: string) => void;
 }
 
 export function WhereIsOverlay({
@@ -57,7 +57,7 @@ export function WhereIsOverlay({
         </span>
         {!whereIsLoading && whereIsResults !== null && (
           <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {whereIsResults.length} set
+            {whereIsResults.length} collection
             {whereIsResults.length !== 1 ? "s" : ""}
           </span>
         )}
@@ -71,7 +71,7 @@ export function WhereIsOverlay({
           </div>
         ) : whereIsResults !== null && whereIsResults.length === 0 ? (
           <div className="py-3 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
-            Token not found in any set
+            Token not found in any collection
           </div>
         ) : whereIsResults !== null ? (
           <div>
@@ -88,7 +88,7 @@ export function WhereIsOverlay({
                   : JSON.stringify(def.$value);
               return (
                 <div
-                  key={def.setName}
+                  key={def.collectionId}
                   className="flex items-center gap-2 px-2 py-2 border-b border-[var(--color-figma-border)]/50 hover:bg-[var(--color-figma-bg-hover)] group"
                 >
                   {/* Color swatch */}
@@ -104,7 +104,7 @@ export function WhereIsOverlay({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
-                        {def.setName}
+                        {def.collectionId}
                       </span>
                       {i === 0 && (
                         <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] shrink-0">
@@ -139,9 +139,9 @@ export function WhereIsOverlay({
                   <button
                     className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
                     onClick={() =>
-                      onNavigateToSet?.(def.setName, whereIsPath)
+                      onNavigateToSet?.(def.collectionId, whereIsPath)
                     }
-                    title={`Go to ${def.setName}`}
+                    title={`Go to ${def.collectionId}`}
                   >
                     Go
                   </button>

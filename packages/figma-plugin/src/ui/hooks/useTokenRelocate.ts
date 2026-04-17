@@ -88,7 +88,10 @@ export function useTokenRelocate({
       await apiFetch(`${serverUrlRef.current}/api/tokens/${encodeURIComponent(fromSet)}/tokens/${mode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenPath: relocatingToken, targetSet }),
+        body: JSON.stringify({
+          tokenPath: relocatingToken,
+          targetCollectionId: targetSet,
+        }),
       });
       // After relocation, rename in the target set if the user chose a new path.
       if (conflictAction === 'rename' && conflictNewPath && conflictNewPath !== relocatingToken) {

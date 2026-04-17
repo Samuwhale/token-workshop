@@ -139,9 +139,16 @@ export interface CollectionMode {
   name: string;
 }
 
+export interface CollectionPublishRouting {
+  collectionName?: string;
+  modeName?: string;
+}
+
 export interface TokenCollection {
   id: string;
   name: string;
+  description?: string;
+  publishRouting?: CollectionPublishRouting;
   modes: CollectionMode[];
 }
 
@@ -158,7 +165,9 @@ export interface ViewPreset {
 export interface SerializedTokenCollection {
   id: string;
   name: string;
-  options: CollectionMode[];
+  description?: string;
+  publishRouting?: CollectionPublishRouting;
+  modes: CollectionMode[];
 }
 
 export interface CollectionsFile {

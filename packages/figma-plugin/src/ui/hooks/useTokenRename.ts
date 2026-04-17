@@ -40,7 +40,7 @@ export function useTokenRename({
     oldPath: string;
     newPath: string;
     depCount: number;
-    deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>;
+    deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>;
     recipeImpacts: RecipeImpact[];
     modeImpacts: ModeImpact[];
   } | null>(null);
@@ -116,9 +116,9 @@ export function useTokenRename({
 
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
-    let data: { count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> };
+    let data: { count: number; changes: Array<{ tokenPath: string; collectionId: string; oldValue: string; newValue: string }> };
     try {
-      data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> }>(
+      data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; collectionId: string; oldValue: string; newValue: string }> }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename-preview?oldPath=${encodeURIComponent(oldPath)}&newPath=${encodeURIComponent(newPath)}`
       );
     } catch (err) {
@@ -135,7 +135,7 @@ export function useTokenRename({
         oldPath,
         newPath,
         depCount: data.count,
-        deps: data.changes.map(c => ({ path: c.tokenPath, setName: c.setName, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })),
+        deps: data.changes.map(c => ({ path: c.tokenPath, collectionId: c.collectionId, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })),
         recipeImpacts,
         modeImpacts,
       });

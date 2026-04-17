@@ -100,17 +100,17 @@ function isValidCssSelector(selector: string): boolean {
 export const exportRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/export — export tokens to specified platforms
   // Optional body fields:
-  //   sets: string[]            — export only these token sets (default: all sets)
-  //   group: string[]           — path segments to a sub-group within each set (e.g. ["color","brand"] or ["spacing","1.5"])
+  //   collections: string[]     — export only these collections (default: all collections)
+  //   group: string[]           — path segments to a sub-group within each collection (e.g. ["color","brand"])
   //                               Using an array avoids ambiguity when segment names contain literal dots.
   //   types: string[]           — keep only tokens whose $type is in this list (default: all types)
   //   pathPrefix: string        — keep only tokens under this dot-separated path prefix (e.g. "color.brand")
   //   cssSelector: string       — CSS selector to wrap CSS variables (default: :root)
   //   changedPaths: string[]    — keep only tokens whose full dot-separated path is in this list (for "changes only" export)
-  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string; changedPaths?: string[] } }>(
+  fastify.post<{ Body: { platforms: ExportPlatform[]; collections?: string[]; group?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string; changedPaths?: string[] } }>(
     '/export',
     async (request, reply) => {
-      const { platforms, sets, group, types, pathPrefix, cssSelector, changedPaths } = request.body || {};
+      const { platforms, collections, group, types, pathPrefix, cssSelector, changedPaths } = request.body || {};
 
       if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
         return reply.status(400).send({
@@ -129,24 +129,31 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       try {
-        const allTokenData = fastify.tokenStore.getAllTokenData();
+        const collectionIds = await fastify.collectionService.listCollectionIds();
+        const allowedCollectionIds = new Set(collectionIds);
+        const allTokenData = Object.fromEntries(
+          Object.entries(fastify.tokenStore.getAllTokenData()).filter(
+            ([collectionId]) => allowedCollectionIds.has(collectionId),
+          ),
+        );
 
-        // Filter by sets (if provided, only include the specified sets)
+        // Filter by collections (if provided, only include the specified collections)
         let tokenData: Record<string, TokenGroup> = allTokenData;
-        if (sets && sets.length > 0) {
+        if (collections && collections.length > 0) {
+          await fastify.collectionService.requireCollectionsExist(collections);
           tokenData = {};
-          for (const setName of sets) {
-            if (allTokenData[setName]) {
-              tokenData[setName] = allTokenData[setName];
+          for (const collectionId of collections) {
+            if (allTokenData[collectionId]) {
+              tokenData[collectionId] = allTokenData[collectionId];
             }
           }
         }
 
-        // Filter by group (navigate nested path segments within each set)
+        // Filter by group (navigate nested path segments within each collection)
         if (group && group.length > 0) {
           const segments = group;
           const filtered: Record<string, TokenGroup> = {};
-          for (const [setName, tokens] of Object.entries(tokenData)) {
+          for (const [collectionId, tokens] of Object.entries(tokenData)) {
             let current: TokenGroup | undefined = tokens;
             for (const seg of segments) {
               if (current && typeof current === 'object' && seg in current) {
@@ -157,13 +164,13 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
               }
             }
             if (current && typeof current === 'object') {
-              filtered[setName] = current;
+              filtered[collectionId] = current;
             }
           }
           tokenData = filtered;
           if (Object.keys(tokenData).length === 0) {
             return reply.status(404).send({
-              error: `Group "${group}" not found in any token set`,
+              error: `Group "${group}" not found in any token collection`,
             });
           }
         }
@@ -172,7 +179,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         if (pathPrefix && pathPrefix.trim()) {
           const segments = pathPrefix.trim().split('.');
           const filtered: Record<string, TokenGroup> = {};
-          for (const [setName, tokens] of Object.entries(tokenData)) {
+          for (const [collectionId, tokens] of Object.entries(tokenData)) {
             let current: TokenGroup | undefined = tokens;
             for (const seg of segments) {
               if (current && typeof current === 'object' && seg in current) {
@@ -183,13 +190,13 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
               }
             }
             if (current && typeof current === 'object') {
-              filtered[setName] = current;
+              filtered[collectionId] = current;
             }
           }
           tokenData = filtered;
           if (Object.keys(tokenData).length === 0) {
             return reply.status(404).send({
-              error: `Path prefix "${pathPrefix}" not found in any token set`,
+              error: `Path prefix "${pathPrefix}" not found in any token collection`,
             });
           }
         }
@@ -197,10 +204,10 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         // Filter by token type
         if (types && types.length > 0) {
           const filtered: Record<string, TokenGroup> = {};
-          for (const [setName, tokens] of Object.entries(tokenData)) {
+          for (const [collectionId, tokens] of Object.entries(tokenData)) {
             const result = filterTokensByType(tokens, types);
             if (result !== null) {
-              filtered[setName] = result;
+              filtered[collectionId] = result;
             }
           }
           tokenData = filtered;
@@ -215,10 +222,10 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         if (changedPaths && changedPaths.length > 0) {
           const pathSet = new Set(changedPaths);
           const filtered: Record<string, TokenGroup> = {};
-          for (const [setName, tokens] of Object.entries(tokenData)) {
+          for (const [collectionId, tokens] of Object.entries(tokenData)) {
             const result = filterTokensByPaths(tokens, pathSet);
             if (result !== null) {
-              filtered[setName] = result;
+              filtered[collectionId] = result;
             }
           }
           tokenData = filtered;
@@ -231,8 +238,8 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
 
         if (Object.keys(tokenData).length === 0) {
           return reply.status(404).send({
-            error: sets && sets.length > 0
-              ? `None of the requested sets exist: ${sets.join(', ')}`
+            error: collections && collections.length > 0
+              ? `None of the requested collections exist: ${collections.join(', ')}`
               : 'No token data available to export',
           });
         }

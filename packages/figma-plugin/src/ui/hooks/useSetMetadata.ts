@@ -38,7 +38,7 @@ export function useSetMetadata({
     }
     try {
       await apiFetch(
-        `${serverUrl}/api/sets/${encodeURIComponent(editingMetadataSet)}/metadata`,
+        `${serverUrl}/api/collections/${encodeURIComponent(editingMetadataSet)}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

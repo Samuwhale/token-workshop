@@ -54,7 +54,7 @@ export function useSetRename({
     }
     if (!connected) { cancelRename(); return; }
     try {
-      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(renamingSet)}/rename`, {
+      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(renamingSet)}/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newName }),
@@ -68,7 +68,7 @@ export function useSetRename({
       onPushUndo?.({
         description: `Renamed set "${oldName}" → "${newName}"`,
         restore: async () => {
-          await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(newName)}/rename`, {
+          await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(newName)}/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newName: oldName }),
@@ -77,7 +77,7 @@ export function useSetRename({
           if (activeSet === newName) setActiveSet(oldName);
         },
         redo: async () => {
-          await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(oldName)}/rename`, {
+          await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(oldName)}/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newName }),

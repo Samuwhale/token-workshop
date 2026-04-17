@@ -36,14 +36,14 @@ export interface TokenListModalsProps {
   onSetNewGroupDialogParent: (v: string | null) => void;
 
   // Rename token confirmation modal
-  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>; recipeImpacts: RecipeImpact[]; modeImpacts: ModeImpact[] } | null;
+  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>; recipeImpacts: RecipeImpact[]; modeImpacts: ModeImpact[] } | null;
   executeTokenRename: (oldPath: string, newPath: string, updateAliases?: boolean) => void;
-  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>; recipeImpacts: RecipeImpact[]; modeImpacts: ModeImpact[] } | null) => void;
+  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>; recipeImpacts: RecipeImpact[]; modeImpacts: ModeImpact[] } | null) => void;
 
   // Rename group confirmation modal
-  renameGroupConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null;
+  renameGroupConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }> } | null;
   executeGroupRename: (oldPath: string, newPath: string, updateAliases?: boolean) => void;
-  onSetRenameGroupConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }> } | null) => void;
+  onSetRenameGroupConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }> } | null) => void;
 
   // Apply as Variables diff preview
   varDiffPending: VariableDiffPendingState | null;
@@ -166,7 +166,7 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
   oldPath: string;
   newPath: string;
   depCount: number;
-  deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>;
+  deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>;
   recipeImpacts?: RecipeImpact[];
   modeImpacts?: ModeImpact[];
   onConfirm: (updateAliases: boolean) => void;
@@ -204,9 +204,9 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
           {deps.length > 0 && (
             <div className="mt-2 max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
               {deps.map((dep, i) => (
-                <div key={i} className="px-2 py-1.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0" title={`${dep.setName}: ${dep.tokenPath}`}>
+                <div key={i} className="px-2 py-1.5 text-[10px] font-mono border-b border-[var(--color-figma-border)] last:border-b-0" title={`${dep.collectionId}: ${dep.tokenPath}`}>
                   <div className="text-[var(--color-figma-text-secondary)] truncate">
-                    <span className="text-[var(--color-figma-text-tertiary)]">{dep.setName}/</span>{dep.tokenPath}
+                    <span className="text-[var(--color-figma-text-tertiary)]">{dep.collectionId}/</span>{dep.tokenPath}
                   </div>
                   <div className="mt-0.5 flex items-center gap-1 text-[9px]">
                     <span className="text-[var(--color-figma-text-danger)] line-through truncate max-w-[45%]">{dep.oldValue}</span>

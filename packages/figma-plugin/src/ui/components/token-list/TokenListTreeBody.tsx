@@ -19,7 +19,7 @@ type VisibleTokenRow = {
 
 interface CrossSetResult {
   path: string;
-  setName: string;
+  collectionId: string;
   entry: { $type: string; $value: unknown };
 }
 
@@ -284,10 +284,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         {multiModeHeaders}
         <div>
           {sets
-            .filter((sn) => crossSetResults.some((r) => r.setName === sn))
+            .filter((sn) => crossSetResults.some((r) => r.collectionId === sn))
             .map((sn) => {
               const setResults = crossSetResults.filter(
-                (r) => r.setName === sn,
+                (r) => r.collectionId === sn,
               );
               return (
                 <div key={sn}>
@@ -300,7 +300,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   {setResults.map((r) => (
                     <button
                       key={r.path}
-                      onClick={() => onNavigateToSet?.(r.setName, r.path)}
+                      onClick={() => onNavigateToSet?.(r.collectionId, r.path)}
                       className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] border-b border-[var(--color-figma-border)]/50"
                     >
                       {r.entry.$type === "color" &&

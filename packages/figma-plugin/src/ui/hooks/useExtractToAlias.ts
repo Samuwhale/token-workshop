@@ -15,13 +15,13 @@ export interface UseExtractToAliasParams {
 
 export interface SharedAliasSourceToken {
   path: string;
-  setName: string;
+  collectionId: string;
 }
 
 export interface PromoteToSharedAliasParams {
   serverUrl: string;
   primitivePath: string;
-  primitiveSet: string;
+  primitiveCollectionId: string;
   sourceTokens: SharedAliasSourceToken[];
   tokenType?: string;
   tokenValue: unknown;
@@ -96,7 +96,7 @@ export function ensureUniqueSharedAliasPath(
 export async function promoteTokensToSharedAlias({
   serverUrl,
   primitivePath,
-  primitiveSet,
+  primitiveCollectionId,
   sourceTokens,
   tokenType,
   tokenValue,
@@ -106,7 +106,7 @@ export async function promoteTokensToSharedAlias({
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       primitivePath,
-      primitiveSet,
+      primitiveCollectionId,
       sourceTokens,
       tokenType,
       tokenValue,
@@ -149,8 +149,8 @@ export function useExtractToAlias({
         await promoteTokensToSharedAlias({
           serverUrl,
           primitivePath: newPrimitivePath.trim(),
-          primitiveSet: newPrimitiveSet,
-          sourceTokens: [{ path: extractToken.path, setName }],
+          primitiveCollectionId: newPrimitiveSet,
+          sourceTokens: [{ path: extractToken.path, collectionId: setName }],
           tokenType: extractToken.$type,
           tokenValue: extractToken.$value,
         });

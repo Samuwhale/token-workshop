@@ -1240,9 +1240,9 @@ export function TokenEditor({
               >
                 {dependent.path}
               </span>
-              {dependent.setName && dependent.setName !== setName && (
+              {dependent.collectionId && dependent.collectionId !== setName && (
                 <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-0.5 text-[8px] text-[var(--color-figma-text-secondary)]">
-                  {dependent.setName}
+                  {dependent.collectionId}
                 </span>
               )}
             </button>
@@ -1352,9 +1352,9 @@ export function TokenEditor({
                               <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
                             </svg>
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                            {dep.setName !== setName && (
+                            {dep.collectionId !== setName && (
                               <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
-                                {dep.setName}
+                                {dep.collectionId}
                               </span>
                             )}
                           </button>
@@ -1364,9 +1364,9 @@ export function TokenEditor({
                             className="flex items-center gap-1 px-1 py-0.5 font-mono text-[9px] text-[var(--color-figma-text)]"
                           >
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                            {dep.setName !== setName && (
+                            {dep.collectionId !== setName && (
                               <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
-                                {dep.setName}
+                                {dep.collectionId}
                               </span>
                             )}
                           </span>

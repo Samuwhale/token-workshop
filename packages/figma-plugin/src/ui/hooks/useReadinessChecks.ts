@@ -246,7 +246,7 @@ export function useReadinessChecks({
       );
       const validationSnapshot = await refreshValidation();
       const activeValidationIssues =
-        validationSnapshot?.issues.filter((issue) => issue.setName === activeSet && issue.severity === 'error') ?? [];
+        validationSnapshot?.issues.filter((issue) => issue.collectionId === activeSet && issue.severity === 'error') ?? [];
       const { localOnly: missingInFigma, figmaOnly: rawOrphans } = getSyncRowsByCategory(snapshot.rows);
       const resolverOrphanPlan = compareMode === 'resolver-publish' && resolverPublishMappings
         ? buildResolverOrphanCleanupPlan(snapshot, resolverPublishMappings)

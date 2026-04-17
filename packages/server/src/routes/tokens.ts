@@ -8,7 +8,7 @@ import {
   pickSnapshotEntries,
   qualifySnapshotEntries,
   snapshotPaths,
-  snapshotSet,
+  snapshotCollection,
   snapshotGroup,
 } from '../services/operation-log.js';
 import {
@@ -69,8 +69,8 @@ function isValidTokenPath(path: unknown): path is string {
   return true;
 }
 
-/** Validates a set name: non-empty string, no leading/trailing whitespace, no null bytes or path traversal. */
-function isValidSetName(name: unknown): name is string {
+/** Validates a collection ID: non-empty string, no leading/trailing whitespace, no null bytes or path traversal. */
+function isValidCollectionId(name: unknown): name is string {
   if (typeof name !== 'string') return false;
   if (name.length === 0 || name !== name.trim()) return false;
   if (name.includes('\0') || name.includes('..')) return false;
@@ -86,12 +86,12 @@ function wildcardParamToTokenPath(pathParam: string): string {
   return pathParam.split('/').join('.');
 }
 
-function mergeSetSnapshot(
+function mergeCollectionSnapshot(
   target: Record<string, SnapshotEntry>,
-  setName: string,
+  collectionId: string,
   snapshot: Record<string, SnapshotEntry>,
 ): void {
-  Object.assign(target, qualifySnapshotEntries(setName, snapshot));
+  Object.assign(target, qualifySnapshotEntries(collectionId, snapshot));
 }
 
 function getTokenLifecycle(token: Token): 'draft' | 'published' | 'deprecated' {
@@ -99,16 +99,16 @@ function getTokenLifecycle(token: Token): 'draft' | 'published' | 'deprecated' {
   return rawLifecycle === 'draft' || rawLifecycle === 'deprecated' ? rawLifecycle : 'published';
 }
 
-function groupSnapshotEntriesBySet(
+function groupSnapshotEntriesByCollection(
   snapshot: Record<string, SnapshotEntry>,
 ): Map<string, Array<{ path: string; token: Token | null }>> {
   const grouped = new Map<string, Array<{ path: string; token: Token | null }>>();
   for (const [snapshotKey, entry] of Object.entries(snapshot)) {
-    const prefix = `${entry.setName}::`;
+    const prefix = `${entry.collectionId}::`;
     const tokenPath = snapshotKey.startsWith(prefix) ? snapshotKey.slice(prefix.length) : snapshotKey;
-    const items = grouped.get(entry.setName) ?? [];
+    const items = grouped.get(entry.collectionId) ?? [];
     items.push({ path: tokenPath, token: entry.token });
-    grouped.set(entry.setName, items);
+    grouped.set(entry.collectionId, items);
   }
   return grouped;
 }
@@ -116,9 +116,46 @@ function groupSnapshotEntriesBySet(
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
+  async function ensureCollectionsExist(
+    reply: Parameters<typeof handleRouteError>[0],
+    collectionIds: Iterable<string>,
+    fallbackMessage: string,
+  ): Promise<unknown | undefined> {
+    try {
+      await fastify.collectionService.requireCollectionsExist(collectionIds);
+      return undefined;
+    } catch (err) {
+      return handleRouteError(reply, err, fallbackMessage);
+    }
+  }
+
+  fastify.addHook("preHandler", async (request, reply) => {
+    const params =
+      request.params && typeof request.params === "object"
+        ? (request.params as Record<string, unknown>)
+        : null;
+    const collectionId =
+      params && typeof params.collectionId === "string"
+        ? params.collectionId
+        : null;
+    if (!collectionId) {
+      return;
+    }
+
+    const collectionError = await ensureCollectionsExist(
+      reply,
+      [collectionId],
+      `Collection "${collectionId}" not found`,
+    );
+    if (collectionError) {
+      return collectionError;
+    }
+  });
+
   // GET /api/tokens/resolved — get all resolved tokens
   fastify.get('/tokens/resolved', async (_request, reply) => {
     try {
+      await fastify.collectionService.loadState();
       const resolved = await fastify.tokenStore.resolveTokens();
       return resolved;
     } catch (err) {
@@ -138,11 +175,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return null;
   }
 
-  // GET /api/tokens/search — search tokens across all sets
+  // GET /api/tokens/search — search tokens across all collections
   fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; limit?: string; offset?: string } }>(
     '/tokens/search',
     async (request, reply) => {
       try {
+        await fastify.collectionService.loadState();
         const { q, type, has, value, desc, path: pathQ, name: nameQ, limit, offset } = request.query;
 
         if (q && q.length > SEARCH_MAX_Q_LEN) {
@@ -182,9 +220,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // GET /api/tokens/where?path=X — find all set definitions for an exact token path
+  // GET /api/tokens/where?path=X — find all collection definitions for an exact token path
   fastify.get<{ Querystring: { path?: string } }>('/tokens/where', async (request, reply) => {
     try {
+      await fastify.collectionService.loadState();
       const { path: tokenPath } = request.query;
       if (!tokenPath || typeof tokenPath !== 'string' || tokenPath.trim().length === 0) {
         return reply.status(400).send({ error: '"path" query parameter is required' });
@@ -197,7 +236,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return {
         path: tokenPath.trim(),
         definitions: defs.map(d => ({
-          setName: d.setName,
+          collectionId: d.collectionId,
           $type: d.token.$type || 'unknown',
           $value: d.token.$value,
           $description: d.token.$description,
@@ -210,25 +249,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // GET /api/tokens/:set — get all tokens in a set (flat list with paths)
-  fastify.get<{ Params: { set: string } }>('/tokens/:set', async (request, reply) => {
+  // GET /api/tokens/:collectionId — get all tokens in a collection (flat list with paths)
+  fastify.get<{ Params: { collectionId: string } }>('/tokens/:collectionId', async (request, reply) => {
     try {
-      const { set } = request.params;
-      const tokenSet = await fastify.tokenStore.getSet(set);
-      if (!tokenSet) {
-        return reply.status(404).send({ error: `Token set "${set}" not found` });
+      const { collectionId } = request.params;
+      const tokenCollection = await fastify.tokenStore.getCollection(collectionId);
+      if (!tokenCollection) {
+        return reply.status(404).send({ error: `Collection "${collectionId}" not found` });
       }
-      return { set: set, tokens: tokenSet.tokens };
+      return { collectionId, tokens: tokenCollection.tokens };
     } catch (err) {
-      return handleRouteError(reply, err, 'Failed to get token set');
+      return handleRouteError(reply, err, 'Failed to get collection tokens');
     }
   });
 
-  // POST /api/tokens/:set/groups/rename — rename a group (updates all token paths and alias refs)
-  fastify.post<{ Params: { set: string }; Body: { oldGroupPath: string; newGroupPath: string; updateAliases?: boolean } }>(
-    '/tokens/:set/groups/rename',
+  // POST /api/tokens/:collectionId/groups/rename — rename a group (updates all token paths and alias refs)
+  fastify.post<{ Params: { collectionId: string }; Body: { oldGroupPath: string; newGroupPath: string; updateAliases?: boolean } }>(
+    '/tokens/:collectionId/groups/rename',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const { oldGroupPath, newGroupPath, updateAliases } = request.body ?? {};
       if (!isValidTokenPath(oldGroupPath) || !isValidTokenPath(newGroupPath)) {
         return reply.status(400).send({ error: 'oldGroupPath and newGroupPath must be valid non-empty paths with no leading/trailing dots' });
@@ -242,7 +281,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              collectionId: set,
+              collectionId,
               oldGroupPath,
               newGroupPath,
               updateAliases: updateAliases !== false,
@@ -260,17 +299,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/groups/move — move a group to a different set
-  fastify.post<{ Params: { set: string }; Body: { groupPath: string; targetSet: string } }>(
-    '/tokens/:set/groups/move',
+  // POST /api/tokens/:collectionId/groups/move — move a group to a different collection
+  fastify.post<{ Params: { collectionId: string }; Body: { groupPath: string; targetCollectionId: string } }>(
+    '/tokens/:collectionId/groups/move',
     async (request, reply) => {
-      const { set } = request.params;
-      const { groupPath, targetSet } = request.body ?? {};
+      const { collectionId } = request.params;
+      const { groupPath, targetCollectionId } = request.body ?? {};
       if (!isValidTokenPath(groupPath)) {
         return reply.status(400).send({ error: 'groupPath must be a valid non-empty path with no leading/trailing dots' });
       }
-      if (!isValidSetName(targetSet)) {
-        return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
+      if (!isValidCollectionId(targetCollectionId)) {
+        return reply.status(400).send({ error: 'targetCollectionId must be a valid non-empty collection id' });
+      }
+      const collectionError = await ensureCollectionsExist(
+        reply,
+        [collectionId, targetCollectionId],
+        "Failed to load collection move targets",
+      );
+      if (collectionError) {
+        return collectionError;
       }
       return withLock(async () => {
         try {
@@ -281,9 +328,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              sourceCollectionId: set,
+              sourceCollectionId: collectionId,
               groupPath,
-              targetCollectionId: targetSet,
+              targetCollectionId,
             },
           );
           return { ok: true, movedCount: result.movedCount };
@@ -294,17 +341,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/groups/copy — copy a group to a different set
-  fastify.post<{ Params: { set: string }; Body: { groupPath: string; targetSet: string } }>(
-    '/tokens/:set/groups/copy',
+  // POST /api/tokens/:collectionId/groups/copy — copy a group to a different collection
+  fastify.post<{ Params: { collectionId: string }; Body: { groupPath: string; targetCollectionId: string } }>(
+    '/tokens/:collectionId/groups/copy',
     async (request, reply) => {
-      const { set } = request.params;
-      const { groupPath, targetSet } = request.body ?? {};
+      const { collectionId } = request.params;
+      const { groupPath, targetCollectionId } = request.body ?? {};
       if (!isValidTokenPath(groupPath)) {
         return reply.status(400).send({ error: 'groupPath must be a valid non-empty path with no leading/trailing dots' });
       }
-      if (!isValidSetName(targetSet)) {
-        return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
+      if (!isValidCollectionId(targetCollectionId)) {
+        return reply.status(400).send({ error: 'targetCollectionId must be a valid non-empty collection id' });
+      }
+      const collectionError = await ensureCollectionsExist(
+        reply,
+        [collectionId, targetCollectionId],
+        "Failed to load collection copy targets",
+      );
+      if (collectionError) {
+        return collectionError;
       }
       return withLock(async () => {
         try {
@@ -315,9 +370,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              sourceCollectionId: set,
+              sourceCollectionId: collectionId,
               groupPath,
-              targetCollectionId: targetSet,
+              targetCollectionId,
             },
           );
           return { ok: true, copiedCount: result.copiedCount };
@@ -328,23 +383,23 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/groups/duplicate — duplicate a group with a -copy suffix
-  fastify.post<{ Params: { set: string }; Body: { groupPath: string } }>(
-    '/tokens/:set/groups/duplicate',
+  // POST /api/tokens/:collectionId/groups/duplicate — duplicate a group with a -copy suffix
+  fastify.post<{ Params: { collectionId: string }; Body: { groupPath: string } }>(
+    '/tokens/:collectionId/groups/duplicate',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const { groupPath } = request.body ?? {};
       if (!isValidTokenPath(groupPath)) {
         return reply.status(400).send({ error: 'groupPath must be a valid non-empty path with no leading/trailing dots' });
       }
       return withLock(async () => {
         try {
-          const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
-          const after = await snapshotGroup(fastify.tokenStore, set, result.newGroupPath);
+          const result = await fastify.tokenStore.duplicateGroup(collectionId, groupPath);
+          const after = await snapshotGroup(fastify.tokenStore, collectionId, result.newGroupPath);
           await fastify.operationLog.record({
             type: 'group-duplicate',
-            description: `Duplicate group "${groupPath}" as "${result.newGroupPath}" in ${set}`,
-            setName: set,
+            description: `Duplicate group "${groupPath}" as "${result.newGroupPath}" in ${collectionId}`,
+            resourceId: collectionId,
             affectedPaths: Object.keys(after),
             beforeSnapshot: {},
             afterSnapshot: after,
@@ -357,11 +412,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/groups/reorder — reorder direct children of a group
-  fastify.post<{ Params: { set: string }; Body: { groupPath?: string; orderedKeys: string[] } }>(
-    '/tokens/:set/groups/reorder',
+  // POST /api/tokens/:collectionId/groups/reorder — reorder direct children of a group
+  fastify.post<{ Params: { collectionId: string }; Body: { groupPath?: string; orderedKeys: string[] } }>(
+    '/tokens/:collectionId/groups/reorder',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const { groupPath = '', orderedKeys } = request.body ?? {};
       if (groupPath && !isValidTokenPath(groupPath)) {
         return reply.status(400).send({ error: 'groupPath must be a valid path with no leading/trailing dots' });
@@ -375,13 +430,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           const prefix = groupPath ? groupPath + '.' : '';
-          const before = await snapshotSet(fastify.tokenStore, set);
-          await fastify.tokenStore.reorderGroupChildren(set, groupPath, orderedKeys);
-          const after = await snapshotSet(fastify.tokenStore, set);
+          const before = await snapshotCollection(fastify.tokenStore, collectionId);
+          await fastify.tokenStore.reorderGroupChildren(collectionId, groupPath, orderedKeys);
+          const after = await snapshotCollection(fastify.tokenStore, collectionId);
           await fastify.operationLog.record({
             type: 'group-reorder',
-            description: `Reorder children of "${groupPath || '(root)'}" in ${set}`,
-            setName: set,
+            description: `Reorder children of "${groupPath || '(root)'}" in ${collectionId}`,
+            resourceId: collectionId,
             affectedPaths: orderedKeys.map(k => prefix + k),
             beforeSnapshot: before,
             afterSnapshot: after,
@@ -394,27 +449,27 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/groups/create — create an empty group at a path
-  fastify.post<{ Params: { set: string }; Body: { groupPath: string } }>(
-    '/tokens/:set/groups/create',
+  // POST /api/tokens/:collectionId/groups/create — create an empty group at a path
+  fastify.post<{ Params: { collectionId: string }; Body: { groupPath: string } }>(
+    '/tokens/:collectionId/groups/create',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const { groupPath } = request.body ?? {};
       if (!isValidTokenPath(groupPath)) {
         return reply.status(400).send({ error: 'groupPath must be a valid non-empty path with no leading/trailing dots' });
       }
       return withLock(async () => {
         try {
-          await fastify.tokenStore.createGroup(set, groupPath);
+          await fastify.tokenStore.createGroup(collectionId, groupPath);
           await fastify.operationLog.record({
             type: 'group-create',
-            description: `Create empty group "${groupPath}" in ${set}`,
-            setName: set,
+            description: `Create empty group "${groupPath}" in ${collectionId}`,
+            resourceId: collectionId,
             affectedPaths: [groupPath],
             beforeSnapshot: {},
             afterSnapshot: {},
           });
-          return reply.status(201).send({ ok: true, groupPath, set });
+          return reply.status(201).send({ ok: true, groupPath, collectionId });
         } catch (err) {
           return handleRouteError(reply, err);
         }
@@ -422,12 +477,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // PATCH /api/tokens/:set/groups/meta — update $type and/or $description on a group
+  // PATCH /api/tokens/:collectionId/groups/meta — update $type and/or $description on a group
   fastify.patch<{
-    Params: { set: string };
+    Params: { collectionId: string };
     Body: { groupPath?: string; $type?: string | null; $description?: string | null };
-  }>('/tokens/:set/groups/meta', async (request, reply) => {
-    const { set } = request.params;
+  }>('/tokens/:collectionId/groups/meta', async (request, reply) => {
+    const { collectionId } = request.params;
     const { groupPath = '', $type, $description } = request.body ?? {};
     if (groupPath && !isValidTokenPath(groupPath)) {
       return reply.status(400).send({ error: 'groupPath must be a valid path with no leading/trailing dots' });
@@ -438,33 +493,33 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         const before = groupPath
-          ? await snapshotGroup(fastify.tokenStore, set, groupPath)
-          : await snapshotSet(fastify.tokenStore, set);
-        await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
+          ? await snapshotGroup(fastify.tokenStore, collectionId, groupPath)
+          : await snapshotCollection(fastify.tokenStore, collectionId);
+        await fastify.tokenStore.updateGroup(collectionId, groupPath, { $type, $description });
         const after = groupPath
-          ? await snapshotGroup(fastify.tokenStore, set, groupPath)
-          : await snapshotSet(fastify.tokenStore, set);
+          ? await snapshotGroup(fastify.tokenStore, collectionId, groupPath)
+          : await snapshotCollection(fastify.tokenStore, collectionId);
         await fastify.operationLog.record({
           type: 'group-meta-update',
-          description: `Update metadata on "${groupPath || '(root)'}" in ${set}`,
-          setName: set,
+          description: `Update metadata on "${groupPath || '(root)'}" in ${collectionId}`,
+          resourceId: collectionId,
           affectedPaths: [groupPath || '(root)'],
           beforeSnapshot: before,
           afterSnapshot: after,
         });
-        return { ok: true, groupPath, set };
+        return { ok: true, groupPath, collectionId };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to update group metadata');
       }
     });
   });
 
-  // POST /api/tokens/:set/bulk-rename — rename tokens by find/replace pattern
+  // POST /api/tokens/:collectionId/bulk-rename — rename tokens by find/replace pattern
   fastify.post<{
-    Params: { set: string };
+    Params: { collectionId: string };
     Body: { find: string; replace: string; isRegex?: boolean };
-  }>('/tokens/:set/bulk-rename', async (request, reply) => {
-    const { set } = request.params;
+  }>('/tokens/:collectionId/bulk-rename', async (request, reply) => {
+    const { collectionId } = request.params;
     const { find, replace, isRegex } = request.body ?? {};
     if (typeof find !== 'string' || find.length === 0) {
       return reply.status(400).send({ error: 'find must be a non-empty string' });
@@ -477,13 +532,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
-        const before = await snapshotSet(fastify.tokenStore, set);
-        const result = await fastify.tokenStore.bulkRename(set, find, replace, isRegex);
-        const after = await snapshotSet(fastify.tokenStore, set);
+        const before = await snapshotCollection(fastify.tokenStore, collectionId);
+        const result = await fastify.tokenStore.bulkRename(collectionId, find, replace, isRegex);
+        const after = await snapshotCollection(fastify.tokenStore, collectionId);
         await fastify.operationLog.record({
           type: 'bulk-rename',
-          description: `Bulk rename "${find}" → "${replace}" in ${set}`,
-          setName: set,
+          description: `Bulk rename "${find}" → "${replace}" in ${collectionId}`,
+          resourceId: collectionId,
           affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
           beforeSnapshot: before,
           afterSnapshot: after,
@@ -496,12 +551,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // POST /api/tokens/:set/batch-update — apply partial patches to multiple tokens (single operation log entry)
+  // POST /api/tokens/:collectionId/batch-update — apply partial patches to multiple tokens (single operation log entry)
   fastify.post<{
-    Params: { set: string };
+    Params: { collectionId: string };
     Body: { patches: Array<{ path: string; patch: Record<string, unknown> }> };
-  }>('/tokens/:set/batch-update', async (request, reply) => {
-    const { set } = request.params;
+  }>('/tokens/:collectionId/batch-update', async (request, reply) => {
+    const { collectionId } = request.params;
     const { patches } = request.body ?? {};
     if (!Array.isArray(patches) || patches.length === 0) {
       return reply.status(400).send({ error: 'patches must be a non-empty array' });
@@ -524,7 +579,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           const patchVal = (p.patch as Record<string, unknown>).$value;
           if (patchVal !== undefined) {
             const patchType = (p.patch as Record<string, unknown>).$type as string | undefined;
-            const effectiveType = patchType ?? (await fastify.tokenStore.getToken(set, p.path))?.$type;
+            const effectiveType = patchType ?? (await fastify.tokenStore.getToken(collectionId, p.path))?.$type;
             if (effectiveType) {
               const valueErr = validateTokenValue(patchVal, effectiveType, p.path);
               if (valueErr) return reply.status(400).send({ error: `Invalid $value for "${p.path}" (type "${effectiveType}"): ${valueErr}` });
@@ -539,13 +594,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         const paths = patches.map(p => p.path);
-        const before = await snapshotPaths(fastify.tokenStore, set, paths);
-        await fastify.tokenStore.batchUpdateTokens(set, patches);
-        const after = await snapshotPaths(fastify.tokenStore, set, paths);
+        const before = await snapshotPaths(fastify.tokenStore, collectionId, paths);
+        await fastify.tokenStore.batchUpdateTokens(collectionId, patches);
+        const after = await snapshotPaths(fastify.tokenStore, collectionId, paths);
         const entry = await fastify.operationLog.record({
           type: 'batch-update',
-          description: `Batch update ${patches.length} token${patches.length === 1 ? '' : 's'} in ${set}`,
-          setName: set,
+          description: `Batch update ${patches.length} token${patches.length === 1 ? '' : 's'} in ${collectionId}`,
+          resourceId: collectionId,
           affectedPaths: paths,
           beforeSnapshot: before,
           afterSnapshot: after,
@@ -559,15 +614,15 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{
     Body: {
-      primitiveSet: string;
+      primitiveCollectionId: string;
       primitivePath: string;
-      sourceTokens: Array<{ setName: string; path: string }>;
+      sourceTokens: Array<{ collectionId: string; path: string }>;
     };
   }>('/tokens/promote-alias', async (request, reply) => {
-    const { primitiveSet, primitivePath, sourceTokens } = request.body ?? {};
+    const { primitiveCollectionId, primitivePath, sourceTokens } = request.body ?? {};
 
-    if (!isValidSetName(primitiveSet)) {
-      return reply.status(400).send({ error: 'primitiveSet must be a valid non-empty set name' });
+    if (!isValidCollectionId(primitiveCollectionId)) {
+      return reply.status(400).send({ error: 'primitiveCollectionId must be a valid non-empty collection id' });
     }
     if (!isValidTokenPath(primitivePath)) {
       return reply.status(400).send({ error: 'primitivePath must be a valid non-empty path with no leading/trailing dots' });
@@ -578,34 +633,42 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
     const seenSourceTokens = new Set<string>();
     for (const sourceToken of sourceTokens) {
-      if (!isValidSetName(sourceToken?.setName) || !isValidTokenPath(sourceToken?.path)) {
-        return reply.status(400).send({ error: 'Each source token must include a valid setName and path' });
+      if (!isValidCollectionId(sourceToken?.collectionId) || !isValidTokenPath(sourceToken?.path)) {
+        return reply.status(400).send({ error: 'Each source token must include a valid collectionId and path' });
       }
-      const sourceKey = `${sourceToken.setName}:${sourceToken.path}`;
+      const sourceKey = `${sourceToken.collectionId}:${sourceToken.path}`;
       if (seenSourceTokens.has(sourceKey)) {
         return reply.status(400).send({ error: `Duplicate source token "${sourceKey}"` });
       }
       seenSourceTokens.add(sourceKey);
     }
+    const collectionError = await ensureCollectionsExist(
+      reply,
+      [primitiveCollectionId, ...sourceTokens.map((sourceToken) => sourceToken.collectionId)],
+      "Failed to load collection alias promotion targets",
+    );
+    if (collectionError) {
+      return collectionError;
+    }
 
     return withLock(async () => {
       try {
-        if (await fastify.tokenStore.getToken(primitiveSet, primitivePath)) {
-          return reply.status(409).send({ error: `Token "${primitivePath}" already exists in set "${primitiveSet}"` });
+        if (await fastify.tokenStore.getToken(primitiveCollectionId, primitivePath)) {
+          return reply.status(409).send({ error: `Token "${primitivePath}" already exists in collection "${primitiveCollectionId}"` });
         }
 
-        const resolvedSources: Array<{ setName: string; path: string; token: Token }> = [];
+        const resolvedSources: Array<{ collectionId: string; path: string; token: Token }> = [];
         let canonicalValue: unknown = undefined;
         let canonicalType: string | undefined = undefined;
         let canonicalSerialized: string | null = null;
 
         for (const sourceToken of sourceTokens) {
-          const token = await fastify.tokenStore.getToken(sourceToken.setName, sourceToken.path);
+          const token = await fastify.tokenStore.getToken(sourceToken.collectionId, sourceToken.path);
           if (!token) {
-            return reply.status(404).send({ error: `Source token "${sourceToken.path}" not found in set "${sourceToken.setName}"` });
+            return reply.status(404).send({ error: `Source token "${sourceToken.path}" not found in collection "${sourceToken.collectionId}"` });
           }
           if (isReference(token.$value)) {
-            return reply.status(400).send({ error: `Source token "${sourceToken.path}" in "${sourceToken.setName}" is already an alias` });
+            return reply.status(400).send({ error: `Source token "${sourceToken.path}" in "${sourceToken.collectionId}" is already an alias` });
           }
 
           const serializedValue = stableStringify(token.$value);
@@ -615,35 +678,36 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             canonicalSerialized = serializedValue;
           } else if (serializedValue !== canonicalSerialized || token.$type !== canonicalType) {
             return reply.status(400).send({
-              error: `Source token "${sourceToken.path}" in "${sourceToken.setName}" does not match the group's shared raw value`,
+              error: `Source token "${sourceToken.path}" in "${sourceToken.collectionId}" does not match the group's shared raw value`,
             });
           }
 
           resolvedSources.push({
-            setName: sourceToken.setName,
+            collectionId: sourceToken.collectionId,
             path: sourceToken.path,
             token,
           });
         }
 
-        const touchedPathsBySet = new Map<string, Set<string>>();
+        const touchedPathsByCollection = new Map<string, Set<string>>();
         for (const sourceToken of resolvedSources) {
-          const paths = touchedPathsBySet.get(sourceToken.setName) ?? new Set<string>();
+          const paths = touchedPathsByCollection.get(sourceToken.collectionId) ?? new Set<string>();
           paths.add(sourceToken.path);
-          touchedPathsBySet.set(sourceToken.setName, paths);
+          touchedPathsByCollection.set(sourceToken.collectionId, paths);
         }
-        const primitiveSetPaths = touchedPathsBySet.get(primitiveSet) ?? new Set<string>();
-        primitiveSetPaths.add(primitivePath);
-        touchedPathsBySet.set(primitiveSet, primitiveSetPaths);
+        const primitiveCollectionPaths =
+          touchedPathsByCollection.get(primitiveCollectionId) ?? new Set<string>();
+        primitiveCollectionPaths.add(primitivePath);
+        touchedPathsByCollection.set(primitiveCollectionId, primitiveCollectionPaths);
 
         const beforeSnapshot: Record<string, SnapshotEntry> = {};
-        for (const [setName, paths] of touchedPathsBySet.entries()) {
-          const snapshot = await snapshotPaths(fastify.tokenStore, setName, [...paths]);
-          mergeSetSnapshot(beforeSnapshot, setName, snapshot);
+        for (const [collectionId, paths] of touchedPathsByCollection.entries()) {
+          const snapshot = await snapshotPaths(fastify.tokenStore, collectionId, [...paths]);
+          mergeCollectionSnapshot(beforeSnapshot, collectionId, snapshot);
         }
 
         await fastify.tokenStore.createToken(
-          primitiveSet,
+          primitiveCollectionId,
           primitivePath,
           {
             ...(canonicalType ? { $type: canonicalType } : {}),
@@ -651,30 +715,30 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           } as Token,
         );
 
-        const sourceTokensBySet = new Map<string, Array<{ path: string; patch: Record<string, unknown> }>>();
+        const sourceTokensByCollection = new Map<string, Array<{ path: string; patch: Record<string, unknown> }>>();
         for (const sourceToken of resolvedSources) {
-          const patches = sourceTokensBySet.get(sourceToken.setName) ?? [];
+          const patches = sourceTokensByCollection.get(sourceToken.collectionId) ?? [];
           patches.push({
             path: sourceToken.path,
             patch: { $value: `{${primitivePath}}` },
           });
-          sourceTokensBySet.set(sourceToken.setName, patches);
+          sourceTokensByCollection.set(sourceToken.collectionId, patches);
         }
 
-        for (const [setName, patches] of sourceTokensBySet.entries()) {
-          await fastify.tokenStore.batchUpdateTokens(setName, patches);
+        for (const [collectionId, patches] of sourceTokensByCollection.entries()) {
+          await fastify.tokenStore.batchUpdateTokens(collectionId, patches);
         }
 
         const afterSnapshot: Record<string, SnapshotEntry> = {};
-        for (const [setName, paths] of touchedPathsBySet.entries()) {
-          const snapshot = await snapshotPaths(fastify.tokenStore, setName, [...paths]);
-          mergeSetSnapshot(afterSnapshot, setName, snapshot);
+        for (const [collectionId, paths] of touchedPathsByCollection.entries()) {
+          const snapshot = await snapshotPaths(fastify.tokenStore, collectionId, [...paths]);
+          mergeCollectionSnapshot(afterSnapshot, collectionId, snapshot);
         }
 
         const entry = await fastify.operationLog.record({
           type: 'batch-update',
           description: `Promote ${resolvedSources.length} tokens to shared alias "${primitivePath}"`,
-          setName: primitiveSet,
+          resourceId: primitiveCollectionId,
           affectedPaths: [
             primitivePath,
             ...resolvedSources.map(sourceToken => sourceToken.path),
@@ -686,7 +750,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(201).send({
           ok: true,
           primitivePath,
-          primitiveSet,
+          primitiveCollectionId,
           promoted: resolvedSources.length,
           operationId: entry.id,
         });
@@ -696,12 +760,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // POST /api/tokens/:set/batch-rename-paths — rename specific token paths (single operation log entry)
+  // POST /api/tokens/:collectionId/batch-rename-paths — rename specific token paths (single operation log entry)
   fastify.post<{
-    Params: { set: string };
+    Params: { collectionId: string };
     Body: { renames: Array<{ oldPath: string; newPath: string }>; updateAliases?: boolean };
-  }>('/tokens/:set/batch-rename-paths', async (request, reply) => {
-    const { set } = request.params;
+  }>('/tokens/:collectionId/batch-rename-paths', async (request, reply) => {
+    const { collectionId } = request.params;
     const { renames, updateAliases } = request.body ?? {};
     if (!Array.isArray(renames) || renames.length === 0) {
       return reply.status(400).send({ error: 'renames must be a non-empty array' });
@@ -720,7 +784,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             recipeService: fastify.recipeService,
           },
           {
-            collectionId: set,
+            collectionId,
             renames,
             updateAliases: updateAliases !== false,
           },
@@ -732,21 +796,29 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // POST /api/tokens/:set/batch-move — move multiple tokens to another set (single operation log entry)
+  // POST /api/tokens/:collectionId/batch-move — move multiple tokens to another collection (single operation log entry)
   fastify.post<{
-    Params: { set: string };
-    Body: { paths: string[]; targetSet: string };
-  }>('/tokens/:set/batch-move', async (request, reply) => {
-    const { set } = request.params;
-    const { paths, targetSet } = request.body ?? {};
+    Params: { collectionId: string };
+    Body: { paths: string[]; targetCollectionId: string };
+  }>('/tokens/:collectionId/batch-move', async (request, reply) => {
+    const { collectionId } = request.params;
+    const { paths, targetCollectionId } = request.body ?? {};
     if (!Array.isArray(paths) || paths.length === 0) {
       return reply.status(400).send({ error: 'paths must be a non-empty array' });
     }
     if (paths.some((p: unknown) => !isValidTokenPath(p))) {
       return reply.status(400).send({ error: 'Each path must be a valid non-empty string with no leading/trailing dots' });
     }
-    if (!isValidSetName(targetSet)) {
-      return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
+    if (!isValidCollectionId(targetCollectionId)) {
+      return reply.status(400).send({ error: 'targetCollectionId must be a valid non-empty collection id' });
+    }
+    const collectionError = await ensureCollectionsExist(
+      reply,
+      [collectionId, targetCollectionId],
+      "Failed to load batch move targets",
+    );
+    if (collectionError) {
+      return collectionError;
     }
     return withLock(async () => {
       try {
@@ -757,9 +829,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             recipeService: fastify.recipeService,
           },
           {
-            sourceCollectionId: set,
+            sourceCollectionId: collectionId,
             paths,
-            targetCollectionId: targetSet,
+            targetCollectionId,
           },
         );
         return { ok: true, moved: result.moved, operationId };
@@ -769,21 +841,29 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // POST /api/tokens/:set/batch-copy — copy multiple tokens to another set, preserving originals
+  // POST /api/tokens/:collectionId/batch-copy — copy multiple tokens to another collection, preserving originals
   fastify.post<{
-    Params: { set: string };
-    Body: { paths: string[]; targetSet: string };
-  }>('/tokens/:set/batch-copy', async (request, reply) => {
-    const { set } = request.params;
-    const { paths, targetSet } = request.body ?? {};
+    Params: { collectionId: string };
+    Body: { paths: string[]; targetCollectionId: string };
+  }>('/tokens/:collectionId/batch-copy', async (request, reply) => {
+    const { collectionId } = request.params;
+    const { paths, targetCollectionId } = request.body ?? {};
     if (!Array.isArray(paths) || paths.length === 0) {
       return reply.status(400).send({ error: 'paths must be a non-empty array' });
     }
     if (paths.some((p: unknown) => !isValidTokenPath(p))) {
       return reply.status(400).send({ error: 'Each path must be a valid non-empty string with no leading/trailing dots' });
     }
-    if (!isValidSetName(targetSet)) {
-      return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
+    if (!isValidCollectionId(targetCollectionId)) {
+      return reply.status(400).send({ error: 'targetCollectionId must be a valid non-empty collection id' });
+    }
+    const collectionError = await ensureCollectionsExist(
+      reply,
+      [collectionId, targetCollectionId],
+      "Failed to load batch copy targets",
+    );
+    if (collectionError) {
+      return collectionError;
     }
     return withLock(async () => {
       try {
@@ -794,9 +874,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             recipeService: fastify.recipeService,
           },
           {
-            sourceCollectionId: set,
+            sourceCollectionId: collectionId,
             paths,
-            targetCollectionId: targetSet,
+            targetCollectionId,
           },
         );
         return { ok: true, copied: result.copied, operationId };
@@ -806,12 +886,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // POST /api/tokens/:set/batch — upsert multiple tokens in a single request
+  // POST /api/tokens/:collectionId/batch — upsert multiple tokens in a single request
   fastify.post<{
-    Params: { set: string };
+    Params: { collectionId: string };
     Body: { tokens: BatchTokenMutationRouteBody[]; strategy: 'skip' | 'overwrite' | 'merge' };
-  }>('/tokens/:set/batch', async (request, reply) => {
-    const { set } = request.params;
+  }>('/tokens/:collectionId/batch', async (request, reply) => {
+    const { collectionId } = request.params;
     const { tokens, strategy } = request.body ?? {};
     if (!Array.isArray(tokens) || tokens.length === 0) {
       return reply.status(400).send({ error: 'tokens must be a non-empty array' });
@@ -838,6 +918,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
+        await fastify.collectionService.requireCollectionsExist([collectionId]);
         // Check alias targets exist (allow intra-batch references)
         const batchPaths = new Set(tokens.map(t => t.path));
         for (const t of tokens) {
@@ -850,14 +931,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         const paths = tokens.map(t => t.path);
-        const setExistedBefore = !!(await fastify.tokenStore.getSet(set));
-        const before = await snapshotPaths(fastify.tokenStore, set, paths);
+        const before = await snapshotPaths(fastify.tokenStore, collectionId, paths);
         const result = await fastify.tokenStore.batchUpsertTokens(
-          set,
+          collectionId,
           tokens.map(t => ({ path: t.path, token: t as Token })),
           strategy,
         );
-        const after = await snapshotPaths(fastify.tokenStore, set, paths);
+        const after = await snapshotPaths(fastify.tokenStore, collectionId, paths);
         const changedSnapshotKeys = listChangedSnapshotKeys(before, after);
         const changedPaths = listChangedSnapshotTokenPaths(before, after);
         const beforeSnapshot = pickSnapshotEntries(before, changedSnapshotKeys);
@@ -868,12 +948,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           operationId = (
             await fastify.operationLog.record({
               type: 'batch-upsert',
-              description: `Batch upsert ${tokens.length} tokens in ${set}`,
-              setName: set,
+              description: `Batch upsert ${tokens.length} tokens in ${collectionId}`,
+              resourceId: collectionId,
               affectedPaths: changedPaths,
               beforeSnapshot,
               afterSnapshot,
-              ...(!setExistedBefore ? { rollbackSteps: [{ action: 'delete-set' as const, name: set }] } : {}),
             })
           ).id;
         }
@@ -888,13 +967,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/tokens/deprecated-usage — list deprecated tokens that still have active alias dependents
   fastify.get('/tokens/deprecated-usage', async (_request, reply) => {
     try {
-      const deprecatedByPath = new Map<string, { setName: string; type: string }>();
-      for (const { path: tokenPath, token, setName } of fastify.tokenStore.getAllFlatTokens()) {
+      await fastify.collectionService.loadState();
+      const deprecatedByPath = new Map<string, { collectionId: string; type: string }>();
+      for (const { path: tokenPath, token, collectionId } of fastify.tokenStore.getAllFlatTokens()) {
         if (getTokenLifecycle(token) !== 'deprecated' || deprecatedByPath.has(tokenPath)) {
           continue;
         }
         deprecatedByPath.set(tokenPath, {
-          setName,
+          collectionId,
           type: token.$type ?? 'unknown',
         });
       }
@@ -902,7 +982,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const entries = [...deprecatedByPath.entries()]
         .map(([deprecatedPath, meta]) => ({
           deprecatedPath,
-          setName: meta.setName,
+          collectionId: meta.collectionId,
           type: meta.type,
           dependents: fastify.tokenStore
             .getDependents(deprecatedPath)
@@ -910,7 +990,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             .sort(
               (a, b) =>
                 a.path.localeCompare(b.path) ||
-                a.setName.localeCompare(b.setName),
+                a.collectionId.localeCompare(b.collectionId),
             ),
         }))
         .filter(entry => entry.dependents.length > 0)
@@ -945,6 +1025,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       const beforeSnapshot: Record<string, SnapshotEntry> = {};
       try {
+        await fastify.collectionService.loadState();
         const deprecatedDefinitions = fastify.tokenStore.getTokenDefinitions(deprecatedPath);
         const deprecatedDefinition = deprecatedDefinitions.find(
           ({ token }) => getTokenLifecycle(token) === 'deprecated',
@@ -972,55 +1053,55 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           return { ok: true, updated: 0 };
         }
 
-        const patchesBySet = new Map<string, Array<{ path: string; patch: Partial<Token> }>>();
+        const patchesByCollection = new Map<string, Array<{ path: string; patch: Partial<Token> }>>();
         for (const dependent of dependents) {
-          const existing = await fastify.tokenStore.getToken(dependent.setName, dependent.path);
+          const existing = await fastify.tokenStore.getToken(dependent.collectionId, dependent.path);
           if (!existing) {
             return reply.status(404).send({
-              error: `Dependent token "${dependent.path}" in set "${dependent.setName}" no longer exists`,
+              error: `Dependent token "${dependent.path}" in collection "${dependent.collectionId}" no longer exists`,
             });
           }
           if (existing.$type && replacementType && existing.$type !== replacementType) {
             return reply.status(400).send({
-              error: `Cannot retarget "${dependent.path}" in set "${dependent.setName}" from type "${existing.$type}" to replacement type "${replacementType}"`,
+              error: `Cannot retarget "${dependent.path}" in collection "${dependent.collectionId}" from type "${existing.$type}" to replacement type "${replacementType}"`,
             });
           }
 
-          const patches = patchesBySet.get(dependent.setName) ?? [];
+          const patches = patchesByCollection.get(dependent.collectionId) ?? [];
           patches.push({
             path: dependent.path,
             patch: { $value: `{${replacementPath}}` },
           });
-          patchesBySet.set(dependent.setName, patches);
+          patchesByCollection.set(dependent.collectionId, patches);
         }
 
-        for (const [setName, patches] of patchesBySet.entries()) {
+        for (const [targetCollectionId, patches] of patchesByCollection.entries()) {
           const snapshot = await snapshotPaths(
             fastify.tokenStore,
-            setName,
+            targetCollectionId,
             patches.map(patch => patch.path),
           );
-          mergeSetSnapshot(beforeSnapshot, setName, snapshot);
+          mergeCollectionSnapshot(beforeSnapshot, targetCollectionId, snapshot);
         }
 
-        for (const [setName, patches] of patchesBySet.entries()) {
-          await fastify.tokenStore.batchUpdateTokens(setName, patches);
+        for (const [targetCollectionId, patches] of patchesByCollection.entries()) {
+          await fastify.tokenStore.batchUpdateTokens(targetCollectionId, patches);
         }
 
         const afterSnapshot: Record<string, SnapshotEntry> = {};
-        for (const [setName, patches] of patchesBySet.entries()) {
+        for (const [targetCollectionId, patches] of patchesByCollection.entries()) {
           const snapshot = await snapshotPaths(
             fastify.tokenStore,
-            setName,
+            targetCollectionId,
             patches.map(patch => patch.path),
           );
-          mergeSetSnapshot(afterSnapshot, setName, snapshot);
+          mergeCollectionSnapshot(afterSnapshot, targetCollectionId, snapshot);
         }
 
         const operationId = await fastify.operationLog.record({
           type: 'replace-deprecated-references',
           description: `Replace ${dependents.length} reference${dependents.length === 1 ? '' : 's'} from "${deprecatedPath}" to "${replacementPath}"`,
-          setName: deprecatedDefinition.setName,
+          resourceId: deprecatedDefinition.collectionId,
           affectedPaths: dependents.map(dependent => dependent.path),
           beforeSnapshot,
           afterSnapshot,
@@ -1033,9 +1114,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         };
       } catch (err) {
         if (Object.keys(beforeSnapshot).length > 0) {
-          const snapshotBySet = groupSnapshotEntriesBySet(beforeSnapshot);
-          for (const [setName, items] of snapshotBySet.entries()) {
-            await fastify.tokenStore.restoreSnapshot(setName, items);
+          const snapshotByCollection = groupSnapshotEntriesByCollection(beforeSnapshot);
+          for (const [targetCollectionId, items] of snapshotByCollection.entries()) {
+            await fastify.tokenStore.restoreSnapshot(targetCollectionId, items);
           }
         }
         return handleRouteError(reply, err, 'Failed to replace deprecated references');
@@ -1043,12 +1124,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // GET /api/tokens/:set/dependents/* — get tokens that reference a given token path (cross-set)
-  fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/dependents/*', async (request, reply) => {
-    const { set } = request.params;
-    const tokenSet = await fastify.tokenStore.getSet(set);
-    if (!tokenSet) {
-      return reply.status(404).send({ error: `Token set "${set}" not found` });
+  // GET /api/tokens/:collectionId/dependents/* — get tokens that reference a given token path (cross-collection)
+  fastify.get<{ Params: { collectionId: string; '*': string } }>('/tokens/:collectionId/dependents/*', async (request, reply) => {
+    const { collectionId } = request.params;
+    const tokenCollection = await fastify.tokenStore.getCollection(collectionId);
+    if (!tokenCollection) {
+      return reply.status(404).send({ error: `Collection "${collectionId}" not found` });
     }
     const tokenPath = wildcardParamToTokenPath(request.params['*']);
     if (!tokenPath) {
@@ -1062,12 +1143,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // GET /api/tokens/:set/group-dependents/* — get tokens that reference any token under a group prefix
-  fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/group-dependents/*', async (request, reply) => {
-    const { set } = request.params;
-    const tokenSet = await fastify.tokenStore.getSet(set);
-    if (!tokenSet) {
-      return reply.status(404).send({ error: `Token set "${set}" not found` });
+  // GET /api/tokens/:collectionId/group-dependents/* — get tokens that reference any token under a group prefix
+  fastify.get<{ Params: { collectionId: string; '*': string } }>('/tokens/:collectionId/group-dependents/*', async (request, reply) => {
+    const { collectionId } = request.params;
+    const tokenCollection = await fastify.tokenStore.getCollection(collectionId);
+    if (!tokenCollection) {
+      return reply.status(404).send({ error: `Collection "${collectionId}" not found` });
     }
     const groupPath = wildcardParamToTokenPath(request.params['*']);
     if (!groupPath) {
@@ -1081,9 +1162,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // GET /api/tokens/:set/tokens/rename-preview — preview alias changes from a token rename (dry-run)
-  fastify.get<{ Params: { set: string }; Querystring: { oldPath: string; newPath: string } }>(
-    '/tokens/:set/tokens/rename-preview',
+  // GET /api/tokens/:collectionId/tokens/rename-preview — preview alias changes from a token rename (dry-run)
+  fastify.get<{ Params: { collectionId: string }; Querystring: { oldPath: string; newPath: string } }>(
+    '/tokens/:collectionId/tokens/rename-preview',
     async (request, reply) => {
       const { oldPath, newPath } = request.query;
       if (!isValidTokenPath(oldPath) || !isValidTokenPath(newPath)) {
@@ -1098,9 +1179,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // GET /api/tokens/:set/groups/rename-preview — preview alias changes from a group rename (dry-run)
-  fastify.get<{ Params: { set: string }; Querystring: { oldGroupPath: string; newGroupPath: string } }>(
-    '/tokens/:set/groups/rename-preview',
+  // GET /api/tokens/:collectionId/groups/rename-preview — preview alias changes from a group rename (dry-run)
+  fastify.get<{ Params: { collectionId: string }; Querystring: { oldGroupPath: string; newGroupPath: string } }>(
+    '/tokens/:collectionId/groups/rename-preview',
     async (request, reply) => {
       const { oldGroupPath, newGroupPath } = request.query;
       if (!isValidTokenPath(oldGroupPath) || !isValidTokenPath(newGroupPath)) {
@@ -1115,11 +1196,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/tokens/rename — rename a single leaf token and update alias references
-  fastify.post<{ Params: { set: string }; Body: { oldPath: string; newPath: string; updateAliases?: boolean } }>(
-    '/tokens/:set/tokens/rename',
+  // POST /api/tokens/:collectionId/tokens/rename — rename a single leaf token and update alias references
+  fastify.post<{ Params: { collectionId: string }; Body: { oldPath: string; newPath: string; updateAliases?: boolean } }>(
+    '/tokens/:collectionId/tokens/rename',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const { oldPath, newPath, updateAliases } = request.body ?? {};
       if (!isValidTokenPath(oldPath) || !isValidTokenPath(newPath)) {
         return reply.status(400).send({ error: 'oldPath and newPath must be valid non-empty paths with no leading/trailing dots' });
@@ -1133,7 +1214,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              collectionId: set,
+              collectionId,
               oldPath,
               newPath,
               updateAliases: updateAliases !== false,
@@ -1147,17 +1228,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/tokens/move — move a single token to a different set
-  fastify.post<{ Params: { set: string }; Body: { tokenPath: string; targetSet: string } }>(
-    '/tokens/:set/tokens/move',
+  // POST /api/tokens/:collectionId/tokens/move — move a single token to a different collection
+  fastify.post<{ Params: { collectionId: string }; Body: { tokenPath: string; targetCollectionId: string } }>(
+    '/tokens/:collectionId/tokens/move',
     async (request, reply) => {
-      const { set } = request.params;
-      const { tokenPath, targetSet } = request.body ?? {};
+      const { collectionId } = request.params;
+      const { tokenPath, targetCollectionId } = request.body ?? {};
       if (!isValidTokenPath(tokenPath)) {
         return reply.status(400).send({ error: 'tokenPath must be a valid non-empty path with no leading/trailing dots' });
       }
-      if (!isValidSetName(targetSet)) {
-        return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
+      if (!isValidCollectionId(targetCollectionId)) {
+        return reply.status(400).send({ error: 'targetCollectionId must be a valid non-empty collection id' });
+      }
+      const collectionError = await ensureCollectionsExist(
+        reply,
+        [collectionId, targetCollectionId],
+        "Failed to load token move targets",
+      );
+      if (collectionError) {
+        return collectionError;
       }
       return withLock(async () => {
         try {
@@ -1168,9 +1257,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              sourceCollectionId: set,
+              sourceCollectionId: collectionId,
               tokenPath,
-              targetCollectionId: targetSet,
+              targetCollectionId,
             },
           );
           return { ok: true };
@@ -1181,17 +1270,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/tokens/copy — copy a single token to a different set
-  fastify.post<{ Params: { set: string }; Body: { tokenPath: string; targetSet: string } }>(
-    '/tokens/:set/tokens/copy',
+  // POST /api/tokens/:collectionId/tokens/copy — copy a single token to a different collection
+  fastify.post<{ Params: { collectionId: string }; Body: { tokenPath: string; targetCollectionId: string } }>(
+    '/tokens/:collectionId/tokens/copy',
     async (request, reply) => {
-      const { set } = request.params;
-      const { tokenPath, targetSet } = request.body ?? {};
+      const { collectionId } = request.params;
+      const { tokenPath, targetCollectionId } = request.body ?? {};
       if (!isValidTokenPath(tokenPath)) {
         return reply.status(400).send({ error: 'tokenPath must be a valid non-empty path with no leading/trailing dots' });
       }
-      if (!isValidSetName(targetSet)) {
-        return reply.status(400).send({ error: 'targetSet must be a valid non-empty set name' });
+      if (!isValidCollectionId(targetCollectionId)) {
+        return reply.status(400).send({ error: 'targetCollectionId must be a valid non-empty collection id' });
+      }
+      const collectionError = await ensureCollectionsExist(
+        reply,
+        [collectionId, targetCollectionId],
+        "Failed to load token copy targets",
+      );
+      if (collectionError) {
+        return collectionError;
       }
       return withLock(async () => {
         try {
@@ -1202,9 +1299,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               recipeService: fastify.recipeService,
             },
             {
-              sourceCollectionId: set,
+              sourceCollectionId: collectionId,
               tokenPath,
-              targetCollectionId: targetSet,
+              targetCollectionId,
             },
           );
           return { ok: true };
@@ -1215,62 +1312,63 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // GET /api/tokens/:set/raw — get the raw nested DTCG token group for a set
-  fastify.get<{ Params: { set: string } }>('/tokens/:set/raw', async (request, reply) => {
+  // GET /api/tokens/:collectionId/raw — get the raw nested DTCG token group for a collection
+  fastify.get<{ Params: { collectionId: string } }>('/tokens/:collectionId/raw', async (request, reply) => {
     try {
-      const { set } = request.params;
-      const tokenSet = await fastify.tokenStore.getSet(set);
-      if (!tokenSet) {
-        return reply.status(404).send({ error: `Token set "${set}" not found` });
+      const { collectionId } = request.params;
+      const tokenCollection = await fastify.tokenStore.getCollection(collectionId);
+      if (!tokenCollection) {
+        return reply.status(404).send({ error: `Collection "${collectionId}" not found` });
       }
-      return tokenSet.tokens;
+      return tokenCollection.tokens;
     } catch (err) {
-      return handleRouteError(reply, err, 'Failed to get raw token set');
+      return handleRouteError(reply, err, 'Failed to get raw collection tokens');
     }
   });
 
-  // PUT /api/tokens/:set — replace all tokens in a set with a new nested DTCG token group
-  fastify.put<{ Params: { set: string }; Body: Record<string, unknown> }>(
-    '/tokens/:set',
+  // PUT /api/tokens/:collectionId — replace all tokens in a collection with a new nested DTCG token group
+  fastify.put<{ Params: { collectionId: string }; Body: Record<string, unknown> }>(
+    '/tokens/:collectionId',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const body = request.body;
       if (!body || typeof body !== 'object' || Array.isArray(body)) {
         return reply.status(400).send({ error: 'Request body must be a JSON object' });
       }
       return withLock(async () => {
         try {
-          const before = await snapshotSet(fastify.tokenStore, set);
-          await fastify.tokenStore.replaceSetTokens(set, body as TokenGroup);
-          const after = await snapshotSet(fastify.tokenStore, set);
+          await fastify.collectionService.requireCollectionsExist([collectionId]);
+          const before = await snapshotCollection(fastify.tokenStore, collectionId);
+          await fastify.tokenStore.replaceCollectionTokens(collectionId, body as TokenGroup);
+          const after = await snapshotCollection(fastify.tokenStore, collectionId);
           await fastify.operationLog.record({
-            type: 'set-replace',
-            description: `Replace all tokens in ${set}`,
-            setName: set,
+            type: 'collection-replace',
+            description: `Replace all tokens in ${collectionId}`,
+            resourceId: collectionId,
             affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
             beforeSnapshot: before,
             afterSnapshot: after,
           });
-          return { ok: true, set };
+          return { ok: true, collectionId };
         } catch (err) {
-          return handleRouteError(reply, err, 'Failed to replace token set');
+          return handleRouteError(reply, err, 'Failed to replace collection tokens');
         }
       });
     },
   );
 
-  // GET /api/tokens/:set/* — get single token by path
-  fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
-    const { set } = request.params;
+  // GET /api/tokens/:collectionId/* — get single token by path
+  fastify.get<{ Params: { collectionId: string; '*': string } }>('/tokens/:collectionId/*', async (request, reply) => {
+    const { collectionId } = request.params;
     const tokenPath = wildcardParamToTokenPath(request.params['*']);
     if (!tokenPath) {
       return reply.status(400).send({ error: 'Token path is required' });
     }
 
     try {
-      const token = await fastify.tokenStore.getToken(set, tokenPath);
+      const token = await fastify.tokenStore.getToken(collectionId, tokenPath);
       if (!token) {
-        return reply.status(404).send({ error: `Token "${tokenPath}" not found in set "${set}"` });
+        return reply.status(404).send({ error: `Token "${tokenPath}" not found in collection "${collectionId}"` });
       }
 
       // Also try to resolve it
@@ -1281,11 +1379,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // POST /api/tokens/:set/* — create token
-  fastify.post<{ Params: { set: string; '*': string }; Body: TokenMutationRouteBody }>(
-    '/tokens/:set/*',
+  // POST /api/tokens/:collectionId/* — create token
+  fastify.post<{ Params: { collectionId: string; '*': string }; Body: TokenMutationRouteBody }>(
+    '/tokens/:collectionId/*',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const tokenPath = wildcardParamToTokenPath(request.params['*']);
       if (!tokenPath) {
         return reply.status(400).send({ error: 'Token path is required' });
@@ -1307,10 +1405,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
       return withLock(async () => {
         try {
+          await fastify.collectionService.requireCollectionsExist([collectionId]);
           // Check if token already exists
-          const existing = await fastify.tokenStore.getToken(set, tokenPath);
+          const existing = await fastify.tokenStore.getToken(collectionId, tokenPath);
           if (existing) {
-            return reply.status(409).send({ error: `Token "${tokenPath}" already exists in set "${set}"` });
+            return reply.status(409).send({ error: `Token "${tokenPath}" already exists in collection "${collectionId}"` });
           }
 
           // Check alias target existence
@@ -1321,19 +1420,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             }
           }
 
-          const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-          await fastify.tokenStore.createToken(set, tokenPath, body as Token);
-          const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          const before = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
+          await fastify.tokenStore.createToken(collectionId, tokenPath, body as Token);
+          const after = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
           await fastify.operationLog.record({
             type: 'token-create',
-            description: `Create token "${tokenPath}" in ${set}`,
-            setName: set,
+            description: `Create token "${tokenPath}" in ${collectionId}`,
+            resourceId: collectionId,
             affectedPaths: [tokenPath],
             beforeSnapshot: before,
             afterSnapshot: after,
           });
-          const created = await fastify.tokenStore.getToken(set, tokenPath);
-          return reply.status(201).send({ ok: true, path: tokenPath, set, token: created });
+          const created = await fastify.tokenStore.getToken(collectionId, tokenPath);
+          return reply.status(201).send({ ok: true, path: tokenPath, collectionId, token: created });
         } catch (err) {
           return handleRouteError(reply, err, 'Failed to create token');
         }
@@ -1341,11 +1440,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // PATCH /api/tokens/:set/* — update token
-  fastify.patch<{ Params: { set: string; '*': string }; Body: TokenMutationRouteBody }>(
-    '/tokens/:set/*',
+  // PATCH /api/tokens/:collectionId/* — update token
+  fastify.patch<{ Params: { collectionId: string; '*': string }; Body: TokenMutationRouteBody }>(
+    '/tokens/:collectionId/*',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const tokenPath = wildcardParamToTokenPath(request.params['*']);
       if (!tokenPath) {
         return reply.status(400).send({ error: 'Token path is required' });
@@ -1360,7 +1459,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         try {
           // Validate $value against effective type (own or inherited from existing token)
           if (body.$value !== undefined) {
-            const existingForType = await fastify.tokenStore.getToken(set, tokenPath);
+            const existingForType = await fastify.tokenStore.getToken(collectionId, tokenPath);
             const effectiveType = body.$type ?? existingForType?.$type;
             if (effectiveType) {
               const valueErr = validateTokenValue(body.$value, effectiveType, tokenPath);
@@ -1375,19 +1474,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             }
           }
 
-          const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-          await fastify.tokenStore.updateToken(set, tokenPath, body as Partial<Token>);
-          const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          const before = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
+          await fastify.tokenStore.updateToken(collectionId, tokenPath, body as Partial<Token>);
+          const after = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
           await fastify.operationLog.record({
             type: 'token-update',
-            description: `Update token "${tokenPath}" in ${set}`,
-            setName: set,
+            description: `Update token "${tokenPath}" in ${collectionId}`,
+            resourceId: collectionId,
             affectedPaths: [tokenPath],
             beforeSnapshot: before,
             afterSnapshot: after,
           });
-          const updated = await fastify.tokenStore.getToken(set, tokenPath);
-          return { ok: true, path: tokenPath, set, token: updated };
+          const updated = await fastify.tokenStore.getToken(collectionId, tokenPath);
+          return { ok: true, path: tokenPath, collectionId, token: updated };
         } catch (err) {
           return handleRouteError(reply, err, 'Failed to update token');
         }
@@ -1395,11 +1494,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/tokens/:set/batch-delete — delete multiple tokens/groups in one call
-  fastify.post<{ Params: { set: string }; Body: { paths: string[]; force?: boolean } }>(
-    '/tokens/:set/batch-delete',
+  // POST /api/tokens/:collectionId/batch-delete — delete multiple tokens/groups in one call
+  fastify.post<{ Params: { collectionId: string }; Body: { paths: string[]; force?: boolean } }>(
+    '/tokens/:collectionId/batch-delete',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const { paths, force } = request.body ?? {};
       if (!Array.isArray(paths) || paths.length === 0) {
         return reply.status(400).send({ error: 'paths array is required and must not be empty' });
@@ -1411,7 +1510,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           if (!force) {
-            const flatTokens = await fastify.tokenStore.getFlatTokensForSet(set);
+            const flatTokens = await fastify.tokenStore.getFlatTokensForCollection(collectionId);
             // Expand group paths to all leaf tokens they contain
             const allDeletedLeaves = new Set<string>();
             for (const p of paths) {
@@ -1422,7 +1521,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               }
             }
 
-            const externalDependents: Array<{ path: string; setName: string }> = [];
+            const externalDependents: Array<{ path: string; collectionId: string }> = [];
             const seen = new Set<string>();
             for (const p of allDeletedLeaves) {
               for (const dep of fastify.tokenStore.getDependents(p)) {
@@ -1446,20 +1545,20 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             }
           }
 
-          const before = await snapshotPaths(fastify.tokenStore, set, paths);
-          const deleted = await fastify.tokenStore.deleteTokens(set, paths);
-          const after = await snapshotPaths(fastify.tokenStore, set, paths);
+          const before = await snapshotPaths(fastify.tokenStore, collectionId, paths);
+          const deleted = await fastify.tokenStore.deleteTokens(collectionId, paths);
+          const after = await snapshotPaths(fastify.tokenStore, collectionId, paths);
           if (deleted.length > 0) {
             await fastify.operationLog.record({
               type: 'batch-delete',
-              description: `Delete ${deleted.length} token(s) from ${set}`,
-              setName: set,
+              description: `Delete ${deleted.length} token(s) from ${collectionId}`,
+              resourceId: collectionId,
               affectedPaths: deleted,
               beforeSnapshot: before,
               afterSnapshot: after,
             });
           }
-          return { ok: true, deleted: deleted.length, paths: deleted, set };
+          return { ok: true, deleted: deleted.length, paths: deleted, collectionId };
         } catch (err) {
           return handleRouteError(reply, err, 'Failed to delete tokens');
         }
@@ -1467,11 +1566,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // DELETE /api/tokens/:set/* — delete token or group
-  fastify.delete<{ Params: { set: string; '*': string }; Querystring: { force?: string } }>(
-    '/tokens/:set/*',
+  // DELETE /api/tokens/:collectionId/* — delete token or group
+  fastify.delete<{ Params: { collectionId: string; '*': string }; Querystring: { force?: string } }>(
+    '/tokens/:collectionId/*',
     async (request, reply) => {
-      const { set } = request.params;
+      const { collectionId } = request.params;
       const tokenPath = wildcardParamToTokenPath(request.params['*']);
       if (!tokenPath) {
         return reply.status(400).send({ error: 'Token path is required' });
@@ -1483,14 +1582,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         try {
           if (!force) {
             // Collect all leaf token paths being deleted (single token or all tokens in a group)
-            const flatTokens = await fastify.tokenStore.getFlatTokensForSet(set);
+            const flatTokens = await fastify.tokenStore.getFlatTokensForCollection(collectionId);
             const deletedPaths = Object.keys(flatTokens).filter(
               (p) => p === tokenPath || p.startsWith(tokenPath + '.'),
             );
             const deletedSet = new Set(deletedPaths);
 
             // For each deleted path, find dependents that are NOT themselves being deleted
-            const externalDependents: Array<{ path: string; setName: string }> = [];
+            const externalDependents: Array<{ path: string; collectionId: string }> = [];
             const seen = new Set<string>();
             for (const p of deletedPaths) {
               for (const dep of fastify.tokenStore.getDependents(p)) {
@@ -1514,21 +1613,21 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             }
           }
 
-          const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-          const deleted = await fastify.tokenStore.deleteToken(set, tokenPath);
+          const before = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
+          const deleted = await fastify.tokenStore.deleteToken(collectionId, tokenPath);
           if (!deleted) {
-            return reply.status(404).send({ error: `Token "${tokenPath}" not found in set "${set}"` });
+            return reply.status(404).send({ error: `Token "${tokenPath}" not found in collection "${collectionId}"` });
           }
-          const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          const after = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
           await fastify.operationLog.record({
             type: 'token-delete',
-            description: `Delete "${tokenPath}" from ${set}`,
-            setName: set,
+            description: `Delete "${tokenPath}" from ${collectionId}`,
+            resourceId: collectionId,
             affectedPaths: [tokenPath],
             beforeSnapshot: before,
             afterSnapshot: after,
           });
-          return { ok: true, path: tokenPath, set };
+          return { ok: true, path: tokenPath, collectionId };
         } catch (err) {
           return handleRouteError(reply, err, 'Failed to delete token');
         }

@@ -207,7 +207,7 @@ function formatDuplicateValue(value: unknown): string {
 
 interface AliasOpportunityToken {
   path: string;
-  setName: string;
+  collectionId: string;
 }
 
 interface AliasOpportunityGroup {
@@ -216,18 +216,18 @@ interface AliasOpportunityGroup {
   typeLabel: string;
   valueLabel: string;
   suggestedPrimitivePath: string;
-  suggestedPrimitiveSet: string;
+  suggestedPrimitiveCollectionId: string;
   colorHex?: string;
 }
 
 interface DeprecatedUsageDependent {
   path: string;
-  setName: string;
+  collectionId: string;
 }
 
 interface DeprecatedUsageEntry {
   deprecatedPath: string;
-  setName: string;
+  collectionId: string;
   type: string;
   activeReferenceCount: number;
   dependents: DeprecatedUsageDependent[];
@@ -528,16 +528,16 @@ export function HealthPanel({
     if (dupViolations.length === 0) return [];
     const byGroup = new Map<
       string,
-      { tokens: { path: string; setName: string }[] }
+      { tokens: { path: string; collectionId: string }[] }
     >();
     for (const v of dupViolations) {
       const groupId = v.group!;
       if (!byGroup.has(groupId)) byGroup.set(groupId, { tokens: [] });
       const entry = byGroup.get(groupId)!;
       if (
-        !entry.tokens.some((t) => t.path === v.path && t.setName === v.setName)
+        !entry.tokens.some((t) => t.path === v.path && t.collectionId === v.collectionId)
       ) {
-        entry.tokens.push({ path: v.path, setName: v.setName });
+        entry.tokens.push({ path: v.path, collectionId: v.collectionId });
       }
     }
     return [...byGroup.entries()]
@@ -559,11 +559,11 @@ export function HealthPanel({
           typeLabel: tokenEntry?.$type ?? "unknown",
           colorHex,
           tokens: tokens
-            .map(({ path, setName }) => {
+            .map(({ path, collectionId }) => {
               const duplicateEntry = allTokensUnified[path];
               return {
                 path,
-                setName,
+                collectionId,
                 type: duplicateEntry?.$type ?? "unknown",
                 lifecycle: duplicateEntry?.$lifecycle,
                 scopes: duplicateEntry?.$scopes ?? [],
@@ -577,7 +577,7 @@ export function HealthPanel({
             .sort(
               (a, b) =>
                 a.path.localeCompare(b.path) ||
-                a.setName.localeCompare(b.setName),
+                a.collectionId.localeCompare(b.collectionId),
             ),
         };
       })
@@ -598,10 +598,10 @@ export function HealthPanel({
       if (
         !existing.some(
           (token) =>
-            token.path === issue.path && token.setName === issue.setName,
+            token.path === issue.path && token.collectionId === issue.collectionId,
         )
       ) {
-        existing.push({ path: issue.path, setName: issue.setName });
+        existing.push({ path: issue.path, collectionId: issue.collectionId });
       }
       groups.set(groupId, existing);
     }
@@ -612,15 +612,15 @@ export function HealthPanel({
         const sortedTokens = [...tokens].sort(
           (a, b) =>
             a.path.localeCompare(b.path) ||
-            a.setName.localeCompare(b.setName),
+            a.collectionId.localeCompare(b.collectionId),
         );
         const sampleEntry = allTokensUnified[sortedTokens[0]?.path ?? ""];
-        const sourceSetNames = Array.from(
-          new Set(sortedTokens.map((token) => token.setName)),
+        const sourceCollectionIds = Array.from(
+          new Set(sortedTokens.map((token) => token.collectionId)),
         );
-        const suggestedPrimitiveSet = sourceSetNames.includes(activeSet)
+        const suggestedPrimitiveCollectionId = sourceCollectionIds.includes(activeSet)
           ? activeSet
-          : sortedTokens[0]?.setName ?? activeSet;
+          : sortedTokens[0]?.collectionId ?? activeSet;
         const suggestedPrimitivePath = ensureUniqueSharedAliasPath(
           suggestSharedAliasPath(
             sortedTokens.map((token) => token.path),
@@ -640,7 +640,7 @@ export function HealthPanel({
             ? formatDuplicateValue(sampleEntry.$value)
             : "Unknown value",
           suggestedPrimitivePath,
-          suggestedPrimitiveSet,
+          suggestedPrimitiveCollectionId,
           colorHex:
             sampleEntry?.$type === "color" &&
             typeof sampleEntry.$value === "string"
@@ -714,7 +714,7 @@ export function HealthPanel({
   // ── Validation issue filtering ──────────────────────────────────────────────
 
   const suppressKey = (issue: ValidationIssue) =>
-    `${issue.rule}:${issue.setName}:${issue.path}`;
+    `${issue.rule}:${issue.collectionId}:${issue.path}`;
 
   const activeIssues = validationIssuesProp
     ? validationIssuesProp.filter(
@@ -774,7 +774,7 @@ export function HealthPanel({
 
   const applyIssueFix = async (issue: ValidationIssue) => {
     const key = suppressKey(issue);
-    const renameUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.setName)}/tokens/rename`;
+    const renameUrl = `${serverUrl}/api/tokens/${encodeURIComponent(issue.collectionId)}/tokens/rename`;
     setFixingKeys((prev) => {
       const next = new Set(prev);
       next.add(key);
@@ -782,15 +782,15 @@ export function HealthPanel({
     });
     try {
       if (issue.suggestedFix === "add-description") {
-        await updateToken(serverUrl, issue.setName, issue.path, createTokenBody({ $description: "" }));
+        await updateToken(serverUrl, issue.collectionId, issue.path, createTokenBody({ $description: "" }));
       } else if (
         (issue.suggestedFix === "flatten-alias-chain" ||
           issue.suggestedFix === "extract-to-alias") &&
         issue.suggestion
       ) {
-        await updateToken(serverUrl, issue.setName, issue.path, createTokenBody({ $value: issue.suggestion }));
+        await updateToken(serverUrl, issue.collectionId, issue.path, createTokenBody({ $value: issue.suggestion }));
       } else if (issue.suggestedFix === "delete-token") {
-        await deleteToken(serverUrl, issue.setName, issue.path);
+        await deleteToken(serverUrl, issue.collectionId, issue.path);
       } else if (issue.suggestedFix === "rename-token" && issue.suggestion) {
         await apiFetch(renameUrl, {
           method: "POST",
@@ -802,7 +802,7 @@ export function HealthPanel({
           }),
         });
       } else if (issue.suggestedFix === "fix-type" && issue.suggestion) {
-        await updateToken(serverUrl, issue.setName, issue.path, createTokenBody({ $type: issue.suggestion }));
+        await updateToken(serverUrl, issue.collectionId, issue.path, createTokenBody({ $type: issue.suggestion }));
       }
       await runValidation();
     } catch {
@@ -830,7 +830,7 @@ export function HealthPanel({
       await promoteTokensToSharedAlias({
         serverUrl,
         primitivePath: group.suggestedPrimitivePath,
-        primitiveSet: group.suggestedPrimitiveSet,
+        primitiveCollectionId: group.suggestedPrimitiveCollectionId,
         sourceTokens: group.tokens,
         tokenType: sampleEntry.$type,
         tokenValue: sampleEntry.$value,
@@ -1344,7 +1344,7 @@ export function HealthPanel({
                             );
                             for (const issue of group) {
                               lines.push(
-                                `- **${issue.path}** (set: ${issue.setName}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ""}`,
+                                `- **${issue.path}** (collection: ${issue.collectionId}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ""}`,
                               );
                             }
                             lines.push("");
@@ -1369,7 +1369,7 @@ export function HealthPanel({
                             issues: issues.map((i) => ({
                               severity: i.severity,
                               rule: i.rule,
-                              set: i.setName,
+                              collectionId: i.collectionId,
                               path: i.path,
                               message: i.message,
                               ...(i.suggestedFix
@@ -1398,14 +1398,14 @@ export function HealthPanel({
                         onClick={() => {
                           const issues = validationIssuesProp ?? [];
                           const header =
-                            "severity,rule,set,path,message,suggestedFix";
+                            "severity,rule,collectionId,path,message,suggestedFix";
                           const escape = (s: string) =>
                             `"${s.replace(/"/g, '""')}"`;
                           const rows = issues.map((i) =>
                             [
                               i.severity,
                               i.rule,
-                              i.setName,
+                              i.collectionId,
                               i.path,
                               i.message,
                               i.suggestedFix ?? "",
@@ -1534,7 +1534,7 @@ export function HealthPanel({
                                             {issue.path}
                                           </span>
                                           <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
-                                            {issue.setName}
+                                            {issue.collectionId}
                                           </span>
                                         </div>
                                         <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
@@ -1601,7 +1601,7 @@ export function HealthPanel({
                                           onClick={() =>
                                             onNavigateToToken(
                                               issue.path,
-                                              issue.setName,
+                                              issue.collectionId,
                                             )
                                           }
                                           className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
@@ -1680,7 +1680,7 @@ export function HealthPanel({
                     </div>
                     <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
                       {[...suppressedKeys].map((key) => {
-                        const [rule, setName, ...pathParts] = key.split(":");
+                        const [rule, collectionId, ...pathParts] = key.split(":");
                         const path = pathParts.join(":");
                         const meta = getRuleLabel(rule);
                         return (
@@ -1694,7 +1694,7 @@ export function HealthPanel({
                                   {path}
                                 </span>
                                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
-                                  {setName}
+                                  {collectionId}
                                 </span>
                               </div>
                               <div
@@ -1798,14 +1798,14 @@ export function HealthPanel({
                               <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
                                 {dependentPreview.map((dependent, index) => (
                                   <span
-                                    key={`${dependent.setName}:${dependent.path}`}
+                                    key={`${dependent.collectionId}:${dependent.path}`}
                                   >
                                     {index > 0 ? ", " : ""}
                                     <span className="font-mono text-[var(--color-figma-text)]">
                                       {dependent.path}
                                     </span>{" "}
                                     <span className="opacity-70">
-                                      ({dependent.setName})
+                                      ({dependent.collectionId})
                                     </span>
                                   </span>
                                 ))}
@@ -1956,7 +1956,7 @@ export function HealthPanel({
                               </span>
                               {" "}in{" "}
                               <span className="font-mono text-[var(--color-figma-text)]">
-                                {group.suggestedPrimitiveSet}
+                                {group.suggestedPrimitiveCollectionId}
                               </span>
                             </div>
                           </div>

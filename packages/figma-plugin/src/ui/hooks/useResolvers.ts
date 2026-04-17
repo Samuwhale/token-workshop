@@ -22,8 +22,8 @@ export interface ResolverMeta {
   name: string;
   description?: string;
   modifiers: Record<string, ResolverModifierMeta>;
-  /** Token set names referenced by this resolver's external sources. */
-  referencedSets: string[];
+  /** Collection ids referenced by this resolver's external sources. */
+  referencedCollections: string[];
 }
 
 export interface ResolverModifierMeta {

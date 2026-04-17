@@ -44,6 +44,7 @@ export type {
   Token,
   TokenGroup,
   CollectionMode,
+  CollectionPublishRouting,
   TokenCollection,
   SelectedModes,
   ViewPreset,

@@ -8,7 +8,7 @@ interface OperationEntry {
   timestamp: string;
   type: string;
   description: string;
-  setName: string;
+  resourceId: string;
   affectedPaths: string[];
   rolledBack: boolean;
 }
@@ -100,7 +100,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
     if (searchPath) {
       const needle = searchPath.toLowerCase();
       const matchesDesc = op.description.toLowerCase().includes(needle);
-      const matchesSet = op.setName.toLowerCase().includes(needle);
+      const matchesSet = op.resourceId.toLowerCase().includes(needle);
       const matchesPath = op.affectedPaths.some(p => p.toLowerCase().includes(needle));
       if (!matchesDesc && !matchesSet && !matchesPath) return false;
     }
@@ -272,7 +272,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                        {op.setName}
+                        {op.resourceId}
                       </span>
                       <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
                         · {op.affectedPaths.length} path{op.affectedPaths.length !== 1 ? 's' : ''}

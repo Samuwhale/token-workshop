@@ -346,8 +346,8 @@ export function App() {
     [setErrorToast],
   );
   const onServiceError = useCallback(
-    ({ setName, message }: { setName: string; message: string }) => {
-      const label = setName ? `Failed to load "${setName}"` : "File load error";
+    ({ collectionId, message }: { collectionId: string; message: string }) => {
+      const label = collectionId ? `Failed to load "${collectionId}"` : "File load error";
       setErrorToast(`${label}: ${message}`);
     },
     [setErrorToast],
@@ -792,7 +792,10 @@ export function App() {
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ tokenPath: paths[0], targetSet }),
+              body: JSON.stringify({
+                tokenPath: paths[0],
+                targetCollectionId: targetSet,
+              }),
             },
           );
         } else {
@@ -801,7 +804,10 @@ export function App() {
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ paths, targetSet }),
+              body: JSON.stringify({
+                paths,
+                targetCollectionId: targetSet,
+              }),
             },
           );
         }
@@ -977,7 +983,7 @@ export function App() {
   // Create set by name — shared by the quick switcher, toolbar, and manager.
   const createSetByName = useCallback(
     async (name: string) => {
-      await apiFetch(`${serverUrl}/api/sets`, {
+      await apiFetch(`${serverUrl}/api/collections`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -998,7 +1004,7 @@ export function App() {
       let currentActive = activeSet;
       const currentSets = sets;
       for (const setName of setsToDelete) {
-        await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`, {
+        await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(setName)}`, {
           method: "DELETE",
           signal: AbortSignal.any([
             AbortSignal.timeout(5000),
@@ -1038,16 +1044,16 @@ export function App() {
       for (const setName of setsToDuplicate) {
         const result = await apiFetch<{
           ok: true;
-          name: string;
-          originalName: string;
-        }>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}/duplicate`, {
+          id: string;
+          originalId: string;
+        }>(`${serverUrl}/api/collections/${encodeURIComponent(setName)}/duplicate`, {
           method: "POST",
           signal: AbortSignal.any([
             AbortSignal.timeout(5000),
             getDisconnectSignal(),
           ]),
         });
-        addSetToState(result.name, setTokenCounts[setName] ?? 0);
+        addSetToState(result.id, setTokenCounts[setName] ?? 0);
       }
       setSuccessToast(
         `Duplicated ${setsToDuplicate.length} set${setsToDuplicate.length !== 1 ? "s" : ""}`,
@@ -1067,7 +1073,7 @@ export function App() {
     async (moves: Array<{ from: string; to: string }>) => {
       for (const { from, to } of moves) {
         await apiFetch(
-          `${serverUrl}/api/sets/${encodeURIComponent(from)}/rename`,
+          `${serverUrl}/api/collections/${encodeURIComponent(from)}/rename`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -107,7 +107,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
         ]);
         const diffs: Array<{
           path: string;
-          set: string;
+          collectionId: string;
           status: "added" | "modified" | "removed";
           changedFields?: string[];
           before?: {
@@ -133,13 +133,14 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
           const restoredEntry = entry.beforeSnapshot[p];
           const currentToken = currentEntry?.token;
           const restoredToken = restoredEntry?.token;
-          const setName = currentEntry?.setName ?? restoredEntry?.setName ?? "";
-          const userFacingPath = getSnapshotTokenPath(p, setName);
+          const collectionId =
+            currentEntry?.collectionId ?? restoredEntry?.collectionId ?? "";
+          const userFacingPath = getSnapshotTokenPath(p, collectionId);
           if (currentToken && !restoredToken) {
             // Rollback will remove this token
             diffs.push({
               path: userFacingPath,
-              set: setName,
+              collectionId,
               status: "removed",
               before: {
                 $value: currentToken.$value,
@@ -150,7 +151,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
             // Rollback will add this token back
             diffs.push({
               path: userFacingPath,
-              set: setName,
+              collectionId,
               status: "added",
               after: {
                 $value: restoredToken.$value,
@@ -164,7 +165,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
             if (changedFields.length > 0) {
               diffs.push({
                 path: userFacingPath,
-                set: setName,
+                collectionId,
                 status: "modified",
                 changedFields,
                 before: {
@@ -198,10 +199,11 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
             request.params.id,
             {
               tokenStore: fastify.tokenStore,
-              collectionsStore: fastify.collectionsStore,
+              collectionService: fastify.collectionService,
               resolverLock: fastify.resolverLock,
               resolverStore: fastify.resolverStore,
               recipeService: fastify.recipeService,
+              lintConfigStore: fastify.lintConfigStore,
             },
           );
           return { ok: true, ...result };

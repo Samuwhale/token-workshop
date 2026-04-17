@@ -6,7 +6,7 @@ import { usePersistedJsonState } from './usePersistedState';
 
 interface TokenChange {
   path: string;
-  set: string;
+  collectionId: string;
   type: string;
   status: 'added' | 'modified' | 'removed';
 }

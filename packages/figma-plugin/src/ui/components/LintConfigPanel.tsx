@@ -99,7 +99,7 @@ function normalizeSetOverride(ruleConfig: LintRuleConfig, override: LintRuleSetO
 }
 
 function describeCoverage(ruleConfig: LintRuleConfig, totalSets: number): string {
-  const overrides = Object.values(ruleConfig.setOverrides ?? {});
+  const overrides = Object.values(ruleConfig.collectionOverrides ?? {});
   const disabledSets = overrides.filter(override => override.enabled === false).length;
   const enabledSets = overrides.filter(override => override.enabled === true).length;
 
@@ -200,8 +200,8 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
       return;
     }
     await persistRulePatch(ruleId, {
-      setOverrides: {
-        ...(ruleConfig.setOverrides ?? {}),
+      collectionOverrides: {
+        ...(ruleConfig.collectionOverrides ?? {}),
         [selectedSet]: nextOverride,
       },
     });
@@ -215,9 +215,9 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
     setName: string,
     patch: Partial<LintRuleSetOverride>,
   ) {
-    const currentOverride = ruleConfig.setOverrides?.[setName] ?? {};
+    const currentOverride = ruleConfig.collectionOverrides?.[setName] ?? {};
     const normalizedOverride = normalizeSetOverride(ruleConfig, { ...currentOverride, ...patch });
-    const nextOverrides = { ...(ruleConfig.setOverrides ?? {}) };
+    const nextOverrides = { ...(ruleConfig.collectionOverrides ?? {}) };
 
     if (normalizedOverride) {
       nextOverrides[setName] = normalizedOverride;
@@ -228,13 +228,13 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
       }
     }
 
-    await persistRulePatch(ruleId, { setOverrides: nextOverrides });
+    await persistRulePatch(ruleId, { collectionOverrides: nextOverrides });
   }
 
   async function handleRemoveSetException(ruleId: string, ruleConfig: LintRuleConfig, setName: string) {
-    const nextOverrides = { ...(ruleConfig.setOverrides ?? {}) };
+    const nextOverrides = { ...(ruleConfig.collectionOverrides ?? {}) };
     delete nextOverrides[setName];
-    await persistRulePatch(ruleId, { setOverrides: nextOverrides });
+    await persistRulePatch(ruleId, { collectionOverrides: nextOverrides });
     if (selectedOverride?.ruleId === ruleId && selectedOverride.setName === setName) {
       setSelectedOverride(null);
     }
@@ -317,8 +317,8 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
           const isExpanded = expandedRule === rule.id;
           const hasOptions = !!rule.options?.length;
           const selectedSetName = selectedOverride?.ruleId === rule.id ? selectedOverride.setName : null;
-          const selectedSetOverride = selectedSetName ? ruleConfig.setOverrides?.[selectedSetName] : null;
-          const availableSetChoices = sets.filter(setName => !(ruleConfig.setOverrides?.[setName]));
+          const selectedSetOverride = selectedSetName ? ruleConfig.collectionOverrides?.[selectedSetName] : null;
+          const availableSetChoices = sets.filter(setName => !(ruleConfig.collectionOverrides?.[setName]));
           const currentPathExceptions = ruleConfig.excludePaths ?? [];
           const pathChoices = pathExceptionOptions.filter(option => !currentPathExceptions.includes(option.path));
 
@@ -352,7 +352,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
                     {describeCoverage(ruleConfig, sets.length)}
                     {(ruleConfig.excludePaths?.length ?? 0) > 0 ? ` · ${ruleConfig.excludePaths!.length} token-group exception${ruleConfig.excludePaths!.length === 1 ? '' : 's'}` : ''}
-                    {(Object.keys(ruleConfig.setOverrides ?? {}).length) > 0 ? ` · ${Object.keys(ruleConfig.setOverrides ?? {}).length} set exception${Object.keys(ruleConfig.setOverrides ?? {}).length === 1 ? '' : 's'}` : ''}
+                    {(Object.keys(ruleConfig.collectionOverrides ?? {}).length) > 0 ? ` · ${Object.keys(ruleConfig.collectionOverrides ?? {}).length} collection exception${Object.keys(ruleConfig.collectionOverrides ?? {}).length === 1 ? '' : 's'}` : ''}
                   </p>
                 </button>
 
@@ -454,9 +454,9 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   </div>
 
                   <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-                    {Object.entries(ruleConfig.setOverrides ?? {}).length > 0 ? (
+                    {Object.entries(ruleConfig.collectionOverrides ?? {}).length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
-                        {Object.entries(ruleConfig.setOverrides ?? {}).map(([setName, override]) => {
+                        {Object.entries(ruleConfig.collectionOverrides ?? {}).map(([setName, override]) => {
                           const isSelected = selectedSetName === setName;
                           return (
                             <button
@@ -475,7 +475,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         })}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No set exceptions.</p>
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No collection exceptions.</p>
                     )}
 
                     <div className="mt-2 flex items-center gap-2">

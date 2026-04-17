@@ -41,7 +41,7 @@ export function useSetDelete({
     if (!deletingSet || !connected) return;
     try {
       const result = await apiFetch<{ ok: true; name: string; operationId?: string }>(
-        `${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`,
+        `${serverUrl}/api/collections/${encodeURIComponent(deletingSet)}`,
         {
           method: 'DELETE',
           signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),

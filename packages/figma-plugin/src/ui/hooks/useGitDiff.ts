@@ -30,6 +30,21 @@ export interface GitPreview {
   fileCount: number;
 }
 
+interface ServerTokenChange {
+  path: string;
+  collectionId: string;
+  type: string;
+  status: "added" | "modified" | "removed";
+  before?: any;
+  after?: any;
+}
+
+interface ServerGitPreview {
+  commits: GitPreviewCommit[];
+  changes: ServerTokenChange[];
+  fileCount: number;
+}
+
 interface ApplyDiffResponse {
   ok: boolean;
   applied: boolean;
@@ -87,6 +102,18 @@ export function useGitDiff({
     const controller = unmountRef.current;
     return () => controller.abort();
   }, []);
+
+  const mapServerChange = useCallback(
+    (change: ServerTokenChange): TokenChange => ({
+      path: change.path,
+      set: change.collectionId,
+      type: change.type,
+      status: change.status,
+      before: change.before,
+      after: change.after,
+    }),
+    [],
+  );
 
   const computeDiff = useCallback(async () => {
     setDiffLoading(true);
@@ -148,15 +175,15 @@ export function useGitDiff({
     setTokenPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`, { signal: unmountRef.current.signal });
-      setTokenPreview(data.changes ?? []);
+      const data = await apiFetch<{ changes: ServerTokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`, { signal: unmountRef.current.signal });
+      setTokenPreview((data.changes ?? []).map(mapServerChange));
     } catch (err) {
       if (isAbortError(err)) return;
       setGitError(describeError(err, 'Token preview'));
     } finally {
       if (!unmountRef.current.signal.aborted) setTokenPreviewLoading(false);
     }
-  }, [serverUrl, setGitError]);
+  }, [mapServerChange, serverUrl, setGitError]);
 
   const clearTokenPreview = useCallback(() => {
     setTokenPreview(null);
@@ -166,15 +193,18 @@ export function useGitDiff({
     setPushPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/push/preview`, { signal: unmountRef.current.signal });
-      setPushPreview(data);
+      const data = await apiFetch<ServerGitPreview>(`${serverUrl}/api/sync/push/preview`, { signal: unmountRef.current.signal });
+      setPushPreview({
+        ...data,
+        changes: (data.changes ?? []).map(mapServerChange),
+      });
     } catch (err) {
       if (isAbortError(err)) return;
       setGitError(describeError(err, 'Push preview'));
     } finally {
       if (!unmountRef.current.signal.aborted) setPushPreviewLoading(false);
     }
-  }, [serverUrl, setGitError]);
+  }, [mapServerChange, serverUrl, setGitError]);
 
   const clearPushPreview = useCallback(() => {
     setPushPreview(null);
@@ -184,15 +214,18 @@ export function useGitDiff({
     setPullPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/pull/preview`, { signal: unmountRef.current.signal });
-      setPullPreview(data);
+      const data = await apiFetch<ServerGitPreview>(`${serverUrl}/api/sync/pull/preview`, { signal: unmountRef.current.signal });
+      setPullPreview({
+        ...data,
+        changes: (data.changes ?? []).map(mapServerChange),
+      });
     } catch (err) {
       if (isAbortError(err)) return;
       setGitError(describeError(err, 'Pull preview'));
     } finally {
       if (!unmountRef.current.signal.aborted) setPullPreviewLoading(false);
     }
-  }, [serverUrl, setGitError]);
+  }, [mapServerChange, serverUrl, setGitError]);
 
   const clearPullPreview = useCallback(() => {
     setPullPreview(null);

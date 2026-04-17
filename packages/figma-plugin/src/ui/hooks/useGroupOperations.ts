@@ -30,7 +30,7 @@ export function useGroupOperations({
     oldPath: string;
     newPath: string;
     depCount: number;
-    deps: Array<{ path: string; setName: string; tokenPath: string; oldValue: string; newValue: string }>;
+    deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>;
   } | null>(null);
 
   const [newGroupDialogParent, setNewGroupDialogParent] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export function useGroupOperations({
   const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
     if (!connected) return;
     try {
-      const data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; setName: string; oldValue: string; newValue: string }> }>(
+      const data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; collectionId: string; oldValue: string; newValue: string }> }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename-preview?oldGroupPath=${encodeURIComponent(oldGroupPath)}&newGroupPath=${encodeURIComponent(newGroupPath)}`
       );
       if (data.count > 0) {
@@ -107,7 +107,7 @@ export function useGroupOperations({
           oldPath: oldGroupPath,
           newPath: newGroupPath,
           depCount: data.count,
-          deps: data.changes.map(c => ({ path: c.tokenPath, setName: c.setName, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })),
+          deps: data.changes.map(c => ({ path: c.tokenPath, collectionId: c.collectionId, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })),
         });
         return;
       }
@@ -133,7 +133,10 @@ export function useGroupOperations({
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupPath: movingGroup, targetSet: moveGroupTargetSet }),
+        body: JSON.stringify({
+          groupPath: movingGroup,
+          targetCollectionId: moveGroupTargetSet,
+        }),
       });
       setMovingGroup(null);
       onRefresh();
@@ -160,7 +163,10 @@ export function useGroupOperations({
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/copy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupPath: copyingGroup, targetSet: copyGroupTargetSet }),
+        body: JSON.stringify({
+          groupPath: copyingGroup,
+          targetCollectionId: copyGroupTargetSet,
+        }),
       });
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Copy group failed: network error');

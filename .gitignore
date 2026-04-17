@@ -17,4 +17,6 @@ tokens/
 scripts/backlog/runner-*.log
 .backlog-runner/state.sqlite
 .backlog-runner/logs/
+.playwright-mcp/
+package-lock.json
 backlog-stop

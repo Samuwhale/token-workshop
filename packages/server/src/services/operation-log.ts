@@ -8,13 +8,13 @@ import type {
   Token,
   TokenRecipe,
 } from "@tokenmanager/core";
-import {
-  deserializeTokenCollections,
-  serializeTokenCollections,
-} from "@tokenmanager/core";
 import type {
-  PublishRouteState,
-  SetMetadataState,
+  CollectionMetadataState,
+  CollectionPublishRoutingState,
+} from "./collection-store.js";
+import type { CollectionService } from "./collection-service.js";
+import type { LintConfig } from "./lint.js";
+import type {
   TokenStore,
 } from "./token-store.js";
 import { stableStringify } from "./stable-stringify.js";
@@ -24,7 +24,7 @@ import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 /** A snapshot of a single token path — null means the token did not exist. */
 export interface SnapshotEntry {
   token: Token | null;
-  setName: string;
+  collectionId: string;
 }
 
 export interface TokenPathRename {
@@ -32,20 +32,20 @@ export interface TokenPathRename {
   newPath: string;
 }
 
-const MULTI_SET_SNAPSHOT_SEPARATOR = "::";
+const COLLECTION_SNAPSHOT_SEPARATOR = "::";
 
-export function buildMultiSetSnapshotPath(
-  setName: string,
+export function buildCollectionSnapshotKey(
+  collectionId: string,
   tokenPath: string,
 ): string {
-  return `${setName}${MULTI_SET_SNAPSHOT_SEPARATOR}${tokenPath}`;
+  return `${collectionId}${COLLECTION_SNAPSHOT_SEPARATOR}${tokenPath}`;
 }
 
 export function getSnapshotTokenPath(
   snapshotKey: string,
-  setName: string,
+  collectionId: string,
 ): string {
-  const prefix = `${setName}${MULTI_SET_SNAPSHOT_SEPARATOR}`;
+  const prefix = `${collectionId}${COLLECTION_SNAPSHOT_SEPARATOR}`;
   return snapshotKey.startsWith(prefix)
     ? snapshotKey.slice(prefix.length)
     : snapshotKey;
@@ -57,7 +57,7 @@ export function listSnapshotTokenPaths(
   return [
     ...new Set(
       Object.entries(snapshot).map(([snapshotKey, entry]) =>
-        getSnapshotTokenPath(snapshotKey, entry.setName),
+        getSnapshotTokenPath(snapshotKey, entry.collectionId),
       ),
     ),
   ];
@@ -74,7 +74,7 @@ function snapshotEntriesEqual(
     return false;
   }
   return (
-    left.setName === right.setName &&
+    left.collectionId === right.collectionId &&
     stableStringify(left.token) === stableStringify(right.token)
   );
 }
@@ -104,7 +104,7 @@ export function listChangedSnapshotTokenPaths(
         if (!entry) {
           return snapshotKey;
         }
-        return getSnapshotTokenPath(snapshotKey, entry.setName);
+        return getSnapshotTokenPath(snapshotKey, entry.collectionId);
       }),
     ),
   ];
@@ -125,12 +125,12 @@ export function pickSnapshotEntries(
 }
 
 export function qualifySnapshotEntries(
-  setName: string,
+  collectionId: string,
   snapshot: Record<string, SnapshotEntry>,
 ): Record<string, SnapshotEntry> {
   const result: Record<string, SnapshotEntry> = {};
   for (const [tokenPath, entry] of Object.entries(snapshot)) {
-    result[buildMultiSetSnapshotPath(setName, tokenPath)] = entry;
+    result[buildCollectionSnapshotKey(collectionId, tokenPath)] = entry;
   }
   return result;
 }
@@ -150,7 +150,7 @@ function findSnapshotEntryForTokenPath(
     return direct;
   }
   for (const [snapshotKey, entry] of Object.entries(snapshot)) {
-    if (getSnapshotTokenPath(snapshotKey, entry.setName) === tokenPath) {
+    if (getSnapshotTokenPath(snapshotKey, entry.collectionId) === tokenPath) {
       return entry;
     }
   }
@@ -172,75 +172,45 @@ export interface FieldChange {
 }
 
 export interface FieldChangeOperationMetadata {
-  kind: "set-metadata" | "publish-routing";
-  name: string;
-  before: SetMetadataState | PublishRouteState;
-  after: SetMetadataState | PublishRouteState;
+  kind: "collection-metadata" | "publish-routing";
+  collectionId: string;
+  before: CollectionMetadataState | CollectionPublishRoutingState;
+  after: CollectionMetadataState | CollectionPublishRoutingState;
   changes: FieldChange[];
 }
 
 /** Structural rollback step — executed before token restoration during rollback. */
 export type RollbackStep =
-  | { action: "create-set"; name: string }
-  | { action: "delete-set"; name: string }
-  | { action: "rename-set"; from: string; to: string }
-  | { action: "reorder-sets"; order: string[] }
+  | { action: "create-collection"; collectionId: string }
+  | { action: "delete-collection"; collectionId: string }
+  | { action: "rename-collection"; from: string; to: string }
+  | { action: "reorder-collections"; order: string[] }
   | {
-      action: "write-set-metadata";
-      name: string;
-      metadata: Partial<SetMetadataState>;
+      action: "write-collection-metadata";
+      collectionId: string;
+      metadata: Partial<CollectionMetadataState>;
     }
   | {
       action: "write-publish-routing";
-      name: string;
-      routing: Partial<PublishRouteState>;
+      collectionId: string;
+      routing: Partial<CollectionPublishRoutingState>;
     }
   | {
-      action: "write-themes";
-      dimensions: TokenCollection[];
+      action: "restore-collection-state";
+      collections: TokenCollection[];
       views?: ViewPreset[];
     }
+  | { action: "restore-lint-config"; config: LintConfig }
   | { action: "write-resolver"; name: string; file: ResolverFile }
   | { action: "delete-resolver"; name: string }
   | { action: "create-recipe"; recipe: TokenRecipe }
   | { action: "delete-recipe"; id: string };
 
 /**
- * Minimal interface for serialized access to the $collections.json file.
- * Structurally compatible with CollectionsStore from routes/themes.ts.
- */
-export interface CollectionsWriteLock {
-  withLock<T>(
-    fn: (
-      collections: TokenCollection[],
-    ) => Promise<{ collections: TokenCollection[]; result: T }>,
-  ): Promise<T>;
-  withReadStateLock?<T>(
-    fn: (state: {
-      collections: TokenCollection[];
-      views: ViewPreset[];
-    }) => Promise<T>,
-  ): Promise<T>;
-  withStateLock?<T>(
-    fn: (state: {
-      collections: TokenCollection[];
-      views: ViewPreset[];
-    }) => Promise<{
-      state: { collections: TokenCollection[]; views: ViewPreset[] };
-      result: T;
-    }>,
-  ): Promise<T>;
-}
-
 /** Context required for rollback — provides access to all services that may need restoration. */
 export interface RollbackContext {
   tokenStore: TokenStore;
-  /**
-   * Provides serialized read/write access to $collections.json.
-   * Must be passed so that rollback does not bypass the CollectionsStore lock chain,
-   * which would race with concurrent theme mutations and corrupt the file.
-   */
-  collectionsStore?: CollectionsWriteLock;
+  collectionService?: CollectionService;
   resolverLock?: {
     withLock<T>(fn: () => Promise<T>): Promise<T>;
   };
@@ -249,13 +219,23 @@ export interface RollbackContext {
     create(name: string, file: ResolverFile): Promise<void>;
     update(name: string, file: ResolverFile): Promise<void>;
     delete(name: string): Promise<boolean>;
-    updateSetReferences?(oldName: string, newName: string): Promise<string[]>;
+    renameCollectionReferences?(
+      oldName: string,
+      newName: string,
+    ): Promise<string[]>;
   };
   recipeService?: {
-    updateSetName(oldName: string, newName: string): Promise<number | void>;
+    renameCollectionId(
+      oldName: string,
+      newName: string,
+    ): Promise<number | void>;
     getById(id: string): Promise<TokenRecipe | undefined>;
     restore(recipe: TokenRecipe): Promise<void>;
     delete(id: string): Promise<boolean>;
+  };
+  lintConfigStore?: {
+    get(): Promise<LintConfig>;
+    save(config: LintConfig): Promise<void>;
   };
 }
 
@@ -264,7 +244,7 @@ export interface OperationEntry {
   timestamp: string;
   type: string;
   description: string;
-  setName: string;
+  resourceId: string;
   affectedPaths: string[];
   beforeSnapshot: Record<string, SnapshotEntry>;
   afterSnapshot: Record<string, SnapshotEntry>;
@@ -277,7 +257,7 @@ export interface OperationEntry {
    * creating orphans when tokens are renamed on the server.
    */
   pathRenames?: TokenPathRename[];
-  /** Arbitrary metadata for the operation (e.g. set-metadata before/after). */
+  /** Arbitrary metadata for the operation (e.g. collection-metadata before/after). */
   metadata?: FieldChangeOperationMetadata | Record<string, unknown>;
 }
 
@@ -287,7 +267,7 @@ export interface OperationSummary {
   timestamp: string;
   type: string;
   description: string;
-  setName: string;
+  resourceId: string;
   affectedPaths: string[];
   rolledBack: boolean;
   metadata?: OperationEntry["metadata"];
@@ -299,7 +279,7 @@ export interface TokenHistoryEntry {
   timestamp: string;
   type: string;
   description: string;
-  setName: string;
+  resourceId: string;
   rolledBack: boolean;
   before: import("@tokenmanager/core").Token | null;
   after: import("@tokenmanager/core").Token | null;
@@ -316,13 +296,11 @@ export class OperationLog {
   private pathRenameEntries: PathRenameEntry[] = [];
   private filePath: string;
   private pathRenameFilePath: string;
-  private tokenDir: string;
   private loadPromise: Promise<void> | null = null;
   private lock = new PromiseChainLock();
 
   constructor(tokenDir: string) {
-    this.tokenDir = path.resolve(tokenDir);
-    const tmDir = path.join(this.tokenDir, ".tokenmanager");
+    const tmDir = path.join(path.resolve(tokenDir), ".tokenmanager");
     this.filePath = path.join(tmDir, "operations.json");
     this.pathRenameFilePath = path.join(tmDir, "path-renames.json");
   }
@@ -453,7 +431,7 @@ export class OperationLog {
           timestamp,
           type,
           description,
-          setName,
+          resourceId,
           affectedPaths,
           rolledBack,
           metadata,
@@ -462,7 +440,7 @@ export class OperationLog {
           timestamp,
           type,
           description,
-          setName,
+          resourceId,
           affectedPaths,
           rolledBack,
           metadata,
@@ -500,7 +478,7 @@ export class OperationLog {
       timestamp: e.timestamp,
       type: e.type,
       description: e.description,
-      setName: e.setName,
+      resourceId: e.resourceId,
       rolledBack: e.rolledBack,
       before:
         findSnapshotEntryForTokenPath(e.beforeSnapshot, tokenPath)?.token ??
@@ -529,46 +507,6 @@ export class OperationLog {
   }
 
   // ---------------------------------------------------------------------------
-  // Collections file helpers for structural rollback of collection operations.
-  // ---------------------------------------------------------------------------
-
-  private async readCollectionsFile(): Promise<{
-    collections: TokenCollection[];
-    views: ViewPreset[];
-  }> {
-    try {
-      const content = await fs.readFile(
-        path.join(this.tokenDir, "$collections.json"),
-        "utf-8",
-      );
-      const data = JSON.parse(content);
-      const collections = Array.isArray(data.$collections)
-        ? data.$collections
-        : [];
-      return {
-        collections: deserializeTokenCollections(collections),
-        views: Array.isArray(data.$views) ? data.$views : [],
-      };
-    } catch {
-      return { collections: [], views: [] };
-    }
-  }
-
-  private async writeCollectionsFile(state: {
-    collections: TokenCollection[];
-    views: ViewPreset[];
-  }): Promise<void> {
-    const dest = path.join(this.tokenDir, "$collections.json");
-    const data = {
-      $collections: serializeTokenCollections(state.collections),
-      ...(state.views.length > 0 ? { $views: state.views } : {}),
-    };
-    const tmp = `${dest}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-    await fs.rename(tmp, dest);
-  }
-
-  // ---------------------------------------------------------------------------
   // Structural rollback step execution
   // ---------------------------------------------------------------------------
 
@@ -579,78 +517,88 @@ export class OperationLog {
     const inverse: RollbackStep[] = [];
     for (const step of steps) {
       switch (step.action) {
-        case "create-set":
-          inverse.push({ action: "delete-set", name: step.name });
+        case "create-collection":
+          inverse.push({ action: "delete-collection", collectionId: step.collectionId });
           break;
-        case "delete-set":
-          inverse.push({ action: "create-set", name: step.name });
+        case "delete-collection":
+          inverse.push({ action: "create-collection", collectionId: step.collectionId });
           break;
-        case "rename-set":
-          inverse.push({ action: "rename-set", from: step.to, to: step.from });
+        case "rename-collection":
+          inverse.push({ action: "rename-collection", from: step.to, to: step.from });
           break;
-        case "reorder-sets": {
-          const currentOrder = await ctx.tokenStore.getSets();
-          inverse.push({ action: "reorder-sets", order: currentOrder });
+        case "reorder-collections": {
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot compute inverse rollback step "reorder-collections": collectionService not available in RollbackContext',
+            );
+          }
+          const currentOrder = await ctx.collectionService.listCollectionIds();
+          inverse.push({ action: "reorder-collections", order: currentOrder });
           break;
         }
-        case "write-set-metadata": {
-          const current = ctx.tokenStore.getSetMetadata(step.name);
-          const metadata: Partial<SetMetadataState> = {};
+        case "write-collection-metadata": {
+          if (!ctx.collectionService) {
+            break;
+          }
+          const current = await ctx.collectionService.getCollectionMetadata(
+            step.collectionId,
+          );
+          const metadata: Partial<CollectionMetadataState> = {};
           for (const field of Object.keys(step.metadata) as Array<
-            keyof SetMetadataState
+            keyof CollectionMetadataState
           >) {
             metadata[field] = current[field];
           }
           inverse.push({
-            action: "write-set-metadata",
-            name: step.name,
+            action: "write-collection-metadata",
+            collectionId: step.collectionId,
             metadata,
           });
           break;
         }
         case "write-publish-routing": {
-          const current = ctx.tokenStore.getSetPublishRoute(step.name);
-          const routing: Partial<PublishRouteState> = {};
+          if (!ctx.collectionService) {
+            break;
+          }
+          const current = await ctx.collectionService.getCollectionPublishRouting(
+            step.collectionId,
+          );
+          const routing: Partial<CollectionPublishRoutingState> = {};
           for (const field of Object.keys(step.routing) as Array<
-            keyof PublishRouteState
+            keyof CollectionPublishRoutingState
           >) {
             routing[field] = current[field];
           }
           inverse.push({
             action: "write-publish-routing",
-            name: step.name,
+            collectionId: step.collectionId,
             routing,
           });
           break;
         }
-        case "write-themes": {
-          let currentState: {
-            collections: TokenCollection[];
-            views: ViewPreset[];
-          };
-          if (ctx.collectionsStore?.withReadStateLock) {
-            currentState = await ctx.collectionsStore.withReadStateLock((state) =>
-              Promise.resolve(structuredClone(state)),
+        case "restore-collection-state": {
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot compute inverse rollback step "restore-collection-state": collectionService not available in RollbackContext',
             );
-          } else if (ctx.collectionsStore) {
-            const currentCollections = await ctx.collectionsStore.withLock(
-              async (collections) => ({
-                collections,
-                result: structuredClone(collections),
-              }),
+          }
+          const currentState = await ctx.collectionService.loadState();
+          inverse.push({
+            action: "restore-collection-state",
+            collections: currentState.collections,
+            views: currentState.views,
+          });
+          break;
+        }
+        case "restore-lint-config": {
+          if (!ctx.lintConfigStore) {
+            throw new Error(
+              'Cannot compute inverse rollback step "restore-lint-config": lintConfigStore not available in RollbackContext',
             );
-            currentState = { collections: currentCollections, views: [] };
-          } else {
-            const fileState = await this.readCollectionsFile();
-            currentState = {
-              collections: fileState.collections,
-              views: fileState.views,
-            };
           }
           inverse.push({
-            action: "write-themes",
-            dimensions: currentState.collections,
-            views: currentState.views,
+            action: "restore-lint-config",
+            config: await ctx.lintConfigStore.get(),
           });
           break;
         }
@@ -713,56 +661,78 @@ export class OperationLog {
   ): Promise<void> {
     for (const step of steps) {
       switch (step.action) {
-        case "create-set":
-          await ctx.tokenStore.createSet(step.name);
-          break;
-        case "delete-set":
-          await ctx.tokenStore.deleteSet(step.name);
-          break;
-        case "rename-set":
-          await ctx.tokenStore.renameSet(step.from, step.to);
-          if (ctx.resolverStore?.updateSetReferences) {
-            const rewriteResolverRefs = () =>
-              ctx.resolverStore!.updateSetReferences!(step.from, step.to);
-            if (ctx.resolverLock) {
-              await ctx.resolverLock.withLock(rewriteResolverRefs);
-            } else {
-              await rewriteResolverRefs();
-            }
+        case "create-collection":
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot execute rollback step "create-collection": collectionService not available in RollbackContext',
+            );
           }
-          if (ctx.recipeService) {
-            await ctx.recipeService.updateSetName(step.from, step.to);
+          await ctx.collectionService.createCollection(step.collectionId);
+          break;
+        case "delete-collection":
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot execute rollback step "delete-collection": collectionService not available in RollbackContext',
+            );
           }
+          await ctx.collectionService.deleteCollection(step.collectionId);
           break;
-        case "reorder-sets":
-          await ctx.tokenStore.reorderSets(step.order as string[]);
+        case "rename-collection":
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot execute rollback step "rename-collection": collectionService not available in RollbackContext',
+            );
+          }
+          await ctx.collectionService.renameCollection(step.from, step.to);
           break;
-        case "write-set-metadata":
-          await ctx.tokenStore.updateSetMetadata(step.name, step.metadata);
+        case "reorder-collections":
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot execute rollback step "reorder-collections": collectionService not available in RollbackContext',
+            );
+          }
+          await ctx.collectionService.reorderCollections(step.order as string[]);
+          break;
+        case "write-collection-metadata":
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot execute rollback step "write-collection-metadata": collectionService not available in RollbackContext',
+            );
+          }
+          await ctx.collectionService.updateCollectionMetadata(
+            step.collectionId,
+            step.metadata,
+          );
           break;
         case "write-publish-routing":
-          await ctx.tokenStore.updateSetPublishRoute(step.name, step.routing);
-          break;
-        case "write-themes":
-          if (ctx.collectionsStore?.withStateLock) {
-            await ctx.collectionsStore.withStateLock(async () => ({
-              state: {
-                collections: step.dimensions,
-                views: step.views ?? [],
-              },
-              result: undefined,
-            }));
-          } else if (ctx.collectionsStore) {
-            await ctx.collectionsStore.withLock(async () => ({
-              collections: step.dimensions,
-              result: undefined,
-            }));
-          } else {
-            await this.writeCollectionsFile({
-              collections: step.dimensions,
-              views: step.views ?? [],
-            });
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot execute rollback step "write-publish-routing": collectionService not available in RollbackContext',
+            );
           }
+          await ctx.collectionService.updateCollectionPublishRouting(
+            step.collectionId,
+            step.routing,
+          );
+          break;
+        case "restore-collection-state":
+          if (!ctx.collectionService) {
+            throw new Error(
+              'Cannot execute rollback step "restore-collection-state": collectionService not available in RollbackContext',
+            );
+          }
+          await ctx.collectionService.restoreWorkspaceStateWithinLock({
+            collections: step.collections,
+            views: step.views ?? [],
+          });
+          break;
+        case "restore-lint-config":
+          if (!ctx.lintConfigStore) {
+            throw new Error(
+              'Cannot execute rollback step "restore-lint-config": lintConfigStore not available in RollbackContext',
+            );
+          }
+          await ctx.lintConfigStore.save(step.config);
           break;
         case "write-resolver": {
           if (ctx.resolverStore) {
@@ -850,7 +820,7 @@ export class OperationLog {
       // atomically: if any step fails, revert structural changes using the pre-computed inverse steps.
       const currentSnapshot: Record<string, SnapshotEntry> = {};
       try {
-        // Execute structural rollback steps first (e.g. re-create a deleted set)
+        // Execute structural rollback steps first (e.g. re-create a deleted collection)
         if (entry.rollbackSteps?.length) {
           await this.executeSteps(entry.rollbackSteps, ctx);
         }
@@ -859,46 +829,46 @@ export class OperationLog {
         for (const [snapshotKey, snap] of Object.entries(
           entry.beforeSnapshot,
         )) {
-          const tokenPath = getSnapshotTokenPath(snapshotKey, snap.setName);
+          const tokenPath = getSnapshotTokenPath(snapshotKey, snap.collectionId);
           try {
-            const flatTokens = await ctx.tokenStore.getFlatTokensForSet(
-              snap.setName,
+            const flatTokens = await ctx.tokenStore.getFlatTokensForCollection(
+              snap.collectionId,
             );
             currentSnapshot[snapshotKey] = {
               token: flatTokens[tokenPath]
                 ? structuredClone(flatTokens[tokenPath])
                 : null,
-              setName: snap.setName,
+              collectionId: snap.collectionId,
             };
           } catch {
-            // Set may not exist yet (will be created by token restoration)
+            // Collection may not exist yet (will be created by token restoration)
             currentSnapshot[snapshotKey] = {
               token: null,
-              setName: snap.setName,
+              collectionId: snap.collectionId,
             };
           }
         }
 
-        // Group by set for batch token processing
-        const bySet = new Map<
+        // Group by collection for batch token processing
+        const byCollection = new Map<
           string,
           Array<{ path: string; token: Token | null }>
         >();
         for (const [snapshotKey, snap] of Object.entries(
           entry.beforeSnapshot,
         )) {
-          const tokenPath = getSnapshotTokenPath(snapshotKey, snap.setName);
-          let list = bySet.get(snap.setName);
+          const tokenPath = getSnapshotTokenPath(snapshotKey, snap.collectionId);
+          let list = byCollection.get(snap.collectionId);
           if (!list) {
             list = [];
-            bySet.set(snap.setName, list);
+            byCollection.set(snap.collectionId, list);
           }
           list.push({ path: tokenPath, token: snap.token });
         }
 
         // Restore tokens
-        for (const [setName, items] of bySet) {
-          await ctx.tokenStore.restoreSnapshot(setName, items);
+        for (const [collectionId, items] of byCollection) {
+          await ctx.tokenStore.restoreSnapshot(collectionId, items);
         }
       } catch (err) {
         // Rollback failed mid-way — attempt to revert any structural steps that already ran,
@@ -944,7 +914,7 @@ export class OperationLog {
       const rollbackEntry = await this.pushAndPersist({
         type: "rollback",
         description: `Undo: ${entry.description}`,
-        setName: entry.setName,
+        resourceId: entry.resourceId,
         affectedPaths: entry.affectedPaths,
         beforeSnapshot: currentSnapshot,
         afterSnapshot: entry.beforeSnapshot,
@@ -966,66 +936,66 @@ export class OperationLog {
 // Snapshot helpers — call these before/after mutations to capture state
 // ---------------------------------------------------------------------------
 
-/** Snapshot specific token paths in a set. Returns path -> SnapshotEntry. */
+/** Snapshot specific token paths in a collection. Returns path -> SnapshotEntry. */
 export async function snapshotPaths(
   tokenStore: TokenStore,
-  setName: string,
+  collectionId: string,
   paths: string[],
 ): Promise<Record<string, SnapshotEntry>> {
-  const flatTokens = await tokenStore.getFlatTokensForSet(setName);
+  const flatTokens = await tokenStore.getFlatTokensForCollection(collectionId);
   const result: Record<string, SnapshotEntry> = {};
   for (const p of paths) {
     result[p] = {
       token: flatTokens[p] ? structuredClone(flatTokens[p]) : null,
-      setName,
+      collectionId,
     };
   }
   return result;
 }
 
-/** Snapshot all tokens in a set. */
-export async function snapshotSet(
+/** Snapshot all tokens in a collection. */
+export async function snapshotCollection(
   tokenStore: TokenStore,
-  setName: string,
+  collectionId: string,
 ): Promise<Record<string, SnapshotEntry>> {
-  const flatTokens = await tokenStore.getFlatTokensForSet(setName);
+  const flatTokens = await tokenStore.getFlatTokensForCollection(collectionId);
   const result: Record<string, SnapshotEntry> = {};
   for (const [p, token] of Object.entries(flatTokens)) {
-    result[p] = { token: structuredClone(token), setName };
+    result[p] = { token: structuredClone(token), collectionId };
   }
   return result;
 }
 
-/** Snapshot all tokens across multiple sets with set-qualified keys. */
-export async function snapshotSets(
+/** Snapshot all tokens across multiple collections with collection-qualified keys. */
+export async function snapshotCollections(
   tokenStore: TokenStore,
-  setNames: string[],
+  collectionIds: string[],
 ): Promise<Record<string, SnapshotEntry>> {
   const result: Record<string, SnapshotEntry> = {};
-  for (const setName of setNames) {
-    const flatTokens = await tokenStore.getFlatTokensForSet(setName);
+  for (const collectionId of collectionIds) {
+    const flatTokens = await tokenStore.getFlatTokensForCollection(collectionId);
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
-      result[buildMultiSetSnapshotPath(setName, tokenPath)] = {
+      result[buildCollectionSnapshotKey(collectionId, tokenPath)] = {
         token: structuredClone(token),
-        setName,
+        collectionId,
       };
     }
   }
   return result;
 }
 
-/** Snapshot all tokens under a group prefix in a set. */
+/** Snapshot all tokens under a group prefix in a collection. */
 export async function snapshotGroup(
   tokenStore: TokenStore,
-  setName: string,
+  collectionId: string,
   groupPrefix: string,
 ): Promise<Record<string, SnapshotEntry>> {
-  const flatTokens = await tokenStore.getFlatTokensForSet(setName);
+  const flatTokens = await tokenStore.getFlatTokensForCollection(collectionId);
   const result: Record<string, SnapshotEntry> = {};
   const prefix = groupPrefix + ".";
   for (const [p, token] of Object.entries(flatTokens)) {
     if (p === groupPrefix || p.startsWith(prefix)) {
-      result[p] = { token: structuredClone(token), setName };
+      result[p] = { token: structuredClone(token), collectionId };
     }
   }
   return result;

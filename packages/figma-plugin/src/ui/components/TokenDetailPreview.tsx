@@ -433,9 +433,9 @@ export function TokenDetailPreview({
                           node.path.split(".").pop() ?? node.path,
                         )}
                       </span>
-                      {node.setName && node.setName !== storageSetName && (
+                      {node.collectionId && node.collectionId !== storageSetName && (
                         <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-px text-[8px] text-[var(--color-figma-text-secondary)]">
-                          {node.setName}
+                          {node.collectionId}
                         </span>
                       )}
                     </button>

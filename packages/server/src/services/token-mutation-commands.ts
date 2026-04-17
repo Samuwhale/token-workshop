@@ -84,7 +84,7 @@ async function executeLoggedMutation<TResult>(
       typeof config.description === "function"
         ? config.description(result)
         : config.description,
-    setName: config.collectionId,
+    resourceId: config.collectionId,
     affectedPaths:
       config.affectedPaths?.(beforeSnapshot, afterSnapshot, result) ??
       listAffectedPaths(beforeSnapshot, afterSnapshot),

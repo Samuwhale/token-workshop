@@ -14,8 +14,8 @@ const _pkgPath = path.join(
 const { version: SERVER_VERSION } = _require(_pkgPath) as { version: string };
 import { getHttpStatusCode, getErrorMessage } from "./errors.js";
 import { tokenRoutes } from "./routes/tokens.js";
-import { setRoutes } from "./routes/sets.js";
-import { collectionRoutes } from "./routes/themes.js";
+import { collectionStructureRoutes } from "./routes/collection-structure.js";
+import { collectionRoutes } from "./routes/collections.js";
 import { syncRoutes } from "./routes/sync.js";
 import { exportRoutes } from "./routes/export.js";
 import { healthRoutes } from "./routes/health.js";
@@ -35,9 +35,11 @@ import { snapshotRoutes } from "./routes/snapshots.js";
 import { PromiseChainLock } from "./utils/promise-chain-lock.js";
 import { RateLimiter } from "./services/rate-limiter.js";
 import {
-  createCollectionsStore,
-  type CollectionsStore,
-} from "./routes/themes.js";
+  createCollectionStore,
+  type CollectionStore,
+} from "./services/collection-store.js";
+import { CollectionService } from "./services/collection-service.js";
+import { LintConfigStore } from "./services/lint.js";
 import { EventBus } from "./services/event-bus.js";
 
 export interface ServerConfig {
@@ -97,8 +99,13 @@ export async function startServer(config: ServerConfig) {
   // Initialize services
   const manualSnapshots = new ManualSnapshotStore(config.tokenDir);
 
+  const collectionsStore = createCollectionStore(config.tokenDir);
+  const initialCollectionState = await collectionsStore.loadState();
+
   const tokenStore = new TokenStore(config.tokenDir);
-  await tokenStore.initialize();
+  await tokenStore.initialize(
+    initialCollectionState.collections.map((collection) => collection.id),
+  );
 
   const gitSync = new GitSync(config.tokenDir);
 
@@ -111,18 +118,26 @@ export async function startServer(config: ServerConfig) {
   await resolverStore.initialize();
 
   // Reuse the lock that lives inside TokenStore — watcher callbacks and route handlers
-  // all serialize through the same chain, preventing watcher loadSet() from overwriting
+  // all serialize through the same chain, preventing watcher loadCollection() from overwriting
   // in-flight route-handler mutations.
   const tokenLock = tokenStore.lock;
 
-  const collectionsStore = createCollectionsStore(config.tokenDir);
-
-  // Replay any snapshot restore that was interrupted by a previous crash
-  await manualSnapshots.recoverPendingRestore(
+  const lintConfigStore = new LintConfigStore(config.tokenDir);
+  const collectionService = new CollectionService(
     tokenStore,
     collectionsStore,
     resolverStore,
+    resolverStore.lock,
     recipeService,
+    lintConfigStore,
+  );
+
+  // Replay any snapshot restore that was interrupted by a previous crash
+  await manualSnapshots.recoverPendingRestore(
+    collectionService,
+    resolverStore,
+    recipeService,
+    lintConfigStore,
   );
 
   // Event bus for SSE with sequence IDs and replay support
@@ -132,9 +147,9 @@ export async function startServer(config: ServerConfig) {
   const emitWorkspaceFileEvent = (
     type: "workspace-file-changed" | "workspace-file-removed",
     resourceType: "collections" | "recipes" | "resolver",
-    setName: string,
+    collectionId: string,
   ) => {
-    eventBus.push({ type, resourceType, setName });
+    eventBus.push({ type, resourceType, collectionId });
   };
 
   const recipesFilePath = path.join(config.tokenDir, "$recipes.json");
@@ -149,6 +164,9 @@ export async function startServer(config: ServerConfig) {
   const reloadCollectionsFromDisk = async () => {
     try {
       const result = await collectionsStore.reloadFromDisk();
+      if (result === "changed" || result === "removed") {
+        await tokenLock.withLock(() => collectionService.reloadTokenStorageFromState());
+      }
       if (result === "changed") {
         emitWorkspaceFileEvent("workspace-file-changed", "collections", "$collections");
       } else if (result === "removed") {
@@ -159,7 +177,7 @@ export async function startServer(config: ServerConfig) {
       console.warn("[Collections] Failed to reload collections from disk:", err);
       tokenStore.emitEvent({
         type: "file-load-error",
-        setName: "$collections",
+        collectionId: "$collections",
         message,
       });
     }
@@ -189,7 +207,7 @@ export async function startServer(config: ServerConfig) {
       );
       tokenStore.emitEvent({
         type: "file-load-error",
-        setName: "$recipes",
+        collectionId: "$recipes",
         message,
       });
     }
@@ -245,13 +263,15 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate("operationLog", operationLog);
   fastify.decorate("resolverStore", resolverStore);
   fastify.decorate("manualSnapshots", manualSnapshots);
+  fastify.decorate("lintConfigStore", lintConfigStore);
+  fastify.decorate("collectionService", collectionService);
   fastify.decorate("eventBus", eventBus);
 
   // Forward resolver load errors to the SSE event stream
   resolverStore.onLoadError((name, message) => {
     tokenStore.emitEvent({
       type: "file-load-error",
-      setName: `resolver:${name}`,
+      collectionId: `resolver:${name}`,
       message,
     });
   });
@@ -282,7 +302,7 @@ export async function startServer(config: ServerConfig) {
           console.warn("[Recipe] Auto-run failed:", err);
           tokenStore.emitEvent({
             type: "recipe-error",
-            setName: "",
+            collectionId: "",
             message,
           });
           // Record the failure persistently so clients connecting later can see it
@@ -290,7 +310,7 @@ export async function startServer(config: ServerConfig) {
             .record({
               type: "recipe-auto-run-error",
               description: `Recipe auto-run failed for "${tokenPath}": ${message}`,
-              setName: "",
+              resourceId: "",
               affectedPaths: [tokenPath],
               beforeSnapshot: {},
               afterSnapshot: {},
@@ -318,7 +338,7 @@ export async function startServer(config: ServerConfig) {
     version: SERVER_VERSION,
   });
   await fastify.register(tokenRoutes, { prefix: "/api" });
-  await fastify.register(setRoutes, { prefix: "/api" });
+  await fastify.register(collectionStructureRoutes, { prefix: "/api" });
   await fastify.register(collectionRoutes, {
     prefix: "/api",
     tokenDir: config.tokenDir,
@@ -361,7 +381,9 @@ declare module "fastify" {
     operationLog: OperationLog;
     resolverStore: ResolverStore;
     manualSnapshots: ManualSnapshotStore;
-    collectionsStore: CollectionsStore;
+    collectionsStore: CollectionStore;
+    lintConfigStore: LintConfigStore;
+    collectionService: CollectionService;
     eventBus: EventBus;
   }
 }

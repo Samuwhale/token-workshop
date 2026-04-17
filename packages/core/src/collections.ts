@@ -1,5 +1,6 @@
 import type {
   CollectionMode,
+  CollectionPublishRouting,
   SelectedModes,
   SerializedTokenCollection,
   Token,
@@ -26,6 +27,30 @@ function normalizeCollectionMode(value: unknown): CollectionMode | null {
   return name ? { name } : null;
 }
 
+function normalizeCollectionPublishRouting(
+  value: unknown,
+): CollectionPublishRouting | null {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  const collectionName =
+    typeof value.collectionName === "string"
+      ? value.collectionName.trim()
+      : "";
+  const modeName =
+    typeof value.modeName === "string" ? value.modeName.trim() : "";
+
+  if (!collectionName && !modeName) {
+    return null;
+  }
+
+  return {
+    ...(collectionName ? { collectionName } : {}),
+    ...(modeName ? { modeName } : {}),
+  };
+}
+
 function normalizeSerializedTokenCollection(
   value: unknown,
 ): SerializedTokenCollection | null {
@@ -39,13 +64,23 @@ function normalizeSerializedTokenCollection(
     return null;
   }
 
-  const options = Array.isArray(value.options)
-    ? value.options
-        .map((option) => normalizeCollectionMode(option))
-        .filter((option): option is CollectionMode => option !== null)
+  const modes = Array.isArray(value.modes)
+    ? value.modes
+        .map((mode) => normalizeCollectionMode(mode))
+        .filter((mode): mode is CollectionMode => mode !== null)
     : [];
 
-  return { id, name, options };
+  const description =
+    typeof value.description === "string" ? value.description.trim() : "";
+  const publishRouting = normalizeCollectionPublishRouting(value.publishRouting);
+
+  return {
+    id,
+    name,
+    ...(description ? { description } : {}),
+    ...(publishRouting ? { publishRouting } : {}),
+    modes,
+  };
 }
 
 function normalizeSelectedModesRecord(value: unknown): SelectedModes | null {
@@ -208,7 +243,11 @@ export function deserializeTokenCollections(
   return collections.map((collection) => ({
     id: collection.id,
     name: collection.name,
-    modes: collection.options.map((mode) => ({ name: mode.name })),
+    ...(collection.description ? { description: collection.description } : {}),
+    ...(collection.publishRouting
+      ? { publishRouting: { ...collection.publishRouting } }
+      : {}),
+    modes: collection.modes.map((mode) => ({ name: mode.name })),
   }));
 }
 
@@ -218,7 +257,11 @@ export function serializeTokenCollections(
   return collections.map((collection) => ({
     id: collection.id,
     name: collection.name,
-    options: collection.modes.map((mode: CollectionMode) => ({ name: mode.name })),
+    ...(collection.description ? { description: collection.description } : {}),
+    ...(collection.publishRouting
+      ? { publishRouting: { ...collection.publishRouting } }
+      : {}),
+    modes: collection.modes.map((mode: CollectionMode) => ({ name: mode.name })),
   }));
 }
 

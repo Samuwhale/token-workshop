@@ -4,7 +4,7 @@ import { apiFetch } from '../shared/apiFetch';
 export interface ValidationIssue {
   rule: string;
   path: string;
-  setName: string;
+  collectionId: string;
   severity: 'error' | 'warning' | 'info';
   message: string;
   suggestedFix?: string;

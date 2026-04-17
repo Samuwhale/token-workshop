@@ -61,7 +61,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.operationLog.record({
           type: 'resolver-create',
           description: `Create resolver "${name}"`,
-          setName: name,
+          resourceId: name,
           affectedPaths: [],
           beforeSnapshot: {},
           afterSnapshot: {},
@@ -101,7 +101,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.operationLog.record({
           type: 'resolver-update',
           description: `Update resolver "${req.params.name}"`,
-          setName: req.params.name,
+          resourceId: req.params.name,
           affectedPaths: [],
           beforeSnapshot: {},
           afterSnapshot: {},
@@ -128,7 +128,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
         const entry = await fastify.operationLog.record({
           type: 'resolver-delete',
           description: `Delete resolver "${req.params.name}"`,
-          setName: req.params.name,
+          resourceId: req.params.name,
           affectedPaths: [],
           beforeSnapshot: {},
           afterSnapshot: {},

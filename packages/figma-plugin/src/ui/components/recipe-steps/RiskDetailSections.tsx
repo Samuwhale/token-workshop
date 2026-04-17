@@ -61,10 +61,10 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
           toneClassName="text-[var(--color-figma-warning)]"
         >
             {nonRecipeOverwriteEntries.map(entry => (
-              <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
-                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
+              <div key={`${entry.collectionId}:${entry.path}`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
-                  {entry.setName !== targetCollection && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
+                  {entry.collectionId !== targetCollection && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.collectionId}</span>}
                 </span>
                 {entry.changesValue ? (
                   <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
@@ -85,8 +85,8 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
           toneClassName="text-[var(--color-figma-error)]"
         >
             {manualConflictEntries.map(entry => (
-              <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
-                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
+              <div key={`${entry.collectionId}:${entry.path}`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
                 </span>
                 <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
@@ -102,10 +102,10 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
           toneClassName="text-[var(--color-figma-warning)]"
         >
             {deletedOutputEntries.map(entry => (
-              <div key={`${entry.setName}:${entry.path}`} className="flex flex-wrap items-start gap-2 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
-                <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.setName}:${entry.path}`}>
+              <div key={`${entry.collectionId}:${entry.path}`} className="flex flex-wrap items-start gap-2 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+                <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
-                  {entry.setName !== targetCollection && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.setName}</span>}
+                  {entry.collectionId !== targetCollection && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.collectionId}</span>}
                 </span>
                 <span className="text-[10px] text-[var(--color-figma-warning)] shrink-0">Removed on save</span>
               </div>
@@ -120,16 +120,16 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
           toneClassName="text-[var(--color-figma-warning)]"
         >
             {recreatedDetachedEntries.map(entry => (
-              <div key={`${entry.setName}:${entry.path}`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
-                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.setName}:${entry.path}`}>
+              <div key={`${entry.collectionId}:${entry.path}`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
                 </span>
                 <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
               </div>
             ))}
             {preservedDetachedEntries.map(entry => (
-              <div key={`${entry.setName}:${entry.path}`} className="flex flex-wrap items-start gap-2 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
-                <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.setName}:${entry.path}`}>
+              <div key={`${entry.collectionId}:${entry.path}`} className="flex flex-wrap items-start gap-2 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+                <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
                 </span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Stays manual</span>

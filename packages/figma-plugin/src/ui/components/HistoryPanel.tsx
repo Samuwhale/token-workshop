@@ -88,7 +88,7 @@ function formatMetadataValue(value?: string) {
 function formatSnapshotWorkspaceCounts(snapshot: SnapshotSummary) {
   const parts: string[] = [];
   if (snapshot.collectionCount > 0) {
-    parts.push(`${snapshot.collectionCount} ${snapshot.collectionCount === 1 ? 'mode' : 'modes'}`);
+    parts.push(`${snapshot.collectionCount} ${snapshot.collectionCount === 1 ? 'collection' : 'collections'}`);
   }
   if (snapshot.resolverCount > 0) {
     parts.push(`${snapshot.resolverCount} ${snapshot.resolverCount === 1 ? 'resolver' : 'resolvers'}`);
@@ -325,7 +325,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     if (!searchQuery) return true;
     const metadataChanges = getFieldChanges(op);
     return op.description.toLowerCase().includes(searchQuery) ||
-      op.setName.toLowerCase().includes(searchQuery) ||
+      op.resourceId.toLowerCase().includes(searchQuery) ||
       op.affectedPaths.some(path => path.toLowerCase().includes(searchQuery)) ||
       metadataChanges.some(change =>
         change.label.toLowerCase().includes(searchQuery) ||
@@ -552,7 +552,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{op.setName}</span>
+                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{op.resourceId}</span>
                           <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
                           <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
                         </div>

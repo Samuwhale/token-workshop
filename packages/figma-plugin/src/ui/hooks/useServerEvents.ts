@@ -6,7 +6,7 @@ export interface RecipeErrorEvent {
 }
 
 export interface ServiceErrorEvent {
-  setName: string;
+  collectionId: string;
   message: string;
 }
 
@@ -115,16 +115,16 @@ export function useServerEvents(
 
         if (data.type === "file-load-error") {
           serviceErrorRef.current?.({
-            setName: typeof data.setName === "string" ? data.setName : "",
+            collectionId: typeof data.collectionId === "string" ? data.collectionId : "",
             message:
               typeof data.message === "string" ? data.message : "Unknown error",
           });
         }
 
         if (
-          data.type === "set-added" ||
-          data.type === "set-updated" ||
-          data.type === "set-removed" ||
+          data.type === "collection-added" ||
+          data.type === "collection-updated" ||
+          data.type === "collection-removed" ||
           data.type === "workspace-file-changed" ||
           data.type === "workspace-file-removed"
         ) {

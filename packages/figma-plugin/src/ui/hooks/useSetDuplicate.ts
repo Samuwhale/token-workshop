@@ -26,11 +26,11 @@ export function useSetDuplicate({
     let newName: string;
     try {
       const signal = AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]);
-      const result = await apiFetch<{ ok: true; name: string; originalName: string }>(
-        `${serverUrl}/api/sets/${encodeURIComponent(setName)}/duplicate`,
+      const result = await apiFetch<{ ok: true; id: string; originalId: string }>(
+        `${serverUrl}/api/collections/${encodeURIComponent(setName)}/duplicate`,
         { method: 'POST', signal },
       );
-      newName = result.name;
+      newName = result.id;
     } catch (err) {
       if (isNetworkError(err)) markDisconnected();
       else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -43,11 +43,11 @@ export function useSetDuplicate({
     pushUndo({
       description: `Duplicated set "${setName}" → "${dupName}"`,
       restore: async () => {
-        await apiFetch(`${url}/api/sets/${encodeURIComponent(dupName)}`, { method: 'DELETE' });
+        await apiFetch(`${url}/api/collections/${encodeURIComponent(dupName)}`, { method: 'DELETE' });
         refreshTokens();
       },
       redo: async () => {
-        await apiFetch(`${url}/api/sets/${encodeURIComponent(setName)}/duplicate`, {
+        await apiFetch(`${url}/api/collections/${encodeURIComponent(setName)}/duplicate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ newName: dupName }),

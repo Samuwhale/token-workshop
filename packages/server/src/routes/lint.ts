@@ -1,13 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { LintConfigStore, lintTokens, validateAllTokens, DEFAULT_LINT_CONFIG } from '../services/lint.js';
-import type { LintConfig, LintRuleConfig, LintRuleSetOverride } from '../services/lint.js';
+import { lintTokens, validateAllTokens, DEFAULT_LINT_CONFIG } from '../services/lint.js';
+import type { LintConfig, LintRuleConfig, LintRuleCollectionOverride } from '../services/lint.js';
 import { handleRouteError } from '../errors.js';
-
-declare module 'fastify' {
-  interface FastifyInstance {
-    lintConfigStore: LintConfigStore;
-  }
-}
 
 const KNOWN_CONFIG_FIELDS = new Set(['lintRules']);
 const KNOWN_RULE_IDS = [
@@ -22,7 +16,7 @@ const KNOWN_RULE_IDS = [
   'enforce-token-type-consistency',
 ] as const satisfies readonly (keyof LintConfig['lintRules'])[];
 const KNOWN_RULES = new Set<string>(KNOWN_RULE_IDS);
-const KNOWN_RULE_FIELDS = new Set(['enabled', 'severity', 'options', 'excludePaths', 'setOverrides']);
+const KNOWN_RULE_FIELDS = new Set(['enabled', 'severity', 'options', 'excludePaths', 'collectionOverrides']);
 const KNOWN_OVERRIDE_FIELDS = new Set(['enabled', 'severity', 'options']);
 const VALID_SEVERITIES = new Set(['error', 'warning', 'info']);
 
@@ -58,10 +52,10 @@ function normalizeStringArray(values: unknown[], label: string): { ok: true; val
 
 async function buildKnownExceptionScopes(fastify: FastifyInstance): Promise<Set<string>> {
   const scopes = new Set<string>();
-  const setNames = await fastify.tokenStore.getSets();
+  const collectionIds = await fastify.collectionService.listCollectionIds();
 
-  for (const setName of setNames) {
-    const flatTokens = await fastify.tokenStore.getFlatTokensForSet(setName);
+  for (const collectionId of collectionIds) {
+    const flatTokens = await fastify.tokenStore.getFlatTokensForCollection(collectionId);
     for (const tokenPath of Object.keys(flatTokens)) {
       const segments = tokenPath.split('.').filter(Boolean);
       for (let depth = 1; depth <= segments.length; depth += 1) {
@@ -75,39 +69,39 @@ async function buildKnownExceptionScopes(fastify: FastifyInstance): Promise<Set<
 
 function validateOverride(
   ruleKey: string,
-  setName: string,
+  collectionId: string,
   overrideValue: unknown,
-  currentOverride: LintRuleSetOverride | undefined,
-): { ok: true; value: LintRuleSetOverride } | { ok: false; error: string } {
+  currentOverride: LintRuleCollectionOverride | undefined,
+): { ok: true; value: LintRuleCollectionOverride } | { ok: false; error: string } {
   if (!isRecord(overrideValue)) {
-    return { ok: false, error: `Lint rule "${ruleKey}.setOverrides["${setName}"]" must be an object` };
+    return { ok: false, error: `Lint rule "${ruleKey}.collectionOverrides["${collectionId}"]" must be an object` };
   }
 
   for (const key of Object.keys(overrideValue)) {
     if (!KNOWN_OVERRIDE_FIELDS.has(key)) {
-      return { ok: false, error: `Unknown lint override field: "${ruleKey}.setOverrides["${setName}"].${key}"` };
+      return { ok: false, error: `Unknown lint override field: "${ruleKey}.collectionOverrides["${collectionId}"].${key}"` };
     }
   }
 
-  const sanitized: LintRuleSetOverride = { ...(currentOverride ?? {}) };
+  const sanitized: LintRuleCollectionOverride = { ...(currentOverride ?? {}) };
 
   if ('enabled' in overrideValue) {
     if (typeof overrideValue.enabled !== 'boolean') {
-      return { ok: false, error: `Lint rule "${ruleKey}.setOverrides["${setName}"].enabled" must be a boolean` };
+      return { ok: false, error: `Lint rule "${ruleKey}.collectionOverrides["${collectionId}"].enabled" must be a boolean` };
     }
     sanitized.enabled = overrideValue.enabled;
   }
 
   if ('severity' in overrideValue && overrideValue.severity !== undefined) {
     if (!VALID_SEVERITIES.has(String(overrideValue.severity))) {
-      return { ok: false, error: `Lint rule "${ruleKey}.setOverrides["${setName}"].severity" must be "error", "warning", or "info"` };
+      return { ok: false, error: `Lint rule "${ruleKey}.collectionOverrides["${collectionId}"].severity" must be "error", "warning", or "info"` };
     }
-    sanitized.severity = overrideValue.severity as LintRuleSetOverride['severity'];
+    sanitized.severity = overrideValue.severity as LintRuleCollectionOverride['severity'];
   }
 
   if ('options' in overrideValue && overrideValue.options !== undefined) {
     if (!isRecord(overrideValue.options)) {
-      return { ok: false, error: `Lint rule "${ruleKey}.setOverrides["${setName}"].options" must be an object` };
+      return { ok: false, error: `Lint rule "${ruleKey}.collectionOverrides["${collectionId}"].options" must be an object` };
     }
     sanitized.options = overrideValue.options;
   }
@@ -118,7 +112,7 @@ function validateOverride(
 function validateRuleConfig(
   ruleKey: string,
   ruleValue: unknown,
-  knownSets: Set<string>,
+  knownCollections: Set<string>,
   knownScopes: Set<string>,
   currentRule: LintRuleConfig | undefined,
 ): { ok: true; value: LintRuleConfig } | { ok: false; error: string } {
@@ -173,31 +167,31 @@ function validateRuleConfig(
     sanitized.excludePaths = normalizedPaths.value;
   }
 
-  if ('setOverrides' in ruleValue && ruleValue.setOverrides !== undefined) {
-    if (!isRecord(ruleValue.setOverrides)) {
-      return { ok: false, error: `Lint rule "${ruleKey}.setOverrides" must be an object` };
+  if ('collectionOverrides' in ruleValue && ruleValue.collectionOverrides !== undefined) {
+    if (!isRecord(ruleValue.collectionOverrides)) {
+      return { ok: false, error: `Lint rule "${ruleKey}.collectionOverrides" must be an object` };
     }
 
-    const sanitizedOverrides: Record<string, LintRuleSetOverride> = {};
-    for (const [setName, overrideValue] of Object.entries(ruleValue.setOverrides)) {
-      if (!knownSets.has(setName)) {
-        return { ok: false, error: `Lint rule "${ruleKey}.setOverrides" references unknown set "${setName}"` };
+    const sanitizedOverrides: Record<string, LintRuleCollectionOverride> = {};
+    for (const [collectionId, overrideValue] of Object.entries(ruleValue.collectionOverrides)) {
+      if (!knownCollections.has(collectionId)) {
+        return { ok: false, error: `Lint rule "${ruleKey}.collectionOverrides" references unknown collection "${collectionId}"` };
       }
-      const validatedOverride = validateOverride(ruleKey, setName, overrideValue, currentRule?.setOverrides?.[setName]);
+      const validatedOverride = validateOverride(ruleKey, collectionId, overrideValue, currentRule?.collectionOverrides?.[collectionId]);
       if (!validatedOverride.ok) {
         return validatedOverride;
       }
-      sanitizedOverrides[setName] = validatedOverride.value;
+      sanitizedOverrides[collectionId] = validatedOverride.value;
     }
-    sanitized.setOverrides = sanitizedOverrides;
+    sanitized.collectionOverrides = sanitizedOverrides;
   }
 
   return { ok: true, value: sanitized };
 }
 
 export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fastify, opts) => {
-  const lintConfigStore = new LintConfigStore(opts.tokenDir);
-  fastify.decorate('lintConfigStore', lintConfigStore);
+  void opts;
+  const lintConfigStore = fastify.lintConfigStore;
 
   fastify.get('/lint/config', async (_request, reply) => {
     try {
@@ -226,7 +220,9 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
         return reply.status(400).send({ error: '"lintRules" must be an object' });
       }
 
-      const knownSets = new Set(await fastify.tokenStore.getSets());
+      const knownCollections = new Set(
+        await fastify.collectionService.listCollectionIds(),
+      );
       const knownScopes = await buildKnownExceptionScopes(fastify);
       const currentConfig = await lintConfigStore.get();
       const sanitizedRules: Partial<LintConfig['lintRules']> = {};
@@ -236,7 +232,13 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
           return reply.status(400).send({ error: `Unknown lint rule: "${ruleKey}"` });
         }
 
-        const validatedRule = validateRuleConfig(ruleKey, ruleValue, knownSets, knownScopes, currentConfig.lintRules[ruleKey]);
+        const validatedRule = validateRuleConfig(
+          ruleKey,
+          ruleValue,
+          knownCollections,
+          knownScopes,
+          currentConfig.lintRules[ruleKey],
+        );
         if (!validatedRule.ok) {
           return reply.status(400).send({ error: validatedRule.error });
         }
@@ -257,6 +259,7 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
 
   fastify.post('/tokens/validate', async (_request, reply) => {
     try {
+      await fastify.collectionService.loadState();
       const config = await lintConfigStore.get();
       const issues = await validateAllTokens(fastify.tokenStore, config);
       const errors = issues.filter(issue => issue.severity === 'error').length;
@@ -304,21 +307,21 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
     }
   });
 
-  fastify.post<{ Body: { set: string } }>('/tokens/lint', async (request, reply) => {
-    const { set } = request.body ?? {};
-    if (!set) {
-      return reply.status(400).send({ error: 'set is required' });
+  fastify.post<{ Body: { collectionId: string } }>('/tokens/lint', async (request, reply) => {
+    const { collectionId } = request.body ?? {};
+    if (!collectionId) {
+      return reply.status(400).send({ error: 'collectionId is required' });
     }
 
-    const tokenSet = await fastify.tokenStore.getSet(set);
-    if (!tokenSet) {
-      return reply.status(404).send({ error: `Token set "${set}" not found` });
+    const tokenCollection = await fastify.tokenStore.getCollection(collectionId);
+    if (!tokenCollection) {
+      return reply.status(404).send({ error: `Collection "${collectionId}" not found` });
     }
 
     try {
       const config = await lintConfigStore.get();
-      const violations = await lintTokens(set, fastify.tokenStore, config);
-      return { set, violations, count: violations.length };
+      const violations = await lintTokens(collectionId, fastify.tokenStore, config);
+      return { collectionId, violations, count: violations.length };
     } catch (err) {
       return handleRouteError(reply, err, 'Lint failed');
     }

@@ -19,15 +19,15 @@ export async function exportTokens(
   await fs.mkdir(tmpDir, { recursive: true });
 
   try {
-    // Deep-merge all sets so that shared top-level group keys are combined
-    // rather than the second set silently overwriting the first.
+    // Deep-merge all collections so that shared top-level group keys are combined
+    // rather than the second collection silently overwriting the first.
     const merged: Record<string, any> = {};
     const warnings: string[] = [];
-    for (const [setName, tokenGroup] of Object.entries(tokens)) {
-      const setConflicts: string[] = [];
-      deepMergeInto(merged, tokenGroup as Record<string, any>, setConflicts);
-      for (const tokenPath of setConflicts) {
-        const msg = `Token "${tokenPath}" is defined in multiple sets; value from set "${setName}" will be used`;
+    for (const [collectionId, tokenGroup] of Object.entries(tokens)) {
+      const collectionConflicts: string[] = [];
+      deepMergeInto(merged, tokenGroup as Record<string, any>, collectionConflicts);
+      for (const tokenPath of collectionConflicts) {
+        const msg = `Token "${tokenPath}" is defined in multiple collections; value from collection "${collectionId}" will be used`;
         console.warn(`[export] ${msg}`);
         warnings.push(msg);
       }

@@ -39,6 +39,7 @@ import {
   runDarkModeInversionRecipe,
   runContrastCheckRecipe,
   applyOverrides,
+  getRecipeOutputCollectionIds,
   getRecipeManagedOutputPaths,
   substituteVars,
   validateStepName,
@@ -126,7 +127,7 @@ export type RecipePreviewInput = Pick<
 
 export interface RecipePreviewChangeEntry {
   path: string;
-  setName: string;
+  collectionId: string;
   type: string;
   currentValue: unknown;
   newValue: unknown;
@@ -146,14 +147,14 @@ export interface RecipePreviewManualConflictEntry
 
 export interface RecipePreviewDeletedEntry {
   path: string;
-  setName: string;
+  collectionId: string;
   type: string;
   currentValue: unknown;
 }
 
 export interface RecipePreviewDetachedEntry {
   path: string;
-  setName: string;
+  collectionId: string;
   type: string;
   currentValue: unknown;
   newValue?: unknown;
@@ -188,15 +189,16 @@ export interface RecipePreviewResult {
   analysis: RecipePreviewAnalysis;
 }
 
-export interface RecipeSetDependencyMeta {
+export interface RecipeCollectionDependencyMeta {
   id: string;
   name: string;
-  targetCollection: string;
+  targetCollections: string[];
   targetGroup: string;
+  templateTarget: boolean;
 }
 
 export interface OrphanedRecipeToken {
-  setName: string;
+  collectionId: string;
   path: string;
   recipeId: string;
 }
@@ -1272,12 +1274,15 @@ export class RecipeService {
     });
   }
 
-  listSetDependencyMeta(): RecipeSetDependencyMeta[] {
+  listCollectionDependencyMeta(): RecipeCollectionDependencyMeta[] {
     return Array.from(this.recipes.values()).map((recipe) => ({
       id: recipe.id,
       name: recipe.name,
-      targetCollection: recipe.targetCollection,
+      targetCollections: getRecipeOutputCollectionIds(recipe),
       targetGroup: recipe.targetGroup,
+      templateTarget: Boolean(
+        recipe.targetCollectionTemplate && recipe.inputTable?.rows.length,
+      ),
     }));
   }
 
@@ -1409,13 +1414,13 @@ export class RecipeService {
       const ownedTokens = tokenStore.findTokensByRecipeId(id);
       for (const tokenRef of ownedTokens) {
         if (!detachedPaths.includes(tokenRef.path)) continue;
-        const token = await tokenStore.getToken(tokenRef.setName, tokenRef.path);
+        const token = await tokenStore.getToken(tokenRef.collectionId, tokenRef.path);
         if (!token) continue;
         const extensions = {
           ...(token.$extensions ?? {}),
         } as Record<string, unknown>;
         delete extensions["com.tokenmanager.recipe"];
-        await tokenStore.updateToken(tokenRef.setName, tokenRef.path, {
+        await tokenStore.updateToken(tokenRef.collectionId, tokenRef.path, {
           $extensions: Object.keys(extensions).length > 0 ? extensions : {},
         });
       }
@@ -1527,15 +1532,21 @@ export class RecipeService {
   }
 
   /**
-   * Update recipe references when a token set is renamed.
-   * Updates targetCollection for any recipe pointing at the old set name.
+   * Update recipe references when a collection id is renamed.
+   * Updates targetCollection for any recipe pointing at the old collection id.
    * Returns the count of recipes updated.
    */
-  async updateSetName(oldSetName: string, newSetName: string): Promise<number> {
+  async renameCollectionId(
+    oldCollectionId: string,
+    newCollectionId: string,
+  ): Promise<number> {
     let count = 0;
     for (const [id, gen] of this.recipes) {
-      if (gen.targetCollection === oldSetName) {
-        this.recipes.set(id, { ...gen, targetCollection: newSetName });
+      if (gen.targetCollection === oldCollectionId) {
+        this.recipes.set(id, {
+          ...gen,
+          targetCollection: newCollectionId,
+        });
         count++;
       }
     }
@@ -1861,7 +1872,7 @@ export class RecipeService {
       if (detachedPathSet.has(result.path)) {
         detachedOutputs.push({
           path: result.path,
-          setName: targetCollection,
+          collectionId: targetCollection,
           type: result.type,
           currentValue: existing.$value,
           newValue: result.value,
@@ -1876,7 +1887,7 @@ export class RecipeService {
         if (manualEditDetected && changesValue) {
           manualEditConflicts.push({
             path: result.path,
-            setName: targetCollection,
+            collectionId: targetCollection,
             type: result.type,
             currentValue: existing.$value,
             newValue: result.value,
@@ -1886,7 +1897,7 @@ export class RecipeService {
         } else if (changesValue) {
           safeUpdates.push({
             path: result.path,
-            setName: targetCollection,
+            collectionId: targetCollection,
             type: result.type,
             currentValue: existing.$value,
             newValue: result.value,
@@ -1896,7 +1907,7 @@ export class RecipeService {
       } else {
         nonRecipeOverwrites.push({
           path: result.path,
-          setName: targetCollection,
+          collectionId: targetCollection,
           type: result.type,
           currentValue: existing.$value,
           newValue: result.value,
@@ -1931,11 +1942,11 @@ export class RecipeService {
             preview,
             baseRecipe,
           )
-        ).map((output) => `${output.setName}::${output.path}`),
+        ).map((output) => `${output.collectionId}::${output.path}`),
       );
       const ownedTokens = tokenStore.findTokensByRecipeId(baseRecipe.id);
       for (const owned of ownedTokens) {
-        const token = await tokenStore.getToken(owned.setName, owned.path);
+        const token = await tokenStore.getToken(owned.collectionId, owned.path);
         const ext = token?.$extensions?.["com.tokenmanager.recipe"];
         if (
           !token ||
@@ -1943,10 +1954,10 @@ export class RecipeService {
         ) {
           continue;
         }
-        if (!desiredOutputKeys.has(`${owned.setName}::${owned.path}`)) {
+        if (!desiredOutputKeys.has(`${owned.collectionId}::${owned.path}`)) {
           deletedOutputs.push({
             path: owned.path,
-            setName: owned.setName,
+            collectionId: owned.collectionId,
             type: token.$type || "unknown",
             currentValue: token.$value,
           });
@@ -1961,7 +1972,7 @@ export class RecipeService {
         if (!token) continue;
         detachedOutputs.push({
           path: detachedPath,
-          setName: targetCollection,
+          collectionId: targetCollection,
           type: token.$type || "unknown",
           currentValue: token.$value,
           state: "preserved",
@@ -2023,7 +2034,7 @@ export class RecipeService {
   ): Promise<
     {
       path: string;
-      setName: string;
+      collectionId: string;
       currentValue: unknown;
       newValue: unknown;
     }[]
@@ -2034,7 +2045,7 @@ export class RecipeService {
     const effectiveTargetCollection = recipe.targetCollection;
     const modified: {
       path: string;
-      setName: string;
+      collectionId: string;
       currentValue: unknown;
       newValue: unknown;
     }[] = [];
@@ -2052,7 +2063,7 @@ export class RecipeService {
         if (ext?.recipeId === id) {
           modified.push({
             path: result.path,
-            setName: effectiveTargetCollection,
+            collectionId: effectiveTargetCollection,
             currentValue: existing.$value,
             newValue: result.value,
           });
@@ -2132,7 +2143,9 @@ export class RecipeService {
 
     // Detect tokens that belong to this recipe but would be removed because
     // they are no longer in the preview results (e.g. a step was deleted).
-    const flatTokens = await tokenStore.getFlatTokensForSet(targetCollection);
+    const flatTokens = await tokenStore.getFlatTokensForCollection(
+      targetCollection,
+    );
     const prefix = recipe.targetGroup ? recipe.targetGroup + "." : "";
     const deleted: Array<{ path: string; currentValue: unknown }> = [];
     for (const [path, token] of Object.entries(flatTokens)) {
@@ -2178,13 +2191,13 @@ export class RecipeService {
       console.warn("[RecipeService] Dependency graph error:", err);
       tokenStore.emitEvent({
         type: "recipe-error",
-        setName: "",
+        collectionId: "",
         message: `Dependency graph error: ${message}`,
       });
       return;
     }
 
-    // Expand the affected set to include transitive dependents (skip disabled ones)
+    // Expand the affected recipe group to include transitive dependents (skip disabled ones)
     const affected = new Set(directlyAffected);
     for (const genId of order) {
       if (affected.has(genId)) continue;
@@ -2241,7 +2254,7 @@ export class RecipeService {
         );
         tokenStore.emitEvent({
           type: "recipe-error",
-          setName: "",
+          collectionId: "",
           recipeId: genId,
           message,
         });
@@ -2267,7 +2280,7 @@ export class RecipeService {
         );
         tokenStore.emitEvent({
           type: "recipe-error",
-          setName: "",
+          collectionId: "",
           recipeId: genId,
           message,
         });
@@ -2489,14 +2502,14 @@ export class RecipeService {
     recipe: Pick<TokenRecipe, "targetGroup" | "semanticLayer">,
     effectiveTargetCollection: string,
     results: GeneratedTokenResult[],
-  ): Array<{ setName: string; path: string }> {
+  ): Array<{ collectionId: string; path: string }> {
     return [
       ...results.map((result) => ({
-        setName: effectiveTargetCollection,
+        collectionId: effectiveTargetCollection,
         path: result.path,
       })),
       ...this.buildSemanticAliasResults(recipe, results).map((result) => ({
-        setName: effectiveTargetCollection,
+        collectionId: effectiveTargetCollection,
         path: result.path,
       })),
     ];
@@ -2524,14 +2537,14 @@ export class RecipeService {
     },
     preview: GeneratedTokenResult[],
     baseRecipe?: TokenRecipe,
-  ): Promise<Array<{ setName: string; path: string }>> {
+  ): Promise<Array<{ collectionId: string; path: string }>> {
     const recipeShape = {
       targetGroup: data.targetGroup,
       semanticLayer: data.semanticLayer ?? baseRecipe?.semanticLayer,
     };
 
     if (data.inputTable?.rows.length) {
-      const desiredOutputs: Array<{ setName: string; path: string }> = [];
+      const desiredOutputs: Array<{ collectionId: string; path: string }> = [];
       for (const row of data.inputTable.rows) {
         const brand = row.brand.trim();
         if (!brand) continue;
@@ -2593,17 +2606,17 @@ export class RecipeService {
       TokenStore,
       "deleteTokens" | "findTokensByRecipeId" | "getToken"
     >,
-    desiredOutputs: Array<{ setName: string; path: string }>,
+    desiredOutputs: Array<{ collectionId: string; path: string }>,
   ): Promise<void> {
     const desiredKeys = new Set(
-      desiredOutputs.map((output) => `${output.setName}::${output.path}`),
+      desiredOutputs.map((output) => `${output.collectionId}::${output.path}`),
     );
-    const tokensToDeleteBySet = new Map<string, string[]>();
+    const tokensToDeleteByCollection = new Map<string, string[]>();
     const ownedTokens = tokenStore.findTokensByRecipeId(recipe.id);
 
     for (const owned of ownedTokens) {
-      if (desiredKeys.has(`${owned.setName}::${owned.path}`)) continue;
-      const token = await tokenStore.getToken(owned.setName, owned.path);
+      if (desiredKeys.has(`${owned.collectionId}::${owned.path}`)) continue;
+      const token = await tokenStore.getToken(owned.collectionId, owned.path);
       const ext = token?.$extensions?.["com.tokenmanager.recipe"];
       if (
         !token ||
@@ -2611,17 +2624,17 @@ export class RecipeService {
       ) {
         continue;
       }
-      const existing = tokensToDeleteBySet.get(owned.setName);
+      const existing = tokensToDeleteByCollection.get(owned.collectionId);
       if (existing) {
         existing.push(owned.path);
         continue;
       }
-      tokensToDeleteBySet.set(owned.setName, [owned.path]);
+      tokensToDeleteByCollection.set(owned.collectionId, [owned.path]);
     }
 
-    for (const [setName, paths] of tokensToDeleteBySet) {
+    for (const [collectionId, paths] of tokensToDeleteByCollection) {
       if (paths.length === 0) continue;
-      await tokenStore.deleteTokens(setName, [...new Set(paths)]);
+      await tokenStore.deleteTokens(collectionId, [...new Set(paths)]);
     }
   }
 
@@ -2639,17 +2652,17 @@ export class RecipeService {
 
     await this.clearNonLockedOverrides(recipe);
 
-    const snapshotSetNames = new Set([effectiveTargetCollection]);
+    const snapshotCollectionIds = new Set([effectiveTargetCollection]);
     for (const owned of tokenStore.findTokensByRecipeId(recipe.id)) {
-      snapshotSetNames.add(owned.setName);
+      snapshotCollectionIds.add(owned.collectionId);
     }
 
     const preRunSnapshots = new Map<string, Record<string, Token>>();
-    for (const setName of snapshotSetNames) {
+    for (const collectionId of snapshotCollectionIds) {
       preRunSnapshots.set(
-        setName,
+        collectionId,
         structuredClone(
-          await tokenStore.getFlatTokensForSet(setName),
+          await tokenStore.getFlatTokensForCollection(collectionId),
         ) as Record<string, Token>,
       );
     }
@@ -2700,11 +2713,12 @@ export class RecipeService {
 
     if (runError !== undefined) {
       // Roll back: restore tokens that existed before + delete tokens created during the run.
-      const setNames = [...preRunSnapshots.keys()];
+      const collectionIds = [...preRunSnapshots.keys()];
       const rollbackResults = await Promise.allSettled(
-        setNames.map(async (setName) => {
-          const preSnapshot = preRunSnapshots.get(setName)!;
-          const currentTokens = await tokenStore.getFlatTokensForSet(setName);
+        collectionIds.map(async (collectionId) => {
+          const preSnapshot = preRunSnapshots.get(collectionId)!;
+          const currentTokens =
+            await tokenStore.getFlatTokensForCollection(collectionId);
           const restoreItems: Array<{ path: string; token: Token | null }> = [];
           for (const [p, t] of Object.entries(preSnapshot)) {
             restoreItems.push({ path: p, token: t });
@@ -2715,23 +2729,23 @@ export class RecipeService {
             }
           }
           if (restoreItems.length > 0) {
-            await tokenStore.restoreSnapshot(setName, restoreItems);
+            await tokenStore.restoreSnapshot(collectionId, restoreItems);
           }
         }),
       );
       const rollbackFailures = rollbackResults
-        .map((result, index) => ({ result, setName: setNames[index] }))
+        .map((result, index) => ({ result, collectionId: collectionIds[index] }))
         .filter(({ result }) => result.status === "rejected");
       if (rollbackFailures.length > 0) {
         const rollbackSummary = rollbackFailures
-          .map(({ result, setName }) => {
+          .map(({ result, collectionId }) => {
             const reason =
               result.status === "rejected"
                 ? result.reason instanceof Error
                   ? result.reason.message
                   : String(result.reason)
                 : "";
-            return `${setName}: ${reason}`;
+            return `${collectionId}: ${reason}`;
           })
           .join("; ");
         throw new Error(
@@ -2744,7 +2758,7 @@ export class RecipeService {
     return results;
   }
 
-  /** Multi-brand path: runs once per row, writing to a brand-specific set. */
+  /** Multi-brand path: runs once per row, writing to a brand-specific collection. */
   private async executeRecipeMultiBrand(
     recipe: TokenRecipe,
     tokenStore: TokenStore,
@@ -2752,33 +2766,32 @@ export class RecipeService {
     const { inputTable, targetCollectionTemplate, targetCollection } = recipe;
     const allResults: GeneratedTokenResult[] = [];
 
-    // Determine all sets that will be written to so we can snapshot them before any writes.
-    const affectedSets = new Set<string>();
+    // Determine all collections that will be written to so we can snapshot them before any writes.
+    const affectedCollectionIds = new Set<string>();
     for (const owned of tokenStore.findTokensByRecipeId(recipe.id)) {
-      affectedSets.add(owned.setName);
+      affectedCollectionIds.add(owned.collectionId);
     }
     for (const row of inputTable!.rows) {
       if (!row.brand.trim()) continue;
-      const setName = targetCollectionTemplate
+      const collectionId = targetCollectionTemplate
         ? targetCollectionTemplate.replace("{brand}", row.brand)
         : targetCollection!;
-      affectedSets.add(setName);
+      affectedCollectionIds.add(collectionId);
     }
 
-    // Capture pre-run state for each affected set so partial failures can be rolled back.
+    // Capture pre-run state for each affected collection so partial failures can be rolled back.
     const preRunSnapshots = new Map<string, Record<string, Token>>();
-    for (const setName of affectedSets) {
-      // getFlatTokensForSet is a pure in-memory operation and will not throw.
-      const flatTokens = await tokenStore.getFlatTokensForSet(setName);
+    for (const collectionId of affectedCollectionIds) {
+      const flatTokens = await tokenStore.getFlatTokensForCollection(collectionId);
       preRunSnapshots.set(
-        setName,
+        collectionId,
         structuredClone(flatTokens) as Record<string, Token>,
       );
     }
 
     let succeeded = false;
     try {
-      const desiredOutputs: Array<{ setName: string; path: string }> = [];
+      const desiredOutputs: Array<{ collectionId: string; path: string }> = [];
       for (const row of inputTable!.rows) {
         if (!row.brand.trim()) continue;
         const sourceValue = row.inputs[inputTable!.inputKey];
@@ -2850,12 +2863,13 @@ export class RecipeService {
       );
       succeeded = true;
     } catch (err) {
-      // Roll back all affected sets using allSettled so no set is skipped on failure.
-      const setNames = [...preRunSnapshots.keys()];
+      // Roll back all affected collections using allSettled so no collection is skipped on failure.
+      const collectionIds = [...preRunSnapshots.keys()];
       const rollbackResults = await Promise.allSettled(
-        setNames.map(async (setName) => {
-          const preSnapshot = preRunSnapshots.get(setName)!;
-          const currentTokens = await tokenStore.getFlatTokensForSet(setName);
+        collectionIds.map(async (collectionId) => {
+          const preSnapshot = preRunSnapshots.get(collectionId)!;
+          const currentTokens =
+            await tokenStore.getFlatTokensForCollection(collectionId);
           const restoreItems: Array<{ path: string; token: Token | null }> = [];
           for (const [p, t] of Object.entries(preSnapshot)) {
             restoreItems.push({ path: p, token: t });
@@ -2866,31 +2880,31 @@ export class RecipeService {
             }
           }
           if (restoreItems.length > 0) {
-            await tokenStore.restoreSnapshot(setName, restoreItems);
+            await tokenStore.restoreSnapshot(collectionId, restoreItems);
           }
         }),
       );
 
       const rollbackFailures = rollbackResults
-        .map((r, i) => ({ r, setName: setNames[i] }))
+        .map((r, i) => ({ r, collectionId: collectionIds[i] }))
         .filter(({ r }) => r.status === "rejected");
 
       if (rollbackFailures.length > 0) {
         const details = rollbackFailures
-          .map(({ setName, r }) => {
+          .map(({ collectionId, r }) => {
             const reason = (r as PromiseRejectedResult).reason;
             const msg =
               reason instanceof Error ? reason.message : String(reason);
             console.error(
-              `[RecipeService] Rollback failed for set "${setName}":`,
+              `[RecipeService] Rollback failed for collection "${collectionId}":`,
               reason,
             );
-            return `"${setName}": ${msg}`;
+            return `"${collectionId}": ${msg}`;
           })
           .join("; ");
         const originalMsg = err instanceof Error ? err.message : String(err);
         throw new Error(
-          `Recipe run failed (${originalMsg}) and rollback of ${rollbackFailures.length} set(s) also failed (${details}). Token state may be inconsistent.`,
+          `Recipe run failed (${originalMsg}) and rollback of ${rollbackFailures.length} collection(s) also failed (${details}). Token state may be inconsistent.`,
           { cause: err },
         );
       }

@@ -20,10 +20,10 @@ export interface LintRuleConfig {
    */
   excludePaths?: string[];
   /**
-   * Per-set overrides — merged with the global rule config when linting a specific set.
-   * Keyed by set name. Unset fields fall back to the global values.
+   * Per-collection overrides — merged with the global rule config when linting a specific collection.
+   * Keyed by collection id. Unset fields fall back to the global values.
    */
-  setOverrides?: Record<string, LintRuleSetOverride>;
+  collectionOverrides?: Record<string, LintRuleSetOverride>;
 }
 
 export interface LintConfig {

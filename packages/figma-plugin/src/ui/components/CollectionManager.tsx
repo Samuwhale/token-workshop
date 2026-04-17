@@ -138,12 +138,12 @@ export function CollectionManager({
     try {
       const result = await apiFetch<{
         collections?: SerializedTokenCollection[];
-        previews?: ViewPreset[];
+        views?: ViewPreset[];
       }>(`${serverUrl}/api/collections`, { signal: controller.signal });
       if (viewsAbortRef.current !== controller) return;
       const collections = deserializeTokenCollections(result.collections ?? []);
       setCollections(collections);
-      setViews(result.previews ?? []);
+      setViews(result.views ?? []);
     } catch (error) {
       if (viewsAbortRef.current !== controller) return;
       setViewsError(
@@ -254,7 +254,7 @@ export function CollectionManager({
       collections,
       selections: normalizedSelections,
     });
-    await apiFetch(`${serverUrl}/api/previews`, {
+    await apiFetch(`${serverUrl}/api/views`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(view),
@@ -272,7 +272,7 @@ export function CollectionManager({
 
   const handleDeleteView = useCallback(
     async (viewId: string) => {
-      await apiFetch(`${serverUrl}/api/previews/${encodeURIComponent(viewId)}`, {
+      await apiFetch(`${serverUrl}/api/views/${encodeURIComponent(viewId)}`, {
         method: "DELETE",
       });
       await refreshCollectionsAndViews();

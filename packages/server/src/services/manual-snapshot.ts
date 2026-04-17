@@ -13,7 +13,8 @@ import type {
 import type { TokenStore } from "./token-store.js";
 import type { ResolverStore } from "./resolver-store.js";
 import type { RecipeService } from "./recipe-service.js";
-import type { CollectionsStore } from "../routes/themes.js";
+import type { CollectionService } from "./collection-service.js";
+import type { LintConfig, LintConfigStore } from "./lint.js";
 import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -27,21 +28,22 @@ export interface ManualSnapshotToken {
   $extensions?: Record<string, unknown>;
 }
 
-type SnapshotTokenSets = Record<string, Record<string, ManualSnapshotToken>>;
+type SnapshotCollectionTokens = Record<string, Record<string, ManualSnapshotToken>>;
 type SnapshotResolvers = Record<string, ResolverFile>;
 type SnapshotRecipes = Record<string, TokenRecipe>;
 
 type ManualSnapshotComparableState = Pick<
   ManualSnapshotEntry,
-  "data" | "dimensions" | "views" | "resolvers" | "recipes"
+  "data" | "collections" | "views" | "resolvers" | "recipes" | "lintConfig"
 >;
 
 interface RestoreWorkspaceState {
-  setNames: string[];
-  dimensions: TokenCollection[];
+  collectionIds: string[];
+  collections: TokenCollection[];
   views?: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
+  lintConfig: LintConfig;
 }
 
 interface RestorePlanStepBase {
@@ -50,14 +52,10 @@ interface RestorePlanStepBase {
 
 type RestorePlanStep =
   | (RestorePlanStepBase & {
-      kind: "restore-set";
-      setName: string;
-      flatTokens: Record<string, ManualSnapshotToken>;
-    })
-  | (RestorePlanStepBase & {
-      kind: "restore-themes";
-      dimensions: TokenCollection[];
+      kind: "restore-collection-workspace";
+      collections: TokenCollection[];
       views: ViewPreset[];
+      data: SnapshotCollectionTokens;
     })
   | (RestorePlanStepBase & {
       kind: "restore-resolver";
@@ -77,19 +75,20 @@ type RestorePlanStep =
       id: string;
     })
   | (RestorePlanStepBase & {
-      kind: "delete-set";
-      setName: string;
+      kind: "restore-lint-config";
+      config: LintConfig;
     });
 
 interface RestorePlan {
   snapshotId: string;
   snapshotLabel: string;
-  data: SnapshotTokenSets;
-  dimensions: TokenCollection[];
+  data: SnapshotCollectionTokens;
+  collections: TokenCollection[];
   views: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
-  deleteSetNames: string[];
+  lintConfig: LintConfig;
+  deleteCollectionIds: string[];
   deleteResolverNames: string[];
   deleteRecipeIds: string[];
   rollbackSteps: RollbackStep[];
@@ -106,12 +105,13 @@ export interface ManualSnapshotEntry {
   id: string;
   label: string;
   timestamp: string;
-  /** Flat map: setName -> (tokenPath -> token) */
-  data: SnapshotTokenSets;
-  dimensions: TokenCollection[];
+  /** Flat map: collectionId -> (tokenPath -> token) */
+  data: SnapshotCollectionTokens;
+  collections: TokenCollection[];
   views: ViewPreset[];
   resolvers: SnapshotResolvers;
   recipes: SnapshotRecipes;
+  lintConfig: LintConfig;
 }
 
 export interface ManualSnapshotSummary {
@@ -119,7 +119,7 @@ export interface ManualSnapshotSummary {
   label: string;
   timestamp: string;
   tokenCount: number;
-  setCount: number;
+  collectionStorageCount: number;
   collectionCount: number;
   viewCount: number;
   resolverCount: number;
@@ -128,14 +128,14 @@ export interface ManualSnapshotSummary {
 
 export interface TokenDiff {
   path: string;
-  set: string;
+  collectionId: string;
   status: "added" | "modified" | "removed";
   before?: ManualSnapshotToken;
   after?: ManualSnapshotToken;
 }
 
 export interface WorkspaceDiff {
-  kind: "themes" | "resolver" | "recipe";
+  kind: "collections" | "resolver" | "recipe" | "lint";
   id: string;
   label: string;
   status: "added" | "modified" | "removed";
@@ -149,7 +149,7 @@ export interface ManualSnapshotDiff {
 const MAX_SNAPSHOTS = 20;
 const MAX_RECOVERY_RETRIES = 3;
 const COLLECTIONS_WORKSPACE_ID = "$collections";
-const RESTORE_COLLECTIONS_STEP_ID = "restore-themes";
+const RESTORE_COLLECTION_WORKSPACE_STEP_ID = "restore-collection-workspace";
 
 function isRecord(
   value: unknown,
@@ -175,12 +175,12 @@ function cloneRecipes(recipes: SnapshotRecipes): SnapshotRecipes {
   return structuredClone(recipes);
 }
 
-function cloneRollbackSteps(steps: RollbackStep[]): RollbackStep[] {
-  return structuredClone(steps);
+function cloneLintConfig(config: LintConfig): LintConfig {
+  return structuredClone(config);
 }
 
-function buildRestoreSetStepId(setName: string): string {
-  return `restore-set:${setName}`;
+function cloneRollbackSteps(steps: RollbackStep[]): RollbackStep[] {
+  return structuredClone(steps);
 }
 
 function buildRestoreResolverStepId(name: string): string {
@@ -199,8 +199,8 @@ function buildDeleteRecipeStepId(id: string): string {
   return `delete-recipe:${id}`;
 }
 
-function buildDeleteSetStepId(setName: string): string {
-  return `delete-set:${setName}`;
+function buildRestoreLintConfigStepId(): string {
+  return "restore-lint-config";
 }
 
 function normalizeSnapshotEntry(raw: unknown): ManualSnapshotEntry {
@@ -215,9 +215,9 @@ function normalizeSnapshotEntry(raw: unknown): ManualSnapshotEntry {
       typeof raw.timestamp === "string"
         ? raw.timestamp
         : new Date().toISOString(),
-    data: isRecord(raw.data) ? (raw.data as SnapshotTokenSets) : {},
-    dimensions: Array.isArray(raw.dimensions)
-      ? structuredClone(raw.dimensions as TokenCollection[])
+    data: isRecord(raw.data) ? (raw.data as SnapshotCollectionTokens) : {},
+    collections: Array.isArray(raw.collections)
+      ? structuredClone(raw.collections as TokenCollection[])
       : [],
     views: Array.isArray(raw.views)
       ? structuredClone(raw.views as ViewPreset[])
@@ -228,6 +228,9 @@ function normalizeSnapshotEntry(raw: unknown): ManualSnapshotEntry {
     recipes: isRecord(raw.recipes)
       ? cloneRecipes(raw.recipes as SnapshotRecipes)
       : {},
+    lintConfig: isRecord(raw.lintConfig)
+      ? cloneLintConfig(raw.lintConfig as unknown as LintConfig)
+      : { lintRules: {} },
   };
 }
 
@@ -239,9 +242,9 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
   const snapshotId = typeof raw.snapshotId === "string" ? raw.snapshotId : "";
   const snapshotLabel =
     typeof raw.snapshotLabel === "string" ? raw.snapshotLabel : "Snapshot";
-  const data = isRecord(raw.data) ? (raw.data as SnapshotTokenSets) : {};
-  const dimensions = Array.isArray(raw.dimensions)
-    ? structuredClone(raw.dimensions as TokenCollection[])
+  const data = isRecord(raw.data) ? (raw.data as SnapshotCollectionTokens) : {};
+  const collections = Array.isArray(raw.collections)
+    ? structuredClone(raw.collections as TokenCollection[])
     : [];
   const views = Array.isArray(raw.views)
     ? structuredClone(raw.views as ViewPreset[])
@@ -252,8 +255,11 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
   const recipes = isRecord(raw.recipes)
     ? cloneRecipes(raw.recipes as SnapshotRecipes)
     : {};
-  const deleteSetNames = Array.isArray(raw.deleteSetNames)
-    ? structuredClone(raw.deleteSetNames as string[])
+  const lintConfig = isRecord(raw.lintConfig)
+    ? cloneLintConfig(raw.lintConfig as unknown as LintConfig)
+    : { lintRules: {} };
+  const deleteCollectionIds = Array.isArray(raw.deleteCollectionIds)
+    ? structuredClone(raw.deleteCollectionIds as string[])
     : [];
   const deleteResolverNames = Array.isArray(raw.deleteResolverNames)
     ? structuredClone(raw.deleteResolverNames as string[])
@@ -266,11 +272,12 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
     snapshotId,
     snapshotLabel,
     data,
-    dimensions,
+    collections,
     views,
     resolvers,
     recipes,
-    deleteSetNames,
+    lintConfig,
+    deleteCollectionIds,
     deleteResolverNames,
     deleteRecipeIds,
     rollbackSteps: Array.isArray(raw.rollbackSteps)
@@ -286,26 +293,26 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
 }
 
 function listTokenDiffs(
-  before: SnapshotTokenSets,
-  after: SnapshotTokenSets,
+  before: SnapshotCollectionTokens,
+  after: SnapshotCollectionTokens,
 ): TokenDiff[] {
-  const sets = new Set([...Object.keys(before), ...Object.keys(after)]);
+  const collectionIds = new Set([...Object.keys(before), ...Object.keys(after)]);
   const diffs: TokenDiff[] = [];
 
-  for (const setName of sets) {
-    const beforeSet = before[setName] ?? {};
-    const afterSet = after[setName] ?? {};
+  for (const collectionId of collectionIds) {
+    const beforeCollection = before[collectionId] ?? {};
+    const afterCollection = after[collectionId] ?? {};
     const allPaths = new Set([
-      ...Object.keys(beforeSet),
-      ...Object.keys(afterSet),
+      ...Object.keys(beforeCollection),
+      ...Object.keys(afterCollection),
     ]);
     for (const tokenPath of allPaths) {
-      const beforeToken = beforeSet[tokenPath];
-      const afterToken = afterSet[tokenPath];
+      const beforeToken = beforeCollection[tokenPath];
+      const afterToken = afterCollection[tokenPath];
       if (!beforeToken && afterToken) {
         diffs.push({
           path: tokenPath,
-          set: setName,
+          collectionId,
           status: "added",
           after: afterToken,
         });
@@ -314,7 +321,7 @@ function listTokenDiffs(
       if (beforeToken && !afterToken) {
         diffs.push({
           path: tokenPath,
-          set: setName,
+          collectionId,
           status: "removed",
           before: beforeToken,
         });
@@ -327,7 +334,7 @@ function listTokenDiffs(
       ) {
         diffs.push({
           path: tokenPath,
-          set: setName,
+          collectionId,
           status: "modified",
           before: beforeToken,
           after: afterToken,
@@ -342,32 +349,32 @@ function listTokenDiffs(
 function listWorkspaceDiffs(
   before: Pick<
     ManualSnapshotComparableState,
-    "dimensions" | "views" | "resolvers" | "recipes"
+    "collections" | "views" | "resolvers" | "recipes" | "lintConfig"
   >,
   after: Pick<
     ManualSnapshotComparableState,
-    "dimensions" | "views" | "resolvers" | "recipes"
+    "collections" | "views" | "resolvers" | "recipes" | "lintConfig"
   >,
 ): WorkspaceDiff[] {
   const diffs: WorkspaceDiff[] = [];
 
   if (
     stableStringify({
-      dimensions: before.dimensions,
+      collections: before.collections,
       views: before.views,
     }) !==
     stableStringify({
-      dimensions: after.dimensions,
+      collections: after.collections,
       views: after.views,
     })
   ) {
     const beforeEmpty =
-      before.dimensions.length === 0 && before.views.length === 0;
-    const afterEmpty = after.dimensions.length === 0 && after.views.length === 0;
+      before.collections.length === 0 && before.views.length === 0;
+    const afterEmpty = after.collections.length === 0 && after.views.length === 0;
     diffs.push({
-      kind: "themes",
+      kind: "collections",
       id: COLLECTIONS_WORKSPACE_ID,
-      label: "Collection modes and preview presets",
+      label: "Collections, modes, and view presets",
       status: beforeEmpty ? "added" : afterEmpty ? "removed" : "modified",
     });
   }
@@ -452,6 +459,21 @@ function listWorkspaceDiffs(
     }
   }
 
+  if (stableStringify(before.lintConfig) !== stableStringify(after.lintConfig)) {
+    const beforeEmpty =
+      Object.keys(before.lintConfig.lintRules ?? {}).length === 0 &&
+      (before.lintConfig.suppressions?.length ?? 0) === 0;
+    const afterEmpty =
+      Object.keys(after.lintConfig.lintRules ?? {}).length === 0 &&
+      (after.lintConfig.suppressions?.length ?? 0) === 0;
+    diffs.push({
+      kind: "lint",
+      id: "$lint",
+      label: "Lint configuration",
+      status: beforeEmpty ? "added" : afterEmpty ? "removed" : "modified",
+    });
+  }
+
   return diffs.sort((left, right) => {
     if (left.kind !== right.kind) {
       return left.kind.localeCompare(right.kind);
@@ -471,25 +493,31 @@ function compareSnapshotStates(
 }
 
 function buildSnapshotRestoreRollbackSteps({
-  currentDimensions,
+  currentCollections,
   currentViews,
   currentResolvers,
   currentRecipes,
+  currentLintConfig,
   snapshotResolvers,
   snapshotRecipes,
 }: {
-  currentDimensions: TokenCollection[];
+  currentCollections: TokenCollection[];
   currentViews: ViewPreset[];
   currentResolvers: SnapshotResolvers;
   currentRecipes: SnapshotRecipes;
+  currentLintConfig: LintConfig;
   snapshotResolvers: SnapshotResolvers;
   snapshotRecipes: SnapshotRecipes;
 }): RollbackStep[] {
   const steps: RollbackStep[] = [
     {
-      action: "write-themes",
-      dimensions: structuredClone(currentDimensions),
+      action: "restore-collection-state",
+      collections: structuredClone(currentCollections),
       views: structuredClone(currentViews),
+    },
+    {
+      action: "restore-lint-config",
+      config: cloneLintConfig(currentLintConfig),
     },
   ];
 
@@ -579,19 +607,19 @@ export class ManualSnapshotStore {
     });
   }
 
-  private async captureTokenSets(
+  private async captureCollectionTokens(
     tokenStore: TokenStore,
-  ): Promise<SnapshotTokenSets> {
-    const sets = await tokenStore.getSets();
-    const data: SnapshotTokenSets = {};
+    collectionIds: string[],
+  ): Promise<SnapshotCollectionTokens> {
+    const data: SnapshotCollectionTokens = {};
 
-    for (const setName of sets) {
-      const setObj = await tokenStore.getSet(setName);
-      if (!setObj) {
+    for (const collectionId of collectionIds) {
+      const collection = await tokenStore.getCollection(collectionId);
+      if (!collection) {
         continue;
       }
       const flat: Record<string, ManualSnapshotToken> = {};
-      for (const [tokenPath, token] of flattenTokenGroup(setObj.tokens)) {
+      for (const [tokenPath, token] of flattenTokenGroup(collection.tokens)) {
         flat[tokenPath] = {
           $value: token.$value,
           $type: token.$type,
@@ -599,7 +627,7 @@ export class ManualSnapshotStore {
           $extensions: token.$extensions,
         };
       }
-      data[setName] = flat;
+      data[collectionId] = flat;
     }
 
     return data;
@@ -619,44 +647,52 @@ export class ManualSnapshotStore {
 
   private async captureCurrentState(
     tokenStore: TokenStore,
-    collectionsStore: CollectionsStore,
+    collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
+    lintConfigStore: LintConfigStore,
   ): Promise<ManualSnapshotEntry> {
-    const [data, collectionState, resolvers, recipes] = await Promise.all([
-      this.captureTokenSets(tokenStore),
-      collectionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
+    const [collectionState, resolvers, recipes, lintConfig] = await Promise.all([
+      collectionService.loadState(),
       this.captureCurrentResolvers(resolverStore),
       recipeService.getAllById(),
+      lintConfigStore.get(),
     ]);
+    const collectionIds = collectionState.collections.map(
+      (collection) => collection.id,
+    );
+    const data = await this.captureCollectionTokens(tokenStore, collectionIds);
 
     return {
       id: "",
       label: "",
       timestamp: "",
       data,
-      dimensions: collectionState.collections,
+      collections: collectionState.collections,
       views: collectionState.views,
       resolvers,
       recipes,
+      lintConfig,
     };
   }
 
   save(
     label: string,
     tokenStore: TokenStore,
-    collectionsStore: CollectionsStore,
+    collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
+    lintConfigStore: LintConfigStore,
   ): Promise<ManualSnapshotEntry> {
     return this.lock.withLock(async () => {
       await this.ensureLoaded();
 
       const current = await this.captureCurrentState(
         tokenStore,
-        collectionsStore,
+        collectionService,
         resolverStore,
         recipeService,
+        lintConfigStore,
       );
 
       const entry: ManualSnapshotEntry = {
@@ -664,10 +700,11 @@ export class ManualSnapshotStore {
         label,
         timestamp: new Date().toISOString(),
         data: current.data,
-        dimensions: current.dimensions,
+        collections: current.collections,
         views: current.views,
         resolvers: current.resolvers,
         recipes: current.recipes,
+        lintConfig: current.lintConfig,
       };
 
       this.snapshots.push(entry);
@@ -692,11 +729,12 @@ export class ManualSnapshotStore {
         label: snapshot.label,
         timestamp: snapshot.timestamp,
         tokenCount: Object.values(snapshot.data).reduce(
-          (total, setTokens) => total + Object.keys(setTokens).length,
+          (total, collectionTokens) =>
+            total + Object.keys(collectionTokens).length,
           0,
         ),
-        setCount: Object.keys(snapshot.data).length,
-        collectionCount: snapshot.dimensions.length,
+        collectionStorageCount: Object.keys(snapshot.data).length,
+        collectionCount: snapshot.collections.length,
         viewCount: snapshot.views.length,
         resolverCount: Object.keys(snapshot.resolvers).length,
         recipeCount: Object.keys(snapshot.recipes).length,
@@ -736,20 +774,12 @@ export class ManualSnapshotStore {
   ): RestorePlan {
     const steps: RestorePlanStep[] = [];
 
-    for (const [setName, flatTokens] of Object.entries(source.data)) {
-      steps.push({
-        stepId: buildRestoreSetStepId(setName),
-        kind: "restore-set",
-        setName,
-        flatTokens,
-      });
-    }
-
     steps.push({
-      stepId: RESTORE_COLLECTIONS_STEP_ID,
-      kind: "restore-themes",
-      dimensions: structuredClone(source.dimensions),
+      stepId: RESTORE_COLLECTION_WORKSPACE_STEP_ID,
+      kind: "restore-collection-workspace",
+      collections: structuredClone(source.collections),
       views: structuredClone(source.views),
+      data: structuredClone(source.data),
     });
 
     for (const [name, file] of Object.entries(source.resolvers)) {
@@ -785,13 +815,11 @@ export class ManualSnapshotStore {
       });
     }
 
-    for (const setName of source.deleteSetNames) {
-      steps.push({
-        stepId: buildDeleteSetStepId(setName),
-        kind: "delete-set",
-        setName,
-      });
-    }
+    steps.push({
+      stepId: buildRestoreLintConfigStepId(),
+      kind: "restore-lint-config",
+      config: cloneLintConfig(source.lintConfig),
+    });
 
     return {
       ...source,
@@ -808,12 +836,13 @@ export class ManualSnapshotStore {
       snapshotId: snapshot.id,
       snapshotLabel: snapshot.label,
       data: snapshot.data,
-      dimensions: structuredClone(snapshot.dimensions),
+      collections: structuredClone(snapshot.collections),
       views: structuredClone(snapshot.views),
       resolvers: cloneResolvers(snapshot.resolvers),
       recipes: cloneRecipes(snapshot.recipes),
-      deleteSetNames: currentWorkspaceState.setNames.filter(
-        (setName) => !(setName in snapshot.data),
+      lintConfig: cloneLintConfig(snapshot.lintConfig),
+      deleteCollectionIds: currentWorkspaceState.collectionIds.filter(
+        (collectionId) => !(collectionId in snapshot.data),
       ),
       deleteResolverNames: Object.keys(currentWorkspaceState.resolvers).filter(
         (name) => !(name in snapshot.resolvers),
@@ -822,10 +851,11 @@ export class ManualSnapshotStore {
         (id) => !(id in snapshot.recipes),
       ),
       rollbackSteps: buildSnapshotRestoreRollbackSteps({
-        currentDimensions: currentWorkspaceState.dimensions,
+        currentCollections: currentWorkspaceState.collections,
         currentViews: currentWorkspaceState.views ?? [],
         currentResolvers: currentWorkspaceState.resolvers,
         currentRecipes: currentWorkspaceState.recipes,
+        currentLintConfig: currentWorkspaceState.lintConfig,
         snapshotResolvers: snapshot.resolvers,
         snapshotRecipes: snapshot.recipes,
       }),
@@ -839,11 +869,12 @@ export class ManualSnapshotStore {
       snapshotId: journal.snapshotId,
       snapshotLabel: journal.snapshotLabel,
       data: journal.data,
-      dimensions: structuredClone(journal.dimensions),
+      collections: structuredClone(journal.collections),
       views: structuredClone(journal.views),
       resolvers: cloneResolvers(journal.resolvers),
       recipes: cloneRecipes(journal.recipes),
-      deleteSetNames: structuredClone(journal.deleteSetNames),
+      lintConfig: cloneLintConfig(journal.lintConfig),
+      deleteCollectionIds: structuredClone(journal.deleteCollectionIds),
       deleteResolverNames: structuredClone(journal.deleteResolverNames),
       deleteRecipeIds: structuredClone(journal.deleteRecipeIds),
       rollbackSteps: cloneRollbackSteps(journal.rollbackSteps),
@@ -857,11 +888,12 @@ export class ManualSnapshotStore {
       snapshotId: plan.snapshotId,
       snapshotLabel: plan.snapshotLabel,
       data: plan.data,
-      dimensions: structuredClone(plan.dimensions),
+      collections: structuredClone(plan.collections),
       views: structuredClone(plan.views),
       resolvers: cloneResolvers(plan.resolvers),
       recipes: cloneRecipes(plan.recipes),
-      deleteSetNames: structuredClone(plan.deleteSetNames),
+      lintConfig: cloneLintConfig(plan.lintConfig),
+      deleteCollectionIds: structuredClone(plan.deleteCollectionIds),
       deleteResolverNames: structuredClone(plan.deleteResolverNames),
       deleteRecipeIds: structuredClone(plan.deleteRecipeIds),
       rollbackSteps: cloneRollbackSteps(plan.rollbackSteps),
@@ -871,9 +903,9 @@ export class ManualSnapshotStore {
   }
 
   private buildRestoreResult(plan: RestorePlan): {
-    restoredSets: string[];
-    deletedSets: string[];
-    restoredThemes: boolean;
+    restoredCollections: string[];
+    deletedCollections: string[];
+    restoredCollectionState: boolean;
     restoredResolvers: string[];
     deletedResolvers: string[];
     restoredRecipes: string[];
@@ -881,9 +913,9 @@ export class ManualSnapshotStore {
     rollbackSteps: RollbackStep[];
   } {
     return {
-      restoredSets: Object.keys(plan.data),
-      deletedSets: structuredClone(plan.deleteSetNames),
-      restoredThemes: true,
+      restoredCollections: Object.keys(plan.data),
+      deletedCollections: structuredClone(plan.deleteCollectionIds),
+      restoredCollectionState: true,
       restoredResolvers: Object.keys(plan.resolvers),
       deletedResolvers: structuredClone(plan.deleteResolverNames),
       restoredRecipes: Object.values(plan.recipes).map(
@@ -911,9 +943,10 @@ export class ManualSnapshotStore {
   async diff(
     id: string,
     tokenStore: TokenStore,
-    collectionsStore: CollectionsStore,
+    collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
+    lintConfigStore: LintConfigStore,
   ): Promise<ManualSnapshotDiff> {
     await this.ensureLoaded();
     const snapshot = this.snapshots.find((entry) => entry.id === id);
@@ -923,40 +956,37 @@ export class ManualSnapshotStore {
 
     const current = await this.captureCurrentState(
       tokenStore,
-      collectionsStore,
+      collectionService,
       resolverStore,
       recipeService,
+      lintConfigStore,
     );
 
     return compareSnapshotStates(snapshot, current);
   }
 
-  private async restoreSet(
-    tokenStore: TokenStore,
-    setName: string,
-    flatTokens: Record<string, ManualSnapshotToken>,
-  ): Promise<void> {
-    const set = await tokenStore.getSet(setName);
-    if (!set) {
-      await tokenStore.createSet(setName, {});
-    }
-    await tokenStore.replaceSetTokens(setName, inflateSnapshotTokens(flatTokens));
-  }
-
-  private async restoreThemes(
-    collectionsStore: CollectionsStore,
+  private async restoreCollectionWorkspace(
+    collectionService: CollectionService,
     state: {
-      dimensions: TokenCollection[];
+      collections: TokenCollection[];
       views: ViewPreset[];
+      data: SnapshotCollectionTokens;
     },
   ): Promise<void> {
-    await collectionsStore.withStateLock(async () => ({
+    const tokensByCollection = Object.fromEntries(
+      Object.entries(state.data).map(([collectionId, flatTokens]) => [
+        collectionId,
+        inflateSnapshotTokens(flatTokens),
+      ]),
+    );
+
+    await collectionService.restoreCollectionWorkspaceWithinLock({
       state: {
-        collections: structuredClone(state.dimensions),
+        collections: structuredClone(state.collections),
         views: structuredClone(state.views),
       },
-      result: undefined,
-    }));
+      tokensByCollection,
+    });
   }
 
   private async restoreResolver(
@@ -981,23 +1011,25 @@ export class ManualSnapshotStore {
 
   private async captureRestoreWorkspaceState(
     tokenStore: TokenStore,
-    collectionsStore: CollectionsStore,
+    collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
+    lintConfigStore: LintConfigStore,
   ): Promise<RestoreWorkspaceState> {
-    const [setNames, collectionState, resolvers, recipes] = await Promise.all([
-      tokenStore.getSets(),
-      collectionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
+    const [collectionState, resolvers, recipes, lintConfig] = await Promise.all([
+      collectionService.loadState(),
       this.captureCurrentResolvers(resolverStore),
       recipeService.getAllById(),
+      lintConfigStore.get(),
     ]);
 
     return {
-      setNames,
-      dimensions: collectionState.collections,
+      collectionIds: collectionState.collections.map((collection) => collection.id),
+      collections: collectionState.collections,
       views: collectionState.views,
       resolvers,
       recipes,
+      lintConfig,
     };
   }
 
@@ -1011,10 +1043,8 @@ export class ManualSnapshotStore {
 
   private describeRestoreStep(step: RestorePlanStep): string {
     switch (step.kind) {
-      case "restore-set":
-        return `restore set "${step.setName}"`;
-      case "restore-themes":
-        return "restore collection modes and preview presets";
+      case "restore-collection-workspace":
+        return "restore collections, modes, view presets, and token storage";
       case "restore-resolver":
         return `restore resolver "${step.name}"`;
       case "delete-resolver":
@@ -1023,27 +1053,25 @@ export class ManualSnapshotStore {
         return `restore recipe "${step.recipe.id}"`;
       case "delete-recipe":
         return `delete recipe "${step.id}"`;
-      case "delete-set":
-        return `delete set "${step.setName}"`;
+      case "restore-lint-config":
+        return "restore lint configuration";
     }
   }
 
   private async executeRestoreStep(
     step: RestorePlanStep,
-    tokenStore: TokenStore,
-    collectionsStore: CollectionsStore,
+    collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
+    lintConfigStore: LintConfigStore,
   ): Promise<void> {
     switch (step.kind) {
-      case "restore-set":
-        await this.restoreSet(tokenStore, step.setName, step.flatTokens);
-        return;
-      case "restore-themes":
+      case "restore-collection-workspace":
         await resolverStore.lock.withLock(async () => {
-          await this.restoreThemes(collectionsStore, {
-            dimensions: step.dimensions,
+          await this.restoreCollectionWorkspace(collectionService, {
+            collections: step.collections,
             views: step.views,
+            data: step.data,
           });
         });
         return;
@@ -1063,8 +1091,8 @@ export class ManualSnapshotStore {
       case "delete-recipe":
         await recipeService.delete(step.id);
         return;
-      case "delete-set":
-        await tokenStore.deleteSet(step.setName);
+      case "restore-lint-config":
+        await lintConfigStore.save(step.config);
         return;
     }
   }
@@ -1072,10 +1100,10 @@ export class ManualSnapshotStore {
   private async executeRestorePlan(
     plan: RestorePlan,
     journal: RestoreJournal,
-    tokenStore: TokenStore,
-    collectionsStore: CollectionsStore,
+    collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
+    lintConfigStore: LintConfigStore,
     options: { recoveryMode: boolean },
   ): Promise<boolean> {
     let allResolved = true;
@@ -1096,10 +1124,10 @@ export class ManualSnapshotStore {
       try {
         await this.executeRestoreStep(
           step,
-          tokenStore,
-          collectionsStore,
+          collectionService,
           resolverStore,
           recipeService,
+          lintConfigStore,
         );
         journal.completedStepIds.push(step.stepId);
         delete journal.failedStepAttempts[step.stepId];
@@ -1126,14 +1154,15 @@ export class ManualSnapshotStore {
   restore(
     id: string,
     tokenStore: TokenStore,
-    collectionsStore: CollectionsStore,
+    collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
+    lintConfigStore: LintConfigStore,
     currentWorkspaceState?: RestoreWorkspaceState,
   ): Promise<{
-    restoredSets: string[];
-    deletedSets: string[];
-    restoredThemes: boolean;
+    restoredCollections: string[];
+    deletedCollections: string[];
+    restoredCollectionState: boolean;
     restoredResolvers: string[];
     deletedResolvers: string[];
     restoredRecipes: string[];
@@ -1151,16 +1180,15 @@ export class ManualSnapshotStore {
         currentWorkspaceState ??
         (await this.captureRestoreWorkspaceState(
           tokenStore,
-          collectionsStore,
+          collectionService,
           resolverStore,
           recipeService,
+          lintConfigStore,
         ));
       const currentCollectionState =
         baseline.views !== undefined
-          ? { collections: baseline.dimensions, views: baseline.views }
-          : await collectionsStore.withReadStateLock((state) =>
-              Promise.resolve(structuredClone(state)),
-            );
+          ? { collections: baseline.collections, views: baseline.views }
+          : await collectionService.loadState();
       const resolvedBaseline =
         baseline.views !== undefined
           ? baseline
@@ -1178,10 +1206,10 @@ export class ManualSnapshotStore {
       await this.executeRestorePlan(
         plan,
         journal,
-        tokenStore,
-        collectionsStore,
+        collectionService,
         resolverStore,
         recipeService,
+        lintConfigStore,
         { recoveryMode: false },
       );
 
@@ -1192,10 +1220,10 @@ export class ManualSnapshotStore {
   }
 
   async recoverPendingRestore(
-    tokenStore: TokenStore,
-    collectionsStore: CollectionsStore,
+    collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,
+    lintConfigStore: LintConfigStore,
   ): Promise<void> {
     let journal: RestoreJournal;
     try {
@@ -1222,10 +1250,10 @@ export class ManualSnapshotStore {
     const allResolved = await this.executeRestorePlan(
       plan,
       journal,
-      tokenStore,
-      collectionsStore,
+      collectionService,
       resolverStore,
       recipeService,
+      lintConfigStore,
       { recoveryMode: true },
     );
 

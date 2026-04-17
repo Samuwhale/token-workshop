@@ -894,7 +894,10 @@ export function BatchEditor({
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paths, targetSet }),
+          body: JSON.stringify({
+            paths,
+            targetCollectionId: targetSet,
+          }),
         },
       );
       const count = (type === 'move' ? result.moved : result.copied) ?? 0;

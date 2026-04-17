@@ -24,7 +24,7 @@ export interface RecipePreviewDiff {
 
 export interface RecipePreviewChangeEntry {
   path: string;
-  setName: string;
+  collectionId: string;
   type: string;
   currentValue: unknown;
   newValue: unknown;
@@ -42,14 +42,14 @@ export interface RecipePreviewManualConflictEntry extends RecipePreviewChangeEnt
 
 export interface RecipePreviewDeletedEntry {
   path: string;
-  setName: string;
+  collectionId: string;
   type: string;
   currentValue: unknown;
 }
 
 export interface RecipePreviewDetachedEntry {
   path: string;
-  setName: string;
+  collectionId: string;
   type: string;
   currentValue: unknown;
   newValue?: unknown;
@@ -385,7 +385,7 @@ export function useRecipePreview({
         .filter((entry) => entry.state === 'recreated' && entry.newValue !== undefined && stableValueChanged(entry.currentValue, entry.newValue))
         .map((entry) => ({
           path: entry.path,
-          setName: entry.setName,
+          collectionId: entry.collectionId,
           type: entry.type,
           currentValue: entry.currentValue,
           newValue: entry.newValue,

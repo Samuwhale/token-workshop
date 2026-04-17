@@ -389,7 +389,7 @@ export interface TokenRecipe {
 
 /** A single brand row in an InputTable. */
 export interface InputTableRow {
-  /** Slug used to substitute `{brand}` in `targetSetTemplate`, e.g. "berry". */
+  /** Slug used to substitute `{brand}` in `targetCollectionTemplate`, e.g. "berry". */
   brand: string;
   /**
    * Named inputs for this row. The key matching `InputTable.inputKey` is used
@@ -400,7 +400,7 @@ export interface InputTableRow {
 
 /**
  * A table of brand rows. Each row runs the recipe independently and writes
- * to a brand-specific token set.
+ * to a brand-specific collection.
  */
 export interface InputTable {
   /**

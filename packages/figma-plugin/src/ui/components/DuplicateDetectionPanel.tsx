@@ -3,7 +3,7 @@ import { createTokenBody, updateToken } from '../shared/tokenMutations';
 
 export interface DuplicateTokenCandidate {
   path: string;
-  setName: string;
+  collectionId: string;
   type: string;
   lifecycle?: 'draft' | 'published' | 'deprecated';
   scopes: string[];
@@ -28,8 +28,8 @@ export interface DuplicateDetectionPanelProps {
   onRefreshValidation: () => void;
 }
 
-function tokenKey(token: { path: string; setName: string }): string {
-  return `${token.setName}:${token.path}`;
+function tokenKey(token: { path: string; collectionId: string }): string {
+  return `${token.collectionId}:${token.path}`;
 }
 
 function formatLifecycle(lifecycle?: DuplicateTokenCandidate['lifecycle']): string {
@@ -50,11 +50,11 @@ function getMetadataDiffs(
 ): Array<{ label: string; canonical: string; candidate: string }> {
   const diffs: Array<{ label: string; canonical: string; candidate: string }> = [];
 
-  if (canonical.setName !== candidate.setName) {
+  if (canonical.collectionId !== candidate.collectionId) {
     diffs.push({
-      label: 'Set',
-      canonical: canonical.setName,
-      candidate: candidate.setName,
+      label: 'Collection',
+      canonical: canonical.collectionId,
+      candidate: candidate.collectionId,
     });
   }
 
@@ -118,7 +118,7 @@ export function DuplicateDetectionPanel({
   if (lintDuplicateGroups.length === 0) return null;
 
   const patchTokenToAlias = async (token: DuplicateTokenCandidate, canonicalPath: string) => {
-    await updateToken(serverUrl, token.setName, token.path, createTokenBody({ $value: `{${canonicalPath}}` }));
+    await updateToken(serverUrl, token.collectionId, token.path, createTokenBody({ $value: `{${canonicalPath}}` }));
   };
 
   const resolveGroup = async (group: DuplicateGroup, canonical: DuplicateTokenCandidate) => {
@@ -288,7 +288,7 @@ export function DuplicateDetectionPanel({
                                     <span className={`w-3 h-3 rounded-full border ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-transparent'}`} />
                                     {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
                                     <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.setName}</span>
+                                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.collectionId}</span>
                                     {isSelected && <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>}
                                   </div>
                                   <div className="mt-1 pl-5 flex flex-wrap gap-1">
@@ -298,7 +298,7 @@ export function DuplicateDetectionPanel({
                                 </button>
                                 {onNavigateToToken && (
                                   <button
-                                    onClick={() => onNavigateToToken(token.path, token.setName)}
+                                    onClick={() => onNavigateToToken(token.path, token.collectionId)}
                                     className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
                                   >
                                     Open
@@ -333,7 +333,7 @@ export function DuplicateDetectionPanel({
                                 <div key={tokenKey(token)} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/60 p-2">
                                   <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.setName}</span>
+                                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.collectionId}</span>
                                   </div>
                                   {diffs.length > 0 ? (
                                     <div className="mt-1 flex flex-col gap-1">

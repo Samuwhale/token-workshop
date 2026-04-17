@@ -103,7 +103,7 @@ export function useVariablesImport({
 
         for (const { mode, setName } of allModes) {
           try {
-            await apiFetch(`${serverUrl}/api/sets`, {
+            await apiFetch(`${serverUrl}/api/collections`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: setName }),

@@ -176,7 +176,7 @@ export function useTokenSearch({
   }, [tokens]);
 
   // Cross-set search: debounced server-side search across all sets
-  const [crossSetResults, setCrossSetResults] = useState<Array<{ setName: string; path: string; entry: TokenMapEntry }> | null>(null);
+  const [crossSetResults, setCrossSetResults] = useState<Array<{ collectionId: string; path: string; entry: TokenMapEntry }> | null>(null);
   const [crossSetTotal, setCrossSetTotal] = useState<number>(0);
   const [crossSetOffset, setCrossSetOffset] = useState<number>(0);
   const crossSetAbortRef = useRef<AbortController | null>(null);
@@ -212,10 +212,10 @@ export function useTokenSearch({
     crossSetAbortRef.current = ctrl;
 
     const timer = setTimeout(() => {
-      apiFetch<{ data: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
+      apiFetch<{ data: Array<{ collectionId: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
         .then(data => {
           const mapped = data.data.map(r => ({
-            setName: r.setName,
+            collectionId: r.collectionId,
             path: r.path,
             entry: { $value: r.$value as any, $type: r.$type, $name: r.name },
           }));

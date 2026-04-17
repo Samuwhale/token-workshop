@@ -19,7 +19,7 @@ export interface SetRecipeTargetImpact {
 }
 
 export interface SetPreflightImpact {
-  name: string;
+  collectionId: string;
   tokenCount: number;
   metadata: {
     description?: string;
@@ -31,8 +31,8 @@ export interface SetPreflightImpact {
 
 export interface SetPreflightBlocker {
   id: string;
-  code: "generated-token-ownership" | "recipe-target-set" | "resolver-set-ref";
-  setName: string;
+  code: "generated-token-ownership" | "recipe-target-collection" | "resolver-collection-ref";
+  collectionId: string;
   message: string;
   recipeId?: string;
   recipeName?: string;
@@ -46,14 +46,14 @@ export interface SetMergeConflict {
 
 export interface SetSplitPreviewItem {
   key: string;
-  newName: string;
+  newCollectionId: string;
   count: number;
   existing: boolean;
 }
 
 export interface SetStructuralPreflight {
   operation: SetStructuralOperation;
-  affectedSets: SetPreflightImpact[];
+  affectedCollections: SetPreflightImpact[];
   blockers: SetPreflightBlocker[];
   warnings: string[];
   mergeConflicts?: SetMergeConflict[];

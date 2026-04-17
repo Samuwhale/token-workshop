@@ -27,7 +27,7 @@ export interface TokenEditorInfoSectionProps {
   referenceTrace: TokenDependencyNode[];
   dependentTrace: TokenDependencyNode[];
   dependencySnapshot: TokenDependencySnapshot | null;
-  dependents: Array<{ path: string; setName: string }>;
+  dependents: Array<{ path: string; collectionId: string }>;
   dependentsLoading: boolean;
   colorFlatMap: Record<string, unknown>;
   allTokensFlat: Record<string, TokenMapEntry>;
@@ -210,9 +210,9 @@ export function TokenEditorInfoSection({
                     <span className={`${LONG_TEXT_CLASSES.mono} flex-1 text-[var(--color-figma-accent)] group-hover:underline`}>
                       {node.path}
                     </span>
-                    {node.setName && node.setName !== setName && (
+                    {node.collectionId && node.collectionId !== setName && (
                       <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                        {node.setName}
+                        {node.collectionId}
                       </span>
                     )}
                     {onNavigateToToken && (
@@ -326,9 +326,9 @@ export function TokenEditorInfoSection({
                         <span className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1 group-hover:underline`}>
                           {dep.path}
                         </span>
-                        {dep.setName && dep.setName !== setName && (
+                        {dep.collectionId && dep.collectionId !== setName && (
                           <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                            {dep.setName}
+                            {dep.collectionId}
                           </span>
                         )}
                         {onNavigateToToken && (

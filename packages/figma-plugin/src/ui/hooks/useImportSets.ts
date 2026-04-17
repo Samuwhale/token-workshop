@@ -26,8 +26,8 @@ export function useImportSets({ serverUrl, connected, onClearConflictState }: Us
     if (!connected) return;
     setSetsError(null);
     try {
-      const data = await apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`);
-      const fetchedSets: string[] = data.sets || [];
+      const data = await apiFetch<{ collections?: Array<{ id: string }> }>(`${serverUrl}/api/collections`);
+      const fetchedSets = (data.collections || []).map((collection) => collection.id);
       setSets(fetchedSets);
       setTargetSet(prev => {
         if (fetchedSets.includes(prev)) return prev;

@@ -15,7 +15,7 @@ export function useTokenDependents({
   tokenPath,
   isCreateMode,
 }: UseTokenDependentsParams) {
-  const [dependents, setDependents] = useState<Array<{ path: string; setName: string }>>([]);
+  const [dependents, setDependents] = useState<Array<{ path: string; collectionId: string }>>([]);
   const [dependentsLoading, setDependentsLoading] = useState(false);
 
   const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
@@ -26,7 +26,7 @@ export function useTokenDependents({
     const fetchDependents = async () => {
       setDependentsLoading(true);
       try {
-        const data = await apiFetch<{ dependents?: Array<{ path: string; setName: string }> }>(
+        const data = await apiFetch<{ dependents?: Array<{ path: string; collectionId: string }> }>(
           `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`,
           { signal: controller.signal }
         );

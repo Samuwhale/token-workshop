@@ -92,8 +92,8 @@ export function useSetTabs({
     newOrder.splice(targetIdx, 0, setName);
     setSets(newOrder);
     try {
-      await apiFetch(`${serverUrl}/api/sets/reorder`, {
-        method: 'PUT',
+      await apiFetch(`${serverUrl}/api/collections/reorder`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: newOrder }),
       });
@@ -107,8 +107,8 @@ export function useSetTabs({
   const handleReorderSetFull = async (newOrder: string[]) => {
     setSets(newOrder);
     try {
-      await apiFetch(`${serverUrl}/api/sets/reorder`, {
-        method: 'PUT',
+      await apiFetch(`${serverUrl}/api/collections/reorder`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: newOrder }),
       });

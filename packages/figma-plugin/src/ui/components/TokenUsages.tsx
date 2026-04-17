@@ -20,7 +20,7 @@ interface BoundVariable {
 }
 
 interface TokenUsagesProps {
-  dependents: Array<{ path: string; setName: string }>;
+  dependents: Array<{ path: string; collectionId: string }>;
   dependentsLoading: boolean;
   setName: string;
   tokenPath: string;
@@ -124,7 +124,7 @@ export function TokenUsages({
 
   // Resolvers that reference this token's set
   const resolverAssignments = useMemo(() => {
-    return resolvers.filter(r => r.referencedSets.includes(owningSet));
+    return resolvers.filter(r => r.referencedCollections.includes(owningSet));
   }, [resolvers, owningSet]);
 
   // Layers state
@@ -386,9 +386,9 @@ export function TokenUsages({
                       <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={dep.path}>
                         {dep.path}
                       </span>
-                      {dep.setName !== setName && (
+                      {dep.collectionId !== setName && (
                         <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-                          {dep.setName}
+                          {dep.collectionId}
                         </span>
                       )}
                     </>

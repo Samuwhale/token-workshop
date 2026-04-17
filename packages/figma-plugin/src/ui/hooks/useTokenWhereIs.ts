@@ -3,7 +3,7 @@ import { apiFetch } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
 export interface WhereIsResult {
-  setName: string;
+  collectionId: string;
   $type: string;
   $value: unknown;
   $description?: string;

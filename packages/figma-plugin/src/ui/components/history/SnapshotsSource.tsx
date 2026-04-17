@@ -12,13 +12,13 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
     return '';
   }
 
-  const themeCount = workspaceDiffs.filter(diff => diff.kind === 'themes').length;
+  const collectionCount = workspaceDiffs.filter(diff => diff.kind === 'collections').length;
   const resolverCount = workspaceDiffs.filter(diff => diff.kind === 'resolver').length;
   const recipeCount = workspaceDiffs.filter(diff => diff.kind === 'recipe').length;
   const parts: string[] = [];
 
-  if (themeCount > 0) {
-    parts.push(`${themeCount} theme ${themeCount === 1 ? 'change' : 'changes'}`);
+  if (collectionCount > 0) {
+    parts.push(`${collectionCount} collection ${collectionCount === 1 ? 'change' : 'changes'}`);
   }
   if (resolverCount > 0) {
     parts.push(`${resolverCount} resolver ${resolverCount === 1 ? 'change' : 'changes'}`);
@@ -214,7 +214,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
     setReverting(true);
     setSingleCompareError(null);
     try {
-      const result = await apiFetch<{ ok: true; restoredSets: string[]; operationId?: string }>(
+      const result = await apiFetch<{ ok: true; restoredCollections: string[]; operationId?: string }>(
         `${serverUrl}/api/snapshots/${comparing}/restore`,
         { method: 'POST' },
       );
@@ -625,7 +625,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
               <polyline points="7 3 7 8 15 8" />
             </svg>
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              Save your current workspace before making changes. Come back to compare or restore token sets, modes, resolvers, and recipes anytime.
+              Save your current workspace before making changes. Come back to compare or restore collections, modes, resolvers, and recipes anytime.
             </p>
           </div>
         )}
@@ -642,7 +642,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                       {s.label}
                     </p>
                     <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
-                      {formatRelativeTime(new Date(s.timestamp))}{ticker >= 0 ? '' : ''} · {s.tokenCount} tokens · {s.setCount} {s.setCount === 1 ? 'set' : 'sets'}
+                      {formatRelativeTime(new Date(s.timestamp))}{ticker >= 0 ? '' : ''} · {s.tokenCount} tokens · {s.collectionStorageCount} {s.collectionStorageCount === 1 ? 'collection file' : 'collection files'}
                       {(s.collectionCount + s.resolverCount + s.recipeCount) > 0 ? ` · ${[
                         s.collectionCount > 0 ? `${s.collectionCount} ${s.collectionCount === 1 ? 'collection' : 'collections'}` : '',
                         s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',

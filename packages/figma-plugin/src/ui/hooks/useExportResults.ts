@@ -110,7 +110,7 @@ export function useExportResults({
                 setExporting(false);
                 return;
               }
-              const data = await apiFetch<{ changes: { path: string; status: string }[] }>(
+              const data = await apiFetch<{ changes: { path: string; collectionId: string; status: string }[] }>(
                 `${serverUrl}/api/sync/diff/tokens/since?timestamp=${lastExportTimestamp}`,
               );
               paths = data.changes
@@ -118,7 +118,7 @@ export function useExportResults({
                 .map(c => c.path);
               setDiffPaths(paths);
             } else {
-              const data = await apiFetch<{ changes: { path: string; status: string }[] }>(
+              const data = await apiFetch<{ changes: { path: string; collectionId: string; status: string }[] }>(
                 `${serverUrl}/api/sync/diff/tokens`,
               );
               paths = data.changes
@@ -153,13 +153,13 @@ export function useExportResults({
 
       const body: {
         platforms: string[];
-        sets?: string[];
+        collections?: string[];
         types?: string[];
         pathPrefix?: string;
         cssSelector?: string;
         changedPaths?: string[];
       } = { platforms: Array.from(selected) };
-      if (selectedSets !== null) body.sets = Array.from(selectedSets);
+      if (selectedSets !== null) body.collections = Array.from(selectedSets);
       if (selectedTypes !== null) body.types = Array.from(selectedTypes);
       if (pathPrefix.trim()) body.pathPrefix = pathPrefix.trim();
       if (selected.has('css') && cssSelector && cssSelector !== ':root') body.cssSelector = cssSelector;

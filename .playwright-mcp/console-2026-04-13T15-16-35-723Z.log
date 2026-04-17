@@ -1,2 +1,0 @@
-[     462ms] [ERROR] Failed to fetch token set "primitives": AbortError: The user aborted a request. @ http://localhost:3200/dist/ui.html:9125
-[  425395ms] [WARNING] [ConnectionProvider] git status check failed: TimeoutError: signal timed out @ http://localhost:3200/dist/ui.html:9426

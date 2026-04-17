@@ -75,6 +75,15 @@ export function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+function extractExtraErrorFields(err: unknown): Record<string, unknown> {
+  if (!err || typeof err !== "object") return {};
+  const extras: Record<string, unknown> = {};
+  const maybe = err as Record<string, unknown>;
+  if (Array.isArray(maybe.blockers)) extras.blockers = maybe.blockers;
+  if (Array.isArray(maybe.conflicts)) extras.conflicts = maybe.conflicts;
+  return extras;
+}
+
 /**
  * Shared route error handler.
  * Sends the appropriate HTTP status based on the error type.
@@ -89,11 +98,13 @@ export function handleRouteError(
 ): unknown {
   const statusCode = getHttpStatusCode(err);
   const msg = getErrorMessage(err);
+  const extras = extractExtraErrorFields(err);
   if (statusCode) {
-    return reply.status(statusCode).send({ error: msg });
+    return reply.status(statusCode).send({ error: msg, ...extras });
   }
   return reply.status(500).send({
     error: fallbackMessage ?? msg,
     ...(fallbackMessage ? { detail: msg } : {}),
+    ...extras,
   });
 }

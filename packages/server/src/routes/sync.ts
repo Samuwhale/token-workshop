@@ -1,13 +1,13 @@
 import fs from "node:fs/promises";
 import type { FastifyPluginAsync } from "fastify";
-import type { Token } from "@tokenmanager/core";
+import type { CollectionPublishRouting, Token } from "@tokenmanager/core";
 import { flattenTokenGroup } from "@tokenmanager/core";
 import type {
   FieldChange,
   FieldChangeOperationMetadata,
+  SnapshotEntry,
 } from "../services/operation-log.js";
 import { snapshotPaths } from "../services/operation-log.js";
-import type { PublishRouteState } from "../services/token-store.js";
 import { handleRouteError } from "../errors.js";
 import type { GitTokenChange as TokenChange } from "../services/git-sync.js";
 
@@ -22,22 +22,39 @@ function readGitLogField(entry: unknown, field: string): string {
 export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
+  const buildPublishRoutingMaps = async (): Promise<{
+    collectionMap: Record<string, string>;
+    modeMap: Record<string, string>;
+  }> => {
+    const state = await fastify.collectionService.loadState();
+    const collectionMap: Record<string, string> = {};
+    const modeMap: Record<string, string> = {};
+
+    for (const collection of state.collections) {
+      if (collection.publishRouting?.collectionName) {
+        collectionMap[collection.id] = collection.publishRouting.collectionName;
+      }
+      if (collection.publishRouting?.modeName) {
+        modeMap[collection.id] = collection.publishRouting.modeName;
+      }
+    }
+
+    return { collectionMap, modeMap };
+  };
+
   fastify.get("/sync/publish-routing", async (_request, reply) => {
     try {
-      return {
-        collectionMap: fastify.tokenStore.getPublishRouteCollectionNames(),
-        modeMap: fastify.tokenStore.getPublishRouteModeNames(),
-      };
+      return buildPublishRoutingMaps();
     } catch (err) {
       return handleRouteError(reply, err, "Failed to load publish routing");
     }
   });
 
   fastify.put<{
-    Params: { name: string };
-    Body: PublishRouteState;
-  }>("/sync/publish-routing/:name", async (request, reply) => {
-    const { name } = request.params;
+    Params: { id: string };
+    Body: CollectionPublishRouting;
+  }>("/sync/publish-routing/:id", async (request, reply) => {
+    const { id } = request.params;
     const body = request.body || {};
     const bodyKeys = Object.keys(body);
     if (bodyKeys.some((key) => key !== "collectionName" && key !== "modeName")) {
@@ -48,13 +65,12 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
 
     return withLock(async () => {
       try {
+        const beforeRoute = await fastify.collectionService.getCollectionPublishRouting(id);
         if (bodyKeys.length === 0) {
-          const current = fastify.tokenStore.getSetPublishRoute(name);
-          return { ok: true, name, ...current, changed: false };
+          return { ok: true, id, ...beforeRoute, changed: false };
         }
 
-        const beforeRoute = fastify.tokenStore.getSetPublishRoute(name);
-        const patch: Partial<PublishRouteState> = {};
+        const patch: Partial<CollectionPublishRouting> = {};
         const changes: FieldChange[] = [];
 
         if (Object.prototype.hasOwnProperty.call(body, "collectionName")) {
@@ -84,12 +100,17 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         if (changes.length === 0) {
-          return { ok: true, name, ...beforeRoute, changed: false };
+          return { ok: true, id, ...beforeRoute, changed: false };
         }
 
-        await fastify.tokenStore.updateSetPublishRoute(name, patch);
-        const afterRoute = fastify.tokenStore.getSetPublishRoute(name);
-        const rollbackRoute = changes.reduce<Partial<PublishRouteState>>(
+        await fastify.collectionService.updateCollectionPublishRouting(
+          id,
+          patch,
+        );
+        const afterRoute = await fastify.collectionService.getCollectionPublishRouting(
+          id,
+        );
+        const rollbackRoute = changes.reduce<Partial<CollectionPublishRouting>>(
           (acc, change) => {
             if (change.field === "collectionName") {
               acc.collectionName = change.before;
@@ -103,25 +124,25 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         );
         const metadata: FieldChangeOperationMetadata = {
           kind: "publish-routing",
-          name,
+          collectionId: id,
           before: beforeRoute,
           after: afterRoute,
           changes,
         };
         await fastify.operationLog.record({
           type: "publish-routing",
-          description: `Update Figma publish target for "${name}"`,
-          setName: name,
+          description: `Update Figma publish target for "${id}"`,
+          resourceId: id,
           affectedPaths: [],
           beforeSnapshot: {},
           afterSnapshot: {},
           rollbackSteps: [
-            { action: "write-publish-routing", name, routing: rollbackRoute },
+            { action: "write-publish-routing", collectionId: id, routing: rollbackRoute },
           ],
           metadata,
         });
 
-        return { ok: true, name, ...afterRoute, changed: true };
+        return { ok: true, id, ...afterRoute, changed: true };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to update publish routing");
       }
@@ -391,11 +412,11 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // POST /api/sync/log/:hash/restore — restore tokens to their state before this commit
-  // Body: { tokens?: Array<{ path: string; set: string }> }
+  // Body: { tokens?: Array<{ path: string; collectionId: string }> }
   // If tokens is omitted, restores ALL changed tokens in the commit.
   fastify.post<{
     Params: { hash: string };
-    Body: { tokens?: Array<{ path: string; set: string }> };
+    Body: { tokens?: Array<{ path: string; collectionId: string }> };
   }>("/sync/log/:hash/restore", async (request, reply) => {
     const { hash } = request.params;
     if (!/^[0-9a-f]{4,40}$/i.test(hash)) {
@@ -404,20 +425,22 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
 
     try {
       const fileDiffs = await fastify.gitSync.getTokenFileDiffs(hash);
-      const diffBySet = new Map(fileDiffs.map((diff) => [diff.set, diff]));
+      const diffByCollection = new Map(
+        fileDiffs.map((diff) => [diff.collectionId, diff]),
+      );
 
       // Determine which tokens to restore
       const requested = request.body?.tokens;
       const toRestore: Array<{
         path: string;
-        set: string;
+        collectionId: string;
         token: Token | null;
       }> = [];
 
       if (requested && requested.length > 0) {
         // Restore specific tokens
-        for (const { path: tokenPath, set: setName } of requested) {
-          const diff = diffBySet.get(setName);
+        for (const { path: tokenPath, collectionId } of requested) {
+          const diff = diffByCollection.get(collectionId);
           if (!diff) continue;
 
           const changed = diff.changes.some(
@@ -426,7 +449,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           if (changed) {
             toRestore.push({
               path: tokenPath,
-              set: setName,
+              collectionId,
               token: diff.beforeTokens.get(tokenPath) ?? null,
             });
           }
@@ -437,7 +460,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           for (const change of diff.changes) {
             toRestore.push({
               path: change.path,
-              set: diff.set,
+              collectionId: diff.collectionId,
               token: diff.beforeTokens.get(change.path) ?? null,
             });
           }
@@ -452,52 +475,48 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       return await withLock(async () => {
         // Snapshot current state for undo (operation-log)
         const allPaths = toRestore.map((r) => r.path);
-        const allSets = [...new Set(toRestore.map((r) => r.set))];
-        const beforeSnapshot: Record<
-          string,
-          { token: Token | null; setName: string }
-        > = {};
-        for (const setName of allSets) {
-          const pathsInSet = toRestore
-            .filter((r) => r.set === setName)
+        const allCollections = [
+          ...new Set(toRestore.map((r) => r.collectionId)),
+        ];
+        const beforeSnapshot: Record<string, SnapshotEntry> = {};
+        for (const collectionId of allCollections) {
+          const pathsInCollection = toRestore
+            .filter((r) => r.collectionId === collectionId)
             .map((r) => r.path);
           const snap = await snapshotPaths(
             fastify.tokenStore,
-            setName,
-            pathsInSet,
+            collectionId,
+            pathsInCollection,
           );
           Object.assign(beforeSnapshot, snap);
         }
 
-        // Group by set and restore
-        const bySet = new Map<
+        // Group by collection and restore
+        const byCollection = new Map<
           string,
           Array<{ path: string; token: Token | null }>
         >();
-        for (const { path: p, set: s, token } of toRestore) {
-          let list = bySet.get(s);
+        for (const { path: p, collectionId, token } of toRestore) {
+          let list = byCollection.get(collectionId);
           if (!list) {
             list = [];
-            bySet.set(s, list);
+            byCollection.set(collectionId, list);
           }
           list.push({ path: p, token });
         }
-        for (const [setName, items] of bySet) {
-          await fastify.tokenStore.restoreSnapshot(setName, items);
+        for (const [collectionId, items] of byCollection) {
+          await fastify.tokenStore.restoreSnapshot(collectionId, items);
         }
 
         // Snapshot after state
-        const afterSnapshot: Record<
-          string,
-          { token: Token | null; setName: string }
-        > = {};
-        for (const setName of allSets) {
+        const afterSnapshot: Record<string, SnapshotEntry> = {};
+        for (const collectionId of allCollections) {
           const pathsInSet = toRestore
-            .filter((r) => r.set === setName)
+            .filter((r) => r.collectionId === collectionId)
             .map((r) => r.path);
           const snap = await snapshotPaths(
             fastify.tokenStore,
-            setName,
+            collectionId,
             pathsInSet,
           );
           Object.assign(afterSnapshot, snap);
@@ -511,7 +530,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         const opEntry = await fastify.operationLog.record({
           type: "version-restore",
           description,
-          setName: allSets.join(", "),
+          resourceId: allCollections.join(", "),
           affectedPaths: allPaths,
           beforeSnapshot,
           afterSnapshot,
@@ -656,23 +675,23 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         }
         const changes: TokenChange[] = [];
         let fileCount = 0;
-        const setNames = await fastify.tokenStore.getSets();
-        for (const name of setNames) {
-          const set = await fastify.tokenStore.getSet(name);
-          if (!set?.filePath) continue;
+        const collectionIds = await fastify.collectionService.listCollectionIds();
+        for (const name of collectionIds) {
+          const collection = await fastify.tokenStore.getCollection(name);
+          if (!collection?.filePath) continue;
           let mtime: number;
           try {
-            const stat = await fs.stat(set.filePath);
+            const stat = await fs.stat(collection.filePath);
             mtime = stat.mtimeMs;
           } catch {
             continue;
           }
           if (mtime > ts) {
             fileCount++;
-            for (const [path, token] of flattenTokenGroup(set.tokens)) {
+            for (const [path, token] of flattenTokenGroup(collection.tokens)) {
               changes.push({
                 path,
-                set: name,
+                collectionId: name,
                 type: token.$type || "unknown",
                 status: "modified",
                 after: token.$value,
@@ -715,6 +734,8 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.gitSync.applyDiffChoices(choices, {
           tokenStore: fastify.tokenStore,
           collectionsStore: fastify.collectionsStore,
+          reloadCollectionsWorkspace: () =>
+            fastify.collectionService.reloadTokenStorageFromState(),
           recipeService: fastify.recipeService,
           resolverStore: fastify.resolverStore,
         });

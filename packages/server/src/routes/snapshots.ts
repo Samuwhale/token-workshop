@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { handleRouteError } from '../errors.js';
-import { snapshotSet } from '../services/operation-log.js';
+import { snapshotCollection, type SnapshotEntry } from '../services/operation-log.js';
 import type { ResolverFile, TokenRecipe } from '@tokenmanager/core';
 
 type SnapshotRouteContext = {
@@ -45,9 +45,10 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         const entry = await fastify.manualSnapshots.save(
           label,
           fastify.tokenStore,
-          fastify.collectionsStore,
+          fastify.collectionService,
           fastify.resolverStore,
           fastify.recipeService,
+          fastify.lintConfigStore,
         );
         return reply.status(201).send({
           ok: true,
@@ -98,9 +99,10 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
       const comparison = await fastify.manualSnapshots.diff(
         request.params.id,
         fastify.tokenStore,
-        fastify.collectionsStore,
+        fastify.collectionService,
         fastify.resolverStore,
         fastify.recipeService,
+        fastify.lintConfigStore,
       );
       return comparison;
     } catch (err) {
@@ -118,48 +120,59 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.status(404).send({ error: 'Snapshot not found' });
         }
 
-        // Snapshot current state of all affected sets for undo
-        const snapshotSets = Object.keys(snapshot.data);
-        const beforeSnapshot: Record<string, { token: import('@tokenmanager/core').Token | null; setName: string }> = {};
-        for (const setName of snapshotSets) {
-          Object.assign(beforeSnapshot, await snapshotSet(fastify.tokenStore, setName));
+        // Snapshot current state of all affected collections for undo
+        const snapshotCollectionIds = Object.keys(snapshot.data);
+        const beforeSnapshot: Record<string, SnapshotEntry> = {};
+        const beforeCollectionState = await fastify.collectionService.loadState();
+        for (const collectionId of snapshotCollectionIds) {
+          Object.assign(beforeSnapshot, await snapshotCollection(fastify.tokenStore, collectionId));
         }
-        // Also snapshot sets that exist currently but aren't in the snapshot (they'll lose tokens)
-        const currentSets = await fastify.tokenStore.getSets();
-        for (const setName of currentSets) {
-          if (!snapshotSets.includes(setName)) {
-            Object.assign(beforeSnapshot, await snapshotSet(fastify.tokenStore, setName));
+        // Also snapshot collections that exist currently but aren't in the snapshot (they'll lose tokens)
+        const currentCollections = beforeCollectionState.collections.map(
+          (collection) => collection.id,
+        );
+        for (const collectionId of currentCollections) {
+          if (!snapshotCollectionIds.includes(collectionId)) {
+            Object.assign(beforeSnapshot, await snapshotCollection(fastify.tokenStore, collectionId));
           }
         }
 
-        const [beforeCollectionState, beforeResolvers, beforeRecipes] = await Promise.all([
-          fastify.collectionsStore.withReadStateLock((state) => Promise.resolve(structuredClone(state))),
+        const [beforeResolvers, beforeRecipes] = await Promise.all([
           captureCurrentResolvers(fastify),
           captureCurrentRecipes(fastify),
         ]);
+        const beforeLintConfig = await fastify.lintConfigStore.get();
 
         // Perform the restore
         const result = await fastify.manualSnapshots.restore(
           request.params.id,
           fastify.tokenStore,
-          fastify.collectionsStore,
+          fastify.collectionService,
           fastify.resolverStore,
           fastify.recipeService,
+          fastify.lintConfigStore,
           {
-            setNames: currentSets,
-            dimensions: beforeCollectionState.collections,
+            collectionIds: currentCollections,
+            collections: beforeCollectionState.collections,
             views: beforeCollectionState.views,
             resolvers: beforeResolvers,
             recipes: beforeRecipes,
+            lintConfig: beforeLintConfig,
           },
         );
 
         // Snapshot after state
-        const afterSnapshot: Record<string, { token: import('@tokenmanager/core').Token | null; setName: string }> = {};
-        const afterSets = await fastify.tokenStore.getSets();
-        const allSets = new Set([...snapshotSets, ...currentSets, ...afterSets]);
-        for (const setName of allSets) {
-          Object.assign(afterSnapshot, await snapshotSet(fastify.tokenStore, setName));
+        const afterSnapshot: Record<string, SnapshotEntry> = {};
+        const afterCollectionIds = (
+          await fastify.collectionService.loadState()
+        ).collections.map((collection) => collection.id);
+        const allCollectionIds = new Set([
+          ...snapshotCollectionIds,
+          ...currentCollections,
+          ...afterCollectionIds,
+        ]);
+        for (const collectionId of allCollectionIds) {
+          Object.assign(afterSnapshot, await snapshotCollection(fastify.tokenStore, collectionId));
         }
 
         // Record in operation log for undo support
@@ -167,7 +180,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         const opEntry = await fastify.operationLog.record({
           type: 'snapshot-restore',
           description: `Restore snapshot "${snapshot.label}"`,
-          setName: Array.from(allSets).join(', '),
+          resourceId: Array.from(allCollectionIds).join(', '),
           affectedPaths: allPaths,
           beforeSnapshot,
           afterSnapshot,

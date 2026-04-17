@@ -26,7 +26,7 @@ interface FlowNode {
 
 export interface TokenDependencyNode {
   path: string;
-  setName: string | null;
+  collectionId: string | null;
   $type: string;
   $value: TokenValue | TokenReference;
   resolvedHex: string | null;
@@ -174,7 +174,7 @@ function walkDependencyNodes(
     if (!entry) continue;
     nodes.push({
       path: current.path,
-      setName: pathToSet[current.path] ?? null,
+      collectionId: pathToSet[current.path] ?? null,
       $type: entry.$type,
       $value: entry.$value,
       resolvedHex: tryResolveColor(current.path, tokenMap),
@@ -214,7 +214,7 @@ export function buildTokenDependencySnapshot(
   return {
     centerNode: {
       path: selectedPath,
-      setName: pathToSet[selectedPath] ?? null,
+      collectionId: pathToSet[selectedPath] ?? null,
       $type: centerEntry.$type,
       $value: centerEntry.$value,
       resolvedHex: tryResolveColor(selectedPath, tokenMap),

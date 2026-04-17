@@ -121,9 +121,9 @@ const CSS = `
   h2 { font-size:1.25rem; font-weight:600; margin:2rem 0 1rem; padding-bottom:0.5rem; border-bottom:1px solid var(--border); }
   h3 { font-size:1rem; font-weight:600; margin:1.5rem 0 0.75rem; text-transform:capitalize; color:var(--text-muted); }
   .breadcrumb { font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem; }
-  .set-list { display:flex; flex-direction:column; gap:0.5rem; }
-  .set-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; }
-  .set-card .badge { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:0.2rem 0.5rem; font-size:0.75rem; color:var(--text-muted); }
+  .collection-list { display:flex; flex-direction:column; gap:0.5rem; }
+  .collection-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; }
+  .collection-card .badge { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:0.2rem 0.5rem; font-size:0.75rem; color:var(--text-muted); }
   .color-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:1rem; }
   .swatch-card { border-radius:8px; overflow:hidden; border:1px solid var(--border); background:var(--surface); }
   .swatch { height:80px; display:flex; align-items:flex-end; padding:0.5rem; }
@@ -146,7 +146,7 @@ const CSS = `
   .token-list { display:flex; flex-direction:column; gap:0.5rem; }
 `;
 
-function renderSetPage(setName: string, tokens: FlatToken[]): string {
+function renderCollectionPage(collectionId: string, tokens: FlatToken[]): string {
   const byType: Record<string, FlatToken[]> = {};
   for (const t of tokens) {
     if (!byType[t.$type]) byType[t.$type] = [];
@@ -167,19 +167,19 @@ function renderSetPage(setName: string, tokens: FlatToken[]): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>${escapeHtml(setName)} — Token Docs</title>
+  <title>${escapeHtml(collectionId)} — Token Docs</title>
   <style>${CSS}</style>
 </head>
 <body>
-  <div class="breadcrumb"><a href="/docs">← All sets</a></div>
-  <h1>${escapeHtml(setName)}</h1>
+  <div class="breadcrumb"><a href="/docs">← All collections</a></div>
+  <h1>${escapeHtml(collectionId)}</h1>
   <p style="color:var(--text-muted);margin-bottom:1.5rem">${tokens.length} tokens</p>
-  ${sections || '<p style="color:var(--text-muted)">No tokens in this set.</p>'}
+  ${sections || '<p style="color:var(--text-muted)">No tokens in this collection.</p>'}
 </body>
 </html>`;
 }
 
-function renderIndexPage(sets: { name: string; count: number }[]): string {
+function renderIndexPage(collections: { name: string; count: number }[]): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -190,12 +190,12 @@ function renderIndexPage(sets: { name: string; count: number }[]): string {
 </head>
 <body>
   <h1>Token Documentation</h1>
-  <p style="color:var(--text-muted);margin-bottom:1.5rem">Auto-generated style guide for all token sets.</p>
-  <div class="set-list">
-    ${sets.map(s => `
-      <a href="/docs/${encodeURIComponent(s.name)}" class="set-card">
-        <span>${escapeHtml(s.name)}</span>
-        <span class="badge">${s.count} tokens</span>
+  <p style="color:var(--text-muted);margin-bottom:1.5rem">Auto-generated style guide for all token collections.</p>
+  <div class="collection-list">
+    ${collections.map(c => `
+      <a href="/docs/${encodeURIComponent(c.name)}" class="collection-card">
+        <span>${escapeHtml(c.name)}</span>
+        <span class="badge">${c.count} tokens</span>
       </a>`).join('')}
   </div>
 </body>
@@ -203,34 +203,35 @@ function renderIndexPage(sets: { name: string; count: number }[]): string {
 }
 
 export async function docsRoutes(fastify: FastifyInstance) {
-  // GET /docs — index of all sets
+  // GET /docs — index of all collections
   fastify.get('/docs', async (_request, reply) => {
     try {
-      const allSets = await fastify.tokenStore.getSets();
-      const setInfos: { name: string; count: number }[] = [];
-      for (const name of allSets) {
-        const flat = await fastify.tokenStore.getFlatTokensForSet(name);
-        setInfos.push({ name, count: Object.keys(flat).length });
+      const allCollections = await fastify.collectionService.listCollectionIds();
+      const collectionInfos: { name: string; count: number }[] = [];
+      for (const name of allCollections) {
+        const flat = await fastify.tokenStore.getFlatTokensForCollection(name);
+        collectionInfos.push({ name, count: Object.keys(flat).length });
       }
       reply.header('Content-Type', 'text/html; charset=utf-8');
-      return renderIndexPage(setInfos);
+      return renderIndexPage(collectionInfos);
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to load docs index');
     }
   });
 
-  // GET /docs/:set — style guide for a specific set
-  fastify.get<{ Params: { set: string } }>('/docs/:set', async (request, reply) => {
+  // GET /docs/:collectionId — style guide for a specific collection
+  fastify.get<{ Params: { collectionId: string } }>('/docs/:collectionId', async (request, reply) => {
     try {
-      const { set } = request.params;
-      const tokenSet = await fastify.tokenStore.getSet(set);
-      if (!tokenSet) {
+      const { collectionId } = request.params;
+      await fastify.collectionService.requireCollectionsExist([collectionId]);
+      const tokenCollection = await fastify.tokenStore.getCollection(collectionId);
+      if (!tokenCollection) {
         reply.status(404).header('Content-Type', 'text/html; charset=utf-8');
-        return `<!DOCTYPE html><html><body><h1>Set "${escapeHtml(set)}" not found</h1><p><a href="/docs">Back</a></p></body></html>`;
+        return `<!DOCTYPE html><html><body><h1>Collection "${escapeHtml(collectionId)}" not found</h1><p><a href="/docs">Back</a></p></body></html>`;
       }
       const resolved: ResolvedToken[] = await fastify.tokenStore.resolveTokens();
       const flat: FlatToken[] = resolved
-        .filter(t => t.collectionId === set)
+        .filter(t => t.collectionId === collectionId)
         .map(t => ({
           path: t.path,
           $type: t.$type || 'string',
@@ -238,9 +239,9 @@ export async function docsRoutes(fastify: FastifyInstance) {
           $description: t.$description,
         }));
       reply.header('Content-Type', 'text/html; charset=utf-8');
-      return renderSetPage(set, flat);
+      return renderCollectionPage(collectionId, flat);
     } catch (err) {
-      return handleRouteError(reply, err, 'Failed to load docs for set');
+      return handleRouteError(reply, err, 'Failed to load docs for collection');
     }
   });
 }

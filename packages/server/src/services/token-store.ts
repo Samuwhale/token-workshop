@@ -35,16 +35,7 @@ import {
 import { isSafeRegex } from "./token-tree-utils.js";
 export { isSafeRegex };
 
-export interface SetMetadataState {
-  description?: string;
-}
-
-export interface PublishRouteState {
-  collectionName?: string;
-  modeName?: string;
-}
-
-interface StoredTokenSet {
+interface StoredCollection {
   name: string;
   tokens: TokenGroup;
   filePath?: string;
@@ -67,7 +58,7 @@ interface PlannedGroupLeafToken {
 }
 
 interface PlannedGroupRename {
-  set: StoredTokenSet;
+  collection: StoredCollection;
   oldGroupPath: string;
   newGroupPath: string;
   groupObject?: TokenGroup;
@@ -76,8 +67,8 @@ interface PlannedGroupRename {
 }
 
 interface PlannedGroupTransfer {
-  source: StoredTokenSet;
-  target: StoredTokenSet;
+  source: StoredCollection;
+  target: StoredCollection;
   groupPath: string;
   groupObject?: TokenGroup;
   leafTokens: PlannedGroupLeafToken[];
@@ -87,14 +78,14 @@ export class TokenStore {
   /** Shared async mutex — route handlers and watcher callbacks serialize through this single lock. */
   readonly lock = new PromiseChainLock();
   private dir: string;
-  private sets: Map<string, StoredTokenSet> = new Map();
-  private flatTokens: Map<string, Array<{ token: Token; setName: string }>> =
+  private collections: Map<string, StoredCollection> = new Map();
+  private flatTokens: Map<string, Array<{ token: Token; collectionId: string }>> =
     new Map();
   private resolver: TokenResolver | null = null;
-  /** Cross-set dependents: refTarget -> set of {path, setName} that reference it. */
-  private crossSetDependents: Map<
+  /** Cross-collection dependents: refTarget -> list of {path, collectionId} that reference it. */
+  private crossCollectionDependents: Map<
     string,
-    Array<{ path: string; setName: string }>
+    Array<{ path: string; collectionId: string }>
   > = new Map();
   private watcher: ReturnType<typeof watch> | null = null;
   private changeListeners: Set<(event: ChangeEvent) => void> = new Set();
@@ -102,64 +93,86 @@ export class TokenStore {
   private _pendingWatcherEvents: ChangeEvent[] = [];
   private _batchDepth = 0;
   private _writingFiles: Map<string, ReturnType<typeof setTimeout>> = new Map();
-  /** Per-set promise chains that serialize concurrent saveSet calls for the same file. */
+  /** Per-collection promise chains that serialize concurrent saveCollection calls for the same file. */
   private _saveChains = new Map<string, Promise<void>>();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
   }
 
-  async initialize(): Promise<void> {
-    // Create dir if not exists
+  async initialize(collectionIds: Iterable<string>): Promise<void> {
     await fs.mkdir(this.dir, { recursive: true });
-    // Load all .tokens.json files
-    await this.loadAllSets();
-    // Start watching
+    await this.syncRegisteredCollections(collectionIds);
     this.startWatching();
   }
 
-  private async loadAllSets(): Promise<void> {
-    const files = await this.listTokenFiles();
-    for (const file of files) {
-      await this.loadSet(file);
+  private collectionFilePath(collectionId: string): string {
+    return path.join(this.dir, `${collectionId}.tokens.json`);
+  }
+
+  private async readCollectionTokens(
+    collectionId: string,
+  ): Promise<{ tokens: TokenGroup; missing: boolean; filePath: string }> {
+    const filePath = this.collectionFilePath(collectionId);
+    let content: string;
+    try {
+      content = await fs.readFile(filePath, "utf-8");
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        return { tokens: {}, missing: true, filePath };
+      }
+      throw err;
     }
-    this.rebuildFlatTokens();
-  }
-
-  private async listTokenFiles(): Promise<string[]> {
-    const results: string[] = [];
-    const walk = async (dir: string): Promise<void> => {
-      let entries: import("node:fs").Dirent[];
-      try {
-        entries = await fs.readdir(dir, { withFileTypes: true });
-      } catch {
-        return;
-      }
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          await walk(path.join(dir, entry.name));
-        } else if (entry.name.endsWith(".tokens.json")) {
-          // Return path relative to this.dir so loadSet works correctly
-          results.push(path.relative(this.dir, path.join(dir, entry.name)));
-        }
-      }
-    };
-    await walk(this.dir);
-    return results;
-  }
-
-  private async loadSet(relativePath: string): Promise<void> {
-    const filePath = path.join(this.dir, relativePath);
-    const content = await fs.readFile(filePath, "utf-8");
     let tokens: TokenGroup;
     try {
       tokens = JSON.parse(content) as TokenGroup;
     } catch {
-      console.warn(`[TokenStore] Skipping malformed JSON in "${relativePath}"`);
-      return;
+      throw new ConflictError(
+        `Collection "${collectionId}" contains malformed JSON at "${path.relative(this.dir, filePath)}"`,
+      );
     }
-    const name = relativePath.replace(".tokens.json", "");
-    this.sets.set(name, { name, tokens, filePath });
+    return { tokens, missing: false, filePath };
+  }
+
+  private async loadRegisteredCollection(
+    collectionId: string,
+  ): Promise<"loaded" | "missing"> {
+    const { tokens, missing, filePath } = await this.readCollectionTokens(collectionId);
+    this.collections.set(collectionId, {
+      name: collectionId,
+      tokens,
+      ...(missing ? {} : { filePath }),
+    });
+    return missing ? "missing" : "loaded";
+  }
+
+  async syncRegisteredCollections(collectionIds: Iterable<string>): Promise<void> {
+    const nextIds = [...new Set(Array.from(collectionIds).filter(Boolean))];
+    const nextCollections = new Map<string, StoredCollection>();
+    const missingIds: string[] = [];
+
+    for (const collectionId of nextIds) {
+      const { tokens, missing, filePath } = await this.readCollectionTokens(collectionId);
+      nextCollections.set(collectionId, {
+        name: collectionId,
+        tokens,
+        ...(missing ? {} : { filePath }),
+      });
+      if (missing) {
+        missingIds.push(collectionId);
+      }
+    }
+
+    this.collections = nextCollections;
+    this.rebuildFlatTokens();
+
+    for (const collectionId of missingIds) {
+      this.emitEvent({
+        type: "file-load-error",
+        collectionId,
+        message: `Collection "${collectionId}" is registered but its token file is missing on disk.`,
+      });
+    }
   }
 
   private scheduleRebuild(event: ChangeEvent): void {
@@ -212,19 +225,22 @@ export class TokenStore {
   /**
    * Explicitly reload a token file by its relative path (relative to this.dir).
    * Acquires the internal lock so it serializes correctly with watcher callbacks.
-   * Emits a 'set-updated' event after loading.
+   * Emits a `collection-updated` event after loading.
    */
   async reloadFile(relativePath: string): Promise<void> {
-    const setName = relativePath.replace(".tokens.json", "");
+    const collectionId = relativePath.replace(".tokens.json", "");
+    if (!this.collections.has(collectionId)) {
+      return;
+    }
     await this.lock.withLock(async () => {
       let loaded = true;
-      await this.loadSet(relativePath).catch((err) => {
+      await this.loadRegisteredCollection(collectionId).catch((err) => {
         loaded = false;
         const message = err instanceof Error ? err.message : String(err);
         console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
-        this.emitEvent({ type: "file-load-error", setName, message });
+        this.emitEvent({ type: "file-load-error", collectionId, message });
       });
-      if (loaded) this.scheduleRebuild({ type: "set-updated", setName });
+      if (loaded) this.scheduleRebuild({ type: "collection-updated", collectionId });
     });
   }
 
@@ -240,16 +256,19 @@ export class TokenStore {
         return;
       }
       const relativePath = path.relative(this.dir, filePath as string);
-      const setName = relativePath.replace(".tokens.json", "");
+      const collectionId = relativePath.replace(".tokens.json", "");
+      if (!this.collections.has(collectionId)) {
+        return;
+      }
       void this.lock.withLock(async () => {
         let loaded = true;
-        await this.loadSet(relativePath).catch((err) => {
+        await this.loadRegisteredCollection(collectionId).catch((err) => {
           loaded = false;
           const message = err instanceof Error ? err.message : String(err);
           console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
-          this.emitEvent({ type: "file-load-error", setName, message });
+          this.emitEvent({ type: "file-load-error", collectionId, message });
         });
-        if (loaded) this.scheduleRebuild({ type: "set-updated", setName });
+        if (loaded) this.scheduleRebuild({ type: "collection-updated", collectionId });
       });
     });
 
@@ -259,19 +278,22 @@ export class TokenStore {
         return;
       }
       const relativePath = path.relative(this.dir, filePath as string);
-      const setName = relativePath.replace(".tokens.json", "");
+      const collectionId = relativePath.replace(".tokens.json", "");
+      if (!this.collections.has(collectionId)) {
+        return;
+      }
       void this.lock.withLock(async () => {
         let loaded = true;
-        await this.loadSet(relativePath).catch((err) => {
+        await this.loadRegisteredCollection(collectionId).catch((err) => {
           loaded = false;
           const message = err instanceof Error ? err.message : String(err);
           console.warn(
-            `[TokenStore] Error loading new file "${relativePath}":`,
+            `[TokenStore] Error loading collection file "${relativePath}":`,
             err,
           );
-          this.emitEvent({ type: "file-load-error", setName, message });
+          this.emitEvent({ type: "file-load-error", collectionId, message });
         });
-        if (loaded) this.scheduleRebuild({ type: "set-added", setName });
+        if (loaded) this.scheduleRebuild({ type: "collection-updated", collectionId });
       });
     });
 
@@ -281,10 +303,16 @@ export class TokenStore {
         return;
       }
       const relativePath = path.relative(this.dir, filePath as string);
-      const name = relativePath.replace(".tokens.json", "");
+      const collectionId = relativePath.replace(".tokens.json", "");
+      if (!this.collections.has(collectionId)) {
+        return;
+      }
       void this.lock.withLock(async () => {
-        this.sets.delete(name);
-        this.scheduleRebuild({ type: "set-removed", setName: name });
+        this.emitEvent({
+          type: "file-load-error",
+          collectionId,
+          message: `Collection "${collectionId}" lost its token file on disk.`,
+        });
       });
     });
 
@@ -297,27 +325,27 @@ export class TokenStore {
     if (this._batchDepth > 0) return; // deferred — endBatch() always rebuilds
     this.flatTokens = this.buildLiveFlatTokens(); // atomic swap — no reader sees a partial/empty map
     this.rebuildResolver();
-    this.rebuildCrossSetDependents();
+    this.rebuildCrossCollectionDependents();
   }
 
   /**
-   * Build a fresh flat token map by iterating this.sets directly.
+   * Build a fresh flat token map by iterating this.collections directly.
    * Unlike rebuildFlatTokens(), this is not guarded by _batchDepth, so it
-   * reflects the current (post-mutation) state of this.sets even inside a batch.
+   * reflects the current (post-mutation) state of this.collections even inside a batch.
    */
   private buildLiveFlatTokens(): Map<
     string,
-    Array<{ token: Token; setName: string }>
+    Array<{ token: Token; collectionId: string }>
   > {
-    const newMap = new Map<string, Array<{ token: Token; setName: string }>>();
-    for (const [setName, set] of this.sets) {
-      for (const [tokenPath, token] of flattenTokenGroup(set.tokens)) {
+    const newMap = new Map<string, Array<{ token: Token; collectionId: string }>>();
+    for (const [collectionId, collection] of this.collections) {
+      for (const [tokenPath, token] of flattenTokenGroup(collection.tokens)) {
         let entries = newMap.get(tokenPath);
         if (!entries) {
           entries = [];
           newMap.set(tokenPath, entries);
         }
-        entries.push({ token: token as Token, setName });
+        entries.push({ token: token as Token, collectionId });
       }
     }
     return newMap;
@@ -356,17 +384,17 @@ export class TokenStore {
     this.resolver = new TokenResolver(allTokens, "__merged__");
   }
 
-  /** Build cross-set dependents map by scanning ALL token entries across all sets. */
-  private rebuildCrossSetDependents(): void {
-    // Forward: for every (path, setName) pair, collect what it references
-    // Reverse: refTarget -> all (path, setName) that reference it
+  /** Build cross-collection dependents map by scanning ALL token entries across all collections. */
+  private rebuildCrossCollectionDependents(): void {
+    // Forward: for every (path, collectionId) pair, collect what it references
+    // Reverse: refTarget -> all (path, collectionId) that reference it
     const dependents = new Map<
       string,
-      Array<{ path: string; setName: string }>
+      Array<{ path: string; collectionId: string }>
     >();
 
     for (const [tokenPath, entries] of this.flatTokens) {
-      for (const { token, setName } of entries) {
+      for (const { token, collectionId } of entries) {
         const refs = this.collectAllRefsFromToken(token);
         for (const ref of refs) {
           let list = dependents.get(ref);
@@ -374,12 +402,12 @@ export class TokenStore {
             list = [];
             dependents.set(ref, list);
           }
-          list.push({ path: tokenPath, setName });
+          list.push({ path: tokenPath, collectionId });
         }
       }
     }
 
-    this.crossSetDependents = dependents;
+    this.crossCollectionDependents = dependents;
   }
 
   // -----------------------------------------------------------------------
@@ -435,11 +463,11 @@ export class TokenStore {
    */
   private buildDependencyMap(
     overrides?: Map<string, unknown>,
-    liveFlatTokens?: Map<string, Array<{ token: Token; setName: string }>>,
+    liveFlatTokens?: Map<string, Array<{ token: Token; collectionId: string }>>,
   ): Map<string, Set<string>> {
     const deps = new Map<string, Set<string>>();
     for (const [tokenPath, entries] of liveFlatTokens ?? this.flatTokens) {
-      // Merge references from ALL sets' versions of this token
+      // Merge references from ALL collections' versions of this token
       const merged = new Set<string>();
       for (const { token } of entries) {
         const value = overrides?.has(tokenPath)
@@ -535,40 +563,23 @@ export class TokenStore {
 
   // ----- CRUD operations -----
 
-  async getSets(): Promise<string[]> {
-    return Array.from(this.sets.keys());
-  }
-
-  reorderSets(names: string[]): void {
-    const newMap = new Map<string, StoredTokenSet>();
-    for (const name of names) {
-      const set = this.sets.get(name);
-      if (set) newMap.set(name, set);
-    }
-    // Append any sets not included in the names list
-    for (const [name, set] of this.sets) {
-      if (!newMap.has(name)) newMap.set(name, set);
-    }
-    this.sets = newMap;
-  }
-
   async reorderGroupChildren(
-    setName: string,
+    collectionId: string,
     groupPath: string,
     orderedKeys: string[],
   ): Promise<void> {
-    const set = this.sets.get(setName);
-    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
+    const collection = this.collections.get(collectionId);
+    if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
     let group: TokenGroup;
     if (groupPath) {
-      const found = getObjectAtPath(set.tokens, groupPath);
+      const found = getObjectAtPath(collection.tokens, groupPath);
       if (!found)
         throw new NotFoundError(
-          `Group "${groupPath}" not found in set "${setName}"`,
+          `Group "${groupPath}" not found in collection "${collectionId}"`,
         );
       group = found;
     } else {
-      group = set.tokens as TokenGroup;
+      group = collection.tokens as TokenGroup;
     }
     const nonMetaKeys = Object.keys(group).filter((k) => !k.startsWith("$"));
     const orderedSet = new Set(orderedKeys);
@@ -588,132 +599,65 @@ export class TokenStore {
       reordered[key] = group[key];
     }
     if (groupPath) {
-      setGroupAtPath(set.tokens, groupPath, reordered);
+      setGroupAtPath(collection.tokens, groupPath, reordered);
     } else {
-      set.tokens = reordered as TokenGroup;
+      collection.tokens = reordered as TokenGroup;
     }
-    await this.saveSet(setName);
+    await this.saveCollection(collectionId);
     this.rebuildFlatTokens();
-    this.emit({ type: "token-updated", setName });
+    this.emit({ type: "token-updated", collectionId: collectionId });
   }
 
-  getSetCounts(): Record<string, number> {
+  getStoredCollectionTokenCounts(): Record<string, number> {
     const result: Record<string, number> = {};
-    for (const [name, set] of this.sets) {
-      result[name] = flattenTokenGroup(set.tokens).size;
+    for (const [name, collection] of this.collections) {
+      result[name] = flattenTokenGroup(collection.tokens).size;
     }
     return result;
   }
 
-  getSetDescriptions(): Record<string, string> {
-    const result: Record<string, string> = {};
-    for (const [name, set] of this.sets) {
-      const desc = set.tokens.$description;
-      if (typeof desc === "string" && desc) {
-        result[name] = desc;
-      }
-    }
-    return result;
+  async getCollection(
+    collectionId: string,
+  ): Promise<StoredCollection | undefined> {
+    return this.collections.get(collectionId);
   }
 
-  async updateSetDescription(name: string, description: string): Promise<void> {
-    await this.updateSetMetadata(name, { description });
-  }
-
-  getSetMetadata(name: string): SetMetadataState {
-    const set = this.sets.get(name);
-    if (!set) throw new NotFoundError(`Set "${name}" not found`);
-    return {
-      ...(typeof set.tokens.$description === "string" && set.tokens.$description
-        ? { description: set.tokens.$description }
-        : {}),
-    };
-  }
-
-  async updateSetMetadata(
-    name: string,
-    metadata: Partial<SetMetadataState>,
+  async replaceWorkspaceTokens(
+    tokensByCollection: Record<string, TokenGroup>,
   ): Promise<void> {
-    const set = this.sets.get(name);
-    if (!set) throw new NotFoundError(`Set "${name}" not found`);
-    if (Object.prototype.hasOwnProperty.call(metadata, "description")) {
-      if (metadata.description) {
-        set.tokens.$description = metadata.description;
-      } else {
-        delete set.tokens.$description;
+    const desiredCollectionIds = [...new Set(Object.keys(tokensByCollection))];
+    const desiredCollectionIdSet = new Set(desiredCollectionIds);
+    const existingCollectionIds = Array.from(this.collections.keys());
+
+    await this.withBatch(async () => {
+      for (const collectionId of existingCollectionIds) {
+        if (!desiredCollectionIdSet.has(collectionId)) {
+          await this.deleteCollection(collectionId);
+        }
       }
-    }
-    await this.saveSet(name);
-  }
 
-  getSetPublishRoute(name: string): PublishRouteState {
-    const set = this.sets.get(name);
-    if (!set) throw new NotFoundError(`Set "${name}" not found`);
-    return {
-      ...(typeof set.tokens.$figmaCollection === "string" &&
-      set.tokens.$figmaCollection
-        ? { collectionName: set.tokens.$figmaCollection }
-        : {}),
-      ...(typeof set.tokens.$figmaMode === "string" && set.tokens.$figmaMode
-        ? { modeName: set.tokens.$figmaMode }
-        : {}),
-    };
-  }
-
-  getPublishRouteCollectionNames(): Record<string, string> {
-    const result: Record<string, string> = {};
-    for (const [name] of this.sets) {
-      const route = this.getSetPublishRoute(name);
-      if (route.collectionName) {
-        result[name] = route.collectionName;
+      for (const collectionId of desiredCollectionIds) {
+        const tokens = structuredClone(tokensByCollection[collectionId] ?? {});
+        const existing = this.collections.get(collectionId);
+        if (existing) {
+          await this.replaceCollectionTokens(collectionId, tokens);
+          continue;
+        }
+        await this.createCollection(collectionId, tokens);
       }
-    }
-    return result;
+    });
   }
 
-  getPublishRouteModeNames(): Record<string, string> {
-    const result: Record<string, string> = {};
-    for (const [name] of this.sets) {
-      const route = this.getSetPublishRoute(name);
-      if (route.modeName) {
-        result[name] = route.modeName;
-      }
-    }
-    return result;
-  }
-
-  async updateSetPublishRoute(
-    name: string,
-    route: Partial<PublishRouteState>,
+  /** Replace all tokens in a collection with a new nested DTCG token group. */
+  async replaceCollectionTokens(
+    collectionId: string,
+    tokens: TokenGroup,
   ): Promise<void> {
-    const set = this.sets.get(name);
-    if (!set) throw new NotFoundError(`Set "${name}" not found`);
-    if (Object.prototype.hasOwnProperty.call(route, "collectionName")) {
-      if (route.collectionName) {
-        set.tokens.$figmaCollection = route.collectionName;
-      } else {
-        delete set.tokens.$figmaCollection;
-      }
+    const collection = this.collections.get(collectionId);
+    if (!collection) {
+      throw new NotFoundError(`Collection "${collectionId}" not found`);
     }
-    if (Object.prototype.hasOwnProperty.call(route, "modeName")) {
-      if (route.modeName) {
-        set.tokens.$figmaMode = route.modeName;
-      } else {
-        delete set.tokens.$figmaMode;
-      }
-    }
-    await this.saveSet(name);
-  }
-
-  async getSet(name: string): Promise<StoredTokenSet | undefined> {
-    return this.sets.get(name);
-  }
-
-  /** Replace all tokens in a set with a new nested DTCG token group. */
-  async replaceSetTokens(name: string, tokens: TokenGroup): Promise<void> {
-    const set = this.sets.get(name);
-    if (!set) throw new NotFoundError(`Set "${name}" not found`);
-    // Check for circular references in the new token set
+    // Check for circular references in the new token collection
     const changes: Array<{ path: string; value: unknown }> = [];
     for (const [tokenPath, token] of flattenTokenGroup(tokens)) {
       changes.push({ path: tokenPath, value: token.$value });
@@ -721,47 +665,53 @@ export class TokenStore {
     if (changes.length > 0) {
       this.checkCircularReferences(changes);
     }
-    set.tokens = tokens;
-    await this.saveSet(name);
+    collection.tokens = tokens;
+    await this.saveCollection(collectionId);
     this.rebuildFlatTokens();
-    this.emit({ type: "token-updated", setName: name });
+    this.emit({ type: "token-updated", collectionId });
   }
 
-  /** Write set to disk and register in memory, but skip rebuildFlatTokens(). */
-  private async _createSetNoRebuild(
+  /** Write collection to disk and register in memory, but skip rebuildFlatTokens(). */
+  private async _createCollectionNoRebuild(
     name: string,
     tokens: TokenGroup = {},
-  ): Promise<StoredTokenSet> {
-    const filename = `${name}.tokens.json`;
-    const filePath = path.join(this.dir, filename);
+  ): Promise<StoredCollection> {
+    const filePath = this.collectionFilePath(name);
     const tmpPath = filePath + ".tmp";
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(tmpPath, JSON.stringify(tokens, null, 2));
     this._startWriteGuard(filePath);
     await fs.rename(tmpPath, filePath);
-    const set: StoredTokenSet = { name, tokens, filePath };
-    this.sets.set(name, set);
-    return set;
+    const collection: StoredCollection = { name, tokens, filePath };
+    this.collections.set(name, collection);
+    return collection;
   }
 
-  async createSet(name: string, tokens?: TokenGroup): Promise<StoredTokenSet> {
-    const set = await this._createSetNoRebuild(name, tokens);
+  async createCollection(
+    collectionId: string,
+    tokens?: TokenGroup,
+  ): Promise<StoredCollection> {
+    const collection = await this._createCollectionNoRebuild(collectionId, tokens);
     this.rebuildFlatTokens();
-    return set;
+    return collection;
   }
 
-  async deleteSet(name: string): Promise<boolean> {
-    const set = this.sets.get(name);
-    if (!set) return false;
-    const filePath = path.join(this.dir, `${name}.tokens.json`);
+  async deleteCollection(collectionId: string): Promise<boolean> {
+    const collection = this.collections.get(collectionId);
+    if (!collection) return false;
+    const filePath = this.collectionFilePath(collectionId);
     this._startWriteGuard(filePath);
     try {
-      await fs.unlink(filePath);
+      await fs.unlink(filePath).catch((err) => {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw err;
+        }
+      });
       await this.removeEmptyParentDirs(filePath);
     } finally {
       this._clearWriteGuard(filePath);
     }
-    this.sets.delete(name);
+    this.collections.delete(collectionId);
     this.rebuildFlatTokens();
     return true;
   }
@@ -779,74 +729,53 @@ export class TokenStore {
     }
   }
 
-  async clearAll(): Promise<void> {
-    if (this._rebuildDebounceTimer !== null) {
-      clearTimeout(this._rebuildDebounceTimer);
-      this._rebuildDebounceTimer = null;
-    }
-    this._pendingWatcherEvents = [];
-
-    const previousSetNames = Array.from(this.sets.keys());
-    const files = await this.listTokenFiles();
-    for (const relativePath of files) {
-      const filePath = path.join(this.dir, relativePath);
-      this._startWriteGuard(filePath);
-      try {
-        await fs.rm(filePath, { force: true });
-        await this.removeEmptyParentDirs(filePath);
-      } finally {
-        this._clearWriteGuard(filePath);
-      }
-    }
-
-    await fs.rm(path.join(this.dir, "$rename-pending.json"), { force: true });
-
-    for (const timer of this._writingFiles.values()) clearTimeout(timer);
-    this._writingFiles.clear();
-    this._saveChains.clear();
-    this._batchDepth = 0;
-    this.sets.clear();
-    this.flatTokens = new Map();
-    this.resolver = null;
-    this.crossSetDependents = new Map();
-
-    for (const setName of previousSetNames) {
-      this.emit({ type: "set-removed", setName });
-    }
-  }
-
-  async renameSet(oldName: string, newName: string): Promise<void> {
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newName)) {
+  async renameCollection(
+    oldCollectionId: string,
+    newCollectionId: string,
+  ): Promise<void> {
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newCollectionId)) {
       throw new BadRequestError(
-        "Set name must contain only alphanumeric characters, dashes, underscores, and / for folders",
+        "Collection name must contain only alphanumeric characters, dashes, underscores, and / for folders",
       );
     }
-    const set = this.sets.get(oldName);
-    if (!set) throw new NotFoundError(`Set "${oldName}" not found`);
-    if (this.sets.has(newName))
-      throw new ConflictError(`Set "${newName}" already exists`);
+    const collection = this.collections.get(oldCollectionId);
+    if (!collection) {
+      throw new NotFoundError(`Collection "${oldCollectionId}" not found`);
+    }
+    if (this.collections.has(newCollectionId)) {
+      throw new ConflictError(`Collection "${newCollectionId}" already exists`);
+    }
 
-    const oldFilePath = path.join(this.dir, `${oldName}.tokens.json`);
-    const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
+    const oldFilePath = this.collectionFilePath(oldCollectionId);
+    const newFilePath = this.collectionFilePath(newCollectionId);
     await fs.mkdir(path.dirname(newFilePath), { recursive: true });
     this._startWriteGuard(oldFilePath);
     this._startWriteGuard(newFilePath);
     try {
-      await fs.rename(oldFilePath, newFilePath);
-      const newSet: StoredTokenSet = {
-        name: newName,
-        tokens: set.tokens,
+      try {
+        await fs.rename(oldFilePath, newFilePath);
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw err;
+        }
+        const tmpPath = `${newFilePath}.tmp`;
+        await fs.writeFile(tmpPath, JSON.stringify(collection.tokens, null, 2));
+        await fs.rename(tmpPath, newFilePath);
+      }
+      const renamed: StoredCollection = {
+        name: newCollectionId,
+        tokens: collection.tokens,
         filePath: newFilePath,
       };
-      this.sets.set(newName, newSet);
-      this.sets.delete(oldName);
+      this.collections.set(newCollectionId, renamed);
+      this.collections.delete(oldCollectionId);
 
       // Clean up empty parent dirs left behind by the rename
       await this.removeEmptyParentDirs(oldFilePath);
 
       this.rebuildFlatTokens();
-      this.emit({ type: "set-removed", setName: oldName });
-      this.emit({ type: "set-added", setName: newName });
+      this.emit({ type: "collection-removed", collectionId: oldCollectionId });
+      this.emit({ type: "collection-added", collectionId: newCollectionId });
     } finally {
       this._clearWriteGuard(oldFilePath);
       this._clearWriteGuard(newFilePath);
@@ -854,22 +783,22 @@ export class TokenStore {
   }
 
   async getToken(
-    setName: string,
+    collectionId: string,
     tokenPath: string,
   ): Promise<Token | undefined> {
-    const set = this.sets.get(setName);
-    if (!set) return undefined;
-    return getTokenAtPath(set.tokens, tokenPath);
+    const collection = this.collections.get(collectionId);
+    if (!collection) return undefined;
+    return getTokenAtPath(collection.tokens, tokenPath);
   }
 
   async createToken(
-    setName: string,
+    collectionId: string,
     tokenPath: string,
     token: Token,
   ): Promise<void> {
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(collectionId)) {
       throw new BadRequestError(
-        `Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`,
+        `Invalid collection name "${collectionId}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`,
       );
     }
     validateTokenPath(tokenPath);
@@ -877,33 +806,33 @@ export class TokenStore {
     token = this.enrichFormulaExtension(token);
     // Check for circular references before persisting
     this.checkCircularReferences([{ path: tokenPath, value: token.$value }]);
-    let set = this.sets.get(setName);
-    if (!set) {
-      set = await this._createSetNoRebuild(setName);
+    const collection = this.collections.get(collectionId);
+    if (!collection) {
+      throw new NotFoundError(`Collection "${collectionId}" not found`);
     }
-    const snapshot = this.snapshotSets(setName);
-    setTokenAtPath(set.tokens, tokenPath, token);
+    const snapshot = this.snapshotCollectionTokens(collectionId);
+    setTokenAtPath(collection.tokens, tokenPath, token);
     try {
-      await this.saveSet(setName);
+      await this.saveCollection(collectionId);
     } catch (err) {
       this.restoreSnapshots(snapshot);
       throw err;
     }
     this.rebuildFlatTokens();
-    this.emit({ type: "token-updated", setName, tokenPath });
+    this.emit({ type: "token-updated", collectionId: collectionId, tokenPath });
   }
 
   async updateToken(
-    setName: string,
+    collectionId: string,
     tokenPath: string,
     token: Partial<Token>,
   ): Promise<void> {
-    const set = this.sets.get(setName);
-    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
-    const existing = getTokenAtPath(set.tokens, tokenPath);
+    const collection = this.collections.get(collectionId);
+    if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
+    const existing = getTokenAtPath(collection.tokens, tokenPath);
     if (!existing)
       throw new NotFoundError(
-        `Token "${tokenPath}" not found in set "${setName}"`,
+        `Token "${tokenPath}" not found in collection "${collectionId}"`,
       );
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     if ("$value" in token && token.$value !== undefined) {
@@ -925,36 +854,35 @@ export class TokenStore {
     }
     // Replace known token fields explicitly so stale properties don't persist.
     // A partial update only touches keys that are present in the incoming object.
-    const snapshot = this.snapshotSets(setName);
+    const snapshot = this.snapshotCollectionTokens(collectionId);
     if ("$value" in token) existing.$value = token.$value!;
     if ("$type" in token) existing.$type = token.$type;
     if ("$description" in token) existing.$description = token.$description;
     if ("$extensions" in token) existing.$extensions = token.$extensions;
     try {
-      await this.saveSet(setName);
+      await this.saveCollection(collectionId);
     } catch (err) {
       this.restoreSnapshots(snapshot);
       this.rebuildFlatTokens(); // in-place mutations above corrupted flatTokens entries; rebuild from restored snapshot
       throw err;
     }
     this.rebuildFlatTokens();
-    this.emit({ type: "token-updated", setName, tokenPath });
+    this.emit({ type: "token-updated", collectionId: collectionId, tokenPath });
   }
 
   async batchUpsertTokens(
-    setName: string,
+    collectionId: string,
     tokens: Array<{ path: string; token: Token }>,
     strategy: "skip" | "overwrite" | "merge",
   ): Promise<{ imported: number; skipped: number }> {
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(collectionId)) {
       throw new BadRequestError(
-        `Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`,
+        `Invalid collection name "${collectionId}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`,
       );
     }
-    const wasNewSet = !this.sets.has(setName);
-    let set = this.sets.get(setName);
-    if (!set) {
-      set = await this._createSetNoRebuild(setName);
+    const collection = this.collections.get(collectionId);
+    if (!collection) {
+      throw new NotFoundError(`Collection "${collectionId}" not found`);
     }
     for (const { path: tokenPath } of tokens) {
       validateTokenPath(tokenPath);
@@ -962,21 +890,21 @@ export class TokenStore {
     // Check for circular references among all proposed changes
     const changes: Array<{ path: string; value: unknown }> = [];
     for (const { path: tokenPath, token } of tokens) {
-      const existing = getTokenAtPath(set.tokens, tokenPath);
+      const existing = getTokenAtPath(collection.tokens, tokenPath);
       if (existing && strategy === "skip") continue; // won't be changed
       changes.push({ path: tokenPath, value: token.$value });
     }
     if (changes.length > 0) {
       this.checkCircularReferences(changes);
     }
-    const snapshot = this.snapshotSets(setName);
+    const snapshot = this.snapshotCollectionTokens(collectionId);
     let imported = 0;
     let skipped = 0;
     await this.withBatch(async () => {
       try {
         for (const { path: tokenPath, token } of tokens) {
           const enriched = this.enrichFormulaExtension(token);
-          const existing = getTokenAtPath(set.tokens, tokenPath);
+          const existing = getTokenAtPath(collection.tokens, tokenPath);
           if (existing) {
             if (strategy === "overwrite") {
               if ("$value" in enriched) existing.$value = enriched.$value;
@@ -995,61 +923,53 @@ export class TokenStore {
               skipped++;
             }
           } else {
-            setTokenAtPath(set.tokens, tokenPath, enriched);
+            setTokenAtPath(collection.tokens, tokenPath, enriched);
             imported++;
           }
         }
-        await this.saveSet(setName);
+        await this.saveCollection(collectionId);
       } catch (err) {
         this.restoreSnapshots(snapshot);
-        if (wasNewSet) {
-          // The set was created solely for this batch — roll back its creation entirely.
-          const newSet = this.sets.get(setName);
-          this.sets.delete(setName);
-          if (newSet?.filePath) {
-            await fs.unlink(newSet.filePath).catch(() => {});
-          }
-        }
         throw err;
       }
     });
-    this.emit({ type: "token-updated", setName, tokenPath: "" });
+    this.emit({ type: "token-updated", collectionId: collectionId, tokenPath: "" });
     return { imported, skipped };
   }
 
-  async deleteToken(setName: string, tokenPath: string): Promise<boolean> {
-    const set = this.sets.get(setName);
-    if (!set) return false;
-    const snapshot = this.snapshotSets(setName);
-    const deleted = deleteTokenAtPath(set.tokens, tokenPath);
+  async deleteToken(collectionId: string, tokenPath: string): Promise<boolean> {
+    const collection = this.collections.get(collectionId);
+    if (!collection) return false;
+    const snapshot = this.snapshotCollectionTokens(collectionId);
+    const deleted = deleteTokenAtPath(collection.tokens, tokenPath);
     if (deleted) {
       try {
-        await this.saveSet(setName);
+        await this.saveCollection(collectionId);
       } catch (err) {
         this.restoreSnapshots(snapshot);
         throw err;
       }
       this.rebuildFlatTokens();
-      this.emit({ type: "token-updated", setName, tokenPath });
+      this.emit({ type: "token-updated", collectionId: collectionId, tokenPath });
     }
     return deleted;
   }
 
   /** Delete multiple token paths in a single save. Returns the list of paths actually deleted. */
-  async deleteTokens(setName: string, tokenPaths: string[]): Promise<string[]> {
-    const set = this.sets.get(setName);
-    if (!set) return [];
-    const snapshot = this.snapshotSets(setName);
+  async deleteTokens(collectionId: string, tokenPaths: string[]): Promise<string[]> {
+    const collection = this.collections.get(collectionId);
+    if (!collection) return [];
+    const snapshot = this.snapshotCollectionTokens(collectionId);
     const deleted: string[] = [];
     await this.withBatch(async () => {
       try {
         for (const tokenPath of tokenPaths) {
-          if (deleteTokenAtPath(set.tokens, tokenPath)) {
+          if (deleteTokenAtPath(collection.tokens, tokenPath)) {
             deleted.push(tokenPath);
           }
         }
         if (deleted.length > 0) {
-          await this.saveSet(setName);
+          await this.saveCollection(collectionId);
         }
       } catch (err) {
         this.restoreSnapshots(snapshot);
@@ -1057,39 +977,39 @@ export class TokenStore {
       }
     });
     if (deleted.length > 0) {
-      this.emit({ type: "token-updated", setName, tokenPath: "" });
+      this.emit({ type: "token-updated", collectionId: collectionId, tokenPath: "" });
     }
     return deleted;
   }
 
   /**
-   * Restore a set of token paths to a previous state.
+   * Restore a collection slice of token paths to a previous state.
    * Used by the operation log rollback feature.
    * Items with `token: null` are deleted; items with a token value are created/updated.
    */
   async restoreSnapshot(
-    setName: string,
+    collectionId: string,
     items: Array<{ path: string; token: Token | null }>,
   ): Promise<void> {
-    const set = this.sets.get(setName);
-    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
-    const snapshot = this.snapshotSets(setName);
+    const collection = this.collections.get(collectionId);
+    if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
+    const snapshot = this.snapshotCollectionTokens(collectionId);
     await this.withBatch(async () => {
       try {
         for (const { path: tokenPath, token } of items) {
           if (token === null) {
-            deleteTokenAtPath(set.tokens, tokenPath);
+            deleteTokenAtPath(collection.tokens, tokenPath);
           } else {
-            setTokenAtPath(set.tokens, tokenPath, structuredClone(token));
+            setTokenAtPath(collection.tokens, tokenPath, structuredClone(token));
           }
         }
-        await this.saveSet(setName);
+        await this.saveCollection(collectionId);
       } catch (err) {
         this.restoreSnapshots(snapshot);
         throw err;
       }
     });
-    this.emit({ type: "token-updated", setName });
+    this.emit({ type: "token-updated", collectionId: collectionId });
   }
 
   /**
@@ -1098,19 +1018,19 @@ export class TokenStore {
    */
   findTokensByRecipeId(
     recipeId: string,
-  ): Array<{ setName: string; path: string; recipeId: string }> {
+  ): Array<{ collectionId: string; path: string; recipeId: string }> {
     const matchAll = recipeId === "*";
     const results: Array<{
-      setName: string;
+      collectionId: string;
       path: string;
       recipeId: string;
     }> = [];
     for (const [tokenPath, entries] of this.flatTokens) {
-      for (const { token, setName } of entries) {
+      for (const { token, collectionId } of entries) {
         const ext = token.$extensions?.["com.tokenmanager.recipe"];
         const gid = ext?.recipeId;
         if (typeof gid === "string" && (matchAll || gid === recipeId)) {
-          results.push({ setName, path: tokenPath, recipeId: gid });
+          results.push({ collectionId: collectionId, path: tokenPath, recipeId: gid });
         }
       }
     }
@@ -1122,24 +1042,24 @@ export class TokenStore {
     const tokens = this.findTokensByRecipeId(recipeId);
     if (tokens.length === 0) return 0;
 
-    const setsToSave = new Set<string>();
+    const collectionsToSave = new Set<string>();
     let deleted = 0;
     await this.withBatch(async () => {
-      for (const { setName, path: tokenPath } of tokens) {
-        const set = this.sets.get(setName);
-        if (!set) continue;
-        if (deleteTokenAtPath(set.tokens, tokenPath)) {
-          setsToSave.add(setName);
+      for (const { collectionId, path: tokenPath } of tokens) {
+        const collection = this.collections.get(collectionId);
+        if (!collection) continue;
+        if (deleteTokenAtPath(collection.tokens, tokenPath)) {
+          collectionsToSave.add(collectionId);
           deleted++;
         }
       }
-      for (const setName of setsToSave) {
-        await this.saveSet(setName);
+      for (const collectionId of collectionsToSave) {
+        await this.saveCollection(collectionId);
       }
     });
     if (deleted > 0) {
-      for (const setName of setsToSave) {
-        this.emit({ type: "token-updated", setName });
+      for (const collectionId of collectionsToSave) {
+        this.emit({ type: "token-updated", collectionId: collectionId });
       }
     }
     return deleted;
@@ -1153,15 +1073,15 @@ export class TokenStore {
     const results: ResolvedToken[] = [];
     for (const [tokenPath, resolved] of resolvedMap) {
       const entries = this.flatTokens.get(tokenPath);
-      // Emit one result per set that defines this token
+      // Emit one result per collection that defines this token
       if (entries && entries.length > 1) {
         for (const entry of entries) {
-          results.push({ ...resolved, collectionId: entry.setName });
+          results.push({ ...resolved, collectionId: entry.collectionId });
         }
       } else {
         results.push({
           ...resolved,
-          collectionId: entries?.[0]?.setName ?? resolved.collectionId,
+          collectionId: entries?.[0]?.collectionId ?? resolved.collectionId,
         });
       }
     }
@@ -1175,19 +1095,21 @@ export class TokenStore {
       const resolved = this.resolver.resolve(tokenPath);
       return {
         ...resolved,
-        collectionId: entries[0].setName,
+        collectionId: entries[0].collectionId,
       };
     } catch {
       return undefined;
     }
   }
 
-  /** Get all tokens in a set as a flat map of path -> Token */
-  async getFlatTokensForSet(setName: string): Promise<Record<string, Token>> {
+  /** Get all tokens in a collection as a flat map of path -> Token. */
+  async getFlatTokensForCollection(
+    collectionId: string,
+  ): Promise<Record<string, Token>> {
     const result: Record<string, Token> = {};
     for (const [tokenPath, entries] of this.flatTokens) {
       for (const entry of entries) {
-        if (entry.setName === setName) {
+        if (entry.collectionId === collectionId) {
           result[tokenPath] = entry.token;
           break;
         }
@@ -1196,37 +1118,37 @@ export class TokenStore {
     return result;
   }
 
-  /** Returns true if a token with the given dotted path exists in any set. */
+  /** Returns true if a token with the given dotted path exists in any collection. */
   tokenPathExists(tokenPath: string): boolean {
     return this.flatTokens.has(tokenPath);
   }
 
-  /** Get all set definitions for an exact token path. Returns one entry per set that defines the path, in set-order. */
+  /** Get all collection definitions for an exact token path. Returns one entry per collection that defines the path, in collection order. */
   getTokenDefinitions(
     tokenPath: string,
-  ): Array<{ setName: string; token: Token }> {
+  ): Array<{ collectionId: string; token: Token }> {
     return (this.flatTokens.get(tokenPath) ?? []).map((e) => ({
-      setName: e.setName,
+      collectionId: e.collectionId,
       token: e.token,
     }));
   }
 
-  /** Get all flat tokens across all sets (includes all set versions per path). */
-  getAllFlatTokens(): Array<{ path: string; token: Token; setName: string }> {
-    const result: Array<{ path: string; token: Token; setName: string }> = [];
+  /** Get all flat tokens across all collections (includes all collection versions per path). */
+  getAllFlatTokens(): Array<{ path: string; token: Token; collectionId: string }> {
+    const result: Array<{ path: string; token: Token; collectionId: string }> = [];
     for (const [tokenPath, entries] of this.flatTokens) {
       for (const entry of entries) {
         result.push({
           path: tokenPath,
           token: entry.token,
-          setName: entry.setName,
+          collectionId: entry.collectionId,
         });
       }
     }
     return result;
   }
 
-  /** Search tokens across all sets using structured query parameters. */
+  /** Search tokens across all collections using structured query parameters. */
   searchTokens(opts: {
     q?: string;
     types?: string[];
@@ -1239,7 +1161,7 @@ export class TokenStore {
     offset?: number;
   }): {
     results: Array<{
-      setName: string;
+      collectionId: string;
       path: string;
       name: string;
       $type: string;
@@ -1261,7 +1183,7 @@ export class TokenStore {
     } = opts;
     const qLower = q?.toLowerCase();
     const all: Array<{
-      setName: string;
+      collectionId: string;
       path: string;
       name: string;
       $type: string;
@@ -1353,7 +1275,7 @@ export class TokenStore {
         }
 
         all.push({
-          setName: entry.setName,
+          collectionId: entry.collectionId,
           path: tokenPath,
           name: leafName,
           $type: entry.token.$type || "unknown",
@@ -1366,33 +1288,36 @@ export class TokenStore {
     return { results: all.slice(offset, offset + limit), total: all.length };
   }
 
-  /** Get all tokens that reference the given token path, with their set names. */
-  getDependents(tokenPath: string): Array<{ path: string; setName: string }> {
-    return this.crossSetDependents.get(tokenPath) ?? [];
+  /** Get all tokens that reference the given token path, with their collection ids. */
+  getDependents(tokenPath: string): Array<{ path: string; collectionId: string }> {
+    return (this.crossCollectionDependents.get(tokenPath) ?? []).map((dependent) => ({
+      path: dependent.path,
+      collectionId: dependent.collectionId,
+    }));
   }
 
-  /** Get all tokens that reference any token under the given group prefix (cross-set). */
+  /** Get all tokens that reference any token under the given group prefix (cross-collection). */
   getGroupDependents(
     groupPrefix: string,
-  ): Array<{ path: string; setName: string; referencedToken: string }> {
+  ): Array<{ path: string; collectionId: string; referencedToken: string }> {
     const prefix = groupPrefix + ".";
     const seen = new Set<string>();
     const result: Array<{
       path: string;
-      setName: string;
+      collectionId: string;
       referencedToken: string;
     }> = [];
-    for (const [refPath, deps] of this.crossSetDependents) {
+    for (const [refPath, deps] of this.crossCollectionDependents) {
       if (refPath === groupPrefix || refPath.startsWith(prefix)) {
         for (const dep of deps) {
           // Exclude tokens that are themselves under the group (internal refs)
           if (dep.path === groupPrefix || dep.path.startsWith(prefix)) continue;
-          const key = `${dep.setName}:${dep.path}`;
+          const key = `${dep.collectionId}:${dep.path}`;
           if (!seen.has(key)) {
             seen.add(key);
             result.push({
               path: dep.path,
-              setName: dep.setName,
+              collectionId: dep.collectionId,
               referencedToken: refPath,
             });
           }
@@ -1402,38 +1327,38 @@ export class TokenStore {
     return result;
   }
 
-  /** Get all token groups (the raw data) keyed by set name */
+  /** Get all token groups (the raw data) keyed by collection id */
   getAllTokenData(): Record<string, TokenGroup> {
     const result: Record<string, TokenGroup> = {};
-    for (const [name, set] of this.sets) {
-      result[name] = set.tokens;
+    for (const [name, collection] of this.collections) {
+      result[name] = collection.tokens;
     }
     return result;
   }
 
-  private getSetOrThrow(name: string): StoredTokenSet {
-    const set = this.sets.get(name);
-    if (!set) {
-      throw new NotFoundError(`Set "${name}" not found`);
+  private getCollectionOrThrow(name: string): StoredCollection {
+    const collection = this.collections.get(name);
+    if (!collection) {
+      throw new NotFoundError(`Collection "${name}" not found`);
     }
-    return set;
+    return collection;
   }
 
-  private getRenameSnapshotSetNames(
-    primarySetName: string,
+  private getRenameSnapshotCollectionIds(
+    primaryCollectionId: string,
     updateAliases: boolean,
   ): string[] {
     if (!updateAliases) {
-      return [primarySetName];
+      return [primaryCollectionId];
     }
-    return [primarySetName, ...[...this.sets.keys()].filter((name) => name !== primarySetName)];
+    return [primaryCollectionId, ...[...this.collections.keys()].filter((name) => name !== primaryCollectionId)];
   }
 
   private async runStructuralMutation<T>(
-    snapshotSetNames: string[],
+    snapshotCollectionIds: string[],
     fn: () => Promise<T>,
   ): Promise<T> {
-    const snapshot = this.snapshotSets(...snapshotSetNames);
+    const snapshot = this.snapshotCollectionTokens(...snapshotCollectionIds);
     return this.withBatch(async () => {
       try {
         return await fn();
@@ -1444,9 +1369,9 @@ export class TokenStore {
     });
   }
 
-  private async saveSets(setNames: Iterable<string>): Promise<void> {
-    for (const setName of setNames) {
-      await this.saveSet(setName);
+  private async saveCollections(collectionIds: Iterable<string>): Promise<void> {
+    for (const collectionId of collectionIds) {
+      await this.saveCollection(collectionId);
     }
   }
 
@@ -1454,15 +1379,15 @@ export class TokenStore {
     pathMap: Map<string, string>,
   ): Promise<number> {
     let aliasesUpdated = 0;
-    const setsToSave = new Set<string>();
-    for (const [setName, set] of this.sets) {
-      const changed = updateBulkAliasRefs(set.tokens, pathMap);
+    const collectionsToSave = new Set<string>();
+    for (const [collectionId, collection] of this.collections) {
+      const changed = updateBulkAliasRefs(collection.tokens, pathMap);
       if (changed > 0) {
         aliasesUpdated += changed;
-        setsToSave.add(setName);
+        collectionsToSave.add(collectionId);
       }
     }
-    await this.saveSets(setsToSave);
+    await this.saveCollections(collectionsToSave);
     return aliasesUpdated;
   }
 
@@ -1471,23 +1396,23 @@ export class TokenStore {
     newGroupPath: string,
   ): Promise<number> {
     let aliasesUpdated = 0;
-    const setsToSave = new Set<string>();
-    for (const [setName, set] of this.sets) {
-      const changed = updateAliasRefs(set.tokens, oldGroupPath, newGroupPath);
+    const collectionsToSave = new Set<string>();
+    for (const [collectionId, collection] of this.collections) {
+      const changed = updateAliasRefs(collection.tokens, oldGroupPath, newGroupPath);
       if (changed > 0) {
         aliasesUpdated += changed;
-        setsToSave.add(setName);
+        collectionsToSave.add(collectionId);
       }
     }
-    await this.saveSets(setsToSave);
+    await this.saveCollections(collectionsToSave);
     return aliasesUpdated;
   }
 
   private planTokenRenames(
-    setName: string,
+    collectionId: string,
     renames: TokenPathRename[],
-  ): { set: StoredTokenSet; plannedRenames: PlannedTokenRename[]; pathMap: Map<string, string> } {
-    const set = this.getSetOrThrow(setName);
+  ): { collection: StoredCollection; plannedRenames: PlannedTokenRename[]; pathMap: Map<string, string> } {
+    const collection = this.getCollectionOrThrow(collectionId);
     const plannedRenames: PlannedTokenRename[] = [];
     const pathMap = new Map<string, string>();
     const targetPaths = new Set<string>();
@@ -1495,13 +1420,13 @@ export class TokenStore {
     for (const { oldPath, newPath } of renames) {
       validateTokenPath(newPath);
 
-      const token = getTokenAtPath(set.tokens, oldPath);
+      const token = getTokenAtPath(collection.tokens, oldPath);
       if (!token) {
         throw new NotFoundError(
-          `Token "${oldPath}" not found in set "${setName}"`,
+          `Token "${oldPath}" not found in collection "${collectionId}"`,
         );
       }
-      if (getTokenAtPath(set.tokens, newPath)) {
+      if (getTokenAtPath(collection.tokens, newPath)) {
         throw new ConflictError(`Token "${newPath}" already exists`);
       }
       if (targetPaths.has(newPath)) {
@@ -1513,32 +1438,32 @@ export class TokenStore {
       plannedRenames.push({ oldPath, newPath, token });
     }
 
-    return { set, plannedRenames, pathMap };
+    return { collection, plannedRenames, pathMap };
   }
 
   private planTokenTransfers(
-    fromSet: string,
+    fromCollection: string,
     paths: string[],
-    toSet: string,
+    toCollection: string,
     options: { overwriteExisting: boolean },
   ): {
-    source: StoredTokenSet;
-    target: StoredTokenSet;
+    source: StoredCollection;
+    target: StoredCollection;
     plannedTransfers: PlannedTokenTransfer[];
   } {
-    if (fromSet === toSet) {
-      throw new BadRequestError("Source and target sets are the same");
+    if (fromCollection === toCollection) {
+      throw new BadRequestError("Source and target collections are the same");
     }
 
-    const source = this.getSetOrThrow(fromSet);
-    const target = this.getSetOrThrow(toSet);
+    const source = this.getCollectionOrThrow(fromCollection);
+    const target = this.getCollectionOrThrow(toCollection);
     const plannedTransfers: PlannedTokenTransfer[] = [];
 
     for (const tokenPath of paths) {
       const token = getTokenAtPath(source.tokens, tokenPath);
       if (!token) {
         throw new NotFoundError(
-          `Token "${tokenPath}" not found in set "${fromSet}"`,
+          `Token "${tokenPath}" not found in collection "${fromCollection}"`,
         );
       }
       if (
@@ -1546,7 +1471,7 @@ export class TokenStore {
         pathExistsAt(target.tokens, tokenPath)
       ) {
         throw new ConflictError(
-          `Path "${tokenPath}" already exists in target set "${toSet}"`,
+          `Path "${tokenPath}" already exists in target collection "${toCollection}"`,
         );
       }
       plannedTransfers.push({ path: tokenPath, token });
@@ -1556,23 +1481,23 @@ export class TokenStore {
   }
 
   private planGroupRename(
-    setName: string,
+    collectionId: string,
     oldGroupPath: string,
     newGroupPath: string,
   ): PlannedGroupRename {
-    const set = this.getSetOrThrow(setName);
-    const leafTokens = collectGroupLeafTokens(set.tokens, oldGroupPath);
+    const collection = this.getCollectionOrThrow(collectionId);
+    const leafTokens = collectGroupLeafTokens(collection.tokens, oldGroupPath);
 
     if (leafTokens.length === 0) {
-      const groupObject = getObjectAtPath(set.tokens, oldGroupPath);
+      const groupObject = getObjectAtPath(collection.tokens, oldGroupPath);
       if (!groupObject) {
         throw new NotFoundError(`Group "${oldGroupPath}" not found`);
       }
-      if (pathExistsAt(set.tokens, newGroupPath)) {
+      if (pathExistsAt(collection.tokens, newGroupPath)) {
         throw new ConflictError(`Path "${newGroupPath}" already exists`);
       }
       return {
-        set,
+        collection,
         oldGroupPath,
         newGroupPath,
         groupObject,
@@ -1587,13 +1512,13 @@ export class TokenStore {
     }));
 
     for (const { newPath } of pathRenames) {
-      if (getTokenAtPath(set.tokens, newPath)) {
+      if (getTokenAtPath(collection.tokens, newPath)) {
         throw new ConflictError(`Token at path "${newPath}" already exists`);
       }
     }
 
     return {
-      set,
+      collection,
       oldGroupPath,
       newGroupPath,
       leafTokens,
@@ -1602,17 +1527,17 @@ export class TokenStore {
   }
 
   private planGroupTransfer(
-    fromSet: string,
+    fromCollection: string,
     groupPath: string,
-    toSet: string,
+    toCollection: string,
     options: { overwriteExisting: boolean; actionLabel: "move" | "copy" },
   ): PlannedGroupTransfer {
-    if (fromSet === toSet) {
-      throw new BadRequestError("Source and target sets are the same");
+    if (fromCollection === toCollection) {
+      throw new BadRequestError("Source and target collections are the same");
     }
 
-    const source = this.getSetOrThrow(fromSet);
-    const target = this.getSetOrThrow(toSet);
+    const source = this.getCollectionOrThrow(fromCollection);
+    const target = this.getCollectionOrThrow(toCollection);
     const leafTokens = collectGroupLeafTokens(source.tokens, groupPath);
 
     if (leafTokens.length === 0) {
@@ -1625,7 +1550,7 @@ export class TokenStore {
         pathExistsAt(target.tokens, groupPath)
       ) {
         throw new ConflictError(
-          `Path "${groupPath}" already exists in target set "${toSet}"`,
+          `Path "${groupPath}" already exists in target collection "${toCollection}"`,
         );
       }
       return {
@@ -1646,7 +1571,7 @@ export class TokenStore {
     }
     if (collisions.length > 0) {
       throw new ConflictError(
-        `Cannot ${options.actionLabel} group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(", ")}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ""}`,
+        `Cannot ${options.actionLabel} group: ${collisions.length} token path(s) already exist in target collection "${toCollection}": ${collisions.slice(0, 5).join(", ")}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ""}`,
       );
     }
 
@@ -1661,7 +1586,7 @@ export class TokenStore {
   // ----- Group operations -----
 
   async renameGroup(
-    setName: string,
+    collectionId: string,
     oldGroupPath: string,
     newGroupPath: string,
     updateAliases = true,
@@ -1670,25 +1595,25 @@ export class TokenStore {
     aliasesUpdated: number;
     pathRenames: TokenPathRename[];
   }> {
-    const plan = this.planGroupRename(setName, oldGroupPath, newGroupPath);
+    const plan = this.planGroupRename(collectionId, oldGroupPath, newGroupPath);
     return this.runStructuralMutation(
-      this.getRenameSnapshotSetNames(setName, updateAliases),
+      this.getRenameSnapshotCollectionIds(collectionId, updateAliases),
       async () => {
         if (plan.groupObject) {
-          setGroupAtPath(plan.set.tokens, newGroupPath, plan.groupObject);
-          deleteTokenAtPath(plan.set.tokens, oldGroupPath);
+          setGroupAtPath(plan.collection.tokens, newGroupPath, plan.groupObject);
+          deleteTokenAtPath(plan.collection.tokens, oldGroupPath);
         } else {
           for (const { relativePath, token } of plan.leafTokens) {
             setTokenAtPath(
-              plan.set.tokens,
+              plan.collection.tokens,
               `${newGroupPath}.${relativePath}`,
               token,
             );
           }
-          deleteTokenAtPath(plan.set.tokens, oldGroupPath);
+          deleteTokenAtPath(plan.collection.tokens, oldGroupPath);
         }
 
-        await this.saveSet(setName);
+        await this.saveCollection(collectionId);
 
         const aliasesUpdated = updateAliases
           ? await this.applyGroupAliasUpdates(oldGroupPath, newGroupPath)
@@ -1707,12 +1632,12 @@ export class TokenStore {
   previewRenameToken(
     oldPath: string,
     newPath: string,
-  ): Array<AliasChange & { setName: string }> {
+  ): Array<AliasChange & { collectionId: string }> {
     const pathMap = new Map([[oldPath, newPath]]);
-    const result: Array<AliasChange & { setName: string }> = [];
-    for (const [sName, s] of this.sets) {
+    const result: Array<AliasChange & { collectionId: string }> = [];
+    for (const [sName, s] of this.collections) {
       for (const change of previewBulkAliasChanges(s.tokens, pathMap)) {
-        result.push({ ...change, setName: sName });
+        result.push({ ...change, collectionId: sName });
       }
     }
     return result;
@@ -1722,28 +1647,28 @@ export class TokenStore {
   previewRenameGroup(
     oldGroupPath: string,
     newGroupPath: string,
-  ): Array<AliasChange & { setName: string }> {
-    const result: Array<AliasChange & { setName: string }> = [];
-    for (const [sName, s] of this.sets) {
+  ): Array<AliasChange & { collectionId: string }> {
+    const result: Array<AliasChange & { collectionId: string }> = [];
+    for (const [sName, s] of this.collections) {
       for (const change of previewGroupAliasChanges(
         s.tokens,
         oldGroupPath,
         newGroupPath,
       )) {
-        result.push({ ...change, setName: sName });
+        result.push({ ...change, collectionId: sName });
       }
     }
     return result;
   }
 
   async renameToken(
-    setName: string,
+    collectionId: string,
     oldPath: string,
     newPath: string,
     updateAliases = true,
   ): Promise<{ aliasesUpdated: number; pathRenames: TokenPathRename[] }> {
     const result = await this.batchRenameTokens(
-      setName,
+      collectionId,
       [{ oldPath, newPath }],
       updateAliases,
     );
@@ -1754,15 +1679,15 @@ export class TokenStore {
   }
 
   async moveGroup(
-    fromSet: string,
+    fromCollection: string,
     groupPath: string,
-    toSet: string,
+    toCollection: string,
   ): Promise<{ movedCount: number }> {
-    const plan = this.planGroupTransfer(fromSet, groupPath, toSet, {
+    const plan = this.planGroupTransfer(fromCollection, groupPath, toCollection, {
       overwriteExisting: false,
       actionLabel: "move",
     });
-    return this.runStructuralMutation([fromSet, toSet], async () => {
+    return this.runStructuralMutation([fromCollection, toCollection], async () => {
       if (plan.groupObject) {
         setGroupAtPath(plan.target.tokens, groupPath, plan.groupObject);
       } else {
@@ -1772,22 +1697,22 @@ export class TokenStore {
       }
 
       deleteTokenAtPath(plan.source.tokens, groupPath);
-      await this.saveSets([fromSet, toSet]);
+      await this.saveCollections([fromCollection, toCollection]);
 
       return { movedCount: plan.leafTokens.length };
     });
   }
 
   async copyGroup(
-    fromSet: string,
+    fromCollection: string,
     groupPath: string,
-    toSet: string,
+    toCollection: string,
   ): Promise<{ copiedCount: number }> {
-    const plan = this.planGroupTransfer(fromSet, groupPath, toSet, {
+    const plan = this.planGroupTransfer(fromCollection, groupPath, toCollection, {
       overwriteExisting: false,
       actionLabel: "copy",
     });
-    return this.runStructuralMutation([toSet], async () => {
+    return this.runStructuralMutation([toCollection], async () => {
       if (plan.groupObject) {
         setGroupAtPath(plan.target.tokens, groupPath, structuredClone(plan.groupObject));
       } else {
@@ -1800,63 +1725,63 @@ export class TokenStore {
         }
       }
 
-      await this.saveSet(toSet);
+      await this.saveCollection(toCollection);
       return { copiedCount: plan.leafTokens.length };
     });
   }
 
   async moveToken(
-    fromSet: string,
+    fromCollection: string,
     tokenPath: string,
-    toSet: string,
+    toCollection: string,
   ): Promise<void> {
-    const plan = this.planTokenTransfers(fromSet, [tokenPath], toSet, {
+    const plan = this.planTokenTransfers(fromCollection, [tokenPath], toCollection, {
       overwriteExisting: false,
     });
-    await this.runStructuralMutation([fromSet, toSet], async () => {
+    await this.runStructuralMutation([fromCollection, toCollection], async () => {
       for (const { path, token } of plan.plannedTransfers) {
         setTokenAtPath(plan.target.tokens, path, token);
         deleteTokenAtPath(plan.source.tokens, path);
       }
-      await this.saveSets([fromSet, toSet]);
+      await this.saveCollections([fromCollection, toCollection]);
     });
   }
 
   async copyToken(
-    fromSet: string,
+    fromCollection: string,
     tokenPath: string,
-    toSet: string,
+    toCollection: string,
   ): Promise<void> {
-    const plan = this.planTokenTransfers(fromSet, [tokenPath], toSet, {
+    const plan = this.planTokenTransfers(fromCollection, [tokenPath], toCollection, {
       overwriteExisting: false,
     });
-    await this.runStructuralMutation([toSet], async () => {
+    await this.runStructuralMutation([toCollection], async () => {
       for (const { path, token } of plan.plannedTransfers) {
         setTokenAtPath(plan.target.tokens, path, structuredClone(token));
       }
-      await this.saveSet(toSet);
+      await this.saveCollection(toCollection);
     });
   }
 
   /**
-   * Atomically update multiple tokens in the same set. All changes are applied
+   * Atomically update multiple tokens in the same collection. All changes are applied
    * in memory first, then saved once. If any patch fails validation, all
    * changes are rolled back (no partial writes to disk).
    */
   async batchUpdateTokens(
-    setName: string,
+    collectionId: string,
     patches: Array<{ path: string; patch: Partial<Token> }>,
   ): Promise<void> {
-    const set = this.sets.get(setName);
-    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
+    const collection = this.collections.get(collectionId);
+    if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
     // Validate all patches upfront before mutating anything
     const enrichedPatches: Array<{ path: string; patch: Partial<Token> }> = [];
     const circularChecks: Array<{ path: string; value: unknown }> = [];
     for (const { path: tokenPath, patch } of patches) {
-      const existing = getTokenAtPath(set.tokens, tokenPath);
+      const existing = getTokenAtPath(collection.tokens, tokenPath);
       if (!existing)
         throw new NotFoundError(
-          `Token "${tokenPath}" not found in set "${setName}"`,
+          `Token "${tokenPath}" not found in collection "${collectionId}"`,
         );
       let enrichedPatch = patch;
       if ("$value" in patch && patch.$value !== undefined) {
@@ -1879,34 +1804,34 @@ export class TokenStore {
       this.checkCircularReferences(circularChecks);
     }
     // All validation passed — apply changes atomically
-    const snapshot = this.snapshotSets(setName);
+    const snapshot = this.snapshotCollectionTokens(collectionId);
     await this.withBatch(async () => {
       try {
         for (const { path: tokenPath, patch } of enrichedPatches) {
-          const existing = getTokenAtPath(set.tokens, tokenPath)!;
+          const existing = getTokenAtPath(collection.tokens, tokenPath)!;
           if ("$value" in patch) existing.$value = patch.$value!;
           if ("$type" in patch) existing.$type = patch.$type;
           if ("$description" in patch)
             existing.$description = patch.$description;
           if ("$extensions" in patch) existing.$extensions = patch.$extensions;
         }
-        await this.saveSet(setName);
+        await this.saveCollection(collectionId);
       } catch (err) {
         this.restoreSnapshots(snapshot);
         throw err;
       }
     });
-    this.emit({ type: "token-updated", setName, tokenPath: "" });
+    this.emit({ type: "token-updated", collectionId: collectionId, tokenPath: "" });
   }
 
   /**
-   * Atomically rename multiple tokens in the same set. All renames are applied
-   * in memory first, then saved once. Alias updates across all sets are also
-   * batched into a single save per affected set. If any rename fails, all
+   * Atomically rename multiple tokens in the same collection. All renames are applied
+   * in memory first, then saved once. Alias updates across all collections are also
+   * batched into a single save per affected collection. If any rename fails, all
    * changes (including alias updates) are rolled back.
    */
   async batchRenameTokens(
-    setName: string,
+    collectionId: string,
     renames: TokenPathRename[],
     updateAliases = true,
   ): Promise<{
@@ -1914,16 +1839,16 @@ export class TokenStore {
     aliasesUpdated: number;
     pathRenames: TokenPathRename[];
   }> {
-    const plan = this.planTokenRenames(setName, renames);
+    const plan = this.planTokenRenames(collectionId, renames);
     return this.runStructuralMutation(
-      this.getRenameSnapshotSetNames(setName, updateAliases),
+      this.getRenameSnapshotCollectionIds(collectionId, updateAliases),
       async () => {
         for (const { oldPath, newPath, token } of plan.plannedRenames) {
-          setTokenAtPath(plan.set.tokens, newPath, token);
-          deleteTokenAtPath(plan.set.tokens, oldPath);
+          setTokenAtPath(plan.collection.tokens, newPath, token);
+          deleteTokenAtPath(plan.collection.tokens, oldPath);
         }
 
-        await this.saveSet(setName);
+        await this.saveCollection(collectionId);
 
         const aliasesUpdated = updateAliases
           ? await this.applyTokenAliasUpdates(plan.pathMap)
@@ -1942,59 +1867,59 @@ export class TokenStore {
   }
 
   /**
-   * Atomically move multiple tokens from one set to another. All moves are
-   * applied in memory first, then both sets are saved once. If any move fails
+   * Atomically move multiple tokens from one collection to another. All moves are
+   * applied in memory first, then both collections are saved once. If any move fails
    * validation, all changes are rolled back.
    */
   async batchMoveTokens(
-    fromSet: string,
+    fromCollection: string,
     paths: string[],
-    toSet: string,
+    toCollection: string,
   ): Promise<{ moved: number }> {
-    const plan = this.planTokenTransfers(fromSet, paths, toSet, {
+    const plan = this.planTokenTransfers(fromCollection, paths, toCollection, {
       overwriteExisting: false,
     });
-    return this.runStructuralMutation([fromSet, toSet], async () => {
+    return this.runStructuralMutation([fromCollection, toCollection], async () => {
       for (const { path, token } of plan.plannedTransfers) {
         setTokenAtPath(plan.target.tokens, path, token);
         deleteTokenAtPath(plan.source.tokens, path);
       }
-      await this.saveSets([fromSet, toSet]);
+      await this.saveCollections([fromCollection, toCollection]);
       return { moved: plan.plannedTransfers.length };
     });
   }
 
   /**
-   * Copy multiple tokens from one set to another, overwriting any existing tokens at the
-   * same paths in the target set. The source tokens are preserved (not deleted).
+   * Copy multiple tokens from one collection to another, overwriting any existing tokens at the
+   * same paths in the target collection. The source tokens are preserved (not deleted).
    */
   async batchCopyTokens(
-    fromSet: string,
+    fromCollection: string,
     paths: string[],
-    toSet: string,
+    toCollection: string,
   ): Promise<{ copied: number }> {
-    const plan = this.planTokenTransfers(fromSet, paths, toSet, {
+    const plan = this.planTokenTransfers(fromCollection, paths, toCollection, {
       overwriteExisting: true,
     });
-    return this.runStructuralMutation([toSet], async () => {
+    return this.runStructuralMutation([toCollection], async () => {
       for (const { path, token } of plan.plannedTransfers) {
         setTokenAtPath(plan.target.tokens, path, structuredClone(token));
       }
-      await this.saveSet(toSet);
+      await this.saveCollection(toCollection);
       return { copied: plan.plannedTransfers.length };
     });
   }
 
   async duplicateGroup(
-    setName: string,
+    collectionId: string,
     groupPath: string,
   ): Promise<{ newGroupPath: string; count: number }> {
-    const set = this.sets.get(setName);
-    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
-    const snapshot = this.snapshotSets(setName);
-    const leafTokens = collectGroupLeafTokens(set.tokens, groupPath);
+    const collection = this.collections.get(collectionId);
+    if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
+    const snapshot = this.snapshotCollectionTokens(collectionId);
+    const leafTokens = collectGroupLeafTokens(collection.tokens, groupPath);
     if (leafTokens.length === 0) {
-      const groupObj = getObjectAtPath(set.tokens, groupPath);
+      const groupObj = getObjectAtPath(collection.tokens, groupPath);
       if (!groupObj) throw new NotFoundError(`Group "${groupPath}" not found`);
       const lastDot0 = groupPath.lastIndexOf(".");
       const parentPath0 = lastDot0 >= 0 ? groupPath.slice(0, lastDot0) : "";
@@ -2004,16 +1929,16 @@ export class TokenStore {
         parentPath0 ? `${parentPath0}.${suffix}` : suffix;
       let newEmptyPath = makeNewPath0(`${baseName0}-copy`);
       let attempt0 = 2;
-      while (pathExistsAt(set.tokens, newEmptyPath)) {
+      while (pathExistsAt(collection.tokens, newEmptyPath)) {
         newEmptyPath = makeNewPath0(`${baseName0}-copy-${attempt0++}`);
       }
       setGroupAtPath(
-        set.tokens,
+        collection.tokens,
         newEmptyPath,
         JSON.parse(JSON.stringify(groupObj)),
       );
       try {
-        await this.saveSet(setName);
+        await this.saveCollection(collectionId);
       } catch (err) {
         this.restoreSnapshots(snapshot);
         throw err;
@@ -2028,18 +1953,18 @@ export class TokenStore {
       parentPath ? `${parentPath}.${suffix}` : suffix;
     let newGroupPath = makeNewPath(`${baseName}-copy`);
     let attempt = 2;
-    while (pathExistsAt(set.tokens, newGroupPath)) {
+    while (pathExistsAt(collection.tokens, newGroupPath)) {
       newGroupPath = makeNewPath(`${baseName}-copy-${attempt++}`);
     }
     for (const { relativePath, token } of leafTokens) {
       setTokenAtPath(
-        set.tokens,
+        collection.tokens,
         `${newGroupPath}.${relativePath}`,
         JSON.parse(JSON.stringify(token)),
       );
     }
     try {
-      await this.saveSet(setName);
+      await this.saveCollection(collectionId);
     } catch (err) {
       this.restoreSnapshots(snapshot);
       throw err;
@@ -2049,15 +1974,15 @@ export class TokenStore {
   }
 
   async bulkRename(
-    setName: string,
+    collectionId: string,
     find: string,
     replace: string,
     isRegex = false,
   ): Promise<{ renamed: number; skipped: string[]; aliasesUpdated: number }> {
-    const set = this.sets.get(setName);
-    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
+    const collection = this.collections.get(collectionId);
+    if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
 
-    const flatTokens = await this.getFlatTokensForSet(setName);
+    const flatTokens = await this.getFlatTokensForCollection(collectionId);
 
     let pattern: RegExp | null = null;
     if (isRegex) {
@@ -2095,7 +2020,7 @@ export class TokenStore {
     }> = [];
     for (const rename of renames) {
       const existsInSet =
-        getTokenAtPath(set.tokens, rename.newPath) !== undefined;
+        getTokenAtPath(collection.tokens, rename.newPath) !== undefined;
       const willBeFreed = oldPaths.has(rename.newPath);
       if (existsInSet && !willBeFreed) {
         skipped.push(rename.oldPath);
@@ -2106,33 +2031,33 @@ export class TokenStore {
 
     const pathMap = new Map(filteredRenames.map((r) => [r.oldPath, r.newPath]));
 
-    // Snapshot all sets before mutation so we can restore atomically on failure
-    const snapshot = this.snapshotSets(...this.sets.keys());
+    // Snapshot all collections before mutation so we can restore atomically on failure
+    const snapshot = this.snapshotCollectionTokens(...this.collections.keys());
 
     return await this.withBatch(async () => {
       try {
         // Apply: set new paths first, then remove old ones
         for (const { newPath, token } of filteredRenames) {
-          setTokenAtPath(set.tokens, newPath, token);
+          setTokenAtPath(collection.tokens, newPath, token);
         }
         for (const { oldPath } of filteredRenames) {
-          deleteTokenAtPath(set.tokens, oldPath);
+          deleteTokenAtPath(collection.tokens, oldPath);
         }
 
-        // Update alias references across all sets
+        // Update alias references across all collections
         let aliasesUpdated = 0;
-        const aliasModifiedSets = new Set<string>();
-        for (const [sName, s] of this.sets) {
-          const changed = updateBulkAliasRefs(s.tokens, pathMap);
+        const aliasModifiedCollections = new Set<string>();
+        for (const [collectionName, collectionEntry] of this.collections) {
+          const changed = updateBulkAliasRefs(collectionEntry.tokens, pathMap);
           if (changed > 0) {
             aliasesUpdated += changed;
-            aliasModifiedSets.add(sName);
+            aliasModifiedCollections.add(collectionName);
           }
         }
 
         // Detect circular alias references created by the rename.
         // flatTokens is stale inside a batch (rebuildFlatTokens is deferred), so
-        // build a fresh dependency map from this.sets directly — all mutations
+        // build a fresh dependency map from this.collections directly — all mutations
         // (path renames + alias ref updates) have already been applied to the
         // token objects, so no overrides are needed.
         const liveDeps = this.buildDependencyMap(
@@ -2145,8 +2070,10 @@ export class TokenStore {
         );
 
         // All checks passed — persist to disk
-        await this.saveSet(setName);
-        for (const sName of aliasModifiedSets) await this.saveSet(sName);
+        await this.saveCollection(collectionId);
+        for (const collectionName of aliasModifiedCollections) {
+          await this.saveCollection(collectionName);
+        }
 
         return { renamed: filteredRenames.length, skipped, aliasesUpdated };
       } catch (err) {
@@ -2181,44 +2108,44 @@ export class TokenStore {
 
   // ----- Group creation -----
 
-  async createGroup(setName: string, groupPath: string): Promise<void> {
+  async createGroup(collectionId: string, groupPath: string): Promise<void> {
     validateTokenPath(groupPath);
-    const set = this.sets.get(setName);
-    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
-    if (pathExistsAt(set.tokens, groupPath)) {
+    const collection = this.collections.get(collectionId);
+    if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
+    if (pathExistsAt(collection.tokens, groupPath)) {
       throw new ConflictError(`Path "${groupPath}" already exists`);
     }
-    const snapshot = this.snapshotSets(setName);
-    setGroupAtPath(set.tokens, groupPath, {});
+    const snapshot = this.snapshotCollectionTokens(collectionId);
+    setGroupAtPath(collection.tokens, groupPath, {});
     try {
-      await this.saveSet(setName);
+      await this.saveCollection(collectionId);
     } catch (err) {
       this.restoreSnapshots(snapshot);
       throw err;
     }
     this.rebuildFlatTokens();
-    this.emit({ type: "token-updated", setName });
+    this.emit({ type: "token-updated", collectionId: collectionId });
   }
 
   async updateGroup(
-    setName: string,
+    collectionId: string,
     groupPath: string,
     meta: { $type?: string | null; $description?: string | null },
   ): Promise<void> {
-    const set = this.sets.get(setName);
-    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
+    const collection = this.collections.get(collectionId);
+    if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
     let group: TokenGroup;
     if (!groupPath) {
-      group = set.tokens as TokenGroup;
+      group = collection.tokens as TokenGroup;
     } else {
-      const found = getObjectAtPath(set.tokens, groupPath);
+      const found = getObjectAtPath(collection.tokens, groupPath);
       if (!found)
         throw new NotFoundError(
-          `Group "${groupPath}" not found in set "${setName}"`,
+          `Group "${groupPath}" not found in collection "${collectionId}"`,
         );
       group = found;
     }
-    const snapshot = this.snapshotSets(setName);
+    const snapshot = this.snapshotCollectionTokens(collectionId);
     if ("$type" in meta) {
       if (meta.$type == null) delete group.$type;
       else group.$type = meta.$type as TokenType;
@@ -2229,47 +2156,47 @@ export class TokenStore {
       else group.$description = meta.$description;
     }
     try {
-      await this.saveSet(setName);
+      await this.saveCollection(collectionId);
     } catch (err) {
       this.restoreSnapshots(snapshot);
       throw err;
     }
     this.rebuildFlatTokens();
-    this.emit({ type: "token-updated", setName, tokenPath: groupPath });
+    this.emit({ type: "token-updated", collectionId: collectionId, tokenPath: groupPath });
   }
 
   /**
-   * Snapshot the tokens for one or more sets so they can be restored on failure.
-   * Returns a Map of setName → cloned TokenGroup.
+   * Snapshot the tokens for one or more collections so they can be restored on failure.
+   * Returns a Map of collectionId → cloned TokenGroup.
    */
-  private snapshotSets(...names: string[]): Map<string, TokenGroup> {
+  private snapshotCollectionTokens(...names: string[]): Map<string, TokenGroup> {
     const snapshots = new Map<string, TokenGroup>();
     for (const name of names) {
-      const set = this.sets.get(name);
-      if (set) snapshots.set(name, structuredClone(set.tokens));
+      const collection = this.collections.get(name);
+      if (collection) snapshots.set(name, structuredClone(collection.tokens));
     }
     return snapshots;
   }
 
-  /** Restore in-memory tokens from snapshots (used on saveSet failure). */
+  /** Restore in-memory tokens from snapshots (used on saveCollection failure). */
   private restoreSnapshots(snapshots: Map<string, TokenGroup>): void {
     for (const [name, tokens] of snapshots) {
-      const set = this.sets.get(name);
-      if (set) set.tokens = tokens;
+      const collection = this.collections.get(name);
+      if (collection) collection.tokens = tokens;
     }
   }
 
-  private saveSet(name: string): Promise<void> {
-    // Serialize writes for each set name: chain the actual I/O behind any in-flight
-    // write for the same set so concurrent callers never race on the same .tmp file.
+  private saveCollection(name: string): Promise<void> {
+    // Serialize writes for each collection: chain the actual I/O behind any in-flight
+    // write for the same collection so concurrent callers never race on the same .tmp file.
     const prev = this._saveChains.get(name) ?? Promise.resolve();
     const next = prev.then(async () => {
-      const set = this.sets.get(name);
-      if (!set) return;
-      const filePath = path.join(this.dir, `${name}.tokens.json`);
+      const collection = this.collections.get(name);
+      if (!collection) return;
+      const filePath = this.collectionFilePath(name);
       const tmpPath = filePath + ".tmp";
       await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(tmpPath, JSON.stringify(set.tokens, null, 2));
+      await fs.writeFile(tmpPath, JSON.stringify(collection.tokens, null, 2));
       this._startWriteGuard(filePath);
       try {
         await fs.rename(tmpPath, filePath);
@@ -2318,15 +2245,15 @@ export class TokenStore {
 
 export interface ChangeEvent {
   type:
-    | "set-added"
-    | "set-updated"
-    | "set-removed"
+    | "collection-added"
+    | "collection-updated"
+    | "collection-removed"
     | "token-updated"
     | "recipe-error"
     | "file-load-error"
     | "workspace-file-changed"
     | "workspace-file-removed";
-  setName: string;
+  collectionId: string;
   tokenPath?: string;
   recipeId?: string;
   message?: string;

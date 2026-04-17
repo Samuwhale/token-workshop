@@ -105,7 +105,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               paths: [...selectedPaths],
-              targetSet: target,
+              targetCollectionId: target,
             }),
           },
         );
@@ -153,7 +153,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               paths: [...selectedPaths],
-              targetSet: target,
+              targetCollectionId: target,
             }),
           },
         );

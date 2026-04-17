@@ -44,13 +44,13 @@ function stripTokenFileSuffix(ref: string): string {
     : ref;
 }
 
-function toTokenFileRef(setName: string): string {
-  return `${setName}${TOKEN_FILE_SUFFIX}`;
+function toTokenFileRef(collectionId: string): string {
+  return `${collectionId}${TOKEN_FILE_SUFFIX}`;
 }
 
 function rewriteResolverSources(
   sources: ResolverSource[],
-  rewriteSetName: (setName: string) => string | null,
+  rewriteCollectionId: (collectionId: string) => string | null,
 ): { sources: ResolverSource[]; changed: boolean } {
   let changed = false;
   const nextSources = sources.flatMap((source) => {
@@ -62,33 +62,33 @@ function rewriteResolverSources(
       return [source];
     }
 
-    const currentSetName = stripTokenFileSuffix(source.$ref);
-    const nextSetName = rewriteSetName(currentSetName);
-    if (nextSetName === currentSetName) {
+    const currentCollectionId = stripTokenFileSuffix(source.$ref);
+    const nextCollectionId = rewriteCollectionId(currentCollectionId);
+    if (nextCollectionId === currentCollectionId) {
       return [source];
     }
 
     changed = true;
-    if (nextSetName === null) {
+    if (nextCollectionId === null) {
       return [];
     }
 
-    return [{ ...source, $ref: toTokenFileRef(nextSetName) }];
+    return [{ ...source, $ref: toTokenFileRef(nextCollectionId) }];
   });
 
   return { sources: nextSources, changed };
 }
 
-function rewriteResolverFileSetReferences(
+function rewriteResolverFileCollectionReferences(
   file: ResolverFile,
-  rewriteSetName: (setName: string) => string | null,
+  rewriteCollectionId: (collectionId: string) => string | null,
 ): { file: ResolverFile; changed: boolean } {
   const nextFile = structuredClone(file);
   let changed = false;
 
   if (nextFile.sets) {
     for (const entry of Object.values(nextFile.sets) as ResolverSet[]) {
-      const rewritten = rewriteResolverSources(entry.sources, rewriteSetName);
+      const rewritten = rewriteResolverSources(entry.sources, rewriteCollectionId);
       if (rewritten.changed) {
         entry.sources = rewritten.sources;
         changed = true;
@@ -103,7 +103,7 @@ function rewriteResolverFileSetReferences(
       for (const [contextName, sources] of Object.entries(
         modifier.contexts,
       ) as Array<[string, ResolverSource[]]>) {
-        const rewritten = rewriteResolverSources(sources, rewriteSetName);
+        const rewritten = rewriteResolverSources(sources, rewriteCollectionId);
         if (rewritten.changed) {
           modifier.contexts[contextName] = rewritten.sources;
           changed = true;
@@ -123,13 +123,13 @@ export interface ResolverMeta {
   name: string;
   description?: string;
   modifiers: Record<string, { contexts: string[]; default?: string }>;
-  /** Token set names referenced by this resolver's sources (external $ref entries). */
-  referencedSets: string[];
+  /** Collection ids referenced by this resolver's sources (external $ref entries). */
+  referencedCollections: string[];
 }
 
-export interface ResolverSetDependencyMeta {
+export interface ResolverCollectionDependencyMeta {
   name: string;
-  referencedSets: string[];
+  referencedCollections: string[];
 }
 
 export interface ResolverStoreChangeEvent {
@@ -263,16 +263,16 @@ export class ResolverStore {
         name,
         description: file.description,
         modifiers: this.extractModifierMeta(file),
-        referencedSets: this.extractReferencedSets(file),
+        referencedCollections: this.extractReferencedCollections(file),
       });
     }
     return result;
   }
 
-  listSetDependencyMeta(): ResolverSetDependencyMeta[] {
+  listCollectionDependencyMeta(): ResolverCollectionDependencyMeta[] {
     return Array.from(this.resolvers.entries()).map(([name, file]) => ({
       name,
-      referencedSets: this.extractReferencedSets(file),
+      referencedCollections: this.extractReferencedCollections(file),
     }));
   }
 
@@ -342,18 +342,18 @@ export class ResolverStore {
     return true;
   }
 
-  async updateSetReferences(
-    oldName: string,
-    newName: string,
+  async renameCollectionReferences(
+    oldCollectionId: string,
+    newCollectionId: string,
   ): Promise<string[]> {
-    return this.rewriteSetReferences((setName) =>
-      setName === oldName ? newName : setName,
+    return this.rewriteCollectionReferences((collectionId) =>
+      collectionId === oldCollectionId ? newCollectionId : collectionId,
     );
   }
 
-  async removeSetReferences(setName: string): Promise<string[]> {
-    return this.rewriteSetReferences((candidate) =>
-      candidate === setName ? null : candidate,
+  async removeCollectionReferences(collectionId: string): Promise<string[]> {
+    return this.rewriteCollectionReferences((candidate) =>
+      candidate === collectionId ? null : candidate,
     );
   }
 
@@ -395,18 +395,18 @@ export class ResolverStore {
     }
 
     const loadExternal = async (filePath: string) => {
-      // Strip .tokens.json suffix to get set name
-      let setName = filePath;
-      if (setName.endsWith(".tokens.json")) {
-        setName = setName.slice(0, -".tokens.json".length);
+      // Strip .tokens.json suffix to get collection id
+      let collectionId = filePath;
+      if (collectionId.endsWith(".tokens.json")) {
+        collectionId = collectionId.slice(0, -".tokens.json".length);
       }
-      const set = await tokenStore.getSet(setName);
-      if (!set) {
+      const collection = await tokenStore.getCollection(collectionId);
+      if (!collection) {
         throw new Error(
-          `Token set "${setName}" (from resolver $ref "${filePath}") not found.`,
+          `Collection "${collectionId}" (from resolver $ref "${filePath}") not found.`,
         );
       }
-      return set.tokens;
+      return collection.tokens;
     };
 
     return resolveResolverTokens(file, input, loadExternal);
@@ -416,8 +416,8 @@ export class ResolverStore {
   // Internals
   // -----------------------------------------------------------------------
 
-  private extractReferencedSets(file: ResolverFile): string[] {
-    const sets = new Set<string>();
+  private extractReferencedCollections(file: ResolverFile): string[] {
+    const collections = new Set<string>();
 
     const addFromSources = (sources: ResolverSource[]) => {
       for (const src of sources) {
@@ -427,7 +427,7 @@ export class ResolverStore {
           typeof src.$ref === "string" &&
           !src.$ref.startsWith("#/")
         ) {
-          sets.add(stripTokenFileSuffix(src.$ref));
+          collections.add(stripTokenFileSuffix(src.$ref));
         }
       }
     };
@@ -447,18 +447,18 @@ export class ResolverStore {
       }
     }
 
-    return [...sets];
+    return [...collections];
   }
 
-  private async rewriteSetReferences(
-    rewriteSetName: (setName: string) => string | null,
+  private async rewriteCollectionReferences(
+    rewriteCollectionId: (collectionId: string) => string | null,
   ): Promise<string[]> {
     const changedResolvers: string[] = [];
 
     for (const [name, existing] of this.resolvers) {
-      const rewritten = rewriteResolverFileSetReferences(
+      const rewritten = rewriteResolverFileCollectionReferences(
         existing,
-        rewriteSetName,
+        rewriteCollectionId,
       );
       if (!rewritten.changed) {
         continue;

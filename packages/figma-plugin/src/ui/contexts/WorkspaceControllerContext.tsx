@@ -204,7 +204,7 @@ export interface SetManagerWorkspaceController {
   onMergeConfirm: () => void | Promise<void>;
   onMergeClose: () => void;
   splittingSet: string | null;
-  splitPreview: Array<{ key: string; newName: string; count: number }>;
+  splitPreview: Array<{ key: string; newCollectionId: string; count: number }>;
   splitDeleteOriginal: boolean;
   splitLoading: boolean;
   setSplitDeleteOriginal: (value: boolean) => void;

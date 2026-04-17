@@ -7,7 +7,7 @@ export interface OperationEntry {
   timestamp: string;
   type: string;
   description: string;
-  setName: string;
+  resourceId: string;
   affectedPaths: string[];
   rolledBack: boolean;
   metadata?: {

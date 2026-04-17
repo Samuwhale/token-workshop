@@ -32,7 +32,7 @@ export function useLint(
         const data = await apiFetch<{ violations: LintViolation[] }>(`${serverUrl}/api/tokens/lint`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ set: setName }),
+          body: JSON.stringify({ collectionId: setName }),
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
         });
         setViolations(data.violations ?? []);

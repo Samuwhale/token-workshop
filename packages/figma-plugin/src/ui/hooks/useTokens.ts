@@ -6,6 +6,12 @@ import { STORAGE_KEYS, lsGet, lsSet, lsRemove } from '../shared/storage';
 import { apiFetch, isNetworkError, createFetchSignal } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
+interface CollectionSummary {
+  id: string;
+  description?: string;
+  tokenCount?: number;
+}
+
 /** Flatten a DTCG group into TokenMapEntry records, preserving each leaf's DTCG key as `$name`. */
 function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): Array<[string, TokenMapEntry]> {
   const out: Array<[string, TokenMapEntry]> = [];
@@ -88,12 +94,21 @@ export function useTokens(
     const disconnectCombined = disconnectSig ? AbortSignal.any([disconnectSig, unmountSig]) : unmountSig;
     const signal = createFetchSignal(disconnectCombined);
     try {
-      const setsData = await apiFetch<{ sets: string[]; descriptions?: Record<string, string>; counts?: Record<string, number> }>(`${serverUrl}/api/sets`, { signal });
-      const allSets: string[] = setsData.sets || [];
+      const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(`${serverUrl}/api/collections`, { signal });
+      const allCollections = collectionsData.collections ?? [];
+      const allSets = allCollections.map((collection) => collection.id);
       if (gen !== fetchGenRef.current || signal.aborted) return;
       setSets(allSets);
-      setSetDescriptions(setsData.descriptions || {});
-      setSetTokenCounts(setsData.counts || {});
+      setSetDescriptions(
+        Object.fromEntries(
+          allCollections.map((collection) => [collection.id, collection.description ?? '']),
+        ),
+      );
+      setSetTokenCounts(
+        Object.fromEntries(
+          allCollections.map((collection) => [collection.id, collection.tokenCount ?? 0]),
+        ),
+      );
 
       setFetchError(null);
 
@@ -213,8 +228,8 @@ async function fetchAllSets(serverUrl: string, signal?: AbortSignal): Promise<{
   const baseSignal = signal
     ? AbortSignal.any([AbortSignal.timeout(5000), signal])
     : AbortSignal.timeout(5000);
-  const setsData = await apiFetch<{ sets: string[] }>(`${serverUrl}/api/sets`, { signal: baseSignal });
-  const setNames: string[] = setsData.sets || [];
+  const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(`${serverUrl}/api/collections`, { signal: baseSignal });
+  const setNames: string[] = (collectionsData.collections ?? []).map((collection) => collection.id);
 
   const results = await Promise.allSettled(
     setNames.map(async (setName) => {

@@ -3,8 +3,8 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { flattenTokenGroup, type Token } from "@tokenmanager/core";
 import { BadRequestError, GitTimeoutError } from "../errors.js";
+import type { CollectionStore } from "./collection-store.js";
 import type { TokenStore } from "./token-store.js";
-import type { CollectionsStore } from "../routes/themes.js";
 import type { RecipeService } from "./recipe-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -92,7 +92,7 @@ export type GitTokenFileStatus = "A" | "M" | "D";
 
 export interface GitTokenChange {
   path: string;
-  set: string;
+  collectionId: string;
   type: string;
   status: "added" | "modified" | "removed";
   before?: unknown;
@@ -101,7 +101,7 @@ export interface GitTokenChange {
 
 export interface GitTokenFileDiff {
   file: string;
-  set: string;
+  collectionId: string;
   status: GitTokenFileStatus;
   before: string | null;
   after: string | null;
@@ -590,7 +590,7 @@ export class GitSync {
     }
   }
 
-  private getSetNameForFile(filePath: string): string {
+  private getCollectionIdForFile(filePath: string): string {
     return filePath.replace(/\.tokens\.json$/, "");
   }
 
@@ -610,7 +610,7 @@ export class GitSync {
   }
 
   private buildTokenChanges(
-    setName: string,
+    collectionId: string,
     beforeTokens: Map<string, Token>,
     afterTokens: Map<string, Token>,
   ): GitTokenChange[] {
@@ -620,7 +620,7 @@ export class GitSync {
       if (!beforeTokens.has(tokenPath)) {
         changes.push({
           path: tokenPath,
-          set: setName,
+          collectionId,
           type: token.$type || "unknown",
           status: "added",
           after: token.$value,
@@ -632,7 +632,7 @@ export class GitSync {
       if (!afterTokens.has(tokenPath)) {
         changes.push({
           path: tokenPath,
-          set: setName,
+          collectionId,
           type: token.$type || "unknown",
           status: "removed",
           before: token.$value,
@@ -650,7 +650,7 @@ export class GitSync {
       ) {
         changes.push({
           path: tokenPath,
-          set: setName,
+          collectionId,
           type: afterToken.$type || beforeToken.$type || "unknown",
           status: "modified",
           before: beforeToken.$value,
@@ -689,17 +689,17 @@ export class GitSync {
     ]);
     const beforeTokens = this.parseTokenContent(before);
     const afterTokens = this.parseTokenContent(after);
-    const setName = this.getSetNameForFile(filePath);
+    const collectionId = this.getCollectionIdForFile(filePath);
 
     return {
       file: filePath,
-      set: setName,
+      collectionId,
       status,
       before,
       after,
       beforeTokens,
       afterTokens,
-      changes: this.buildTokenChanges(setName, beforeTokens, afterTokens),
+      changes: this.buildTokenChanges(collectionId, beforeTokens, afterTokens),
     };
   }
 
@@ -946,7 +946,8 @@ export class GitSync {
     choices: Record<string, "push" | "pull" | "skip">,
     stores?: {
       tokenStore?: TokenStore;
-      collectionsStore?: CollectionsStore;
+      collectionsStore?: CollectionStore;
+      reloadCollectionsWorkspace?: () => Promise<void>;
       recipeService?: RecipeService;
       resolverStore?: ResolverStore;
     },
@@ -1057,6 +1058,7 @@ export class GitSync {
                 path.basename(file) === "$collections.json"
               ) {
                 await stores.collectionsStore.reloadFromDisk();
+                await stores.reloadCollectionsWorkspace?.();
               } else if (
                 stores?.recipeService &&
                 path.basename(file) === "$recipes.json"

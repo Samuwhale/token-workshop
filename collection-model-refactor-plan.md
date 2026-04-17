@@ -264,13 +264,16 @@ Replace split client state with one collection-centered authoring state model.
 
 #### Deliverables
 
-- One hook or state module that owns current collection, selected modes, and hover preview.
-- Removal of `activeSet` as a competing primary concept in authoring flows.
+- One authoritative client state owner for current collection, selected modes, and hover preview.
+- Removal of `activeSet` as a competing primary concept in authoring flows, not just a rename layered over the old state shape.
 - Renamed client state that matches the canonical vocabulary.
 - Define the canonical client-only hover preview state shape, separate from shared domain types and separate from persisted selected mode state.
+- Removal of parallel client models that keep old and new collection concepts alive at the same time.
 
 #### Changes
 
+- Inspect the current client state flow end to end before editing. Identify where `activeSet`, `activeThemes`, `previewThemes`, plugin message names, and local storage keys are defined, persisted, and consumed.
+- Change the smallest coherent set of files needed to collapse client ownership into one collection-centered model instead of scattering partial renames across many surfaces.
 - Replace or heavily refactor [`useCollectionSwitcher.ts`](/Users/samuel/Documents/Projects/TokenManager/packages/figma-plugin/src/ui/hooks/useCollectionSwitcher.ts).
 - Replace `activeThemes` with `selectedModes`.
 - Replace `previewThemes` with `hoverPreviewModes` or similar transient-only naming.
@@ -280,11 +283,21 @@ Replace split client state with one collection-centered authoring state model.
   Examples: plugin message names and local storage keys.
 - Stop reading old client keys and message names once the new ones land.
 - Model hover preview as transient per-collection client state, not shared domain state and not persisted state.
+- Keep authored data separate from view state. Collection identity and authored token state must not be inferred from selected modes or hover preview.
+- Avoid replacing `set` versus `collection` confusion with a new client-only `id` versus `name` split unless there is a real product need.
+- Update every reader and writer for renamed client-owned boundary identifiers in the same phase.
 
 #### Exit Criteria
 
+- The client has exactly one authoritative collection-centered authoring state model.
+- `activeSet` is gone from client business logic as a primary authoring concept, except at any unavoidable external boundary that has not yet been renamed.
+- `activeThemes` and `previewThemes` are gone from client business logic.
+- Hover preview is transient-only and cannot be mistaken for persisted authored state.
+- Plugin message names, local storage keys, and client runtime payloads use the new client-owned identifiers with all readers and writers updated together.
+- The client no longer reads old client keys, old plugin message names, alias payloads, or fallback names.
 - The client state tree clearly separates authored data from view state.
 - The client is no longer coupled to server concepts that only exist to preserve the old `set` model.
+- Phase 4 can build on the resulting client model without needing to guess whether `activeSet`, selected modes, or hover preview is the real source of truth.
 
 ### Phase 4: Refactor Authoring Surfaces To Match The Model
 

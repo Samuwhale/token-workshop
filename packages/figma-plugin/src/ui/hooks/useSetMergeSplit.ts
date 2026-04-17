@@ -6,15 +6,15 @@ import { stableStringify } from "../shared/utils";
 
 interface MergeSetResponse {
   ok: true;
-  sourceSet: string;
-  targetSet: string;
+  sourceCollection: string;
+  targetCollection: string;
   operationId: string;
 }
 
 interface SplitSetResponse {
   ok: true;
-  sourceSet: string;
-  createdSets: string[];
+  sourceCollection: string;
+  createdCollections: string[];
   deleteOriginal: boolean;
   operationId: string;
 }
@@ -51,12 +51,12 @@ async function fetchSetStructuralPreflight(
   setName: string,
   body: {
     operation: "merge" | "split";
-    targetSet?: string;
+    targetCollection?: string;
     deleteOriginal?: boolean;
   },
 ): Promise<SetStructuralPreflight> {
   return apiFetch<SetStructuralPreflight>(
-    `${serverUrl}/api/sets/${encodeURIComponent(setName)}/preflight`,
+    `${serverUrl}/api/collections/${encodeURIComponent(setName)}/preflight`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -94,7 +94,7 @@ export function useSetMergeSplit({
   // Split state
   const [splittingSet, setSplittingSet] = useState<string | null>(null);
   const [splitPreview, setSplitPreview] = useState<
-    Array<{ key: string; newName: string; count: number }>
+    Array<{ key: string; newCollectionId: string; count: number }>
   >([]);
   const [splitDeleteOriginal, setSplitDeleteOriginal] = useState(false);
   const [splitLoading, setSplitLoading] = useState(false);
@@ -132,7 +132,7 @@ export function useSetMergeSplit({
         mergingSet,
         {
           operation: "merge",
-          targetSet: checkTarget,
+          targetCollection: checkTarget,
         },
       );
       // Discard results if the target changed while the check was in flight
@@ -163,13 +163,13 @@ export function useSetMergeSplit({
         mergingSet,
         {
           operation: "merge",
-          targetSet: mergeTargetSet,
+          targetCollection: mergeTargetSet,
         },
       );
       if ((preflight.blockers?.length ?? 0) > 0) {
         const message =
           preflight.blockers[0]?.message ??
-          "Merge is blocked by set dependencies.";
+          "Merge is blocked by collection dependencies.";
         setErrorToast(message);
         return;
       }
@@ -189,18 +189,18 @@ export function useSetMergeSplit({
         return;
       }
       const result = await apiFetch<MergeSetResponse>(
-        `${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}/merge`,
+        `${serverUrl}/api/collections/${encodeURIComponent(mergingSet)}/merge`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            targetSet: mergeTargetSet,
+            targetCollection: mergeTargetSet,
             resolutions: mergeResolutions,
           }),
         },
       );
-      const srcName = result.sourceSet;
-      const targetName = result.targetSet;
+      const srcName = result.sourceCollection;
+      const targetName = result.targetCollection;
       setMergingSet(null);
       setMergeChecked(false);
       setActiveSet(targetName);
@@ -265,7 +265,7 @@ export function useSetMergeSplit({
       if ((preflight.blockers?.length ?? 0) > 0) {
         const message =
           preflight.blockers[0]?.message ??
-          "Split is blocked by set dependencies.";
+          "Split is blocked by collection dependencies.";
         setErrorToast(message);
         return;
       }
@@ -278,15 +278,15 @@ export function useSetMergeSplit({
         return;
       }
       const result = await apiFetch<SplitSetResponse>(
-        `${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}/split`,
+        `${serverUrl}/api/collections/${encodeURIComponent(splittingSet)}/split`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ deleteOriginal: splitDeleteOriginal }),
         },
       );
-      const name = result.sourceSet;
-      const createdNames = result.createdSets;
+      const name = result.sourceCollection;
+      const createdNames = result.createdCollections;
       const count = createdNames.length;
       setSplittingSet(null);
       if (result.deleteOriginal && activeSet === name) {
