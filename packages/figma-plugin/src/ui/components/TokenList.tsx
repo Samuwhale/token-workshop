@@ -13,7 +13,7 @@ import { BatchEditor } from "./BatchEditor";
 import { stableStringify } from "../shared/utils";
 import { apiFetch } from "../shared/apiFetch";
 import {
-  STORAGE_KEY,
+  STORAGE_KEY_BUILDERS,
   lsGet,
   lsRemove,
   lsSet,
@@ -130,7 +130,7 @@ type VisibleTokenRow = {
 type BatchEditorFocusTarget = "find-path";
 
 export function TokenList({
-  ctx: { setName, sets, serverUrl, connected, selectedNodes },
+  ctx: { collectionId, collectionIds, serverUrl, connected, selectedNodes },
   data: {
     tokens,
     allTokensFlat,
@@ -141,12 +141,11 @@ export function TokenList({
     derivedTokenPaths,
     cascadeDiff: _cascadeDiff,
     tokenUsageCounts,
-    perSetFlat,
+    perCollectionFlat,
     collectionMap = {},
     modeMap = {},
     collections = [],
     unthemedAllTokensFlat,
-    pathToSet = {},
     pathToCollectionId = {},
     selectedModes = {},
   },
@@ -168,7 +167,7 @@ export function TokenList({
     onRefreshRecipes,
     onToggleIssuesOnly,
     onFilteredCountChange,
-    onNavigateToSet,
+    onNavigateToCollection,
     onTokenTouched,
     onToggleStar,
     starredPaths,
@@ -186,8 +185,8 @@ export function TokenList({
     onOpenCommandPaletteWithQuery,
     onShowPasteModal,
     onOpenImportPanel,
-    onOpenSetSwitcher,
-    onOpenCreateSet,
+    onOpenCollectionSwitcher,
+    onOpenCreateCollection,
     onTokenDragStart,
     onTokenDragEnd,
     onOpenStartHere: _onOpenStartHere,
@@ -224,23 +223,23 @@ export function TokenList({
   const [showMoveToGroup, setShowMoveToGroup] = useState(false);
   const [moveToGroupTarget, setMoveToGroupTarget] = useState("");
   const [moveToGroupError, setMoveToGroupError] = useState("");
-  const [showBatchMoveToSet, setShowBatchMoveToSet] = useState(false);
-  const [batchMoveToSetTarget, setBatchMoveToSetTarget] = useState("");
-  const [showBatchCopyToSet, setShowBatchCopyToSet] = useState(false);
-  const [batchCopyToSetTarget, setBatchCopyToSetTarget] = useState("");
+  const [showBatchMoveToCollection, setShowBatchMoveToCollection] = useState(false);
+  const [batchMoveToCollectionTarget, setBatchMoveToCollectionTarget] = useState("");
+  const [showBatchCopyToCollection, setShowBatchCopyToCollection] = useState(false);
+  const [batchCopyToCollectionTarget, setBatchCopyToCollectionTarget] = useState("");
   const activeCollectionIds = useMemo(() => {
     const ids = new Set<string>();
     for (const path of Object.keys(allTokensFlat)) {
-      if (pathToSet[path] !== setName) {
+      const tokenCollectionId = pathToCollectionId[path];
+      if (tokenCollectionId && tokenCollectionId !== collectionId) {
         continue;
       }
-      const collectionId = pathToCollectionId[path];
-      if (collectionId) {
-        ids.add(collectionId);
+      if (tokenCollectionId) {
+        ids.add(tokenCollectionId);
       }
     }
     return ids;
-  }, [allTokensFlat, pathToCollectionId, pathToSet, setName]);
+  }, [allTokensFlat, pathToCollectionId, pathToCollectionId, collectionId]);
   const activeCollections = useMemo(
     () =>
       collections.filter((collection) =>
@@ -249,7 +248,7 @@ export function TokenList({
     [activeCollectionIds, collections],
   );
   const viewState = useTokenListViewState({
-    setName,
+    collectionId,
     collections: activeCollections,
   });
   const {
@@ -313,14 +312,14 @@ export function TokenList({
     () =>
       (recipes ?? []).filter(
         (recipe) =>
-          recipe.targetCollection === setName && recipe.isStale === true,
+          recipe.targetCollection === collectionId && recipe.isStale === true,
       ),
-    [recipes, setName],
+    [recipes, collectionId],
   );
 
   const staleRecipeBannerStorageKey = useMemo(
-    () => STORAGE_KEY.staleRecipeBannerDismissed(setName),
-    [setName],
+    () => STORAGE_KEY_BUILDERS.staleRecipeBannerDismissed(collectionId),
+    [collectionId],
   );
 
   const staleRecipeSignature = useMemo(
@@ -343,7 +342,7 @@ export function TokenList({
     dismissedStaleRecipeSignature,
     setDismissedStaleRecipeSignature,
   ] = useState<string | null>(() =>
-    lsGet(STORAGE_KEY.staleRecipeBannerDismissed(setName)),
+    lsGet(STORAGE_KEY_BUILDERS.staleRecipeBannerDismissed(collectionId)),
   );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
@@ -456,7 +455,7 @@ export function TokenList({
     return paths.size > 0 ? paths : undefined;
   }, [tokenUsageCounts, allTokensFlat]);
 
-  // Stats computed from allTokensFlat (cross-set) and perSetFlat for the stats bar
+  // Stats computed from allTokensFlat (cross-set) and perCollectionFlat for the stats bar
   const statsByType = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const entry of Object.values(allTokensFlat)) {
@@ -580,11 +579,11 @@ export function TokenList({
           optionName,
           collectionId,
           resolved: resolved[tokenPath],
-          targetSet: pathToSet[tokenPath] ?? null,
+          targetCollectionId: pathToCollectionId[tokenPath] ?? null,
         };
       });
     },
-    [multiModeData, pathToSet],
+    [multiModeData, pathToCollectionId],
   );
 
   // Pre-compute per-group collection coverage and per-token missing mode counts.
@@ -673,7 +672,7 @@ export function TokenList({
     viewMode,
     connected,
     serverUrl,
-    setName,
+    collectionId,
     allTokensFlat,
     tokens,
     onRefresh,
@@ -726,7 +725,7 @@ export function TokenList({
   const tableCreate = useTableCreate({
     connected,
     serverUrl,
-    setName,
+    collectionId,
     siblingOrderMap,
     onRefresh,
     onPushUndo,
@@ -756,10 +755,10 @@ export function TokenList({
   const findReplace = useFindReplace({
     connected,
     serverUrl,
-    setName,
+    collectionId,
     tokens,
-    allSets: sets,
-    perSetFlat,
+    allCollectionIds: collectionIds,
+    perCollectionFlat,
     onRefresh,
     onPushUndo,
   });
@@ -796,7 +795,7 @@ export function TokenList({
   const dragDrop = useDragDrop({
     connected,
     serverUrl,
-    setName,
+    collectionId,
     siblingOrderMap,
     onRefresh,
     onPushUndo,
@@ -823,9 +822,9 @@ export function TokenList({
   const handleDragStartNotify = useCallback(
     (paths: string[], names: string[]) => {
       handleDragStart(paths, names);
-      onTokenDragStart?.(paths, setName);
+      onTokenDragStart?.(paths, collectionId);
     },
-    [handleDragStart, onTokenDragStart, setName],
+    [handleDragStart, onTokenDragStart, collectionId],
   );
 
   const handleDragEndNotify = useCallback(() => {
@@ -836,8 +835,8 @@ export function TokenList({
   const groupOps = useGroupOperations({
     connected,
     serverUrl,
-    setName,
-    sets,
+    collectionId,
+    collectionIds,
     siblingOrderMap,
     onRefresh,
     onPushUndo,
@@ -857,10 +856,10 @@ export function TokenList({
     setMovingGroup,
     copyingGroup,
     setCopyingGroup,
-    moveGroupTargetSet,
-    setMoveGroupTargetSet,
-    copyGroupTargetSet,
-    setCopyGroupTargetSet,
+    moveGroupTargetCollectionId,
+    setMoveGroupTargetCollectionId,
+    copyGroupTargetCollectionId,
+    setCopyGroupTargetCollectionId,
     executeGroupRename,
     handleRenameGroup,
     handleRequestMoveGroup,
@@ -893,7 +892,7 @@ export function TokenList({
 
   // Phase 2: useTokenExpansion
   const tokenExpansion = useTokenExpansion({
-    setName,
+    collectionId,
     tokens,
     highlightedToken,
     onClearHighlight,
@@ -936,9 +935,9 @@ export function TokenList({
 
   // Phase 4: useTokenSearch (needs bridging refs + sortedTokens + expansion state)
   const tokenSearch = useTokenSearch({
-    setName,
+    collectionId,
     tokens,
-    sets,
+    collectionIds,
     serverUrl,
     onOpenCommandPaletteWithQuery,
     virtualScrollTopRef,
@@ -965,8 +964,8 @@ export function TokenList({
     typeFilter,
     refFilter,
     showDuplicates,
-    crossSetSearch,
-    setCrossSetSearch,
+    crossCollectionSearch,
+    setCrossCollectionSearch,
     filterPresets,
     deleteFilterPreset,
     applyFilterPreset,
@@ -974,14 +973,14 @@ export function TokenList({
     setShowQualifierHints,
     hintIndex,
     setHintIndex,
-    crossSetResults,
-    crossSetTotal,
-    crossSetOffset: _crossSetOffset,
-    setCrossSetOffset,
-    CROSS_SET_PAGE_SIZE,
+    crossCollectionResults,
+    crossCollectionTotal,
+    crossCollectionOffset: _crossCollectionOffset,
+    setCrossCollectionOffset,
+    CROSS_COLLECTION_PAGE_SIZE,
     searchRef,
     qualifierHintsRef,
-    crossSetAbortRef: _crossSetAbortRef,
+    crossCollectionAbortRef: _crossCollectionAbortRef,
     saveScrollAnchor: _saveScrollAnchor,
     setSearchQuery,
     setTypeFilter,
@@ -1012,7 +1011,7 @@ export function TokenList({
   const showFlatSearchResults =
     canToggleSearchResultPresentation &&
     searchResultPresentation === "flat" &&
-    !crossSetSearch;
+    !crossCollectionSearch;
   const searchExpansionRestoreRef = useRef<Set<string> | null>(null);
   const flatSearchRows = useMemo<VisibleTokenRow[]>(
     () =>
@@ -1027,7 +1026,7 @@ export function TokenList({
   const multiModeDimensionName = useMemo(
     () =>
       activeCollections.find((collection) => collection.id === multiModeDimId)
-        ?.name ?? null,
+        ?.id ?? null,
     [activeCollections, multiModeDimId],
   );
 
@@ -1042,7 +1041,7 @@ export function TokenList({
     refFilter, setRefFilter, showDuplicates, setShowDuplicates,
     showIssuesOnly, onToggleIssuesOnly, lintViolationsLength: lintViolations.length,
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
-    inspectMode, setInspectMode, crossSetSearch, setCrossSetSearch,
+    inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
     modeLensEnabled, setModeLensEnabled, condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
@@ -1051,21 +1050,21 @@ export function TokenList({
 
   const contextSummary = useMemo(() => {
     if (viewMode === "json") {
-      return `Location: ${setName}. View: raw token JSON.`;
+      return `Location: ${collectionId}. View: raw token JSON.`;
     }
 
-    const locationLabel = crossSetSearch
+    const locationLabel = crossCollectionSearch
       ? "all collections"
       : zoomRootPath
-        ? `${setName} / ${zoomRootPath}`
-        : setName;
+        ? `${collectionId} / ${zoomRootPath}`
+        : collectionId;
     const viewLabels: string[] = [];
-    if (crossSetSearch) {
+    if (crossCollectionSearch) {
       viewLabels.push("cross-collection search results");
     } else if (zoomRootPath) {
       viewLabels.push("focused group");
     }
-    if (!crossSetSearch && !zoomRootPath && !showFlatSearchResults) {
+    if (!crossCollectionSearch && !zoomRootPath && !showFlatSearchResults) {
       viewLabels.push("full group tree");
     }
     if (showFlatSearchResults) {
@@ -1094,20 +1093,20 @@ export function TokenList({
     }
 
     const count =
-      crossSetResults !== null ? crossSetResults.length : displayedLeafNodes.length;
+      crossCollectionResults !== null ? crossCollectionResults.length : displayedLeafNodes.length;
     summaryParts.push(
       `${count} token${count === 1 ? "" : "s"} visible.`,
     );
     return summaryParts.join(" ");
   }, [
-    crossSetResults,
-    crossSetSearch,
+    crossCollectionResults,
+    crossCollectionSearch,
     displayedLeafNodes.length,
     inspectMode,
     multiModeDimensionName,
     multiModeEnabled,
     searchQuery,
-    setName,
+    collectionId,
     showFlatSearchResults,
     modeLensEnabled,
     viewMode,
@@ -1132,10 +1131,10 @@ export function TokenList({
     }
     return {
       source: "current-scope",
-      title: `All tokens in ${setName}`,
+      title: `All tokens in ${collectionId}`,
       detail: "No search or filter constraints",
     };
-  }, [activeFilterSummary, searchQuery, setName]);
+  }, [activeFilterSummary, searchQuery, collectionId]);
 
   const insertSearchQualifier = useCallback(
     (qualifier: string) => {
@@ -1274,7 +1273,7 @@ export function TokenList({
     viewMode,
     flatItems,
     displayedLeafNodes,
-    crossSetResults,
+    crossCollectionResults,
     onSelectionChange,
   });
   const {
@@ -1334,7 +1333,7 @@ export function TokenList({
   );
 
   const handleOpenBulkWorkflowForVisibleTokens = useCallback(() => {
-    if (crossSetSearch) {
+    if (crossCollectionSearch) {
       dispatchToast(
         'Turn off "Search all collections" before bulk editing tokens in this collection.',
         "error",
@@ -1346,7 +1345,7 @@ export function TokenList({
       currentBulkEditScope,
     );
   }, [
-    crossSetSearch,
+    crossCollectionSearch,
     currentBulkEditScope,
     displayedLeafNodes,
     openBulkEditorForPaths,
@@ -1355,12 +1354,12 @@ export function TokenList({
 
   useEffect(() => {
     if (!pendingBulkPresetLaunch) return;
-    if (crossSetSearch) return;
+    if (crossCollectionSearch) return;
     if (searchQuery !== pendingBulkPresetLaunch.query) return;
     const presetPaths = new Set(displayedLeafNodes.map((node) => node.path));
     if (presetPaths.size === 0) {
       dispatchToast(
-        `Saved scope "${pendingBulkPresetLaunch.presetName}" does not match any tokens in ${setName}.`,
+        `Saved scope "${pendingBulkPresetLaunch.presetName}" does not match any tokens in ${collectionId}.`,
         "error",
       );
       setPendingBulkPresetLaunch(null);
@@ -1373,12 +1372,12 @@ export function TokenList({
     });
     setPendingBulkPresetLaunch(null);
   }, [
-    crossSetSearch,
+    crossCollectionSearch,
     displayedLeafNodes,
     openBulkEditorForPaths,
     pendingBulkPresetLaunch,
     searchQuery,
-    setName,
+    collectionId,
   ]);
 
   useEffect(() => {
@@ -1390,11 +1389,11 @@ export function TokenList({
   const tokenCrud = useTokenCrud({
     connected,
     serverUrl,
-    setName,
-    sets,
+    collectionId,
+    collectionIds,
     tokens,
     allTokensFlat,
-    perSetFlat,
+    perCollectionFlat,
     recipes,
     collections,
     onRefresh,
@@ -1422,10 +1421,10 @@ export function TokenList({
     setMovingToken,
     copyingToken,
     setCopyingToken,
-    moveTokenTargetSet,
-    setMoveTokenTargetSet: _setMoveTokenTargetSet,
-    copyTokenTargetSet,
-    setCopyTokenTargetSet: _setCopyTokenTargetSet,
+    moveTokenTargetCollectionId,
+    setMoveTokenTargetCollectionId: _setMoveTokenTargetCollectionId,
+    copyTokenTargetCollectionId,
+    setCopyTokenTargetCollectionId: _setCopyTokenTargetCollectionId,
     moveConflict,
     copyConflict,
     moveConflictAction,
@@ -1449,10 +1448,10 @@ export function TokenList({
     handleDetachFromRecipe,
     handleRequestMoveToken,
     handleConfirmMoveToken,
-    handleChangeMoveTokenTargetSet,
+    handleChangeMoveTokenTargetCollection,
     handleRequestCopyToken,
     handleConfirmCopyToken,
-    handleChangeCopyTokenTargetSet,
+    handleChangeCopyTokenTargetCollection,
   } = tokenCrud;
 
   // Convert delete errors to toasts
@@ -1543,7 +1542,7 @@ export function TokenList({
   const tokenPromotion = useTokenPromotion({
     connected,
     serverUrl,
-    setName,
+    collectionId,
     tokens,
     allTokensFlat,
     selectedPaths,
@@ -1576,7 +1575,7 @@ export function TokenList({
   ]);
 
   const handleOpenFindReplaceReview = useCallback(() => {
-    if (crossSetSearch) {
+    if (crossCollectionSearch) {
       dispatchToast(
         'Turn off "Search all collections" before bulk renaming tokens in this collection.',
         "error",
@@ -1591,7 +1590,7 @@ export function TokenList({
     setPendingBatchEditorFocus("find-path");
   }, [
     closeLongLivedReviewSurfaces,
-    crossSetSearch,
+    crossCollectionSearch,
     currentBulkEditScope,
     displayedLeafNodes,
     openBulkEditorForPaths,
@@ -1653,17 +1652,17 @@ export function TokenList({
     lastSelectedPathRef,
     searchRef,
     virtualListRef,
-    sets,
-    setName,
+    collectionIds,
+    collectionId,
     setSelectMode,
     setSelectedPaths,
     setShowBatchEditor,
     setZoomRootPath,
     setVirtualScrollTop,
-    setBatchMoveToSetTarget,
-    setShowBatchMoveToSet,
-    setBatchCopyToSetTarget,
-    setShowBatchCopyToSet,
+    setBatchMoveToCollectionTarget,
+    setShowBatchMoveToCollection,
+    setBatchCopyToCollectionTarget,
+    setShowBatchCopyToCollection,
     handleOpenCreateSibling,
     onCreateNew,
     handleToggleExpand,
@@ -1726,13 +1725,13 @@ export function TokenList({
     setTypeFilter("");
     setRefFilter("all");
     setShowDuplicates(false);
-    setCrossSetSearch(false);
+    setCrossCollectionSearch(false);
     setInspectMode(false);
     setShowRecentlyTouched(false);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
   }, [
     onToggleIssuesOnly,
-    setCrossSetSearch,
+    setCrossCollectionSearch,
     setInspectMode,
     setRefFilter,
     setSearchQuery,
@@ -1795,8 +1794,8 @@ export function TokenList({
     setExtractMode,
     newPrimitivePath,
     setNewPrimitivePath,
-    newPrimitiveSet,
-    setNewPrimitiveSet,
+    newPrimitiveCollectionId,
+    setNewPrimitiveCollectionId,
     existingAlias,
     setExistingAlias,
     existingAliasSearch,
@@ -1805,7 +1804,7 @@ export function TokenList({
     setExtractError,
     handleOpenExtractToAlias,
     handleConfirmExtractToAlias,
-  } = useExtractToAlias({ connected, serverUrl, setName, onRefresh });
+  } = useExtractToAlias({ connected, serverUrl, collectionId, onRefresh });
 
   // requestBulkDelete wrapper — passes current selectedPaths
   const requestBulkDelete = useCallback(() => {
@@ -1815,7 +1814,7 @@ export function TokenList({
   const batchOps = useTokenListBatchOperations({
     connected,
     serverUrl,
-    setName,
+    collectionId,
     selectedPaths,
     onRefresh,
     onError,
@@ -1832,19 +1831,19 @@ export function TokenList({
     );
   }, [batchOps, moveToGroupTarget]);
 
-  const handleBatchMoveToSet = useCallback(async () => {
-    await batchOps.handleBatchMoveToSet(
-      batchMoveToSetTarget,
-      setShowBatchMoveToSet,
+  const handleBatchMoveToCollection = useCallback(async () => {
+    await batchOps.handleBatchMoveToCollection(
+      batchMoveToCollectionTarget,
+      setShowBatchMoveToCollection,
     );
-  }, [batchOps, batchMoveToSetTarget]);
+  }, [batchOps, batchMoveToCollectionTarget]);
 
-  const handleBatchCopyToSet = useCallback(async () => {
-    await batchOps.handleBatchCopyToSet(
-      batchCopyToSetTarget,
-      setShowBatchCopyToSet,
+  const handleBatchCopyToCollection = useCallback(async () => {
+    await batchOps.handleBatchCopyToCollection(
+      batchCopyToCollectionTarget,
+      setShowBatchCopyToCollection,
     );
-  }, [batchOps, batchCopyToSetTarget]);
+  }, [batchOps, batchCopyToCollectionTarget]);
 
   // handleTokenSelect, displayedLeafPaths, selectedLeafNodes, handleSelectAll, handleSelectGroupChildren
   // are managed by useTokenSelection (destructured above)
@@ -1872,7 +1871,7 @@ export function TokenList({
   } = useTokenListApplyOperations({
     tokens,
     allTokensFlat,
-    setName,
+    collectionId,
     collectionMap,
     modeMap,
     varReadPendingRef,
@@ -2135,11 +2134,11 @@ export function TokenList({
     : unthemedAllTokensFlat;
 
   const tokenTreeSharedData = useTokenTreeSharedData({
-    effectiveAllTokensFlat, pathToSet,
+    effectiveAllTokensFlat, pathToCollectionId,
   });
 
   const tokenTreeGroupState = useTokenTreeGroupState({
-    density, setName, selectMode, expandedPaths, highlightedToken,
+    density, collectionId, selectMode, expandedPaths, highlightedToken,
     searchHighlight, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     recipesByTargetGroup, collectionCoverage, condensedView,
     effectiveRovingPath,
@@ -2156,7 +2155,7 @@ export function TokenList({
   });
 
   const tokenTreeLeafState = useTokenTreeLeafState({
-    density, serverUrl, setName, sets, selectionCapabilities, duplicateCounts,
+    density, serverUrl, collectionId, collectionIds, selectionCapabilities, duplicateCounts,
     selectMode, highlightedToken, inspectMode, syncSnapshot, derivedTokenPaths,
     searchHighlight, selectedNodes, dragOverReorder, selectedLeafNodes,
     showResolvedValues,
@@ -2185,7 +2184,7 @@ export function TokenList({
   });
 
   const modalContextValue = useTokenListModalContext({
-    setName, sets, allTokensFlat, connected,
+    collectionId, collectionIds, allTokensFlat, connected,
     deleteConfirm, modalProps, executeDelete, setDeleteConfirm,
     newGroupDialogParent, newGroupName, newGroupError,
     setNewGroupName, setNewGroupError, handleCreateGroup, setNewGroupDialogParent,
@@ -2193,7 +2192,7 @@ export function TokenList({
     renameGroupConfirm, executeGroupRename, setRenameGroupConfirm,
     varDiffPending, doApplyVariables, setVarDiffPending,
     extractToken, extractMode, setExtractMode,
-    newPrimitivePath, setNewPrimitivePath, newPrimitiveSet, setNewPrimitiveSet,
+    newPrimitivePath, setNewPrimitivePath, newPrimitiveCollectionId, setNewPrimitiveCollectionId,
     existingAlias, setExistingAlias, existingAliasSearch, setExistingAliasSearch,
     extractError, setExtractError, handleConfirmExtractToAlias, setExtractToken,
     showFindReplace,
@@ -2204,23 +2203,23 @@ export function TokenList({
     setFrTypeFilter, setFrError, setShowFindReplace,
     handleFindReplace, cancelFindReplace,
     promoteRows, promoteBusy, setPromoteRows, handleConfirmPromote,
-    movingToken, movingGroup, moveGroupTargetSet, moveTokenTargetSet,
-    setMoveGroupTargetSet, handleChangeMoveTokenTargetSet,
+    movingToken, movingGroup, moveGroupTargetCollectionId, moveTokenTargetCollectionId,
+    setMoveGroupTargetCollectionId, handleChangeMoveTokenTargetCollection,
     setMovingToken, setMovingGroup, handleConfirmMoveToken, handleConfirmMoveGroup,
     moveConflict, moveConflictAction, setMoveConflictAction,
     moveConflictNewPath, setMoveConflictNewPath,
-    copyingToken, copyingGroup, copyGroupTargetSet, copyTokenTargetSet,
-    setCopyGroupTargetSet, handleChangeCopyTokenTargetSet,
+    copyingToken, copyingGroup, copyGroupTargetCollectionId, copyTokenTargetCollectionId,
+    setCopyGroupTargetCollectionId, handleChangeCopyTokenTargetCollection,
     setCopyingToken, setCopyingGroup, handleConfirmCopyToken, handleConfirmCopyGroup,
     copyConflict, copyConflictAction, setCopyConflictAction,
     copyConflictNewPath, setCopyConflictNewPath,
     showMoveToGroup, moveToGroupTarget, moveToGroupError, selectedPaths,
     setShowMoveToGroup, setMoveToGroupTarget, setMoveToGroupError,
     handleBatchMoveToGroup,
-    showBatchMoveToSet, batchMoveToSetTarget, setBatchMoveToSetTarget,
-    setShowBatchMoveToSet, handleBatchMoveToSet,
-    showBatchCopyToSet, batchCopyToSetTarget, setBatchCopyToSetTarget,
-    setShowBatchCopyToSet, handleBatchCopyToSet,
+    showBatchMoveToCollection, batchMoveToCollectionTarget, setBatchMoveToCollectionTarget,
+    setShowBatchMoveToCollection, handleBatchMoveToCollection,
+    showBatchCopyToCollection, batchCopyToCollectionTarget, setBatchCopyToCollectionTarget,
+    setShowBatchCopyToCollection, handleBatchCopyToCollection,
   });
 
   const showStaleRecipeBanner =
@@ -2263,7 +2262,7 @@ export function TokenList({
           <SelectModeToolbar
             selectedPaths={selectedPaths}
             displayedLeafPaths={displayedLeafPaths}
-            sets={sets}
+            collectionIds={collectionIds}
             operationLoading={operationLoading}
             showBatchEditor={showBatchEditor}
             copyFeedback={copyFeedback}
@@ -2290,13 +2289,17 @@ export function TokenList({
               setMoveToGroupError("");
               setShowMoveToGroup(true);
             }}
-            onMoveToSet={() => {
-              setBatchMoveToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
-              setShowBatchMoveToSet(true);
+            onMoveToCollection={() => {
+              setBatchMoveToCollectionTarget(
+                collectionIds.filter((s) => s !== collectionId)[0] ?? "",
+              );
+              setShowBatchMoveToCollection(true);
             }}
-            onCopyToSet={() => {
-              setBatchCopyToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
-              setShowBatchCopyToSet(true);
+            onCopyToCollection={() => {
+              setBatchCopyToCollectionTarget(
+                collectionIds.filter((s) => s !== collectionId)[0] ?? "",
+              );
+              setShowBatchCopyToCollection(true);
             }}
             onCompare={selectedPaths.size >= 2 && onOpenCompare ? () => onOpenCompare(selectedPaths) : undefined}
             onLinkToTokens={() => handleOpenPromoteReview()}
@@ -2309,8 +2312,8 @@ export function TokenList({
             <BatchEditor
               selectedPaths={selectedPaths}
               allTokensFlat={allTokensFlat}
-              setName={setName}
-              sets={sets}
+              collectionId={collectionId}
+              collectionIds={collectionIds}
               serverUrl={serverUrl}
               connected={connected}
               onApply={onRefresh}
@@ -2328,7 +2331,7 @@ export function TokenList({
           <TokenListToolbar
             onNavigateBack={onNavigateBack}
             navHistoryLength={navHistoryLength}
-            setName={setName}
+            collectionId={collectionId}
             zoomRootPath={zoomRootPath}
             searchRef={searchRef}
             searchQuery={searchQuery}
@@ -2356,8 +2359,8 @@ export function TokenList({
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
-            onOpenSetSwitcher={onOpenSetSwitcher}
-            onOpenCreateSet={onOpenCreateSet}
+            onOpenCollectionSwitcher={onOpenCollectionSwitcher}
+            onOpenCreateCollection={onOpenCreateCollection}
             onCreateRecipe={onNavigateToNewRecipe}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
@@ -2387,7 +2390,7 @@ export function TokenList({
               hasCollections: collections.length > 0,
               showPreviewSplit,
               onTogglePreviewSplit,
-              canToggleSearchResultPresentation: canToggleSearchResultPresentation && !crossSetSearch,
+              canToggleSearchResultPresentation: canToggleSearchResultPresentation && !crossCollectionSearch,
               searchResultPresentation,
               onSearchResultPresentationChange: setSearchResultPresentation,
               showIssuesOnly: showIssuesOnly ?? false,
@@ -2398,9 +2401,9 @@ export function TokenList({
               onToggleRecentlyTouched: () => setShowRecentlyTouched((v) => !v),
               inspectMode,
               onToggleInspectMode: () => setInspectMode((v) => !v),
-              crossSetSearch,
-              onToggleCrossSetSearch: () => setCrossSetSearch(!crossSetSearch),
-              hasMultipleSets: sets.length > 1,
+              crossCollectionSearch,
+              onToggleCrossCollectionSearch: () => setCrossCollectionSearch(!crossCollectionSearch),
+              hasMultipleCollections: collectionIds.length > 1,
               refFilter,
               onRefFilterChange: setRefFilter,
               showDuplicates,
@@ -2470,12 +2473,12 @@ export function TokenList({
         >
           <TokenListTreeBody
             viewMode={viewMode}
-            crossSetSearch={crossSetSearch}
-            crossSetResults={crossSetResults}
-            crossSetTotal={crossSetTotal}
-            setCrossSetOffset={setCrossSetOffset}
-            CROSS_SET_PAGE_SIZE={CROSS_SET_PAGE_SIZE}
-            sets={sets}
+            crossCollectionSearch={crossCollectionSearch}
+            crossCollectionResults={crossCollectionResults}
+            crossCollectionTotal={crossCollectionTotal}
+            setCrossCollectionOffset={setCrossCollectionOffset}
+            CROSS_COLLECTION_PAGE_SIZE={CROSS_COLLECTION_PAGE_SIZE}
+            collectionIds={collectionIds}
             searchQuery={searchQuery}
             searchHighlight={searchHighlight}
             availableTypes={availableTypes}
@@ -2515,7 +2518,7 @@ export function TokenList({
             selectedPaths={selectedPaths}
             sortOrder={sortOrder}
             connected={connected}
-            setName={setName}
+            collectionId={collectionId}
             siblingOrderMap={siblingOrderMap}
             showRecentlyTouched={showRecentlyTouched}
             showFlatSearchResults={showFlatSearchResults}
@@ -2531,7 +2534,7 @@ export function TokenList({
             breadcrumbSegments={breadcrumbSegments}
             handleJumpToGroup={handleJumpToGroup}
             handleCollapseBelow={handleCollapseBelow}
-            onNavigateToSet={onNavigateToSet}
+            onNavigateToCollection={onNavigateToCollection}
             onCreateNew={onCreateNew}
             clearFilters={clearFilters}
           />
@@ -2549,10 +2552,10 @@ export function TokenList({
           onConfirmPromote={handleConfirmPromote}
           onClosePromote={handleClosePromote}
           movingToken={movingToken}
-          setName={setName}
-          sets={sets}
-          moveTokenTargetSet={moveTokenTargetSet}
-          onChangeMoveTokenTargetSet={handleChangeMoveTokenTargetSet}
+          collectionId={collectionId}
+          collectionIds={collectionIds}
+          moveTokenTargetCollectionId={moveTokenTargetCollectionId}
+          onChangeMoveTokenTargetCollection={handleChangeMoveTokenTargetCollection}
           moveConflict={moveConflict}
           moveConflictAction={moveConflictAction}
           onMoveConflictActionChange={setMoveConflictAction}
@@ -2562,8 +2565,8 @@ export function TokenList({
           onConfirmMoveToken={handleConfirmMoveToken}
           onCloseMove={handleCloseMove}
           copyingToken={copyingToken}
-          copyTokenTargetSet={copyTokenTargetSet}
-          onChangeCopyTokenTargetSet={handleChangeCopyTokenTargetSet}
+          copyTokenTargetCollectionId={copyTokenTargetCollectionId}
+          onChangeCopyTokenTargetCollection={handleChangeCopyTokenTargetCollection}
           copyConflict={copyConflict}
           copyConflictAction={copyConflictAction}
           onCopyConflictActionChange={setCopyConflictAction}
@@ -2578,7 +2581,7 @@ export function TokenList({
       {/* Table create mode */}
       {showTableCreate && (
         <TableCreateForm
-          setName={setName}
+          collectionId={collectionId}
           tableGroup={tableGroup}
           onSetTableGroup={setTableGroup}
           tableRows={tableRows}
@@ -2610,7 +2613,7 @@ export function TokenList({
           whereIsResults={whereIsResults}
           whereIsLoading={whereIsLoading}
           onClose={handleCloseWhereIs}
-          onNavigateToSet={onNavigateToSet}
+          onNavigateToCollection={onNavigateToCollection}
         />
       )}
     </div>

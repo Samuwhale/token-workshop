@@ -14,9 +14,9 @@ interface UseGitSyncOptions {
 
 /** Generate a human-readable commit message from the list of changed files. */
 export function generateCommitMessage(changes: Array<{ file: string; status: string }>): string {
-  const setName = (file: string) => file.replace(/\.tokens\.json$/, '').replace(/^.*\//, '');
+  const collectionId = (file: string) => file.replace(/\.tokens\.json$/, '').replace(/^.*\//, '');
   const listNames = (files: string[]) => {
-    const names = files.map(setName);
+    const names = files.map(collectionId);
     if (names.length <= 2) return names.join(', ');
     return `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
   };

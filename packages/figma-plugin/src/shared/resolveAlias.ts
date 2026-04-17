@@ -87,7 +87,7 @@ export interface ResolutionStep {
   path: string;
   value: TokenValue | TokenReference | undefined;
   $type: string;
-  setName?: string;
+  collectionId?: string;
   isError?: boolean;
   errorMsg?: string;
 }
@@ -101,18 +101,18 @@ export function buildResolutionChain(
   startValue: TokenValue | TokenReference,
   startType: string,
   tokenMap: Record<string, TokenMapEntry>,
-  pathToSet?: Record<string, string>,
+  pathToCollectionId?: Record<string, string>,
   maxDepth = 10,
 ): ResolutionStep[] {
   const steps: ResolutionStep[] = [];
 
   const addStep = (path: string, value: TokenValue | TokenReference | undefined, $type: string, error?: string) => {
-    const setName = pathToSet?.[path];
+    const collectionId = pathToCollectionId?.[path];
     steps.push({
       path,
       value,
       $type,
-      setName,
+      collectionId,
       isError: !!error,
       errorMsg: error,
     });

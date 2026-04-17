@@ -31,8 +31,8 @@ interface ToolbarStateChipsConfig {
   setTypeFilter: (v: string) => void;
   inspectMode: boolean;
   setInspectMode: (v: boolean) => void;
-  crossSetSearch: boolean;
-  setCrossSetSearch: (v: boolean) => void;
+  crossCollectionSearch: boolean;
+  setCrossCollectionSearch: (v: boolean) => void;
   multiModeEnabled: boolean;
   multiModeDimensionName: string | null;
   toggleMultiMode: () => void;
@@ -53,7 +53,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     refFilter, setRefFilter, showDuplicates, setShowDuplicates,
     showIssuesOnly, onToggleIssuesOnly, lintViolationsLength,
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
-    inspectMode, setInspectMode, crossSetSearch, setCrossSetSearch,
+    inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
     modeLensEnabled, setModeLensEnabled, condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
@@ -64,7 +64,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     let count = activeFilterCount;
     if (sortOrder !== "default") count += 1;
     if (inspectMode) count += 1;
-    if (crossSetSearch) count += 1;
+    if (crossCollectionSearch) count += 1;
     if (multiModeEnabled) count += 1;
     if (modeLensEnabled) count += 1;
     if (condensedView) count += 1;
@@ -72,7 +72,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     if (showFlatSearchResults) count += 1;
     return count;
   }, [
-    activeFilterCount, condensedView, crossSetSearch, inspectMode,
+    activeFilterCount, condensedView, crossCollectionSearch, inspectMode,
     multiModeEnabled, modeLensEnabled, showFlatSearchResults,
     showPreviewSplit, sortOrder,
   ]);
@@ -93,10 +93,10 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     if (showRecentlyTouched) items.push("Recently touched");
     if (typeFilter !== "") items.push(`Type: ${typeFilter}`);
     if (inspectMode) items.push("Bound to selection");
-    if (crossSetSearch) items.push("Search all collections");
+    if (crossCollectionSearch) items.push("Search all collections");
     return items;
   }, [
-    crossSetSearch, inspectMode, lintViolationsLength, refFilter,
+    crossCollectionSearch, inspectMode, lintViolationsLength, refFilter,
     showDuplicates, showIssuesOnly, showRecentlyTouched, sortOrder, typeFilter,
   ]);
 
@@ -171,12 +171,12 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         onRemove: () => setInspectMode(false),
       });
     }
-    if (crossSetSearch) {
+    if (crossCollectionSearch) {
       chips.push({
         key: "cross-set",
         label: "Search all collections",
         tone: "filter",
-        onRemove: () => setCrossSetSearch(false),
+        onRemove: () => setCrossCollectionSearch(false),
       });
     }
     if (multiModeEnabled) {
@@ -225,10 +225,10 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
 
     return chips;
   }, [
-    condensedView, crossSetSearch, inspectMode, lintViolationsLength,
+    condensedView, crossCollectionSearch, inspectMode, lintViolationsLength,
     multiModeDimensionName, multiModeEnabled, onToggleIssuesOnly,
     onTogglePreviewSplit, refFilter, removeQueryToken, setCondensedView,
-    setCrossSetSearch, setInspectMode, setRefFilter,
+    setCrossCollectionSearch, setInspectMode, setRefFilter,
     setSearchResultPresentation, setModeLensEnabled, setShowDuplicates,
     setShowRecentlyTouched, setSortOrder, setTypeFilter, showDuplicates,
     showFlatSearchResults, showIssuesOnly, showPreviewSplit,

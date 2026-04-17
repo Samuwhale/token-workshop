@@ -7,7 +7,7 @@ export type ChangeStatus = 'added' | 'modified' | 'removed';
 
 export interface TokenChange {
   path: string;
-  set: string;
+  collectionId: string;
   type: string;
   status: ChangeStatus;
   before?: any;

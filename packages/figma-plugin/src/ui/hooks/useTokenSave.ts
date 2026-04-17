@@ -15,9 +15,9 @@ import type { TokenRecipe } from './useRecipes';
 export interface UseTokenSaveParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   recipes?: TokenRecipe[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -35,9 +35,9 @@ function cloneUndoValue<T>(value: T): T {
 export function useTokenSave({
   connected,
   serverUrl,
-  setName,
+  collectionId,
   allTokensFlat,
-  perSetFlat,
+  perCollectionFlat,
   recipes,
   onRefresh,
   onPushUndo,
@@ -45,8 +45,8 @@ export function useTokenSave({
   onRefreshRecipes,
   onError,
 }: UseTokenSaveParams) {
-  const setNameRef = useRef(setName);
-  setNameRef.current = setName;
+  const collectionIdRef = useRef(collectionId);
+  collectionIdRef.current = collectionId;
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
@@ -57,13 +57,13 @@ export function useTokenSave({
     previousState?: { type?: string; value: unknown },
   ) => {
     if (!connected) return;
-    // Prefer the raw per-set entry (alias refs intact) over the resolved cross-set
-    // entry from allTokensFlat. For composite tokens (shadow, typography, etc.) whose
-    // sub-properties may be aliases, restoring the resolved value on undo would bake
-    // the resolved values into the file and destroy the alias references. Using the
-    // per-set entry also ensures undo is captured when the token lives in a set
-    // outside the current collection-resolved flat map.
-    const oldEntry = perSetFlat?.[setName]?.[path] ?? allTokensFlat[path];
+    // Prefer the raw per-collection entry (alias refs intact) over the resolved
+    // cross-collection entry from allTokensFlat. For composite tokens (shadow,
+    // typography, etc.) whose sub-properties may be aliases, restoring the resolved
+    // value on undo would bake the resolved values into the file and destroy the
+    // alias references. Using the per-collection entry also ensures undo is captured
+    // when the token lives in a collection outside the current resolved flat map.
+    const oldEntry = perCollectionFlat?.[collectionId]?.[path] ?? allTokensFlat[path];
     const previousSnapshot = previousState
       ? {
           type: previousState.type ?? oldEntry?.$type ?? type,
@@ -77,33 +77,33 @@ export function useTokenSave({
         : null;
     const nextSnapshot = { type, value: cloneUndoValue(newValue) };
     try {
-      await updateToken(serverUrl, setName, path, createTokenValueBody({ type, value: newValue }));
+      await updateToken(serverUrl, collectionId, path, createTokenValueBody({ type, value: newValue }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
     }
     if (onPushUndo && previousSnapshot) {
-      const capturedSet = setName;
+      const capturedCollectionId = collectionId;
       const capturedUrl = serverUrl;
       onPushUndo({
         description: `Edit ${path}`,
         restore: async () => {
-          if (setNameRef.current !== capturedSet) {
-            onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+          if (collectionIdRef.current !== capturedCollectionId) {
+            onError?.(`Undo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
             return;
           }
-          await updateToken(capturedUrl, capturedSet, path, createTokenValueBody({
+          await updateToken(capturedUrl, capturedCollectionId, path, createTokenValueBody({
             type: previousSnapshot.type,
             value: previousSnapshot.value,
           }));
           onRefresh();
         },
         redo: async () => {
-          if (setNameRef.current !== capturedSet) {
-            onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+          if (collectionIdRef.current !== capturedCollectionId) {
+            onError?.(`Redo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
             return;
           }
-          await updateToken(capturedUrl, capturedSet, path, createTokenValueBody({
+          await updateToken(capturedUrl, capturedCollectionId, path, createTokenValueBody({
             type: nextSnapshot.type,
             value: nextSnapshot.value,
           }));
@@ -116,37 +116,37 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-  }, [connected, serverUrl, setName, allTokensFlat, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
+  }, [connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleDescriptionSave = useCallback(async (path: string, description: string) => {
     if (!connected) return;
-    const oldEntry = perSetFlat?.[setName]?.[path] ?? allTokensFlat[path];
+    const oldEntry = perCollectionFlat?.[collectionId]?.[path] ?? allTokensFlat[path];
     try {
-      await updateToken(serverUrl, setName, path, createTokenBody({ $description: description }));
+      await updateToken(serverUrl, collectionId, path, createTokenBody({ $description: description }));
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
     }
     if (onPushUndo && oldEntry) {
       const oldDesc = (oldEntry as unknown as Record<string, unknown>).$description ?? '';
-      const capturedSet = setName;
+      const capturedCollectionId = collectionId;
       const capturedUrl = serverUrl;
       onPushUndo({
         description: `Edit description of ${path}`,
         restore: async () => {
-          if (setNameRef.current !== capturedSet) {
-            onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+          if (collectionIdRef.current !== capturedCollectionId) {
+            onError?.(`Undo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
             return;
           }
-          await updateToken(capturedUrl, capturedSet, path, createTokenBody({ $description: oldDesc as string }));
+          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({ $description: oldDesc as string }));
           onRefresh();
         },
         redo: async () => {
-          if (setNameRef.current !== capturedSet) {
-            onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+          if (collectionIdRef.current !== capturedCollectionId) {
+            onError?.(`Redo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
             return;
           }
-          await updateToken(capturedUrl, capturedSet, path, createTokenBody({ $description: description }));
+          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({ $description: description }));
           onRefresh();
         },
       });
@@ -156,13 +156,13 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-  }, [connected, serverUrl, setName, allTokensFlat, perSetFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
+  }, [connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleMultiModeInlineSave = useCallback(async (
     path: string,
     _type: string,
     newValue: unknown,
-    targetSet: string,
+    targetCollectionId: string,
     _collectionId: string,
     optionName: string,
     _previousState?: { type?: string; value: unknown },
@@ -172,7 +172,7 @@ export function useTokenSave({
     // Read the current token to get its full $extensions for deep merge.
     // The server PATCH replaces $extensions wholesale, so we must send
     // the complete merged object.
-    const currentEntry = perSetFlat?.[targetSet]?.[path] ?? allTokensFlat[path];
+    const currentEntry = perCollectionFlat?.[targetCollectionId]?.[path] ?? allTokensFlat[path];
     const previousExtensions = currentEntry?.$extensions
       ? structuredClone(currentEntry.$extensions)
       : undefined;
@@ -193,13 +193,13 @@ export function useTokenSave({
       !Array.isArray(tokenmanager.modes)
         ? { ...(tokenmanager.modes as Record<string, Record<string, unknown>>) }
         : {};
-    const collectionModes = modes[targetSet] ? { ...modes[targetSet] } : {};
+    const collectionModes = modes[targetCollectionId] ? { ...modes[targetCollectionId] } : {};
     collectionModes[optionName] = newValue;
-    tokenmanager.modes = { [targetSet]: collectionModes };
+    tokenmanager.modes = { [targetCollectionId]: collectionModes };
     nextExtensions.tokenmanager = tokenmanager;
 
     try {
-      await updateToken(serverUrl, targetSet, path, createTokenBody({
+      await updateToken(serverUrl, targetCollectionId, path, createTokenBody({
         $extensions: nextExtensions,
       }));
     } catch (err) {
@@ -208,17 +208,17 @@ export function useTokenSave({
     }
     if (onPushUndo) {
       const capturedUrl = serverUrl;
-      const capturedSet = targetSet;
+      const capturedCollectionId = targetCollectionId;
       onPushUndo({
         description: `Edit mode ${optionName} for ${path}`,
         restore: async () => {
-          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
+          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({
             $extensions: previousExtensions,
           }));
           onRefresh();
         },
         redo: async () => {
-          await updateToken(capturedUrl, capturedSet, path, createTokenBody({
+          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({
             $extensions: nextExtensions,
           }));
           onRefresh();
@@ -230,7 +230,7 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-  }, [connected, serverUrl, allTokensFlat, onRefresh, onPushUndo, onRecordTouch, onError, perSetFlat]);
+  }, [connected, serverUrl, allTokensFlat, onRefresh, onPushUndo, onRecordTouch, onError, perCollectionFlat]);
 
   const handleDetachFromRecipe = useCallback(async (path: string) => {
     if (!connected) return;
@@ -238,7 +238,7 @@ export function useTokenSave({
       const derivedRecipe = recipes?.find((recipe) =>
         getRecipeManagedOutputs(recipe).some(
           (output) =>
-            output.key === createRecipeOwnershipKey(setName, path),
+            output.key === createRecipeOwnershipKey(collectionId, path),
         ),
       );
       if (!derivedRecipe) {
@@ -256,7 +256,7 @@ export function useTokenSave({
     }
     onRefresh();
     onRefreshRecipes?.();
-  }, [connected, recipes, onError, onRefresh, onRefreshRecipes, serverUrl, setName]);
+  }, [connected, recipes, onError, onRefresh, onRefreshRecipes, serverUrl, collectionId]);
 
   return {
     handleInlineSave,

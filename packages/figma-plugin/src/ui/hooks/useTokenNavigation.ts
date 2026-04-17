@@ -3,65 +3,67 @@ import type { TokenNode } from './useTokens';
 
 interface NavHistoryEntry {
   path: string | null;
-  set: string;
+  collectionId: string;
 }
 
 export function useTokenNavigation(
-  pathToSet: Record<string, string>,
-  activeSet: string,
-  setActiveSet: (set: string) => void,
+  pathToCollectionId: Record<string, string>,
+  currentCollectionId: string,
+  setCurrentCollectionId: (collectionId: string) => void,
   tokens: TokenNode[],
   onAliasNotFound?: (aliasPath: string) => void,
 ) {
   const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
-  // Explicit target set for cross-set navigation where pathToSet may map the path to a different set
-  // (pathToSet uses "first set wins", so shared paths in non-first sets would never match otherwise)
-  const [pendingHighlightSet, setPendingHighlightSet] = useState<string | null>(null);
+  // Explicit target collection for cross-collection navigation where pathToCollectionId
+  // may map the path to a different collection (pathToCollectionId uses
+  // "first collection wins", so shared paths in non-first collections would
+  // never match otherwise).
+  const [pendingHighlightCollectionId, setPendingHighlightCollectionId] = useState<string | null>(null);
   const [createFromEmpty, setCreateFromEmpty] = useState(false);
   const [navHistory, setNavHistory] = useState<NavHistoryEntry[]>([]);
 
   const navigateToAliasTarget = useCallback(
     (aliasPath: string) => {
-      const targetSet = pathToSet[aliasPath];
-      if (!targetSet) {
+      const targetCollectionId = pathToCollectionId[aliasPath];
+      if (!targetCollectionId) {
         onAliasNotFound?.(aliasPath);
         return;
       }
 
-      if (targetSet === activeSet) {
+      if (targetCollectionId === currentCollectionId) {
         setHighlightedToken(aliasPath);
         return;
       }
 
       setPendingHighlight(aliasPath);
-      setPendingHighlightSet(targetSet);
-      setActiveSet(targetSet);
+      setPendingHighlightCollectionId(targetCollectionId);
+      setCurrentCollectionId(targetCollectionId);
     },
-    [activeSet, onAliasNotFound, pathToSet, setActiveSet],
+    [currentCollectionId, onAliasNotFound, pathToCollectionId, setCurrentCollectionId],
   );
 
-  // Reset createFromEmpty when switching sets
+  // Reset createFromEmpty when switching collections
   useEffect(() => {
     setCreateFromEmpty(false);
-  }, [activeSet, setCreateFromEmpty]);
+  }, [currentCollectionId, setCreateFromEmpty]);
 
-  // Apply pending highlight after switching sets
+  // Apply pending highlight after switching collections
   useEffect(() => {
-    // Use explicit target set if available (cross-set navigation); fall back to pathToSet lookup
-    const targetSet = pendingHighlightSet ?? pathToSet[pendingHighlight ?? ''];
-    if (pendingHighlight && targetSet === activeSet) {
+    const targetCollectionId =
+      pendingHighlightCollectionId ?? pathToCollectionId[pendingHighlight ?? ''];
+    if (pendingHighlight && targetCollectionId === currentCollectionId) {
       setHighlightedToken(pendingHighlight);
       setPendingHighlight(null);
-      setPendingHighlightSet(null);
+      setPendingHighlightCollectionId(null);
     }
-  }, [tokens, pendingHighlight, pendingHighlightSet, activeSet, pathToSet]);
+  }, [tokens, pendingHighlight, pendingHighlightCollectionId, currentCollectionId, pathToCollectionId]);
 
   const handleNavigateToAlias = useCallback((aliasPath: string, fromPath?: string) => {
     // Push current position to history before navigating
-    setNavHistory(prev => [...prev, { path: fromPath ?? null, set: activeSet }]);
+    setNavHistory(prev => [...prev, { path: fromPath ?? null, collectionId: currentCollectionId }]);
     navigateToAliasTarget(aliasPath);
-  }, [activeSet, navigateToAliasTarget]);
+  }, [currentCollectionId, navigateToAliasTarget]);
 
   const handleNavigateToAliasWithoutHistory = useCallback((aliasPath: string) => {
     navigateToAliasTarget(aliasPath);
@@ -72,40 +74,41 @@ export function useTokenNavigation(
     const entry = navHistory[navHistory.length - 1];
     setNavHistory(prev => prev.slice(0, -1));
 
-    if (entry.set !== activeSet) {
-      // Cross-set back navigation: switch set and highlight the source token
+    if (entry.collectionId !== currentCollectionId) {
+      // Cross-collection back navigation: switch collection and highlight the source token
       if (entry.path) {
         setPendingHighlight(entry.path);
-        setPendingHighlightSet(entry.set);
+        setPendingHighlightCollectionId(entry.collectionId);
       }
-      setActiveSet(entry.set);
+      setCurrentCollectionId(entry.collectionId);
     } else {
       setHighlightedToken(entry.path);
     }
-  }, [navHistory, activeSet, setActiveSet]);
+  }, [navHistory, currentCollectionId, setCurrentCollectionId]);
 
   const consumeNavigateBack = useCallback(() => {
     if (navHistory.length === 0) return null;
     const entry = navHistory[navHistory.length - 1];
     setNavHistory((prev) => prev.slice(0, -1));
 
-    if (entry.set !== activeSet) {
+    if (entry.collectionId !== currentCollectionId) {
       if (entry.path) {
         setPendingHighlight(entry.path);
-        setPendingHighlightSet(entry.set);
+        setPendingHighlightCollectionId(entry.collectionId);
       }
-      setActiveSet(entry.set);
+      setCurrentCollectionId(entry.collectionId);
     } else {
       setHighlightedToken(entry.path);
     }
 
     return entry;
-  }, [navHistory, activeSet, setActiveSet]);
+  }, [navHistory, currentCollectionId, setCurrentCollectionId]);
 
-  // Use this when navigating to a token in a specific set (not derived from pathToSet)
-  const setPendingHighlightForSet = useCallback((path: string, targetSet: string) => {
+  // Use this when navigating to a token in a specific collection, rather than
+  // deriving the target collection from pathToCollectionId.
+  const setPendingHighlightForCollection = useCallback((path: string, targetCollectionId: string) => {
     setPendingHighlight(path);
-    setPendingHighlightSet(targetSet);
+    setPendingHighlightCollectionId(targetCollectionId);
   }, []);
 
   return {
@@ -113,7 +116,7 @@ export function useTokenNavigation(
     setHighlightedToken,
     pendingHighlight,
     setPendingHighlight,
-    setPendingHighlightForSet,
+    setPendingHighlightForCollection,
     createFromEmpty,
     setCreateFromEmpty,
     handleNavigateToAlias,

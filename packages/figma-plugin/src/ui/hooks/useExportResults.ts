@@ -76,7 +76,7 @@ export function useExportResults({
   const [zipProgress, setZipProgress] = useState<number | null>(null);
 
   const {
-    selected, selectedSets, selectedTypes, pathPrefix, cssSelector,
+    selected, selectedCollections, selectedTypes, pathPrefix, cssSelector,
     zipFilename, nestByPlatform,
   } = platformConfig;
 
@@ -159,7 +159,9 @@ export function useExportResults({
         cssSelector?: string;
         changedPaths?: string[];
       } = { platforms: Array.from(selected) };
-      if (selectedSets !== null) body.collections = Array.from(selectedSets);
+      if (selectedCollections !== null) {
+        body.collections = Array.from(selectedCollections);
+      }
       if (selectedTypes !== null) body.types = Array.from(selectedTypes);
       if (pathPrefix.trim()) body.pathPrefix = pathPrefix.trim();
       if (selected.has('css') && cssSelector && cssSelector !== ':root') body.cssSelector = cssSelector;

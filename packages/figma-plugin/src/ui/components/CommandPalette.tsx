@@ -526,9 +526,9 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
                 onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
-                title={searchAllSets ? 'Searching all sets — click to search active set only' : 'Search across all token sets'}
+                title={searchAllSets ? 'Searching all collections — click to search only the active collection' : 'Search across all token collections'}
               >
-                {searchAllSets ? 'All sets' : 'All sets'}
+                {searchAllSets ? 'All collections' : 'All collections'}
               </button>
             )}
           </div>
@@ -647,15 +647,15 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     ? <>{totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''} matched</>
                     : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>
                   }
-                  {searchAllSets && <span className="text-[var(--color-figma-accent)] opacity-70">across all sets</span>}
+                  {searchAllSets && <span className="text-[var(--color-figma-accent)] opacity-70">across all collections</span>}
                 </div>
               )}
               {filteredTokens.length === 0 && filteredGroups.length === 0 && (
                 <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
                   {tokenQuery
-                    ? `No tokens or groups match "${tokenQuery}"${!searchAllSets && allSetTokens ? ' in this set' : ''}`
+                    ? `No tokens or groups match "${tokenQuery}"${!searchAllSets && allSetTokens ? ' in this collection' : ''}`
                     : <>
-                        Type a token path to search{searchAllSets ? ' across all sets' : ''}
+                        Type a token path to search{searchAllSets ? ' across all collections' : ''}
                         <div className="mt-1.5 flex flex-col items-center gap-1">
                           <div className="flex gap-1.5 flex-wrap justify-center">
                             {['type:', 'has:alias', 'value:', 'path:', 'name:'].map(q => (
@@ -1051,7 +1051,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               <span>↑↓ navigate</span>
               <span>↵ go to token/group</span>
               {searchAllSets
-                ? <span className="text-[var(--color-figma-accent)] opacity-80">searching all sets</span>
+                ? <span className="text-[var(--color-figma-accent)] opacity-80">searching all collections</span>
                 : <button className="opacity-60 hover:opacity-100 hover:text-[var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
               }
               <span>ESC close</span>

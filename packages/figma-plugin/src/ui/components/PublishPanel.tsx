@@ -209,11 +209,11 @@ function buildResolverPublishSyncMappings(rows: ResolverPublishMappingRow[]): Re
 interface PublishPanelProps {
   serverUrl: string;
   connected: boolean;
-  activeSet: string;
+  currentCollectionId: string;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
   savePublishRouting: (
-    setName: string,
+    collectionId: string,
     routing: PublishRoutingDraft,
   ) => Promise<{ collectionName?: string; modeName?: string }>;
   refreshValidation: () => Promise<ValidationSnapshot | null>;
@@ -233,7 +233,7 @@ export interface PublishPanelHandle {
 export function PublishPanel({
   serverUrl,
   connected,
-  activeSet,
+  currentCollectionId,
   collectionMap = {},
   modeMap = {},
   savePublishRouting,
@@ -390,8 +390,8 @@ export function PublishPanel({
     () => buildResolverPublishSyncMappings(resolverPublishRows),
     [resolverPublishRows],
   );
-  const savedCollectionName = collectionMap[activeSet] ?? '';
-  const savedModeName = modeMap[activeSet] ?? '';
+  const savedCollectionName = collectionMap[currentCollectionId] ?? '';
+  const savedModeName = modeMap[currentCollectionId] ?? '';
   const resolvedCollectionName =
     savedCollectionName || DEFAULT_VARIABLE_COLLECTION_NAME;
   const resolvedModeName = savedModeName || 'First Figma mode';
@@ -411,7 +411,7 @@ export function PublishPanel({
       modeName: savedModeName,
     });
     setStandardRoutingError(null);
-  }, [activeSet, savedCollectionName, savedModeName]);
+  }, [currentCollectionId, savedCollectionName, savedModeName]);
 
   const updateResolverPublishDraft = useCallback(
     (key: string, field: keyof ResolverPublishMappingDraft, value: string) => {
@@ -492,7 +492,7 @@ export function PublishPanel({
     setStandardRoutingSaving(true);
     setStandardRoutingError(null);
     try {
-      await savePublishRouting(activeSet, {
+      await savePublishRouting(currentCollectionId, {
         collectionName: standardRoutingDraft.collectionName?.trim() || undefined,
         modeName: standardRoutingDraft.modeName?.trim() || undefined,
       });
@@ -502,7 +502,7 @@ export function PublishPanel({
     } finally {
       setStandardRoutingSaving(false);
     }
-  }, [activeSet, savePublishRouting, standardRoutingDraft]);
+  }, [currentCollectionId, savePublishRouting, standardRoutingDraft]);
 
 
   // ── Extracted hooks ──
@@ -514,13 +514,13 @@ export function PublishPanel({
     VariablesAppliedMessage,
     PublishSyncEntry,
     PublishSyncEntry
-  >(serverUrl, activeSet, connected, VAR_MESSAGES, {
+  >(serverUrl, currentCollectionId, connected, VAR_MESSAGES, {
     progressEventType: 'variable-sync-progress',
     ...variablePublishDiffConfig,
     loadSnapshot: ({ signal, readFigmaTokens }) =>
       loadVariablePublishSnapshot({
         serverUrl,
-        activeSet,
+        currentCollectionId,
         collectionMap,
         modeMap,
         readFigmaTokens,
@@ -528,7 +528,7 @@ export function PublishPanel({
         resolverName: isResolverPublishCompareActive ? activeResolver : null,
         resolverPublishMappings: isResolverPublishCompareActive ? resolverPublishSyncMappings : [],
       }),
-    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, activeSet, collectionMap, modeMap),
+    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, currentCollectionId, collectionMap, modeMap),
     buildPullPayload: buildPublishPullPayload,
     buildApplyPayload: (rows) => ({
       tokens: rows.map(r => {
@@ -539,7 +539,7 @@ export function PublishPanel({
           $type: r.localType ?? 'string',
           $value: r.localRaw ?? '',
           $extensions: extensions,
-          setName: activeSet,
+          collectionId: currentCollectionId,
         };
       }),
       collectionMap, modeMap,
@@ -565,7 +565,7 @@ export function PublishPanel({
     StylesAppliedMessage,
     PublishSyncEntry,
     PublishSyncEntry
-  >(serverUrl, activeSet, connected, STYLE_MESSAGES, {
+  >(serverUrl, currentCollectionId, connected, STYLE_MESSAGES, {
     progressEventType: 'style-sync-progress',
     ...stylePublishDiffConfig,
     buildPullPayload: buildPublishPullPayload,
@@ -598,7 +598,7 @@ export function PublishPanel({
   });
 
   const readiness = useReadinessChecks({
-    serverUrl, activeSet, connected,
+    serverUrl, currentCollectionId, connected,
     collectionMap, modeMap, tokenChangeKey,
     readFigmaTokens: varSync.readFigmaTokens,
     setOrphanConfirm: orphanCleanup.setOrphanConfirm,
@@ -674,7 +674,7 @@ export function PublishPanel({
             path,
             $type: token.$type ?? 'string',
             $value: token.$value as VariableSyncToken['$value'],
-            setName: activeResolver,
+            collectionId: activeResolver,
             figmaCollection: mapping.collectionName,
             figmaMode: mapping.modeName,
             $extensions: token.$extensions,
@@ -1128,7 +1128,7 @@ export function PublishPanel({
             statusSeverity={standardRoutingDirty ? 'warning' : 'info'}
           >
             <StandardPublishRoutingCard
-              activeSet={activeSet}
+              currentCollectionId={currentCollectionId}
               draft={standardRoutingDraft}
               dirty={standardRoutingDirty}
               saving={standardRoutingSaving}
@@ -1347,7 +1347,7 @@ export function PublishPanel({
 }
 
 function StandardPublishRoutingCard({
-  activeSet,
+  currentCollectionId,
   draft,
   dirty,
   saving,
@@ -1356,7 +1356,7 @@ function StandardPublishRoutingCard({
   onReset,
   onSave,
 }: {
-  activeSet: string;
+  currentCollectionId: string;
   draft: PublishRoutingDraft;
   dirty: boolean;
   saving: boolean;
@@ -1370,7 +1370,7 @@ function StandardPublishRoutingCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
-            {activeSet}
+            {currentCollectionId}
           </div>
           <p className="mt-1 max-w-[520px] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
             Choose where this collection publishes in Figma variables. This only

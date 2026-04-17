@@ -2,7 +2,6 @@ import type { TokenCollection } from "@tokenmanager/core";
 
 export interface ModeCoverageCollectionSummary {
   id: string;
-  name: string;
   options: TokenCollection["modes"];
   optionCount: number;
   filledCount: number;
@@ -38,7 +37,6 @@ export function summarizeModeCoverage(
 
       return {
         id: collection.id,
-        name: collection.name,
         options: collection.modes,
         optionCount,
         filledCount,

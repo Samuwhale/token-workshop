@@ -114,11 +114,11 @@ export function ShadowPreview({ tokens, config, overrides, onOverrideChange, onO
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathToSet }: {
+export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathToCollectionId }: {
   config: ShadowScaleConfig;
   onChange: (c: ShadowScaleConfig) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }) {
   const [showSteps, setShowSteps] = useState(false);
 
@@ -181,7 +181,7 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
         valueLabel={config.color.slice(0, 7)}
         filterType="color"
         allTokensFlat={allTokensFlat}
-        pathToSet={pathToSet}
+        pathToCollectionId={pathToCollectionId}
         onLink={setColorTokenRef}
         onUnlink={clearColorTokenRef}
       >

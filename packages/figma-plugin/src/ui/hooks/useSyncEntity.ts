@@ -66,7 +66,7 @@ export interface SyncEntityConfig<
   isConflict: (local: TLocal, figma: TFigma) => boolean;
   loadSnapshot?: (params: {
     serverUrl: string;
-    activeSet: string;
+    currentCollectionId: string;
     signal?: AbortSignal;
     readFigmaTokens: () => Promise<unknown[]>;
   }) => Promise<SyncSnapshot<TLocal, TFigma, TRow>>;
@@ -79,7 +79,7 @@ export interface SyncEntityConfig<
   applyErrorLabel: string;
   revertSuccessMessage: string;
   revertErrorMessage: string;
-  /** Auto-trigger computeDiff when connected + activeSet become truthy. */
+  /** Auto-trigger computeDiff when connected + currentCollectionId become truthy. */
   autoComputeOnConnect?: boolean;
 }
 
@@ -98,7 +98,7 @@ export function useSyncEntity<
   TFigma = unknown,
 >(
   serverUrl: string,
-  activeSet: string,
+  currentCollectionId: string,
   connected: boolean,
   messages: SyncMessages<TSnapshot, TReadResponse, TReadMessage, TApplyMessage>,
   config: SyncEntityConfig<TRow, TSnapshot, TLocal, TFigma>,
@@ -179,17 +179,17 @@ export function useSyncEntity<
 
   const base = useTokenSyncBase<TRow, TLocal, TFigma>(
     serverUrl,
-    activeSet,
+    currentCollectionId,
     tokenSyncConfig,
   );
   const { computeDiff } = base;
 
-  // Auto-trigger diff computation when connection + set become available.
+  // Auto-trigger diff computation when connection + collection become available.
   useEffect(() => {
-    if (config.autoComputeOnConnect && connected && activeSet) {
+    if (config.autoComputeOnConnect && connected && currentCollectionId) {
       void computeDiff();
     }
-  }, [config.autoComputeOnConnect, connected, activeSet, computeDiff]);
+  }, [config.autoComputeOnConnect, connected, currentCollectionId, computeDiff]);
 
   const revert = useCallback(async () => {
     if (!snapshot) return;

@@ -17,7 +17,7 @@ import {
   type ImportWorkflowStage,
   IMPORT_SOURCE_DEFINITIONS,
   markDuplicatePaths,
-  defaultSetName,
+  defaultCollectionName,
   modeKey,
   validateDTCGStructure,
   formatSupportedFileFormats,
@@ -67,7 +67,7 @@ const FILE_IMPORT_PARSER_LIMITS: Record<FileImportSource, string[]> = {
     'Arrays, functions, booleans, and null values are skipped.',
   ],
   'tokens-studio': [
-    'Single-set exports stay in one set; multi-set exports preserve set boundaries.',
+    'Single-collection exports stay in one collection; multi-collection exports preserve collection boundaries.',
     'Only nested groups containing value or $value fields are imported.',
   ],
 };
@@ -102,7 +102,9 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set());
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [collectionData, setCollectionData] = useState<CollectionData[]>([]);
-  const [modeSetNames, setModeSetNames] = useState<Record<string, string>>({});
+  const [modeCollectionNames, setModeCollectionNames] = useState<
+    Record<string, string>
+  >({});
   const [modeEnabled, setModeEnabled] = useState<Record<string, boolean>>({});
   const [skippedEntries, setSkippedEntries] = useState<SkippedEntry[]>([]);
   const [skippedExpanded, setSkippedExpanded] = useState(false);
@@ -206,11 +208,15 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         for (const col of cols) {
           for (const mode of col.modes) {
             const key = modeKey(col.name, mode.modeId);
-            names[key] = defaultSetName(col.name, mode.modeName, col.modes.length);
+            names[key] = defaultCollectionName(
+              col.name,
+              mode.modeName,
+              col.modes.length,
+            );
             enabled[key] = true;
           }
         }
-        setModeSetNames(names);
+        setModeCollectionNames(names);
         setModeEnabled(enabled);
         setSourceFamily('figma');
         setWorkflowStage('destination');
@@ -323,16 +329,16 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       const modes: ModeData[] = [];
       const names: Record<string, string> = {};
       const enabled: Record<string, boolean> = {};
-      for (const [setName, setTokenList] of parsedSets) {
+      for (const [collectionId, setTokenList] of parsedSets) {
         const importTokens: ImportToken[] = setTokenList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
-        modes.push({ modeId: setName, modeName: setName, tokens: importTokens });
-        const key = modeKey(collectionName, setName);
-        names[key] = setName;
+        modes.push({ modeId: collectionId, modeName: collectionId, tokens: importTokens });
+        const key = modeKey(collectionName, collectionId);
+        names[key] = collectionId;
         enabled[key] = true;
       }
       setSource('tokens-studio');
       setCollectionData([{ name: collectionName, modes }]);
-      setModeSetNames(names);
+      setModeCollectionNames(names);
       setModeEnabled(enabled);
     }
     const tokenCount = [...parsedSets.values()].reduce((count, setTokenList) => count + setTokenList.length, 0);
@@ -344,12 +350,12 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       summary: `Parsed ${pluralize(tokenCount, 'token')} from ${fileName}`,
       detail:
         setCount === 1
-          ? 'Detected a single Tokens Studio set and prepared it for import.'
-          : `Detected ${pluralize(setCount, 'set')} and preserved each set mapping for import.`,
+          ? 'Detected a single Tokens Studio collection and prepared it for import.'
+          : `Detected ${pluralize(setCount, 'collection')} and preserved each collection mapping for import.`,
       nextAction:
         setCount === 1
-          ? 'Choose the destination set, then continue to preview or import.'
-          : 'Review the destination set names, then import the parsed sets.',
+          ? 'Choose the destination collection, then continue to preview or import.'
+          : 'Review the destination collection names, then import the parsed collections.',
       tokenCount,
       skippedCount: 0,
       issues: [],
@@ -482,7 +488,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           status: 'ready',
           summary: `Parsed ${pluralize(importTokens.length, 'token')} from ${file.name}`,
           detail: 'The file matched the DTCG JSON parser and is ready to import.',
-          nextAction: 'Choose the destination set, then continue to preview or import.',
+          nextAction: 'Choose the destination collection, then continue to preview or import.',
           tokenCount: importTokens.length,
           skippedCount: 0,
           issues: [],
@@ -605,7 +611,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
             : 'The file is ready to import.',
           nextAction: isPartial
             ? 'Review the skipped entries before importing. Retry only re-sends tokens that parsed successfully.'
-            : 'Choose the destination set, then continue to preview or import.',
+            : 'Choose the destination collection, then continue to preview or import.',
           tokenCount: importTokens.length,
           skippedCount: skipped.length,
           issues: errors.map(message => ({ message, severity: 'warning' as const })),
@@ -715,7 +721,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
             : 'The Tailwind theme values are ready to import.',
           nextAction: isPartial
             ? 'Review the skipped entries before importing. Retry only re-sends tokens that parsed successfully.'
-            : 'Choose the destination set, then continue to preview or import.',
+            : 'Choose the destination collection, then continue to preview or import.',
           tokenCount: importTokens.length,
           skippedCount: skipped.length,
           issues: errors.map(message => ({ message, severity: 'warning' as const })),
@@ -957,8 +963,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setTypeFilter,
     collectionData,
     setCollectionData,
-    modeSetNames,
-    setModeSetNames,
+    modeCollectionNames,
+    setModeCollectionNames,
     modeEnabled,
     setModeEnabled,
     skippedEntries,

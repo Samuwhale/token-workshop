@@ -10,7 +10,7 @@ interface UseGitDiffOptions {
 
 export interface TokenChange {
   path: string;
-  set: string;
+  collectionId: string;
   type: string;
   status: 'added' | 'modified' | 'removed';
   before?: any;
@@ -106,7 +106,7 @@ export function useGitDiff({
   const mapServerChange = useCallback(
     (change: ServerTokenChange): TokenChange => ({
       path: change.path,
-      set: change.collectionId,
+      collectionId: change.collectionId,
       type: change.type,
       status: change.status,
       before: change.before,

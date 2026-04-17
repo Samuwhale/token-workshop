@@ -75,7 +75,10 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
             buildCollectionsRollbackStep(mutation.previousCollectionState),
           ],
         });
-        return reply.status(201).send({ ok: true, id: name, name });
+        const overview = await fastify.collectionService.getCollectionsOverview();
+        return reply
+          .status(201)
+          .send({ ok: true, id: name, name, collections: overview.collections });
       } catch (err) {
         if (mutation) {
           await fastify.tokenLock
@@ -607,9 +610,15 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
             buildCollectionsRollbackStep(mutation.previousCollectionState),
           ],
         });
+        const overview = await fastify.collectionService.getCollectionsOverview();
         return reply
           .status(201)
-          .send({ ok: true, id: mutation.result.id, originalId: id });
+          .send({
+            ok: true,
+            id: mutation.result.id,
+            originalId: id,
+            collections: overview.collections,
+          });
       } catch (err) {
         if (mutation) {
           const createdId = mutation.result.id;

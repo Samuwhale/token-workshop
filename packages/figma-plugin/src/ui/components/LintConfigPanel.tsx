@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useTokenFlatMapContext, useTokenSetsContext } from '../contexts/TokenDataContext';
-import type { LintConfig, LintRuleConfig, LintRuleSetOverride, Severity } from '../hooks/useLintConfig';
+import { useCollectionStateContext, useTokenFlatMapContext } from '../contexts/TokenDataContext';
+import type { LintConfig, LintRuleConfig, LintRuleCollectionOverride, Severity } from '../hooks/useLintConfig';
 import { LINT_RULE_REGISTRY, LINT_PRESETS, buildLintConfigFromPreset } from '../shared/lintRules';
 
 const SEVERITIES: Severity[] = ['error', 'warning', 'info'];
@@ -75,15 +75,15 @@ function getPresetBaseId(config: LintConfig): string | null {
   return null;
 }
 
-function getDefaultSetOverride(ruleConfig: LintRuleConfig): LintRuleSetOverride {
+function getDefaultCollectionOverride(ruleConfig: LintRuleConfig): LintRuleCollectionOverride {
   return {
     enabled: !ruleConfig.enabled,
     severity: ruleConfig.severity ?? 'warning',
   };
 }
 
-function normalizeSetOverride(ruleConfig: LintRuleConfig, override: LintRuleSetOverride): LintRuleSetOverride | null {
-  const normalized: LintRuleSetOverride = {};
+function normalizeCollectionOverride(ruleConfig: LintRuleConfig, override: LintRuleCollectionOverride): LintRuleCollectionOverride | null {
+  const normalized: LintRuleCollectionOverride = {};
 
   if (override.enabled !== undefined && override.enabled !== ruleConfig.enabled) {
     normalized.enabled = override.enabled;
@@ -98,41 +98,41 @@ function normalizeSetOverride(ruleConfig: LintRuleConfig, override: LintRuleSetO
   return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
-function describeCoverage(ruleConfig: LintRuleConfig, totalSets: number): string {
+function describeCoverage(ruleConfig: LintRuleConfig, totalCollections: number): string {
   const overrides = Object.values(ruleConfig.collectionOverrides ?? {});
-  const disabledSets = overrides.filter(override => override.enabled === false).length;
-  const enabledSets = overrides.filter(override => override.enabled === true).length;
+  const disabledCount = overrides.filter(override => override.enabled === false).length;
+  const enabledCount = overrides.filter(override => override.enabled === true).length;
 
-  if (totalSets === 0) {
-    return ruleConfig.enabled ? 'All sets' : 'Disabled';
+  if (totalCollections === 0) {
+    return ruleConfig.enabled ? 'All collections' : 'Disabled';
   }
 
   if (ruleConfig.enabled) {
-    if (disabledSets === 0) {
-      return `${totalSets} / ${totalSets} sets`;
+    if (disabledCount === 0) {
+      return `${totalCollections} / ${totalCollections} collections`;
     }
-    const coveredSetCount = Math.max(totalSets - disabledSets, 0);
-    return `${coveredSetCount} / ${totalSets} sets`;
+    const coveredCount = Math.max(totalCollections - disabledCount, 0);
+    return `${coveredCount} / ${totalCollections} collections`;
   }
 
-  if (enabledSets === 0) {
+  if (enabledCount === 0) {
     return 'Disabled';
   }
 
-  return `${enabledSets} / ${totalSets} sets`;
+  return `${enabledCount} / ${totalCollections} collections`;
 }
 
-function describeOverrideChip(ruleConfig: LintRuleConfig, setName: string, override: LintRuleSetOverride): string {
+function describeOverrideChip(ruleConfig: LintRuleConfig, collectionId: string, override: LintRuleCollectionOverride): string {
   const enabled = override.enabled ?? ruleConfig.enabled;
   const severity = override.severity ?? ruleConfig.severity ?? 'warning';
 
   if (enabled !== ruleConfig.enabled) {
-    return enabled ? setName : `${setName} off`;
+    return enabled ? collectionId : `${collectionId} off`;
   }
   if (severity !== (ruleConfig.severity ?? 'warning')) {
-    return `${setName} ${severity}`;
+    return `${collectionId} ${severity}`;
   }
-  return setName;
+  return collectionId;
 }
 
 function formatPathOptionLabel(option: PathExceptionOption): string {
@@ -140,19 +140,20 @@ function formatPathOptionLabel(option: PathExceptionOption): string {
 }
 
 export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, onReset, onLintRefresh }: LintConfigPanelProps) {
-  const { sets } = useTokenSetsContext();
-  const { pathToSet } = useTokenFlatMapContext();
+  const { collections } = useCollectionStateContext();
+  const collectionIds = collections.map((collection) => collection.id);
+  const { pathToCollectionId } = useTokenFlatMapContext();
 
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
   const [hoveredPreset, setHoveredPreset] = useState<string | null>(null);
-  const [selectedOverride, setSelectedOverride] = useState<{ ruleId: string; setName: string } | null>(null);
-  const [setPickerValues, setSetPickerValues] = useState<Record<string, string>>({});
+  const [selectedOverride, setSelectedOverride] = useState<{ ruleId: string; collectionId: string } | null>(null);
+  const [collectionPickerValues, setCollectionPickerValues] = useState<Record<string, string>>({});
   const [pathPickerValues, setPathPickerValues] = useState<Record<string, string>>({});
 
   const presetBaseId = useMemo(() => getPresetBaseId(config), [config]);
   const pathExceptionOptions = useMemo(
-    () => buildPathExceptionOptions(Object.keys(pathToSet)),
-    [pathToSet],
+    () => buildPathExceptionOptions(Object.keys(pathToCollectionId)),
+    [pathToCollectionId],
   );
 
   async function persistRulePatch(ruleId: string, patch: Partial<LintRuleConfig>) {
@@ -190,40 +191,40 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
     });
   }
 
-  async function handleAddSetException(ruleId: string, ruleConfig: LintRuleConfig) {
-    const selectedSet = setPickerValues[ruleId]?.trim();
-    if (!selectedSet) {
+  async function handleAddCollectionException(ruleId: string, ruleConfig: LintRuleConfig) {
+    const selectedCollectionId = collectionPickerValues[ruleId]?.trim();
+    if (!selectedCollectionId) {
       return;
     }
-    const nextOverride = normalizeSetOverride(ruleConfig, getDefaultSetOverride(ruleConfig));
+    const nextOverride = normalizeCollectionOverride(ruleConfig, getDefaultCollectionOverride(ruleConfig));
     if (!nextOverride) {
       return;
     }
     await persistRulePatch(ruleId, {
       collectionOverrides: {
         ...(ruleConfig.collectionOverrides ?? {}),
-        [selectedSet]: nextOverride,
+        [selectedCollectionId]: nextOverride,
       },
     });
-    setSelectedOverride({ ruleId, setName: selectedSet });
-    setSetPickerValues(current => ({ ...current, [ruleId]: '' }));
+    setSelectedOverride({ ruleId, collectionId: selectedCollectionId });
+    setCollectionPickerValues(current => ({ ...current, [ruleId]: '' }));
   }
 
-  async function handleSetExceptionChange(
+  async function handleCollectionExceptionChange(
     ruleId: string,
     ruleConfig: LintRuleConfig,
-    setName: string,
-    patch: Partial<LintRuleSetOverride>,
+    collectionId: string,
+    patch: Partial<LintRuleCollectionOverride>,
   ) {
-    const currentOverride = ruleConfig.collectionOverrides?.[setName] ?? {};
-    const normalizedOverride = normalizeSetOverride(ruleConfig, { ...currentOverride, ...patch });
+    const currentOverride = ruleConfig.collectionOverrides?.[collectionId] ?? {};
+    const normalizedOverride = normalizeCollectionOverride(ruleConfig, { ...currentOverride, ...patch });
     const nextOverrides = { ...(ruleConfig.collectionOverrides ?? {}) };
 
     if (normalizedOverride) {
-      nextOverrides[setName] = normalizedOverride;
+      nextOverrides[collectionId] = normalizedOverride;
     } else {
-      delete nextOverrides[setName];
-      if (selectedOverride?.ruleId === ruleId && selectedOverride.setName === setName) {
+      delete nextOverrides[collectionId];
+      if (selectedOverride?.ruleId === ruleId && selectedOverride.collectionId === collectionId) {
         setSelectedOverride(null);
       }
     }
@@ -231,11 +232,11 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
     await persistRulePatch(ruleId, { collectionOverrides: nextOverrides });
   }
 
-  async function handleRemoveSetException(ruleId: string, ruleConfig: LintRuleConfig, setName: string) {
+  async function handleRemoveCollectionException(ruleId: string, ruleConfig: LintRuleConfig, collectionId: string) {
     const nextOverrides = { ...(ruleConfig.collectionOverrides ?? {}) };
-    delete nextOverrides[setName];
+    delete nextOverrides[collectionId];
     await persistRulePatch(ruleId, { collectionOverrides: nextOverrides });
-    if (selectedOverride?.ruleId === ruleId && selectedOverride.setName === setName) {
+    if (selectedOverride?.ruleId === ruleId && selectedOverride.collectionId === collectionId) {
       setSelectedOverride(null);
     }
   }
@@ -316,9 +317,9 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
           const ruleConfig = config.lintRules[rule.id] ?? { enabled: false };
           const isExpanded = expandedRule === rule.id;
           const hasOptions = !!rule.options?.length;
-          const selectedSetName = selectedOverride?.ruleId === rule.id ? selectedOverride.setName : null;
-          const selectedSetOverride = selectedSetName ? ruleConfig.collectionOverrides?.[selectedSetName] : null;
-          const availableSetChoices = sets.filter(setName => !(ruleConfig.collectionOverrides?.[setName]));
+          const selectedCollectionName = selectedOverride?.ruleId === rule.id ? selectedOverride.collectionId : null;
+          const selectedCollectionOverride = selectedCollectionName ? ruleConfig.collectionOverrides?.[selectedCollectionName] : null;
+          const availableCollectionChoices = collectionIds.filter(collectionId => !(ruleConfig.collectionOverrides?.[collectionId]));
           const currentPathExceptions = ruleConfig.excludePaths ?? [];
           const pathChoices = pathExceptionOptions.filter(option => !currentPathExceptions.includes(option.path));
 
@@ -350,7 +351,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{rule.label}</span>
                   <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">{rule.description}</p>
                   <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                    {describeCoverage(ruleConfig, sets.length)}
+                    {describeCoverage(ruleConfig, collectionIds.length)}
                     {(ruleConfig.excludePaths?.length ?? 0) > 0 ? ` · ${ruleConfig.excludePaths!.length} token-group exception${ruleConfig.excludePaths!.length === 1 ? '' : 's'}` : ''}
                     {(Object.keys(ruleConfig.collectionOverrides ?? {}).length) > 0 ? ` · ${Object.keys(ruleConfig.collectionOverrides ?? {}).length} collection exception${Object.keys(ruleConfig.collectionOverrides ?? {}).length === 1 ? '' : 's'}` : ''}
                   </p>
@@ -456,12 +457,12 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
                     {Object.entries(ruleConfig.collectionOverrides ?? {}).length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
-                        {Object.entries(ruleConfig.collectionOverrides ?? {}).map(([setName, override]) => {
-                          const isSelected = selectedSetName === setName;
+                        {Object.entries(ruleConfig.collectionOverrides ?? {}).map(([collectionId, override]) => {
+                          const isSelected = selectedCollectionName === collectionId;
                           return (
                             <button
-                              key={setName}
-                              onClick={() => setSelectedOverride({ ruleId: rule.id, setName })}
+                              key={collectionId}
+                              onClick={() => setSelectedOverride({ ruleId: rule.id, collectionId })}
                               className="rounded-full border px-2 py-1 text-[10px] transition-colors"
                               style={{
                                 borderColor: isSelected ? 'var(--color-figma-accent)' : 'var(--color-figma-border)',
@@ -469,7 +470,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                                 color: isSelected ? 'var(--color-figma-accent)' : 'var(--color-figma-text)',
                               }}
                             >
-                              {describeOverrideChip(ruleConfig, setName, override)}
+                              {describeOverrideChip(ruleConfig, collectionId, override)}
                             </button>
                           );
                         })}
@@ -480,32 +481,32 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
 
                     <div className="mt-2 flex items-center gap-2">
                       <select
-                        value={setPickerValues[rule.id] ?? ''}
-                        onChange={event => setSetPickerValues(current => ({ ...current, [rule.id]: event.target.value }))}
-                        disabled={saving || availableSetChoices.length === 0}
+                        value={collectionPickerValues[rule.id] ?? ''}
+                        onChange={event => setCollectionPickerValues(current => ({ ...current, [rule.id]: event.target.value }))}
+                        disabled={saving || availableCollectionChoices.length === 0}
                         aria-label="Token collection"
                         className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-[10px] text-[var(--color-figma-text)] disabled:opacity-40"
                       >
-                        <option value="">Pick a set…</option>
-                        {availableSetChoices.map(setName => (
-                          <option key={setName} value={setName}>{setName}</option>
+                        <option value="">Pick a collection…</option>
+                        {availableCollectionChoices.map(collectionId => (
+                          <option key={collectionId} value={collectionId}>{collectionId}</option>
                         ))}
                       </select>
                       <button
-                        onClick={() => handleAddSetException(rule.id, ruleConfig)}
-                        disabled={saving || !setPickerValues[rule.id]}
+                        onClick={() => handleAddCollectionException(rule.id, ruleConfig)}
+                        disabled={saving || !collectionPickerValues[rule.id]}
                         className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:opacity-40"
                       >
-                        Add set
+                        Add collection
                       </button>
                     </div>
 
-                    {selectedSetName && selectedSetOverride && (
+                    {selectedCollectionName && selectedCollectionOverride && (
                       <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="block text-[10px] font-medium text-[var(--color-figma-text)]">{selectedSetName}</span>
+                          <span className="block text-[10px] font-medium text-[var(--color-figma-text)]">{selectedCollectionName}</span>
                           <button
-                            onClick={() => handleRemoveSetException(rule.id, ruleConfig, selectedSetName)}
+                            onClick={() => handleRemoveCollectionException(rule.id, ruleConfig, selectedCollectionName)}
                             disabled={saving}
                             className="text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error)] disabled:opacity-40"
                           >
@@ -516,17 +517,17 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         <div className="mt-2 flex items-center gap-2">
                           <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Enabled</span>
                           <button
-                            onClick={() => handleSetExceptionChange(rule.id, ruleConfig, selectedSetName, { enabled: !(selectedSetOverride.enabled ?? ruleConfig.enabled) })}
+                            onClick={() => handleCollectionExceptionChange(rule.id, ruleConfig, selectedCollectionName, { enabled: !(selectedCollectionOverride.enabled ?? ruleConfig.enabled) })}
                             disabled={saving}
                             className="relative h-4 w-7 shrink-0 rounded-full transition-colors disabled:opacity-50"
-                            style={{ backgroundColor: (selectedSetOverride.enabled ?? ruleConfig.enabled) ? 'var(--color-figma-accent)' : 'var(--color-figma-border)' }}
+                            style={{ backgroundColor: (selectedCollectionOverride.enabled ?? ruleConfig.enabled) ? 'var(--color-figma-accent)' : 'var(--color-figma-border)' }}
                             role="switch"
-                            aria-checked={selectedSetOverride.enabled ?? ruleConfig.enabled}
-                            aria-label={`${selectedSetName} enabled`}
+                            aria-checked={selectedCollectionOverride.enabled ?? ruleConfig.enabled}
+                            aria-label={`${selectedCollectionName} enabled`}
                           >
                             <span
                               className="absolute top-[2px] h-3 w-3 rounded-full bg-white shadow-sm transition-transform"
-                              style={{ left: (selectedSetOverride.enabled ?? ruleConfig.enabled) ? '14px' : '2px' }}
+                              style={{ left: (selectedCollectionOverride.enabled ?? ruleConfig.enabled) ? '14px' : '2px' }}
                             />
                           </button>
                         </div>
@@ -534,13 +535,13 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         <div className="mt-2 flex items-center gap-2">
                           <span className="w-28 shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">Severity</span>
                           <select
-                            value={selectedSetOverride.severity ?? ruleConfig.severity ?? 'warning'}
+                            value={selectedCollectionOverride.severity ?? ruleConfig.severity ?? 'warning'}
                             onChange={async event => {
-                              await handleSetExceptionChange(rule.id, ruleConfig, selectedSetName, { severity: event.target.value as Severity });
+                              await handleCollectionExceptionChange(rule.id, ruleConfig, selectedCollectionName, { severity: event.target.value as Severity });
                             }}
-                            disabled={saving || !(selectedSetOverride.enabled ?? ruleConfig.enabled)}
+                            disabled={saving || !(selectedCollectionOverride.enabled ?? ruleConfig.enabled)}
                             className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 text-[10px] text-[var(--color-figma-text)] disabled:opacity-40"
-                            style={{ color: SEVERITY_COLORS[selectedSetOverride.severity ?? ruleConfig.severity ?? 'warning'] }}
+                            style={{ color: SEVERITY_COLORS[selectedCollectionOverride.severity ?? ruleConfig.severity ?? 'warning'] }}
                           >
                             {SEVERITIES.map(severity => (
                               <option key={severity} value={severity}>{severity}</option>

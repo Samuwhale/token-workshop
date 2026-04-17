@@ -43,8 +43,8 @@ interface WelcomePromptProps {
   connected: boolean;
   checking?: boolean;
   serverUrl: string;
-  activeSet: string;
-  allSets: string[];
+  currentCollectionId: string;
+  collectionIds: string[];
   initialBranch?: StartHereBranch;
   onRetryConnection?: () => void;
   onClose: () => void;
@@ -52,7 +52,7 @@ interface WelcomePromptProps {
   onPasteJSON: () => void;
   onCreateToken: () => void;
   onGuidedSetupComplete: () => void;
-  onSetCreated?: (name: string) => void;
+  onCollectionCreated?: (name: string) => void;
 }
 
 interface ActionCardProps {
@@ -138,8 +138,8 @@ export function WelcomePrompt({
   connected,
   checking,
   serverUrl,
-  activeSet,
-  allSets,
+  currentCollectionId,
+  collectionIds,
   initialBranch = "root",
   onRetryConnection,
   onClose,
@@ -147,7 +147,7 @@ export function WelcomePrompt({
   onPasteJSON,
   onCreateToken,
   onGuidedSetupComplete,
-  onSetCreated,
+  onCollectionCreated,
 }: WelcomePromptProps) {
   const [branch, setBranch] = useState<StartHereBranch>(initialBranch);
 
@@ -370,15 +370,15 @@ export function WelcomePrompt({
             <div className="h-full">
               <QuickStartWizard
                 serverUrl={serverUrl}
-                activeSet={activeSet}
-                allSets={allSets}
+                currentCollectionId={currentCollectionId}
+                collectionIds={collectionIds}
                 connected={connected}
                 checking={checking}
                 embedded
                 onBack={() => setBranch("root")}
                 onClose={onClose}
                 onComplete={onGuidedSetupComplete}
-                onSetCreated={onSetCreated}
+                onCollectionCreated={onCollectionCreated}
                 onRetryConnection={onRetryConnection}
               />
             </div>

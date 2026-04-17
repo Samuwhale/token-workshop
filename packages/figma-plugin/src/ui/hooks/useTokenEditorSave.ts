@@ -22,7 +22,7 @@ import type {
 
 interface UseTokenEditorSaveParams {
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   tokenPath: string;
   isCreateMode: boolean;
   editPath: string;
@@ -50,7 +50,7 @@ interface UseTokenEditorSaveParams {
 
 export function useTokenEditorSave({
   serverUrl,
-  setName,
+  collectionId,
   tokenPath,
   isCreateMode,
   editPath,
@@ -77,19 +77,19 @@ export function useTokenEditorSave({
   const sanitizeModeValues = (
     modes: TokenEditorModeValues,
   ): TokenEditorModeValues => {
-    const currentSetModes = modes[setName];
-    if (!currentSetModes || typeof currentSetModes !== 'object') {
+    const currentCollectionModes = modes[collectionId];
+    if (!currentCollectionModes || typeof currentCollectionModes !== 'object') {
       return {};
     }
 
     const cleanOptions = Object.fromEntries(
-      Object.entries(currentSetModes).filter(
+      Object.entries(currentCollectionModes).filter(
         ([, value]) => value !== '' && value !== undefined && value !== null,
       ),
     );
 
     return Object.keys(cleanOptions).length > 0
-      ? { [setName]: cleanOptions }
+      ? { [collectionId]: cleanOptions }
       : {};
   };
 
@@ -101,7 +101,7 @@ export function useTokenEditorSave({
 
   const handleDelete = async () => {
     try {
-      await deleteToken(serverUrl, setName, tokenPath);
+      await deleteToken(serverUrl, collectionId, tokenPath);
       onBack();
     } catch (err) {
       setError(getErrorMessage(err, 'Delete failed'));
@@ -120,7 +120,7 @@ export function useTokenEditorSave({
     try {
       if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
         try {
-          const checkData = await fetchToken<TokenEditorTokenResponse>(serverUrl, setName, tokenPath);
+          const checkData = await fetchToken<TokenEditorTokenResponse>(serverUrl, collectionId, tokenPath);
           const currentSnapshot = JSON.stringify(checkData.token ?? null);
           if (currentSnapshot !== initialServerSnapshotRef.current) {
             setShowConflictConfirm(true);
@@ -179,19 +179,19 @@ export function useTokenEditorSave({
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
       if (isCreateMode) {
-        await createToken(serverUrl, setName, targetPath, body);
+        await createToken(serverUrl, collectionId, targetPath, body);
       } else {
-        await updateToken(serverUrl, setName, targetPath, body);
+        await updateToken(serverUrl, collectionId, targetPath, body);
       }
       await applyTokenMutationSuccess({
         onAfterSave: () => {
-          clearEditorDraft(setName, targetPath);
+          clearEditorDraft(collectionId, targetPath);
           if (pushUndo) {
             if (isCreateMode) {
               pushUndo({
                 description: `Created token "${targetPath}"`,
                 restore: async () => {
-                  await deleteToken(serverUrl, setName, targetPath);
+                  await deleteToken(serverUrl, collectionId, targetPath);
                 },
               });
             } else if (initialServerSnapshotRef.current !== null) {
@@ -200,10 +200,10 @@ export function useTokenEditorSave({
               pushUndo({
                 description: `Edited token "${targetPath}"`,
                 restore: async () => {
-                  await updateToken(serverUrl, setName, targetPath, previousBody);
+                  await updateToken(serverUrl, collectionId, targetPath, previousBody);
                 },
                 redo: async () => {
-                  await updateToken(serverUrl, setName, targetPath, body);
+                  await updateToken(serverUrl, collectionId, targetPath, body);
                 },
               });
             }

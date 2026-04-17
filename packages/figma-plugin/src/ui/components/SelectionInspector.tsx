@@ -63,7 +63,7 @@ interface SelectionInspectorProps {
   syncResult: SyncCompleteMessage | null;
   syncError?: string | null;
   connected: boolean;
-  activeSet: string;
+  currentCollectionId: string;
   serverUrl: string;
   onTokenCreated: () => void;
   onNavigateToToken?: (tokenPath: string) => void;
@@ -85,7 +85,7 @@ export function SelectionInspector({
   syncResult,
   syncError,
   connected,
-  activeSet,
+  currentCollectionId,
   serverUrl,
   onTokenCreated,
   onNavigateToToken,
@@ -253,7 +253,7 @@ export function SelectionInspector({
   useEffect(() => {
     if (!triggerCreateToken) return;
     const nodes = selectedNodes.filter((n) => (n.depth ?? 0) === 0);
-    if (nodes.length === 0 || !connected || !activeSet) return;
+    if (nodes.length === 0 || !connected || !currentCollectionId) return;
     const mergedCaps = getMergedCapabilities(nodes);
     const firstUnbound = getNextUnboundProperty(null, nodes, mergedCaps);
     // Fallback to first visible property with a value if all are bound
@@ -281,7 +281,7 @@ export function SelectionInspector({
     triggerCreateToken,
     selectedNodes,
     connected,
-    activeSet,
+    currentCollectionId,
     setBindingFromProp,
     setCreatingFromProp,
     setNewTokenName,
@@ -1018,7 +1018,7 @@ export function SelectionInspector({
                         selectedNodes={selectedNodes}
                         tokenMap={tokenMap}
                         connected={connected}
-                        activeSet={activeSet}
+                        currentCollectionId={currentCollectionId}
                         serverUrl={serverUrl}
                         hasAnyTokens={hasAnyTokens}
                         creatingFromProp={creatingFromProp}
@@ -1094,9 +1094,9 @@ export function SelectionInspector({
         )}
 
         {/* Secondary action bar */}
-        {(connected && activeSet && (unboundWithValueCount > 0 || totalBindings > 0)) && (
+        {(connected && currentCollectionId && (unboundWithValueCount > 0 || totalBindings > 0)) && (
           <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--color-figma-border)] px-3 py-2">
-            {connected && activeSet && unboundWithValueCount > 0 && (
+            {connected && currentCollectionId && unboundWithValueCount > 0 && (
               <button
                 onClick={() => {
                   if (showExtractPanel) {
@@ -1155,7 +1155,7 @@ export function SelectionInspector({
           <div className="border-t border-[var(--color-figma-border)] p-3">
             <ExtractTokensPanel
               connected={connected}
-              activeSet={activeSet}
+              currentCollectionId={currentCollectionId}
               serverUrl={serverUrl}
               tokenMap={tokenMap}
               onTokenCreated={onTokenCreated}

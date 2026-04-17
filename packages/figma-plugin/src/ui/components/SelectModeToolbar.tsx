@@ -3,7 +3,7 @@ import { SelectModeOverflowMenu } from "./SelectModeOverflowMenu";
 export interface SelectModeToolbarProps {
   selectedPaths: Set<string>;
   displayedLeafPaths: Set<string>;
-  sets: string[];
+  collectionIds: string[];
   operationLoading: string | null;
   showBatchEditor: boolean;
   copyFeedback: boolean;
@@ -17,8 +17,8 @@ export interface SelectModeToolbarProps {
   onCopyCssVar: () => void;
   onCopyDtcgRef: () => void;
   onMoveToGroup: () => void;
-  onMoveToSet: () => void;
-  onCopyToSet: () => void;
+  onMoveToCollection: () => void;
+  onCopyToCollection: () => void;
   onCompare?: () => void;
   onLinkToTokens: () => void;
 }
@@ -26,7 +26,7 @@ export interface SelectModeToolbarProps {
 export function SelectModeToolbar({
   selectedPaths,
   displayedLeafPaths,
-  sets,
+  collectionIds,
   operationLoading,
   showBatchEditor,
   copyFeedback,
@@ -40,8 +40,8 @@ export function SelectModeToolbar({
   onCopyCssVar,
   onCopyDtcgRef,
   onMoveToGroup,
-  onMoveToSet,
-  onCopyToSet,
+  onMoveToCollection,
+  onCopyToCollection,
   onCompare,
   onLinkToTokens,
 }: SelectModeToolbarProps) {
@@ -90,7 +90,7 @@ export function SelectModeToolbar({
       {selectedPaths.size > 0 && (
         <SelectModeOverflowMenu
           selectedPaths={selectedPaths}
-          sets={sets}
+          collectionIds={collectionIds}
           operationLoading={operationLoading}
           copyFeedback={copyFeedback}
           copyCssFeedback={copyCssFeedback}
@@ -99,8 +99,8 @@ export function SelectModeToolbar({
           onCopyCssVar={onCopyCssVar}
           onCopyDtcgRef={onCopyDtcgRef}
           onMoveToGroup={onMoveToGroup}
-          onMoveToSet={onMoveToSet}
-          onCopyToSet={onCopyToSet}
+          onMoveToCollection={onMoveToCollection}
+          onCopyToCollection={onCopyToCollection}
           onCompare={onCompare}
           onLinkToTokens={onLinkToTokens}
         />

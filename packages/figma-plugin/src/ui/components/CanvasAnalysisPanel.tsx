@@ -14,7 +14,7 @@ import { ComponentCoveragePanel } from './ComponentCoveragePanel';
 import { ScanScopeSelector } from './ScanScopeSelector';
 import { useHeatmapContext } from '../contexts/InspectContext';
 import { useConnectionContext } from '../contexts/ConnectionContext';
-import { useTokenSetsContext } from '../contexts/TokenDataContext';
+import { useCollectionStateContext } from '../contexts/TokenDataContext';
 import { stableStringify } from '../shared/utils';
 import {
   getCompatibleTokenTypes,
@@ -121,7 +121,12 @@ export function CanvasAnalysisPanel({
   const componentsSectionRef = useRef<HTMLDivElement>(null);
 
   const { connected, serverUrl } = useConnectionContext();
-  const { activeSet, sets, refreshTokens } = useTokenSetsContext();
+  const {
+    collections,
+    currentCollectionId,
+    refreshCollections: refreshTokens,
+  } = useCollectionStateContext();
+  const sets = collections.map((collection) => collection.id);
   const {
     heatmapScope,
     setHeatmapScope,
@@ -346,8 +351,8 @@ export function CanvasAnalysisPanel({
           draft={createDraft}
           connected={connected}
           serverUrl={serverUrl}
-          activeSet={activeSet}
-          sets={sets}
+          currentCollectionId={currentCollectionId}
+          collectionIds={sets}
           onClose={() => setCreateDraft(null)}
           onCreated={handleCreateSuccess}
         />

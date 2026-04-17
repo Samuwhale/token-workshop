@@ -1,80 +1,80 @@
 import { useState, useRef, useLayoutEffect } from 'react';
 import { apiFetch, isNetworkError } from '../shared/apiFetch';
-import { SET_NAME_RE } from '../shared/utils';
+import { COLLECTION_NAME_RE } from '../shared/utils';
 import type { UndoSlot } from './useUndo';
 
-interface UseSetRenameParams {
+interface UseCollectionRenameParams {
   serverUrl: string;
   connected: boolean;
   getDisconnectSignal: () => AbortSignal;
-  activeSet: string;
-  setActiveSet: (set: string) => void;
-  renameSetInState: (oldName: string, newName: string) => void;
+  currentCollectionId: string;
+  setCurrentCollectionId: (collectionId: string) => void;
+  renameCollectionInState: (oldName: string, newName: string) => void;
   setSuccessToast: (msg: string) => void;
   markDisconnected: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
 }
 
-export function useSetRename({
+export function useCollectionRename({
   serverUrl, connected, getDisconnectSignal,
-  activeSet, setActiveSet, renameSetInState,
+  currentCollectionId, setCurrentCollectionId, renameCollectionInState,
   setSuccessToast, markDisconnected,
   onPushUndo,
-}: UseSetRenameParams) {
-  const [renamingSet, setRenamingSet] = useState<string | null>(null);
+}: UseCollectionRenameParams) {
+  const [renamingCollectionId, setRenamingCollectionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
-    if (renamingSet && renameInputRef.current) {
+    if (renamingCollectionId && renameInputRef.current) {
       renameInputRef.current.focus();
       renameInputRef.current.select();
     }
-  }, [renamingSet]);
+  }, [renamingCollectionId]);
 
-  const startRename = (setName: string) => {
-    setRenamingSet(setName);
-    setRenameValue(setName);
+  const startRename = (collectionId: string) => {
+    setRenamingCollectionId(collectionId);
+    setRenameValue(collectionId);
     setRenameError('');
   };
 
   const cancelRename = () => {
-    setRenamingSet(null);
+    setRenamingCollectionId(null);
     setRenameError('');
   };
 
   const handleRenameConfirm = async () => {
-    if (!renamingSet) return;
+    if (!renamingCollectionId) return;
     const newName = renameValue.trim();
-    if (!newName || newName === renamingSet) { cancelRename(); return; }
-    if (!SET_NAME_RE.test(newName)) {
+    if (!newName || newName === renamingCollectionId) { cancelRename(); return; }
+    if (!COLLECTION_NAME_RE.test(newName)) {
       setRenameError('Use letters, numbers, - and _ (/ for folders)');
       return;
     }
     if (!connected) { cancelRename(); return; }
     try {
-      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(renamingSet)}/rename`, {
+      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(renamingCollectionId)}/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newName }),
         signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
       });
-      const oldName = renamingSet;
-      renameSetInState(oldName, newName);
-      if (activeSet === renamingSet) setActiveSet(newName);
+      const oldName = renamingCollectionId;
+      renameCollectionInState(oldName, newName);
+      if (currentCollectionId === renamingCollectionId) setCurrentCollectionId(newName);
       cancelRename();
-      setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
+      setSuccessToast(`Renamed collection "${oldName}" → "${newName}"`);
       onPushUndo?.({
-        description: `Renamed set "${oldName}" → "${newName}"`,
+        description: `Renamed collection "${oldName}" → "${newName}"`,
         restore: async () => {
           await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(newName)}/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newName: oldName }),
           });
-          renameSetInState(newName, oldName);
-          if (activeSet === newName) setActiveSet(oldName);
+          renameCollectionInState(newName, oldName);
+          if (currentCollectionId === newName) setCurrentCollectionId(oldName);
         },
         redo: async () => {
           await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(oldName)}/rename`, {
@@ -82,8 +82,8 @@ export function useSetRename({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newName }),
           });
-          renameSetInState(oldName, newName);
-          if (activeSet === oldName) setActiveSet(newName);
+          renameCollectionInState(oldName, newName);
+          if (currentCollectionId === oldName) setCurrentCollectionId(newName);
         },
       });
     } catch (err) {
@@ -93,7 +93,7 @@ export function useSetRename({
   };
 
   return {
-    renamingSet,
+    renamingCollectionId,
     renameValue,
     setRenameValue,
     renameError,

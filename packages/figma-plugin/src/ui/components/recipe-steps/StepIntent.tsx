@@ -57,7 +57,7 @@ export interface StepIntentProps {
   selectedType: RecipeType;
   recommendedType: RecipeType | undefined;
   connected: boolean;
-  activeSet: string;
+  currentCollectionId: string;
   sourceTokenPath?: string;
   sourceTokenName?: string;
   sourceTokenType?: string;
@@ -75,7 +75,7 @@ export function StepIntent({
   selectedType,
   recommendedType,
   connected: _connected,
-  activeSet,
+  currentCollectionId,
   sourceTokenPath,
   sourceTokenName,
   sourceTokenType: _sourceTokenType,
@@ -94,7 +94,7 @@ export function StepIntent({
     // Auto-apply template if exactly one exists for this type
     const templates = GRAPH_TEMPLATES.filter(t => t.recipeType === type);
     if (templates.length === 1) {
-      const draft = createRecipeDraftFromTemplate(templates[0], activeSet, {
+      const draft = createRecipeDraftFromTemplate(templates[0], currentCollectionId, {
         sourceTokenPath,
         sourceTokenName,
       });

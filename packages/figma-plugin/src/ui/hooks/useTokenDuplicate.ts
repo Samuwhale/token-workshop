@@ -8,7 +8,7 @@ import { findLeafByPath } from '../components/tokenListUtils';
 export interface UseTokenDuplicateParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   onRefresh: () => void;
@@ -21,7 +21,7 @@ export interface UseTokenDuplicateParams {
 export function useTokenDuplicate({
   connected,
   serverUrl,
-  setName,
+  collectionId,
   tokens,
   allTokensFlat,
   onRefresh,
@@ -47,7 +47,7 @@ export function useTokenDuplicate({
       const body: Record<string, unknown> = { $type: token.$type, $value: token.$value };
       if (tokenNode?.$description) body.$description = tokenNode.$description;
       if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
-      await createToken(serverUrl, setName, newPath, createTokenBody(body));
+      await createToken(serverUrl, collectionId, newPath, createTokenBody(body));
       onRefresh();
       onRecordTouch(newPath);
       onNewPath(newPath);
@@ -56,7 +56,7 @@ export function useTokenDuplicate({
     } finally {
       onSetOperationLoading(null);
     }
-  }, [connected, serverUrl, setName, allTokensFlat, tokens, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath, onError]);
+  }, [connected, serverUrl, collectionId, allTokensFlat, tokens, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath, onError]);
 
   return { handleDuplicateToken };
 }

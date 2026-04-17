@@ -19,7 +19,7 @@ export interface MultiModeValue {
   collectionId: string;
   resolved: TokenMapEntry | undefined;
   /** The set name to target when inline-editing this option's value */
-  targetSet: string | null;
+  targetCollectionId: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,8 +82,8 @@ export const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the vi
 export type SortOrder = "default" | "alpha-asc" | "by-type";
 
 export interface TokenListCtx {
-  setName: string;
-  sets: string[];
+  collectionId: string;
+  collectionIds: string[];
   serverUrl: string;
   connected: boolean;
   selectedNodes: SelectionNodeInfo[];
@@ -99,15 +99,13 @@ export interface TokenListData {
   derivedTokenPaths?: Map<string, TokenRecipe>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
   tokenUsageCounts?: Record<string, number>;
-  perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
   /** Collections available for multi-mode column view */
   collections?: TokenCollection[];
   /** Raw allTokensFlat before applying collection mode selections */
   unthemedAllTokensFlat?: Record<string, TokenMapEntry>;
-  /** Maps token paths to their source set name */
-  pathToSet?: Record<string, string>;
   /** Maps token paths to their collection id */
   pathToCollectionId?: Record<string, string>;
   /** Currently selected collection modes (collectionId → modeName) */
@@ -139,10 +137,10 @@ export interface TokenListActions {
   onRefreshRecipes?: () => void;
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
-  onNavigateToSet?: (setName: string, tokenPath: string) => void;
+  onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
   onTokenTouched?: (path: string) => void;
   onToggleStar?: (path: string) => void;
-  /** Pre-filtered set of starred token paths for the current active set */
+  /** Pre-filtered starred token paths for the current collection */
   starredPaths?: Set<string>;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
@@ -155,7 +153,7 @@ export interface TokenListActions {
   onShowReferences?: (path: string) => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
   onDisplayedLeafNodesChange?: (nodes: TokenNode[]) => void;
-  /** Called whenever the multi-select set changes — exposes selection to parent (e.g. command palette bulk-delete) */
+  /** Called whenever the multi-selection changes — exposes selection to parent (e.g. command palette bulk-delete) */
   onSelectionChange?: (paths: string[]) => void;
   /** Open the unified compare view with the given token paths pre-loaded (navigates away from Tokens tab) */
   onOpenCompare?: (paths: Set<string>) => void;
@@ -167,14 +165,14 @@ export interface TokenListActions {
   onShowPasteModal?: () => void;
   /** Open the import surface from the Tokens workspace */
   onOpenImportPanel?: () => void;
-  /** Open the set switcher from the Tokens workspace */
-  onOpenSetSwitcher?: () => void;
-  /** Open the shared set creation flow */
-  onOpenCreateSet?: () => void;
-  /** Open the cross-set "where is this token defined" overlay for the given path */
-  onFindInAllSets?: (path: string) => void;
-  /** Called when a cross-set token drag starts — lets the parent expose drop zones on set tabs */
-  onTokenDragStart?: (paths: string[], fromSet: string) => void;
+  /** Open the collection switcher from the Tokens workspace */
+  onOpenCollectionSwitcher?: () => void;
+  /** Open the collection creation flow */
+  onOpenCreateCollection?: () => void;
+  /** Open the cross-collection "where is this token defined" overlay for the given path */
+  onFindInAllCollections?: (path: string) => void;
+  /** Called when a cross-collection token drag starts — lets the parent expose drop zones on collection tabs */
+  onTokenDragStart?: (paths: string[], sourceCollectionId: string) => void;
   /** Called when a token drag ends (drop or cancel) — lets the parent hide drop zones */
   onTokenDragEnd?: () => void;
   /** Open the unified start-here flow from token-level empty states */
@@ -198,7 +196,7 @@ export interface TokenListImperativeHandle {
   toggleResolvedValues: () => void;
   /** Trigger inline rename mode for the given token path */
   triggerInlineRename: (path: string) => void;
-  /** Open the move-to-set dialog for the given token path */
+  /** Open the move-to-collection dialog for the given token path */
   triggerMoveToken: (path: string) => void;
   /** Open the extract-to-alias dialog for the given token */
   triggerExtractToAlias: (
@@ -225,7 +223,7 @@ export interface TokenListProps {
 
 export interface AffectedRef {
   path: string;
-  setName: string;
+  collectionId: string;
 }
 
 export interface RecipeImpact {
@@ -336,12 +334,12 @@ export interface TableSort {
 
 export interface TokenTreeSharedDataContextType {
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }
 
 export interface TokenTreeGroupStateContextType {
   density: Density;
-  setName: string;
+  collectionId: string;
   selectMode: boolean;
   expandedPaths: Set<string>;
   highlightedToken: string | null;
@@ -402,8 +400,8 @@ export interface TokenTreeGroupActionsContextType {
 export interface TokenTreeLeafStateContextType {
   density: Density;
   serverUrl: string;
-  setName: string;
-  sets: string[];
+  collectionId: string;
+  collectionIds: string[];
   selectionCapabilities: NodeCapabilities | null;
   duplicateCounts: Map<string, number>;
   selectMode: boolean;
@@ -423,7 +421,7 @@ export interface TokenTreeLeafStateContextType {
   showResolvedValues?: boolean;
   /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
   condensedView?: boolean;
-  /** Set of starred token paths in the current set — for fast O(1) lookup */
+  /** Starred token paths for the current collection — for fast O(1) lookup */
   starredPaths?: Set<string>;
   /** Collections used for resolution-chain debugging */
   collections?: TokenCollection[];
@@ -491,13 +489,13 @@ export interface TokenTreeLeafActionsContextType {
     path: string,
     type: string,
     newValue: any,
-    targetSet: string,
+    targetCollectionId: string,
     collectionId: string,
     optionName: string,
     previousState?: { type?: string; value: unknown },
   ) => void;
   onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
-  /** Toggle starred (cross-set favorites) for the current token */
+  /** Toggle starred (cross-collection favorites) for the current token */
   onToggleStar?: (path: string) => void;
   /** Clear the pending rename (called by the node once it activates rename mode) */
   clearPendingRename: () => void;

@@ -38,7 +38,7 @@ interface UseRecipeDialogParams {
   sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
-  activeSet: string;
+  currentCollectionId: string;
   existingRecipe?: TokenRecipe;
   template?: RecipeTemplate;
   initialDraft?: RecipeDialogInitialDraft;
@@ -100,7 +100,7 @@ interface RecipeDraftTemplateOptions {
 
 export function createRecipeDraftFromTemplate(
   template: RecipeTemplateDraftSource,
-  activeSet: string,
+  currentCollectionId: string,
   options: RecipeDraftTemplateOptions = {},
 ): RecipeDialogInitialDraft {
   const targetGroup =
@@ -115,7 +115,7 @@ export function createRecipeDraftFromTemplate(
       ? autoName(options.sourceTokenPath, template.recipeType)
       : template.label,
     nameIsAuto: Boolean(options.sourceTokenPath),
-    targetCollection: activeSet,
+    targetCollection: currentCollectionId,
     targetGroup,
     configs: {
       [template.recipeType]: cloneRecipeDraftValue(template.config),
@@ -281,7 +281,7 @@ export function useRecipeDialog({
   sourceTokenName,
   sourceTokenType = "",
   sourceTokenValue,
-  activeSet,
+  currentCollectionId,
   existingRecipe,
   template,
   initialDraft,
@@ -293,7 +293,7 @@ export function useRecipeDialog({
 }: UseRecipeDialogParams): UseRecipeDialogReturn {
   const isEditing = Boolean(existingRecipe);
   const initialTemplateDraft = template
-    ? createRecipeDraftFromTemplate(template, activeSet)
+    ? createRecipeDraftFromTemplate(template, currentCollectionId)
     : undefined;
   const resolvedInitialDraft = mergeRecipeDrafts(
     initialTemplateDraft,
@@ -340,7 +340,7 @@ export function useRecipeDialog({
   const initialTargetCollection =
     existingRecipe?.targetCollection ??
     resolvedInitialDraft?.targetCollection ??
-    activeSet;
+    currentCollectionId;
   const initialTargetGroup =
     existingRecipe?.targetGroup ??
     resolvedInitialDraft?.targetGroup ??

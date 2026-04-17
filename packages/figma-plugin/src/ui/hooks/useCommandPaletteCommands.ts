@@ -6,7 +6,7 @@ import { isAlias } from "../../shared/resolveAlias";
 import { adaptShortcut } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import {
-  STORAGE_KEY,
+  STORAGE_KEY_BUILDERS,
   STORAGE_KEYS,
   lsGet,
   lsGetJson,
@@ -14,11 +14,10 @@ import {
 } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import {
-  useTokenSetsContext,
+  useCollectionStateContext,
   useTokenFlatMapContext,
   useRecipeContext,
 } from "../contexts/TokenDataContext";
-import { useCollectionSwitcherContext } from "../contexts/CollectionContext";
 import { useSelectionContext } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
@@ -41,14 +40,18 @@ function timeAgo(iso: string): string {
 
 export function useCommandPaletteCommands(): {
   commands: Command[];
-  activeSetPaletteTokens: TokenEntry[];
+  currentCollectionPaletteTokens: TokenEntry[];
 } {
-  const { sets, activeSet, setActiveSet, setTokenCounts } =
-    useTokenSetsContext();
-  const { allTokensFlat, pathToSet, perSetFlat } = useTokenFlatMapContext();
+  const {
+    collections,
+    currentCollectionId,
+    setCurrentCollectionId,
+    collectionTokenCounts,
+  } = useCollectionStateContext();
+  const collectionIds = collections.map((collection) => collection.id);
+  const { allTokensFlat, pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useRecipeContext();
   const { navigateTo, closeSecondarySurface } = useNavigationContext();
-  const { collections } = useCollectionSwitcherContext();
   const { selectedNodes } = useSelectionContext();
   const {
     highlightedToken,
@@ -95,30 +98,30 @@ export function useCommandPaletteCommands(): {
       }, 0);
     };
 
-    const tokenJsonView = lsGet(STORAGE_KEY.tokenViewMode(activeSet)) === "json";
+    const tokenJsonView = lsGet(STORAGE_KEY_BUILDERS.tokenViewMode(currentCollectionId)) === "json";
     const tokenResolvedValues =
-      lsGet(STORAGE_KEY.tokenShowResolvedValues(activeSet)) === "1";
+      lsGet(STORAGE_KEY_BUILDERS.tokenShowResolvedValues(currentCollectionId)) === "1";
     const tokenStatsBarOpen = lsGet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN) === "true";
 
     return [
       {
         id: "new-token",
         label: "Create new token",
-        description: `Start a new token in "${activeSet}"`,
+        description: `Start a new token in "${currentCollectionId}"`,
         category: "Tokens",
         shortcut: adaptShortcut("⌘N"),
         handler: () => {
           navigateTo("tokens");
-          setEditingToken({ path: "", set: activeSet, isCreate: true });
+          setEditingToken({ path: "", currentCollectionId, isCreate: true });
         },
       },
       {
-        id: "switch-set",
-        label: "Switch set…",
-        description: `Jump between ${sets.length} token set${sets.length !== 1 ? "s" : ""}`,
-        category: "Sets",
+        id: "switch-collection",
+        label: "Switch collection…",
+        description: `Jump between ${collectionIds.length} collections`,
+        category: "Collections",
         shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_SET),
-        handler: shell.toggleSetSwitcher,
+        handler: shell.toggleCollectionSwitcher,
       },
       {
         id: "paste-tokens",
@@ -146,7 +149,7 @@ export function useCommandPaletteCommands(): {
             goToTokens();
             setEditingToken({
               path: "",
-              set: activeSet,
+              currentCollectionId,
               isCreate: true,
               initialType: inferredType,
               initialValue: trimmed,
@@ -192,8 +195,8 @@ export function useCommandPaletteCommands(): {
           ? "Switch token list to tree view"
           : "Switch token list to JSON view",
         description: tokenJsonView
-          ? `Return to the structured token tree for "${activeSet}"`
-          : `Open the raw JSON editor for "${activeSet}"`,
+          ? `Return to the structured token tree for "${currentCollectionId}"`
+          : `Open the raw JSON editor for "${currentCollectionId}"`,
         category: "Views",
         handler: () => goToTokensAndRun((handle) => handle.toggleJsonView()),
       },
@@ -203,8 +206,8 @@ export function useCommandPaletteCommands(): {
           ? "Hide resolved token values"
           : "Show resolved token values",
         description: tokenResolvedValues
-          ? `Show alias references again in "${activeSet}"`
-          : `Resolve aliases inline while browsing "${activeSet}"`,
+          ? `Show alias references again in "${currentCollectionId}"`
+          : `Resolve aliases inline while browsing "${currentCollectionId}"`,
         category: "Views",
         handler: () =>
           goToTokensAndRun((handle) => handle.toggleResolvedValues()),
@@ -276,7 +279,7 @@ export function useCommandPaletteCommands(): {
             {
               id: "next-issue",
               label: "Jump to next issue",
-              description: `Cycle through ${tokens.lintViolations.length} validation issue${tokens.lintViolations.length === 1 ? "" : "s"} in the current set`,
+              description: `Cycle through ${tokens.lintViolations.length} validation issue${tokens.lintViolations.length === 1 ? "" : "s"} in the current collection`,
               category: "Audit" as const,
               shortcut: SHORTCUT_KEYS.NEXT_LINT_ISSUE,
               handler: tokens.jumpToNextIssue,
@@ -285,8 +288,8 @@ export function useCommandPaletteCommands(): {
         : []),
     ];
   }, [
-    activeSet,
-    sets.length,
+    currentCollectionId,
+    collectionIds.length,
     navigateTo,
     selectedNodes.length,
     setEditingToken,
@@ -297,23 +300,23 @@ export function useCommandPaletteCommands(): {
     tokenListViewRev,
   ]);
 
-  const setCommands = useMemo<Command[]>(() => {
+  const collectionCommands = useMemo<Command[]>(() => {
     const goToTokens = () => {
       navigateTo("tokens");
       setEditingToken(null);
     };
 
-    return sets.map((setName) => ({
-      id: `switch-set-${setName}`,
-      label: `Switch to Set: ${setName}`,
-      description: `${setTokenCounts[setName] ?? 0} tokens`,
-      category: "Sets" as const,
+    return collectionIds.map((collectionId) => ({
+      id: `switch-collection-${collectionId}`,
+      label: `Switch to Collection: ${collectionId}`,
+      description: `${collectionTokenCounts[collectionId] ?? 0} tokens`,
+      category: "Collections" as const,
       handler: () => {
-        setActiveSet(setName);
+        setCurrentCollectionId(collectionId);
         goToTokens();
       },
     }));
-  }, [navigateTo, setActiveSet, setEditingToken, setTokenCounts, sets]);
+  }, [navigateTo, setCurrentCollectionId, setEditingToken, collectionTokenCounts, collectionIds]);
 
   const modeCompareCommands = useMemo<Command[]>(() => {
     return [
@@ -337,8 +340,8 @@ export function useCommandPaletteCommands(): {
         .filter((collection) => collection.modes.length >= 2)
         .map((collection) => ({
           id: `compare-collection-${collection.id}`,
-          label: `Compare ${collection.name} modes: ${collection.modes[0].name} vs ${collection.modes[1].name}`,
-          description: `See token differences across ${collection.name} modes`,
+          label: `Compare ${collection.id} modes: ${collection.modes[0].name} vs ${collection.modes[1].name}`,
+          description: `See token differences across ${collection.id} modes`,
           category: "Modes" as const,
           handler: () => {
             collectionsWorkspace.collectionManagerHandleRef.current?.navigateToCompare(
@@ -355,11 +358,11 @@ export function useCommandPaletteCommands(): {
   }, [collections, navigateTo, collectionsWorkspace.collectionManagerHandleRef]);
 
   const contextualCommands = useMemo<Command[]>(() => {
-    const inActiveSet =
-      !!highlightedToken && pathToSet[highlightedToken] === activeSet;
+    const inCurrentCollection =
+      !!highlightedToken && pathToCollectionId[highlightedToken] === currentCollectionId;
 
     return [
-      ...(inActiveSet
+      ...(inCurrentCollection
         ? [
             {
               id: "rename-highlighted-token",
@@ -380,7 +383,7 @@ export function useCommandPaletteCommands(): {
             {
               id: "move-highlighted-token",
               label: `Move to collection: ${highlightedToken}`,
-              description: "Move this token to a different token set",
+              description: "Move this token to a different collection",
               category: "Tokens" as const,
               handler: () => tokens.handlePaletteMove(highlightedToken),
             },
@@ -404,7 +407,7 @@ export function useCommandPaletteCommands(): {
             {
               id: "delete-highlighted-token",
               label: `Delete token: ${highlightedToken}`,
-              description: `Permanently delete this token from set "${activeSet}"`,
+              description: `Permanently delete this token from collection "${currentCollectionId}"`,
               category: "Tokens" as const,
               handler: () =>
                 tokens.requestPaletteDelete(
@@ -419,7 +422,7 @@ export function useCommandPaletteCommands(): {
             {
               id: "delete-selected-tokens",
               label: `Delete ${tokens.tokenListSelection.length} selected token${tokens.tokenListSelection.length !== 1 ? "s" : ""}`,
-              description: `Permanently delete ${tokens.tokenListSelection.length} token${tokens.tokenListSelection.length !== 1 ? "s" : ""} from set "${activeSet}"`,
+              description: `Permanently delete ${tokens.tokenListSelection.length} token${tokens.tokenListSelection.length !== 1 ? "s" : ""} from collection "${currentCollectionId}"`,
               category: "Tokens" as const,
               handler: () =>
                 tokens.requestPaletteDelete(
@@ -475,12 +478,12 @@ export function useCommandPaletteCommands(): {
         : []),
     ];
   }, [
-    activeSet,
+    currentCollectionId,
     allTokensFlat,
     collections.length,
     highlightedToken,
     navigateTo,
-    pathToSet,
+    pathToCollectionId,
     setHighlightedToken,
     collectionsWorkspace.collectionManagerHandleRef,
     tokens,
@@ -553,7 +556,7 @@ export function useCommandPaletteCommands(): {
     () => [
       ...baseCommands,
       ...modeCompareCommands,
-      ...setCommands,
+      ...collectionCommands,
       ...contextualCommands,
       ...undoRedoCommands,
       ...exportPresetCommands,
@@ -561,29 +564,29 @@ export function useCommandPaletteCommands(): {
     [
       baseCommands,
       contextualCommands,
+      collectionCommands,
       exportPresetCommands,
-      setCommands,
       modeCompareCommands,
       undoRedoCommands,
     ],
   );
 
-  const activeSetPaletteTokens = useMemo<TokenEntry[]>(() => {
-    const setFlat = perSetFlat[activeSet] ?? {};
-    return Object.entries(setFlat).map(([path, entry]) => ({
+  const currentCollectionPaletteTokens = useMemo<TokenEntry[]>(() => {
+    const collectionFlat = perCollectionFlat[currentCollectionId] ?? {};
+    return Object.entries(collectionFlat).map(([path, entry]) => ({
       path,
       type: entry.$type || "unknown",
       value:
         typeof entry.$value === "string"
           ? entry.$value
           : JSON.stringify(entry.$value),
-      set: activeSet,
+      collectionId: currentCollectionId,
       isAlias: isAlias(entry.$value),
       recipeName:
-        derivedTokenPaths.get(createRecipeOwnershipKey(activeSet, path))
+        derivedTokenPaths.get(createRecipeOwnershipKey(currentCollectionId, path))
           ?.name,
     }));
-  }, [activeSet, derivedTokenPaths, perSetFlat]);
+  }, [currentCollectionId, derivedTokenPaths, perCollectionFlat]);
 
-  return { commands, activeSetPaletteTokens };
+  return { commands, currentCollectionPaletteTokens };
 }

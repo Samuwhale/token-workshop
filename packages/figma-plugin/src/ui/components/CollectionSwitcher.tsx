@@ -7,23 +7,23 @@ import {
   isNetworkError,
 } from "../shared/apiFetch";
 import { useConnectionContext } from "../contexts/ConnectionContext";
-import { useTokenSetsContext } from "../contexts/TokenDataContext";
+import { useCollectionStateContext } from "../contexts/TokenDataContext";
 import type {
-  SetPreflightImpact,
-  SetStructuralOperation,
-  SetStructuralPreflight,
+  CollectionPreflightImpact,
+  CollectionStructuralOperation,
+  CollectionStructuralPreflight,
 } from "../shared/setStructuralPreflight";
 import { dispatchToast } from "../shared/toastBus";
 
 interface FolderGroup {
   folder: string;
-  sets: string[];
+  collectionIds: string[];
 }
 
 type GroupItem = string | FolderGroup;
 
 interface ManageFolderGroup extends FolderGroup {
-  totalSetCount: number;
+  totalCollectionCount: number;
 }
 
 type ManageItem = string | ManageFolderGroup;
@@ -56,37 +56,37 @@ interface FolderReorderResponse {
   collections: string[];
 }
 
-interface SetSwitcherProps {
-  sets: string[];
-  activeSet: string;
-  onSelect: (set: string) => void;
+interface CollectionSwitcherProps {
+  collectionIds: string[];
+  currentCollectionId: string;
+  onSelect: (collectionId: string) => void;
   onClose: () => void;
-  onManageSets?: () => void;
-  onOpenCreateSet?: () => void;
+  onManageCollections?: () => void;
+  onOpenCreateCollection?: () => void;
 }
 
-interface SetManagerProps {
-  sets: string[];
-  activeSet: string;
+interface CollectionStructureManagerProps {
+  collectionIds: string[];
+  currentCollectionId: string;
   onClose: () => void;
   onOpenQuickSwitch?: () => void;
-  onRename?: (setName: string) => void;
-  onDuplicate?: (setName: string) => void;
-  onDelete?: (setName: string) => void;
-  onReorder?: (setName: string, direction: "left" | "right") => void;
+  onRename?: (collectionId: string) => void;
+  onDuplicate?: (collectionId: string) => void;
+  onDelete?: (collectionId: string) => void;
+  onReorder?: (collectionId: string, direction: "left" | "right") => void;
   onReorderFull?: (newOrder: string[]) => void;
-  onOpenCreateSet?: () => void;
-  onEditInfo?: (setName: string) => void;
-  onMerge?: (setName: string) => void;
-  onSplit?: (setName: string) => void;
-  setTokenCounts?: Record<string, number>;
-  setDescriptions?: Record<string, string>;
-  onBulkDelete?: (sets: string[]) => Promise<void>;
-  onBulkDuplicate?: (sets: string[]) => Promise<void>;
+  onOpenCreateCollection?: () => void;
+  onEditInfo?: (collectionId: string) => void;
+  onMerge?: (collectionId: string) => void;
+  onSplit?: (collectionId: string) => void;
+  collectionTokenCounts?: Record<string, number>;
+  collectionDescriptions?: Record<string, string>;
+  onBulkDelete?: (collectionIds: string[]) => Promise<void>;
+  onBulkDuplicate?: (collectionIds: string[]) => Promise<void>;
   onBulkMoveToFolder?: (
     moves: Array<{ from: string; to: string }>,
   ) => Promise<void>;
-  renamingSet?: string | null;
+  renamingCollectionId?: string | null;
   renameValue?: string;
   setRenameValue?: (value: string) => void;
   renameError?: string;
@@ -94,16 +94,16 @@ interface SetManagerProps {
   renameInputRef?: RefObject<HTMLInputElement | null>;
   onRenameConfirm?: () => void;
   onRenameCancel?: () => void;
-  editingMetadataSet?: string | null;
+  editingMetadataCollectionId?: string | null;
   metadataDescription?: string;
   setMetadataDescription?: (value: string) => void;
   onMetadataClose?: () => void;
   onMetadataSave?: () => void;
-  deletingSet?: string | null;
+  deletingCollectionId?: string | null;
   onDeleteConfirm?: () => void | Promise<void>;
   onDeleteCancel?: () => void;
-  mergingSet?: string | null;
-  mergeTargetSet?: string;
+  mergingCollectionId?: string | null;
+  mergeTargetCollectionId?: string;
   mergeConflicts?: Array<{
     path: string;
     sourceValue: unknown;
@@ -123,7 +123,7 @@ interface SetManagerProps {
   onMergeCheckConflicts?: () => void | Promise<void>;
   onMergeConfirm?: () => void | Promise<void>;
   onMergeClose?: () => void;
-  splittingSet?: string | null;
+  splittingCollectionId?: string | null;
   splitPreview?: Array<{ key: string; newCollectionId: string; count: number }>;
   splitDeleteOriginal?: boolean;
   splitLoading?: boolean;
@@ -132,26 +132,26 @@ interface SetManagerProps {
   onSplitClose?: () => void;
 }
 
-function useSetStructuralPreflight({
+function useCollectionStructuralPreflight({
   operation,
-  setName,
+  collectionId,
   targetCollection,
   deleteOriginal,
   enabled,
 }: {
-  operation: SetStructuralOperation;
-  setName: string | null;
+  operation: CollectionStructuralOperation;
+  collectionId: string | null;
   targetCollection?: string;
   deleteOriginal?: boolean;
   enabled: boolean;
 }) {
   const { connected, serverUrl, getDisconnectSignal } = useConnectionContext();
-  const [data, setData] = useState<SetStructuralPreflight | null>(null);
+  const [data, setData] = useState<CollectionStructuralPreflight | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || !connected || !setName) {
+    if (!enabled || !connected || !collectionId) {
       setData(null);
       setLoading(false);
       setError(null);
@@ -167,8 +167,8 @@ function useSetStructuralPreflight({
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    apiFetch<SetStructuralPreflight>(
-      `${serverUrl}/api/collections/${encodeURIComponent(setName)}/preflight`,
+    apiFetch<CollectionStructuralPreflight>(
+      `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/preflight`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -211,18 +211,18 @@ function useSetStructuralPreflight({
     getDisconnectSignal,
     operation,
     serverUrl,
-    setName,
+    collectionId,
     targetCollection,
   ]);
 
   return { data, loading, error };
 }
 
-function SetPreflightCard({
+function CollectionPreflightCard({
   impact,
   label,
 }: {
-  impact: SetPreflightImpact;
+  impact: CollectionPreflightImpact;
   label?: string;
 }) {
   const hasDependencies =
@@ -337,10 +337,10 @@ function SetPreflightCard({
 }
 
 function getPreflightImpactLabel(params: {
-  operation: SetStructuralOperation;
+  operation: CollectionStructuralOperation;
   impactName: string;
-  sourceSetName?: string;
-  targetSetName?: string;
+  sourceCollectionId?: string;
+  targetCollectionId?: string;
   splitPreview?: Array<{
     key: string;
     newCollectionId: string;
@@ -351,19 +351,19 @@ function getPreflightImpactLabel(params: {
   const {
     operation,
     impactName,
-    sourceSetName,
-    targetSetName,
+    sourceCollectionId,
+    targetCollectionId,
     splitPreview = [],
   } = params;
-  if (operation === "delete" && impactName === sourceSetName) {
+  if (operation === "delete" && impactName === sourceCollectionId) {
     return "Collection being deleted";
   }
   if (operation === "merge") {
-    if (impactName === sourceSetName) return "Source collection";
-    if (impactName === targetSetName) return "Target collection";
+    if (impactName === sourceCollectionId) return "Source collection";
+    if (impactName === targetCollectionId) return "Target collection";
   }
   if (operation === "split") {
-    if (impactName === sourceSetName) return "Collection being split";
+    if (impactName === sourceCollectionId) return "Collection being split";
     if (
       splitPreview.some(
         (entry) => entry.existing && entry.newCollectionId === impactName,
@@ -379,15 +379,15 @@ function StructuralPreflightSummary({
   preflight,
   loading,
   error,
-  sourceSetName,
-  targetSetName,
+  sourceCollectionId,
+  targetCollectionId,
   splitPreview,
 }: {
-  preflight: SetStructuralPreflight | null;
+  preflight: CollectionStructuralPreflight | null;
   loading: boolean;
   error: string | null;
-  sourceSetName?: string;
-  targetSetName?: string;
+  sourceCollectionId?: string;
+  targetCollectionId?: string;
   splitPreview?: Array<{
     key: string;
     newCollectionId: string;
@@ -444,14 +444,14 @@ function StructuralPreflightSummary({
       )}
       <div className="flex flex-col gap-2">
         {preflight.affectedCollections.map((impact) => (
-          <SetPreflightCard
+          <CollectionPreflightCard
             key={impact.collectionId}
             impact={impact}
             label={getPreflightImpactLabel({
               operation: preflight.operation,
               impactName: impact.collectionId,
-              sourceSetName,
-              targetSetName,
+              sourceCollectionId,
+              targetCollectionId,
               splitPreview,
             })}
           />
@@ -461,47 +461,47 @@ function StructuralPreflightSummary({
   );
 }
 
-function buildFolderGroups(sets: string[]): GroupItem[] {
+function buildFolderGroups(collectionIds: string[]): GroupItem[] {
   const folderMap = new Map<string, string[]>();
-  for (const set of sets) {
-    const slashIdx = set.indexOf("/");
+  for (const collectionId of collectionIds) {
+    const slashIdx = collectionId.indexOf("/");
     if (slashIdx === -1) continue;
-    const folder = set.slice(0, slashIdx);
+    const folder = collectionId.slice(0, slashIdx);
     if (!folderMap.has(folder)) folderMap.set(folder, []);
-    folderMap.get(folder)!.push(set);
+    folderMap.get(folder)!.push(collectionId);
   }
 
   const result: GroupItem[] = [];
   const seenFolders = new Set<string>();
-  for (const set of sets) {
-    const slashIdx = set.indexOf("/");
+  for (const collectionId of collectionIds) {
+    const slashIdx = collectionId.indexOf("/");
     if (slashIdx === -1) {
-      result.push(set);
+      result.push(collectionId);
       continue;
     }
-    const folder = set.slice(0, slashIdx);
+    const folder = collectionId.slice(0, slashIdx);
     if (seenFolders.has(folder)) continue;
     seenFolders.add(folder);
-    result.push({ folder, sets: folderMap.get(folder)! });
+    result.push({ folder, collectionIds: folderMap.get(folder)! });
   }
   return result;
 }
 
-function buildManageItems(sets: string[], filtered: string[]): ManageItem[] {
+function buildManageItems(collectionIds: string[], filtered: string[]): ManageItem[] {
   const filteredLookup = new Set(filtered);
-  return buildFolderGroups(sets).reduce<ManageItem[]>((result, item) => {
+  return buildFolderGroups(collectionIds).reduce<ManageItem[]>((result, item) => {
     if (typeof item === "string") {
       if (filteredLookup.has(item)) {
         result.push(item);
       }
       return result;
     }
-    const visibleSets = item.sets.filter((set) => filteredLookup.has(set));
-    if (visibleSets.length > 0) {
+    const visibleCollectionIds = item.collectionIds.filter((id) => filteredLookup.has(id));
+    if (visibleCollectionIds.length > 0) {
       result.push({
         folder: item.folder,
-        sets: visibleSets,
-        totalSetCount: item.sets.length,
+        collectionIds: visibleCollectionIds,
+        totalCollectionCount: item.collectionIds.length,
       });
     }
     return result;
@@ -512,25 +512,25 @@ function folderItemKey(folder: string): string {
   return `${folder}/`;
 }
 
-function isSetInFolder(setName: string, folder: string): boolean {
-  return setName.startsWith(`${folder}/`);
+function isCollectionInFolder(collectionId: string, folder: string): boolean {
+  return collectionId.startsWith(`${folder}/`);
 }
 
 function replaceFolderPrefix(
-  setName: string,
+  collectionId: string,
   fromFolder: string,
   toFolder: string,
 ): string {
-  return `${toFolder}${setName.slice(fromFolder.length)}`;
+  return `${toFolder}${collectionId.slice(fromFolder.length)}`;
 }
 
-function buildTopLevelItemOrder(sets: string[]): string[] {
-  return buildFolderGroups(sets).map((item) =>
+function buildTopLevelItemOrder(collectionIds: string[]): string[] {
+  return buildFolderGroups(collectionIds).map((item) =>
     typeof item === "string" ? item : folderItemKey(item.folder),
   );
 }
 
-function SetNameDisplay({ name }: { name: string }) {
+function CollectionNameDisplay({ name }: { name: string }) {
   const slash = name.lastIndexOf("/");
   if (slash === -1) return <span>{name}</span>;
   return (
@@ -543,56 +543,56 @@ function SetNameDisplay({ name }: { name: string }) {
   );
 }
 
-function leafName(setName: string): string {
-  const idx = setName.lastIndexOf("/");
-  return idx === -1 ? setName : setName.slice(idx + 1);
+function leafName(collectionId: string): string {
+  const idx = collectionId.lastIndexOf("/");
+  return idx === -1 ? collectionId : collectionId.slice(idx + 1);
 }
 
 const FOLDER_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
-function filterSets(sets: string[], query: string): string[] {
-  if (!query) return sets;
-  return sets
-    .map((set) => ({ set, score: fuzzyScore(query, set) }))
+function filterCollections(collectionIds: string[], query: string): string[] {
+  if (!query) return collectionIds;
+  return collectionIds
+    .map((id) => ({ id, score: fuzzyScore(query, id) }))
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
-    .map(({ set }) => set);
+    .map(({ id }) => id);
 }
 
-export function SetSwitcher({
-  sets,
-  activeSet,
+export function CollectionSwitcher({
+  collectionIds,
+  currentCollectionId,
   onSelect,
   onClose,
-  onManageSets,
-  onOpenCreateSet,
-}: SetSwitcherProps) {
+  onManageCollections,
+  onOpenCreateCollection,
+}: CollectionSwitcherProps) {
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(() => {
-    const idx = sets.indexOf(activeSet);
+    const idx = collectionIds.indexOf(currentCollectionId);
     return idx >= 0 ? idx : 0;
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const filtered = useMemo(() => filterSets(sets, query), [sets, query]);
+  const filtered = useMemo(() => filterCollections(collectionIds, query), [collectionIds, query]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
   useEffect(() => {
-    const idx = filtered.indexOf(activeSet);
+    const idx = filtered.indexOf(currentCollectionId);
     setActiveIdx(idx >= 0 ? idx : 0);
-  }, [filtered, activeSet]);
+  }, [filtered, currentCollectionId]);
 
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    const setName = filtered[activeIdx];
-    if (!setName) return;
+    const collectionId = filtered[activeIdx];
+    if (!collectionId) return;
     const active = list.querySelector(
-      `[data-set-name="${setName.replace(/"/g, '\\"')}"]`,
+      `[data-collection-name="${collectionId.replace(/"/g, '\\"')}"]`,
     ) as HTMLElement | null;
     active?.scrollIntoView({ block: "nearest" });
   }, [activeIdx, filtered]);
@@ -614,9 +614,9 @@ export function SetSwitcher({
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      const set = filtered[activeIdx];
-      if (set) {
-        onSelect(set);
+      const collectionId = filtered[activeIdx];
+      if (collectionId) {
+        onSelect(collectionId);
         onClose();
       }
     }
@@ -669,33 +669,33 @@ export function SetSwitcher({
         <SwitchView
           listRef={listRef}
           filtered={filtered}
-          activeSet={activeSet}
+          currentCollectionId={currentCollectionId}
           activeIdx={activeIdx}
           query={query}
-          onSelect={(set) => {
-            onSelect(set);
+          onSelect={(collectionId) => {
+            onSelect(collectionId);
             onClose();
           }}
         />
 
         <div className="flex items-center justify-between border-t border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
           <span>
-            {filtered.length === sets.length
-              ? `${sets.length} collection${sets.length !== 1 ? "s" : ""}`
-              : `${filtered.length} of ${sets.length} collections`}
+            {filtered.length === collectionIds.length
+              ? `${collectionIds.length} collection${collectionIds.length !== 1 ? "s" : ""}`
+              : `${filtered.length} of ${collectionIds.length} collections`}
           </span>
           <div className="flex items-center gap-2">
-            {onOpenCreateSet && (
+            {onOpenCreateCollection && (
               <button
-                onClick={onOpenCreateSet}
+                onClick={onOpenCreateCollection}
                 className="rounded px-1.5 py-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
                 New collection
               </button>
             )}
-            {onManageSets && (
+            {onManageCollections && (
               <button
-                onClick={onManageSets}
+                onClick={onManageCollections}
                 className="rounded px-1.5 py-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
                 Manage collections
@@ -712,16 +712,16 @@ export function SetSwitcher({
 interface SwitchViewProps {
   listRef: RefObject<HTMLDivElement | null>;
   filtered: string[];
-  activeSet: string;
+  currentCollectionId: string;
   activeIdx: number;
   query: string;
-  onSelect: (set: string) => void;
+  onSelect: (collectionId: string) => void;
 }
 
 function SwitchView({
   listRef,
   filtered,
-  activeSet,
+  currentCollectionId,
   activeIdx,
   query,
   onSelect,
@@ -735,11 +735,11 @@ function SwitchView({
   }, [query]);
 
   useEffect(() => {
-    const set = filtered[activeIdx];
-    if (!set) return;
-    const slashIdx = set.indexOf("/");
+    const activeId = filtered[activeIdx];
+    if (!activeId) return;
+    const slashIdx = activeId.indexOf("/");
     if (slashIdx === -1) return;
-    const folder = set.slice(0, slashIdx);
+    const folder = activeId.slice(0, slashIdx);
     if (!collapsedFolders.has(folder)) return;
     setCollapsedFolders((prev) => {
       const next = new Set(prev);
@@ -757,18 +757,18 @@ function SwitchView({
     });
   };
 
-  const hasFolders = filtered.some((set) => set.includes("/"));
+  const hasFolders = filtered.some((id) => id.includes("/"));
   const groups = hasFolders ? buildFolderGroups(filtered) : null;
 
-  const renderSetButton = (set: string, indented: boolean) => {
-    const isCurrent = set === activeSet;
-    const isHighlighted = filtered[activeIdx] === set;
-    const label = indented ? set.slice(set.indexOf("/") + 1) : null;
+  const renderCollectionButton = (id: string, indented: boolean) => {
+    const isCurrent = id === currentCollectionId;
+    const isHighlighted = filtered[activeIdx] === id;
+    const label = indented ? id.slice(id.indexOf("/") + 1) : null;
     return (
       <button
-        key={set}
-        data-set-name={set}
-        onClick={() => onSelect(set)}
+        key={id}
+        data-collection-name={id}
+        onClick={() => onSelect(id)}
         className={`flex w-full items-center justify-between py-2 pr-3 text-left text-[12px] transition-colors ${indented ? "pl-6" : "px-3"} ${isHighlighted ? "bg-[var(--color-figma-bg-hover)]" : "hover:bg-[var(--color-figma-bg-hover)]"}`}
         role="option"
         aria-selected={isCurrent}
@@ -779,7 +779,7 @@ function SwitchView({
           {label !== null ? (
             <span>{label}</span>
           ) : (
-            <SetNameDisplay name={set} />
+            <CollectionNameDisplay name={id} />
           )}
         </span>
         {isCurrent && (
@@ -804,9 +804,9 @@ function SwitchView({
         </div>
       ) : groups ? (
         groups.map((group) => {
-          if (typeof group === "string") return renderSetButton(group, false);
+          if (typeof group === "string") return renderCollectionButton(group, false);
           const isCollapsed = collapsedFolders.has(group.folder);
-          const hasActiveSet = group.sets.includes(activeSet);
+          const hasActiveCollection = group.collectionIds.includes(currentCollectionId);
           return (
             <div key={group.folder}>
               <button
@@ -825,9 +825,9 @@ function SwitchView({
                 </svg>
                 <span className="font-medium">{group.folder}/</span>
                 <span className="text-[10px] opacity-50">
-                  {group.sets.length}
+                  {group.collectionIds.length}
                 </span>
-                {hasActiveSet && isCollapsed && (
+                {hasActiveCollection && isCollapsed && (
                   <span
                     className="ml-auto leading-none text-[var(--color-figma-accent)]"
                     aria-label="contains active collection"
@@ -837,20 +837,20 @@ function SwitchView({
                 )}
               </button>
               {!isCollapsed &&
-                group.sets.map((set) => renderSetButton(set, true))}
+                group.collectionIds.map((id) => renderCollectionButton(id, true))}
             </div>
           );
         })
       ) : (
-        filtered.map((set) => renderSetButton(set, false))
+        filtered.map((id) => renderCollectionButton(id, false))
       )}
     </div>
   );
 }
 
-export function SetManager({
-  sets,
-  activeSet,
+export function CollectionStructureManager({
+  collectionIds,
+  currentCollectionId,
   onClose,
   onOpenQuickSwitch,
   onRename,
@@ -858,16 +858,16 @@ export function SetManager({
   onDelete,
   onReorder,
   onReorderFull,
-  onOpenCreateSet,
+  onOpenCreateCollection,
   onEditInfo,
   onMerge,
   onSplit,
-  setTokenCounts = {},
-  setDescriptions = {},
+  collectionTokenCounts = {},
+  collectionDescriptions = {},
   onBulkDelete,
   onBulkDuplicate,
   onBulkMoveToFolder,
-  renamingSet = null,
+  renamingCollectionId = null,
   renameValue = "",
   setRenameValue,
   renameError = "",
@@ -875,16 +875,16 @@ export function SetManager({
   renameInputRef,
   onRenameConfirm,
   onRenameCancel,
-  editingMetadataSet = null,
+  editingMetadataCollectionId = null,
   metadataDescription = "",
   setMetadataDescription,
   onMetadataClose,
   onMetadataSave,
-  deletingSet = null,
+  deletingCollectionId = null,
   onDeleteConfirm,
   onDeleteCancel,
-  mergingSet = null,
-  mergeTargetSet = "",
+  mergingCollectionId = null,
+  mergeTargetCollectionId = "",
   mergeConflicts = [],
   mergeResolutions = {},
   mergeChecked = false,
@@ -894,34 +894,34 @@ export function SetManager({
   onMergeCheckConflicts,
   onMergeConfirm,
   onMergeClose,
-  splittingSet = null,
+  splittingCollectionId = null,
   splitPreview = [],
   splitDeleteOriginal = false,
   splitLoading = false,
   setSplitDeleteOriginal,
   onSplitConfirm,
   onSplitClose,
-}: SetManagerProps) {
+}: CollectionStructureManagerProps) {
   const { serverUrl, connected } = useConnectionContext();
   const [query, setQuery] = useState("");
-  const deletePreflight = useSetStructuralPreflight({
+  const deletePreflight = useCollectionStructuralPreflight({
     operation: "delete",
-    setName: deletingSet,
-    enabled: !!deletingSet && !!onDeleteConfirm,
+    collectionId: deletingCollectionId,
+    enabled: !!deletingCollectionId && !!onDeleteConfirm,
   });
-  const mergePreflight = useSetStructuralPreflight({
+  const mergePreflight = useCollectionStructuralPreflight({
     operation: "merge",
-    setName: mergingSet,
-    targetCollection: mergeTargetSet,
-    enabled: !!mergingSet && !!mergeTargetSet && !!onMergeConfirm,
+    collectionId: mergingCollectionId,
+    targetCollection: mergeTargetCollectionId,
+    enabled: !!mergingCollectionId && !!mergeTargetCollectionId && !!onMergeConfirm,
   });
-  const splitPreflight = useSetStructuralPreflight({
+  const splitPreflight = useCollectionStructuralPreflight({
     operation: "split",
-    setName: splittingSet,
+    collectionId: splittingCollectionId,
     deleteOriginal: splitDeleteOriginal,
-    enabled: !!splittingSet && !!onSplitConfirm,
+    enabled: !!splittingCollectionId && !!onSplitConfirm,
   });
-  const filtered = useMemo(() => filterSets(sets, query), [sets, query]);
+  const filtered = useMemo(() => filterCollections(collectionIds, query), [collectionIds, query]);
 
   return (
     <>
@@ -960,19 +960,19 @@ export function SetManager({
           )}
         </div>
 
-        {mergingSet &&
+        {mergingCollectionId &&
           onMergeClose &&
           onMergeTargetChange &&
           setMergeResolutions &&
           onMergeCheckConflicts &&
           onMergeConfirm ? (
-          <SetMergeInline
-            sets={sets}
-            mergingSet={mergingSet}
+          <CollectionMergeInline
+            collectionIds={collectionIds}
+            mergingCollectionId={mergingCollectionId}
             preflight={mergePreflight.data}
             preflightLoading={mergePreflight.loading}
             preflightError={mergePreflight.error}
-            mergeTargetSet={mergeTargetSet}
+            mergeTargetCollectionId={mergeTargetCollectionId}
             mergeConflicts={mergeConflicts}
             mergeResolutions={mergeResolutions}
             mergeChecked={mergeChecked}
@@ -1009,9 +1009,9 @@ export function SetManager({
                   aria-label="Filter token collections"
                   className="flex-1 bg-transparent text-[12px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)]"
                 />
-                {onOpenCreateSet && (
+                {onOpenCreateCollection && (
                   <button
-                    onClick={onOpenCreateSet}
+                    onClick={onOpenCreateCollection}
                     className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[11px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
                   >
                     New collection
@@ -1020,20 +1020,20 @@ export function SetManager({
               </div>
               <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
                 <span>
-                  {sets.length} collection{sets.length !== 1 ? "s" : ""}
+                  {collectionIds.length} collection{collectionIds.length !== 1 ? "s" : ""}
                 </span>
                 <span>·</span>
-                <span>Active collection: {activeSet}</span>
+                <span>Active collection: {currentCollectionId}</span>
               </div>
             </div>
 
             <ManageView
               filtered={filtered}
-              sets={sets}
-              activeSet={activeSet}
+              collectionIds={collectionIds}
+              currentCollectionId={currentCollectionId}
               query={query}
-              setTokenCounts={setTokenCounts}
-              setDescriptions={setDescriptions}
+              collectionTokenCounts={collectionTokenCounts}
+              collectionDescriptions={collectionDescriptions}
               onRename={onRename}
               onDuplicate={onDuplicate}
               onDelete={onDelete}
@@ -1045,7 +1045,7 @@ export function SetManager({
               onBulkDelete={onBulkDelete}
               onBulkDuplicate={onBulkDuplicate}
               onBulkMoveToFolder={onBulkMoveToFolder}
-              renamingSet={renamingSet}
+              renamingCollectionId={renamingCollectionId}
               renameValue={renameValue}
               setRenameValue={setRenameValue}
               renameError={renameError}
@@ -1057,18 +1057,18 @@ export function SetManager({
           </>
         )}
       </div>
-      {editingMetadataSet && (
+      {editingMetadataCollectionId && (
         <SetMetadataDialog
-          setName={editingMetadataSet}
+          collectionId={editingMetadataCollectionId}
           description={metadataDescription}
           onDescriptionChange={(value) => setMetadataDescription?.(value)}
           onClose={() => onMetadataClose?.()}
           onSave={() => onMetadataSave?.()}
         />
       )}
-      {deletingSet && onDeleteConfirm && onDeleteCancel && (
+      {deletingCollectionId && onDeleteConfirm && onDeleteCancel && (
         <SetDeleteDialog
-          deletingSet={deletingSet}
+          deletingCollectionId={deletingCollectionId}
           preflight={deletePreflight.data}
           preflightLoading={deletePreflight.loading}
           preflightError={deletePreflight.error}
@@ -1076,13 +1076,13 @@ export function SetManager({
           onCancel={onDeleteCancel}
         />
       )}
-      {splittingSet &&
+      {splittingCollectionId &&
         onSplitClose &&
         setSplitDeleteOriginal &&
         onSplitConfirm && (
           <SetSplitDialog
-            sets={sets}
-            splittingSet={splittingSet}
+            collectionIds={collectionIds}
+            splittingCollectionId={splittingCollectionId}
             preflight={splitPreflight.data}
             preflightLoading={splitPreflight.loading}
             preflightError={splitPreflight.error}
@@ -1100,25 +1100,25 @@ export function SetManager({
 
 interface ManageViewProps {
   filtered: string[];
-  sets: string[];
-  activeSet: string;
+  collectionIds: string[];
+  currentCollectionId: string;
   query: string;
-  setTokenCounts: Record<string, number>;
-  setDescriptions: Record<string, string>;
-  onRename?: (setName: string) => void;
-  onDuplicate?: (setName: string) => void;
-  onDelete?: (setName: string) => void;
-  onReorder?: (setName: string, direction: "left" | "right") => void;
+  collectionTokenCounts: Record<string, number>;
+  collectionDescriptions: Record<string, string>;
+  onRename?: (collectionId: string) => void;
+  onDuplicate?: (collectionId: string) => void;
+  onDelete?: (collectionId: string) => void;
+  onReorder?: (collectionId: string, direction: "left" | "right") => void;
   onReorderFull?: (newOrder: string[]) => void;
-  onEditInfo?: (setName: string) => void;
-  onMerge?: (setName: string) => void;
-  onSplit?: (setName: string) => void;
-  onBulkDelete?: (sets: string[]) => Promise<void>;
-  onBulkDuplicate?: (sets: string[]) => Promise<void>;
+  onEditInfo?: (collectionId: string) => void;
+  onMerge?: (collectionId: string) => void;
+  onSplit?: (collectionId: string) => void;
+  onBulkDelete?: (collectionIds: string[]) => Promise<void>;
+  onBulkDuplicate?: (collectionIds: string[]) => Promise<void>;
   onBulkMoveToFolder?: (
     moves: Array<{ from: string; to: string }>,
   ) => Promise<void>;
-  renamingSet: string | null;
+  renamingCollectionId: string | null;
   renameValue: string;
   setRenameValue?: (value: string) => void;
   renameError: string;
@@ -1130,11 +1130,11 @@ interface ManageViewProps {
 
 function ManageView({
   filtered,
-  sets,
-  activeSet,
+  collectionIds,
+  currentCollectionId,
   query,
-  setTokenCounts,
-  setDescriptions,
+  collectionTokenCounts,
+  collectionDescriptions,
   onRename,
   onDuplicate,
   onDelete,
@@ -1146,7 +1146,7 @@ function ManageView({
   onBulkDelete,
   onBulkDuplicate,
   onBulkMoveToFolder,
-  renamingSet,
+  renamingCollectionId,
   renameValue,
   setRenameValue,
   renameError,
@@ -1157,11 +1157,25 @@ function ManageView({
 }: ManageViewProps) {
   const { connected, serverUrl, getDisconnectSignal, markDisconnected } =
     useConnectionContext();
-  const { setSets, setActiveSet, renameSetInState, removeSetFromState } =
-    useTokenSetsContext();
-  const [dragSetName, setDragSetName] = useState<string | null>(null);
-  const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
-  const [selectedSets, setSelectedSets] = useState<Set<string>>(new Set());
+  const {
+    setCollections,
+    setCurrentCollectionId,
+    renameCollectionInState,
+    removeCollectionFromState,
+  } = useCollectionStateContext();
+  const setSets = useCallback((nextSets: string[]) => {
+    setCollections((previousCollections) =>
+      nextSets.flatMap((collectionId) => {
+        const collection = previousCollections.find(
+          (candidate) => candidate.id === collectionId,
+        );
+        return collection ? [collection] : [];
+      }),
+    );
+  }, [setCollections]);
+  const [dragCollectionId, setDragCollectionId] = useState<string | null>(null);
+  const [dragOverCollectionId, setDragOverCollectionId] = useState<string | null>(null);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<Set<string>>(new Set());
   const [bulkFolderMode, setBulkFolderMode] = useState(false);
   const [bulkFolder, setBulkFolder] = useState("");
   const [bulkFolderError, setBulkFolderError] = useState("");
@@ -1181,7 +1195,7 @@ function ManageView({
   const folderRenameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setSelectedSets(new Set());
+    setSelectedCollectionIds(new Set());
     setBulkFolderMode(false);
     setDeleteConfirming(false);
     setRenamingFolder(null);
@@ -1204,18 +1218,18 @@ function ManageView({
 
   const folderNames = useMemo(
     () =>
-      buildFolderGroups(sets)
+      buildFolderGroups(collectionIds)
         .filter((item): item is FolderGroup => typeof item !== "string")
         .map((item) => item.folder),
-    [sets],
+    [collectionIds],
   );
   const manageItems = useMemo(
-    () => buildManageItems(sets, filtered),
-    [sets, filtered],
+    () => buildManageItems(collectionIds, filtered),
+    [collectionIds, filtered],
   );
 
   const hasBulkOps = !!(onBulkDelete || onBulkDuplicate || onBulkMoveToFolder);
-  const hasSelection = selectedSets.size > 0;
+  const hasSelection = selectedCollectionIds.size > 0;
   const canDrag =
     !!onReorderFull && !hasSelection && !bulkFolderMode && !deleteConfirming;
 
@@ -1230,19 +1244,19 @@ function ManageView({
     dispatchToast(message, "error");
   };
 
-  const toggleSelect = (set: string) => {
-    setSelectedSets((prev) => {
+  const toggleSelect = (collectionId: string) => {
+    setSelectedCollectionIds((prev) => {
       const next = new Set(prev);
-      if (next.has(set)) next.delete(set);
-      else next.add(set);
+      if (next.has(collectionId)) next.delete(collectionId);
+      else next.add(collectionId);
       return next;
     });
   };
 
-  const selectAll = () => setSelectedSets(new Set(filtered));
+  const selectAll = () => setSelectedCollectionIds(new Set(filtered));
 
   const clearSelection = () => {
-    setSelectedSets(new Set());
+    setSelectedCollectionIds(new Set());
     setBulkFolderMode(false);
     setBulkFolder("");
     setBulkFolderError("");
@@ -1253,7 +1267,7 @@ function ManageView({
     if (!onBulkDuplicate || !hasSelection) return;
     setBulkPending(true);
     try {
-      await onBulkDuplicate(Array.from(selectedSets));
+      await onBulkDuplicate(Array.from(selectedCollectionIds));
       clearSelection();
     } finally {
       setBulkPending(false);
@@ -1264,7 +1278,7 @@ function ManageView({
     if (!onBulkDelete || !hasSelection) return;
     setBulkPending(true);
     try {
-      await onBulkDelete(Array.from(selectedSets));
+      await onBulkDelete(Array.from(selectedCollectionIds));
       clearSelection();
     } finally {
       setBulkPending(false);
@@ -1283,9 +1297,9 @@ function ManageView({
       setBulkFolderError("Use letters, numbers, - and _ (/ for sub-folders)");
       return;
     }
-    const moves = Array.from(selectedSets).map((set) => ({
-      from: set,
-      to: `${folder}/${leafName(set)}`,
+    const moves = Array.from(selectedCollectionIds).map((collectionId) => ({
+      from: collectionId,
+      to: `${folder}/${leafName(collectionId)}`,
     }));
     const actualMoves = moves.filter((move) => move.from !== move.to);
     if (!actualMoves.length) {
@@ -1351,12 +1365,12 @@ function ManageView({
         },
       );
       response.renamedCollections.forEach(({ from, to }) =>
-        renameSetInState(from, to),
+        renameCollectionInState(from, to),
       );
       setSets(response.collections);
-      if (isSetInFolder(activeSet, renamingFolder)) {
-        setActiveSet(
-          replaceFolderPrefix(activeSet, renamingFolder, nextFolder),
+      if (isCollectionInFolder(currentCollectionId, renamingFolder)) {
+        setCurrentCollectionId(
+          replaceFolderPrefix(currentCollectionId, renamingFolder, nextFolder),
         );
       }
       cancelFolderRename();
@@ -1411,11 +1425,11 @@ function ManageView({
           signal: createFetchSignal(getDisconnectSignal()),
         },
       );
-      response.movedCollections.forEach(({ from, to }) => renameSetInState(from, to));
+      response.movedCollections.forEach(({ from, to }) => renameCollectionInState(from, to));
       setSets(response.collections);
-      if (isSetInFolder(activeSet, mergingFolder)) {
-        setActiveSet(
-          replaceFolderPrefix(activeSet, mergingFolder, folderMergeTarget),
+      if (isCollectionInFolder(currentCollectionId, mergingFolder)) {
+        setCurrentCollectionId(
+          replaceFolderPrefix(currentCollectionId, mergingFolder, folderMergeTarget),
         );
       }
       cancelFolderMerge();
@@ -1460,11 +1474,11 @@ function ManageView({
           signal: createFetchSignal(getDisconnectSignal()),
         },
       );
-      response.deletedCollections.forEach((setName) => removeSetFromState(setName));
+      response.deletedCollections.forEach((collectionId) => removeCollectionFromState(collectionId));
       setSets(response.collections);
-      if (isSetInFolder(activeSet, deletingFolder)) {
+      if (isCollectionInFolder(currentCollectionId, deletingFolder)) {
         const nextActive = response.collections[0] ?? "";
-        setActiveSet(nextActive);
+        setCurrentCollectionId(nextActive);
       }
       cancelFolderDelete();
       dispatchToast(
@@ -1487,7 +1501,7 @@ function ManageView({
     direction: "left" | "right",
   ) => {
     if (!connected || folderActionPending) return;
-    const order = buildTopLevelItemOrder(sets);
+    const order = buildTopLevelItemOrder(collectionIds);
     const folderKey = folderItemKey(folder);
     const fromIndex = order.indexOf(folderKey);
     if (fromIndex === -1) return;
@@ -1517,46 +1531,46 @@ function ManageView({
     }
   };
 
-  const handleDragStart = useCallback((e: React.DragEvent, setName: string) => {
-    setDragSetName(setName);
+  const handleDragStart = useCallback((e: React.DragEvent, collectionId: string) => {
+    setDragCollectionId(collectionId);
     e.dataTransfer.effectAllowed = "move";
   }, []);
 
   const handleDragOver = useCallback(
-    (e: React.DragEvent, setName: string) => {
+    (e: React.DragEvent, collectionId: string) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
-      if (dragSetName && dragSetName !== setName) setDragOverSetName(setName);
+      if (dragCollectionId && dragCollectionId !== collectionId) setDragOverCollectionId(collectionId);
     },
-    [dragSetName],
+    [dragCollectionId],
   );
 
   const handleDragEnd = useCallback(() => {
-    setDragSetName(null);
-    setDragOverSetName(null);
+    setDragCollectionId(null);
+    setDragOverCollectionId(null);
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent, targetSetName: string) => {
+    (e: React.DragEvent, targetCollectionId: string) => {
       e.preventDefault();
-      if (!dragSetName || dragSetName === targetSetName || !onReorderFull) {
+      if (!dragCollectionId || dragCollectionId === targetCollectionId || !onReorderFull) {
         handleDragEnd();
         return;
       }
-      const fromIdx = sets.indexOf(dragSetName);
-      const toIdx = sets.indexOf(targetSetName);
+      const fromIdx = collectionIds.indexOf(dragCollectionId);
+      const toIdx = collectionIds.indexOf(targetCollectionId);
       if (fromIdx === -1 || toIdx === -1) {
         handleDragEnd();
         return;
       }
-      const newOrder = [...sets];
+      const newOrder = [...collectionIds];
       newOrder.splice(fromIdx, 1);
-      newOrder.splice(toIdx, 0, dragSetName);
-      setDragSetName(null);
-      setDragOverSetName(null);
+      newOrder.splice(toIdx, 0, dragCollectionId);
+      setDragCollectionId(null);
+      setDragOverCollectionId(null);
       onReorderFull(newOrder);
     },
-    [dragSetName, sets, onReorderFull, handleDragEnd],
+    [dragCollectionId, collectionIds, onReorderFull, handleDragEnd],
   );
 
   if (filtered.length === 0) {
@@ -1573,9 +1587,9 @@ function ManageView({
         <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex items-center gap-1 px-2 py-1.5 text-[11px]">
             <span className="mr-0.5 shrink-0 text-[var(--color-figma-text-secondary)]">
-              {selectedSets.size} selected
+              {selectedCollectionIds.size} selected
             </span>
-            {selectedSets.size < filtered.length && (
+            {selectedCollectionIds.size < filtered.length && (
               <button
                 onClick={selectAll}
                 className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -1643,8 +1657,8 @@ function ManageView({
           {deleteConfirming && (
             <div className="flex items-center gap-2 border-t border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[11px]">
               <span className="flex-1 text-[var(--color-figma-text)]">
-                Delete {selectedSets.size} collection
-                {selectedSets.size !== 1 ? "s" : ""}? This cannot be undone.
+                Delete {selectedCollectionIds.size} collection
+                {selectedCollectionIds.size !== 1 ? "s" : ""}? This cannot be undone.
               </span>
               <button
                 onClick={handleBulkDeleteConfirm}
@@ -1720,25 +1734,25 @@ function ManageView({
       )}
 
       {(() => {
-        const renderSetRow = (set: string, indented = false) => {
-          const isCurrent = set === activeSet;
-          const idx = sets.indexOf(set);
+        const renderSetRow = (collectionId: string, indented = false) => {
+          const isCurrent = collectionId === currentCollectionId;
+          const idx = collectionIds.indexOf(collectionId);
           const isFirst = idx === 0;
-          const isLast = idx === sets.length - 1;
-          const tokenCount = setTokenCounts[set];
-          const description = setDescriptions[set];
-          const isSelected = selectedSets.has(set);
-          const isDragging = dragSetName === set;
-          const isDragOver = dragOverSetName === set && dragSetName !== set;
-          const isRenaming = renamingSet === set;
+          const isLast = idx === collectionIds.length - 1;
+          const tokenCount = collectionTokenCounts[collectionId];
+          const description = collectionDescriptions[collectionId];
+          const isSelected = selectedCollectionIds.has(collectionId);
+          const isDragging = dragCollectionId === collectionId;
+          const isDragOver = dragOverCollectionId === collectionId && dragCollectionId !== collectionId;
+          const isRenaming = renamingCollectionId === collectionId;
 
           return (
             <div
-              key={set}
+              key={collectionId}
               draggable={canDrag && !isRenaming}
-              onDragStart={canDrag ? (e) => handleDragStart(e, set) : undefined}
-              onDragOver={canDrag ? (e) => handleDragOver(e, set) : undefined}
-              onDrop={canDrag ? (e) => handleDrop(e, set) : undefined}
+              onDragStart={canDrag ? (e) => handleDragStart(e, collectionId) : undefined}
+              onDragOver={canDrag ? (e) => handleDragOver(e, collectionId) : undefined}
+              onDrop={canDrag ? (e) => handleDrop(e, collectionId) : undefined}
               onDragEnd={canDrag ? handleDragEnd : undefined}
               className={`group relative flex items-start gap-2 border-b border-[var(--color-figma-border)] py-2.5 pr-3 text-[12px] transition-colors last:border-b-0 ${
                 indented ? "pl-8" : "pl-3"
@@ -1754,10 +1768,10 @@ function ManageView({
                 <input
                   type="checkbox"
                   checked={isSelected}
-                  onChange={() => toggleSelect(set)}
+                  onChange={() => toggleSelect(collectionId)}
                   onClick={(e) => e.stopPropagation()}
                   className="mt-1 shrink-0 cursor-pointer accent-[var(--color-figma-accent)]"
-                  aria-label={`Select ${set}`}
+                  aria-label={`Select ${collectionId}`}
                 />
               )}
 
@@ -1818,7 +1832,7 @@ function ManageView({
                       <span
                         className={`min-w-0 truncate ${isCurrent ? "font-medium text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text)]"}`}
                       >
-                        <SetNameDisplay name={set} />
+                        <CollectionNameDisplay name={collectionId} />
                       </span>
                       {isCurrent && (
                         <span className="rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-accent)]">
@@ -1848,7 +1862,7 @@ function ManageView({
                         title="Move up"
                         ariaLabel="Move up"
                         disabled={isFirst}
-                        onClick={() => onReorder(set, "left")}
+                        onClick={() => onReorder(collectionId, "left")}
                       >
                         <path d="M5 2L9 7H1L5 2Z" />
                       </IconButton>
@@ -1858,7 +1872,7 @@ function ManageView({
                         title="Move down"
                         ariaLabel="Move down"
                         disabled={isLast}
-                        onClick={() => onReorder(set, "right")}
+                        onClick={() => onReorder(collectionId, "right")}
                       >
                         <path d="M5 8L1 3H9L5 8Z" />
                       </IconButton>
@@ -1867,7 +1881,7 @@ function ManageView({
                       <StrokeIconButton
                         title="Edit collection info"
                         ariaLabel="Edit collection info"
-                        onClick={() => onEditInfo(set)}
+                        onClick={() => onEditInfo(collectionId)}
                       >
                         <circle cx="12" cy="12" r="10" />
                         <line x1="12" y1="16" x2="12" y2="12" />
@@ -1878,7 +1892,7 @@ function ManageView({
                       <StrokeIconButton
                         title="Rename or move"
                         ariaLabel="Rename or move"
-                        onClick={() => onRename(set)}
+                        onClick={() => onRename(collectionId)}
                       >
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -1888,7 +1902,7 @@ function ManageView({
                       <StrokeIconButton
                         title="Duplicate"
                         ariaLabel="Duplicate"
-                        onClick={() => onDuplicate(set)}
+                        onClick={() => onDuplicate(collectionId)}
                       >
                         <rect
                           x="9"
@@ -1905,7 +1919,7 @@ function ManageView({
                       <StrokeIconButton
                         title="Copy tokens into another collection"
                         ariaLabel="Copy tokens into another collection"
-                        onClick={() => onMerge(set)}
+                        onClick={() => onMerge(collectionId)}
                       >
                         <path d="M7 7h5a4 4 0 014 4v0" />
                         <path d="M7 17h5a4 4 0 004-4v0" />
@@ -1918,7 +1932,7 @@ function ManageView({
                       <StrokeIconButton
                         title="Split by group"
                         ariaLabel="Split by group"
-                        onClick={() => onSplit(set)}
+                        onClick={() => onSplit(collectionId)}
                       >
                         <path d="M12 3v6" />
                         <path d="M12 9l-5 5" />
@@ -1932,7 +1946,7 @@ function ManageView({
                       <StrokeIconButton
                         title="Delete"
                         ariaLabel="Delete"
-                        onClick={() => onDelete(set)}
+                        onClick={() => onDelete(collectionId)}
                         danger
                       >
                         <polyline points="3 6 5 6 21 6" />
@@ -1949,9 +1963,9 @@ function ManageView({
         };
 
         const renderFolderRow = (item: ManageFolderGroup) => {
-          const topLevelItems = buildTopLevelItemOrder(sets);
+          const topLevelItems = buildTopLevelItemOrder(collectionIds);
           const folderIndex = topLevelItems.indexOf(folderItemKey(item.folder));
-          const visibleCount = item.sets.length;
+          const visibleCount = item.collectionIds.length;
           const targetFolderOptions = folderNames.filter(
             (folder) => folder !== item.folder,
           );
@@ -2033,10 +2047,10 @@ function ManageView({
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
                         <span>
-                          {item.totalSetCount} collection
-                          {item.totalSetCount === 1 ? "" : "s"}
+                          {item.totalCollectionCount} collection
+                          {item.totalCollectionCount === 1 ? "" : "s"}
                         </span>
-                        {visibleCount !== item.totalSetCount && (
+                        {visibleCount !== item.totalCollectionCount && (
                           <>
                             <span>·</span>
                             <span>{visibleCount} shown by filter</span>
@@ -2165,8 +2179,8 @@ function ManageView({
                   <div className="flex items-center gap-2 text-[11px]">
                     <span className="flex-1 text-[var(--color-figma-text)]">
                       Delete folder "{item.folder}/" and its{" "}
-                      {item.totalSetCount} collection
-                      {item.totalSetCount === 1 ? "" : "s"}?
+                      {item.totalCollectionCount} collection
+                      {item.totalCollectionCount === 1 ? "" : "s"}?
                     </span>
                     <button
                       onClick={() => void handleFolderDeleteConfirm()}
@@ -2200,7 +2214,7 @@ function ManageView({
           ) : (
             <div key={`folder-block-${item.folder}`}>
               {renderFolderRow(item)}
-              {item.sets.map((set) => renderSetRow(set, true))}
+              {item.collectionIds.map((id) => renderSetRow(id, true))}
             </div>
           ),
         );
@@ -2210,13 +2224,13 @@ function ManageView({
 }
 
 function SetMetadataDialog({
-  setName,
+  collectionId,
   description,
   onDescriptionChange,
   onClose,
   onSave,
 }: {
-  setName: string;
+  collectionId: string;
   description: string;
   onDescriptionChange: (value: string) => void;
   onClose: () => void;
@@ -2226,7 +2240,7 @@ function SetMetadataDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex w-72 flex-col gap-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-4 shadow-xl">
         <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
-          Edit collection info — {setName}
+          Edit collection info — {collectionId}
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -2264,15 +2278,15 @@ function SetMetadataDialog({
 }
 
 function SetDeleteDialog({
-  deletingSet,
+  deletingCollectionId,
   preflight,
   preflightLoading,
   preflightError,
   onConfirm,
   onCancel,
 }: {
-  deletingSet: string;
-  preflight: SetStructuralPreflight | null;
+  deletingCollectionId: string;
+  preflight: CollectionStructuralPreflight | null;
   preflightLoading: boolean;
   preflightError: string | null;
   onConfirm: () => void | Promise<void>;
@@ -2287,7 +2301,7 @@ function SetDeleteDialog({
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
           <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-            Delete "{deletingSet}"?
+            Delete "{deletingCollectionId}"?
           </span>
           <button
             onClick={onCancel}
@@ -2314,7 +2328,7 @@ function SetDeleteDialog({
             preflight={preflight}
             loading={preflightLoading}
             error={preflightError}
-            sourceSetName={deletingSet}
+            sourceCollectionId={deletingCollectionId}
           />
         </div>
         <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
@@ -2337,14 +2351,14 @@ function SetDeleteDialog({
   );
 }
 
-/** Merge flow rendered inline within SetManager (no modal overlay). */
-function SetMergeInline({
-  sets,
-  mergingSet,
+/** Merge flow rendered inline within CollectionStructureManager (no modal overlay). */
+function CollectionMergeInline({
+  collectionIds,
+  mergingCollectionId,
   preflight,
   preflightLoading,
   preflightError,
-  mergeTargetSet,
+  mergeTargetCollectionId,
   mergeConflicts,
   mergeResolutions,
   mergeChecked,
@@ -2355,12 +2369,12 @@ function SetMergeInline({
   onConfirm,
   onClose,
 }: {
-  sets: string[];
-  mergingSet: string;
-  preflight: SetStructuralPreflight | null;
+  collectionIds: string[];
+  mergingCollectionId: string;
+  preflight: CollectionStructuralPreflight | null;
   preflightLoading: boolean;
   preflightError: string | null;
-  mergeTargetSet: string;
+  mergeTargetCollectionId: string;
   mergeConflicts: Array<{
     path: string;
     sourceValue: unknown;
@@ -2389,7 +2403,7 @@ function SetMergeInline({
     <>
       <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
         <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-          Copy tokens from &ldquo;{mergingSet}&rdquo; into&hellip;
+          Copy tokens from &ldquo;{mergingCollectionId}&rdquo; into&hellip;
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
@@ -2398,16 +2412,16 @@ function SetMergeInline({
             Target collection
           </label>
           <select
-            value={mergeTargetSet}
+            value={mergeTargetCollectionId}
             onChange={(e) => onTargetChange(e.target.value)}
             aria-label="Merge target collection"
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           >
-            {sets
-              .filter((set) => set !== mergingSet)
-              .map((set) => (
-                <option key={set} value={set}>
-                  {set}
+            {collectionIds
+              .filter((id) => id !== mergingCollectionId)
+              .map((id) => (
+                <option key={id} value={id}>
+                  {id}
                 </option>
               ))}
           </select>
@@ -2416,15 +2430,15 @@ function SetMergeInline({
           preflight={preflight}
           loading={preflightLoading}
           error={preflightError}
-          sourceSetName={mergingSet}
-          targetSetName={mergeTargetSet}
+          sourceCollectionId={mergingCollectionId}
+          targetCollectionId={mergeTargetCollectionId}
         />
         {!mergeChecked && (
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
             Tokens from{" "}
-            <span className="font-mono font-medium">{mergingSet}</span> will
+            <span className="font-mono font-medium">{mergingCollectionId}</span> will
             be added to{" "}
-            <span className="font-mono font-medium">{mergeTargetSet}</span>.
+            <span className="font-mono font-medium">{mergeTargetCollectionId}</span>.
             The source collection stays in place. Conflicts where the target already
             has a different base value or different mode-authored values for the
             same token path will be shown for resolution.
@@ -2512,7 +2526,7 @@ function SetMergeInline({
         {!mergeChecked ? (
           <button
             onClick={onCheckConflicts}
-            disabled={mergeLoading || !mergeTargetSet || hasBlockingPreflight}
+            disabled={mergeLoading || !mergeTargetCollectionId || hasBlockingPreflight}
             className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {mergeLoading ? "Checking…" : "Check conflicts"}
@@ -2532,8 +2546,8 @@ function SetMergeInline({
 }
 
 function SetSplitDialog({
-  sets,
-  splittingSet,
+  collectionIds,
+  splittingCollectionId,
   preflight,
   preflightLoading,
   preflightError,
@@ -2544,9 +2558,9 @@ function SetSplitDialog({
   onConfirm,
   onClose,
 }: {
-  sets: string[];
-  splittingSet: string;
-  preflight: SetStructuralPreflight | null;
+  collectionIds: string[];
+  splittingCollectionId: string;
+  preflight: CollectionStructuralPreflight | null;
   preflightLoading: boolean;
   preflightError: string | null;
   splitPreview: Array<{ key: string; newCollectionId: string; count: number }>;
@@ -2566,7 +2580,7 @@ function SetSplitDialog({
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
           <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-            Split "{splittingSet}"
+            Split "{splittingCollectionId}"
           </span>
           <button
             onClick={onClose}
@@ -2589,7 +2603,7 @@ function SetSplitDialog({
             preflight={preflight}
             loading={preflightLoading}
             error={preflightError}
-            sourceSetName={splittingSet}
+            sourceCollectionId={splittingCollectionId}
             splitPreview={effectiveSplitPreview}
           />
           {effectiveSplitPreview.length === 0 ? (
@@ -2619,7 +2633,7 @@ function SetSplitDialog({
                 ))}
               </div>
               {effectiveSplitPreview.some((preview) =>
-                sets.includes(preview.newCollectionId),
+                collectionIds.includes(preview.newCollectionId),
               ) && (
                 <p className="text-[10px] text-[var(--color-figma-warning)]">
                   Some collections already exist and will be skipped.
@@ -2633,7 +2647,7 @@ function SetSplitDialog({
                   className="h-3 w-3 rounded"
                 />
                 <span className="text-[11px] text-[var(--color-figma-text)]">
-                  Delete "{splittingSet}" after split
+                  Delete "{splittingCollectionId}" after split
                 </span>
               </label>
             </>

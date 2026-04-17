@@ -1,15 +1,48 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { isDTCGToken } from '@tokenmanager/core';
-import type { DTCGGroup, TokenValue, TokenReference } from '@tokenmanager/core';
+import type {
+  DTCGGroup,
+  TokenValue,
+  TokenReference,
+  SelectedModes,
+  SerializedTokenCollection,
+  TokenCollection,
+} from '@tokenmanager/core';
+import { deserializeTokenCollections } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
-import { STORAGE_KEYS, lsGet, lsSet, lsRemove } from '../shared/storage';
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
+import { STORAGE_KEYS, lsGet, lsGetJson, lsRemove, lsSet, lsSetJson } from '../shared/storage';
 import { apiFetch, isNetworkError, createFetchSignal } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
-interface CollectionSummary {
-  id: string;
-  description?: string;
+export interface CollectionSummary extends SerializedTokenCollection {
   tokenCount?: number;
+}
+
+interface CollectionStateSnapshot {
+  collections: TokenCollection[];
+  collectionTokenCounts: Record<string, number>;
+  collectionDescriptions: Record<string, string>;
+}
+
+function buildCollectionStateSnapshot(
+  collectionSummaries: CollectionSummary[],
+): CollectionStateSnapshot {
+  return {
+    collections: deserializeTokenCollections(collectionSummaries),
+    collectionTokenCounts: Object.fromEntries(
+      collectionSummaries.map((collection) => [
+        collection.id,
+        collection.tokenCount ?? 0,
+      ]),
+    ),
+    collectionDescriptions: Object.fromEntries(
+      collectionSummaries.map((collection) => [
+        collection.id,
+        collection.description ?? "",
+      ]),
+    ),
+  };
 }
 
 /** Flatten a DTCG group into TokenMapEntry records, preserving each leaf's DTCG key as `$name`. */
@@ -54,234 +87,408 @@ export interface TokenNode {
   isGroup: boolean;
 }
 
-export function useTokens(
+export function useCollectionState(
   serverUrl: string,
   connected: boolean,
   onNetworkError?: () => void,
   getDisconnectSignal?: () => AbortSignal,
 ) {
-  const [sets, setSets] = useState<string[]>([]);
-  const [activeSet, setActiveSetState] = useState<string>(() => lsGet(STORAGE_KEYS.ACTIVE_SET, ''));
-  const setActiveSet = (s: string) => {
-    if (s) lsSet(STORAGE_KEYS.ACTIVE_SET, s);
-    else lsRemove(STORAGE_KEYS.ACTIVE_SET);
-    setActiveSetState(s);
-  };
-  const [tokens, setTokens] = useState<TokenNode[]>([]);
-  const [tokenRevision, setTokenRevision] = useState(0);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [setTokenCounts, setSetTokenCounts] = useState<Record<string, number>>({});
-  const [setDescriptions, setSetDescriptions] = useState<Record<string, string>>({});
+  const [collections, setCollections] = useState<TokenCollection[]>([]);
+  const [currentCollectionId, setCurrentCollectionIdState] = useState<string>(() => lsGet(STORAGE_KEYS.CURRENT_COLLECTION_ID, ''));
+  const setCurrentCollectionId = useCallback((collectionId: string) => {
+    if (collectionId) lsSet(STORAGE_KEYS.CURRENT_COLLECTION_ID, collectionId);
+    else lsRemove(STORAGE_KEYS.CURRENT_COLLECTION_ID);
+    setCurrentCollectionIdState(collectionId);
+  }, []);
+  const [currentCollectionTokens, setCurrentCollectionTokens] = useState<TokenNode[]>([]);
+  const [collectionRevision, setCollectionRevision] = useState(0);
+  const [collectionsError, setCollectionsError] = useState<string | null>(null);
+  const [collectionTokenCounts, setCollectionTokenCounts] = useState<Record<string, number>>({});
+  const [collectionDescriptions, setCollectionDescriptions] = useState<Record<string, string>>({});
+  const [selectedModes, setSelectedModesState] = useState<SelectedModes>(() =>
+    lsGetJson<SelectedModes>(STORAGE_KEYS.SELECTED_MODES, {})
+  );
+  const [hoverPreviewModes, setHoverPreviewModes] = useState<SelectedModes>({});
+
   const fetchGenRef = useRef(0);
-  const activeSetRef = useRef(activeSet);
-  activeSetRef.current = activeSet;
-  // Tracks activeSet changes initiated internally by refreshTokens (initial set selection)
-  // so the activeSet-change effect can skip the redundant re-fetch.
-  const internalSetChangeRef = useRef(false);
-  // Aborted on unmount so in-flight fetches don't call setState on a dead component.
+  const currentCollectionIdRef = useRef(currentCollectionId);
+  currentCollectionIdRef.current = currentCollectionId;
+  const selectedModesRef = useRef(selectedModes);
+  selectedModesRef.current = selectedModes;
+  const internalCollectionChangeRef = useRef(false);
+  const mountedRef = useRef(false);
   const unmountControllerRef = useRef(new AbortController());
+  const figmaSelectedModesReadyRef = useRef(false);
 
   useEffect(() => {
     const controller = unmountControllerRef.current;
     return () => { controller.abort(); };
   }, []);
 
-  const refreshTokens = useCallback(async () => {
+  const setSelectedModes = useCallback((nextSelectedModes: SelectedModes) => {
+    lsSetJson(STORAGE_KEYS.SELECTED_MODES, nextSelectedModes);
+    postPluginMessage({ type: 'set-selected-modes', selectedModes: nextSelectedModes });
+    setSelectedModesState(nextSelectedModes);
+  }, []);
+
+  const fetchCollectionSummaries = useCallback(async (
+    signalOverride?: AbortSignal,
+  ): Promise<CollectionSummary[]> => {
+    const unmountSignal = unmountControllerRef.current.signal;
+    const disconnectSignal = getDisconnectSignal?.();
+    const baseSignal = disconnectSignal
+      ? AbortSignal.any([disconnectSignal, unmountSignal])
+      : unmountSignal;
+    const combinedDisconnectSignal = signalOverride
+      ? AbortSignal.any([baseSignal, signalOverride])
+      : baseSignal;
+    const signal = createFetchSignal(combinedDisconnectSignal);
+
+    const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(
+      `${serverUrl}/api/collections`,
+      { signal },
+    );
+    return collectionsData.collections ?? [];
+  }, [getDisconnectSignal, serverUrl]);
+
+  useEffect(() => {
+    if (!postPluginMessage({ type: 'get-selected-modes' })) {
+      figmaSelectedModesReadyRef.current = true;
+      return;
+    }
+
+    const handler = (event: MessageEvent) => {
+      const message = getPluginMessageFromEvent<{ type?: string; selectedModes?: SelectedModes }>(event);
+      if (message?.type !== 'selected-modes-loaded') return;
+      figmaSelectedModesReadyRef.current = true;
+      setSelectedModes(message.selectedModes ?? {});
+      window.removeEventListener('message', handler);
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [setSelectedModes]);
+
+  useEffect(() => {
+    if (!figmaSelectedModesReadyRef.current) return;
+
+    const nextSelectedModes: SelectedModes = {};
+    for (const collection of collections) {
+      const selectedMode = selectedModesRef.current[collection.id];
+      if (selectedMode && collection.modes.some((mode) => mode.name === selectedMode)) {
+        nextSelectedModes[collection.id] = selectedMode;
+      }
+    }
+
+    const previousJson = JSON.stringify(selectedModesRef.current);
+    const nextJson = JSON.stringify(nextSelectedModes);
+    if (previousJson !== nextJson) {
+      setSelectedModes(nextSelectedModes);
+    }
+  }, [collections, setSelectedModes]);
+
+  const fetchTokensForCollection = useCallback(async (collectionId: string) => {
     if (!connected) return;
-    const gen = ++fetchGenRef.current;
-    const unmountSig = unmountControllerRef.current.signal;
-    const disconnectSig = getDisconnectSignal?.();
-    const disconnectCombined = disconnectSig ? AbortSignal.any([disconnectSig, unmountSig]) : unmountSig;
-    const signal = createFetchSignal(disconnectCombined);
+    if (!collectionId) {
+      setCurrentCollectionTokens([]);
+      setCollectionRevision((revision) => revision + 1);
+      setCollectionsError(null);
+      return;
+    }
+
+    const generation = ++fetchGenRef.current;
+    const unmountSignal = unmountControllerRef.current.signal;
+    const disconnectSignal = getDisconnectSignal?.();
+    const combinedDisconnectSignal = disconnectSignal ? AbortSignal.any([disconnectSignal, unmountSignal]) : unmountSignal;
+    const signal = createFetchSignal(combinedDisconnectSignal);
+
     try {
-      const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(`${serverUrl}/api/collections`, { signal });
-      const allCollections = collectionsData.collections ?? [];
-      const allSets = allCollections.map((collection) => collection.id);
-      if (gen !== fetchGenRef.current || signal.aborted) return;
-      setSets(allSets);
-      setSetDescriptions(
-        Object.fromEntries(
-          allCollections.map((collection) => [collection.id, collection.description ?? '']),
-        ),
+      const tokensData = await apiFetch<{ tokens: DTCGGroup }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`,
+        { signal },
       );
-      setSetTokenCounts(
-        Object.fromEntries(
-          allCollections.map((collection) => [collection.id, collection.tokenCount ?? 0]),
-        ),
-      );
-
-      setFetchError(null);
-
-      if (allSets.length === 0) {
-        if (activeSetRef.current) {
-          internalSetChangeRef.current = true;
-          setActiveSet('');
-        }
-        setTokens([]);
-        setTokenRevision(r => r + 1);
-        return;
-      }
-
-      const current = allSets.includes(activeSetRef.current)
-        ? activeSetRef.current
-        : allSets[0];
-      if (current !== activeSetRef.current) {
-        internalSetChangeRef.current = true;
-        setActiveSet(current);
-      }
-
-      const tokensData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
-      if (gen !== fetchGenRef.current || signal.aborted) return;
-      setTokens(buildTree(tokensData.tokens || {}));
-      setTokenRevision(r => r + 1);
-    } catch (err) {
-      if (isAbortError(err)) return;
-      const isNetworkErr = isNetworkError(err);
-      if (isNetworkErr) onNetworkError?.();
-      else setFetchError(err instanceof Error ? err.message : 'Failed to fetch tokens');
-      console.error('Failed to fetch tokens:', err);
+      if (generation !== fetchGenRef.current || signal.aborted) return;
+      setCurrentCollectionTokens(buildTree(tokensData.tokens || {}));
+      setCollectionRevision((revision) => revision + 1);
+      setCollectionsError(null);
+    } catch (error) {
+      if (isAbortError(error)) return;
+      const networkError = isNetworkError(error);
+      if (networkError) onNetworkError?.();
+      else setCollectionsError(error instanceof Error ? error.message : 'Failed to fetch tokens');
+      console.error('Failed to fetch tokens for collection:', collectionId, error);
     }
   }, [serverUrl, connected, onNetworkError, getDisconnectSignal]);
 
-  useEffect(() => {
-    refreshTokens();
-  }, [refreshTokens]);
+  const applyCollectionStateSnapshot = useCallback((
+    snapshot: CollectionStateSnapshot,
+  ) => {
+    const {
+      collections: nextCollections,
+      collectionTokenCounts: nextCollectionTokenCounts,
+      collectionDescriptions: nextCollectionDescriptions,
+    } = snapshot;
+    setCollections(nextCollections);
+    setCollectionTokenCounts(nextCollectionTokenCounts);
+    setCollectionDescriptions(nextCollectionDescriptions);
+  }, []);
 
-  // Re-fetch when activeSet changes externally (user switches tab).
-  // Skip: initial mount (handled by refreshTokens effect above) and
-  // changes caused by refreshTokens itself (initial set selection).
-  const mountedRef = useRef(false);
+  const syncCollectionSummariesToState = useCallback((
+    collectionSummaries: CollectionSummary[],
+  ) => {
+    applyCollectionStateSnapshot(buildCollectionStateSnapshot(collectionSummaries));
+  }, [applyCollectionStateSnapshot]);
+
+  const refreshCollections = useCallback(async () => {
+    if (!connected) return;
+
+    const generation = ++fetchGenRef.current;
+    const unmountSignal = unmountControllerRef.current.signal;
+    const disconnectSignal = getDisconnectSignal?.();
+    const combinedDisconnectSignal = disconnectSignal ? AbortSignal.any([disconnectSignal, unmountSignal]) : unmountSignal;
+    const signal = createFetchSignal(combinedDisconnectSignal);
+
+    try {
+      const collectionSummaries = await fetchCollectionSummaries(signal);
+      if (generation !== fetchGenRef.current || signal.aborted) return;
+      const snapshot = buildCollectionStateSnapshot(collectionSummaries);
+      const { collections: nextCollections } = snapshot;
+      applyCollectionStateSnapshot(snapshot);
+      setCollectionsError(null);
+
+      if (nextCollections.length === 0) {
+        if (currentCollectionIdRef.current) {
+          internalCollectionChangeRef.current = true;
+          setCurrentCollectionId('');
+        }
+        setCurrentCollectionTokens([]);
+        setCollectionRevision((revision) => revision + 1);
+        return;
+      }
+
+      const nextCurrentCollectionId = nextCollections.some((collection) => collection.id === currentCollectionIdRef.current)
+        ? currentCollectionIdRef.current
+        : nextCollections[0]!.id;
+
+      if (nextCurrentCollectionId !== currentCollectionIdRef.current) {
+        internalCollectionChangeRef.current = true;
+        setCurrentCollectionId(nextCurrentCollectionId);
+      }
+
+      const tokensData = await apiFetch<{ tokens: DTCGGroup }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(nextCurrentCollectionId)}`,
+        { signal },
+      );
+      if (generation !== fetchGenRef.current || signal.aborted) return;
+      setCurrentCollectionTokens(buildTree(tokensData.tokens || {}));
+      setCollectionRevision((revision) => revision + 1);
+    } catch (error) {
+      if (isAbortError(error)) return;
+      const networkError = isNetworkError(error);
+      if (networkError) onNetworkError?.();
+      else setCollectionsError(error instanceof Error ? error.message : 'Failed to fetch collections');
+      console.error('Failed to fetch collections:', error);
+    }
+  }, [
+    connected,
+    fetchCollectionSummaries,
+    getDisconnectSignal,
+    onNetworkError,
+    serverUrl,
+    setCurrentCollectionId,
+    applyCollectionStateSnapshot,
+  ]);
+
+  useEffect(() => {
+    refreshCollections();
+  }, [refreshCollections]);
+
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
       return;
     }
-    if (internalSetChangeRef.current) {
-      internalSetChangeRef.current = false;
+    if (internalCollectionChangeRef.current) {
+      internalCollectionChangeRef.current = false;
       return;
     }
-    refreshTokens();
-  }, [activeSet, refreshTokens]);
+    void fetchTokensForCollection(currentCollectionId);
+  }, [currentCollectionId, fetchTokensForCollection]);
 
-  /** Add a new set to local state without re-fetching from server. */
-  const addSetToState = useCallback((name: string, count = 0) => {
-    setSets(prev => prev.includes(name) ? prev : [...prev, name]);
-    setSetTokenCounts(prev => ({ ...prev, [name]: count }));
-  }, []);
-
-  /** Remove a set from all local state maps without re-fetching. */
-  const removeSetFromState = useCallback((name: string) => {
-    setSets(prev => prev.filter(s => s !== name));
-    setSetTokenCounts(prev => { const next = { ...prev }; delete next[name]; return next; });
-    setSetDescriptions(prev => { const next = { ...prev }; delete next[name]; return next; });
-  }, []);
-
-  /** Rename a set across all local state maps without re-fetching. */
-  const renameSetInState = useCallback((oldName: string, newName: string) => {
-    setSets(prev => prev.map(s => s === oldName ? newName : s));
-    setSetTokenCounts(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName]; delete next[oldName]; } return next; });
-    setSetDescriptions(prev => { const next = { ...prev }; if (oldName in next) { next[newName] = next[oldName] ?? ''; delete next[oldName]; } return next; });
-  }, []);
-
-  /** Update only the metadata fields for a set without re-fetching. */
-  const updateSetMetadataInState = useCallback((name: string, description: string) => {
-    setSetDescriptions(prev => ({ ...prev, [name]: description }));
-  }, []);
-
-  /** Fetch tokens for a specific set without re-fetching the sets list. */
-  const fetchTokensForSet = useCallback(async (setName: string) => {
-    if (!connected) return;
-    if (!setName) {
-      setTokens([]);
-      setTokenRevision(r => r + 1);
-      setFetchError(null);
-      return;
+  const addCollectionToState = useCallback(async (collectionId: string) => {
+    if (!collectionId.trim()) {
+      throw new Error("Collection id is required");
     }
-    const gen = ++fetchGenRef.current;
-    const unmountSig = unmountControllerRef.current.signal;
-    const disconnectSig = getDisconnectSignal?.();
-    const disconnectCombined = disconnectSig ? AbortSignal.any([disconnectSig, unmountSig]) : unmountSig;
-    const signal = createFetchSignal(disconnectCombined);
-    try {
-      const tokensData = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal });
-      if (gen !== fetchGenRef.current || signal.aborted) return;
-      setTokens(buildTree(tokensData.tokens || {}));
-      setTokenRevision(r => r + 1);
-      setFetchError(null);
-    } catch (err) {
-      if (isAbortError(err)) return;
-      const isNetworkErr = isNetworkError(err);
-      if (isNetworkErr) onNetworkError?.();
-      else setFetchError(err instanceof Error ? err.message : 'Failed to fetch tokens');
-      console.error('Failed to fetch tokens for set:', setName, err);
-    }
-  }, [serverUrl, connected, onNetworkError, getDisconnectSignal]);
 
-  return { sets, setSets, activeSet, setActiveSet, tokens, tokenRevision, fetchError, setTokenCounts, setDescriptions, refreshTokens, addSetToState, removeSetFromState, renameSetInState, updateSetMetadataInState, fetchTokensForSet };
+    const collectionSummaries = await fetchCollectionSummaries();
+    const matchingCollection = collectionSummaries.find(
+      (collection) => collection.id === collectionId,
+    );
+    if (!matchingCollection) {
+      throw new Error(`Collection "${collectionId}" was not found after it was created`);
+    }
+
+    syncCollectionSummariesToState(collectionSummaries);
+  }, [fetchCollectionSummaries, syncCollectionSummariesToState]);
+
+  const removeCollectionFromState = useCallback((collectionId: string) => {
+    setCollections((previousCollections) => previousCollections.filter((collection) => collection.id !== collectionId));
+    setCollectionTokenCounts((previousCounts) => {
+      const nextCounts = { ...previousCounts };
+      delete nextCounts[collectionId];
+      return nextCounts;
+    });
+    setCollectionDescriptions((previousDescriptions) => {
+      const nextDescriptions = { ...previousDescriptions };
+      delete nextDescriptions[collectionId];
+      return nextDescriptions;
+    });
+    setSelectedModesState((previousSelectedModes) => {
+      const nextSelectedModes = { ...previousSelectedModes };
+      delete nextSelectedModes[collectionId];
+      lsSetJson(STORAGE_KEYS.SELECTED_MODES, nextSelectedModes);
+      postPluginMessage({ type: 'set-selected-modes', selectedModes: nextSelectedModes });
+      return nextSelectedModes;
+    });
+    setHoverPreviewModes((previousPreviewModes) => {
+      const nextPreviewModes = { ...previousPreviewModes };
+      delete nextPreviewModes[collectionId];
+      return nextPreviewModes;
+    });
+  }, []);
+
+  const renameCollectionInState = useCallback((oldCollectionId: string, newCollectionId: string) => {
+    setCollections((previousCollections) => previousCollections.map((collection) => (
+      collection.id === oldCollectionId
+        ? { ...collection, id: newCollectionId }
+        : collection
+    )));
+    setCollectionTokenCounts((previousCounts) => {
+      const nextCounts = { ...previousCounts };
+      if (oldCollectionId in nextCounts) {
+        nextCounts[newCollectionId] = nextCounts[oldCollectionId];
+        delete nextCounts[oldCollectionId];
+      }
+      return nextCounts;
+    });
+    setCollectionDescriptions((previousDescriptions) => {
+      const nextDescriptions = { ...previousDescriptions };
+      if (oldCollectionId in nextDescriptions) {
+        nextDescriptions[newCollectionId] = nextDescriptions[oldCollectionId] ?? '';
+        delete nextDescriptions[oldCollectionId];
+      }
+      return nextDescriptions;
+    });
+    setSelectedModesState((previousSelectedModes) => {
+      const nextSelectedModes = { ...previousSelectedModes };
+      if (oldCollectionId in nextSelectedModes) {
+        nextSelectedModes[newCollectionId] = nextSelectedModes[oldCollectionId];
+        delete nextSelectedModes[oldCollectionId];
+      }
+      lsSetJson(STORAGE_KEYS.SELECTED_MODES, nextSelectedModes);
+      postPluginMessage({ type: 'set-selected-modes', selectedModes: nextSelectedModes });
+      return nextSelectedModes;
+    });
+    setHoverPreviewModes((previousPreviewModes) => {
+      const nextPreviewModes = { ...previousPreviewModes };
+      if (oldCollectionId in nextPreviewModes) {
+        nextPreviewModes[newCollectionId] = nextPreviewModes[oldCollectionId];
+        delete nextPreviewModes[oldCollectionId];
+      }
+      return nextPreviewModes;
+    });
+  }, []);
+
+  const updateCollectionMetadataInState = useCallback((collectionId: string, description: string) => {
+    setCollectionDescriptions((previousDescriptions) => ({ ...previousDescriptions, [collectionId]: description }));
+  }, []);
+
+  return {
+    collections,
+    setCollections,
+    currentCollectionId,
+    setCurrentCollectionId,
+    currentCollectionTokens,
+    collectionRevision,
+    collectionTokenCounts,
+    collectionDescriptions,
+    selectedModes,
+    setSelectedModes,
+    hoverPreviewModes,
+    setHoverPreviewModes,
+    collectionsError,
+    refreshCollections,
+    syncCollectionSummariesToState,
+    addCollectionToState,
+    removeCollectionFromState,
+    renameCollectionInState,
+    updateCollectionMetadataInState,
+    fetchTokensForCollection,
+  };
 }
 
-async function fetchAllSets(serverUrl: string, signal?: AbortSignal): Promise<{
+async function fetchAllCollections(serverUrl: string, signal?: AbortSignal): Promise<{
   flat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
-  perSetFlat: Record<string, Record<string, TokenMapEntry>>;
+  pathToCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
   const baseSignal = signal
     ? AbortSignal.any([AbortSignal.timeout(5000), signal])
     : AbortSignal.timeout(5000);
   const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(`${serverUrl}/api/collections`, { signal: baseSignal });
-  const setNames: string[] = (collectionsData.collections ?? []).map((collection) => collection.id);
+  const collectionIds = (collectionsData.collections ?? []).map((collection) => collection.id);
 
   const results = await Promise.allSettled(
-    setNames.map(async (setName) => {
-      const perSetSignal = signal
+    collectionIds.map(async (collectionId) => {
+      const perCollectionSignal = signal
         ? AbortSignal.any([AbortSignal.timeout(5000), signal])
         : AbortSignal.timeout(5000);
-      const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: perSetSignal });
-      return { setName, tokens: data.tokens || {} };
-    })
+      const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`, { signal: perCollectionSignal });
+      return { collectionId, tokens: data.tokens || {} };
+    }),
   );
 
   const failed: string[] = [];
   const flat: Record<string, TokenMapEntry> = {};
-  const pathToSet: Record<string, string> = {};
-  const perSetFlat: Record<string, Record<string, TokenMapEntry>> = {};
+  const pathToCollectionId: Record<string, string> = {};
+  const perCollectionFlat: Record<string, Record<string, TokenMapEntry>> = {};
 
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
+  for (let index = 0; index < results.length; index++) {
+    const result = results[index];
     if (result.status === 'rejected') {
-      failed.push(setNames[i]);
-      console.error(`Failed to fetch token set "${setNames[i]}":`, result.reason);
-    } else {
-      const { setName, tokens } = result.value;
-      const setMap: Record<string, TokenMapEntry> = {};
-      for (const [path, entry] of flattenWithNames(tokens)) {
-        setMap[path] = entry;
-        flat[path] = entry;
-        if (!(path in pathToSet)) pathToSet[path] = setName; // first set wins
-      }
-      perSetFlat[setName] = setMap;
+      failed.push(collectionIds[index]);
+      console.error(`Failed to fetch token collection "${collectionIds[index]}":`, result.reason);
+      continue;
     }
+
+    const { collectionId, tokens } = result.value;
+    const collectionMap: Record<string, TokenMapEntry> = {};
+    for (const [path, entry] of flattenWithNames(tokens)) {
+      collectionMap[path] = entry;
+      flat[path] = entry;
+      if (!(path in pathToCollectionId)) pathToCollectionId[path] = collectionId;
+    }
+    perCollectionFlat[collectionId] = collectionMap;
   }
 
   if (failed.length > 0) {
-    throw new Error(`Failed to fetch token set${failed.length > 1 ? 's' : ''}: ${failed.join(', ')}`);
+    throw new Error(`Failed to fetch token collection${failed.length > 1 ? 's' : ''}: ${failed.join(', ')}`);
   }
 
-  return { flat, pathToSet, perSetFlat };
+  return { flat, pathToCollectionId, perCollectionFlat };
 }
 
 export async function fetchAllTokensFlat(serverUrl: string, signal?: AbortSignal): Promise<Record<string, TokenMapEntry>> {
-  return (await fetchAllSets(serverUrl, signal)).flat;
+  return (await fetchAllCollections(serverUrl, signal)).flat;
 }
 
-export async function fetchAllTokensFlatWithSets(serverUrl: string, signal?: AbortSignal): Promise<{
+export async function fetchAllTokensFlatWithCollections(serverUrl: string, signal?: AbortSignal): Promise<{
   flat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
-  perSetFlat: Record<string, Record<string, TokenMapEntry>>;
+  pathToCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
-  return fetchAllSets(serverUrl, signal);
+  return fetchAllCollections(serverUrl, signal);
 }
-
 
 function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
   const nodes: TokenNode[] = [];
@@ -305,20 +512,20 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
         isGroup: false,
       });
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const grp = value as import('@tokenmanager/core').DTCGGroup;
-      const rawScopes = grp.$extensions?.['com.figma.scopes'];
-      const tokenManager = grp.$extensions?.['tokenmanager'] as Record<string, unknown> | undefined;
+      const tokenGroup = value as import('@tokenmanager/core').DTCGGroup;
+      const rawScopes = tokenGroup.$extensions?.['com.figma.scopes'];
+      const tokenManager = tokenGroup.$extensions?.['tokenmanager'] as Record<string, unknown> | undefined;
       const lifecycle = tokenManager?.lifecycle;
       nodes.push({
         path,
         name: key,
-        $type: grp.$type,
-        $description: grp.$description,
-        $extensions: grp.$extensions,
+        $type: tokenGroup.$type,
+        $description: tokenGroup.$description,
+        $extensions: tokenGroup.$extensions,
         $scopes: Array.isArray(rawScopes) ? rawScopes.filter((scope): scope is string => typeof scope === 'string') : undefined,
         $lifecycle: lifecycle === 'draft' || lifecycle === 'deprecated' || lifecycle === 'published' ? lifecycle : undefined,
         isGroup: true,
-        children: buildTree(grp, path),
+        children: buildTree(tokenGroup, path),
       });
     }
   }

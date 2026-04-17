@@ -10,8 +10,8 @@ import type { VariableDiffPendingState } from "../../shared/tokenListModalTypes"
  * Extracted to keep the main TokenList orchestrator small.
  */
 export function useTokenListModalContext(deps: {
-  setName: string;
-  sets: string[];
+  collectionId: string;
+  collectionIds: string[];
   allTokensFlat: Record<string, TokenMapEntry>;
   connected: boolean;
   deleteConfirm: DeleteConfirm | null;
@@ -39,8 +39,8 @@ export function useTokenListModalContext(deps: {
   setExtractMode: (v: any) => void;
   newPrimitivePath: string;
   setNewPrimitivePath: (v: string) => void;
-  newPrimitiveSet: string;
-  setNewPrimitiveSet: (v: string) => void;
+  newPrimitiveCollectionId: string;
+  setNewPrimitiveCollectionId: (v: string) => void;
   existingAlias: string;
   setExistingAlias: (v: string) => void;
   existingAliasSearch: string;
@@ -82,10 +82,10 @@ export function useTokenListModalContext(deps: {
   handleConfirmPromote: () => void;
   movingToken: string | null;
   movingGroup: string | null;
-  moveGroupTargetSet: string;
-  moveTokenTargetSet: string;
-  setMoveGroupTargetSet: (v: string) => void;
-  handleChangeMoveTokenTargetSet: (v: string) => void;
+  moveGroupTargetCollectionId: string;
+  moveTokenTargetCollectionId: string;
+  setMoveGroupTargetCollectionId: (v: string) => void;
+  handleChangeMoveTokenTargetCollection: (v: string) => void;
   setMovingToken: (v: string | null) => void;
   setMovingGroup: (v: string | null) => void;
   handleConfirmMoveToken: () => void;
@@ -97,10 +97,10 @@ export function useTokenListModalContext(deps: {
   setMoveConflictNewPath: (v: string) => void;
   copyingToken: string | null;
   copyingGroup: string | null;
-  copyGroupTargetSet: string;
-  copyTokenTargetSet: string;
-  setCopyGroupTargetSet: (v: string) => void;
-  handleChangeCopyTokenTargetSet: (v: string) => void;
+  copyGroupTargetCollectionId: string;
+  copyTokenTargetCollectionId: string;
+  setCopyGroupTargetCollectionId: (v: string) => void;
+  handleChangeCopyTokenTargetCollection: (v: string) => void;
   setCopyingToken: (v: string | null) => void;
   setCopyingGroup: (v: string | null) => void;
   handleConfirmCopyToken: () => void;
@@ -118,21 +118,21 @@ export function useTokenListModalContext(deps: {
   setMoveToGroupTarget: (v: string) => void;
   setMoveToGroupError: (v: string) => void;
   handleBatchMoveToGroup: () => void;
-  showBatchMoveToSet: boolean;
-  batchMoveToSetTarget: string;
-  setBatchMoveToSetTarget: (v: string) => void;
-  setShowBatchMoveToSet: (v: boolean) => void;
-  handleBatchMoveToSet: () => void;
-  showBatchCopyToSet: boolean;
-  batchCopyToSetTarget: string;
-  setBatchCopyToSetTarget: (v: string) => void;
-  setShowBatchCopyToSet: (v: boolean) => void;
-  handleBatchCopyToSet: () => void;
+  showBatchMoveToCollection: boolean;
+  batchMoveToCollectionTarget: string;
+  setBatchMoveToCollectionTarget: (v: string) => void;
+  setShowBatchMoveToCollection: (v: boolean) => void;
+  handleBatchMoveToCollection: () => void;
+  showBatchCopyToCollection: boolean;
+  batchCopyToCollectionTarget: string;
+  setBatchCopyToCollectionTarget: (v: string) => void;
+  setShowBatchCopyToCollection: (v: boolean) => void;
+  handleBatchCopyToCollection: () => void;
 }): TokenListModalsState {
   return useMemo<TokenListModalsState>(
     () => ({
-      setName: deps.setName,
-      sets: deps.sets,
+      collectionId: deps.collectionId,
+      collectionIds: deps.collectionIds,
       allTokensFlat: deps.allTokensFlat,
       connected: deps.connected,
       deleteConfirm: deps.deleteConfirm,
@@ -160,8 +160,8 @@ export function useTokenListModalContext(deps: {
       onSetExtractMode: deps.setExtractMode,
       newPrimitivePath: deps.newPrimitivePath,
       onSetNewPrimitivePath: deps.setNewPrimitivePath,
-      newPrimitiveSet: deps.newPrimitiveSet,
-      onSetNewPrimitiveSet: deps.setNewPrimitiveSet,
+      newPrimitiveCollectionId: deps.newPrimitiveCollectionId,
+      onSetNewPrimitiveCollectionId: deps.setNewPrimitiveCollectionId,
       existingAlias: deps.existingAlias,
       onSetExistingAlias: deps.setExistingAlias,
       existingAliasSearch: deps.existingAliasSearch,
@@ -203,12 +203,12 @@ export function useTokenListModalContext(deps: {
       handleConfirmPromote: deps.handleConfirmPromote,
       movingToken: deps.movingToken,
       movingGroup: deps.movingGroup,
-      moveTargetSet: deps.movingGroup
-        ? deps.moveGroupTargetSet
-        : deps.moveTokenTargetSet,
-      onSetMoveTargetSet: deps.movingGroup
-        ? deps.setMoveGroupTargetSet
-        : deps.handleChangeMoveTokenTargetSet,
+      moveTargetCollectionId: deps.movingGroup
+        ? deps.moveGroupTargetCollectionId
+        : deps.moveTokenTargetCollectionId,
+      onSetMoveTargetCollectionId: deps.movingGroup
+        ? deps.setMoveGroupTargetCollectionId
+        : deps.handleChangeMoveTokenTargetCollection,
       onSetMovingToken: deps.setMovingToken,
       onSetMovingGroup: deps.setMovingGroup,
       handleConfirmMoveToken: deps.handleConfirmMoveToken,
@@ -223,12 +223,12 @@ export function useTokenListModalContext(deps: {
         : null,
       copyingToken: deps.copyingToken,
       copyingGroup: deps.copyingGroup,
-      copyTargetSet: deps.copyingGroup
-        ? deps.copyGroupTargetSet
-        : deps.copyTokenTargetSet,
-      onSetCopyTargetSet: deps.copyingGroup
-        ? deps.setCopyGroupTargetSet
-        : deps.handleChangeCopyTokenTargetSet,
+      copyTargetCollectionId: deps.copyingGroup
+        ? deps.copyGroupTargetCollectionId
+        : deps.copyTokenTargetCollectionId,
+      onSetCopyTargetCollectionId: deps.copyingGroup
+        ? deps.setCopyGroupTargetCollectionId
+        : deps.handleChangeCopyTokenTargetCollection,
       onSetCopyingToken: deps.setCopyingToken,
       onSetCopyingGroup: deps.setCopyingGroup,
       handleConfirmCopyToken: deps.handleConfirmCopyToken,
@@ -249,18 +249,17 @@ export function useTokenListModalContext(deps: {
       onSetMoveToGroupTarget: deps.setMoveToGroupTarget,
       onSetMoveToGroupError: deps.setMoveToGroupError,
       handleBatchMoveToGroup: deps.handleBatchMoveToGroup,
-      showBatchMoveToSet: deps.showBatchMoveToSet,
-      batchMoveToSetTarget: deps.batchMoveToSetTarget,
-      onSetBatchMoveToSetTarget: deps.setBatchMoveToSetTarget,
-      onSetShowBatchMoveToSet: deps.setShowBatchMoveToSet,
-      handleBatchMoveToSet: deps.handleBatchMoveToSet,
-      showBatchCopyToSet: deps.showBatchCopyToSet,
-      batchCopyToSetTarget: deps.batchCopyToSetTarget,
-      onSetBatchCopyToSetTarget: deps.setBatchCopyToSetTarget,
-      onSetShowBatchCopyToSet: deps.setShowBatchCopyToSet,
-      handleBatchCopyToSet: deps.handleBatchCopyToSet,
+      showBatchMoveToCollection: deps.showBatchMoveToCollection,
+      batchMoveToCollectionTarget: deps.batchMoveToCollectionTarget,
+      onSetBatchMoveToCollectionTarget: deps.setBatchMoveToCollectionTarget,
+      onSetShowBatchMoveToCollection: deps.setShowBatchMoveToCollection,
+      handleBatchMoveToCollection: deps.handleBatchMoveToCollection,
+      showBatchCopyToCollection: deps.showBatchCopyToCollection,
+      batchCopyToCollectionTarget: deps.batchCopyToCollectionTarget,
+      onSetBatchCopyToCollectionTarget: deps.setBatchCopyToCollectionTarget,
+      onSetShowBatchCopyToCollection: deps.setShowBatchCopyToCollection,
+      handleBatchCopyToCollection: deps.handleBatchCopyToCollection,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps object is reconstructed each render; individual fields tracked via object identity
     [deps],
   );
 }

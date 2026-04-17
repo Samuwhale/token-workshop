@@ -127,8 +127,8 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'remove-binding-from-node':   [['nodeId', 'string'], ['property', 'string']],
   'get-available-fonts':        [],
   'eyedropper':                 [],
-  'get-active-themes':          [],
-  'set-active-themes':          [['themes', 'object']],
+  'get-selected-modes':         [],
+  'set-selected-modes':         [['selectedModes', 'object']],
   'revert-variables':           [['varSnapshot', 'object']],
   'revert-styles':              [['styleSnapshot', 'object']],
   'cancel-scan':                [],
@@ -174,8 +174,8 @@ function validateVarSnapshot(v: unknown): string | null {
     if (typeof pd.tokenPath !== 'string') {
       return `varSnapshot.records["${varId}"].pluginData.tokenPath must be a string`;
     }
-    if (typeof pd.tokenSet !== 'string') {
-      return `varSnapshot.records["${varId}"].pluginData.tokenSet must be a string`;
+    if (typeof pd.tokenCollection !== 'string') {
+      return `varSnapshot.records["${varId}"].pluginData.tokenCollection must be a string`;
     }
   }
 
@@ -586,26 +586,26 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         reportError('eyedropper', e);
       }
       break;
-    case 'get-active-themes': {
+    case 'get-selected-modes': {
       try {
-        const key = `active-themes:${figma.fileKey ?? 'default'}`;
-        const themes = await figma.clientStorage.getAsync(key);
-        figma.ui.postMessage({ type: 'active-themes-loaded', themes: themes ?? {} });
+        const key = `selected-modes:${figma.fileKey ?? 'default'}`;
+        const selectedModes = await figma.clientStorage.getAsync(key);
+        figma.ui.postMessage({ type: 'selected-modes-loaded', selectedModes: selectedModes ?? {} });
       } catch (e) {
-        reportError('get-active-themes', e);
+        reportError('get-selected-modes', e);
       }
       break;
     }
-    case 'set-active-themes': {
+    case 'set-selected-modes': {
       try {
-        const key = `active-themes:${figma.fileKey ?? 'default'}`;
-        if (msg.themes && Object.keys(msg.themes).length > 0) {
-          await figma.clientStorage.setAsync(key, msg.themes);
+        const key = `selected-modes:${figma.fileKey ?? 'default'}`;
+        if (msg.selectedModes && Object.keys(msg.selectedModes).length > 0) {
+          await figma.clientStorage.setAsync(key, msg.selectedModes);
         } else {
           await figma.clientStorage.deleteAsync(key);
         }
       } catch (e) {
-        reportError('set-active-themes', e);
+        reportError('set-selected-modes', e);
       }
       break;
     }

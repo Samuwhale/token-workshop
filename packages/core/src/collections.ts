@@ -59,8 +59,7 @@ function normalizeSerializedTokenCollection(
   }
 
   const id = typeof value.id === "string" ? value.id.trim() : "";
-  const name = typeof value.name === "string" ? value.name.trim() : "";
-  if (!id || !name) {
+  if (!id) {
     return null;
   }
 
@@ -76,7 +75,6 @@ function normalizeSerializedTokenCollection(
 
   return {
     id,
-    name,
     ...(description ? { description } : {}),
     ...(publishRouting ? { publishRouting } : {}),
     modes,
@@ -207,7 +205,7 @@ export function buildSelectedModesLabel(
   return collections
     .map((collection) => {
       const modeName = selections[collection.id];
-      return modeName ? `${collection.name} · ${modeName}` : null;
+      return modeName ? `${collection.id} · ${modeName}` : null;
     })
     .filter(Boolean)
     .join(" · ");
@@ -242,7 +240,6 @@ export function deserializeTokenCollections(
 ): TokenCollection[] {
   return collections.map((collection) => ({
     id: collection.id,
-    name: collection.name,
     ...(collection.description ? { description: collection.description } : {}),
     ...(collection.publishRouting
       ? { publishRouting: { ...collection.publishRouting } }
@@ -256,7 +253,6 @@ export function serializeTokenCollections(
 ): SerializedTokenCollection[] {
   return collections.map((collection) => ({
     id: collection.id,
-    name: collection.name,
     ...(collection.description ? { description: collection.description } : {}),
     ...(collection.publishRouting
       ? { publishRouting: { ...collection.publishRouting } }

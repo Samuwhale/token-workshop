@@ -28,8 +28,8 @@ export interface TokenRecipeDialogProps {
   sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
-  allSets: string[];
-  activeSet: string;
+  collectionIds: string[];
+  currentCollectionId: string;
   /** All tokens flat map for source token autocomplete and config field tokenRefs */
   allTokensFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
   existingRecipe?: TokenRecipe;
@@ -51,7 +51,7 @@ export interface TokenRecipeDialogProps {
     info: RecipeSaveSuccessInfo,
   ) => ToastAction | undefined;
   /** Token path → set name for autocomplete display */
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   /** Push an undo slot after a successful recipe save */
   onPushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
   /** When set to panel, render without the modal backdrop/chrome so the caller can host it in a drawer or side panel. */
@@ -102,8 +102,8 @@ export function TokenRecipeDialog({
   sourceTokenName,
   sourceTokenType,
   sourceTokenValue,
-  allSets,
-  activeSet,
+  collectionIds,
+  currentCollectionId,
   allTokensFlat,
   existingRecipe,
   initialDraft,
@@ -113,7 +113,7 @@ export function TokenRecipeDialog({
   onSaved,
   onInterceptSemanticMapping,
   getSuccessToastAction,
-  pathToSet,
+  pathToCollectionId,
   onPushUndo,
   presentation = "modal",
   editorSessionHost,
@@ -124,7 +124,7 @@ export function TokenRecipeDialog({
     sourceTokenName,
     sourceTokenType,
     sourceTokenValue,
-    activeSet,
+    currentCollectionId,
     existingRecipe,
     template,
     initialDraft,
@@ -155,7 +155,7 @@ export function TokenRecipeDialog({
     name: dialog.name,
     targetCollection: dialog.targetCollection,
     targetGroup: dialog.targetGroup,
-    allSets,
+    collectionIds,
     isMultiBrand: dialog.isMultiBrand,
     targetCollectionTemplate: dialog.targetCollectionTemplate,
     onNameChange: dialog.handleNameChange,
@@ -428,7 +428,7 @@ export function TokenRecipeDialog({
                   selectedType={dialog.selectedType}
                   recommendedType={dialog.recommendedType}
                   connected
-                  activeSet={activeSet}
+                  currentCollectionId={currentCollectionId}
                   sourceTokenPath={sourceTokenPath}
                   sourceTokenName={sourceTokenName}
                   sourceTokenType={sourceTokenType}
@@ -478,7 +478,7 @@ export function TokenRecipeDialog({
                   lockedCount={dialog.lockedCount}
                   overwrittenEntries={dialog.overwrittenEntries}
                   allTokensFlat={allTokensFlat}
-                  pathToSet={pathToSet}
+                  pathToCollectionId={pathToCollectionId}
                   canUndo={dialog.canUndo}
                   canRedo={dialog.canRedo}
                   onUndo={dialog.handleUndo}

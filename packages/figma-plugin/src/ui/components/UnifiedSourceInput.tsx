@@ -36,7 +36,7 @@ export interface UnifiedSourceInputProps {
   /** All tokens for the picker. */
   allTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token path → set name. */
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   /** Called when the user picks or changes the source token path. */
   onSourcePathChange: (path: string) => void;
   /** Called when the user enters/changes an inline value. */
@@ -54,7 +54,7 @@ export function UnifiedSourceInput({
   inlineValue,
   isMultiBrand,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   onSourcePathChange,
   onInlineValueChange,
 }: UnifiedSourceInputProps) {
@@ -133,7 +133,7 @@ export function UnifiedSourceInput({
           <TokenPickerField
             value={sourceTokenPath || undefined}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             filterType={filterType}
             placeholder={
               filterType === 'color'

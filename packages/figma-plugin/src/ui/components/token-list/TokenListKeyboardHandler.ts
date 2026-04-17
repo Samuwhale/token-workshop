@@ -22,8 +22,8 @@ interface KeyboardHandlerConfig {
   lastSelectedPathRef: MutableRefObject<string | null>;
   searchRef: MutableRefObject<HTMLInputElement | null>;
   virtualListRef: MutableRefObject<HTMLDivElement | null>;
-  sets: string[];
-  setName: string;
+  collectionIds: string[];
+  collectionId: string;
 
   // Actions
   setSelectMode: (v: boolean) => void;
@@ -31,10 +31,10 @@ interface KeyboardHandlerConfig {
   setShowBatchEditor: React.Dispatch<React.SetStateAction<boolean>>;
   setZoomRootPath: (v: string | null) => void;
   setVirtualScrollTop: (v: number) => void;
-  setBatchMoveToSetTarget: (v: string) => void;
-  setShowBatchMoveToSet: (v: boolean) => void;
-  setBatchCopyToSetTarget: (v: string) => void;
-  setShowBatchCopyToSet: (v: boolean) => void;
+  setBatchMoveToCollectionTarget: (v: string) => void;
+  setShowBatchMoveToCollection: (v: boolean) => void;
+  setBatchCopyToCollectionTarget: (v: string) => void;
+  setShowBatchCopyToCollection: (v: boolean) => void;
   handleOpenCreateSibling: (groupPath: string, tokenType: string) => void;
   onCreateNew?: (initialPath?: string) => void;
   handleToggleExpand: (path: string) => void;
@@ -66,17 +66,17 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
     lastSelectedPathRef,
     searchRef,
     virtualListRef,
-    sets,
-    setName,
+    collectionIds,
+    collectionId,
     setSelectMode,
     setSelectedPaths,
     setShowBatchEditor,
     setZoomRootPath,
     setVirtualScrollTop,
-    setBatchMoveToSetTarget,
-    setShowBatchMoveToSet,
-    setBatchCopyToSetTarget,
-    setShowBatchCopyToSet,
+    setBatchMoveToCollectionTarget,
+    setShowBatchMoveToCollection,
+    setBatchCopyToCollectionTarget,
+    setShowBatchCopyToCollection,
     handleOpenCreateSibling,
     onCreateNew,
     handleToggleExpand,
@@ -258,8 +258,8 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         selectedPaths.size > 0
       ) {
         e.preventDefault();
-        setBatchMoveToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
-        setShowBatchMoveToSet(true);
+        setBatchMoveToCollectionTarget(collectionIds.filter((s) => s !== collectionId)[0] ?? "");
+        setShowBatchMoveToCollection(true);
         return;
       }
 
@@ -270,8 +270,8 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         selectedPaths.size > 0
       ) {
         e.preventDefault();
-        setBatchCopyToSetTarget(sets.filter((s) => s !== setName)[0] ?? "");
-        setShowBatchCopyToSet(true);
+        setBatchCopyToCollectionTarget(collectionIds.filter((s) => s !== collectionId)[0] ?? "");
+        setShowBatchCopyToCollection(true);
         return;
       }
 
@@ -514,12 +514,12 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       sortOrder,
       connected,
       requestBulkDeleteFromHook,
-      sets,
-      setName,
-      setBatchMoveToSetTarget,
-      setShowBatchMoveToSet,
-      setBatchCopyToSetTarget,
-      setShowBatchCopyToSet,
+      collectionIds,
+      collectionId,
+      setBatchMoveToCollectionTarget,
+      setShowBatchMoveToCollection,
+      setBatchCopyToCollectionTarget,
+      setShowBatchCopyToCollection,
       editingTokenPath,
       handleTokenSelect,
       lastSelectedPathRef,

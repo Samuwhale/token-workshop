@@ -29,10 +29,10 @@ type GroupPending = { groupPath: string; tokenCount: number };
 export function useFigmaSync(
   serverUrl: string,
   connected: boolean,
-  pathToSet: Record<string, string>,
+  pathToCollectionId: Record<string, string>,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
-  activeSet: string,
+  currentCollectionId: string,
 ) {
   const varFlow = useSyncFlow<GroupPending>();
   const styleFlow = useSyncFlow<GroupPending>();
@@ -119,7 +119,7 @@ export function useFigmaSync(
     setProgress: (v: { current: number; total: number } | null) => void;
     setError: (v: string | null) => void;
     sendApply: (type: string, payload: Record<string, any>) => Promise<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }>;
-    buildPayload: (tokens: { path: string; $type: string; $value: any; setName?: string }[]) => Record<string, any>;
+    buildPayload: (tokens: { path: string; $type: string; $value: any; collectionId?: string }[]) => Record<string, any>;
     successMsg: (count: number, skippedCount: number) => string;
     entityName: string;
   }) => {
@@ -133,10 +133,10 @@ export function useFigmaSync(
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
-      const tokens: { path: string; $type: string; $value: any; setName?: string }[] = [];
+      const tokens: { path: string; $type: string; $value: any; collectionId?: string }[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
         if (path === saved.groupPath || path.startsWith(prefix)) {
-          tokens.push({ path, $type: entry.$type, $value: entry.$value, setName: pathToSet[path] });
+          tokens.push({ path, $type: entry.$type, $value: entry.$value, collectionId: pathToCollectionId[path] });
         }
       }
       const result = await sendApply('', buildPayload(tokens));
@@ -158,7 +158,7 @@ export function useFigmaSync(
         setProgress(null);
       }
     }
-  }, [connected, serverUrl, pathToSet]);
+  }, [connected, serverUrl, pathToCollectionId]);
 
   const handleSyncGroup = useCallback(async () => {
     await syncGroupBase({
@@ -212,7 +212,7 @@ export function useFigmaSync(
     setGroupScopesApplying(true);
     setGroupScopesError(null);
     try {
-      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`, { signal });
+      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}`, { signal });
       const prefix = groupScopesPath + '.';
       const tokenPaths: string[] = [];
       const walk = (group: Record<string, any>, p: string) => {
@@ -236,7 +236,7 @@ export function useFigmaSync(
       for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
         const batch = tokenPaths.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async path => {
-          await updateToken(serverUrl, activeSet, path, createTokenBody({
+          await updateToken(serverUrl, currentCollectionId, path, createTokenBody({
             $extensions: { 'com.figma.scopes': groupScopesSelected },
           }), { signal });
         }));
@@ -255,7 +255,7 @@ export function useFigmaSync(
         setGroupScopesProgress(null);
       }
     }
-  }, [groupScopesPath, groupScopesSelected, connected, serverUrl, activeSet]);
+  }, [groupScopesPath, groupScopesSelected, connected, serverUrl, currentCollectionId]);
 
   return {
     syncGroupPending,

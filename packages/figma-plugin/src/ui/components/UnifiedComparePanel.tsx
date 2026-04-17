@@ -25,16 +25,16 @@ export interface UnifiedComparePanelProps {
 
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  pathToStorageSet: Record<string, string>;
+  pathToStorageCollectionId: Record<string, string>;
   collections: TokenCollection[];
-  sets: string[];
+  collectionIds: string[];
 
   modeOptionsKey: number;
   modeOptionsDefaultA: string;
   modeOptionsDefaultB: string;
 
-  onEditToken: (set: string, path: string) => void;
-  onCreateToken: (path: string, set: string, type: string, value?: string) => void;
+  onEditToken: (collectionId: string, path: string) => void;
+  onCreateToken: (path: string, collectionId: string, type: string, value?: string) => void;
 
   onGoToTokens: () => void;
 

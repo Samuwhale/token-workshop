@@ -36,7 +36,7 @@ export function useTokenWhereIs({ serverUrl }: UseTokenWhereIsParams) {
       setWhereIsLoading(false);
     }).catch(err => {
       if (isAbortError(err)) return;
-      console.error('[useTokenWhereIs] Find in all sets failed:', err);
+      console.error('[useTokenWhereIs] Find across all collections failed:', err);
       setWhereIsLoading(false);
       setWhereIsResults([]);
     });

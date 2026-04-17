@@ -15,14 +15,14 @@ const DEBOUNCE_MS = 800;
 
 export function useLint(
   serverUrl: string,
-  setName: string,
+  collectionId: string,
   connected: boolean,
   refreshKey: number,
 ): LintViolation[] {
   const [violations, setViolations] = useState<LintViolation[]>([]);
 
   useEffect(() => {
-    if (!connected || !setName) {
+    if (!connected || !collectionId) {
       setViolations([]);
       return;
     }
@@ -32,7 +32,7 @@ export function useLint(
         const data = await apiFetch<{ violations: LintViolation[] }>(`${serverUrl}/api/tokens/lint`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ collectionId: setName }),
+          body: JSON.stringify({ collectionId: collectionId }),
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
         });
         setViolations(data.violations ?? []);
@@ -43,7 +43,7 @@ export function useLint(
     }, DEBOUNCE_MS);
 
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [serverUrl, setName, connected, refreshKey]);
+  }, [serverUrl, collectionId, connected, refreshKey]);
 
   return violations;
 }

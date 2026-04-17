@@ -10,7 +10,7 @@ import {
 import { flattenTokenGroup, type DTCGGroup } from "@tokenmanager/core";
 import {
   type CollectionData,
-  defaultSetName,
+  defaultCollectionName,
   modeKey,
   type ImportSource as ImportSourceKind,
   type ImportToken,
@@ -18,7 +18,7 @@ import {
   type SourceFamily,
 } from "./importPanelTypes";
 import type { SkippedEntry } from "../shared/tokenParsers";
-import { useImportSets } from "../hooks/useImportSets";
+import { useImportCollections } from "../hooks/useImportCollections";
 import {
   useImportSource,
   type FileImportValidation,
@@ -27,7 +27,7 @@ import type { UndoSlot } from "../hooks/useUndo";
 import { copyToClipboard } from "../shared/comparisonUtils";
 import { apiFetch, ApiError } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
-import { getErrorMessage, SET_NAME_RE } from "../shared/utils";
+import { getErrorMessage, COLLECTION_NAME_RE } from "../shared/utils";
 import {
   getImportResultNextStepRecommendations,
   type ImportNextStepRecommendation,
@@ -55,7 +55,7 @@ export interface ImportReviewActionCopy {
 }
 
 export interface ImportFailureGroup {
-  setName: string;
+  collectionId: string;
   paths: string[];
 }
 
@@ -69,13 +69,13 @@ export interface LastImportReviewSummary {
 
 export interface ImportRollbackOperation {
   operationId: string;
-  setName: string;
+  collectionId: string;
   changedPaths: string[];
 }
 
 export interface VariableConflictDetail {
   path: string;
-  setName: string;
+  collectionId: string;
   existing: { $type: string; $value: unknown };
   incoming: ImportToken;
   kind: "existing" | "incoming-duplicate";
@@ -87,7 +87,7 @@ export interface VariableConflictDetail {
 export interface ImportCompletionResult {
   sourceType: ImportSourceKind;
   sourceFamily: SourceFamily;
-  destinationSets: string[];
+  destinationCollectionIds: string[];
   newCount: number;
   overwriteCount: number;
   mergeCount: number;
@@ -104,7 +104,7 @@ export interface CollectionModeDestinationStatus {
 
 type ExistingTokenValue = { $type: string; $value: unknown };
 type ConflictDecision = "accept" | "merge" | "reject";
-type ImportBatch = { setName: string; tokens: Record<string, unknown>[] };
+type ImportBatch = { collectionId: string; tokens: Record<string, unknown>[] };
 type ImportHistory = { operations: ImportRollbackOperation[] };
 type ImportStrategy = "overwrite" | "skip" | "merge";
 type ImportSource = ImportSourceKind | null;
@@ -114,7 +114,7 @@ type CollectionImportTokenSource = {
   token: ImportToken;
 };
 type CollectionImportPlan = {
-  setName: string;
+  collectionId: string;
   writeTokens: CollectionImportTokenSource[];
   duplicateConflicts: {
     path: string;
@@ -168,13 +168,13 @@ export interface ImportSourceContextValue {
 }
 
 export interface ImportDestinationContextValue {
-  targetSet: string;
-  sets: string[];
-  setsError: string | null;
-  newSetInputVisible: boolean;
-  newSetDraft: string;
-  newSetError: string | null;
-  modeSetNames: Record<string, string>;
+  targetCollectionId: string;
+  collectionIds: string[];
+  collectionsError: string | null;
+  newCollectionInputVisible: boolean;
+  newCollectionDraft: string;
+  newCollectionError: string | null;
+  modeCollectionNames: Record<string, string>;
   modeEnabled: Record<string, boolean>;
   collectionModeDestinationStatus: Record<
     string,
@@ -182,21 +182,25 @@ export interface ImportDestinationContextValue {
   >;
   hasAmbiguousCollectionImport: boolean;
   ambiguousCollectionImportCount: number;
-  totalEnabledSets: number;
+  totalEnabledCollections: number;
   totalEnabledTokens: number;
   usesCollectionDestination: boolean;
   destinationReady: boolean;
   canContinueToPreview: boolean;
-  hasInvalidModeSetNames: boolean;
-  setNewSetInputVisible: React.Dispatch<React.SetStateAction<boolean>>;
-  setNewSetDraft: React.Dispatch<React.SetStateAction<string>>;
-  setNewSetError: React.Dispatch<React.SetStateAction<string | null>>;
-  setModeSetNames: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  hasInvalidModeCollectionNames: boolean;
+  setNewCollectionInputVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  setNewCollectionDraft: React.Dispatch<React.SetStateAction<string>>;
+  setNewCollectionError: React.Dispatch<
+    React.SetStateAction<string | null>
+  >;
+  setModeCollectionNames: React.Dispatch<
+    React.SetStateAction<Record<string, string>>
+  >;
   setModeEnabled: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  commitNewSet: () => void;
-  cancelNewSet: () => void;
-  setTargetSetAndPersist: (name: string) => void;
-  fetchSets: () => Promise<void>;
+  commitNewCollection: () => void;
+  cancelNewCollection: () => void;
+  setTargetCollectionIdAndPersist: (name: string) => void;
+  fetchCollections: () => Promise<void>;
 }
 
 export interface ImportReviewContextValue {
@@ -350,7 +354,7 @@ function flattenExistingTokens(
 function buildFailedImportGroups(batches: ImportBatch[]): ImportFailureGroup[] {
   return batches
     .map((batch) => ({
-      setName: batch.setName,
+      collectionId: batch.collectionId,
       paths: batch.tokens
         .map((token) => token.path)
         .filter((path): path is string => typeof path === "string"),
@@ -359,7 +363,7 @@ function buildFailedImportGroups(batches: ImportBatch[]): ImportFailureGroup[] {
 }
 
 function toImportRollbackOperation(
-  setName: string,
+  collectionId: string,
   result: {
     changedPaths?: string[];
     operationId?: string;
@@ -374,7 +378,7 @@ function toImportRollbackOperation(
   }
   return {
     operationId: result.operationId,
-    setName,
+    collectionId,
     changedPaths,
   };
 }
@@ -389,7 +393,7 @@ function buildCollectionImportSourceLabel(
 function buildCollectionImportPlans(
   collectionData: CollectionData[],
   modeEnabled: Record<string, boolean>,
-  modeSetNames: Record<string, string>,
+  modeCollectionNames: Record<string, string>,
 ): {
   plans: CollectionImportPlan[];
   modeStatus: Record<string, CollectionModeDestinationStatus>;
@@ -398,7 +402,7 @@ function buildCollectionImportPlans(
   const groupedPlans = new Map<
     string,
     {
-      setName: string;
+      collectionId: string;
       pathSources: Map<string, CollectionImportTokenSource[]>;
       modeKeys: Set<string>;
     }
@@ -411,22 +415,26 @@ function buildCollectionImportPlans(
         continue;
       }
 
-      const setName = (
-        modeSetNames[key] ??
-        defaultSetName(collection.name, mode.modeName, collection.modes.length)
+      const collectionId = (
+        modeCollectionNames[key] ??
+        defaultCollectionName(
+          collection.name,
+          mode.modeName,
+          collection.modes.length,
+        )
       ).trim();
       const sourceLabel = buildCollectionImportSourceLabel(
         collection.name,
         mode.modeName,
       );
-      let plan = groupedPlans.get(setName);
+      let plan = groupedPlans.get(collectionId);
       if (!plan) {
         plan = {
-          setName,
+          collectionId,
           pathSources: new Map(),
           modeKeys: new Set(),
         };
-        groupedPlans.set(setName, plan);
+        groupedPlans.set(collectionId, plan);
       }
 
       plan.modeKeys.add(key);
@@ -480,7 +488,7 @@ function buildCollectionImportPlans(
     }
 
     plans.push({
-      setName: plan.setName,
+      collectionId: plan.collectionId,
       writeTokens,
       duplicateConflicts,
       totalPathCount: plan.pathSources.size,
@@ -631,7 +639,7 @@ export function ImportPanelProvider({
     source: activeSource,
   } = src;
 
-  const setsHook = useImportSets({
+  const collectionsHook = useImportCollections({
     serverUrl,
     connected,
     onClearConflictState: clearConflictState,
@@ -651,12 +659,12 @@ export function ImportPanelProvider({
       buildCollectionImportPlans(
         src.collectionData,
         src.modeEnabled,
-        src.modeSetNames,
+        src.modeCollectionNames,
       ),
-    [src.collectionData, src.modeEnabled, src.modeSetNames],
+    [src.collectionData, src.modeEnabled, src.modeCollectionNames],
   );
 
-  const totalEnabledSets = collectionImportPlans.length;
+  const totalEnabledCollections = collectionImportPlans.length;
   const enabledCollectionCount = useMemo(
     () =>
       src.collectionData.filter((collection) =>
@@ -694,24 +702,24 @@ export function ImportPanelProvider({
     [existingTokenMap, src.selectedTokens],
   );
 
-  const fetchSetTokenMap = useCallback(
-    async (setName: string) => {
-      const cached = existingPathsCacheRef.current.get(setName);
+  const fetchCollectionTokenMap = useCallback(
+    async (collectionId: string) => {
+      const cached = existingPathsCacheRef.current.get(collectionId);
       if (cached) {
         return cached;
       }
 
       try {
         const data = await apiFetch<{ tokens?: Record<string, unknown> }>(
-          `${serverUrl}/api/tokens/${encodeURIComponent(setName)}`,
+          `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`,
         );
         const mapped = flattenExistingTokens(data.tokens);
-        existingPathsCacheRef.current.set(setName, mapped);
+        existingPathsCacheRef.current.set(collectionId, mapped);
         return mapped;
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
           const empty = new Map<string, ExistingTokenValue>();
-          existingPathsCacheRef.current.set(setName, empty);
+          existingPathsCacheRef.current.set(collectionId, empty);
           return empty;
         }
         throw err;
@@ -721,13 +729,13 @@ export function ImportPanelProvider({
   );
 
   const prefetchExistingPaths = useCallback(
-    async (setName: string) => {
+    async (collectionId: string) => {
       const fetchId = ++existingFetchIdRef.current;
       setExistingPathsFetching(true);
       setExistingTokenMapError(null);
 
       try {
-        const mapped = await fetchSetTokenMap(setName);
+        const mapped = await fetchCollectionTokenMap(collectionId);
         if (fetchId !== existingFetchIdRef.current) {
           return;
         }
@@ -746,7 +754,7 @@ export function ImportPanelProvider({
         }
       }
     },
-    [fetchSetTokenMap],
+    [fetchCollectionTokenMap],
   );
 
   useEffect(() => {
@@ -756,18 +764,18 @@ export function ImportPanelProvider({
       setExistingPathsFetching(false);
       return;
     }
-    void prefetchExistingPaths(setsHook.targetSet);
-  }, [prefetchExistingPaths, setsHook.targetSet, src.tokens.length]);
+      void prefetchExistingPaths(collectionsHook.targetCollectionId);
+  }, [prefetchExistingPaths, collectionsHook.targetCollectionId, src.tokens.length]);
 
   useEffect(() => {
     clearConflictState();
     if (src.tokens.length > 0) {
-      void prefetchExistingPaths(setsHook.targetSet);
+      void prefetchExistingPaths(collectionsHook.targetCollectionId);
     }
   }, [
     clearConflictState,
     prefetchExistingPaths,
-    setsHook.targetSet,
+    collectionsHook.targetCollectionId,
     src.tokens.length,
   ]);
 
@@ -803,7 +811,7 @@ export function ImportPanelProvider({
             overwriteCount += 1;
             details.push({
               path: conflict.path,
-              setName: plan.setName,
+              collectionId: plan.collectionId,
               existing: {
                 $type: firstSource.token.$type,
                 $value: firstSource.token.$value,
@@ -819,8 +827,8 @@ export function ImportPanelProvider({
             });
           }
 
-          const existing = setsHook.sets.includes(plan.setName)
-            ? await fetchSetTokenMap(plan.setName)
+          const existing = collectionsHook.collectionIds.includes(plan.collectionId)
+            ? await fetchCollectionTokenMap(plan.collectionId)
             : new Map<string, ExistingTokenValue>();
           if (fetchId !== varConflictFetchIdRef.current) {
             return;
@@ -836,7 +844,7 @@ export function ImportPanelProvider({
             overwriteCount += 1;
             details.push({
               path: source.token.path,
-              setName: plan.setName,
+              collectionId: plan.collectionId,
               existing: current,
               incoming: source.token,
               kind: "existing",
@@ -868,11 +876,11 @@ export function ImportPanelProvider({
         }
       }
     })();
-  }, [collectionImportPlans, fetchSetTokenMap, setsHook.sets]);
+  }, [collectionImportPlans, fetchCollectionTokenMap, collectionsHook.collectionIds]);
 
   const importPayloadBatch = useCallback(
     async (
-      setName: string,
+      collectionId: string,
       tokens: Record<string, unknown>[],
       strategy: ImportStrategy,
     ) => {
@@ -882,7 +890,7 @@ export function ImportPanelProvider({
         changedPaths?: string[];
         operationId?: string;
       }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`,
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -894,9 +902,9 @@ export function ImportPanelProvider({
   );
 
   const importTokenBatch = useCallback(
-    async (setName: string, tokens: ImportToken[], strategy: ImportStrategy) =>
+    async (collectionId: string, tokens: ImportToken[], strategy: ImportStrategy) =>
       importPayloadBatch(
-        setName,
+        collectionId,
         tokens.map((token) => buildImportPayload(token, activeSource)),
         strategy,
       ),
@@ -939,7 +947,7 @@ export function ImportPanelProvider({
       history.operations.push(
         ...operations.map((operation) => ({
           operationId: operation.operationId,
-          setName: operation.setName,
+          collectionId: operation.collectionId,
           changedPaths: [...operation.changedPaths],
         })),
       );
@@ -1017,13 +1025,13 @@ export function ImportPanelProvider({
         for (const plan of collectionImportPlans) {
           try {
             const result = await importTokenBatch(
-              plan.setName,
+              plan.collectionId,
               plan.writeTokens.map((source) => source.token),
               strategy,
             );
             importedTokens += result.imported;
             const rollbackOperation = toImportRollbackOperation(
-              plan.setName,
+              plan.collectionId,
               result,
             );
             if (rollbackOperation) {
@@ -1035,7 +1043,7 @@ export function ImportPanelProvider({
               ...plan.writeTokens.map((source) => source.token.path),
             );
             failedBatches.push({
-              setName: plan.setName,
+              collectionId: plan.collectionId,
               tokens: plan.writeTokens.map((source) =>
                 buildImportPayload(source.token, activeSource),
               ),
@@ -1062,7 +1070,9 @@ export function ImportPanelProvider({
         dispatchToast(toastMessage, failedCount > 0 ? "error" : "success");
         onImportedRef.current();
         publishImportCompletion({
-          destinationSets: collectionImportPlans.map((plan) => plan.setName),
+          destinationCollectionIds: collectionImportPlans.map(
+            (plan) => plan.collectionId,
+          ),
           newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
           overwriteCount:
             strategy === "overwrite"
@@ -1090,7 +1100,7 @@ export function ImportPanelProvider({
         setLastImportReviewSummary({
           destinationLabel:
             collectionImportPlans.length === 1
-              ? `"${collectionImportPlans[0]?.setName ?? "Unknown collection"}"`
+              ? `"${collectionImportPlans[0]?.collectionId ?? "Unknown collection"}"`
               : `${collectionImportPlans.length} collections`,
           newCount: varConflictPreview?.newCount ?? totalEnabledTokens,
           overwriteCount:
@@ -1162,13 +1172,13 @@ export function ImportPanelProvider({
         const rollbackOperations: ImportRollbackOperation[] = [];
         if (overwriteTokens.length > 0) {
           const result = await importTokenBatch(
-            setsHook.targetSet,
+            collectionsHook.targetCollectionId,
             overwriteTokens,
             strategy,
           );
           imported += result.imported;
           const rollbackOperation = toImportRollbackOperation(
-            setsHook.targetSet,
+            collectionsHook.targetCollectionId,
             result,
           );
           if (rollbackOperation) {
@@ -1177,13 +1187,13 @@ export function ImportPanelProvider({
         }
         if (mergeTokens.length > 0) {
           const result = await importTokenBatch(
-            setsHook.targetSet,
+            collectionsHook.targetCollectionId,
             mergeTokens,
             "merge",
           );
           imported += result.imported;
           const rollbackOperation = toImportRollbackOperation(
-            setsHook.targetSet,
+            collectionsHook.targetCollectionId,
             result,
           );
           if (rollbackOperation) {
@@ -1196,7 +1206,7 @@ export function ImportPanelProvider({
           total: tokensToImport.length,
         });
         dispatchToast(
-          `Imported ${imported} tokens to "${setsHook.targetSet}"`,
+          `Imported ${imported} tokens to "${collectionsHook.targetCollectionId}"`,
           "success",
         );
         onImportedRef.current();
@@ -1214,7 +1224,7 @@ export function ImportPanelProvider({
           reviewedConflictCount - mergeCount - keepExistingCount,
         );
         publishImportCompletion({
-          destinationSets: [setsHook.targetSet],
+          destinationCollectionIds: [collectionsHook.targetCollectionId],
           newCount,
           overwriteCount,
           mergeCount,
@@ -1223,7 +1233,7 @@ export function ImportPanelProvider({
           hadFailures: false,
         });
         setLastImportReviewSummary({
-          destinationLabel: `"${setsHook.targetSet}"`,
+          destinationLabel: `"${collectionsHook.targetCollectionId}"`,
           newCount,
           overwriteCount,
           mergeCount,
@@ -1232,7 +1242,7 @@ export function ImportPanelProvider({
         setCurrentImportHistory(null);
         appendImportRollbackOperations(rollbackOperations, { pushUndo: true });
         setSuccessMessage(
-          `Imported ${imported} token${imported !== 1 ? "s" : ""} to "${setsHook.targetSet}"`,
+          `Imported ${imported} token${imported !== 1 ? "s" : ""} to "${collectionsHook.targetCollectionId}"`,
         );
       } catch (err) {
         setSourceError(getErrorMessage(err));
@@ -1253,7 +1263,7 @@ export function ImportPanelProvider({
       resetExistingPathsCache,
       selectedImportTokens,
       setCurrentImportHistory,
-      setsHook.targetSet,
+      collectionsHook.targetCollectionId,
       resetAfterImport,
       setSourceError,
     ],
@@ -1267,7 +1277,7 @@ export function ImportPanelProvider({
 
     setCheckingConflicts(true);
     try {
-      const existing = await fetchSetTokenMap(setsHook.targetSet);
+      const existing = await fetchCollectionTokenMap(collectionsHook.targetCollectionId);
       const conflicts = selectedImportTokens
         .filter((token) => existing.has(token.path))
         .map((token) => token.path);
@@ -1297,9 +1307,9 @@ export function ImportPanelProvider({
   }, [
     connected,
     executeImport,
-    fetchSetTokenMap,
+    fetchCollectionTokenMap,
     selectedImportTokens,
-    setsHook.targetSet,
+    collectionsHook.targetCollectionId,
     setSourceError,
     sourceSelectedTokens.size,
   ]);
@@ -1357,13 +1367,13 @@ export function ImportPanelProvider({
       for (const batch of failedImportBatches) {
         try {
           const result = await importPayloadBatch(
-            batch.setName,
+            batch.collectionId,
             batch.tokens,
             failedImportStrategy,
           );
           retried += result.imported;
           const rollbackOperation = toImportRollbackOperation(
-            batch.setName,
+            batch.collectionId,
             result,
           );
           if (rollbackOperation) {
@@ -1372,7 +1382,7 @@ export function ImportPanelProvider({
         } catch (err) {
           console.warn(
             "[ImportPanel] retry failed for batch:",
-            batch.setName,
+            batch.collectionId,
             err,
           );
           stillFailedPaths.push(
@@ -1469,7 +1479,7 @@ export function ImportPanelProvider({
   );
 
   const usesCollectionDestination = src.collectionData.length > 0;
-  const hasInvalidModeSetNames = useMemo(
+  const hasInvalidModeCollectionNames = useMemo(
     () =>
       src.collectionData.some((collection) =>
         collection.modes.some((mode) => {
@@ -1478,27 +1488,34 @@ export function ImportPanelProvider({
             return false;
           }
           const candidate = (
-            src.modeSetNames[key] ??
-            defaultSetName(collection.name, mode.modeName, collection.modes.length)
+            src.modeCollectionNames[key] ??
+            defaultCollectionName(
+              collection.name,
+              mode.modeName,
+              collection.modes.length,
+            )
           ).trim();
-          return !candidate || !SET_NAME_RE.test(candidate);
+          return !candidate || !COLLECTION_NAME_RE.test(candidate);
         }),
       ),
-    [src.collectionData, src.modeEnabled, src.modeSetNames],
+    [src.collectionData, src.modeEnabled, src.modeCollectionNames],
   );
 
   const hasValidSingleSetDestination = useMemo(() => {
-    const trimmedTarget = setsHook.targetSet.trim();
+    const trimmedTarget = collectionsHook.targetCollectionId.trim();
     return (
-      !setsHook.newSetInputVisible &&
+      !collectionsHook.newCollectionInputVisible &&
       !!trimmedTarget &&
-      SET_NAME_RE.test(trimmedTarget)
+      COLLECTION_NAME_RE.test(trimmedTarget)
     );
-  }, [setsHook.newSetInputVisible, setsHook.targetSet]);
+  }, [
+    collectionsHook.newCollectionInputVisible,
+    collectionsHook.targetCollectionId,
+  ]);
 
   const destinationReady = usesCollectionDestination
-    ? totalEnabledSets > 0 &&
-      !hasInvalidModeSetNames &&
+    ? totalEnabledCollections > 0 &&
+      !hasInvalidModeCollectionNames &&
       !hasAmbiguousCollectionImport
     : hasValidSingleSetDestination;
 
@@ -1592,32 +1609,33 @@ export function ImportPanelProvider({
 
   const destinationValue = useMemo<ImportDestinationContextValue>(
     () => ({
-      targetSet: setsHook.targetSet,
-      sets: setsHook.sets,
-      setsError: setsHook.setsError,
-      newSetInputVisible: setsHook.newSetInputVisible,
-      newSetDraft: setsHook.newSetDraft,
-      newSetError: setsHook.newSetError,
-      modeSetNames: src.modeSetNames,
+      targetCollectionId: collectionsHook.targetCollectionId,
+      collectionIds: collectionsHook.collectionIds,
+      collectionsError: collectionsHook.collectionsError,
+      newCollectionInputVisible: collectionsHook.newCollectionInputVisible,
+      newCollectionDraft: collectionsHook.newCollectionDraft,
+      newCollectionError: collectionsHook.newCollectionError,
+      modeCollectionNames: src.modeCollectionNames,
       modeEnabled: src.modeEnabled,
       collectionModeDestinationStatus,
       hasAmbiguousCollectionImport,
       ambiguousCollectionImportCount,
-      totalEnabledSets,
+      totalEnabledCollections,
       totalEnabledTokens,
       usesCollectionDestination,
       destinationReady,
       canContinueToPreview,
-      hasInvalidModeSetNames,
-      setNewSetInputVisible: setsHook.setNewSetInputVisible,
-      setNewSetDraft: setsHook.setNewSetDraft,
-      setNewSetError: setsHook.setNewSetError,
-      setModeSetNames: src.setModeSetNames,
+      hasInvalidModeCollectionNames,
+      setNewCollectionInputVisible: collectionsHook.setNewCollectionInputVisible,
+      setNewCollectionDraft: collectionsHook.setNewCollectionDraft,
+      setNewCollectionError: collectionsHook.setNewCollectionError,
+      setModeCollectionNames: src.setModeCollectionNames,
       setModeEnabled: src.setModeEnabled,
-      commitNewSet: setsHook.commitNewSet,
-      cancelNewSet: setsHook.cancelNewSet,
-      setTargetSetAndPersist: setsHook.setTargetSetAndPersist,
-      fetchSets: setsHook.fetchSets,
+      commitNewCollection: collectionsHook.commitNewCollection,
+      cancelNewCollection: collectionsHook.cancelNewCollection,
+      setTargetCollectionIdAndPersist:
+        collectionsHook.setTargetCollectionIdAndPersist,
+      fetchCollections: collectionsHook.fetchCollections,
     }),
     [
       ambiguousCollectionImportCount,
@@ -1625,25 +1643,25 @@ export function ImportPanelProvider({
       collectionModeDestinationStatus,
       destinationReady,
       hasAmbiguousCollectionImport,
-      hasInvalidModeSetNames,
-      setsHook.cancelNewSet,
-      setsHook.commitNewSet,
-      setsHook.fetchSets,
-      setsHook.newSetDraft,
-      setsHook.newSetError,
-      setsHook.newSetInputVisible,
-      setsHook.setNewSetDraft,
-      setsHook.setNewSetError,
-      setsHook.setNewSetInputVisible,
-      setsHook.setTargetSetAndPersist,
-      setsHook.sets,
-      setsHook.setsError,
-      setsHook.targetSet,
+      hasInvalidModeCollectionNames,
+      collectionsHook.cancelNewCollection,
+      collectionsHook.collectionIds,
+      collectionsHook.collectionsError,
+      collectionsHook.commitNewCollection,
+      collectionsHook.fetchCollections,
+      collectionsHook.newCollectionDraft,
+      collectionsHook.newCollectionError,
+      collectionsHook.newCollectionInputVisible,
+      collectionsHook.setNewCollectionDraft,
+      collectionsHook.setNewCollectionError,
+      collectionsHook.setNewCollectionInputVisible,
+      collectionsHook.setTargetCollectionIdAndPersist,
+      collectionsHook.targetCollectionId,
       src.modeEnabled,
-      src.modeSetNames,
+      src.modeCollectionNames,
       src.setModeEnabled,
-      src.setModeSetNames,
-      totalEnabledSets,
+      src.setModeCollectionNames,
+      totalEnabledCollections,
       totalEnabledTokens,
       usesCollectionDestination,
     ],

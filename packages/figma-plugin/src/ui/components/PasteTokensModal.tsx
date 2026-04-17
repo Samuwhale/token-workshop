@@ -55,7 +55,7 @@ function cloneUndoValue<T>(value: T): T {
 }
 
 function buildPasteSuccessMessage({
-  activeSet,
+  currentCollectionId,
   importedCount,
   createdCount,
   updatedCount,
@@ -63,7 +63,7 @@ function buildPasteSuccessMessage({
   invalidCount,
   unsupportedCount,
 }: {
-  activeSet: string;
+  currentCollectionId: string;
   importedCount: number;
   createdCount: number;
   updatedCount: number;
@@ -86,7 +86,7 @@ function buildPasteSuccessMessage({
     skippedParts.push(`${unsupportedCount} unsupported value${unsupportedCount === 1 ? '' : 's'} skipped`);
   }
 
-  const importedLabel = `Pasted ${importedCount} token${importedCount === 1 ? '' : 's'} into "${activeSet}"`;
+  const importedLabel = `Pasted ${importedCount} token${importedCount === 1 ? '' : 's'} into "${currentCollectionId}"`;
   const actionLabel = actionParts.length > 0 ? ` — ${actionParts.join(', ')}` : '';
   const skippedLabel = skippedParts.length > 0 ? ` · ${skippedParts.join(', ')}` : '';
   return `${importedLabel}${actionLabel}${skippedLabel}`;
@@ -104,7 +104,7 @@ interface PasteTokenRow extends ParsedToken {
 
 interface PasteTokensModalProps {
   serverUrl: string;
-  activeSet: string;
+  currentCollectionId: string;
   existingPaths: Set<string>;
   existingTokens: Record<string, TokenMapEntry>;
   onClose: () => void;
@@ -114,7 +114,7 @@ interface PasteTokensModalProps {
 
 export function PasteTokensModal({
   serverUrl,
-  activeSet,
+  currentCollectionId,
   existingPaths,
   existingTokens,
   onClose,
@@ -237,13 +237,13 @@ export function PasteTokensModal({
         $type: row.$type,
         $value: row.$value,
       }));
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokens, strategy: 'overwrite' }),
       });
       if (pushUndo && tokenRows.length > 0) {
-        const capturedSet = activeSet;
+        const capturedCollectionId = currentCollectionId;
         const capturedUrl = serverUrl;
         const capturedTokenRows = tokens.map(token => ({
           path: token.path,
@@ -262,12 +262,12 @@ export function PasteTokensModal({
           onConfirm();
         };
         pushUndo({
-          description: `Paste ${tokenRows.length} token${tokenRows.length !== 1 ? 's' : ''} to "${capturedSet}"`,
+          description: `Paste ${tokenRows.length} token${tokenRows.length !== 1 ? 's' : ''} to "${capturedCollectionId}"`,
           restore: async () => {
             await Promise.all(
               capturedSnapshots.map(({ path, data }) =>
                 apiFetch(
-                  `${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${tokenPathToUrlSegment(path)}`,
+                  `${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/${tokenPathToUrlSegment(path)}`,
                   {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -278,7 +278,7 @@ export function PasteTokensModal({
             );
             if (capturedCreatedPaths.length > 0) {
               await apiFetch(
-                `${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-delete`,
+                `${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/batch-delete`,
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -289,7 +289,7 @@ export function PasteTokensModal({
             finalize();
           },
           redo: async () => {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/batch`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ tokens: capturedTokenRows, strategy: 'overwrite' }),
@@ -299,7 +299,7 @@ export function PasteTokensModal({
         });
       }
       dispatchToast(buildPasteSuccessMessage({
-        activeSet,
+        currentCollectionId,
         importedCount: confirmCount,
         createdCount: toCreate.length,
         updatedCount: toUpdate.length,
@@ -338,7 +338,7 @@ export function PasteTokensModal({
           <div>
             <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Paste Tokens</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-              into <span className="font-mono text-[var(--color-figma-text)]">{activeSet}</span>
+              into <span className="font-mono text-[var(--color-figma-text)]">{currentCollectionId}</span>
             </div>
           </div>
           <button

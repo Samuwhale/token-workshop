@@ -453,7 +453,7 @@ export function filterByDuplicatePaths(nodes: TokenNode[], paths: Set<string>): 
 
 export function filterTokenNodes(
   nodes: TokenNode[],
-  setName: string,
+  collectionId: string,
   searchQuery: string,
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
@@ -467,7 +467,7 @@ export function filterTokenNodes(
     || parsed.recipes.length > 0;
 
   if (hasQualifiers) {
-    return filterTokenNodesStructured(nodes, setName, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+    return filterTokenNodesStructured(nodes, collectionId, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
   }
 
   // Fast path: plain text search (no qualifiers)
@@ -475,7 +475,7 @@ export function filterTokenNodes(
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filteredChildren = filterTokenNodes(node.children ?? [], setName, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+      const filteredChildren = filterTokenNodes(node.children ?? [], collectionId, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
       if (filteredChildren.length > 0) {
         result.push({ ...node, children: filteredChildren });
       }
@@ -493,7 +493,7 @@ export function filterTokenNodes(
 
 function filterTokenNodesStructured(
   nodes: TokenNode[],
-  setName: string,
+  collectionId: string,
   parsed: ParsedQuery,
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
@@ -505,10 +505,10 @@ function filterTokenNodesStructured(
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filtered = filterTokenNodesStructured(node.children ?? [], setName, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+      const filtered = filterTokenNodesStructured(node.children ?? [], collectionId, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
       if (filtered.length > 0) result.push({ ...node, children: filtered });
     } else {
-      const recipeKey = createRecipeOwnershipKey(setName, node.path);
+      const recipeKey = createRecipeOwnershipKey(collectionId, node.path);
       // Free-text match (on path, name, or description)
       if (q && !node.path.toLowerCase().includes(q) && !node.name.toLowerCase().includes(q) && !(node.$description || '').toLowerCase().includes(q)) continue;
 

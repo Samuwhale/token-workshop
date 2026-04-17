@@ -25,8 +25,8 @@ const DTCG_TYPES = [
 interface BatchEditorProps {
   selectedPaths: Set<string>;
   allTokensFlat: Record<string, TokenMapEntry>;
-  setName: string;
-  sets: string[];
+  collectionId: string;
+  collectionIds: string[];
   serverUrl: string;
   connected: boolean;
   onApply: () => void;
@@ -208,8 +208,8 @@ function BatchPreviewPath({
 export function BatchEditor({
   selectedPaths,
   allTokensFlat,
-  setName,
-  sets,
+  collectionId,
+  collectionIds,
   serverUrl,
   connected,
   onApply,
@@ -225,7 +225,7 @@ export function BatchEditor({
   const [aliasRef, setAliasRef] = useState('');
   const [showAliasAutocomplete, setShowAliasAutocomplete] = useState(false);
   const [newType, setNewType] = useState('');
-  const [targetSet, setTargetSet] = useState('');
+  const [targetCollectionId, setTargetCollectionId] = useState('');
   const [findText, setFindText] = useState('');
   const [replaceText, setReplaceText] = useState('');
   const [useRegex, setUseRegex] = useState(false);
@@ -306,16 +306,19 @@ export function BatchEditor({
 
   const scaleAliasCount = skippedAliasTokens.length;
 
-  const otherSets = useMemo(() => sets.filter(s => s !== setName), [sets, setName]);
+  const otherSets = useMemo(() => collectionIds.filter(s => s !== collectionId), [collectionIds, collectionId]);
 
   // Fetch target set's token paths for conflict detection
-  const [targetSetPaths, setTargetSetPaths] = useState<Set<string> | null>(null);
+  const [targetCollectionIdPaths, setTargetCollectionIdPaths] = useState<Set<string> | null>(null);
   useEffect(() => {
-    if (!targetSet || !serverUrl) { setTargetSetPaths(null); return; }
+    if (!targetCollectionId || !serverUrl) {
+      setTargetCollectionIdPaths(null);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
-        const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`);
+        const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetCollectionId)}`);
         if (cancelled) return;
         // Flatten nested DTCG group to get all token paths
         const paths = new Set<string>();
@@ -331,22 +334,28 @@ export function BatchEditor({
           }
         };
         if (data.tokens) walk(data.tokens, '');
-        if (!cancelled) setTargetSetPaths(paths);
-      } catch (err) { console.warn('[BatchEditor] failed to fetch target set paths:', err); if (!cancelled) setTargetSetPaths(null); }
+        if (!cancelled) setTargetCollectionIdPaths(paths);
+      } catch (err) {
+        console.warn(
+          '[BatchEditor] failed to fetch target collection paths:',
+          err,
+        );
+        if (!cancelled) setTargetCollectionIdPaths(null);
+      }
     })();
     return () => { cancelled = true; };
-  }, [targetSet, serverUrl]);
+  }, [targetCollectionId, serverUrl]);
 
   // Compute move preview: destination paths + conflict detection
   const movePreview = useMemo(() => {
-    if (!targetSet || selectedEntries.length === 0) return null;
+    if (!targetCollectionId || selectedEntries.length === 0) return null;
     const items = selectedEntries.map(({ path }) => ({
       path,
-      conflict: targetSetPaths?.has(path) ?? false,
+      conflict: targetCollectionIdPaths?.has(path) ?? false,
     }));
     const conflicts = items.filter(i => i.conflict).length;
     return { items, conflicts };
-  }, [targetSet, selectedEntries, targetSetPaths]);
+  }, [targetCollectionId, selectedEntries, targetCollectionIdPaths]);
 
   // For type-change confirmation: gather distinct current types + validate value compatibility
   const typeChangeInfo = useMemo(() => {
@@ -484,8 +493,8 @@ export function BatchEditor({
     compositeTransformActive
   );
 
-  const canMove = targetSet !== '' && !moving && !copying;
-  const canCopy = targetSet !== '' && !moving && !copying;
+  const canMove = targetCollectionId !== '' && !moving && !copying;
+  const canCopy = targetCollectionId !== '' && !moving && !copying;
 
   // Regex parsing for find/replace
   const regexError = useMemo(() => {
@@ -827,7 +836,7 @@ export function BatchEditor({
     try {
       // Single batch API call — records one operation log entry for undo
       const result = await apiFetch<{ ok: true; updated: number; operationId: string }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-update`,
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-update`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -890,13 +899,13 @@ export function BatchEditor({
     try {
       const paths = selectedEntries.map(e => e.path);
       const result = await apiFetch<{ ok: true; moved?: number; copied?: number; operationId: string }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-${type}`,
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-${type}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             paths,
-            targetCollectionId: targetSet,
+            targetCollectionId: targetCollectionId,
           }),
         },
       );
@@ -905,7 +914,7 @@ export function BatchEditor({
       if (onPushUndo) {
         const opId = result.operationId;
         onPushUndo({
-          description: `${pastVerb} ${count} token${count === 1 ? '' : 's'} to "${targetSet}"`,
+          description: `${pastVerb} ${count} token${count === 1 ? '' : 's'} to "${targetCollectionId}"`,
           restore: async () => {
             await rollbackOperation(opId);
             onApply();
@@ -916,8 +925,8 @@ export function BatchEditor({
         updateSelection([]);
       }
       onApply();
-      setFeedback({ ok: true, msg: `${pastVerb} ${count} token${count === 1 ? '' : 's'} to "${targetSet}"` });
-      setTargetSet('');
+      setFeedback({ ok: true, msg: `${pastVerb} ${count} token${count === 1 ? '' : 's'} to "${targetCollectionId}"` });
+      setTargetCollectionId('');
     } catch (err) {
       console.warn(`[BatchEditor] batch ${type} failed:`, err);
       setFeedback({ ok: false, msg: `${type === 'move' ? 'Move' : 'Copy'} failed — check server connection` });
@@ -942,7 +951,7 @@ export function BatchEditor({
     setFeedback(null);
     try {
       const result = await apiFetch<{ ok: true; renamed: number; operationId: string }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-rename-paths`,
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-rename-paths`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -981,7 +990,7 @@ export function BatchEditor({
     try {
       const patches = aliasFindChanges.map(({ path, to }) => ({ path, patch: { $value: to } }));
       const result = await apiFetch<{ ok: true; updated: number; operationId: string }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-update`,
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-update`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1860,8 +1869,8 @@ export function BatchEditor({
           <BatchSection label="Move to collection">
             <div className="space-y-1">
               <select
-                value={targetSet}
-                onChange={e => setTargetSet(e.target.value)}
+                value={targetCollectionId}
+                onChange={e => setTargetCollectionId(e.target.value)}
                 aria-label="Target collection"
                 className={AUTHORING.select}
               >
@@ -1874,7 +1883,7 @@ export function BatchEditor({
                 <button
                   onClick={handleCopy}
                   disabled={!connected || !canCopy || copying}
-                  title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target collection first' : `Copy ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}" (originals preserved)`}
+                  title={!connected ? 'Not connected to server' : targetCollectionId === '' ? 'Choose a target collection first' : `Copy ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetCollectionId}" (originals preserved)`}
                   className="flex-1 min-w-[88px] px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {copying ? '…' : 'Copy'}
@@ -1882,7 +1891,7 @@ export function BatchEditor({
                 <button
                   onClick={handleMove}
                   disabled={!connected || !canMove || moving}
-                  title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target collection first' : `Move ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}"`}
+                  title={!connected ? 'Not connected to server' : targetCollectionId === '' ? 'Choose a target collection first' : `Move ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetCollectionId}"`}
                   className="flex-1 min-w-[88px] px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {moving ? '…' : 'Move'}
@@ -1896,8 +1905,8 @@ export function BatchEditor({
                     <BatchPreviewPath path={path} className="text-[var(--color-figma-text-secondary)]" />
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                      <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium', conflict && 'text-[var(--color-figma-warning)]')} title={`${targetSet}: ${path}${conflict ? ' (already exists)' : ''}`}>
-                        {targetSet}: {path}
+                      <span className={joinClasses(LONG_TEXT_CLASSES.monoPrimary, 'font-medium', conflict && 'text-[var(--color-figma-warning)]')} title={`${targetCollectionId}: ${path}${conflict ? ' (already exists)' : ''}`}>
+                        {targetCollectionId}: {path}
                       </span>
                       {conflict && (
                         <span className="text-[var(--color-figma-warning)] shrink-0 text-[10px]">conflict</span>
@@ -1912,7 +1921,7 @@ export function BatchEditor({
                 )}
                 {movePreview.conflicts > 0 && (
                   <div className="text-[10px] text-[var(--color-figma-warning)] font-medium leading-snug pt-0.5">
-                    {movePreview.conflicts} conflict{movePreview.conflicts === 1 ? '' : 's'} in &quot;{targetSet}&quot; — will overwrite
+                    {movePreview.conflicts} conflict{movePreview.conflicts === 1 ? '' : 's'} in &quot;{targetCollectionId}&quot; — will overwrite
                   </div>
                 )}
               </div>

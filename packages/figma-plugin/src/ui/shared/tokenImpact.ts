@@ -58,11 +58,11 @@ export function computeRecipeImpacts(
 export function computeModeImpacts(
   targetPaths: Set<string>,
   collections: TokenCollection[],
-  perSetFlat: Record<string, Record<string, TokenMapEntry>>,
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
 ): ModeImpact[] {
   const seen = new Set<string>();
   const impacts: ModeImpact[] = [];
-  const tokenEntries = Object.values(perSetFlat).flatMap((flatSet) =>
+  const tokenEntries = Object.values(perCollectionFlat).flatMap((flatSet) =>
     Object.entries(flatSet),
   );
 
@@ -81,7 +81,7 @@ export function computeModeImpacts(
         if (!seen.has(impactKey)) {
           seen.add(impactKey);
           impacts.push({
-            collectionName: collection.name,
+            collectionName: collection.id,
             optionName: option.name,
           });
         }

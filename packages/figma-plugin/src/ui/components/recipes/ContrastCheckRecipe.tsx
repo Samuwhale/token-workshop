@@ -145,11 +145,11 @@ function ColorStepSwatch({ hex, onHexChange }: { hex: string; onHexChange: (hex:
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function ContrastCheckConfigEditor({ config, onChange, allTokensFlat, pathToSet }: {
+export function ContrastCheckConfigEditor({ config, onChange, allTokensFlat, pathToCollectionId }: {
   config: ContrastCheckConfig;
   onChange: (c: ContrastCheckConfig) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }) {
   const bgColorInputRef = useRef<HTMLInputElement>(null);
 
@@ -195,7 +195,7 @@ export function ContrastCheckConfigEditor({ config, onChange, allTokensFlat, pat
         valueLabel={bgHex6}
         filterType="color"
         allTokensFlat={allTokensFlat}
-        pathToSet={pathToSet}
+        pathToCollectionId={pathToCollectionId}
         onLink={setBgTokenRef}
         onUnlink={clearBgTokenRef}
       >

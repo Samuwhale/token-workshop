@@ -20,7 +20,7 @@ interface ExportFooterProps {
   results: ExportResultFile[];
   exporting: boolean;
   selected: Set<string>;
-  selectedSets: Set<string> | null;
+  selectedCollections: Set<string> | null;
   zipProgress: number | null;
   handleExport: (showModal?: boolean) => Promise<void>;
   handleCopyAllPlatformResults: () => Promise<void>;
@@ -44,7 +44,7 @@ export function ExportFooter({
   connected,
   changesOnly, setChangesOnly, diffPaths, diffLoading, isGitRepo, lastExportTimestamp,
   fetchDiff, fetchDiffSince,
-  results, exporting, selected, selectedSets, zipProgress,
+  results, exporting, selected, selectedCollections, zipProgress,
   handleExport, handleCopyAllPlatformResults, handleDownloadZip,
   figmaLoading, figmaCollections, savePhase, copiedAll,
   selectedExportMode, setSelectedExportMode, savePerMode, setSavePerMode,
@@ -52,7 +52,7 @@ export function ExportFooter({
 }: ExportFooterProps) {
   const hasResolvedZeroChanges = changesOnly && diffPaths !== null && !diffLoading && diffPaths.length === 0;
   const exportDisabled = selected.size === 0
-    || (selectedSets !== null && selectedSets.size === 0)
+    || (selectedCollections !== null && selectedCollections.size === 0)
     || exporting
     || (changesOnly && isGitRepo === false)
     || hasResolvedZeroChanges;
@@ -150,7 +150,7 @@ export function ExportFooter({
         <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
           {results.length} file{results.length !== 1 ? 's' : ''} exported
           {selected.size > 0 && ` · ${Array.from(selected).join(', ')}`}
-          {selectedSets !== null && ` · ${selectedSets.size} set${selectedSets.size !== 1 ? 's' : ''}`}
+          {selectedCollections !== null && ` · ${selectedCollections.size} collection${selectedCollections.size !== 1 ? 's' : ''}`}
           {changesOnly && diffPaths !== null && ` · ${diffPaths.length} changed token${diffPaths.length !== 1 ? 's' : ''}`}
         </div>
       )}
@@ -222,10 +222,10 @@ export function ExportFooter({
       {/* Platform mode — no results yet */}
       {mode === 'platforms' && results.length === 0 && (
         <>
-          {selected.size > 0 && !(selectedSets !== null && selectedSets.size === 0) && !(changesOnly && isGitRepo === false) && (
+          {selected.size > 0 && !(selectedCollections !== null && selectedCollections.size === 0) && !(changesOnly && isGitRepo === false) && (
             <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
               {Array.from(selected).join(', ')}
-              {selectedSets !== null && ` · ${selectedSets.size} set${selectedSets.size !== 1 ? 's' : ''}`}
+              {selectedCollections !== null && ` · ${selectedCollections.size} collection${selectedCollections.size !== 1 ? 's' : ''}`}
               {changesOnly
                 ? diffPaths !== null
                   ? ` · ${diffPaths.length} changed token${diffPaths.length !== 1 ? 's' : ''}`
@@ -245,16 +245,16 @@ export function ExportFooter({
               </>
             ) : selected.size === 0
               ? 'Select a platform to export'
-              : selectedSets !== null && selectedSets.size === 0
-              ? 'Select at least one set'
+              : selectedCollections !== null && selectedCollections.size === 0
+              ? 'Select at least one collection'
               : changesOnly && isGitRepo === false
               ? 'Changes only — requires git'
               : hasResolvedZeroChanges
               ? `Export 0 Changed Tokens · ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`
               : changesOnly && diffPaths !== null && diffPaths.length > 0
               ? `Export ${diffPaths.length} Changed Token${diffPaths.length !== 1 ? 's' : ''} · ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`
-              : selectedSets !== null
-              ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}`
+              : selectedCollections !== null
+              ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedCollections.size} Collection${selectedCollections.size !== 1 ? 's' : ''}`
               : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
           </button>
           {selected.size === 0 && (
@@ -262,9 +262,9 @@ export function ExportFooter({
               Select at least one platform in the list above.
             </p>
           )}
-          {selectedSets !== null && selectedSets.size === 0 && (
+          {selectedCollections !== null && selectedCollections.size === 0 && (
             <p className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] text-center leading-tight">
-              No token sets selected — open Token Sets above to choose which sets to include.
+              No collections selected — open Collections above to choose which collections to include.
             </p>
           )}
           {changesOnly && isGitRepo === false && (

@@ -96,22 +96,22 @@ export function createTokenValueBody({
   });
 }
 
-export function getTokenMutationUrl(serverUrl: string, setName: string, tokenPath: string): string {
-  return `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(tokenPath)}`;
+export function getTokenMutationUrl(serverUrl: string, collectionId: string, tokenPath: string): string {
+  return `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/${tokenPathToUrlSegment(tokenPath)}`;
 }
 
-export async function fetchToken<T = unknown>(serverUrl: string, setName: string, tokenPath: string): Promise<T> {
-  return apiFetch<T>(getTokenMutationUrl(serverUrl, setName, tokenPath));
+export async function fetchToken<T = unknown>(serverUrl: string, collectionId: string, tokenPath: string): Promise<T> {
+  return apiFetch<T>(getTokenMutationUrl(serverUrl, collectionId, tokenPath));
 }
 
 export async function createToken<T = unknown>(
   serverUrl: string,
-  setName: string,
+  collectionId: string,
   tokenPath: string,
   body: TokenMutationBody,
   options?: RequestInit,
 ): Promise<T> {
-  return apiFetch<T>(getTokenMutationUrl(serverUrl, setName, tokenPath), {
+  return apiFetch<T>(getTokenMutationUrl(serverUrl, collectionId, tokenPath), {
     ...options,
     method: 'POST',
     headers: {
@@ -124,12 +124,12 @@ export async function createToken<T = unknown>(
 
 export async function updateToken<T = unknown>(
   serverUrl: string,
-  setName: string,
+  collectionId: string,
   tokenPath: string,
   body: TokenMutationBody,
   options?: RequestInit,
 ): Promise<T> {
-  return apiFetch<T>(getTokenMutationUrl(serverUrl, setName, tokenPath), {
+  return apiFetch<T>(getTokenMutationUrl(serverUrl, collectionId, tokenPath), {
     ...options,
     method: 'PATCH',
     headers: {
@@ -142,11 +142,11 @@ export async function updateToken<T = unknown>(
 
 export async function deleteToken<T = unknown>(
   serverUrl: string,
-  setName: string,
+  collectionId: string,
   tokenPath: string,
   options?: RequestInit,
 ): Promise<T> {
-  return apiFetch<T>(getTokenMutationUrl(serverUrl, setName, tokenPath), {
+  return apiFetch<T>(getTokenMutationUrl(serverUrl, collectionId, tokenPath), {
     ...options,
     method: 'DELETE',
   });
@@ -154,18 +154,18 @@ export async function deleteToken<T = unknown>(
 
 export async function upsertToken<T = unknown>(
   serverUrl: string,
-  setName: string,
+  collectionId: string,
   tokenPath: string,
   body: TokenMutationBody,
   isConflictError: (err: unknown) => err is ApiError = isTokenMutationConflictError,
   options?: RequestInit,
 ): Promise<TokenMutationResult<T>> {
   try {
-    const response = await createToken<T>(serverUrl, setName, tokenPath, body, options);
+    const response = await createToken<T>(serverUrl, collectionId, tokenPath, body, options);
     return { kind: 'created', response };
   } catch (err) {
     if (!isConflictError(err)) throw err;
-    const response = await updateToken<T>(serverUrl, setName, tokenPath, body, options);
+    const response = await updateToken<T>(serverUrl, collectionId, tokenPath, body, options);
     return { kind: 'updated', response };
   }
 }

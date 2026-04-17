@@ -1,10 +1,10 @@
-export type SetStructuralOperation = "delete" | "merge" | "split";
+export type CollectionStructuralOperation = "delete" | "merge" | "split";
 
-export interface SetResolverImpact {
+export interface CollectionResolverImpact {
   name: string;
 }
 
-export interface SetRecipeOwnershipImpact {
+export interface CollectionRecipeOwnershipImpact {
   recipeId: string;
   recipeName: string;
   targetGroup: string;
@@ -12,24 +12,24 @@ export interface SetRecipeOwnershipImpact {
   samplePaths: string[];
 }
 
-export interface SetRecipeTargetImpact {
+export interface CollectionRecipeTargetImpact {
   recipeId: string;
   recipeName: string;
   targetGroup: string;
 }
 
-export interface SetPreflightImpact {
+export interface CollectionPreflightImpact {
   collectionId: string;
   tokenCount: number;
   metadata: {
     description?: string;
   };
-  resolverRefs: SetResolverImpact[];
-  generatedOwnership: SetRecipeOwnershipImpact[];
-  recipeTargets: SetRecipeTargetImpact[];
+  resolverRefs: CollectionResolverImpact[];
+  generatedOwnership: CollectionRecipeOwnershipImpact[];
+  recipeTargets: CollectionRecipeTargetImpact[];
 }
 
-export interface SetPreflightBlocker {
+export interface CollectionPreflightBlocker {
   id: string;
   code: "generated-token-ownership" | "recipe-target-collection" | "resolver-collection-ref";
   collectionId: string;
@@ -38,24 +38,24 @@ export interface SetPreflightBlocker {
   recipeName?: string;
 }
 
-export interface SetMergeConflict {
+export interface CollectionMergeConflict {
   path: string;
   sourceValue: unknown;
   targetValue: unknown;
 }
 
-export interface SetSplitPreviewItem {
+export interface CollectionSplitPreviewItem {
   key: string;
   newCollectionId: string;
   count: number;
   existing: boolean;
 }
 
-export interface SetStructuralPreflight {
-  operation: SetStructuralOperation;
-  affectedCollections: SetPreflightImpact[];
-  blockers: SetPreflightBlocker[];
+export interface CollectionStructuralPreflight {
+  operation: CollectionStructuralOperation;
+  affectedCollections: CollectionPreflightImpact[];
+  blockers: CollectionPreflightBlocker[];
   warnings: string[];
-  mergeConflicts?: SetMergeConflict[];
-  splitPreview?: SetSplitPreviewItem[];
+  mergeConflicts?: CollectionMergeConflict[];
+  splitPreview?: CollectionSplitPreviewItem[];
 }

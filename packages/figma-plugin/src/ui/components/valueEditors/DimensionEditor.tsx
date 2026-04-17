@@ -71,7 +71,7 @@ const UNIT_CONVERSIONS: Record<string, Record<string, ((v: number) => number) | 
   '%': { px: null, rem: null, em: null },
 };
 
-export const DimensionEditor = memo(function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string>; autoFocus?: boolean }) {
+export const DimensionEditor = memo(function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string>; autoFocus?: boolean }) {
   const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
   const isFormulaValue = typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
@@ -117,7 +117,7 @@ export const DimensionEditor = memo(function DimensionEditor({ value, onChange, 
             value={formulaStr}
             onChange={v => onChange({ ...val, value: v })}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             filterType="dimension"
             autoFocus
           />

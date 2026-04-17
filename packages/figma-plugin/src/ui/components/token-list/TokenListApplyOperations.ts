@@ -10,7 +10,7 @@ import {
 import { getErrorMessage } from "../../shared/utils";
 import { dispatchToast } from "../../shared/toastBus";
 
-function flattenTokens(nodes: TokenNode[], setName: string): any[] {
+function flattenTokens(nodes: TokenNode[], collectionId: string): any[] {
   const result: any[] = [];
   const walk = (list: TokenNode[]) => {
     for (const node of list) {
@@ -19,7 +19,7 @@ function flattenTokens(nodes: TokenNode[], setName: string): any[] {
           path: node.path,
           $type: node.$type,
           $value: node.$value,
-          setName,
+          collectionId,
         });
       }
       if (node.children) walk(node.children);
@@ -66,7 +66,7 @@ function resolveFlat(
 interface ApplyOperationsConfig {
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
-  setName: string;
+  collectionId: string;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
   varReadPendingRef: MutableRefObject<
@@ -93,7 +93,7 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
   const {
     tokens,
     allTokensFlat,
-    setName,
+    collectionId,
     collectionMap,
     modeMap,
     varReadPendingRef,
@@ -126,9 +126,9 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
   const handleApplyVariables = useCallback(async () => {
     closeLongLivedReviewSurfaces();
     const flat = resolveFlat(
-      flattenTokens(tokens, setName),
+      flattenTokens(tokens, collectionId),
       allTokensFlat,
-    ).map((t: any) => ({ ...t, setName }));
+    ).map((t: any) => ({ ...t, collectionId }));
     setVarDiffLoading(true);
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
@@ -173,7 +173,7 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     closeLongLivedReviewSurfaces,
     tokens,
     allTokensFlat,
-    setName,
+    collectionId,
     setVarDiffLoading,
     setVarDiffPending,
     varReadPendingRef,
@@ -181,7 +181,7 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
 
   const handleApplyStyles = useCallback(async () => {
     setApplying(true);
-    const flat = resolveFlat(flattenTokens(tokens, setName), allTokensFlat);
+    const flat = resolveFlat(flattenTokens(tokens, collectionId), allTokensFlat);
     try {
       const result = await sendStyleApply("apply-styles", { tokens: flat });
       dispatchToast(`Applied ${result.count} styles`, "success");
@@ -196,7 +196,7 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     } finally {
       setApplying(false);
     }
-  }, [setApplying, tokens, setName, allTokensFlat, sendStyleApply, onError]);
+  }, [setApplying, tokens, collectionId, allTokensFlat, sendStyleApply, onError]);
 
   return {
     doApplyVariables,

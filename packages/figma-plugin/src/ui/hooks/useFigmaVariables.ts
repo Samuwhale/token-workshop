@@ -44,7 +44,7 @@ export interface SavePreviewItem {
   varCount: number;
   modeName?: string;
   itemKey: string;
-  destinationSet: string;
+  destinationCollectionId: string;
   destinationExists: boolean;
   destinationTokenCount: number;
   mergeStrategy: SaveMergeStrategy;
@@ -93,14 +93,14 @@ interface SaveTargetPlan {
   itemKey: string;
   collectionName: string;
   modeName: string | null;
-  destinationSet: string;
+  destinationCollectionId: string;
 }
 
 interface UseFigmaVariablesOptions {
   connected: boolean;
   serverUrl: string;
-  sets: string[];
-  addSetToState: (name: string, count: number) => void;
+  collectionIds: string[];
+  addCollectionToState: (collectionId: string) => Promise<void>;
   refreshTokens: () => void;
   pushUndo?: (slot: UndoSlot) => void;
   setError: Dispatch<SetStateAction<string | null>>;
@@ -207,7 +207,7 @@ function toExportedModeValue(token: ReadVariableToken): ExportedModeValue {
   };
 }
 
-function slugifySetName(value: string): string {
+function slugifyCollectionName(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
 }
 
@@ -216,17 +216,17 @@ function buildSaveTargetPlans(
   savePerMode: boolean,
 ): SaveTargetPlan[] {
   return collections.flatMap<SaveTargetPlan>((collection) => {
-    const baseSlug = slugifySetName(collection.name);
+    const baseSlug = slugifyCollectionName(collection.name);
     const isMultiMode = collection.modes.length > 1;
 
     if (savePerMode && isMultiMode) {
       return collection.modes.map((modeName, index) => {
-        const modeSlug = slugifySetName(modeName);
+        const modeSlug = slugifyCollectionName(modeName);
         return {
           itemKey: `${collection.name}::${modeName}`,
           collectionName: collection.name,
           modeName,
-          destinationSet: index === 0 ? baseSlug : `${baseSlug}-${modeSlug}`,
+          destinationCollectionId: index === 0 ? baseSlug : `${baseSlug}-${modeSlug}`,
         };
       });
     }
@@ -236,7 +236,7 @@ function buildSaveTargetPlans(
         itemKey: collection.name,
         collectionName: collection.name,
         modeName: null,
-        destinationSet: baseSlug,
+        destinationCollectionId: baseSlug,
       },
     ];
   });
@@ -452,8 +452,8 @@ function summarizeDiff(
 function buildSavePreviewRows(
   items: SavePreviewItem[],
   collectionsByName: Map<string, ExportedCollection>,
-  existingSetNames: Set<string>,
-  existingSetMaps: Map<string, Map<string, ExistingTokenSnapshot>>,
+  existingCollectionIds: Set<string>,
+  existingCollectionMaps: Map<string, Map<string, ExistingTokenSnapshot>>,
   saveDestinationMap: Record<string, string>,
   saveMergeStrategies: Record<string, SaveMergeStrategy>,
   saveAppendPaths: Record<string, string>,
@@ -465,13 +465,13 @@ function buildSavePreviewRows(
     }
 
     const effectiveDestination =
-      (saveDestinationMap[item.itemKey] ?? item.destinationSet ?? item.slug).trim();
+      (saveDestinationMap[item.itemKey] ?? item.destinationCollectionId ?? item.slug).trim();
     const effectiveAppendPath = saveAppendPaths[item.itemKey] ?? item.appendPath;
     const appendPathError = getAppendPathError(effectiveAppendPath);
     const destinationExists =
-      effectiveDestination.length > 0 && existingSetNames.has(effectiveDestination);
+      effectiveDestination.length > 0 && existingCollectionIds.has(effectiveDestination);
     const existingTokens = destinationExists
-      ? (existingSetMaps.get(effectiveDestination) ?? new Map<string, ExistingTokenSnapshot>())
+      ? (existingCollectionMaps.get(effectiveDestination) ?? new Map<string, ExistingTokenSnapshot>())
       : new Map<string, ExistingTokenSnapshot>();
     const incomingTokens = appendPathError
       ? []
@@ -501,7 +501,7 @@ function buildSavePreviewRows(
       effectiveDestination,
       effectiveMergeStrategy,
       effectiveAppendPath,
-      destinationChanged: effectiveDestination !== item.destinationSet,
+      destinationChanged: effectiveDestination !== item.destinationCollectionId,
       actionLabel: destinationExists ? 'Existing collection' : 'New collection',
       destinationError: null,
       appendPathError,
@@ -525,7 +525,7 @@ function buildSavePreviewRows(
     return {
       ...item,
       destinationError: !item.effectiveDestination
-        ? 'Destination set is required'
+        ? 'Destination collection is required'
         : duplicateCount > 1
           ? 'Destination is assigned more than once'
           : null,
@@ -536,8 +536,8 @@ function buildSavePreviewRows(
 export function useFigmaVariables({
   connected,
   serverUrl,
-  sets,
-  addSetToState,
+  collectionIds,
+  addCollectionToState,
   refreshTokens,
   pushUndo,
   setError,
@@ -629,11 +629,11 @@ export function useFigmaVariables({
     let cancelled = false;
     const requestId = ++savePreviewRequestIdRef.current;
     const collectionsByName = new Map(figmaCollections.map(collection => [collection.name, collection]));
-    const existingSetNames = new Set(sets);
+    const existingCollectionIds = new Set(collectionIds);
     const requestedExistingDestinations = [...new Set(
       savePreviewItems
-        .map(item => (saveDestinationMap[item.itemKey] ?? item.destinationSet ?? item.slug).trim())
-        .filter(destination => destination.length > 0 && existingSetNames.has(destination)),
+        .map(item => (saveDestinationMap[item.itemKey] ?? item.destinationCollectionId ?? item.slug).trim())
+        .filter(destination => destination.length > 0 && existingCollectionIds.has(destination)),
     )];
     const destinationsToFetch = requestedExistingDestinations.filter(
       destination => !savePreviewDestinationCacheRef.current.has(destination),
@@ -645,7 +645,7 @@ export function useFigmaVariables({
         buildSavePreviewRows(
           savePreviewItems,
           collectionsByName,
-          existingSetNames,
+          existingCollectionIds,
           savePreviewDestinationCacheRef.current,
           saveDestinationMap,
           saveMergeStrategies,
@@ -665,22 +665,22 @@ export function useFigmaVariables({
     setSavePreviewRefreshing(true);
 
     Promise.all(
-      destinationsToFetch.map(async (destinationSet) => {
+      destinationsToFetch.map(async (destinationCollectionId) => {
         try {
           const data = await apiFetch<{ tokens?: DTCGGroup }>(
-            `${serverUrl}/api/tokens/${encodeURIComponent(destinationSet)}`,
+            `${serverUrl}/api/tokens/${encodeURIComponent(destinationCollectionId)}`,
           );
           savePreviewDestinationCacheRef.current.set(
-            destinationSet,
+            destinationCollectionId,
             buildExistingTokenMap(data.tokens),
           );
         } catch (err) {
           if (err instanceof ApiError && err.status === 404) {
-            savePreviewDestinationCacheRef.current.set(destinationSet, new Map());
+            savePreviewDestinationCacheRef.current.set(destinationCollectionId, new Map());
             return;
           }
           throw new Error(
-            `Failed to inspect destination "${destinationSet}": ${err instanceof Error ? err.message : String(err)}`,
+            `Failed to inspect destination "${destinationCollectionId}": ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }),
@@ -707,7 +707,7 @@ export function useFigmaVariables({
     savePreviewItems,
     serverUrl,
     setError,
-    sets,
+    collectionIds,
   ]);
 
   const handleExportFigmaVariables = () => {
@@ -823,27 +823,27 @@ export function useFigmaVariables({
     savePreviewDestinationCacheRef.current = new Map();
 
     try {
-      const existingSetNames = new Set(sets);
+      const existingCollectionIds = new Set(collectionIds);
       const plans = buildSaveTargetPlans(figmaCollections, savePerMode);
       const collectionsByName = new Map(figmaCollections.map(collection => [collection.name, collection]));
-      const existingSetMaps = new Map<string, Map<string, ExistingTokenSnapshot>>();
+      const existingCollectionMaps = new Map<string, Map<string, ExistingTokenSnapshot>>();
 
       await Promise.all(
-        [...new Set(plans.map(plan => plan.destinationSet))]
-          .filter(destinationSet => existingSetNames.has(destinationSet))
-          .map(async (destinationSet) => {
+        [...new Set(plans.map(plan => plan.destinationCollectionId))]
+          .filter(destinationCollectionId => existingCollectionIds.has(destinationCollectionId))
+          .map(async (destinationCollectionId) => {
             try {
               const data = await apiFetch<{ tokens?: DTCGGroup }>(
-                `${serverUrl}/api/tokens/${encodeURIComponent(destinationSet)}`,
+                `${serverUrl}/api/tokens/${encodeURIComponent(destinationCollectionId)}`,
               );
-              existingSetMaps.set(destinationSet, buildExistingTokenMap(data.tokens));
+              existingCollectionMaps.set(destinationCollectionId, buildExistingTokenMap(data.tokens));
             } catch (err) {
               if (err instanceof ApiError && err.status === 404) {
-                existingSetMaps.set(destinationSet, new Map());
+                existingCollectionMaps.set(destinationCollectionId, new Map());
                 return;
               }
               throw new Error(
-                `Failed to inspect destination "${destinationSet}": ${err instanceof Error ? err.message : String(err)}`,
+                `Failed to inspect destination "${destinationCollectionId}": ${err instanceof Error ? err.message : String(err)}`,
               );
             }
           }),
@@ -855,8 +855,8 @@ export function useFigmaVariables({
           throw new Error(`Collection "${plan.collectionName}" is no longer available`);
         }
 
-        const destinationExists = existingSetNames.has(plan.destinationSet);
-        const existingTokens = existingSetMaps.get(plan.destinationSet) ?? new Map();
+        const destinationExists = existingCollectionIds.has(plan.destinationCollectionId);
+        const existingTokens = existingCollectionMaps.get(plan.destinationCollectionId) ?? new Map();
         const incomingTokens = buildTokenPayloads(collection, plan.modeName, '');
         const mergeStrategy: SaveMergeStrategy =
           destinationExists
@@ -867,8 +867,8 @@ export function useFigmaVariables({
 
         return {
           collectionName: plan.collectionName,
-          slug: plan.destinationSet,
-          destinationSet: plan.destinationSet,
+          slug: plan.destinationCollectionId,
+          destinationCollectionId: plan.destinationCollectionId,
           destinationExists,
           destinationTokenCount: existingTokens.size,
           action: destinationExists ? 'overwrite' : 'create',
@@ -881,14 +881,14 @@ export function useFigmaVariables({
         };
       });
 
-      savePreviewDestinationCacheRef.current = existingSetMaps;
+      savePreviewDestinationCacheRef.current = existingCollectionMaps;
       setSavePreviewItems(items);
       setSavePreviewRows(
         buildSavePreviewRows(
           items,
           collectionsByName,
-          existingSetNames,
-          existingSetMaps,
+          existingCollectionIds,
+          existingCollectionMaps,
           {},
           {},
           {},
@@ -913,7 +913,7 @@ export function useFigmaVariables({
 
       const collectionsByName = new Map(figmaCollections.map(collection => [collection.name, collection]));
       const destinationUsage = new Map<string, string>();
-      const nextKnownSetNames = new Set(sets);
+      const nextKnownSetNames = new Set(collectionIds);
       const initialStatuses = Object.fromEntries(
         savePreviewRows.map(item => [item.itemKey, 'pending' as const]),
       );
@@ -939,15 +939,15 @@ export function useFigmaVariables({
           throw new Error(`Collection "${previewItem.collectionName}" is no longer available`);
         }
 
-        const setName = previewItem.effectiveDestination;
-        if (!setName) {
-          throw new Error(`Destination set is required for "${previewItem.collectionName}"`);
+        const collectionId = previewItem.effectiveDestination;
+        if (!collectionId) {
+          throw new Error(`Destination collection is required for "${previewItem.collectionName}"`);
         }
-        const duplicateOwner = destinationUsage.get(setName);
+        const duplicateOwner = destinationUsage.get(collectionId);
         if (duplicateOwner && duplicateOwner !== previewItem.itemKey) {
-          throw new Error(`Destination "${setName}" is assigned more than once`);
+          throw new Error(`Destination "${collectionId}" is assigned more than once`);
         }
-        destinationUsage.set(setName, previewItem.itemKey);
+        destinationUsage.set(collectionId, previewItem.itemKey);
 
         setSaveRun(prev => ({
           ...prev,
@@ -963,13 +963,13 @@ export function useFigmaVariables({
         if (previewItem.destinationExists) {
           try {
             const data = await apiFetch<{ tokens?: DTCGGroup }>(
-              `${serverUrl}/api/tokens/${encodeURIComponent(setName)}`,
+              `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`,
             );
             existingTokens = buildExistingTokenMap(data.tokens);
           } catch (err) {
             if (!(err instanceof ApiError && err.status === 404)) {
               throw new Error(
-                `Failed to inspect destination "${setName}": ${err instanceof Error ? err.message : String(err)}`,
+                `Failed to inspect destination "${collectionId}": ${err instanceof Error ? err.message : String(err)}`,
               );
             }
           }
@@ -993,25 +993,25 @@ export function useFigmaVariables({
         }
 
         const result = await apiFetch<{ imported: number; skipped: number; operationId?: string }>(
-          `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`,
+          `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tokens: tokensToWrite, strategy: mergeStrategy }),
           },
         ).catch((err) => {
-          throw new Error(`Failed to save tokens for "${setName}": ${err instanceof Error ? err.message : String(err)}`);
+          throw new Error(`Failed to save tokens for "${collectionId}": ${err instanceof Error ? err.message : String(err)}`);
         });
 
         if (!previewItem.destinationExists) {
-          nextKnownSetNames.add(setName);
-          addSetToState(setName, result.imported);
+          nextKnownSetNames.add(collectionId);
+          await addCollectionToState(collectionId);
         }
         if (pushUndo && result.operationId) {
           const opId = result.operationId;
           const url = serverUrl;
           pushUndo({
-            description: `Saved "${setName}" from Figma variables`,
+            description: `Saved "${collectionId}" from Figma variables`,
             groupKey: undoGroupKey,
             groupSummary: (count) => `Saved ${count} Figma variable collection${count === 1 ? '' : 's'}`,
             restore: async () => {
@@ -1021,7 +1021,7 @@ export function useFigmaVariables({
           });
         }
         savePreviewDestinationCacheRef.current.set(
-          setName,
+          collectionId,
           applyTokensToExistingMap(
             existingTokens,
             mergeStrategy === 'skip' ? tokensToWrite : incomingTokens,

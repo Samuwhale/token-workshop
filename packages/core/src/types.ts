@@ -146,7 +146,6 @@ export interface CollectionPublishRouting {
 
 export interface TokenCollection {
   id: string;
-  name: string;
   description?: string;
   publishRouting?: CollectionPublishRouting;
   modes: CollectionMode[];
@@ -164,7 +163,6 @@ export interface ViewPreset {
 /** Serialized file shape for `$collections.json`. */
 export interface SerializedTokenCollection {
   id: string;
-  name: string;
   description?: string;
   publishRouting?: CollectionPublishRouting;
   modes: CollectionMode[];

@@ -2,66 +2,65 @@
  * TokenDataContext — split into three focused sub-contexts to minimise
  * cascade re-renders:
  *
- *   TokenSetsContext     — set management, metadata, and mutation callbacks
- *                          (slow-changing; only re-renders on user actions)
- *   TokenFlatMapContext  — flat token maps derived from the fetch cycle
- *                          (medium-frequency; re-fetched on tokenRevision bumps)
- *   RecipeContext     — recipe list and set-aware ownership indexes
- *                          (independent polling; doesn't cause token-set re-renders)
+ *   CollectionStateContext — canonical client owner for collection identity,
+ *                            collection metadata, persisted selected modes,
+ *                            and transient hover preview state
+ *   TokenFlatMapContext    — flat token maps derived from the fetch cycle
+ *                            plus mode-resolved token views
+ *   RecipeContext          — recipe list and ownership indexes
  *
- * `TokenDataProvider` is a thin wrapper that stacks all three providers.
- * Consumers call the focused hook they need (e.g. `useTokenFlatMapContext()`)
- * so they only re-render when that slice actually changes.
+ * `TokenDataProvider` stacks the three providers. Consumers should read the
+ * narrowest hook they need.
  */
 
 import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
+import type { SelectedModes, TokenCollection } from '@tokenmanager/core';
 import { useConnectionContext } from './ConnectionContext';
-import { useTokens } from '../hooks/useTokens';
+import { useCollectionState } from '../hooks/useTokens';
 import type { TokenNode } from '../hooks/useTokens';
+import type { CollectionSummary } from '../hooks/useTokens';
 import { useTokenDataLoading } from '../hooks/useTokenDataLoading';
 import { useRecipes } from '../hooks/useRecipes';
 import type { TokenRecipe } from '../hooks/useRecipes';
 import type { TokenMapEntry } from '../../shared/types';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface TokenSetsContextValue {
-  // ---- useTokens ----------------------------------------------------------
-  sets: string[];
-  setSets: React.Dispatch<React.SetStateAction<string[]>>;
-  activeSet: string;
-  setActiveSet: (s: string) => void;
-  tokens: TokenNode[];
-  tokenRevision: number;
-  /** Per-set token counts, keyed by set name. */
-  setTokenCounts: Record<string, number>;
-  setDescriptions: Record<string, string>;
-  refreshTokens: () => void;
-  fetchError: string | null;
-  addSetToState: (name: string, count: number) => void;
-  removeSetFromState: (name: string) => void;
-  renameSetInState: (oldName: string, newName: string) => void;
-  updateSetMetadataInState: (name: string, description: string) => void;
-  fetchTokensForSet: (name: string) => Promise<void>;
+export interface CollectionStateContextValue {
+  collections: TokenCollection[];
+  setCollections: React.Dispatch<React.SetStateAction<TokenCollection[]>>;
+  currentCollectionId: string;
+  setCurrentCollectionId: (collectionId: string) => void;
+  currentCollectionTokens: TokenNode[];
+  collectionRevision: number;
+  collectionTokenCounts: Record<string, number>;
+  collectionDescriptions: Record<string, string>;
+  selectedModes: SelectedModes;
+  setSelectedModes: (selectedModes: SelectedModes) => void;
+  hoverPreviewModes: SelectedModes;
+  setHoverPreviewModes: React.Dispatch<React.SetStateAction<SelectedModes>>;
+  collectionsError: string | null;
+  refreshCollections: () => void;
+  syncCollectionSummariesToState: (collectionSummaries: CollectionSummary[]) => void;
+  addCollectionToState: (collectionId: string) => Promise<void>;
+  removeCollectionFromState: (collectionId: string) => void;
+  renameCollectionInState: (oldCollectionId: string, newCollectionId: string) => void;
+  updateCollectionMetadataInState: (collectionId: string, description: string) => void;
+  fetchTokensForCollection: (collectionId: string) => Promise<void>;
 }
 
 export interface TokenFlatMapContextValue {
-  // ---- useTokenDataLoading ------------------------------------------------
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
-  perSetFlat: Record<string, Record<string, TokenMapEntry>>;
-  filteredSetCount: number | null;
-  setFilteredSetCount: (n: number | null) => void;
+  pathToCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+  filteredCollectionCount: number | null;
+  setFilteredCollectionCount: (count: number | null) => void;
   syncSnapshot: Record<string, string>;
   tokensLoading: boolean;
   tokensError: string | null;
+  modeResolvedTokensFlat: Record<string, TokenMapEntry>;
 }
 
 export interface RecipeContextValue {
-  // ---- useRecipes ------------------------------------------------------
   recipes: TokenRecipe[];
   recipesLoading: boolean;
   refreshRecipes: () => void;
@@ -70,100 +69,152 @@ export interface RecipeContextValue {
   derivedTokenPaths: Map<string, TokenRecipe>;
 }
 
-// ---------------------------------------------------------------------------
-// Contexts and hooks
-// ---------------------------------------------------------------------------
-
-const TokenSetsContext = createContext<TokenSetsContextValue | null>(null);
+const CollectionStateContext = createContext<CollectionStateContextValue | null>(null);
 const TokenFlatMapContext = createContext<TokenFlatMapContextValue | null>(null);
 const RecipeContext = createContext<RecipeContextValue | null>(null);
 
-export function useTokenSetsContext(): TokenSetsContextValue {
-  const ctx = useContext(TokenSetsContext);
-  if (!ctx) throw new Error('useTokenSetsContext must be used inside TokenDataProvider');
-  return ctx;
+export function useCollectionStateContext(): CollectionStateContextValue {
+  const context = useContext(CollectionStateContext);
+  if (!context) throw new Error('useCollectionStateContext must be used inside TokenDataProvider');
+  return context;
 }
 
 export function useTokenFlatMapContext(): TokenFlatMapContextValue {
-  const ctx = useContext(TokenFlatMapContext);
-  if (!ctx) throw new Error('useTokenFlatMapContext must be used inside TokenDataProvider');
-  return ctx;
+  const context = useContext(TokenFlatMapContext);
+  if (!context) throw new Error('useTokenFlatMapContext must be used inside TokenDataProvider');
+  return context;
 }
 
 export function useRecipeContext(): RecipeContextValue {
-  const ctx = useContext(RecipeContext);
-  if (!ctx) throw new Error('useRecipeContext must be used inside TokenDataProvider');
-  return ctx;
+  const context = useContext(RecipeContext);
+  if (!context) throw new Error('useRecipeContext must be used inside TokenDataProvider');
+  return context;
 }
 
-// ---------------------------------------------------------------------------
-// Providers
-// ---------------------------------------------------------------------------
-
-function TokenSetsProvider({ children, serverUrl, connected, markDisconnected, getDisconnectSignal }: {
+function CollectionStateProvider({
+  children,
+  serverUrl,
+  connected,
+  markDisconnected,
+  getDisconnectSignal,
+}: {
   children: ReactNode;
   serverUrl: string;
   connected: boolean;
   markDisconnected: () => void;
   getDisconnectSignal: () => AbortSignal;
 }) {
-  const {
-    sets, setSets, activeSet, setActiveSet, tokens, tokenRevision,
-    fetchError, setTokenCounts, setDescriptions,
-    refreshTokens, addSetToState, removeSetFromState, renameSetInState,
-    updateSetMetadataInState, fetchTokensForSet,
-  } = useTokens(serverUrl, connected, markDisconnected, getDisconnectSignal);
+  const collectionState = useCollectionState(
+    serverUrl,
+    connected,
+    markDisconnected,
+    getDisconnectSignal,
+  );
 
-  const value = useMemo<TokenSetsContextValue>(
+  const value = useMemo<CollectionStateContextValue>(
     () => ({
-      sets, setSets, activeSet, setActiveSet,
-      tokens, tokenRevision,
-      fetchError,
-      setTokenCounts, setDescriptions,
-      refreshTokens, addSetToState, removeSetFromState, renameSetInState,
-      updateSetMetadataInState, fetchTokensForSet,
+      collections: collectionState.collections,
+      setCollections: collectionState.setCollections,
+      currentCollectionId: collectionState.currentCollectionId,
+      setCurrentCollectionId: collectionState.setCurrentCollectionId,
+      currentCollectionTokens: collectionState.currentCollectionTokens,
+      collectionRevision: collectionState.collectionRevision,
+      collectionTokenCounts: collectionState.collectionTokenCounts,
+      collectionDescriptions: collectionState.collectionDescriptions,
+      selectedModes: collectionState.selectedModes,
+      setSelectedModes: collectionState.setSelectedModes,
+      hoverPreviewModes: collectionState.hoverPreviewModes,
+      setHoverPreviewModes: collectionState.setHoverPreviewModes,
+      collectionsError: collectionState.collectionsError,
+      refreshCollections: collectionState.refreshCollections,
+      syncCollectionSummariesToState: collectionState.syncCollectionSummariesToState,
+      addCollectionToState: collectionState.addCollectionToState,
+      removeCollectionFromState: collectionState.removeCollectionFromState,
+      renameCollectionInState: collectionState.renameCollectionInState,
+      updateCollectionMetadataInState: collectionState.updateCollectionMetadataInState,
+      fetchTokensForCollection: collectionState.fetchTokensForCollection,
     }),
     [
-      sets, setSets, activeSet, setActiveSet,
-      tokens, tokenRevision,
-      fetchError,
-      setTokenCounts, setDescriptions,
-      refreshTokens, addSetToState, removeSetFromState, renameSetInState,
-      updateSetMetadataInState, fetchTokensForSet,
+      collectionState.collections,
+      collectionState.setCollections,
+      collectionState.currentCollectionId,
+      collectionState.setCurrentCollectionId,
+      collectionState.currentCollectionTokens,
+      collectionState.collectionRevision,
+      collectionState.collectionTokenCounts,
+      collectionState.collectionDescriptions,
+      collectionState.selectedModes,
+      collectionState.setSelectedModes,
+      collectionState.hoverPreviewModes,
+      collectionState.setHoverPreviewModes,
+      collectionState.collectionsError,
+      collectionState.refreshCollections,
+      collectionState.syncCollectionSummariesToState,
+      collectionState.addCollectionToState,
+      collectionState.removeCollectionFromState,
+      collectionState.renameCollectionInState,
+      collectionState.updateCollectionMetadataInState,
+      collectionState.fetchTokensForCollection,
     ],
   );
 
   return (
-    <TokenSetsContext.Provider value={value}>
+    <CollectionStateContext.Provider value={value}>
       {children}
-    </TokenSetsContext.Provider>
+    </CollectionStateContext.Provider>
   );
 }
 
-function TokenFlatMapProvider({ children, serverUrl, connected, markDisconnected }: {
+function TokenFlatMapProvider({
+  children,
+  serverUrl,
+  connected,
+  markDisconnected,
+}: {
   children: ReactNode;
   serverUrl: string;
   connected: boolean;
   markDisconnected: () => void;
 }) {
-  const { tokenRevision } = useTokenSetsContext();
-
   const {
-    allTokensFlat, pathToSet, perSetFlat,
-    filteredSetCount, setFilteredSetCount,
-    syncSnapshot, tokensLoading, tokensError,
-  } = useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected });
+    collectionRevision,
+    collections,
+    selectedModes,
+    hoverPreviewModes,
+  } = useCollectionStateContext();
+
+  const tokenData = useTokenDataLoading({
+    serverUrl,
+    connected,
+    collectionRevision,
+    markDisconnected,
+    collections,
+    selectedModes,
+    hoverPreviewModes,
+  });
 
   const value = useMemo<TokenFlatMapContextValue>(
     () => ({
-      allTokensFlat, pathToSet, perSetFlat,
-      filteredSetCount, setFilteredSetCount, syncSnapshot,
-      tokensLoading, tokensError,
+      allTokensFlat: tokenData.allTokensFlat,
+      pathToCollectionId: tokenData.pathToCollectionId,
+      perCollectionFlat: tokenData.perCollectionFlat,
+      filteredCollectionCount: tokenData.filteredCollectionCount,
+      setFilteredCollectionCount: tokenData.setFilteredCollectionCount,
+      syncSnapshot: tokenData.syncSnapshot,
+      tokensLoading: tokenData.tokensLoading,
+      tokensError: tokenData.tokensError,
+      modeResolvedTokensFlat: tokenData.modeResolvedTokensFlat,
     }),
     [
-      allTokensFlat, pathToSet, perSetFlat,
-      filteredSetCount, setFilteredSetCount, syncSnapshot,
-      tokensLoading, tokensError,
+      tokenData.allTokensFlat,
+      tokenData.pathToCollectionId,
+      tokenData.perCollectionFlat,
+      tokenData.filteredCollectionCount,
+      tokenData.setFilteredCollectionCount,
+      tokenData.syncSnapshot,
+      tokenData.tokensLoading,
+      tokenData.tokensError,
+      tokenData.modeResolvedTokensFlat,
     ],
   );
 
@@ -174,7 +225,11 @@ function TokenFlatMapProvider({ children, serverUrl, connected, markDisconnected
   );
 }
 
-function RecipeProvider({ children, serverUrl, connected }: {
+function RecipeProvider({
+  children,
+  serverUrl,
+  connected,
+}: {
   children: ReactNode;
   serverUrl: string;
   connected: boolean;
@@ -196,20 +251,25 @@ function RecipeProvider({ children, serverUrl, connected }: {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Public wrapper — stacks the three providers
-// ---------------------------------------------------------------------------
-
 export function TokenDataProvider({ children }: { children: ReactNode }) {
   const { serverUrl, connected, markDisconnected, getDisconnectSignal } = useConnectionContext();
 
   return (
-    <TokenSetsProvider serverUrl={serverUrl} connected={connected} markDisconnected={markDisconnected} getDisconnectSignal={getDisconnectSignal}>
-      <TokenFlatMapProvider serverUrl={serverUrl} connected={connected} markDisconnected={markDisconnected}>
+    <CollectionStateProvider
+      serverUrl={serverUrl}
+      connected={connected}
+      markDisconnected={markDisconnected}
+      getDisconnectSignal={getDisconnectSignal}
+    >
+      <TokenFlatMapProvider
+        serverUrl={serverUrl}
+        connected={connected}
+        markDisconnected={markDisconnected}
+      >
         <RecipeProvider serverUrl={serverUrl} connected={connected}>
           {children}
         </RecipeProvider>
       </TokenFlatMapProvider>
-    </TokenSetsProvider>
+    </CollectionStateProvider>
   );
 }

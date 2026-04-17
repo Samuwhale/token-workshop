@@ -23,8 +23,8 @@ interface ContextMenuState {
 
 export interface GraphPanelProps {
   serverUrl: string;
-  activeSet: string;
-  allSets: string[];
+  currentCollectionId: string;
+  collectionIds: string[];
   recipes: TokenRecipe[];
   loading?: boolean;
   connected: boolean;
@@ -44,8 +44,8 @@ export interface GraphPanelProps {
 
 export function GraphPanel({
   serverUrl,
-  activeSet,
-  allSets,
+  currentCollectionId,
+  collectionIds,
   recipes,
   loading = false,
   connected,
@@ -63,8 +63,8 @@ export function GraphPanel({
   openCreateDialog = false,
 }: GraphPanelProps) {
   const setRecipes = useMemo(
-    () => recipes.filter((recipe) => recipe.targetCollection === activeSet),
-    [activeSet, recipes],
+    () => recipes.filter((recipe) => recipe.targetCollection === currentCollectionId),
+    [currentCollectionId, recipes],
   );
   const focusRef = useRef<HTMLDivElement>(null);
   const suggestedTemplateId = pendingGroupPath
@@ -242,11 +242,11 @@ export function GraphPanel({
   const initialDraft = useMemo(
     () =>
       pendingTemplate
-        ? createRecipeDraftFromTemplate(pendingTemplate, activeSet, {
+        ? createRecipeDraftFromTemplate(pendingTemplate, currentCollectionId, {
             sourceTokenPath: pendingGroupPath ?? undefined,
           })
         : undefined,
-    [activeSet, pendingGroupPath, pendingTemplate],
+    [currentCollectionId, pendingGroupPath, pendingTemplate],
   );
 
   // Context menu handlers
@@ -346,8 +346,8 @@ export function GraphPanel({
     return (
       <TokenRecipeDialog
         serverUrl={serverUrl}
-        allSets={allSets}
-        activeSet={activeSet}
+        collectionIds={collectionIds}
+        currentCollectionId={currentCollectionId}
         existingRecipe={editingRecipe}
         onBack={handleEditClose}
         onClose={handleEditClose}
@@ -363,8 +363,8 @@ export function GraphPanel({
     return (
       <TokenRecipeDialog
         serverUrl={serverUrl}
-        allSets={allSets}
-        activeSet={activeSet}
+        collectionIds={collectionIds}
+        currentCollectionId={currentCollectionId}
         allTokensFlat={allTokensFlat}
         sourceTokenPath={pendingGroupPath ?? undefined}
         sourceTokenType={pendingGroupTokenType ?? undefined}

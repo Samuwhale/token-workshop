@@ -10,7 +10,7 @@ import { renderConflictValue } from './importPanelHelpers';
 const MAX_PREVIEW_CONFLICTS = 60;
 
 export function ImportStylesFooter() {
-  const { targetSet } = useImportDestinationContext();
+  const { targetCollectionId } = useImportDestinationContext();
   const { selectedTokens, tokens } = useImportSourceContext();
   const {
     existingPathsFetching,
@@ -49,7 +49,7 @@ export function ImportStylesFooter() {
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
       <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-        Into <span className="font-mono text-[var(--color-figma-text)]">{targetSet}</span>
+        Into <span className="font-mono text-[var(--color-figma-text)]">{targetCollectionId}</span>
       </div>
 
       {/* Preview summary */}

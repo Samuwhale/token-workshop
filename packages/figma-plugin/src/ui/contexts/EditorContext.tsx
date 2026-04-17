@@ -11,7 +11,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { ReactNode, Dispatch, SetStateAction } from 'react';
 import type { CompareMode } from '../components/UnifiedComparePanel';
-import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
+import { useCollectionStateContext, useTokenFlatMapContext } from './TokenDataContext';
 import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
 import type {
@@ -26,21 +26,21 @@ import type {
 export type EditingToken = {
   path: string;
   name?: string;
-  set: string;
+  currentCollectionId: string;
   isCreate?: boolean;
   initialType?: string;
   initialValue?: string;
 };
 
-export type PreviewingToken = { path: string; name?: string; set: string };
+export type PreviewingToken = { path: string; name?: string; currentCollectionId: string };
 export type EditingRecipe = TokensLibraryRecipeEditorTarget;
 export type EditorContextualSurfaceTarget =
   | { surface: null }
   | { surface: 'token-editor'; token: EditingToken }
   | { surface: 'recipe-editor'; recipe: EditingRecipe }
   | { surface: 'token-preview'; token: PreviewingToken }
-  | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshThemeOptions?: boolean }
-  | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshThemeOptions?: boolean };
+  | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshCompareModeConfig?: boolean }
+  | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean };
 
 export interface TokensContextualSurfaceState {
   activeSurface: TokensLibraryContextualSurface | null;
@@ -59,11 +59,11 @@ export interface EditorContextValue {
   createFromEmpty: boolean;
   setCreateFromEmpty: (v: boolean) => void;
   setPendingHighlight: Dispatch<SetStateAction<string | null>>;
-  setPendingHighlightForSet: (path: string, targetSet: string) => void;
+  setPendingHighlightForCollection: (path: string, targetCollectionId: string) => void;
   handleNavigateToAlias: (path: string, fromPath?: string) => void;
   handleNavigateToAliasWithoutHistory: (path: string) => void;
   handleNavigateBack: () => void;
-  consumeNavigateBack: () => { path: string | null; set: string } | null;
+  consumeNavigateBack: () => { path: string | null; collectionId: string } | null;
   navHistoryLength: number;
   showTokensCompare: boolean;
   setShowTokensCompare: Dispatch<SetStateAction<boolean>>;
@@ -103,8 +103,12 @@ export function useEditorContext(): EditorContextValue {
 // ---------------------------------------------------------------------------
 
 export function EditorProvider({ children }: { children: ReactNode }) {
-  const { activeSet, setActiveSet, tokens } = useTokenSetsContext();
-  const { pathToSet } = useTokenFlatMapContext();
+  const {
+    currentCollectionId,
+    setCurrentCollectionId,
+    currentCollectionTokens: tokens,
+  } = useCollectionStateContext();
+  const { pathToCollectionId } = useTokenFlatMapContext();
 
   const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<EditingRecipe | null>(null);
@@ -137,7 +141,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     highlightedToken,
     setHighlightedToken,
     setPendingHighlight,
-    setPendingHighlightForSet,
+    setPendingHighlightForCollection,
     createFromEmpty,
     setCreateFromEmpty,
     handleNavigateToAlias,
@@ -145,7 +149,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     handleNavigateBack,
     consumeNavigateBack,
     navHistory,
-  } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens, handleAliasNotFound);
+  } = useTokenNavigation(pathToCollectionId, currentCollectionId, setCurrentCollectionId, tokens, handleAliasNotFound);
 
   useEffect(() => {
     if (!showTokensCompare) return;
@@ -187,8 +191,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       setTokensComparePaths(new Set());
     }
 
-    if (target.refreshThemeOptions ?? true) {
-      setTokensCompareModeKey((themeKey) => themeKey + 1);
+    if (target.refreshCompareModeConfig ?? true) {
+      setTokensCompareModeKey((prev) => prev + 1);
     }
 
     setShowTokensCompare(true);
@@ -228,7 +232,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     createFromEmpty,
     setCreateFromEmpty,
     setPendingHighlight,
-    setPendingHighlightForSet,
+    setPendingHighlightForCollection,
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
@@ -258,7 +262,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setCreateFromEmpty,
     setHighlightedToken,
     setPendingHighlight,
-    setPendingHighlightForSet,
+    setPendingHighlightForCollection,
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,
     handleNavigateBack,

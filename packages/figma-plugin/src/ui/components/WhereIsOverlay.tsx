@@ -14,7 +14,7 @@ export interface WhereIsOverlayProps {
   whereIsResults: WhereIsResult[] | null;
   whereIsLoading: boolean;
   onClose: () => void;
-  onNavigateToSet?: (collectionId: string, path: string) => void;
+  onNavigateToCollection?: (collectionId: string, path: string) => void;
 }
 
 export function WhereIsOverlay({
@@ -22,7 +22,7 @@ export function WhereIsOverlay({
   whereIsResults,
   whereIsLoading,
   onClose,
-  onNavigateToSet,
+  onNavigateToCollection,
 }: WhereIsOverlayProps) {
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-[var(--color-figma-bg)]">
@@ -139,7 +139,7 @@ export function WhereIsOverlay({
                   <button
                     className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
                     onClick={() =>
-                      onNavigateToSet?.(def.collectionId, whereIsPath)
+                      onNavigateToCollection?.(def.collectionId, whereIsPath)
                     }
                     title={`Go to ${def.collectionId}`}
                   >

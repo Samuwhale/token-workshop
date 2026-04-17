@@ -140,7 +140,7 @@ export interface SyncSnapshot<TLocal, TFigma, TRow extends DiffRowBase> {
 export interface LoadSyncSnapshotParams<TLocal, TFigma, TRow extends DiffRowBase>
   extends SyncDiffConfig<TLocal, TFigma, TRow> {
   serverUrl: string;
-  activeSet: string;
+  currentCollectionId: string;
   readFigmaTokens: () => Promise<unknown[]>;
   signal?: AbortSignal;
   figmaTimeoutMs?: number;
@@ -157,7 +157,7 @@ export interface ResolverPublishSyncMapping {
 
 export interface VariablePublishSnapshotParams {
   serverUrl: string;
-  activeSet: string;
+  currentCollectionId: string;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
   readFigmaTokens: () => Promise<unknown[]>;
@@ -518,28 +518,28 @@ export function selectVariableModeTokens(
 
 export function selectVariableCollectionTokens(
   collections: unknown[],
-  activeSet: string,
+  currentCollectionId: string,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
 ): ReadVariableToken[] {
-  const desiredCollectionName = collectionMap[activeSet] ?? DEFAULT_VARIABLE_COLLECTION_NAME;
-  const desiredModeName = modeMap[activeSet];
+  const desiredCollectionName = collectionMap[currentCollectionId] ?? DEFAULT_VARIABLE_COLLECTION_NAME;
+  const desiredModeName = modeMap[currentCollectionId];
   return selectVariableModeTokens(collections, desiredCollectionName, desiredModeName);
 }
 
 export function buildVariablePublishFigmaMap(
   collections: unknown[],
-  activeSet: string,
+  currentCollectionId: string,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
 ) {
-  const tokens = selectVariableCollectionTokens(collections, activeSet, collectionMap, modeMap);
+  const tokens = selectVariableCollectionTokens(collections, currentCollectionId, collectionMap, modeMap);
   return variablePublishDiffConfig.buildFigmaMap(tokens);
 }
 
 export async function loadVariablePublishSnapshot({
   serverUrl,
-  activeSet,
+  currentCollectionId,
   collectionMap,
   modeMap,
   readFigmaTokens,
@@ -563,19 +563,19 @@ export async function loadVariablePublishSnapshot({
 
   return loadSyncSnapshot<PublishSyncEntry, PublishSyncEntry, PublishDiffRow>({
     serverUrl,
-    activeSet,
+    currentCollectionId,
     readFigmaTokens,
     signal,
     figmaTimeoutMs,
     figmaTimeoutMessage,
     ...variablePublishDiffConfig,
-    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, activeSet, collectionMap, modeMap),
+    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, currentCollectionId, collectionMap, modeMap),
   });
 }
 
 export async function loadSyncSnapshot<TLocal, TFigma, TRow extends DiffRowBase>({
   serverUrl,
-  activeSet,
+  currentCollectionId,
   readFigmaTokens,
   signal,
   figmaTimeoutMs,
@@ -593,7 +593,7 @@ export async function loadSyncSnapshot<TLocal, TFigma, TRow extends DiffRowBase>
     figmaTimeoutMessage,
   );
   const data = await apiFetch<{ tokens?: Record<string, unknown> }>(
-    `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`,
+    `${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}`,
     { signal: createFetchSignal(signal) },
   );
   const localTokens = flattenTokenGroup((data.tokens ?? {}) as DTCGGroup);

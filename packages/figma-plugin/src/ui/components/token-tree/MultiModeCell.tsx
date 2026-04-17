@@ -18,7 +18,7 @@ export function MultiModeCell({
   tokenPath,
   tokenType,
   value,
-  targetSet,
+  targetCollectionId,
   collectionId,
   optionName,
   onSave,
@@ -30,14 +30,14 @@ export function MultiModeCell({
   tokenPath: string;
   tokenType: string | undefined;
   value: TokenMapEntry | undefined;
-  targetSet: string | null;
+  targetCollectionId: string | null;
   collectionId: string;
   optionName: string;
   onSave?: (
     path: string,
     type: string,
     newValue: any,
-    targetSet: string,
+    targetCollectionId: string,
     collectionId: string,
     optionName: string,
     previousState?: { type?: string; value: unknown },
@@ -47,7 +47,7 @@ export function MultiModeCell({
   onTab?: (direction: 1 | -1) => void;
   onEdit?: () => void;
 }) {
-  const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
+  const { allTokensFlat, pathToCollectionId } = useTokenTreeSharedData();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const escapedRef = useRef(false);
@@ -63,14 +63,14 @@ export function MultiModeCell({
   const canEdit =
     !!tokenType &&
     INLINE_SIMPLE_TYPES.has(tokenType) &&
-    !!targetSet &&
+    !!targetCollectionId &&
     !!onSave &&
     !isAliasValue;
-  const canEditAlias = isAliasValue && !!targetSet && !!onSave;
+  const canEditAlias = isAliasValue && !!targetCollectionId && !!onSave;
   const canCreate =
     !value &&
     !!tokenType &&
-    !!targetSet &&
+    !!targetCollectionId &&
     !!onSave;
 
   // Stable refs so the tab-activation effect always reads fresh values without
@@ -106,7 +106,7 @@ export function MultiModeCell({
   }, [isTabPending]);
 
   const handleSubmit = useCallback(() => {
-    if (!editing || !tokenType || !targetSet || !onSave) return;
+    if (!editing || !tokenType || !targetCollectionId || !onSave) return;
     const raw = editValue.trim();
     if (!raw) {
       setEditing(false);
@@ -115,11 +115,11 @@ export function MultiModeCell({
     const parsed = parseInlineValue(tokenType, raw);
     if (parsed === null) return;
     setEditing(false);
-    onSave(tokenPath, tokenType, parsed, targetSet, collectionId, optionName, {
+    onSave(tokenPath, tokenType, parsed, targetCollectionId, collectionId, optionName, {
       type: value?.$type ?? tokenType,
       value: value?.$value,
     });
-  }, [editing, editValue, tokenType, targetSet, collectionId, optionName, tokenPath, onSave, value]);
+  }, [editing, editValue, tokenType, targetCollectionId, collectionId, optionName, tokenPath, onSave, value]);
 
   const openAliasEditor = useCallback(
     (e: React.MouseEvent) => {
@@ -158,7 +158,7 @@ export function MultiModeCell({
     <div
       ref={cellRef}
       className="w-[48px] shrink-0 px-0.5 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
-      title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ""}`}
+      title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}`}
     >
       {/* Hidden color input — rendered for existing color values or creatable empty color cells */}
       {(canEdit || canCreate) && tokenType === "color" && (
@@ -175,7 +175,7 @@ export function MultiModeCell({
                 tokenPath,
                 "color",
                 newHex,
-                targetSet!,
+                targetCollectionId!,
                 collectionId,
                 optionName,
                 {
@@ -255,7 +255,7 @@ export function MultiModeCell({
               e.stopPropagation();
               // Use escapedRef to block the onBlur from double-saving
               escapedRef.current = true;
-              if (tokenType && targetSet && onSave) {
+              if (tokenType && targetCollectionId && onSave) {
                 const raw = editValue.trim();
                 if (raw) {
                   const parsed = parseInlineValue(tokenType, raw);
@@ -264,7 +264,7 @@ export function MultiModeCell({
                       tokenPath,
                       tokenType,
                       parsed,
-                      targetSet,
+                      targetCollectionId,
                       collectionId,
                       optionName,
                       {
@@ -291,7 +291,7 @@ export function MultiModeCell({
           <span
             className={`text-[10px] truncate max-w-full font-mono ${canEditAlias ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
             onClick={canEditAlias ? openAliasEditor : undefined}
-            title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ""}\nClick to redirect alias`}
+            title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}\nClick to redirect alias`}
           >
             {displayVal}
           </span>
@@ -325,14 +325,14 @@ export function MultiModeCell({
                 <AliasAutocomplete
                   query={aliasQuery}
                   allTokensFlat={allTokensFlat}
-                  pathToSet={pathToSet}
+                  pathToCollectionId={pathToCollectionId}
                   filterType={tokenType}
                   onSelect={(path) => {
                     onSave!(
                       tokenPath,
                       tokenType || value.$type || "color",
                       `{${path}}`,
-                      targetSet!,
+                      targetCollectionId!,
                       collectionId,
                       optionName,
                       { type: value.$type, value: value.$value },

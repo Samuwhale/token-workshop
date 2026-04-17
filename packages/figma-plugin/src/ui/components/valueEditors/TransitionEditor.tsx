@@ -4,7 +4,7 @@ import { labelClass } from '../../shared/editorClasses';
 import { DimensionSubProp } from './valueEditorShared';
 import { CubicBezierEditor } from './CubicBezierEditor';
 
-export const TransitionEditor = memo(function TransitionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string> }) {
+export const TransitionEditor = memo(function TransitionEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string> }) {
   const val = typeof value === 'object' && value !== null ? value : {};
   const duration = val.duration ?? { value: 200, unit: 'ms' };
   const delay = val.delay ?? { value: 0, unit: 'ms' };
@@ -20,7 +20,7 @@ export const TransitionEditor = memo(function TransitionEditor({ value, onChange
           value={typeof duration === 'string' ? duration : duration}
           onChange={v => update({ duration: v })}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           units={['ms', 's']}
           placeholder="200"
         />
@@ -31,7 +31,7 @@ export const TransitionEditor = memo(function TransitionEditor({ value, onChange
           value={typeof delay === 'string' ? delay : delay}
           onChange={v => update({ delay: v })}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           units={['ms', 's']}
           placeholder="0"
         />

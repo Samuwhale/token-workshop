@@ -133,21 +133,21 @@ export const STORAGE_KEYS = {
   WINDOW_HEIGHT:         'tm_window_height',
   PREVIEW_SPLIT:         'tm_preview_split',
   PREVIEW_SPLIT_RATIO:   'tm_preview_split_ratio',
-  ACTIVE_SET:            'tm_active_set',
+  CURRENT_COLLECTION_ID: 'tm_current_collection_id',
   ACTIVE_TAB:            'tm_active_tab',
   ACTIVE_TOP_TAB:        'tm_active_top_tab',
   ACTIVE_SUB_TAB_TOKENS:  'tm_sub_tab_tokens',
   ACTIVE_SUB_TAB_RECIPES: 'tm_sub_tab_recipes',
-  ACTIVE_SUB_TAB_COLLECTIONS:  'tm_sub_tab_themes',
+  ACTIVE_SUB_TAB_COLLECTIONS:  'tm_sub_tab_collections',
   ACTIVE_SUB_TAB_INSPECT: 'tm_sub_tab_inspect',
   ACTIVE_SUB_TAB_SYNC:    'tm_sub_tab_sync',
-  ACTIVE_MODES:         'tm_active_themes',
+  SELECTED_MODES:        'tm_selected_modes',
   COLLAPSED_FOLDERS:     'tm_collapsed_folders',
   SERVER_URL:            'tokenmanager_server_url',
   PALETTE_RECENT:        'tm_palette_recent',
   ANALYTICS_CANONICAL:   'analytics_canonicalPick',
-  IMPORT_TARGET_SET:     'importTargetSet',
-  COLLECTION_CARD_ORDER:      'themeCardOrder',
+  IMPORT_TARGET_COLLECTION: 'tm_import_target_collection',
+  COLLECTION_CARD_ORDER:  'tm_collection_card_order',
   EXPORT_PLATFORMS:      'exportPanel.selectedPlatforms',
   EXPORT_CSS_SELECTOR:   'exportPanel.cssSelector',
   EXPORT_ZIP_FILENAME:   'exportPanel.zipFilename',
@@ -168,7 +168,7 @@ export const STORAGE_KEYS = {
   FIRST_RUN_DONE:        'tm_first_run_done',
   DEEP_INSPECT:          'tm_deep_inspect',
   RECENT_TOKENS:         'tm_recent_tokens',
-  CROSS_SET_RECENTS:     'tm_cross_set_recents',
+  CROSS_COLLECTION_RECENTS: 'tm_cross_collection_recents',
   STARRED_TOKENS:        'tm_starred_tokens',
   PREFERRED_COPY_FORMAT: 'tm_preferred_copy_format',
   CONDENSED_VIEW:        'tm_condensed_view',
@@ -183,14 +183,17 @@ export const STORAGE_KEYS = {
   SIDEBAR_COLLAPSED:        'tm_sidebar_collapsed',
 } as const;
 
-/** Per-set dynamic key builders */
-export const STORAGE_KEY = {
-  tokenSort:       (setName: string) => `token-sort:${setName}`,
-  tokenTypeFilter: (setName: string) => `token-type-filter:${setName}`,
-  pinnedTokens:    (setName: string) => `tm_pinned:${setName}`,
-  tokenViewMode:   (setName: string) => `tm_view-mode:${setName}`,
-  tokenShowResolvedValues: (setName: string) => `tm_show_resolved_values:${setName}`,
-  staleRecipeBannerDismissed: (setName: string) => `tm_stale_recipe_banner_dismissed:${setName}`,
+/** Dynamic key builders for collection-scoped client view state. */
+export const STORAGE_KEY_BUILDERS = {
+  tokenSort:       (collectionId: string) => `token-sort:${collectionId}`,
+  tokenTypeFilter: (collectionId: string) => `token-type-filter:${collectionId}`,
+  pinnedTokens:    (collectionId: string) => `tm_pinned:${collectionId}`,
+  tokenViewMode:   (collectionId: string) => `tm_view-mode:${collectionId}`,
+  tokenShowResolvedValues: (collectionId: string) => `tm_show_resolved_values:${collectionId}`,
+  staleRecipeBannerDismissed: (collectionId: string) => `tm_stale_recipe_banner_dismissed:${collectionId}`,
+  tokenExpansion: (collectionId: string) => `token-expand:${collectionId}`,
+  editorDraft: (collectionId: string, tokenPath: string) => `tm_editor_draft:${collectionId}:${tokenPath}`,
+  tableCreateDraft: (collectionId: string) => `tokenmanager:table-create-draft:${collectionId || '__default__'}`,
 };
 
 /** Key prefix strings used for bulk-delete operations */
@@ -201,7 +204,7 @@ export const STORAGE_PREFIXES = {
 } as const;
 
 const WORKSPACE_RECOVERY_RESET_KEYS = [
-  STORAGE_KEYS.ACTIVE_SET,
+  STORAGE_KEYS.CURRENT_COLLECTION_ID,
   STORAGE_KEYS.ACTIVE_TAB,
   STORAGE_KEYS.ACTIVE_TOP_TAB,
   STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
@@ -210,7 +213,7 @@ const WORKSPACE_RECOVERY_RESET_KEYS = [
   STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
   STORAGE_KEYS.ANALYTICS_CANONICAL,
-  STORAGE_KEYS.IMPORT_TARGET_SET,
+  STORAGE_KEYS.IMPORT_TARGET_COLLECTION,
   STORAGE_KEYS.COLLECTION_CARD_ORDER,
   STORAGE_KEYS.ACTIVE_RESOLVER,
   STORAGE_KEYS.RESOLVER_INPUT,

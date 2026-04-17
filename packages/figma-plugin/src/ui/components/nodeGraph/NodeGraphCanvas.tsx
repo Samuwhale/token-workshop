@@ -123,7 +123,7 @@ function DetailPopover({
 
 export interface NodeGraphCanvasProps {
   recipes: TokenRecipe[];
-  activeSet: string;
+  currentCollectionId: string;
   onPushUndo?: (slot: UndoSlot) => void;
   searchQuery?: string;
   onEditRecipe?: (recipeId: string) => void;
@@ -133,7 +133,7 @@ export interface NodeGraphCanvasProps {
 
 export function NodeGraphCanvas({
   recipes,
-  activeSet,
+  currentCollectionId,
   onPushUndo,
   searchQuery = '',
   onEditRecipe,
@@ -148,7 +148,7 @@ export function NodeGraphCanvas({
     setSelectedNodeId,
     selectedRecipe,
     persistPositions,
-  } = useNodeGraph(recipes, activeSet, onPushUndo);
+  } = useNodeGraph(recipes, currentCollectionId, onPushUndo);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });

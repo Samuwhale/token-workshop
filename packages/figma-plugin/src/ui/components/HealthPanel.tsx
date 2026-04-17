@@ -236,18 +236,17 @@ interface DeprecatedUsageEntry {
 export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
-  activeSet: string;
+  currentCollectionId: string;
   recipes: TokenRecipe[];
   lintViolations: LintViolation[];
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
   pathToCollectionId: Record<string, string>;
   /** Collections enable cross-collection contrast checking in the matrix. */
   collections?: TokenCollection[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
   onNavigateTo: (topTab: "tokens" | "collections" | "inspect" | "sync", subTab?: string) => void;
-  onNavigateToToken?: (path: string, set: string) => void;
+  onNavigateToToken?: (path: string, collectionId: string) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
   onTriggerHeatmap: () => void;
   /** Shared validation cache — avoids re-fetching when switching from Analytics tab */
@@ -265,11 +264,10 @@ export interface HealthPanelProps {
 export function HealthPanel({
   serverUrl,
   connected,
-  activeSet,
+  currentCollectionId,
   recipes,
   lintViolations,
   allTokensFlat,
-  pathToSet,
   pathToCollectionId,
   collections = [],
   tokenUsageCounts,
@@ -449,7 +447,7 @@ export function HealthPanel({
       {
         $value: unknown;
         $type: string;
-        set: string;
+        collectionId: string;
         $scopes?: string[];
         $lifecycle?: TokenMapEntry["$lifecycle"];
       }
@@ -458,13 +456,13 @@ export function HealthPanel({
       result[path] = {
         $value: entry.$value,
         $type: entry.$type,
-        set: pathToSet[path] ?? "",
+        collectionId: pathToCollectionId[path] ?? "",
         $scopes: entry.$scopes,
         $lifecycle: entry.$lifecycle,
       };
     }
     return result;
-  }, [allTokensFlat, pathToSet]);
+  }, [allTokensFlat, pathToCollectionId]);
 
   const resolveColorHex = useMemo(() => {
     return (path: string, visited = new Set<string>()): string | null => {
@@ -507,14 +505,20 @@ export function HealthPanel({
   // All color tokens with alias resolution (for LightnessInspectorPanel)
   const allColorTokens = useMemo((): {
     path: string;
-    set: string;
+    collectionId: string;
     hex: string;
   }[] => {
-    const colors: { path: string; set: string; hex: string }[] = [];
+    const colors: { path: string; collectionId: string; hex: string }[] = [];
     for (const [path, entry] of Object.entries(allTokensUnified)) {
       if (entry.$type !== "color") continue;
       const hex = resolveColorHex(path);
-      if (hex) colors.push({ path, set: entry.set, hex: normalizeHex(hex) });
+      if (hex) {
+        colors.push({
+          path,
+          collectionId: entry.collectionId,
+          hex: normalizeHex(hex),
+        });
+      }
     }
     return colors;
   }, [allTokensUnified, resolveColorHex]);
@@ -618,9 +622,9 @@ export function HealthPanel({
         const sourceCollectionIds = Array.from(
           new Set(sortedTokens.map((token) => token.collectionId)),
         );
-        const suggestedPrimitiveCollectionId = sourceCollectionIds.includes(activeSet)
-          ? activeSet
-          : sortedTokens[0]?.collectionId ?? activeSet;
+        const suggestedPrimitiveCollectionId = sourceCollectionIds.includes(currentCollectionId)
+          ? currentCollectionId
+          : sortedTokens[0]?.collectionId ?? currentCollectionId;
         const suggestedPrimitivePath = ensureUniqueSharedAliasPath(
           suggestSharedAliasPath(
             sortedTokens.map((token) => token.path),
@@ -649,7 +653,7 @@ export function HealthPanel({
         };
       })
       .sort((a, b) => b.tokens.length - a.tokens.length);
-  }, [validationIssuesProp, allTokensUnified, activeSet]);
+  }, [validationIssuesProp, allTokensUnified, currentCollectionId]);
 
   // Color scales for LightnessInspectorPanel (groups with numeric suffix, ≥3 steps)
   const colorScales = useMemo(() => {
@@ -704,7 +708,7 @@ export function HealthPanel({
       )
       .map(([path, entry]) => ({
         path,
-        set: entry.set,
+        collectionId: entry.collectionId,
         $type: entry.$type,
         $lifecycle: entry.$lifecycle,
       }))
@@ -955,7 +959,7 @@ export function HealthPanel({
       items.push({
         severity: "critical",
         category: "Lint",
-        message: `${formatCount(lintErrors, "lint error")} in the current set`,
+        message: `${formatCount(lintErrors, "lint error")} in the current collection`,
         count: lintErrors,
         ctaLabel: "Review lint",
         action: { kind: "lint" },
@@ -1000,7 +1004,7 @@ export function HealthPanel({
       items.push({
         severity: "warning",
         category: "Lint",
-        message: `${formatCount(lintWarnings, "lint warning")} in the current set`,
+        message: `${formatCount(lintWarnings, "lint warning")} in the current collection`,
         count: lintWarnings,
         ctaLabel: "Review lint",
         action: { kind: "lint" },
@@ -1828,7 +1832,7 @@ export function HealthPanel({
                                 <div className="mt-2 max-w-xl">
                                   <TokenPickerDropdown
                                     allTokensFlat={allTokensFlat}
-                                    pathToSet={pathToSet}
+                                    pathToCollectionId={pathToCollectionId}
                                     filterType={
                                       entry.type === "unknown"
                                         ? undefined
@@ -1996,7 +2000,6 @@ export function HealthPanel({
               collections={collections}
               allTokensFlat={allTokensFlat}
               pathToCollectionId={pathToCollectionId}
-              pathToSet={pathToSet}
               onNavigateToToken={onNavigateToToken}
             />
 
@@ -2006,9 +2009,9 @@ export function HealthPanel({
               onNavigateToToken={
                 onNavigateToToken
                   ? (path) => {
-                      const setName = pathToSet[path];
-                      if (!setName) return;
-                      onNavigateToToken(path, setName);
+                      const collectionId = pathToCollectionId[path];
+                      if (!collectionId) return;
+                      onNavigateToToken(path, collectionId);
                     }
                   : undefined
               }

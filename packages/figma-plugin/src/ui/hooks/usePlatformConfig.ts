@@ -14,8 +14,8 @@ export interface PlatformConfig {
   nestByPlatform: boolean;
   setNestByPlatform: Dispatch<SetStateAction<boolean>>;
   // Filters
-  selectedSets: Set<string> | null;
-  setSelectedSets: Dispatch<SetStateAction<Set<string> | null>>;
+  selectedCollections: Set<string> | null;
+  setSelectedCollections: Dispatch<SetStateAction<Set<string> | null>>;
   selectedTypes: Set<string> | null;
   setSelectedTypes: Dispatch<SetStateAction<Set<string> | null>>;
   pathPrefix: string;
@@ -54,8 +54,10 @@ export function usePlatformConfig(): PlatformConfig {
     false,
   );
 
-  // Set filter — not persisted (resets on reload)
-  const [selectedSets, setSelectedSets] = useState<Set<string> | null>(null);
+  // Collection filter — not persisted (resets on reload)
+  const [selectedCollections, setSelectedCollections] = useState<
+    Set<string> | null
+  >(null);
 
   // Type filter — Set<string> | null serialized as string[] | null in localStorage
   const [selectedTypes, setSelectedTypes] = useState<Set<string> | null>(() => {
@@ -86,8 +88,8 @@ export function usePlatformConfig(): PlatformConfig {
     setZipFilename,
     nestByPlatform,
     setNestByPlatform,
-    selectedSets,
-    setSelectedSets,
+    selectedCollections,
+    setSelectedCollections,
     selectedTypes,
     setSelectedTypes,
     pathPrefix,

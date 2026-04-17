@@ -29,7 +29,7 @@ interface PlatformExportConfigProps {
   onLoadPresetFiltersOnly: (preset: ExportPreset) => void;
   onDeletePreset: (id: string) => void;
   // Other
-  sets: string[];
+  collectionIds: string[];
   connected: boolean;
   savePresetInputRef: RefObject<HTMLInputElement | null>;
 }
@@ -50,7 +50,7 @@ export function PlatformExportConfig({
   onLoadPreset,
   onLoadPresetFiltersOnly,
   onDeletePreset,
-  sets,
+  collectionIds,
   connected,
   savePresetInputRef,
 }: PlatformExportConfigProps) {
@@ -59,7 +59,7 @@ export function PlatformExportConfig({
     cssSelector, setCssSelector,
     zipFilename, setZipFilename,
     nestByPlatform, setNestByPlatform,
-    selectedSets, setSelectedSets,
+    selectedCollections, setSelectedCollections,
     selectedTypes, setSelectedTypes,
     pathPrefix, setPathPrefix,
     setsOpen, setSetsOpen,
@@ -84,16 +84,16 @@ export function PlatformExportConfig({
     presetName, setPresetName,
   } = presetsState;
 
-  const toggleSet = (name: string) => {
-    setSelectedSets(prev => {
-      const base = prev ?? new Set(sets);
+  const toggleCollection = (name: string) => {
+    setSelectedCollections(prev => {
+      const base = prev ?? new Set(collectionIds);
       const next = new Set(base);
       if (next.has(name)) {
         next.delete(name);
       } else {
         next.add(name);
       }
-      return next.size === sets.length ? null : next;
+      return next.size === collectionIds.length ? null : next;
     });
   };
 
@@ -186,7 +186,7 @@ export function PlatformExportConfig({
                 <div className="w-px self-stretch bg-[var(--color-figma-border)]" />
                 <button
                   onClick={() => onLoadPresetFiltersOnly(preset)}
-                  title="Apply sets, types, and path prefix from this preset — keeps the current platform selection"
+                  title="Apply collections, types, and path prefix from this preset — keeps the current platform selection"
                   className="px-1.5 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   aria-label={`Apply filters only from preset ${preset.name}`}
                 >
@@ -317,8 +317,8 @@ export function PlatformExportConfig({
         </div>
       )}
 
-      {/* Token Sets */}
-      {sets.length > 0 && (
+      {/* Collections */}
+      {collectionIds.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <button
@@ -328,38 +328,42 @@ export function PlatformExportConfig({
               <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${setsOpen ? 'rotate-90' : ''}`} aria-hidden="true">
                 <path d="M2 1l4 3-4 3" />
               </svg>
-              <span className="font-medium uppercase tracking-wide">Token Sets</span>
+              <span className="font-medium uppercase tracking-wide">Collections</span>
             </button>
             {setsOpen ? (
               <button
                 onClick={() => {
-                  if (selectedSets === null) {
-                    setSelectedSets(new Set());
+                  if (selectedCollections === null) {
+                    setSelectedCollections(new Set());
                   } else {
-                    setSelectedSets(null);
+                    setSelectedCollections(null);
                   }
                 }}
                 className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
               >
-                {selectedSets === null ? `Deselect all` : `Select all (${sets.length})`}
+                {selectedCollections === null
+                  ? `Deselect all`
+                  : `Select all (${collectionIds.length})`}
               </button>
             ) : (
               <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                {selectedSets === null
-                  ? 'All sets'
-                  : selectedSets.size === 0
+                {selectedCollections === null
+                  ? 'All collections'
+                  : selectedCollections.size === 0
                     ? <span className="text-[var(--color-figma-warning)]">None selected</span>
-                    : `${selectedSets.size} of ${sets.length}`}
+                    : `${selectedCollections.size} of ${collectionIds.length}`}
               </span>
             )}
           </div>
           {setsOpen && (
             <div className="flex flex-col gap-1">
-              {sets.map(setName => {
-                const isSelected = selectedSets === null || selectedSets.has(setName);
+              {collectionIds.map((collectionId) => {
+                const isSelected =
+                  selectedCollections === null ||
+                  selectedCollections.has(collectionId);
                 return (
                   <label
-                    key={setName}
+                    key={collectionId}
                     className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-md border cursor-pointer transition-all ${
                       isSelected
                         ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
@@ -380,10 +384,10 @@ export function PlatformExportConfig({
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => toggleSet(setName)}
+                      onChange={() => toggleCollection(collectionId)}
                       className="sr-only"
                     />
-                    <span className="text-[11px] text-[var(--color-figma-text)] font-mono truncate">{setName}</span>
+                    <span className="text-[11px] text-[var(--color-figma-text)] font-mono truncate">{collectionId}</span>
                   </label>
                 );
               })}

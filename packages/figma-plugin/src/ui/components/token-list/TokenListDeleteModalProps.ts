@@ -31,7 +31,7 @@ export function getDeleteModalProps(
   if (deleteConfirm.type === "token") {
     const name = deleteConfirm.path.split(".").pop() ?? deleteConfirm.path;
     const { orphanCount, affectedRefs } = deleteConfirm;
-    const setCount = new Set(affectedRefs.map((r) => r.setName)).size;
+    const setCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
     const parts: string[] = [];
     if (orphanCount > 0)
       parts.push(
@@ -60,7 +60,7 @@ export function getDeleteModalProps(
 
   if (deleteConfirm.type === "group") {
     const { orphanCount, affectedRefs } = deleteConfirm;
-    const setCount = new Set(affectedRefs.map((r) => r.setName)).size;
+    const setCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
     const parts: string[] = [
       `delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? "s" : ""}`,
     ];
@@ -87,7 +87,7 @@ export function getDeleteModalProps(
   }
 
   const { paths, orphanCount, affectedRefs } = deleteConfirm;
-  const setCount = new Set(affectedRefs.map((r) => r.setName)).size;
+  const setCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
   const parts: string[] = [];
   if (orphanCount > 0)
     parts.push(

@@ -2,17 +2,17 @@ import {
   useImportDestinationContext,
   useImportSourceContext,
 } from './ImportPanelContext';
-import { defaultSetName, modeKey } from './importPanelTypes';
-import { SET_NAME_RE } from '../shared/utils';
+import { defaultCollectionName, modeKey } from './importPanelTypes';
+import { COLLECTION_NAME_RE } from '../shared/utils';
 
 export function ImportVariablesView() {
   const { collectionData, handleBack } = useImportSourceContext();
   const {
     modeEnabled,
-    modeSetNames,
+    modeCollectionNames,
     collectionModeDestinationStatus,
     setModeEnabled,
-    setModeSetNames,
+    setModeCollectionNames,
   } = useImportDestinationContext();
 
   return (
@@ -44,28 +44,30 @@ export function ImportVariablesView() {
             {col.modes.map(mode => {
               const key = modeKey(col.name, mode.modeId);
               const enabled = modeEnabled[key] ?? true;
-              const setName = modeSetNames[key] ?? defaultSetName(col.name, mode.modeName, col.modes.length);
-              const trimmedName = setName.trim();
+              const collectionId =
+                modeCollectionNames[key] ??
+                defaultCollectionName(col.name, mode.modeName, col.modes.length);
+              const trimmedName = collectionId.trim();
               const destinationStatus = collectionModeDestinationStatus[key];
-              const setNameError = enabled
+              const collectionNameError = enabled
                 ? !trimmedName
                   ? 'Name cannot be empty'
-                  : !SET_NAME_RE.test(trimmedName)
+                  : !COLLECTION_NAME_RE.test(trimmedName)
                     ? 'Use letters, numbers, - _ (/ for folders)'
                     : null
                 : null;
-              const duplicatePathError = enabled && !setNameError && (destinationStatus?.ambiguousPathCount ?? 0) > 0
+              const duplicatePathError = enabled && !collectionNameError && (destinationStatus?.ambiguousPathCount ?? 0) > 0
                 ? destinationStatus?.ambiguousPathCount === 1
                   ? 'Shares 1 path with another enabled mode'
                   : `Shares ${destinationStatus?.ambiguousPathCount} paths with other enabled modes`
                 : null;
-              const inputError = setNameError ?? duplicatePathError;
-              const inputErrorDetail = setNameError
-                ? setNameError
+              const inputError = collectionNameError ?? duplicatePathError;
+              const inputErrorDetail = collectionNameError
+                ? collectionNameError
                 : duplicatePathError
                   ? `${duplicatePathError}. Change the name or disable an overlapping mode.`
                   : null;
-              const isSharedDestination = enabled && !setNameError && (destinationStatus?.sharedDestinationCount ?? 1) > 1;
+              const isSharedDestination = enabled && !collectionNameError && (destinationStatus?.sharedDestinationCount ?? 1) > 1;
 
               return (
                 <div key={mode.modeId} className={`flex items-start gap-2 px-2 py-1.5 ${enabled ? '' : 'opacity-50'}`}>
@@ -86,9 +88,9 @@ export function ImportVariablesView() {
                     </div>
                     <input
                       type="text"
-                      value={setName}
+                      value={collectionId}
                       disabled={!enabled}
-                      onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
+                      onChange={e => setModeCollectionNames(prev => ({ ...prev, [key]: e.target.value }))}
                       className={`w-full px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:outline-none disabled:opacity-50 ${inputError ? 'border-[var(--color-figma-error,#e53935)] focus-visible:border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
                       placeholder="collection-name"
                       aria-label="Collection name for mode"

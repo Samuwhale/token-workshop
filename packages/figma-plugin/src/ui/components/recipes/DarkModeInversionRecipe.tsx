@@ -15,11 +15,11 @@ export const DEFAULT_DARK_MODE_INVERSION_CONFIG: DarkModeInversionConfig = {
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat, pathToSet }: {
+export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat, pathToCollectionId }: {
   config: DarkModeInversionConfig;
   onChange: (c: DarkModeInversionConfig) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }) {
   const handleChromaChange = (raw: string) => {
     const num = parseFloat(raw);
@@ -70,7 +70,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
         valueLabel={String(config.chromaBoost)}
         filterType="number"
         allTokensFlat={allTokensFlat}
-        pathToSet={pathToSet}
+        pathToCollectionId={pathToCollectionId}
         onLink={setChromaTokenRef}
         onUnlink={clearChromaTokenRef}
       >

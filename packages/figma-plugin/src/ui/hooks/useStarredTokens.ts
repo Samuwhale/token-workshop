@@ -5,8 +5,8 @@ import {
   toggleStarredToken,
   removeStarredToken,
   renameStarredToken,
-  removeStarredTokensForSet,
-  renameStarredTokensForSet,
+  removeStarredTokensForCollection,
+  renameStarredTokensForCollection,
   isTokenStarred,
 } from '../shared/starredTokens';
 
@@ -16,17 +16,17 @@ export interface StarredTokensState {
   /** Number of starred tokens */
   count: number;
   /** Toggle star on a token; returns new starred state */
-  toggleStar: (path: string, setName: string) => boolean;
+  toggleStar: (path: string, collectionId: string) => boolean;
   /** Check if a token is starred */
-  isStarred: (path: string, setName: string) => boolean;
+  isStarred: (path: string, collectionId: string) => boolean;
   /** Remove a starred token (on delete) */
-  remove: (path: string, setName: string) => void;
+  remove: (path: string, collectionId: string) => void;
   /** Rename a starred token (on rename) */
-  rename: (oldPath: string, newPath: string, setName: string) => void;
-  /** Remove all starred tokens for a deleted set */
-  removeForSet: (setName: string) => void;
-  /** Update set name for a renamed set */
-  renameSet: (oldName: string, newName: string) => void;
+  rename: (oldPath: string, newPath: string, collectionId: string) => void;
+  /** Remove all starred tokens for a deleted collection. */
+  removeForCollection: (collectionId: string) => void;
+  /** Update collection id for a renamed collection. */
+  renameCollection: (oldName: string, newName: string) => void;
   /** Clear all starred tokens */
   clear: () => void;
 }
@@ -34,33 +34,33 @@ export interface StarredTokensState {
 export function useStarredTokens(): StarredTokensState {
   const [tokens, setTokens] = useState<StarredToken[]>(() => getStarredTokens());
 
-  const toggleStar = useCallback((path: string, setName: string): boolean => {
-    const result = toggleStarredToken(path, setName);
+  const toggleStar = useCallback((path: string, collectionId: string): boolean => {
+    const result = toggleStarredToken(path, collectionId);
     setTokens(getStarredTokens());
     return result;
   }, []);
 
-  const isStarred = useCallback((path: string, setName: string): boolean => {
-    return isTokenStarred(path, setName);
+  const isStarred = useCallback((path: string, collectionId: string): boolean => {
+    return isTokenStarred(path, collectionId);
   }, []);
 
-  const remove = useCallback((path: string, setName: string) => {
-    removeStarredToken(path, setName);
+  const remove = useCallback((path: string, collectionId: string) => {
+    removeStarredToken(path, collectionId);
     setTokens(getStarredTokens());
   }, []);
 
-  const rename = useCallback((oldPath: string, newPath: string, setName: string) => {
-    renameStarredToken(oldPath, newPath, setName);
+  const rename = useCallback((oldPath: string, newPath: string, collectionId: string) => {
+    renameStarredToken(oldPath, newPath, collectionId);
     setTokens(getStarredTokens());
   }, []);
 
-  const removeForSet = useCallback((setName: string) => {
-    removeStarredTokensForSet(setName);
+  const removeForCollection = useCallback((collectionId: string) => {
+    removeStarredTokensForCollection(collectionId);
     setTokens(getStarredTokens());
   }, []);
 
-  const renameSet = useCallback((oldName: string, newName: string) => {
-    renameStarredTokensForSet(oldName, newName);
+  const renameCollection = useCallback((oldName: string, newName: string) => {
+    renameStarredTokensForCollection(oldName, newName);
     setTokens(getStarredTokens());
   }, []);
 
@@ -70,5 +70,15 @@ export function useStarredTokens(): StarredTokensState {
 
   const count = useMemo(() => tokens.length, [tokens]);
 
-  return { tokens, count, toggleStar, isStarred, remove, rename, removeForSet, renameSet, clear };
+  return {
+    tokens,
+    count,
+    toggleStar,
+    isStarred,
+    remove,
+    rename,
+    removeForCollection,
+    renameCollection,
+    clear,
+  };
 }

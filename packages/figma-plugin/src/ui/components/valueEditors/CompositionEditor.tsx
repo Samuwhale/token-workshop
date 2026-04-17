@@ -54,13 +54,13 @@ function CompositionPropertyEditor({
   value,
   onChange,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
 }: {
   prop: string;
   value: any;
   onChange: (v: any) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
 }) {
   const propType = COMP_PROP_TYPE[prop] || 'string';
   const isAlias = typeof value === 'string' && value.startsWith('{');
@@ -79,7 +79,7 @@ function CompositionPropertyEditor({
           value={value || ''}
           onChange={onChange}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           filterType="color"
           inputType="string"
           placeholder="#000000 or {color.token}"
@@ -101,7 +101,7 @@ function CompositionPropertyEditor({
           }
         }}
         allTokensFlat={allTokensFlat}
-        pathToSet={pathToSet}
+        pathToCollectionId={pathToCollectionId}
         filterType="dimension"
         placeholder="16 or {spacing.token}"
         className="flex-1"
@@ -133,7 +133,7 @@ function CompositionPropertyEditor({
             }
           }}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           filterType="number"
           inputType="string"
           placeholder="0.5 or {opacity.token}"
@@ -150,7 +150,7 @@ function CompositionPropertyEditor({
           value={value}
           onChange={onChange}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           filterType="boolean"
           inputType="string"
           placeholder="{visibility.token}"
@@ -187,7 +187,7 @@ function CompositionPropertyEditor({
       value={typeof value === 'string' ? value : ''}
       onChange={onChange}
       allTokensFlat={allTokensFlat}
-      pathToSet={pathToSet}
+      pathToCollectionId={pathToCollectionId}
       filterType={propType}
       inputType="string"
       placeholder={`{${propType}.token}`}
@@ -286,7 +286,7 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
   );
 }
 
-export const CompositionEditor = memo(function CompositionEditor({ value, onChange, baseValue, allTokensFlat = {}, pathToSet = {} }: { value: any; onChange: (v: any) => void; baseValue?: any; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string> }) {
+export const CompositionEditor = memo(function CompositionEditor({ value, onChange, baseValue, allTokensFlat = {}, pathToCollectionId = {} }: { value: any; onChange: (v: any) => void; baseValue?: any; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string> }) {
   const [newProp, setNewProp] = useState(COMPOSITION_PROPERTIES[0]);
   const rawVal = typeof value === 'object' && value !== null ? value : {};
   const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
@@ -360,7 +360,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
               value={val[prop]}
               onChange={v => update(prop, v)}
               allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
+              pathToCollectionId={pathToCollectionId}
             />
           </div>
         </div>

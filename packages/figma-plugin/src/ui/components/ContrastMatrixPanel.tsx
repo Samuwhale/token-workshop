@@ -11,7 +11,6 @@ export interface ContrastMatrixPanelProps {
   collections: TokenCollection[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  pathToSet: Record<string, string>;
   onNavigateToToken?: (path: string, set: string) => void;
 }
 
@@ -20,7 +19,6 @@ export function ContrastMatrixPanel({
   collections,
   allTokensFlat,
   pathToCollectionId,
-  pathToSet,
   onNavigateToToken,
 }: ContrastMatrixPanelProps) {
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
@@ -125,7 +123,7 @@ export function ContrastMatrixPanel({
     const [collectionId, optName] = key.split(":");
     const collection = collections.find((item) => item.id === collectionId);
     return collections.length > 1 && collection
-      ? `${collection.name}: ${optName}`
+      ? `${collection.id}: ${optName}`
       : (optName ?? key);
   };
 
@@ -200,13 +198,13 @@ export function ContrastMatrixPanel({
   };
 
   const navigateToToken = (path: string) => {
-    const setName = pathToSet[path];
-    if (!onNavigateToToken || !setName) return;
-    onNavigateToToken(path, setName);
+    const collectionId = pathToCollectionId[path];
+    if (!onNavigateToToken || !collectionId) return;
+    onNavigateToToken(path, collectionId);
   };
 
   const canNavigateToToken = (path: string) =>
-    Boolean(onNavigateToToken && pathToSet[path]);
+    Boolean(onNavigateToToken && pathToCollectionId[path]);
 
   let displayTokens: MatrixToken[];
   if (contrastSortMode === "failures") {
@@ -386,7 +384,7 @@ export function ContrastMatrixPanel({
                       >
                         {collections.length > 1 && (
                           <span className="text-[8px] text-[var(--color-figma-text-secondary)]">
-                            {collection.name}:
+                            {collection.id}:
                           </span>
                         )}
                         {collection.modes.map(

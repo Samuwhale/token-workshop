@@ -4,7 +4,7 @@ import { apiFetch, ApiError } from "../../shared/apiFetch";
 interface BatchOperationsConfig {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   selectedPaths: Set<string>;
   onRefresh: () => void;
   onError?: (msg: string) => void;
@@ -17,7 +17,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
   const {
     connected,
     serverUrl,
-    setName,
+    collectionId,
     selectedPaths,
     onRefresh,
     onError,
@@ -56,7 +56,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
       );
       try {
         await apiFetch(
-          `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-rename-paths`,
+          `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-rename-paths`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -77,7 +77,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
       selectedPaths,
       connected,
       serverUrl,
-      setName,
+      collectionId,
       onRefresh,
       onError,
       setSelectMode,
@@ -86,20 +86,20 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
     ],
   );
 
-  const handleBatchMoveToSet = useCallback(
+  const handleBatchMoveToCollection = useCallback(
     async (
-      batchMoveToSetTarget: string,
-      setShowBatchMoveToSet: (v: boolean) => void,
+      batchMoveToCollectionTarget: string,
+      setShowBatchMoveToCollection: (v: boolean) => void,
     ) => {
-      const target = batchMoveToSetTarget.trim();
+      const target = batchMoveToCollectionTarget.trim();
       if (!target || selectedPaths.size === 0 || !connected) return;
-      setShowBatchMoveToSet(false);
+      setShowBatchMoveToCollection(false);
       setOperationLoading(
         `Moving ${selectedPaths.size} token${selectedPaths.size !== 1 ? "s" : ""} to ${target}…`,
       );
       try {
         await apiFetch(
-          `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-move`,
+          `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-move`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -125,7 +125,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
       selectedPaths,
       connected,
       serverUrl,
-      setName,
+      collectionId,
       onRefresh,
       onError,
       setSelectMode,
@@ -134,20 +134,20 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
     ],
   );
 
-  const handleBatchCopyToSet = useCallback(
+  const handleBatchCopyToCollection = useCallback(
     async (
-      batchCopyToSetTarget: string,
-      setShowBatchCopyToSet: (v: boolean) => void,
+      batchCopyToCollectionTarget: string,
+      setShowBatchCopyToCollection: (v: boolean) => void,
     ) => {
-      const target = batchCopyToSetTarget.trim();
+      const target = batchCopyToCollectionTarget.trim();
       if (!target || selectedPaths.size === 0 || !connected) return;
-      setShowBatchCopyToSet(false);
+      setShowBatchCopyToCollection(false);
       setOperationLoading(
         `Copying ${selectedPaths.size} token${selectedPaths.size !== 1 ? "s" : ""} to ${target}…`,
       );
       try {
         await apiFetch(
-          `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-copy`,
+          `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-copy`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -171,7 +171,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
       selectedPaths,
       connected,
       serverUrl,
-      setName,
+      collectionId,
       onRefresh,
       onError,
       setOperationLoading,
@@ -180,7 +180,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
 
   return {
     handleBatchMoveToGroup,
-    handleBatchMoveToSet,
-    handleBatchCopyToSet,
+    handleBatchMoveToCollection,
+    handleBatchCopyToCollection,
   };
 }

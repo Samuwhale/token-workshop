@@ -3,17 +3,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const SET_LEAF_RE = /^[a-zA-Z0-9_-]+$/;
 const FOLDER_PATH_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
-interface SetCreateDialogProps {
+interface CollectionCreateDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onCreate: (name: string) => Promise<void>;
 }
 
-export function SetCreateDialog({
+export function CollectionCreateDialog({
   isOpen,
   onClose,
   onCreate,
-}: SetCreateDialogProps) {
+}: CollectionCreateDialogProps) {
   const [name, setName] = useState("");
   const [folderPath, setFolderPath] = useState("");
   const [error, setError] = useState("");

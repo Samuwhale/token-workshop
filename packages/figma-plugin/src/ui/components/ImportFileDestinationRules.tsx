@@ -3,25 +3,25 @@ import {
   useImportReviewContext,
   useImportSourceContext,
 } from './ImportPanelContext';
-import { SET_NAME_RE } from '../shared/utils';
+import { COLLECTION_NAME_RE } from '../shared/utils';
 
 export function ImportFileDestinationRules() {
   const { tokens, continueToPreview, handleBack } = useImportSourceContext();
   const {
-    targetSet,
-    sets,
-    setsError,
-    newSetInputVisible,
-    newSetDraft,
-    newSetError,
+    targetCollectionId,
+    collectionIds,
+    collectionsError,
+    newCollectionInputVisible,
+    newCollectionDraft,
+    newCollectionError,
     canContinueToPreview,
-    setNewSetInputVisible,
-    setNewSetDraft,
-    setNewSetError,
-    commitNewSet,
-    cancelNewSet,
-    setTargetSetAndPersist,
-    fetchSets,
+    setNewCollectionInputVisible,
+    setNewCollectionDraft,
+    setNewCollectionError,
+    commitNewCollection,
+    cancelNewCollection,
+    setTargetCollectionIdAndPersist,
+    fetchCollections,
   } = useImportDestinationContext();
   const { clearConflictState } = useImportReviewContext();
 
@@ -37,55 +37,57 @@ export function ImportFileDestinationRules() {
         Back
       </button>
 
-      {newSetInputVisible ? (
+      {newCollectionInputVisible ? (
         <div className="flex flex-col gap-1.5">
           <div className="flex gap-1.5">
             <input
               autoFocus
               type="text"
-              value={newSetDraft}
+              value={newCollectionDraft}
               onChange={(e) => {
                 const val = e.target.value;
-                setNewSetDraft(val);
+                setNewCollectionDraft(val);
                 const trimmed = val.trim();
                 if (!trimmed) {
-                  setNewSetError(null);
-                } else if (!SET_NAME_RE.test(trimmed)) {
-                  setNewSetError('Use letters, numbers, - _ (/ for folders)');
+                  setNewCollectionError(null);
+                } else if (!COLLECTION_NAME_RE.test(trimmed)) {
+                  setNewCollectionError('Use letters, numbers, - _ (/ for folders)');
                 } else {
-                  setNewSetError(null);
+                  setNewCollectionError(null);
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') commitNewSet();
-                if (e.key === 'Escape') cancelNewSet();
+                if (e.key === 'Enter') commitNewCollection();
+                if (e.key === 'Escape') cancelNewCollection();
               }}
               placeholder="New collection name…"
-              aria-invalid={newSetError ? true : undefined}
-              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none ${newSetError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
+              aria-invalid={newCollectionError ? true : undefined}
+              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none ${newCollectionError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
             />
             <button
-              onClick={commitNewSet}
-              disabled={!newSetDraft.trim() || !!newSetError}
+              onClick={commitNewCollection}
+              disabled={!newCollectionDraft.trim() || !!newCollectionError}
               className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white hover:opacity-90 disabled:opacity-40"
             >
               Create
             </button>
             <button
-              onClick={cancelNewSet}
+              onClick={cancelNewCollection}
               className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               Cancel
             </button>
           </div>
-          {newSetError && (
+          {newCollectionError && (
             <p role="alert" className="text-[10px] text-[var(--color-figma-error,#e53935)]">
-              {newSetError}
+              {newCollectionError}
             </p>
           )}
-          {!newSetError && newSetDraft.trim() && sets.includes(newSetDraft.trim()) && (
+          {!newCollectionError &&
+            newCollectionDraft.trim() &&
+            collectionIds.includes(newCollectionDraft.trim()) && (
             <p className="text-[10px] text-[var(--color-figma-warning,#e8a100)]">
-              Set already exists — tokens will merge into it.
+              Collection already exists — tokens will merge into it.
             </p>
           )}
         </div>
@@ -93,37 +95,37 @@ export function ImportFileDestinationRules() {
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
             <label className="shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">
-              Target set
+              Target collection
             </label>
             <select
-              value={targetSet}
+              value={targetCollectionId}
               onChange={(e) => {
                 clearConflictState();
                 if (e.target.value === '__new__') {
-                  setNewSetInputVisible(true);
+                  setNewCollectionInputVisible(true);
                 } else {
-                  setTargetSetAndPersist(e.target.value);
+                  setTargetCollectionIdAndPersist(e.target.value);
                 }
               }}
               className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
             >
-              {sets.map((setName) => (
-                <option key={setName} value={setName}>
-                  {setName}
+              {collectionIds.map((collectionId) => (
+                <option key={collectionId} value={collectionId}>
+                  {collectionId}
                 </option>
               ))}
-              {!sets.includes(targetSet) && targetSet && (
-                <option value={targetSet}>
-                  {targetSet} (new)
+              {!collectionIds.includes(targetCollectionId) && targetCollectionId && (
+                <option value={targetCollectionId}>
+                  {targetCollectionId} (new)
                 </option>
               )}
               <option value="__new__">+ New collection…</option>
             </select>
           </div>
-          {setsError && (
+          {collectionsError && (
             <p className="text-[10px] text-[var(--color-figma-error,#e53935)]">
-              Could not load sets.{' '}
-              <button type="button" onClick={fetchSets} className="underline hover:opacity-80">
+              Could not load collections.{' '}
+              <button type="button" onClick={fetchCollections} className="underline hover:opacity-80">
                 Retry
               </button>
             </p>

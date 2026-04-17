@@ -33,7 +33,7 @@ import type { LibraryViewMode } from "./TokenListOverflowMenu";
 export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
   navHistoryLength?: number;
-  setName: string;
+  collectionId: string;
   zoomRootPath?: string | null;
   searchRef: RefObject<HTMLInputElement | null>;
   searchQuery: string;
@@ -61,8 +61,8 @@ export interface TokenListToolbarProps {
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
-  onOpenSetSwitcher?: () => void;
-  onOpenCreateSet?: () => void;
+  onOpenCollectionSwitcher?: () => void;
+  onOpenCreateCollection?: () => void;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
   modeLensEnabled: boolean;
@@ -97,7 +97,7 @@ function getCurrentLibraryViewMode({
 export function TokenListToolbar({
   onNavigateBack,
   navHistoryLength,
-  setName,
+  collectionId,
   zoomRootPath,
   searchRef,
   searchQuery,
@@ -125,8 +125,8 @@ export function TokenListToolbar({
   handleOpenNewGroupDialog,
   onShowPasteModal,
   onOpenImportPanel,
-  onOpenSetSwitcher,
-  onOpenCreateSet,
+  onOpenCollectionSwitcher,
+  onOpenCreateCollection,
   multiModeEnabled,
   onToggleMultiMode,
   modeLensEnabled,
@@ -259,18 +259,18 @@ export function TokenListToolbar({
                   </svg>
                 </button>
               )}
-              {onOpenSetSwitcher ? (
+              {onOpenCollectionSwitcher ? (
                 <button
                   type="button"
-                  onClick={onOpenSetSwitcher}
+                  onClick={onOpenCollectionSwitcher}
                   className="min-w-0 rounded px-1.5 py-0.5 text-left text-[12px] font-semibold text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                   title="Switch collection"
                 >
-                  <span className="truncate">{setName}</span>
+                  <span className="truncate">{collectionId}</span>
                 </button>
               ) : (
                 <span className="truncate px-1.5 text-[12px] font-semibold text-[var(--color-figma-text)]">
-                  {setName}
+                  {collectionId}
                 </span>
               )}
               {zoomRootPath && (
@@ -342,10 +342,10 @@ export function TokenListToolbar({
                   >
                     Token table
                   </button>
-                  {onOpenCreateSet && (
+                  {onOpenCreateCollection && (
                     <button
                       role="menuitem"
-                      onClick={() => runCreateToolsAction(onOpenCreateSet)}
+                      onClick={() => runCreateToolsAction(onOpenCreateCollection)}
                       disabled={!connected}
                       className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                     >

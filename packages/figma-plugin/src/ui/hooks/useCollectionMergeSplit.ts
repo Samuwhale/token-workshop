@@ -1,17 +1,17 @@
 import { useState, useRef } from "react";
 import type { UndoSlot } from "./useUndo";
 import { apiFetch } from "../shared/apiFetch";
-import type { SetStructuralPreflight } from "../shared/setStructuralPreflight";
+import type { CollectionStructuralPreflight } from "../shared/setStructuralPreflight";
 import { stableStringify } from "../shared/utils";
 
-interface MergeSetResponse {
+interface MergeCollectionResponse {
   ok: true;
   sourceCollection: string;
   targetCollection: string;
   operationId: string;
 }
 
-interface SplitSetResponse {
+interface SplitCollectionResponse {
   ok: true;
   sourceCollection: string;
   createdCollections: string[];
@@ -19,12 +19,12 @@ interface SplitSetResponse {
   operationId: string;
 }
 
-interface UseSetMergeSplitParams {
+interface UseCollectionMergeSplitParams {
   serverUrl: string;
   connected: boolean;
-  sets: string[];
-  activeSet: string;
-  setActiveSet: (set: string) => void;
+  collectionIds: string[];
+  currentCollectionId: string;
+  setCurrentCollectionId: (collectionId: string) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
@@ -46,17 +46,17 @@ function areMergeConflictsEqual(
   );
 }
 
-async function fetchSetStructuralPreflight(
+async function fetchCollectionStructuralPreflight(
   serverUrl: string,
-  setName: string,
+  collectionId: string,
   body: {
     operation: "merge" | "split";
     targetCollection?: string;
     deleteOriginal?: boolean;
   },
-): Promise<SetStructuralPreflight> {
-  return apiFetch<SetStructuralPreflight>(
-    `${serverUrl}/api/collections/${encodeURIComponent(setName)}/preflight`,
+): Promise<CollectionStructuralPreflight> {
+  return apiFetch<CollectionStructuralPreflight>(
+    `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/preflight`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -65,20 +65,20 @@ async function fetchSetStructuralPreflight(
   );
 }
 
-export function useSetMergeSplit({
+export function useCollectionMergeSplit({
   serverUrl,
   connected,
-  sets,
-  activeSet,
-  setActiveSet,
+  collectionIds,
+  currentCollectionId,
+  setCurrentCollectionId,
   refreshTokens,
   setSuccessToast,
   setErrorToast,
   pushUndo,
-}: UseSetMergeSplitParams) {
+}: UseCollectionMergeSplitParams) {
   // Merge state
-  const [mergingSet, setMergingSet] = useState<string | null>(null);
-  const [mergeTargetSet, setMergeTargetSet] = useState<string>("");
+  const [mergingCollectionId, setMergingCollectionId] = useState<string | null>(null);
+  const [mergeTargetCollectionId, setMergeTargetCollectionId] = useState<string>("");
   const [mergeConflicts, setMergeConflicts] = useState<
     Array<{ path: string; sourceValue: unknown; targetValue: unknown }>
   >([]);
@@ -92,7 +92,7 @@ export function useSetMergeSplit({
   const mergeCheckTargetRef = useRef<string>("");
 
   // Split state
-  const [splittingSet, setSplittingSet] = useState<string | null>(null);
+  const [splittingCollectionId, setSplittingCollectionId] = useState<string | null>(null);
   const [splitPreview, setSplitPreview] = useState<
     Array<{ key: string; newCollectionId: string; count: number }>
   >([]);
@@ -101,35 +101,35 @@ export function useSetMergeSplit({
 
   // --- Merge ---
 
-  const openMergeDialog = (setName: string) => {
-    setMergingSet(setName);
-    setMergeTargetSet(sets.find((s) => s !== setName) || "");
+  const openMergeDialog = (collectionId: string) => {
+    setMergingCollectionId(collectionId);
+    setMergeTargetCollectionId(collectionIds.find((candidate) => candidate !== collectionId) || "");
     setMergeConflicts([]);
     setMergeResolutions({});
     setMergeChecked(false);
   };
 
   const closeMergeDialog = () => {
-    setMergingSet(null);
+    setMergingCollectionId(null);
     setMergeChecked(false);
   };
 
   const changeMergeTarget = (target: string) => {
-    setMergeTargetSet(target);
+    setMergeTargetCollectionId(target);
     setMergeChecked(false);
     setMergeConflicts([]);
     setMergeResolutions({});
   };
 
   const handleCheckMergeConflicts = async () => {
-    if (!mergingSet || !mergeTargetSet || !connected) return;
-    const checkTarget = mergeTargetSet;
+    if (!mergingCollectionId || !mergeTargetCollectionId || !connected) return;
+    const checkTarget = mergeTargetCollectionId;
     mergeCheckTargetRef.current = checkTarget;
     setMergeLoading(true);
     try {
-      const preflight = await fetchSetStructuralPreflight(
+      const preflight = await fetchCollectionStructuralPreflight(
         serverUrl,
-        mergingSet,
+        mergingCollectionId,
         {
           operation: "merge",
           targetCollection: checkTarget,
@@ -155,15 +155,15 @@ export function useSetMergeSplit({
   };
 
   const handleConfirmMerge = async () => {
-    if (!mergingSet || !mergeTargetSet || !connected || !mergeChecked) return;
+    if (!mergingCollectionId || !mergeTargetCollectionId || !connected || !mergeChecked) return;
     setMergeLoading(true);
     try {
-      const preflight = await fetchSetStructuralPreflight(
+      const preflight = await fetchCollectionStructuralPreflight(
         serverUrl,
-        mergingSet,
+        mergingCollectionId,
         {
           operation: "merge",
-          targetCollection: mergeTargetSet,
+          targetCollection: mergeTargetCollectionId,
         },
       );
       if ((preflight.blockers?.length ?? 0) > 0) {
@@ -188,28 +188,28 @@ export function useSetMergeSplit({
         );
         return;
       }
-      const result = await apiFetch<MergeSetResponse>(
-        `${serverUrl}/api/collections/${encodeURIComponent(mergingSet)}/merge`,
+      const result = await apiFetch<MergeCollectionResponse>(
+        `${serverUrl}/api/collections/${encodeURIComponent(mergingCollectionId)}/merge`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            targetCollection: mergeTargetSet,
+            targetCollection: mergeTargetCollectionId,
             resolutions: mergeResolutions,
           }),
         },
       );
       const srcName = result.sourceCollection;
       const targetName = result.targetCollection;
-      setMergingSet(null);
+      setMergingCollectionId(null);
       setMergeChecked(false);
-      setActiveSet(targetName);
+      setCurrentCollectionId(targetName);
       refreshTokens();
-      setSuccessToast(`Merged "${srcName}" into "${targetName}"`);
+      setSuccessToast(`Merged collection "${srcName}" into "${targetName}"`);
       const opId = result.operationId;
       const url = serverUrl;
       pushUndo({
-        description: `Merged "${srcName}" into "${targetName}"`,
+        description: `Merged collection "${srcName}" into "${targetName}"`,
         restore: async () => {
           await apiFetch(
             `${url}/api/operations/${encodeURIComponent(opId)}/rollback`,
@@ -229,34 +229,34 @@ export function useSetMergeSplit({
 
   // --- Split ---
 
-  const openSplitDialog = async (setName: string) => {
+  const openSplitDialog = async (collectionId: string) => {
     if (!connected) return;
     try {
-      const preflight = await fetchSetStructuralPreflight(serverUrl, setName, {
+      const preflight = await fetchCollectionStructuralPreflight(serverUrl, collectionId, {
         operation: "split",
         deleteOriginal: false,
       });
-      setSplittingSet(setName);
+      setSplittingCollectionId(collectionId);
       setSplitPreview(preflight.splitPreview ?? []);
       setSplitDeleteOriginal(false);
     } catch (err) {
       setErrorToast(
-        `Failed to load set for splitting: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to load collection for splitting: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   };
 
   const closeSplitDialog = () => {
-    setSplittingSet(null);
+    setSplittingCollectionId(null);
   };
 
   const handleConfirmSplit = async () => {
-    if (!splittingSet || !connected) return;
+    if (!splittingCollectionId || !connected) return;
     setSplitLoading(true);
     try {
-      const preflight = await fetchSetStructuralPreflight(
+      const preflight = await fetchCollectionStructuralPreflight(
         serverUrl,
-        splittingSet,
+        splittingCollectionId,
         {
           operation: "split",
           deleteOriginal: splitDeleteOriginal,
@@ -273,12 +273,12 @@ export function useSetMergeSplit({
       setSplitPreview(effectiveSplitPreview);
       if (effectiveSplitPreview.length === 0) {
         setErrorToast(
-          "No top-level groups are available to split into new sets.",
+          "No top-level groups are available to split into new collections.",
         );
         return;
       }
-      const result = await apiFetch<SplitSetResponse>(
-        `${serverUrl}/api/collections/${encodeURIComponent(splittingSet)}/split`,
+      const result = await apiFetch<SplitCollectionResponse>(
+        `${serverUrl}/api/collections/${encodeURIComponent(splittingCollectionId)}/split`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -288,17 +288,17 @@ export function useSetMergeSplit({
       const name = result.sourceCollection;
       const createdNames = result.createdCollections;
       const count = createdNames.length;
-      setSplittingSet(null);
-      if (result.deleteOriginal && activeSet === name) {
-        const remaining = sets.filter((setName) => setName !== name);
-        setActiveSet(createdNames[0] ?? remaining[0] ?? "");
+      setSplittingCollectionId(null);
+      if (result.deleteOriginal && currentCollectionId === name) {
+        const remaining = collectionIds.filter((collectionId) => collectionId !== name);
+        setCurrentCollectionId(createdNames[0] ?? remaining[0] ?? "");
       }
       refreshTokens();
-      setSuccessToast(`Split "${name}" into ${count} sets`);
+      setSuccessToast(`Split collection "${name}" into ${count} collections`);
       const url = serverUrl;
       const opId = result.operationId;
       pushUndo({
-        description: `Split "${name}" into ${count} sets`,
+        description: `Split collection "${name}" into ${count} collections`,
         restore: async () => {
           await apiFetch(
             `${url}/api/operations/${encodeURIComponent(opId)}/rollback`,
@@ -318,8 +318,8 @@ export function useSetMergeSplit({
 
   return {
     // Merge
-    mergingSet,
-    mergeTargetSet,
+    mergingCollectionId,
+    mergeTargetCollectionId,
     mergeConflicts,
     mergeResolutions,
     mergeChecked,
@@ -331,7 +331,7 @@ export function useSetMergeSplit({
     handleCheckMergeConflicts,
     handleConfirmMerge,
     // Split
-    splittingSet,
+    splittingCollectionId,
     splitPreview,
     splitDeleteOriginal,
     splitLoading,

@@ -12,11 +12,11 @@ import { useTokenSave } from './useTokenSave';
 export interface UseTokenCrudParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
-  sets: string[];
+  collectionId: string;
+  collectionIds: string[];
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
-  perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   recipes?: TokenRecipe[];
   collections?: TokenCollection[];
   onRefresh: () => void;
@@ -32,24 +32,24 @@ export interface UseTokenCrudParams {
 
 export function useTokenCrud(params: UseTokenCrudParams) {
   const {
-    connected, serverUrl, setName, sets, tokens, allTokensFlat, perSetFlat,
+    connected, serverUrl, collectionId, collectionIds, tokens, allTokensFlat, perCollectionFlat,
     recipes, collections,
     onRefresh, onPushUndo, onRefreshRecipes, onSetOperationLoading,
     onSetLocallyDeletedPaths, onRecordTouch, onRenamePath, onClearSelection, onError,
   } = params;
 
   const relocate = {
-    move: useTokenRelocate({ mode: 'move', connected, serverUrl, setName, sets, perSetFlat, onRefresh, onSetOperationLoading, onError }),
-    copy: useTokenRelocate({ mode: 'copy', connected, serverUrl, setName, sets, perSetFlat, onRefresh, onError }),
+    move: useTokenRelocate({ mode: 'move', connected, serverUrl, collectionId, collectionIds, perCollectionFlat, onRefresh, onSetOperationLoading, onError }),
+    copy: useTokenRelocate({ mode: 'copy', connected, serverUrl, collectionId, collectionIds, perCollectionFlat, onRefresh, onError }),
   };
 
-  const rename = useTokenRename({ connected, serverUrl, setName, recipes, collections, perSetFlat, allTokensFlat, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError });
+  const rename = useTokenRename({ connected, serverUrl, collectionId, recipes, collections, perCollectionFlat, allTokensFlat, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError });
 
-  const del = useTokenDelete({ connected, serverUrl, setName, tokens, allTokensFlat, perSetFlat, recipes, collections, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError });
+  const del = useTokenDelete({ connected, serverUrl, collectionId, tokens, allTokensFlat, perCollectionFlat, recipes, collections, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError });
 
-  const dup = useTokenDuplicate({ connected, serverUrl, setName, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
+  const dup = useTokenDuplicate({ connected, serverUrl, collectionId, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
 
-  const save = useTokenSave({ connected, serverUrl, setName, allTokensFlat, perSetFlat, recipes, onRefresh, onPushUndo, onRecordTouch, onRefreshRecipes, onError });
+  const save = useTokenSave({ connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, recipes, onRefresh, onPushUndo, onRecordTouch, onRefreshRecipes, onError });
 
   return {
     // Rename state + callbacks
@@ -78,9 +78,9 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     // Move state + callbacks
     movingToken: relocate.move.relocatingToken,
     setMovingToken: relocate.move.setRelocatingToken,
-    moveTokenTargetSet: relocate.move.targetSet,
-    setMoveTokenTargetSet: relocate.move.setTargetSet,
-    moveFromSet: relocate.move.fromSet,
+    moveTokenTargetCollectionId: relocate.move.targetCollectionId,
+    setMoveTokenTargetCollectionId: relocate.move.setTargetCollectionId,
+    moveFromCollectionId: relocate.move.sourceCollectionId,
     moveConflict: relocate.move.conflict,
     moveConflictAction: relocate.move.conflictAction,
     setMoveConflictAction: relocate.move.setConflictAction,
@@ -88,13 +88,13 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     setMoveConflictNewPath: relocate.move.setConflictNewPath,
     handleRequestMoveToken: relocate.move.handleRequest,
     handleConfirmMoveToken: relocate.move.handleConfirm,
-    handleChangeMoveTokenTargetSet: relocate.move.handleChangeTargetSet,
+    handleChangeMoveTokenTargetCollection: relocate.move.handleChangeTargetCollection,
     // Copy state + callbacks
     copyingToken: relocate.copy.relocatingToken,
     setCopyingToken: relocate.copy.setRelocatingToken,
-    copyTokenTargetSet: relocate.copy.targetSet,
-    setCopyTokenTargetSet: relocate.copy.setTargetSet,
-    copyFromSet: relocate.copy.fromSet,
+    copyTokenTargetCollectionId: relocate.copy.targetCollectionId,
+    setCopyTokenTargetCollectionId: relocate.copy.setTargetCollectionId,
+    copyFromCollectionId: relocate.copy.sourceCollectionId,
     copyConflict: relocate.copy.conflict,
     copyConflictAction: relocate.copy.conflictAction,
     setCopyConflictAction: relocate.copy.setConflictAction,
@@ -102,6 +102,6 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     setCopyConflictNewPath: relocate.copy.setConflictNewPath,
     handleRequestCopyToken: relocate.copy.handleRequest,
     handleConfirmCopyToken: relocate.copy.handleConfirm,
-    handleChangeCopyTokenTargetSet: relocate.copy.handleChangeTargetSet,
+    handleChangeCopyTokenTargetCollection: relocate.copy.handleChangeTargetCollection,
   };
 }

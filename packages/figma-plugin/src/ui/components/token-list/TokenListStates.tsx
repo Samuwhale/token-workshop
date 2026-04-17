@@ -22,10 +22,10 @@ type ReviewOverlaysProps = {
   onConfirmPromote: () => void;
   onClosePromote: () => void;
   movingToken: string | null;
-  setName: string;
-  sets: string[];
-  moveTokenTargetSet: string;
-  onChangeMoveTokenTargetSet: (set: string) => void;
+  collectionId: string;
+  collectionIds: string[];
+  moveTokenTargetCollectionId: string;
+  onChangeMoveTokenTargetCollection: (collectionId: string) => void;
   moveConflict: Parameters<typeof RelocateTokenReviewPanel>[0]["conflict"];
   moveConflictAction: RelocateConflictAction;
   onMoveConflictActionChange: (action: RelocateConflictAction) => void;
@@ -35,8 +35,8 @@ type ReviewOverlaysProps = {
   onConfirmMoveToken: () => void;
   onCloseMove: () => void;
   copyingToken: string | null;
-  copyTokenTargetSet: string;
-  onChangeCopyTokenTargetSet: (set: string) => void;
+  copyTokenTargetCollectionId: string;
+  onChangeCopyTokenTargetCollection: (collectionId: string) => void;
   copyConflict: Parameters<typeof RelocateTokenReviewPanel>[0]["conflict"];
   copyConflictAction: RelocateConflictAction;
   onCopyConflictActionChange: (action: RelocateConflictAction) => void;
@@ -58,10 +58,10 @@ export function TokenListReviewOverlays({
   onConfirmPromote,
   onClosePromote,
   movingToken,
-  setName,
-  sets,
-  moveTokenTargetSet,
-  onChangeMoveTokenTargetSet,
+  collectionId,
+  collectionIds,
+  moveTokenTargetCollectionId,
+  onChangeMoveTokenTargetCollection,
   moveConflict,
   moveConflictAction,
   onMoveConflictActionChange,
@@ -71,8 +71,8 @@ export function TokenListReviewOverlays({
   onConfirmMoveToken,
   onCloseMove,
   copyingToken,
-  copyTokenTargetSet,
-  onChangeCopyTokenTargetSet,
+  copyTokenTargetCollectionId,
+  onChangeCopyTokenTargetCollection,
   copyConflict,
   copyConflictAction,
   onCopyConflictActionChange,
@@ -111,10 +111,10 @@ export function TokenListReviewOverlays({
           <RelocateTokenReviewPanel
             mode="move"
             tokenPath={movingToken}
-            setName={setName}
-            sets={sets}
-            targetSet={moveTokenTargetSet}
-            onTargetSetChange={onChangeMoveTokenTargetSet}
+            collectionId={collectionId}
+            collectionIds={collectionIds}
+            targetCollectionId={moveTokenTargetCollectionId}
+            onTargetCollectionChange={onChangeMoveTokenTargetCollection}
             conflict={moveConflict}
             conflictAction={moveConflictAction}
             onConflictActionChange={onMoveConflictActionChange}
@@ -132,10 +132,10 @@ export function TokenListReviewOverlays({
           <RelocateTokenReviewPanel
             mode="copy"
             tokenPath={copyingToken}
-            setName={setName}
-            sets={sets}
-            targetSet={copyTokenTargetSet}
-            onTargetSetChange={onChangeCopyTokenTargetSet}
+            collectionId={collectionId}
+            collectionIds={collectionIds}
+            targetCollectionId={copyTokenTargetCollectionId}
+            onTargetCollectionChange={onChangeCopyTokenTargetCollection}
             conflict={copyConflict}
             conflictAction={copyConflictAction}
             onConflictActionChange={onCopyConflictActionChange}

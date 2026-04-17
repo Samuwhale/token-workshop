@@ -13,7 +13,7 @@ interface TokenRefInputProps {
   /** Token type to filter autocomplete by ('number', 'color', etc.) */
   filterType?: string;
   allTokensFlat: Record<string, TokenMapEntry> | undefined;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   /** Called when user selects a token to link */
   onLink: (tokenPath: string, resolvedValue: unknown) => void;
   /** Called when user removes the token link */
@@ -37,7 +37,7 @@ export function TokenRefInput({
   valueLabel,
   filterType,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   onLink,
   onUnlink,
   children,
@@ -173,7 +173,7 @@ export function TokenRefInput({
           <AliasAutocomplete
             query={query}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             filterType={filterType}
             onSelect={handleSelect}
             onClose={() => setShowPicker(false)}

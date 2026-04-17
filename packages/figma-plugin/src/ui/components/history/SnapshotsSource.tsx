@@ -3,7 +3,7 @@ import { apiFetch } from '../../shared/apiFetch';
 import { isAbortError } from '../../shared/utils';
 import { ConfirmModal } from '../ConfirmModal';
 import { summarizeChanges, formatRelativeTime, ChangeSummaryBadges } from '../../shared/changeHelpers';
-import { ChangesBySetList } from './ChangesBySetList';
+import { ChangesByCollectionList } from './ChangesByCollectionList';
 import type { SnapshotSummary, SnapshotCompareResponse, UndoSlot, TokenChange, WorkspaceDiff } from './types';
 import { snapshotDiffToChange, defaultSnapshotLabel } from './types';
 
@@ -152,7 +152,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       setChanges(unified);
       setWorkspaceDiffs(data.workspaceDiffs ?? []);
       const sections: Record<string, boolean> = {};
-      for (const c of unified) sections[c.set] = true;
+      for (const change of unified) sections[change.collectionId] = true;
       setOpenSections(sections);
     } catch (err) {
       if (isAbortError(err)) return;
@@ -193,7 +193,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
       setPairChanges(unified);
       setPairWorkspaceDiffs(data.workspaceDiffs ?? []);
       const sections: Record<string, boolean> = {};
-      for (const c of unified) sections[c.set] = true;
+      for (const change of unified) sections[change.collectionId] = true;
       setPairOpenSections(sections);
     } catch (err) {
       if (isAbortError(err)) return;
@@ -347,7 +347,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
             </div>
           )}
           {!pairDiffLoading && displayChanges && displayChanges.length > 0 && (
-            <ChangesBySetList
+            <ChangesByCollectionList
               changes={displayChanges}
               openSections={pairOpenSections}
               onToggleSection={togglePairSection}
@@ -436,7 +436,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
             </div>
           )}
           {!diffLoading && displayChanges && displayChanges.length > 0 && (
-            <ChangesBySetList
+            <ChangesByCollectionList
               changes={displayChanges}
               openSections={openSections}
               onToggleSection={toggleSection}

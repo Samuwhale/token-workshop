@@ -262,7 +262,7 @@ export interface VariableSyncToken {
   path: string;
   $type: string;
   $value: ResolvedTokenValue;
-  setName?: string;
+  collectionId?: string;
   figmaCollection?: string;
   figmaMode?: string;
   $extensions?: {
@@ -546,13 +546,13 @@ export interface EyedropperMessage {
   type: 'eyedropper';
 }
 
-export interface GetActiveThemesMessage {
-  type: 'get-active-themes';
+export interface GetSelectedModesMessage {
+  type: 'get-selected-modes';
 }
 
-export interface SetActiveThemesMessage {
-  type: 'set-active-themes';
-  themes: Record<string, string>;
+export interface SetSelectedModesMessage {
+  type: 'set-selected-modes';
+  selectedModes: Record<string, string>;
 }
 
 export interface ScanSingleTokenUsageMessage {
@@ -661,7 +661,7 @@ export interface VarSnapshotRecord {
   description: string;
   hiddenFromPublishing: boolean;
   scopes: string[];
-  pluginData: { tokenPath: string; tokenSet: string };
+  pluginData: { tokenPath: string; tokenCollection: string };
 }
 
 /** Full variable snapshot sent from plugin → UI after a successful apply. */
@@ -725,9 +725,9 @@ export interface FontsLoadedMessage {
   weightsByFamily: Record<string, number[]>;
 }
 
-export interface ActiveThemesLoadedMessage {
-  type: 'active-themes-loaded';
-  themes: Record<string, string>;
+export interface SelectedModesLoadedMessage {
+  type: 'selected-modes-loaded';
+  selectedModes: Record<string, string>;
 }
 
 export interface EyedropperResultMessage {
@@ -1002,7 +1002,7 @@ export interface ConsistencyScanErrorMessage {
 export type ControllerMessage =
   | ControllerErrorMessage
   | FontsLoadedMessage
-  | ActiveThemesLoadedMessage
+  | SelectedModesLoadedMessage
   | EyedropperResultMessage
   | VariableSyncProgressMessage
   | VariablesAppliedMessage
@@ -1048,7 +1048,7 @@ export type ControllerMessage =
 export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>([
   'error',
   'fonts-loaded',
-  'active-themes-loaded',
+  'selected-modes-loaded',
   'eyedropper-result',
   'variable-sync-progress',
   'variables-applied',
@@ -1114,8 +1114,8 @@ export type PluginMessage =
   | SelectHeatmapNodesMessage
   | BatchBindHeatmapNodesMessage
   | EyedropperMessage
-  | GetActiveThemesMessage
-  | SetActiveThemesMessage
+  | GetSelectedModesMessage
+  | SetSelectedModesMessage
   | ScanSingleTokenUsageMessage
   | ScanTokenVariableBindingsMessage
   | ExtractTokensFromSelectionMessage

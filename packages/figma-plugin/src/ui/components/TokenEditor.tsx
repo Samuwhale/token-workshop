@@ -8,7 +8,7 @@ import { createTokenValueBody } from "../shared/tokenMutations";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createRecipeOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { TokenCollection } from "@tokenmanager/core";
-import { useCollectionSwitcherContext } from "../contexts/CollectionContext";
+import { useCollectionStateContext } from "../contexts/TokenDataContext";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
@@ -54,12 +54,11 @@ import { TokenEditorInfoSection } from "./token-editor/TokenEditorInfoSection";
 interface TokenEditorProps {
   tokenPath: string;
   tokenName?: string;
-  setName: string;
+  currentCollectionId: string;
   collectionId?: string;
   serverUrl: string;
   onBack: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
   pathToCollectionId?: Record<string, string>;
   recipes?: TokenRecipe[];
   isCreateMode?: boolean;
@@ -88,12 +87,11 @@ interface TokenEditorProps {
 export function TokenEditor({
   tokenPath,
   tokenName,
-  setName,
+  currentCollectionId,
   collectionId: explicitCollectionId,
   serverUrl,
   onBack,
   allTokensFlat = {},
-  pathToSet = {},
   pathToCollectionId = {},
   recipes = [],
   isCreateMode = false,
@@ -114,20 +112,19 @@ export function TokenEditor({
   onNavigateToCollections,
   pushUndo,
 }: TokenEditorProps) {
-  const collectionSwitcher = useCollectionSwitcherContext();
-  const effectivePathToCollectionId =
-    Object.keys(pathToCollectionId).length > 0 ? pathToCollectionId : pathToSet;
-  const collectionId = useMemo(
+  const collectionSwitcher = useCollectionStateContext();
+  const effectivePathToCollectionId = pathToCollectionId;
+  const ownerCollectionId = useMemo(
     () =>
       explicitCollectionId ??
       (isCreateMode
-        ? setName
-        : effectivePathToCollectionId[tokenPath] ?? setName),
+        ? currentCollectionId
+        : effectivePathToCollectionId[tokenPath] ?? currentCollectionId),
     [
       explicitCollectionId,
       effectivePathToCollectionId,
       isCreateMode,
-      setName,
+      currentCollectionId,
       tokenPath,
     ],
   );
@@ -216,7 +213,7 @@ export function TokenEditor({
 
   const loadResult = useTokenEditorLoad({
     serverUrl,
-    setName,
+    collectionId: ownerCollectionId,
     tokenPath,
     isCreateMode,
     initialRef,
@@ -240,7 +237,7 @@ export function TokenEditor({
 
   const { dependents, dependentsLoading } = useTokenDependents({
     serverUrl,
-    setName,
+    collectionId: ownerCollectionId,
     tokenPath,
     isCreateMode,
   });
@@ -292,7 +289,7 @@ export function TokenEditor({
 
   const saveHook = useTokenEditorSave({
     serverUrl,
-    setName,
+    collectionId: ownerCollectionId,
     tokenPath,
     isCreateMode,
     editPath,
@@ -405,7 +402,7 @@ export function TokenEditor({
     canBeRecipeSource,
   } = recipes$;
   const producingRecipe =
-    derivedTokenPaths?.get(createRecipeOwnershipKey(setName, tokenPath)) ??
+    derivedTokenPaths?.get(createRecipeOwnershipKey(ownerCollectionId, tokenPath)) ??
     null;
   const [detachedFromRecipe, setDetachedFromRecipe] = useState(false);
   const [detachingRecipeOwnership, setDetachingRecipeOwnership] =
@@ -484,7 +481,7 @@ export function TokenEditor({
         (!isCreateMode || editPath.trim().length > 0),
       save: async () => handleSaveRef.current(),
       discard: async () => {
-        clearEditorDraft(setName, tokenPath);
+        clearEditorDraft(ownerCollectionId, tokenPath);
         setPendingDraft(null);
         onBack();
       },
@@ -503,7 +500,7 @@ export function TokenEditor({
     isDirty,
     onBack,
     saving,
-    setName,
+    ownerCollectionId,
     tokenPath,
     setPendingDraft,
   ]);
@@ -521,7 +518,7 @@ export function TokenEditor({
 
   useEffect(() => {
     if (!isDirty || isCreateMode) return;
-    saveEditorDraft(setName, tokenPath, {
+    saveEditorDraft(ownerCollectionId, tokenPath, {
       tokenType,
       value,
       description,
@@ -535,7 +532,7 @@ export function TokenEditor({
     });
   }, [
     isDirty,
-    setName,
+    ownerCollectionId,
     tokenPath,
     isCreateMode,
     tokenType,
@@ -562,8 +559,8 @@ export function TokenEditor({
     () =>
       isCreateMode
         ? null
-        : buildTokenDependencySnapshot(tokenPath, allTokensFlat, pathToSet),
-    [isCreateMode, tokenPath, allTokensFlat, pathToSet],
+        : buildTokenDependencySnapshot(tokenPath, allTokensFlat, pathToCollectionId),
+    [isCreateMode, tokenPath, allTokensFlat, pathToCollectionId],
   );
   const referenceTrace = dependencySnapshot?.referenceNodes ?? [];
   const dependentTrace = dependencySnapshot?.dependentNodes ?? [];
@@ -582,7 +579,7 @@ export function TokenEditor({
     setExtensionsJsonError(null);
     setExtendsPath(init.extendsPath);
     setAliasMode(!!init.reference);
-    clearEditorDraft(setName, tokenPath);
+    clearEditorDraft(ownerCollectionId, tokenPath);
     setPendingDraft(null);
   };
 
@@ -756,7 +753,7 @@ export function TokenEditor({
             New token
           </div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            {setName}
+            {ownerCollectionId}
           </div>
         </div>
       ) : (
@@ -777,7 +774,7 @@ export function TokenEditor({
       )}
       {!isCreateMode && (
         <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          in {setName}
+          in {ownerCollectionId}
         </div>
       )}
     </>
@@ -917,9 +914,9 @@ export function TokenEditor({
                   }
                 }}
                 className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-accent)] transition-colors"
-                title={`${collection.name}: ${activeOption} (click to cycle)`}
+                title={`${collection.id}: ${activeOption} (click to cycle)`}
               >
-                {collections.length > 1 ? `${collection.name}: ` : ""}
+                {collections.length > 1 ? `${collection.id}: ` : ""}
                 {activeOption}
               </button>
             );
@@ -957,7 +954,7 @@ export function TokenEditor({
             type="button"
             onClick={() => {
               setPendingDraft(null);
-              clearEditorDraft(setName, tokenPath);
+              clearEditorDraft(ownerCollectionId, tokenPath);
             }}
             className="shrink-0 text-[10px] text-[var(--color-figma-warning)] hover:underline"
           >
@@ -1093,7 +1090,7 @@ export function TokenEditor({
           reference={reference}
           tokenType={tokenType}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           onToggleAlias={handleToggleAlias}
           onReferenceChange={setReference}
           showAutocomplete={showAutocomplete}
@@ -1154,7 +1151,7 @@ export function TokenEditor({
               <ExtendsTokenPicker
                 tokenType={tokenType}
                 allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
+                pathToCollectionId={pathToCollectionId}
                 currentPath={isCreateMode ? trimmedEditPath : tokenPath}
                 onSelect={setExtendsPath}
               />
@@ -1240,7 +1237,7 @@ export function TokenEditor({
               >
                 {dependent.path}
               </span>
-              {dependent.collectionId && dependent.collectionId !== setName && (
+              {dependent.collectionId && dependent.collectionId !== ownerCollectionId && (
                 <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-0.5 text-[8px] text-[var(--color-figma-text-secondary)]">
                   {dependent.collectionId}
                 </span>
@@ -1352,7 +1349,7 @@ export function TokenEditor({
                               <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
                             </svg>
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                            {dep.collectionId !== setName && (
+                            {dep.collectionId !== ownerCollectionId && (
                               <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
                                 {dep.collectionId}
                               </span>
@@ -1364,7 +1361,7 @@ export function TokenEditor({
                             className="flex items-center gap-1 px-1 py-0.5 font-mono text-[9px] text-[var(--color-figma-text)]"
                           >
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                            {dep.collectionId !== setName && (
+                            {dep.collectionId !== ownerCollectionId && (
                               <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
                                 {dep.collectionId}
                               </span>
@@ -1475,13 +1472,13 @@ export function TokenEditor({
               )}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-              <span>Set: {setName}</span>
+              <span>Collection: {ownerCollectionId}</span>
               {trimmedEditLeaf && <span>Leaf: {trimmedEditLeaf}</span>}
             </div>
             {duplicatePath && (
               <p className="text-[10px] text-[var(--color-figma-error)]">
                 A token with this path already exists in{" "}
-                {pathToSet[trimmedEditPath] || setName}.
+                {pathToCollectionId[trimmedEditPath] || ownerCollectionId}.
               </p>
             )}
             {!editPath.includes(".") && createSuggestions.length > 0 && (
@@ -1518,7 +1515,7 @@ export function TokenEditor({
             isCreateMode={isCreateMode}
             extendsPath={extendsPath}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             initialValue={initialRef.current?.value ?? null}
             fontFamilyRef={fontFamilyRef}
             fontSizeRef={fontSizeRef}
@@ -1541,7 +1538,7 @@ export function TokenEditor({
         )}
 
         <ModeValuesEditor
-          collectionId={collectionId}
+          collectionId={ownerCollectionId}
           collections={collections}
           modeValues={modeValues}
           onModeValuesChange={setModeValues}
@@ -1554,7 +1551,7 @@ export function TokenEditor({
           onNavigateToCollections={onNavigateToCollections}
           selectedModes={collectionSwitcher.selectedModes}
           serverUrl={serverUrl}
-          onCollectionModeCreated={collectionSwitcher.retryCollections}
+          onCollectionModeCreated={collectionSwitcher.refreshCollections}
         />
 
         {!aliasMode && referenceSection}
@@ -1636,7 +1633,7 @@ export function TokenEditor({
                 tokenPath={tokenPath}
                 value={value}
                 allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
+                pathToCollectionId={pathToCollectionId}
                 colorFlatMap={colorFlatMap}
               />
             )}
@@ -1719,7 +1716,7 @@ export function TokenEditor({
             {!isCreateMode && (
               <TokenEditorInfoSection
                 tokenPath={tokenPath}
-                setName={setName}
+                collectionId={ownerCollectionId}
                 serverUrl={serverUrl}
                 tokenType={tokenType}
                 value={value}
@@ -1737,7 +1734,7 @@ export function TokenEditor({
                 dependentsLoading={dependentsLoading}
                 colorFlatMap={colorFlatMap}
                 allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
+                pathToCollectionId={pathToCollectionId}
                 initialValue={initialRef.current?.value}
                 activeProducingRecipe={activeProducingRecipe}
                 existingRecipesForToken={existingRecipesForToken}

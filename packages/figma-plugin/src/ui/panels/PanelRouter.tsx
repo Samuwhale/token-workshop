@@ -17,7 +17,7 @@ import { TokenEditor } from "../components/TokenEditor";
 import { TokenRecipeDialog } from "../components/TokenRecipeDialog";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
 import { CollectionManager } from "../components/CollectionManager";
-import { SetManager } from "../components/SetSwitcher";
+import { CollectionStructureManager } from "../components/CollectionSwitcher";
 import { PublishPanel } from "../components/PublishPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 import { ImportPanel } from "../components/ImportPanel";
@@ -39,12 +39,12 @@ import {
   useSyncContext,
 } from "../contexts/ConnectionContext";
 import {
-  useTokenSetsContext,
+  useCollectionStateContext,
   useTokenFlatMapContext,
   useRecipeContext,
 } from "../contexts/TokenDataContext";
 import {
-  useCollectionSwitcherContext,
+  useCollectionUiContext,
 } from "../contexts/CollectionContext";
 import {
   useSelectionContext,
@@ -57,7 +57,7 @@ import { lsGet, lsSet } from "../shared/storage";
 import {
   useApplyWorkspaceController,
   useEditorShellController,
-  useSetManagerWorkspaceController,
+  useCollectionStructureWorkspaceController,
   useShellWorkspaceController,
   useSyncWorkspaceController,
   useCollectionWorkspaceController,
@@ -75,7 +75,7 @@ import type {
 } from "../shared/navigationTypes";
 import {
   getImportResultNextStepRecommendations,
-  getMostRelevantImportDestinationSet,
+  getMostRelevantImportDestinationCollection,
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
 import type { ToastAction } from "../shared/toastBus";
@@ -125,7 +125,7 @@ export function PanelRouter({
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
   savePublishRouting: (
-    setName: string,
+    collectionId: string,
     routing: PublishRoutingDraft,
   ) => Promise<{ collectionName?: string; modeName?: string }>;
 }): ReactNode {
@@ -135,7 +135,7 @@ export function PanelRouter({
   const collectionController = useCollectionWorkspaceController();
   const applyController = useApplyWorkspaceController();
   const syncController = useSyncWorkspaceController();
-  const setManagerController = useSetManagerWorkspaceController();
+  const collectionStructureController = useCollectionStructureWorkspaceController();
   const controller = {
     ...shell,
     ...editorShell,
@@ -145,7 +145,7 @@ export function PanelRouter({
     ...syncController,
     onShowPasteModal: shell.openPasteModal,
     onShowImportPanel: shell.openImportPanel,
-    onOpenSetCreateDialog: shell.openSetCreateDialog,
+    onOpenCollectionCreateDialog: shell.openCollectionCreateDialog,
     onShowColorScaleGen: shell.openColorScaleRecipe,
     onOpenStartHere: shell.openStartHere,
     onRestartGuidedSetup: shell.restartGuidedSetup,
@@ -181,7 +181,7 @@ export function PanelRouter({
     createFromEmpty,
     setCreateFromEmpty,
     setPendingHighlight,
-    setPendingHighlightForSet,
+    setPendingHighlightForCollection,
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
@@ -211,35 +211,34 @@ export function PanelRouter({
   const { sync, syncing, syncProgress, syncResult, syncError } =
     useSyncContext();
   const {
-    sets,
-    activeSet,
-    setActiveSet,
-    tokens,
-    setTokenCounts,
-    setDescriptions,
-    fetchError,
-    refreshTokens,
-  } = useTokenSetsContext();
+    collections,
+    setCollections,
+    currentCollectionId,
+    setCurrentCollectionId,
+    currentCollectionTokens: tokens,
+    collectionTokenCounts,
+    collectionDescriptions,
+    collectionsError: fetchError,
+    refreshCollections: refreshTokens,
+    selectedModes,
+    setSelectedModes,
+  } = useCollectionStateContext();
+  const collectionIds = collections.map((collection) => collection.id);
   const {
     allTokensFlat,
-    pathToSet,
-    perSetFlat,
+    pathToCollectionId,
+    perCollectionFlat,
     syncSnapshot,
     tokensError,
-    setFilteredSetCount,
+    setFilteredCollectionCount: setFilteredSetCount,
+    modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
   const {
     recipes,
     recipesByTargetGroup,
     derivedTokenPaths,
   } = useRecipeContext();
-  const {
-    collections,
-    setCollections,
-    selectedModes,
-    setSelectedModes,
-    modeResolvedTokensFlat,
-  } = useCollectionSwitcherContext();
+  void useCollectionUiContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
     heatmapResult,
@@ -300,43 +299,43 @@ export function PanelRouter({
       initialPath?: string;
       initialType?: string;
       initialValue?: string;
-      set?: string;
+      currentCollectionId?: string;
     }) => {
-      const targetSet = options?.set ?? activeSet;
+      const targetCollectionId = options?.currentCollectionId ?? currentCollectionId;
       switchContextualSurface({
         surface: "token-editor",
         token: {
           path: resolveCreateLauncherPath(options?.initialPath),
-          set: targetSet,
+          currentCollectionId: targetCollectionId,
           isCreate: true,
           initialType: options?.initialType ?? readLastCreateType(),
           initialValue: options?.initialValue,
         },
       });
     },
-    [activeSet, switchContextualSurface],
+    [currentCollectionId, switchContextualSurface],
   );
 
   const openTokenEditor = useCallback(
-    (options: { path: string; set: string; name?: string }) => {
+    (options: { path: string; currentCollectionId: string; name?: string }) => {
       setShowPreviewSplit(false);
       setPreviewingToken(null);
       setHighlightedToken(options.path);
-      if (options.set !== activeSet) {
-        setActiveSet(options.set);
+      if (options.currentCollectionId !== currentCollectionId) {
+        setCurrentCollectionId(options.currentCollectionId);
       }
       switchContextualSurface({
         surface: "token-editor",
         token: {
           path: options.path,
           name: options.name,
-          set: options.set,
+          currentCollectionId: options.currentCollectionId,
         },
       });
     },
     [
-      activeSet,
-      setActiveSet,
+      currentCollectionId,
+      setCurrentCollectionId,
       setHighlightedToken,
       setPreviewingToken,
       setShowPreviewSplit,
@@ -350,13 +349,13 @@ export function PanelRouter({
       fromPath?: string;
       surface: "token-editor" | "token-preview";
     }) => {
-      const targetSet = pathToSet[options.path];
+      const targetCollectionId = pathToCollectionId[options.path];
       if (options.surface === "token-editor") {
         handleNavigateToAlias(options.path, options.fromPath);
       } else {
         handleNavigateToAliasWithoutHistory(options.path);
       }
-      if (!targetSet) return;
+      if (!targetCollectionId) return;
 
       switchContextualSurface(
         options.surface === "token-editor"
@@ -364,14 +363,14 @@ export function PanelRouter({
               surface: "token-editor",
               token: {
                 path: options.path,
-                set: targetSet,
+                currentCollectionId: targetCollectionId,
               },
             }
           : {
               surface: "token-preview",
               token: {
                 path: options.path,
-                set: targetSet,
+                currentCollectionId: targetCollectionId,
               },
             },
       );
@@ -379,7 +378,7 @@ export function PanelRouter({
     [
       handleNavigateToAlias,
       handleNavigateToAliasWithoutHistory,
-      pathToSet,
+      pathToCollectionId,
       switchContextualSurface,
     ],
   );
@@ -417,20 +416,20 @@ export function PanelRouter({
   }, [openRecipeEditor]);
 
   const openGeneratedTokens = useCallback(
-    (targetGroup: string, targetSet: string) => {
+    (targetGroup: string, targetCollectionId: string) => {
       setShowPreviewSplit(false);
       switchContextualSurface({ surface: null });
-      setPendingHighlightForSet(targetGroup, targetSet);
-      if (targetSet !== activeSet) {
-        setActiveSet(targetSet);
+      setPendingHighlightForCollection(targetGroup, targetCollectionId);
+      if (targetCollectionId !== currentCollectionId) {
+        setCurrentCollectionId(targetCollectionId);
       }
       navigateTo("tokens", "tokens");
     },
     [
-      activeSet,
+      currentCollectionId,
       navigateTo,
-      setActiveSet,
-      setPendingHighlightForSet,
+      setCurrentCollectionId,
+      setPendingHighlightForCollection,
       setShowPreviewSplit,
       switchContextualSurface,
     ],
@@ -450,7 +449,7 @@ export function PanelRouter({
       if (previousEntry?.path) {
         setEditingToken({
           path: previousEntry.path,
-          set: previousEntry.set,
+          currentCollectionId: previousEntry.collectionId,
         });
         return;
       }
@@ -492,14 +491,14 @@ export function PanelRouter({
         segments.length > 1 ? `${segments.slice(0, -1).join(".")}.` : "";
       setEditingToken({
         path: parentPrefix,
-        set: editingToken?.set ?? activeSet,
+        currentCollectionId: editingToken?.currentCollectionId ?? currentCollectionId,
         isCreate: true,
         initialType: savedType,
       });
     },
     [
-      activeSet,
-      editingToken?.set,
+      currentCollectionId,
+      editingToken?.currentCollectionId,
       setCreateFromEmpty,
       setEditingToken,
       setHighlightedToken,
@@ -536,14 +535,14 @@ export function PanelRouter({
         controller.setShowPreviewSplit(false);
         switchContextualSurface({
           surface: "token-editor",
-          token: { path, name, set: activeSet },
+          token: { path, name, currentCollectionId },
         });
         setHighlightedToken(path);
       }),
     onPreview: (path: string, name?: string) => {
       switchContextualSurface({
         surface: "token-preview",
-        token: { path, name, set: activeSet },
+        token: { path, name, currentCollectionId },
       });
       setHighlightedToken(path);
     },
@@ -585,7 +584,7 @@ export function PanelRouter({
     onRefreshRecipes: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredSetCount,
-    onNavigateToSet: controller.handleNavigateToSet,
+    onNavigateToCollection: controller.handleNavigateToCollection,
     onViewTokenHistory: (path: string) => {
       setHistoryFilterPath(path);
       navigateTo("sync", "history");
@@ -613,10 +612,10 @@ export function PanelRouter({
       controller.recentlyTouched.recordTouch(path);
     },
     onToggleStar: (path: string) =>
-      controller.starredTokens.toggleStar(path, activeSet),
+      controller.starredTokens.toggleStar(path, currentCollectionId),
     starredPaths: new Set(
       controller.starredTokens.tokens
-        .filter((t) => t.setName === activeSet)
+        .filter((t) => t.collectionId === currentCollectionId)
         .map((t) => t.path),
     ),
     onError: controller.setErrorToast,
@@ -639,8 +638,8 @@ export function PanelRouter({
     onOpenCommandPaletteWithQuery: controller.openCommandPaletteWithQuery,
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
-    onOpenSetSwitcher: controller.toggleSetSwitcher,
-    onOpenCreateSet: controller.onOpenSetCreateDialog,
+    onOpenCollectionSwitcher: controller.toggleCollectionSwitcher,
+    onOpenCreateCollection: controller.onOpenCollectionCreateDialog,
     onOpenStartHere: controller.onOpenStartHere,
     onTogglePreviewSplit: () => controller.setShowPreviewSplit((v) => !v),
     onTokenDragStart: controller.onTokenDragStart,
@@ -652,13 +651,14 @@ export function PanelRouter({
     ? {
         tokenPath: editingToken.path,
         tokenName: editingToken.name,
-        setName: editingToken.set,
-        collectionId: pathToSet[editingToken.path] ?? editingToken.set,
+        currentCollectionId: editingToken.currentCollectionId,
+        collectionId:
+          pathToCollectionId[editingToken.path] ??
+          editingToken.currentCollectionId,
         serverUrl,
         onBack: handleTokenEditorBack,
         allTokensFlat,
-        pathToSet,
-        pathToCollectionId: pathToSet,
+        pathToCollectionId,
         recipes,
         isCreateMode: editingToken.isCreate,
         initialType: editingToken.initialType,
@@ -699,25 +699,25 @@ export function PanelRouter({
       tokenPath={tokensComparePath}
       onClearTokenPath={() => setTokensComparePath("")}
       allTokensFlat={allTokensFlat}
-      pathToCollectionId={pathToSet}
-      pathToStorageSet={pathToSet}
+      pathToCollectionId={pathToCollectionId}
+      pathToStorageCollectionId={pathToCollectionId}
       collections={collections}
-      sets={sets}
+      collectionIds={collectionIds}
       modeOptionsKey={tokensCompareModeKey}
       modeOptionsDefaultA={tokensCompareDefaultA}
       modeOptionsDefaultB={tokensCompareDefaultB}
-      onEditToken={(set, path) => {
+      onEditToken={(collectionId, path) => {
         controller.guardEditorAction(() => {
-          openTokenEditor({ path, set });
+          openTokenEditor({ path, currentCollectionId: collectionId });
         });
       }}
-      onCreateToken={(path, set, type, value) => {
+      onCreateToken={(path, collectionId, type, value) => {
         controller.guardEditorAction(() => {
           openCreateLauncher({
             initialPath: path,
             initialType: type,
             initialValue: value,
-            set,
+            currentCollectionId: collectionId,
           });
         });
       }}
@@ -734,8 +734,8 @@ export function PanelRouter({
     (editingRecipe.mode !== "edit" || editingRecipeData)
       ? {
           serverUrl,
-          allSets: sets,
-          activeSet,
+          collectionIds,
+          currentCollectionId,
           allTokensFlat,
           sourceTokenPath:
             editingRecipe.mode === "create"
@@ -765,7 +765,7 @@ export function PanelRouter({
             editingRecipe.mode === "create"
               ? editingRecipe.template
               : undefined,
-          pathToSet,
+          pathToCollectionId,
           onClose: () => {
             setEditingRecipe(null);
             controller.refreshAll();
@@ -832,9 +832,9 @@ export function PanelRouter({
             <TokenDetailPreview
               tokenPath={previewingToken.path}
               tokenName={previewingToken.name}
-              storageSetName={previewingToken.set}
+              storageCollectionId={previewingToken.currentCollectionId}
               allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
+              pathToCollectionId={pathToCollectionId}
               tokenUsageCounts={tokenUsageCounts}
               recipes={recipes}
               derivedTokenPaths={derivedTokenPaths}
@@ -880,7 +880,7 @@ export function PanelRouter({
       data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.body.id}
     >
       <TokenList
-        ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
+        ctx={{ collectionId: currentCollectionId, collectionIds, serverUrl, connected, selectedNodes }}
         data={{
           tokens,
           allTokensFlat: modeResolvedTokensFlat,
@@ -892,13 +892,12 @@ export function PanelRouter({
           derivedTokenPaths,
           tokenUsageCounts,
           cascadeDiff: controller.cascadeDiff ?? undefined,
-          perSetFlat,
+          perCollectionFlat,
           collectionMap,
           modeMap,
           collections,
           unthemedAllTokensFlat: allTokensFlat,
-          pathToSet,
-          pathToCollectionId: pathToSet,
+          pathToCollectionId,
           selectedModes,
         }}
         actions={tokenListActions}
@@ -1007,9 +1006,10 @@ export function PanelRouter({
         return;
       }
 
-      const targetSet = getMostRelevantImportDestinationSet(result);
-      if (targetSet) {
-        setActiveSet(targetSet);
+      const targetCollectionId =
+        getMostRelevantImportDestinationCollection(result);
+      if (targetCollectionId) {
+        setCurrentCollectionId(targetCollectionId);
       }
 
       beginHandoff({
@@ -1021,7 +1021,7 @@ export function PanelRouter({
         preserveHandoff: true,
       });
     },
-    [beginHandoff, navigateTo, setActiveSet],
+    [beginHandoff, navigateTo, setCurrentCollectionId],
   );
 
   type SecondaryPanelRenderer = () => ReactNode;
@@ -1031,60 +1031,60 @@ export function PanelRouter({
   const SECONDARY_PANEL_MAP: Partial<
     Record<SecondarySurfaceId, SecondaryPanelRenderer>
   > = {
-    sets: () => (
-      <SetManager
-        sets={sets}
-        activeSet={activeSet}
+    "collection-manager": () => (
+      <CollectionStructureManager
+        collectionIds={collectionIds}
+        currentCollectionId={currentCollectionId}
         onClose={closeSecondarySurface}
-        onOpenQuickSwitch={setManagerController.onOpenQuickSwitch}
-        onRename={setManagerController.onRename}
-        onDuplicate={setManagerController.onDuplicate}
-        onDelete={setManagerController.onDelete}
-        onReorder={setManagerController.onReorder}
-        onReorderFull={setManagerController.onReorderFull}
-        onOpenCreateSet={setManagerController.onOpenCreateSet}
-        onEditInfo={setManagerController.onEditInfo}
-        onMerge={setManagerController.onMerge}
-        onSplit={setManagerController.onSplit}
-        setTokenCounts={setTokenCounts}
-        setDescriptions={setDescriptions}
-        onBulkDelete={setManagerController.onBulkDelete}
-        onBulkDuplicate={setManagerController.onBulkDuplicate}
-        onBulkMoveToFolder={setManagerController.onBulkMoveToFolder}
-        renamingSet={setManagerController.renamingSet}
-        renameValue={setManagerController.renameValue}
-        setRenameValue={setManagerController.setRenameValue}
-        renameError={setManagerController.renameError}
-        setRenameError={setManagerController.setRenameError}
-        renameInputRef={setManagerController.renameInputRef}
-        onRenameConfirm={setManagerController.onRenameConfirm}
-        onRenameCancel={setManagerController.onRenameCancel}
-        editingMetadataSet={setManagerController.editingMetadataSet}
-        metadataDescription={setManagerController.metadataDescription}
-        setMetadataDescription={setManagerController.setMetadataDescription}
-        onMetadataClose={setManagerController.onMetadataClose}
-        onMetadataSave={setManagerController.onMetadataSave}
-        deletingSet={setManagerController.deletingSet}
-        onDeleteConfirm={setManagerController.onDeleteConfirm}
-        onDeleteCancel={setManagerController.onDeleteCancel}
-        mergingSet={setManagerController.mergingSet}
-        mergeTargetSet={setManagerController.mergeTargetSet}
-        mergeConflicts={setManagerController.mergeConflicts}
-        mergeResolutions={setManagerController.mergeResolutions}
-        mergeChecked={setManagerController.mergeChecked}
-        mergeLoading={setManagerController.mergeLoading}
-        onMergeTargetChange={setManagerController.onMergeTargetChange}
-        setMergeResolutions={setManagerController.setMergeResolutions}
-        onMergeCheckConflicts={setManagerController.onMergeCheckConflicts}
-        onMergeConfirm={setManagerController.onMergeConfirm}
-        onMergeClose={setManagerController.onMergeClose}
-        splittingSet={setManagerController.splittingSet}
-        splitPreview={setManagerController.splitPreview}
-        splitDeleteOriginal={setManagerController.splitDeleteOriginal}
-        splitLoading={setManagerController.splitLoading}
-        setSplitDeleteOriginal={setManagerController.setSplitDeleteOriginal}
-        onSplitConfirm={setManagerController.onSplitConfirm}
-        onSplitClose={setManagerController.onSplitClose}
+        onOpenQuickSwitch={collectionStructureController.onOpenQuickSwitch}
+        onRename={collectionStructureController.onRename}
+        onDuplicate={collectionStructureController.onDuplicate}
+        onDelete={collectionStructureController.onDelete}
+        onReorder={collectionStructureController.onReorder}
+        onReorderFull={collectionStructureController.onReorderFull}
+        onOpenCreateCollection={collectionStructureController.onOpenCreateCollection}
+        onEditInfo={collectionStructureController.onEditInfo}
+        onMerge={collectionStructureController.onMerge}
+        onSplit={collectionStructureController.onSplit}
+        collectionTokenCounts={collectionTokenCounts}
+        collectionDescriptions={collectionDescriptions}
+        onBulkDelete={collectionStructureController.onBulkDelete}
+        onBulkDuplicate={collectionStructureController.onBulkDuplicate}
+        onBulkMoveToFolder={collectionStructureController.onBulkMoveToFolder}
+        renamingCollectionId={collectionStructureController.renamingCollectionId}
+        renameValue={collectionStructureController.renameValue}
+        setRenameValue={collectionStructureController.setRenameValue}
+        renameError={collectionStructureController.renameError}
+        setRenameError={collectionStructureController.setRenameError}
+        renameInputRef={collectionStructureController.renameInputRef}
+        onRenameConfirm={collectionStructureController.onRenameConfirm}
+        onRenameCancel={collectionStructureController.onRenameCancel}
+        editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
+        metadataDescription={collectionStructureController.metadataDescription}
+        setMetadataDescription={collectionStructureController.setMetadataDescription}
+        onMetadataClose={collectionStructureController.onMetadataClose}
+        onMetadataSave={collectionStructureController.onMetadataSave}
+        deletingCollectionId={collectionStructureController.deletingCollectionId}
+        onDeleteConfirm={collectionStructureController.onDeleteConfirm}
+        onDeleteCancel={collectionStructureController.onDeleteCancel}
+        mergingCollectionId={collectionStructureController.mergingCollectionId}
+        mergeTargetCollectionId={collectionStructureController.mergeTargetCollectionId}
+        mergeConflicts={collectionStructureController.mergeConflicts}
+        mergeResolutions={collectionStructureController.mergeResolutions}
+        mergeChecked={collectionStructureController.mergeChecked}
+        mergeLoading={collectionStructureController.mergeLoading}
+        onMergeTargetChange={collectionStructureController.onMergeTargetChange}
+        setMergeResolutions={collectionStructureController.setMergeResolutions}
+        onMergeCheckConflicts={collectionStructureController.onMergeCheckConflicts}
+        onMergeConfirm={collectionStructureController.onMergeConfirm}
+        onMergeClose={collectionStructureController.onMergeClose}
+        splittingCollectionId={collectionStructureController.splittingCollectionId}
+        splitPreview={collectionStructureController.splitPreview}
+        splitDeleteOriginal={collectionStructureController.splitDeleteOriginal}
+        splitLoading={collectionStructureController.splitLoading}
+        setSplitDeleteOriginal={collectionStructureController.setSplitDeleteOriginal}
+        onSplitConfirm={collectionStructureController.onSplitConfirm}
+        onSplitClose={collectionStructureController.onSplitClose}
       />
     ),
     import: () => (
@@ -1302,12 +1302,17 @@ export function PanelRouter({
                   onGoToTokens={() => navigateTo("tokens", "tokens")}
                   onNavigateToToken={(path) => {
                     const name = path.split(".").pop();
-                    const set = pathToSet[path] ?? activeSet;
-                    setPreviewingToken({ path, name, set });
+                    const targetCollectionId =
+                      pathToCollectionId[path] ?? currentCollectionId;
+                    setPreviewingToken({
+                      path,
+                      name,
+                      currentCollectionId: targetCollectionId,
+                    });
                     setHighlightedToken(path);
                   }}
                   focusedToken={previewingToken}
-                  pathToSet={pathToSet}
+                  pathToCollectionId={pathToCollectionId}
                   onClearFocus={() => setPreviewingToken(null)}
                   lintViolations={controller.lintViolations}
                   syncSnapshot={
@@ -1315,9 +1320,14 @@ export function PanelRouter({
                       ? syncSnapshot
                       : undefined
                   }
-                  onEditToken={(path, name, set) => {
+                  onEditToken={(path, name, collectionId) => {
                     controller.guardEditorAction(() => {
-                      openTokenEditor({ path, name, set: set ?? activeSet });
+                      openTokenEditor({
+                        path,
+                        name,
+                        currentCollectionId:
+                          collectionId ?? currentCollectionId,
+                      });
                     });
                   }}
                   serverUrl={serverUrl}
@@ -1354,25 +1364,25 @@ export function PanelRouter({
             <CollectionManager
               serverUrl={serverUrl}
               connected={connected}
-              sets={sets}
+              collectionIds={collectionIds}
               onCollectionsChange={setCollections}
-              onNavigateToToken={(path, set) => {
+              onNavigateToToken={(path, collectionId) => {
                 beginHandoff({
                   reason: "View or edit this token, then return to Collections",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
-                controller.handleNavigateToSet(set, path);
+                controller.handleNavigateToCollection(collectionId, path);
               }}
-              onCreateToken={(tokenPath, set) => {
+              onCreateToken={(tokenPath, collectionId) => {
                 beginHandoff({
                   reason: "Create this token, then return to Collections",
                 });
                 navigateTo("tokens", "tokens", { preserveHandoff: true });
-                setEditingToken({ path: tokenPath, set, isCreate: true });
+                setEditingToken({ path: tokenPath, currentCollectionId: collectionId, isCreate: true });
               }}
               allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToSet}
-              pathToStorageSet={pathToSet}
+              pathToCollectionId={pathToCollectionId}
+              pathToStorageCollectionId={pathToCollectionId}
               onTokensCreated={controller.refreshAll}
               onGoToTokens={() => {
                 beginHandoff({
@@ -1396,8 +1406,8 @@ export function PanelRouter({
       >
         <GraphPanel
           serverUrl={serverUrl}
-          activeSet={activeSet}
-          allSets={sets}
+          currentCollectionId={currentCollectionId}
+          collectionIds={collectionIds}
           recipes={recipes}
           connected={connected}
           onRefresh={controller.refreshAll}
@@ -1425,7 +1435,7 @@ export function PanelRouter({
           syncResult={syncResult}
           syncError={syncError}
           connected={connected}
-          activeSet={activeSet}
+          currentCollectionId={currentCollectionId}
           serverUrl={serverUrl}
           onTokenCreated={refreshTokens}
           onNavigateToToken={(path) => {
@@ -1496,7 +1506,7 @@ export function PanelRouter({
         <PublishPanel
           serverUrl={serverUrl}
           connected={connected}
-          activeSet={activeSet}
+          currentCollectionId={currentCollectionId}
           collectionMap={collectionMap}
           modeMap={modeMap}
           savePublishRouting={savePublishRouting}
@@ -1556,12 +1566,11 @@ export function PanelRouter({
         <HealthPanel
           serverUrl={serverUrl}
           connected={connected}
-          activeSet={activeSet}
+          currentCollectionId={currentCollectionId}
           recipes={recipes}
           lintViolations={controller.lintViolations}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
-          pathToCollectionId={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           collections={collections}
           tokenUsageCounts={tokenUsageCounts}
           heatmapResult={heatmapResult}
@@ -1573,7 +1582,7 @@ export function PanelRouter({
               reason:
                 "Inspect the source token behind this audit finding, then return to Audit.",
             });
-            setActiveSet(set);
+            setCurrentCollectionId(set);
             navigateTo("tokens", "tokens", { preserveHandoff: true });
             setPendingHighlight(path);
           }}

@@ -38,11 +38,11 @@ export function usePublishRouting(
   }, [connected, serverUrl]);
 
   const savePublishRouting = useCallback(
-    async (setName: string, routing: PublishRoutingDraft) => {
+    async (collectionId: string, routing: PublishRoutingDraft) => {
       const result = await apiFetch<{
         collectionName?: string;
         modeName?: string;
-      }>(`${serverUrl}/api/sync/publish-routing/${encodeURIComponent(setName)}`, {
+      }>(`${serverUrl}/api/sync/publish-routing/${encodeURIComponent(collectionId)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,9 +54,9 @@ export function usePublishRouting(
       setCollectionMap((prev) => {
         const next = { ...prev };
         if (result.collectionName) {
-          next[setName] = result.collectionName;
+          next[collectionId] = result.collectionName;
         } else {
-          delete next[setName];
+          delete next[collectionId];
         }
         return next;
       });
@@ -64,9 +64,9 @@ export function usePublishRouting(
       setModeMap((prev) => {
         const next = { ...prev };
         if (result.modeName) {
-          next[setName] = result.modeName;
+          next[collectionId] = result.modeName;
         } else {
-          delete next[setName];
+          delete next[collectionId];
         }
         return next;
       });

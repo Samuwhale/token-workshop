@@ -5,7 +5,7 @@ import { apiFetch, ApiError } from '../shared/apiFetch';
 import {
   type ImportToken,
   type CollectionData,
-  defaultSetName,
+  defaultCollectionName,
   modeKey,
 } from '../components/importPanelTypes';
 import type { ProgressSetters } from './useImportProgress';
@@ -15,11 +15,11 @@ interface UseVariablesImportParams {
   source: 'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio' | null;
   collectionData: CollectionData[];
   modeEnabled: Record<string, boolean>;
-  modeSetNames: Record<string, string>;
+  modeCollectionNames: Record<string, string>;
   progress: ProgressSetters;
-  setLastImport: (entries: { entries: { setName: string; paths: string[] }[] } | null) => void;
+  setLastImport: (entries: { entries: { collectionId: string; paths: string[] }[] } | null) => void;
   onImported: () => void;
-  onImportComplete: (targetSet: string) => void;
+  onImportComplete: (targetCollectionId: string) => void;
   onResetAfterImport: () => void;
 }
 
@@ -43,13 +43,13 @@ function buildVariableToken(
   return tok;
 }
 
-/** Handles the Figma Variables / Tokens Studio import workflow (multi-set, per-mode). */
+/** Handles the Figma Variables / Tokens Studio import workflow (multi-collection, per-mode). */
 export function useVariablesImport({
   serverUrl,
   source,
   collectionData,
   modeEnabled,
-  modeSetNames,
+  modeCollectionNames,
   progress,
   setLastImport,
   onImported,
@@ -58,7 +58,7 @@ export function useVariablesImport({
 }: UseVariablesImportParams) {
   const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
   const [failedImportBatches, setFailedImportBatches] = useState<
-    { setName: string; tokens: Record<string, unknown>[] }[]
+    { collectionId: string; tokens: Record<string, unknown>[] }[]
   >([]);
   const [failedImportStrategy, setFailedImportStrategy] = useState<'overwrite' | 'skip' | 'merge'>('overwrite');
   const [succeededImportCount, setSucceededImportCount] = useState<number>(0);
@@ -81,11 +81,11 @@ export function useVariablesImport({
       setFailedImportPaths([]);
       setFailedImportBatches([]);
       setFailedImportStrategy(strategy);
-      let importedSets = 0;
+      let importedCollections = 0;
       let importedTokens = 0;
       const failedPaths: string[] = [];
-      const failedBatches: { setName: string; tokens: Record<string, unknown>[] }[] = [];
-      const rollbackEntries: { setName: string; paths: string[] }[] = [];
+      const failedBatches: { collectionId: string; tokens: Record<string, unknown>[] }[] = [];
+      const rollbackEntries: { collectionId: string; paths: string[] }[] = [];
 
       try {
         const allModes = collectionData.flatMap(col =>
@@ -94,31 +94,31 @@ export function useVariablesImport({
             .map(m => ({
               col,
               mode: m,
-              setName:
-                modeSetNames[modeKey(col.name, m.modeId)] ||
-                defaultSetName(col.name, m.modeName, col.modes.length),
+              collectionId:
+                modeCollectionNames[modeKey(col.name, m.modeId)] ||
+                defaultCollectionName(col.name, m.modeName, col.modes.length),
             })),
         );
         progress.setImportProgress({ done: 0, total: allModes.length });
 
-        for (const { mode, setName } of allModes) {
+        for (const { mode, collectionId } of allModes) {
           try {
             await apiFetch(`${serverUrl}/api/collections`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: setName }),
+              body: JSON.stringify({ name: collectionId }),
             });
           } catch (err) {
             if (!(err instanceof ApiError && err.status === 409)) {
               throw new Error(
-                `Failed to create set "${setName}": ${err instanceof Error ? err.message : 'Unknown error'}`,
+                `Failed to create collection "${collectionId}": ${err instanceof Error ? err.message : 'Unknown error'}`,
               );
             }
           }
 
           try {
             const { imported } = await apiFetch<{ imported: number; skipped: number }>(
-              `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`,
+              `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch`,
               {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -130,7 +130,7 @@ export function useVariablesImport({
             );
             importedTokens += imported;
             if (imported > 0) {
-              rollbackEntries.push({ setName, paths: mode.tokens.map(t => t.path) });
+              rollbackEntries.push({ collectionId, paths: mode.tokens.map(t => t.path) });
             }
           } catch (err) {
             console.warn('[ImportPanel] failed to import token batch:', err);
@@ -138,23 +138,23 @@ export function useVariablesImport({
             // to what would have been sent on the first attempt.
             const batchTokens = mode.tokens.map(t => buildVariableToken(t, source));
             for (const t of mode.tokens) failedPaths.push(t.path);
-            failedBatches.push({ setName, tokens: batchTokens });
+            failedBatches.push({ collectionId, tokens: batchTokens });
           }
 
-          importedSets++;
-          progress.setImportProgress({ done: importedSets, total: allModes.length });
+          importedCollections++;
+          progress.setImportProgress({ done: importedCollections, total: allModes.length });
         }
 
         const failedCount = failedPaths.length;
         const notifyMsg =
           failedCount > 0
-            ? `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''} (${failedCount} failed)`
-            : `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
+            ? `Imported ${importedTokens} tokens across ${importedCollections} collection${importedCollections !== 1 ? 's' : ''} (${failedCount} failed)`
+            : `Imported ${importedTokens} tokens across ${importedCollections} collection${importedCollections !== 1 ? 's' : ''}`;
         dispatchToast(notifyMsg, failedCount > 0 ? 'error' : 'success');
 
         onImported();
-        const firstSet = allModes[0]?.setName ?? '';
-        if (firstSet) onImportComplete(firstSet);
+        const firstCollectionId = allModes[0]?.collectionId ?? '';
+        if (firstCollectionId) onImportComplete(firstCollectionId);
         onResetAfterImport();
 
         if (failedCount > 0) {
@@ -168,8 +168,8 @@ export function useVariablesImport({
 
         const successMsg =
           failedCount > 0
-            ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''} — ${failedCount} token${failedCount !== 1 ? 's' : ''} could not be saved`
-            : `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
+            ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedCollections} collection${importedCollections !== 1 ? 's' : ''} — ${failedCount} token${failedCount !== 1 ? 's' : ''} could not be saved`
+            : `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedCollections} collection${importedCollections !== 1 ? 's' : ''}`;
         progress.setSuccessMessage(successMsg);
       } catch (err) {
         return { error: getErrorMessage(err) };
@@ -182,7 +182,7 @@ export function useVariablesImport({
     [
       collectionData,
       modeEnabled,
-      modeSetNames,
+      modeCollectionNames,
       serverUrl,
       source,
       progress,
@@ -201,14 +201,14 @@ export function useVariablesImport({
     setRetrying(true);
 
     const stillFailed: string[] = [];
-    const stillFailedBatches: { setName: string; tokens: Record<string, unknown>[] }[] = [];
+    const stillFailedBatches: { collectionId: string; tokens: Record<string, unknown>[] }[] = [];
     let retried = 0;
 
     try {
       for (const batch of failedImportBatches) {
         try {
           const { imported } = await apiFetch<{ imported: number; skipped: number }>(
-            `${serverUrl}/api/tokens/${encodeURIComponent(batch.setName)}/batch`,
+            `${serverUrl}/api/tokens/${encodeURIComponent(batch.collectionId)}/batch`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -217,7 +217,7 @@ export function useVariablesImport({
           );
           retried += imported;
         } catch (err) {
-          console.warn('[ImportPanel] retry failed for batch:', batch.setName, err);
+          console.warn('[ImportPanel] retry failed for batch:', batch.collectionId, err);
           for (const t of batch.tokens) stillFailed.push(t.path as string);
           stillFailedBatches.push(batch);
         }

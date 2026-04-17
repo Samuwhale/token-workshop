@@ -1,5 +1,5 @@
-/** Validates set names: letters, numbers, - and _ with / for folder hierarchy. */
-export const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+/** Validates collection ids: letters, numbers, - and _ with / for folder hierarchy. */
+export const COLLECTION_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
 /** Detect Mac platform for keyboard shortcut labels. */
 export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
@@ -55,7 +55,7 @@ export function stableStringify(value: unknown): string {
   return '{' + parts.join(',') + '}';
 }
 
-/** Convert a dot-separated token path into the wildcard route form expected by `/api/tokens/:set/*`.
+/** Convert a dot-separated token path into the wildcard route form expected by `/api/tokens/:collection/*`.
  * Each logical segment becomes one slash-delimited URL segment after `encodeURIComponent`.
  * e.g. `color.brand.primary` → `color/brand/primary`. */
 export function tokenPathToUrlSegment(path: string): string {

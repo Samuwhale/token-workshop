@@ -3,7 +3,7 @@ import { Spinner } from '../Spinner';
 import { apiFetch } from '../../shared/apiFetch';
 import { isAbortError } from '../../shared/utils';
 import { formatRelativeTime } from '../../shared/changeHelpers';
-import { ChangesBySetList } from './ChangesBySetList';
+import { ChangesByCollectionList } from './ChangesByCollectionList';
 import type { CommitEntry, TokenChange } from './types';
 
 interface ServerTokenChange {
@@ -42,7 +42,7 @@ export function CommitCompareView({
       if (controller.signal.aborted) return;
       const c = (data.changes ?? []).map((change): TokenChange => ({
         path: change.path,
-        set: change.collectionId,
+        collectionId: change.collectionId,
         type: change.type,
         status: change.status,
         before: change.before,
@@ -50,8 +50,8 @@ export function CommitCompareView({
       }));
       setChanges(c);
       const sections: Record<string, boolean> = {};
-      const sets = new Set(c.map(ch => ch.set));
-      for (const s of sets) sections[s] = true;
+      const collectionIds = new Set(c.map((change) => change.collectionId));
+      for (const collectionId of collectionIds) sections[collectionId] = true;
       setOpenSections(sections);
     }).catch(err => {
       if (isAbortError(err)) return;
@@ -123,7 +123,7 @@ export function CommitCompareView({
           </div>
         )}
         {!loading && !error && changes !== null && changes.length > 0 && (
-          <ChangesBySetList
+          <ChangesByCollectionList
             changes={changes}
             openSections={openSections}
             onToggleSection={toggleSection}

@@ -4,7 +4,7 @@ import { parseInlineValue, generateNameSuggestions } from '../components/tokenLi
 import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
 import { ApiError } from '../shared/apiFetch';
-import { ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
+import { STORAGE_KEY_BUILDERS, ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
 import {
   createToken,
   createTokenValueBody,
@@ -24,11 +24,8 @@ function makeRow(type = 'color'): TableRow {
   return { id: newRowId(), name: '', type, value: '' };
 }
 
-// --- sessionStorage persistence for table-create recovery ---
-const STORAGE_KEY_PREFIX = 'tokenmanager:table-create-draft';
-
-function getDraftStorageKey(setName: string): string {
-  return `${STORAGE_KEY_PREFIX}:${setName || '__default__'}`;
+function getDraftStorageKey(collectionId: string): string {
+  return STORAGE_KEY_BUILDERS.tableCreateDraft(collectionId);
 }
 
 interface TableDraft {
@@ -36,38 +33,38 @@ interface TableDraft {
   rows: TableRow[];
 }
 
-function saveDraft(setName: string, group: string, rows: TableRow[]): void {
+function saveDraft(collectionId: string, group: string, rows: TableRow[]): void {
   // Only save if there's meaningful data (at least one row with content)
   const hasContent = rows.some(r => r.name.trim() || r.value.trim());
   if (!hasContent) {
-    ssRemove(getDraftStorageKey(setName));
+    ssRemove(getDraftStorageKey(collectionId));
     return;
   }
-  ssSetJson(getDraftStorageKey(setName), { group, rows });
+  ssSetJson(getDraftStorageKey(collectionId), { group, rows });
 }
 
-function loadDraft(setName: string): TableDraft | null {
+function loadDraft(collectionId: string): TableDraft | null {
   try {
-    const draft = ssGetJson<TableDraft | null>(getDraftStorageKey(setName), null);
+    const draft = ssGetJson<TableDraft | null>(getDraftStorageKey(collectionId), null);
     if (!draft) return null;
     if (!Array.isArray(draft.rows) || draft.rows.length === 0) return null;
     // Re-assign IDs to avoid collisions with current counter
     draft.rows = draft.rows.map(r => ({ ...r, id: newRowId() }));
     return draft;
   } catch {
-    ssRemove(getDraftStorageKey(setName));
+    ssRemove(getDraftStorageKey(collectionId));
     return null;
   }
 }
 
-function clearDraft(setName: string): void {
-  ssRemove(getDraftStorageKey(setName));
+function clearDraft(collectionId: string): void {
+  ssRemove(getDraftStorageKey(collectionId));
 }
 
 export interface UseTableCreateParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   siblingOrderMap: Map<string, string[]>;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -78,7 +75,7 @@ export interface UseTableCreateParams {
 export function useTableCreate({
   connected,
   serverUrl,
-  setName,
+  collectionId,
   siblingOrderMap,
   onRefresh,
   onPushUndo,
@@ -99,9 +96,9 @@ export function useTableCreate({
   // Auto-save draft to sessionStorage whenever rows or group change
   useEffect(() => {
     if (showTableCreate) {
-      saveDraft(setName, tableGroup, tableRows);
+      saveDraft(collectionId, tableGroup, tableRows);
     }
-  }, [setName, showTableCreate, tableGroup, tableRows]);
+  }, [collectionId, showTableCreate, tableGroup, tableRows]);
 
   const addRow = useCallback((inheritType?: string) => {
     setTableRows(prev => {
@@ -145,24 +142,24 @@ export function useTableCreate({
     setBusy(false);
     setHasDraft(false);
     dismissedRecovery.current = false;
-    clearDraft(setName);
-  }, [setName]);
+    clearDraft(collectionId);
+  }, [collectionId]);
 
   const restoreDraft = useCallback(() => {
-    const draft = loadDraft(setName);
+    const draft = loadDraft(collectionId);
     if (draft) {
       setTableGroup(draft.group);
       setTableRows(draft.rows);
       setHasDraft(false);
       dismissedRecovery.current = true;
     }
-  }, [setName]);
+  }, [collectionId]);
 
   const dismissDraft = useCallback(() => {
     setHasDraft(false);
     dismissedRecovery.current = true;
-    clearDraft(setName);
-  }, [setName]);
+    clearDraft(collectionId);
+  }, [collectionId]);
 
   const openTableCreate = useCallback((group = '') => {
     setRowErrors({});
@@ -171,7 +168,7 @@ export function useTableCreate({
     dismissedRecovery.current = false;
 
     // Check for a saved draft to offer recovery
-    const draft = loadDraft(setName);
+    const draft = loadDraft(collectionId);
     if (draft) {
       setHasDraft(true);
       // Start with a fresh table; user can choose to restore
@@ -184,7 +181,7 @@ export function useTableCreate({
     }
 
     setShowTableCreate(true);
-  }, [setName]);
+  }, [collectionId]);
 
   const handleCreateAll = useCallback(async () => {
     if (!connected || busy) return;
@@ -215,7 +212,7 @@ export function useTableCreate({
 
     setBusy(true);
     setCreateAllError('');
-    const effectiveSet = setName || 'default';
+    const effectiveCollectionId = collectionId || 'default';
     const created: Array<{ path: string; tokenPath: string; type: string; value: unknown }> = [];
 
     let batchAborted = false;
@@ -235,7 +232,7 @@ export function useTableCreate({
       }
 
       try {
-        await createToken(serverUrl, effectiveSet, path, createTokenValueBody({ type: row.type, value: parsedValue }));
+        await createToken(serverUrl, effectiveCollectionId, path, createTokenValueBody({ type: row.type, value: parsedValue }));
         created.push({ path, tokenPath: path, type: row.type, value: parsedValue });
       } catch (err) {
         if (err instanceof ApiError) {
@@ -259,18 +256,18 @@ export function useTableCreate({
 
       if (onPushUndo) {
         const capturedUrl = serverUrl;
-        const capturedSet = effectiveSet;
+        const capturedCollectionId = effectiveCollectionId;
         onPushUndo({
           description: `Create ${created.length} token${created.length > 1 ? 's' : ''}`,
           restore: async () => {
             for (const c of created) {
-              await deleteToken(capturedUrl, capturedSet, c.tokenPath);
+              await deleteToken(capturedUrl, capturedCollectionId, c.tokenPath);
             }
             onRefresh();
           },
           redo: async () => {
             for (const c of created) {
-              await createToken(capturedUrl, capturedSet, c.tokenPath, createTokenValueBody({ type: c.type, value: c.value }));
+              await createToken(capturedUrl, capturedCollectionId, c.tokenPath, createTokenValueBody({ type: c.type, value: c.value }));
             }
             onRefresh();
           },
@@ -287,7 +284,7 @@ export function useTableCreate({
     }
 
     resetTableCreate();
-  }, [connected, busy, tableRows, tableGroup, setName, serverUrl, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, resetTableCreate]);
+  }, [connected, busy, tableRows, tableGroup, collectionId, serverUrl, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, resetTableCreate]);
 
   // Smart suggestions for the table create group
   const tableSuggestions = useMemo(() => {

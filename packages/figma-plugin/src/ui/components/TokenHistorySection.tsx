@@ -8,7 +8,7 @@ export interface HistoryEntryData {
   timestamp: string;
   type: string;
   description: string;
-  setName: string;
+  collectionId: string;
   rolledBack: boolean;
   before: { $value?: unknown; $type?: string } | null;
   after: { $value?: unknown; $type?: string } | null;

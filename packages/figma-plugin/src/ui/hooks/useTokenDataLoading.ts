@@ -1,30 +1,46 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchAllTokensFlatWithSets } from './useTokens';
+import { fetchAllTokensFlatWithCollections } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { isNetworkError } from '../shared/apiFetch';
 import { stableStringify, isAbortError } from '../shared/utils';
 import type { TokenMapEntry } from '../../shared/types';
 import { getPluginMessageFromEvent } from '../../shared/utils';
+import { applyModeSelectionsToTokens } from '../shared/collectionModeUtils';
+import type { SelectedModes, TokenCollection } from '@tokenmanager/core';
 
 interface UseTokenDataLoadingParams {
   serverUrl: string;
   connected: boolean;
   /** Increments each time useTokens successfully rebuilds the tree — lightweight trigger for re-fetch */
-  tokenRevision: number;
+  collectionRevision: number;
   markDisconnected: () => void;
+  collections: TokenCollection[];
+  selectedModes: SelectedModes;
+  hoverPreviewModes: SelectedModes;
 }
 
-export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markDisconnected }: UseTokenDataLoadingParams) {
+export function useTokenDataLoading({
+  serverUrl,
+  connected,
+  collectionRevision,
+  markDisconnected,
+  collections,
+  selectedModes,
+  hoverPreviewModes,
+}: UseTokenDataLoadingParams) {
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
-  const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
-  const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
-  const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
+  const [pathToCollectionId, setPathToCollectionId] = useState<Record<string, string>>({});
+  const [perCollectionFlat, setPerCollectionFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
+  const [filteredCollectionCount, setFilteredCollectionCount] = useState<number | null>(null);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const [tokensLoading, setTokensLoading] = useState(false);
   const [tokensError, setTokensError] = useState<string | null>(null);
   const flatFetchGenRef = useRef(0);
   const allTokensFlatRef = useRef(allTokensFlat);
   allTokensFlatRef.current = allTokensFlat;
+  const collectionIdentityKey = collections
+    .map((collection) => collection.id)
+    .join("\u0000");
 
   // Fetch flat tokens on connect / token-change
   useEffect(() => {
@@ -32,11 +48,11 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
       const gen = ++flatFetchGenRef.current;
       const controller = new AbortController();
       setTokensLoading(true);
-      fetchAllTokensFlatWithSets(serverUrl, controller.signal).then(({ flat, pathToSet: pts, perSetFlat: psf }) => {
+      fetchAllTokensFlatWithCollections(serverUrl, controller.signal).then(({ flat, pathToCollectionId: nextPathToCollectionId, perCollectionFlat: nextPerCollectionFlat }) => {
         if (gen !== flatFetchGenRef.current) return; // stale response
         setAllTokensFlat(resolveAllAliases(flat));
-        setPathToSet(pts);
-        setPerSetFlat(psf);
+        setPathToCollectionId(nextPathToCollectionId);
+        setPerCollectionFlat(nextPerCollectionFlat);
         setTokensError(null);
         setTokensLoading(false);
       }).catch(err => {
@@ -51,7 +67,7 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
     } else {
       setTokensLoading(false);
     }
-  }, [connected, serverUrl, tokenRevision, markDisconnected]);
+  }, [collectionIdentityKey, collectionRevision, connected, markDisconnected, serverUrl]);
 
   // Listen for variables-applied and capture a sync snapshot
   useEffect(() => {
@@ -69,13 +85,22 @@ export function useTokenDataLoading({ serverUrl, connected, tokenRevision, markD
     return () => window.removeEventListener('message', handler);
   }, []);
 
+  const modeResolvedTokensFlat = applyModeSelectionsToTokens(
+    allTokensFlat,
+    collections,
+    { ...selectedModes, ...hoverPreviewModes },
+    pathToCollectionId,
+  );
+
   return {
     allTokensFlat,
-    pathToSet,
-    perSetFlat,
-    filteredSetCount, setFilteredSetCount,
+    pathToCollectionId,
+    perCollectionFlat,
+    filteredCollectionCount,
+    setFilteredCollectionCount,
     syncSnapshot,
     tokensLoading,
     tokensError,
+    modeResolvedTokensFlat,
   };
 }

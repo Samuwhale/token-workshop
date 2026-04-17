@@ -72,7 +72,7 @@ function buildFlatOptions(collections: TokenCollection[]): FlatOption[] {
       result.push({
         label:
           collections.length > 1
-            ? `${collection.name} / ${opt.name}`
+            ? `${collection.id} / ${opt.name}`
             : opt.name,
         key: `${collection.id}:${opt.name}`,
         collectionId: collection.id,
@@ -465,7 +465,7 @@ function CrossCollectionMode({
         }
         out.push({
           collectionId: collection.id,
-          collectionName: collection.name,
+          collectionName: collection.id,
           optionName: option.name,
           entry,
           resolvedValue: entry?.$value,
@@ -566,7 +566,7 @@ function CrossCollectionMode({
           <div key={collection.id}>
             <div className="flex items-center gap-2 px-3 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
               <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">
-                {collection.name}
+                {collection.id}
               </span>
               {stats.allSame && !stats.anyMissing && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">Identical</span>
@@ -619,8 +619,8 @@ interface ModePairsModeProps {
   collections: TokenCollection[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  pathToStorageSet: Record<string, string>;
-  onEditToken?: (set: string, path: string) => void;
+  pathToStorageCollectionId: Record<string, string>;
+  onEditToken?: (collectionId: string, path: string) => void;
   initialOptionKeyA?: string;
   initialOptionKeyB?: string;
 }
@@ -629,7 +629,7 @@ function ModePairsMode({
   collections,
   allTokensFlat,
   pathToCollectionId,
-  pathToStorageSet,
+  pathToStorageCollectionId,
   onEditToken,
   initialOptionKeyA,
   initialOptionKeyB,
@@ -676,8 +676,8 @@ function ModePairsMode({
       type: string;
       valueA: unknown;
       valueB: unknown;
-      setA: string | null;
-      setB: string | null;
+      collectionA: string | null;
+      collectionB: string | null;
     }> = [];
     for (const path of allPaths) {
       const entA = resolvedA[path];
@@ -691,13 +691,13 @@ function ModePairsMode({
           type: entA?.$type ?? entB?.$type ?? 'unknown',
           valueA: valA,
           valueB: valB,
-          setA: pathToStorageSet[path] ?? null,
-          setB: pathToStorageSet[path] ?? null,
+          collectionA: pathToStorageCollectionId[path] ?? null,
+          collectionB: pathToStorageCollectionId[path] ?? null,
         });
       }
     }
     return result.sort((a, b) => a.path.localeCompare(b.path));
-  }, [resolvedA, resolvedB, pathToStorageSet]);
+  }, [resolvedA, resolvedB, pathToStorageCollectionId]);
 
   const availableTypes = useMemo(() => {
     const types = new Set(diffs.map(d => d.type));
@@ -920,20 +920,20 @@ function ModePairsMode({
                   </div>
                   {onEditToken && (
                     <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                      {!absentInA && onEditToken && diff.setA && (
+                      {!absentInA && onEditToken && diff.collectionA && (
                         <button
-                          onClick={() => onEditToken(diff.setA!, diff.path)}
+                          onClick={() => onEditToken(diff.collectionA!, diff.path)}
                           className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                          title={`Edit token in ${diff.setA}`}
+                          title={`Edit token in ${diff.collectionA}`}
                         >
                           Edit A
                         </button>
                       )}
-                      {!absentInB && onEditToken && diff.setB && (
+                      {!absentInB && onEditToken && diff.collectionB && (
                         <button
-                          onClick={() => onEditToken(diff.setB!, diff.path)}
+                          onClick={() => onEditToken(diff.collectionB!, diff.path)}
                           className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                          title={`Edit token in ${diff.setB}`}
+                          title={`Edit token in ${diff.collectionB}`}
                         >
                           Edit B
                         </button>
@@ -950,35 +950,35 @@ function ModePairsMode({
   );
 }
 
-// Mode 4 – Set diff (compare two token sets side-by-side)
+// Mode 4 – Collection diff (compare two token collections side-by-side)
 
-type SetDiffStatus = 'only-a' | 'only-b' | 'changed';
+type CollectionDiffStatus = 'only-a' | 'only-b' | 'changed';
 
-interface SetDiffRow {
+interface CollectionDiffRow {
   path: string;
   name: string;
   type: string;
-  status: SetDiffStatus;
+  status: CollectionDiffStatus;
   valueA: unknown;
   valueB: unknown;
 }
 
-interface SetDiffModeProps {
-  sets: string[];
+interface CollectionDiffModeProps {
+  collectionIds: string[];
   serverUrl?: string;
-  onEditToken: (set: string, path: string) => void;
-  onCreateToken: (path: string, set: string, type: string, value?: string) => void;
+  onEditToken: (collectionId: string, path: string) => void;
+  onCreateToken: (path: string, collectionId: string, type: string, value?: string) => void;
   onTokensCreated?: () => void;
 }
 
-function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCreated }: SetDiffModeProps) {
-  const [setA, setSetA] = useState<string>(sets[0] ?? '');
-  const [setB, setSetB] = useState<string>(sets[1] ?? '');
+function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateToken, onTokensCreated }: CollectionDiffModeProps) {
+  const [collectionA, setCollectionA] = useState<string>(collectionIds[0] ?? '');
+  const [collectionB, setCollectionB] = useState<string>(collectionIds[1] ?? '');
   const [flatA, setFlatA] = useState<Record<string, { $value: unknown; $type: string }> | null>(null);
   const [flatB, setFlatB] = useState<Record<string, { $value: unknown; $type: string }> | null>(null);
   const [loadingA, setLoadingA] = useState(false);
   const [loadingB, setLoadingB] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<SetDiffStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<CollectionDiffStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [bulkCreating, setBulkCreating] = useState<'A' | 'B' | null>(null);
@@ -990,10 +990,10 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
   const [copyFeedback, triggerCopy] = useCopyFeedback(handleCopyError);
 
   useEffect(() => {
-    if (!setA || !serverUrl) { setFlatA(null); return; }
+    if (!collectionA || !serverUrl) { setFlatA(null); return; }
     let cancelled = false;
     setLoadingA(true);
-    apiFetch<{ tokens?: object }>(`${serverUrl}/api/tokens/${encodeURIComponent(setA)}`)
+    apiFetch<{ tokens?: object }>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionA)}`)
       .then((data) => {
         if (cancelled) return;
         const flat: Record<string, { $value: unknown; $type: string }> = {};
@@ -1005,13 +1005,13 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
       .catch(() => { if (!cancelled) setFlatA(null); })
       .finally(() => { if (!cancelled) setLoadingA(false); });
     return () => { cancelled = true; };
-  }, [setA, serverUrl]);
+  }, [collectionA, serverUrl]);
 
   useEffect(() => {
-    if (!setB || !serverUrl) { setFlatB(null); return; }
+    if (!collectionB || !serverUrl) { setFlatB(null); return; }
     let cancelled = false;
     setLoadingB(true);
-    apiFetch<{ tokens?: object }>(`${serverUrl}/api/tokens/${encodeURIComponent(setB)}`)
+    apiFetch<{ tokens?: object }>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionB)}`)
       .then((data) => {
         if (cancelled) return;
         const flat: Record<string, { $value: unknown; $type: string }> = {};
@@ -1023,12 +1023,12 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
       .catch(() => { if (!cancelled) setFlatB(null); })
       .finally(() => { if (!cancelled) setLoadingB(false); });
     return () => { cancelled = true; };
-  }, [setB, serverUrl]);
+  }, [collectionB, serverUrl]);
 
-  const diffs = useMemo((): SetDiffRow[] => {
+  const diffs = useMemo((): CollectionDiffRow[] => {
     if (!flatA || !flatB) return [];
     const allPaths = new Set([...Object.keys(flatA), ...Object.keys(flatB)]);
-    const result: SetDiffRow[] = [];
+    const result: CollectionDiffRow[] = [];
     for (const path of allPaths) {
       const tA = flatA[path];
       const tB = flatB[path];
@@ -1065,22 +1065,22 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
   const onlyInB = useMemo(() => diffs.filter(d => d.status === 'only-b'), [diffs]);
   const changed = useMemo(() => diffs.filter(d => d.status === 'changed'), [diffs]);
 
-  const canCompare = setA && setB && setA !== setB;
+  const canCompare = collectionA && collectionB && collectionA !== collectionB;
 
-  const buildTsv = useCallback((rows: SetDiffRow[]) => {
-    const header = ['Token Path', 'Type', 'Status', setA || 'A', setB || 'B'].join('\t');
+  const buildTsv = useCallback((rows: CollectionDiffRow[]) => {
+    const header = ['Token Path', 'Type', 'Status', collectionA || 'A', collectionB || 'B'].join('\t');
     const lines = rows.map(d =>
       [d.path, d.type, d.status, formatTokenValueForDisplay(d.type, d.valueA), formatTokenValueForDisplay(d.type, d.valueB)].join('\t')
     );
     return [header, ...lines].join('\n');
-  }, [setA, setB]);
+  }, [collectionA, collectionB]);
 
   const handleCopy = useCallback(async () => {
     await triggerCopy(buildTsv(filteredDiffs));
   }, [buildTsv, filteredDiffs, triggerCopy]);
 
   const handleExportCsv = useCallback(() => {
-    const header = [setA || 'A', setB || 'B', 'Token Path', 'Type', 'Status'];
+    const header = [collectionA || 'A', collectionB || 'B', 'Token Path', 'Type', 'Status'];
     const rows = filteredDiffs.map(d => [
       formatTokenValueForDisplay(d.type, d.valueA),
       formatTokenValueForDisplay(d.type, d.valueB),
@@ -1089,16 +1089,16 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
       d.status,
     ]);
     exportCsvFile(
-      `set-diff-${(setA || 'a').replace(/\W+/g, '_')}-vs-${(setB || 'b').replace(/\W+/g, '_')}.csv`,
+      `collection-diff-${(collectionA || 'a').replace(/\W+/g, '_')}-vs-${(collectionB || 'b').replace(/\W+/g, '_')}.csv`,
       [header, ...rows],
     );
-  }, [filteredDiffs, setA, setB]);
+  }, [filteredDiffs, collectionA, collectionB]);
 
   const handleCopyMissing = useCallback(async (side: 'A' | 'B') => {
     if (!serverUrl) return;
-    const targetSet = side === 'A' ? setA : setB;
+    const targetCollectionId = side === 'A' ? collectionA : collectionB;
     const missing = side === 'A' ? onlyInB : onlyInA;
-    if (!targetSet || missing.length === 0) return;
+    if (!targetCollectionId || missing.length === 0) return;
     setBulkCreating(side);
     setBulkResult(null);
     try {
@@ -1107,7 +1107,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
         $type: d.type,
         $value: side === 'A' ? d.valueB : d.valueA,
       }));
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetCollectionId)}/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokens, strategy: 'overwrite' }),
@@ -1121,22 +1121,22 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
     } finally {
       setBulkCreating(null);
     }
-  }, [serverUrl, setA, setB, onlyInA, onlyInB, onTokensCreated]);
+  }, [serverUrl, collectionA, collectionB, onlyInA, onlyInB, onTokensCreated]);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Set selectors */}
+      {/* Collection selectors */}
       <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] space-y-2">
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
           <select
-            value={setA}
-            onChange={e => setSetA(e.target.value)}
+            value={collectionA}
+            onChange={e => setCollectionA(e.target.value)}
             className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
           >
-            <option value="">Select a token set…</option>
-            {sets.map(s => (
-              <option key={s} value={s}>{s}</option>
+            <option value="">Select a collection…</option>
+            {collectionIds.map((collectionId) => (
+              <option key={collectionId} value={collectionId}>{collectionId}</option>
             ))}
           </select>
           {loadingA && <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Loading…</span>}
@@ -1144,13 +1144,13 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
           <select
-            value={setB}
-            onChange={e => setSetB(e.target.value)}
+            value={collectionB}
+            onChange={e => setCollectionB(e.target.value)}
             className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
           >
-            <option value="">Select a token set…</option>
-            {sets.map(s => (
-              <option key={s} value={s}>{s}</option>
+            <option value="">Select a collection…</option>
+            {collectionIds.map((collectionId) => (
+              <option key={collectionId} value={collectionId}>{collectionId}</option>
             ))}
           </select>
           {loadingB && <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Loading…</span>}
@@ -1161,9 +1161,9 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
       {!canCompare ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
-            {sets.length < 2
-              ? 'At least two token sets needed to compare.'
-              : 'Select two different sets to compare.'}
+            {collectionIds.length < 2
+              ? 'At least two collections are needed to compare.'
+              : 'Select two different collections to compare.'}
           </p>
         </div>
       ) : (loadingA || loadingB) ? (
@@ -1173,7 +1173,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
       ) : diffs.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
-            These sets are identical.
+            These collections are identical.
           </p>
         </div>
       ) : (
@@ -1190,7 +1190,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
             />
             <div className="flex items-center gap-1 flex-wrap">
               {/* Status filter pills */}
-              {([['all', `All (${diffs.length})`], ['only-a', `Only in A (${onlyInA.length})`], ['only-b', `Only in B (${onlyInB.length})`], ['changed', `Different (${changed.length})`]] as [SetDiffStatus | 'all', string][]).map(([id, label]) => (
+              {([['all', `All (${diffs.length})`], ['only-a', `Only in A (${onlyInA.length})`], ['only-b', `Only in B (${onlyInB.length})`], ['changed', `Different (${changed.length})`]] as [CollectionDiffStatus | 'all', string][]).map(([id, label]) => (
                 <button
                   key={id}
                   onClick={() => setStatusFilter(id)}
@@ -1331,36 +1331,36 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
                   <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     {diff.status === 'only-b' && onCreateToken && (
                       <button
-                        onClick={() => onCreateToken(diff.path, setA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}
+                        onClick={() => onCreateToken(diff.path, collectionA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}
                         className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
-                        title={`Create token in ${setA} (copy B's value)`}
+                        title={`Create token in ${collectionA} (copy B's value)`}
                       >
                         + Create in A
                       </button>
                     )}
                     {diff.status === 'only-a' && onCreateToken && (
                       <button
-                        onClick={() => onCreateToken(diff.path, setB, diff.type, diff.valueA !== undefined ? (typeof diff.valueA === 'string' ? diff.valueA : JSON.stringify(diff.valueA)) : undefined)}
+                        onClick={() => onCreateToken(diff.path, collectionB, diff.type, diff.valueA !== undefined ? (typeof diff.valueA === 'string' ? diff.valueA : JSON.stringify(diff.valueA)) : undefined)}
                         className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
-                        title={`Create token in ${setB} (copy A's value)`}
+                        title={`Create token in ${collectionB} (copy A's value)`}
                       >
                         + Create in B
                       </button>
                     )}
                     {diff.status !== 'only-b' && onEditToken && (
                       <button
-                        onClick={() => onEditToken(setA, diff.path)}
+                        onClick={() => onEditToken(collectionA, diff.path)}
                         className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                        title={`Edit in ${setA}`}
+                        title={`Edit in ${collectionA}`}
                       >
                         Edit A
                       </button>
                     )}
                     {diff.status !== 'only-a' && onEditToken && (
                       <button
-                        onClick={() => onEditToken(setB, diff.path)}
+                        onClick={() => onEditToken(collectionB, diff.path)}
                         className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                        title={`Edit in ${setB}`}
+                        title={`Edit in ${collectionB}`}
                       >
                         Edit B
                       </button>
@@ -1378,7 +1378,7 @@ function SetDiffMode({ sets, serverUrl, onEditToken, onCreateToken, onTokensCrea
 
 // CompareView – main export (mode selector + routing)
 
-export type CompareMode = 'tokens' | 'cross-collection' | 'mode-options' | 'set-diff';
+export type CompareMode = 'tokens' | 'cross-collection' | 'mode-options' | 'collection-diff';
 
 interface CompareViewProps {
   mode: CompareMode;
@@ -1392,16 +1392,16 @@ interface CompareViewProps {
 
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  pathToStorageSet: Record<string, string>;
+  pathToStorageCollectionId: Record<string, string>;
   collections: TokenCollection[];
-  sets: string[];
+  collectionIds: string[];
 
   modeOptionsKey: number;
   modeOptionsDefaultA: string;
   modeOptionsDefaultB: string;
 
-  onEditToken: (set: string, path: string) => void;
-  onCreateToken: (path: string, set: string, type: string, value?: string) => void;
+  onEditToken: (collectionId: string, path: string) => void;
+  onCreateToken: (path: string, collectionId: string, type: string, value?: string) => void;
 
   onGoToTokens: () => void;
 
@@ -1413,7 +1413,7 @@ const MODES: { id: CompareMode; label: string }[] = [
   { id: 'tokens', label: 'Token values' },
   { id: 'cross-collection', label: 'Token × modes' },
   { id: 'mode-options', label: 'Mode pairs' },
-  { id: 'set-diff', label: 'Set diff' },
+  { id: 'collection-diff', label: 'Collection diff' },
 ];
 
 export function CompareView({
@@ -1425,9 +1425,9 @@ export function CompareView({
   onClearTokenPath,
   allTokensFlat,
   pathToCollectionId,
-  pathToStorageSet,
+  pathToStorageCollectionId,
   collections,
-  sets,
+  collectionIds,
   modeOptionsKey,
   modeOptionsDefaultA,
   modeOptionsDefaultB,
@@ -1517,16 +1517,16 @@ export function CompareView({
             collections={collections}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
-            pathToStorageSet={pathToStorageSet}
+            pathToStorageCollectionId={pathToStorageCollectionId}
             initialOptionKeyA={modeOptionsDefaultA}
             initialOptionKeyB={modeOptionsDefaultB}
             onEditToken={onEditToken}
           />
         )}
 
-        {mode === 'set-diff' && (
-          <SetDiffMode
-            sets={sets}
+        {mode === 'collection-diff' && (
+          <CollectionDiffMode
+            collectionIds={collectionIds}
             serverUrl={serverUrl}
             onEditToken={onEditToken}
             onCreateToken={onCreateToken}

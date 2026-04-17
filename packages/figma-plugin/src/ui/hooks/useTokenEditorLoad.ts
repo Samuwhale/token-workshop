@@ -20,23 +20,23 @@ import type {
 
 function readModeValues(
   raw: unknown,
-  setName: string,
+  collectionId: string,
 ): Record<string, Record<string, unknown>> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return {};
   }
 
-  const optionMap = (raw as Record<string, unknown>)[setName];
+  const optionMap = (raw as Record<string, unknown>)[collectionId];
   if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
     return {};
   }
 
-  return { [setName]: { ...(optionMap as Record<string, unknown>) } };
+  return { [collectionId]: { ...(optionMap as Record<string, unknown>) } };
 }
 
 interface UseTokenEditorLoadParams {
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   tokenPath: string;
   isCreateMode: boolean;
   initialRef: React.MutableRefObject<FieldsSnapshot | null>;
@@ -58,7 +58,7 @@ interface UseTokenEditorLoadParams {
 
 export function useTokenEditorLoad({
   serverUrl,
-  setName,
+  collectionId,
   tokenPath,
   isCreateMode,
   initialRef,
@@ -90,14 +90,14 @@ export function useTokenEditorLoad({
     setPendingDraft(null);
     setError(null);
     setLoading(!isCreateMode);
-  }, [isCreateMode, setError, setName, tokenPath]);
+  }, [isCreateMode, setError, collectionId, tokenPath]);
 
   useEffect(() => {
     if (isCreateMode) return;
     const controller = new AbortController();
     const fetchToken = async () => {
       try {
-        const data = await apiFetch<TokenEditorTokenResponse>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { signal: controller.signal });
+        const data = await apiFetch<TokenEditorTokenResponse>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/${encodedTokenPath}`, { signal: controller.signal });
         const token = data.token;
         const extensions: TokenEditorServerExtensions = token?.$extensions ?? {};
         setTokenType(token?.$type || 'string');
@@ -109,7 +109,7 @@ export function useTokenEditorLoad({
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
         setColorModifiers(loadedModifiers);
         const savedModes = extensions.tokenmanager?.modes;
-        const loadedModes = readModeValues(savedModes, setName);
+        const loadedModes = readModeValues(savedModes, collectionId);
         setModeValues(loadedModes);
         const savedLifecycle = extensions.tokenmanager?.lifecycle;
         const loadedLifecycle: TokenEditorLifecycle = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
@@ -146,7 +146,7 @@ export function useTokenEditorLoad({
           extendsPath: loadedExtends,
         };
         // Check for a saved draft that differs from the current server state
-        const draft = loadEditorDraft(setName, tokenPath);
+        const draft = loadEditorDraft(collectionId, tokenPath);
         if (draft) {
           const init = initialRef.current!;
           const draftDiffers = (
@@ -164,7 +164,7 @@ export function useTokenEditorLoad({
           if (draftDiffers) {
             setPendingDraft(draft);
           } else {
-            clearEditorDraft(setName, tokenPath);
+            clearEditorDraft(collectionId, tokenPath);
           }
         }
       } catch (err) {
@@ -189,7 +189,7 @@ export function useTokenEditorLoad({
     setExtendsPath,
     setLifecycle,
     setModeValues,
-    setName,
+    collectionId,
     setReference,
     setScopes,
     setTokenType,

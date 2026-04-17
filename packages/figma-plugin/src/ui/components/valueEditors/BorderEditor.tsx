@@ -4,7 +4,7 @@ import { inputClass, labelClass } from '../../shared/editorClasses';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput, DimensionSubProp } from './valueEditorShared';
 
-export const BorderEditor = memo(function BorderEditor({ value, onChange, allTokensFlat, pathToSet, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; baseValue?: any }) {
+export const BorderEditor = memo(function BorderEditor({ value, onChange, allTokensFlat, pathToCollectionId, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; baseValue?: any }) {
   const rawVal = typeof value === 'object' ? value : {};
   const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
   const val = base ? { ...base, ...rawVal } : rawVal;
@@ -32,7 +32,7 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
             value={val.color || '#000000'}
             onChange={v => update('color', v)}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             filterType="color"
             inputType="string"
             placeholder="#000000 or {token}"
@@ -46,7 +46,7 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
             value={val.width ?? { value: 1, unit: 'px' }}
             onChange={v => update('width', v)}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
           />
         </div>
         <div className="flex-1">

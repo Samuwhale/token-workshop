@@ -14,10 +14,10 @@ import { computeRecipeImpacts, computeModeImpacts } from '../shared/tokenImpact'
 export interface UseTokenDeleteParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
-  perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   recipes?: TokenRecipe[];
   collections?: TokenCollection[];
   onRefresh: () => void;
@@ -31,10 +31,10 @@ export interface UseTokenDeleteParams {
 export function useTokenDelete({
   connected,
   serverUrl,
-  setName,
+  collectionId,
   tokens,
   allTokensFlat,
-  perSetFlat,
+  perCollectionFlat,
   recipes,
   collections,
   onRefresh,
@@ -47,20 +47,20 @@ export function useTokenDelete({
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const setNameRef = useRef(setName);
-  setNameRef.current = setName;
+  const collectionIdRef = useRef(collectionId);
+  collectionIdRef.current = collectionId;
 
   const requestDeleteToken = useCallback((path: string) => {
     if (!connected) return;
     const affectedRefs: AffectedRef[] = [];
-    const source = perSetFlat ?? { '': allTokensFlat };
+    const source = perCollectionFlat ?? { '': allTokensFlat };
     for (const [sName, flatSet] of Object.entries(source)) {
       for (const [tokenPath, token] of Object.entries(flatSet)) {
         if (tokenPath === path) continue;
         const val = token.$value;
         if (!isAlias(val)) continue;
         if (extractAliasPath(val) === path) {
-          affectedRefs.push({ path: tokenPath, setName: sName });
+          affectedRefs.push({ path: tokenPath, collectionId: sName });
         }
       }
     }
@@ -68,13 +68,13 @@ export function useTokenDelete({
     const recipeImpacts = computeRecipeImpacts(targetPaths, recipes ?? []);
     const modeImpacts = computeModeImpacts(targetPaths, collections ?? [], source);
     setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, modeImpacts });
-  }, [connected, allTokensFlat, perSetFlat, recipes, collections]);
+  }, [connected, allTokensFlat, perCollectionFlat, recipes, collections]);
 
   const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
     if (!connected) return;
     const affectedRefs: AffectedRef[] = [];
     const prefix = `${path}.`;
-    const source = perSetFlat ?? { '': allTokensFlat };
+    const source = perCollectionFlat ?? { '': allTokensFlat };
     // Collect all token paths under this group
     const groupPaths = new Set<string>();
     for (const flatSet of Object.values(source)) {
@@ -89,20 +89,20 @@ export function useTokenDelete({
         if (!isAlias(val)) continue;
         const aliasPath = extractAliasPath(val);
         if (aliasPath && (aliasPath === path || aliasPath.startsWith(prefix))) {
-          affectedRefs.push({ path: tokenPath, setName: sName });
+          affectedRefs.push({ path: tokenPath, collectionId: sName });
         }
       }
     }
     const recipeImpacts = computeRecipeImpacts(groupPaths, recipes ?? []);
     const modeImpacts = computeModeImpacts(groupPaths, collections ?? [], source);
     setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, modeImpacts });
-  }, [connected, allTokensFlat, perSetFlat, recipes, collections]);
+  }, [connected, allTokensFlat, perCollectionFlat, recipes, collections]);
 
   const requestBulkDelete = useCallback((selectedPaths: Set<string>) => {
     if (!connected || selectedPaths.size === 0) return;
     const paths = [...selectedPaths];
     const affectedRefs: AffectedRef[] = [];
-    const source = perSetFlat ?? { '': allTokensFlat };
+    const source = perCollectionFlat ?? { '': allTokensFlat };
     for (const [sName, flatSet] of Object.entries(source)) {
       for (const [tokenPath, token] of Object.entries(flatSet)) {
         if (selectedPaths.has(tokenPath)) continue;
@@ -110,14 +110,14 @@ export function useTokenDelete({
         if (!isAlias(val)) continue;
         const aliasPath = extractAliasPath(val);
         if (aliasPath && selectedPaths.has(aliasPath)) {
-          affectedRefs.push({ path: tokenPath, setName: sName });
+          affectedRefs.push({ path: tokenPath, collectionId: sName });
         }
       }
     }
     const recipeImpacts = computeRecipeImpacts(selectedPaths, recipes ?? []);
     const modeImpacts = computeModeImpacts(selectedPaths, collections ?? [], source);
     setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, recipeImpacts, modeImpacts });
-  }, [connected, allTokensFlat, perSetFlat, recipes, collections]);
+  }, [connected, allTokensFlat, perCollectionFlat, recipes, collections]);
 
   const executeDelete = useCallback(async () => {
     if (!deleteConfirm) return;
@@ -153,9 +153,9 @@ export function useTokenDelete({
     onSetOperationLoading(deletedType === 'bulk' ? `Deleting ${deletedPaths.length} tokens…` : 'Deleting…');
     try {
       if (deletedType === 'token' || deletedType === 'group') {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPathToUrlSegment(deletedPath)}`, { method: 'DELETE' });
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/${tokenPathToUrlSegment(deletedPath)}`, { method: 'DELETE' });
       } else {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch-delete`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paths: deletedPaths }),
@@ -171,18 +171,18 @@ export function useTokenDelete({
 
       if (onPushUndo && undoTokens.length > 0) {
         const captured = undoTokens;
-        const capturedSet = setName;
+        const capturedCollectionId = collectionId;
         const capturedUrl = serverUrl;
         onPushUndo({
           description: undoDescription,
           restore: async () => {
-            if (setNameRef.current !== capturedSet) {
-              onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+            if (collectionIdRef.current !== capturedCollectionId) {
+              onError?.(`Undo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
               return;
             }
             await Promise.all(
               captured.map(({ path, data }) =>
-                apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${tokenPathToUrlSegment(path)}`, {
+                apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/${tokenPathToUrlSegment(path)}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(data),
@@ -202,7 +202,7 @@ export function useTokenDelete({
     } finally {
       onSetOperationLoading(null);
     }
-  }, [deleteConfirm, tokens, serverUrl, setName, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError]);
+  }, [deleteConfirm, tokens, serverUrl, collectionId, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError]);
 
   return {
     deleteConfirm,

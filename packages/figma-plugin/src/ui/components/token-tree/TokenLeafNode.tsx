@@ -105,7 +105,7 @@ export const TokenLeafNode = memo(
 
     const {
       density,
-      setName,
+      collectionId,
       selectionCapabilities,
       selectMode,
       duplicateCounts,
@@ -129,7 +129,7 @@ export const TokenLeafNode = memo(
       modeLensEnabled,
       tokenModeMissing,
     } = useTokenTreeLeafState();
-    const { allTokensFlat, pathToSet } = useTokenTreeSharedData();
+    const { allTokensFlat, pathToCollectionId } = useTokenTreeSharedData();
     const {
       onEdit,
       onPreview,
@@ -404,7 +404,7 @@ export const TokenLeafNode = memo(
       : null;
     const isFavorite = starredPaths?.has(node.path) ?? false;
     const producingRecipe =
-      derivedTokenPaths?.get(createRecipeOwnershipKey(setName, node.path)) ??
+      derivedTokenPaths?.get(createRecipeOwnershipKey(collectionId, node.path)) ??
       null;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
@@ -431,14 +431,14 @@ export const TokenLeafNode = memo(
         node.$value,
         node.$type || "unknown",
         allTokensFlat,
-        pathToSet,
+        pathToCollectionId,
       );
     }, [
       node.path,
       node.$value,
       node.$type,
       allTokensFlat,
-      pathToSet,
+      pathToCollectionId,
     ]);
 
     const commitInlineValueChange = useCallback(
@@ -1968,7 +1968,7 @@ export const TokenLeafNode = memo(
                 <AliasAutocomplete
                   query={aliasQuery}
                   allTokensFlat={allTokensFlat}
-                  pathToSet={pathToSet}
+                  pathToCollectionId={pathToCollectionId}
                   filterType={node.$type}
                   onSelect={(path) => {
                     requestInlineValueSave(
@@ -2026,7 +2026,7 @@ export const TokenLeafNode = memo(
               ) : (
                 <div className="max-h-48 overflow-y-auto">
                   {refsPopover.refs.map((refPath) => {
-                    const setLabel = pathToSet?.[refPath];
+                    const collectionLabel = pathToCollectionId?.[refPath];
                     return (
                       <button
                         key={refPath}
@@ -2039,11 +2039,11 @@ export const TokenLeafNode = memo(
                         <span className="text-[11px] text-[var(--color-figma-text)] truncate flex-1 min-w-0">
                           {refPath}
                         </span>
-                        {setLabel && setLabel !== setName && (
+                        {collectionLabel && collectionLabel !== collectionId && (
                           <span
                             className={`shrink-0 ${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] px-1 py-px bg-[var(--color-figma-bg-secondary)] rounded`}
                           >
-                            {setLabel}
+                            {collectionLabel}
                           </span>
                         )}
                       </button>
@@ -2100,7 +2100,7 @@ export const TokenLeafNode = memo(
               tokenType={node.$type}
               currentValue={node.$value}
               allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
+              pathToCollectionId={pathToCollectionId}
               anchorRect={inlinePopoverAnchor}
               onSave={(newVal, previousState) => {
                 requestInlineValueSave(newVal, previousState);
@@ -2129,7 +2129,7 @@ export const TokenLeafNode = memo(
                   tokenPath={node.path}
                   tokenType={node.$type}
                   value={mv.resolved}
-                  targetSet={mv.targetSet}
+                  targetCollectionId={mv.targetCollectionId}
                   collectionId={mv.collectionId}
                   optionName={mv.optionName}
                   onSave={onMultiModeInlineSave}
@@ -2230,11 +2230,11 @@ export const TokenLeafNode = memo(
                   )}
 
                   {/* Collection context */}
-                  {step.setName && (
+                  {step.collectionId && (
                     <span
                       className={`${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] shrink-0`}
                     >
-                      {step.setName}
+                      {step.collectionId}
                     </span>
                   )}
 

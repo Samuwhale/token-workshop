@@ -33,10 +33,10 @@ export interface ShellWorkspaceController {
   openCommandPaletteWithQuery: (query: string) => void;
   openPasteModal: () => void;
   openImportPanel: () => void;
-  openSetCreateDialog: () => void;
+  openCollectionCreateDialog: () => void;
   openColorScaleRecipe: () => void;
   toggleQuickApply: () => void;
-  toggleSetSwitcher: () => void;
+  toggleCollectionSwitcher: () => void;
   openStartHere: (branch?: StartHereBranch) => void;
   restartGuidedSetup: () => void;
   handleClearAllComplete: () => void;
@@ -89,13 +89,13 @@ export interface TokensWorkspaceController {
   pushUndo: (slot: UndoSlot) => void;
   setErrorToast: (message: string) => void;
   setSuccessToast: (message: string) => void;
-  handleNavigateToSet: (setName: string, tokenPath: string) => void;
+  handleNavigateToCollection: (collectionId: string, tokenPath: string) => void;
   handleNavigateToRecipe: (recipeId: string) => void;
   flowPanelInitialPath: string | null;
   setFlowPanelInitialPath: (path: string | null) => void;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
   tokenListSelection: string[];
-  onTokenDragStart: (paths: string[], fromSet: string) => void;
+  onTokenDragStart: (paths: string[], sourceCollectionId: string) => void;
   onTokenDragEnd: () => void;
   recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
@@ -150,23 +150,23 @@ export interface SyncWorkspaceController {
   publishPanelHandleRef: MutableRefObject<PublishPanelHandle | null>;
 }
 
-export interface SetManagerWorkspaceController {
+export interface CollectionStructureWorkspaceController {
   onOpenQuickSwitch: () => void;
-  onRename: (setName: string) => void;
-  onDuplicate: (setName: string) => void;
-  onDelete: (setName: string) => void;
-  onReorder: (setName: string, direction: "left" | "right") => void;
+  onRename: (collectionId: string) => void;
+  onDuplicate: (collectionId: string) => void;
+  onDelete: (collectionId: string) => void;
+  onReorder: (collectionId: string, direction: "left" | "right") => void;
   onReorderFull: (newOrder: string[]) => void;
-  onOpenCreateSet: () => void;
-  onEditInfo: (setName: string) => void;
-  onMerge?: (setName: string) => void;
-  onSplit: (setName: string) => void;
-  onBulkDelete: (sets: string[]) => Promise<void>;
-  onBulkDuplicate: (sets: string[]) => Promise<void>;
+  onOpenCreateCollection: () => void;
+  onEditInfo: (collectionId: string) => void;
+  onMerge?: (collectionId: string) => void;
+  onSplit: (collectionId: string) => void;
+  onBulkDelete: (collectionIds: string[]) => Promise<void>;
+  onBulkDuplicate: (collectionIds: string[]) => Promise<void>;
   onBulkMoveToFolder: (
     moves: Array<{ from: string; to: string }>,
   ) => Promise<void>;
-  renamingSet: string | null;
+  renamingCollectionId: string | null;
   renameValue: string;
   setRenameValue: (value: string) => void;
   renameError: string;
@@ -174,16 +174,16 @@ export interface SetManagerWorkspaceController {
   renameInputRef: RefObject<HTMLInputElement | null>;
   onRenameConfirm: () => void;
   onRenameCancel: () => void;
-  editingMetadataSet: string | null;
+  editingMetadataCollectionId: string | null;
   metadataDescription: string;
   setMetadataDescription: (value: string) => void;
   onMetadataClose: () => void;
   onMetadataSave: () => void;
-  deletingSet: string | null;
+  deletingCollectionId: string | null;
   onDeleteConfirm: () => void | Promise<void>;
   onDeleteCancel: () => void;
-  mergingSet: string | null;
-  mergeTargetSet: string;
+  mergingCollectionId: string | null;
+  mergeTargetCollectionId: string;
   mergeConflicts: Array<{
     path: string;
     sourceValue: unknown;
@@ -203,7 +203,7 @@ export interface SetManagerWorkspaceController {
   onMergeCheckConflicts: () => void | Promise<void>;
   onMergeConfirm: () => void | Promise<void>;
   onMergeClose: () => void;
-  splittingSet: string | null;
+  splittingCollectionId: string | null;
   splitPreview: Array<{ key: string; newCollectionId: string; count: number }>;
   splitDeleteOriginal: boolean;
   splitLoading: boolean;
@@ -219,7 +219,7 @@ export interface WorkspaceControllerValue {
   collections: CollectionWorkspaceController;
   apply: ApplyWorkspaceController;
   sync: SyncWorkspaceController;
-  setManager: SetManagerWorkspaceController;
+  collectionStructure: CollectionStructureWorkspaceController;
 }
 
 const WorkspaceControllerContext =
@@ -273,6 +273,6 @@ export function useSyncWorkspaceController(): SyncWorkspaceController {
   return useWorkspaceControllerContext().sync;
 }
 
-export function useSetManagerWorkspaceController(): SetManagerWorkspaceController {
-  return useWorkspaceControllerContext().setManager;
+export function useCollectionStructureWorkspaceController(): CollectionStructureWorkspaceController {
+  return useWorkspaceControllerContext().collectionStructure;
 }

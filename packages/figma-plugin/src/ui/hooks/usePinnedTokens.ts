@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { STORAGE_KEY, lsGetJson, lsSetJson } from '../shared/storage';
+import { STORAGE_KEY_BUILDERS, lsGetJson, lsSetJson } from '../shared/storage';
 
 export interface PinnedTokensState {
   paths: Set<string>;
@@ -11,28 +11,28 @@ export interface PinnedTokensState {
   clear: () => void;
 }
 
-export function usePinnedTokens(setName: string): PinnedTokensState {
+export function usePinnedTokens(collectionId: string): PinnedTokensState {
   const [pinnedList, setPinnedList] = useState<string[]>(() =>
-    lsGetJson<string[]>(STORAGE_KEY.pinnedTokens(setName), [])
+    lsGetJson<string[]>(STORAGE_KEY_BUILDERS.pinnedTokens(collectionId), [])
   );
 
-  // Keep a ref so the persist effect always has the current setName without
-  // depending on it — prevents writing the old set's pin list to the new
-  // set's localStorage key when setName changes (both effects share the same
+  // Keep a ref so the persist effect always has the current collectionId without
+  // depending on it — prevents writing the old collection's pin list to the new
+  // collection's localStorage key when collectionId changes (both effects share the same
   // render cycle and pinnedList hasn't been reloaded yet).
-  const setNameRef = useRef(setName);
-  setNameRef.current = setName;
+  const collectionIdRef = useRef(collectionId);
+  collectionIdRef.current = collectionId;
 
-  // Re-initialize when setName changes
+  // Re-initialize when collectionId changes
   useEffect(() => {
-    setPinnedList(lsGetJson<string[]>(STORAGE_KEY.pinnedTokens(setName), []));
-  }, [setName]);
+    setPinnedList(lsGetJson<string[]>(STORAGE_KEY_BUILDERS.pinnedTokens(collectionId), []));
+  }, [collectionId]);
 
   // Persist to localStorage whenever pinnedList changes.
-  // Uses setNameRef so this effect does NOT re-run on setName changes —
+  // Uses collectionIdRef so this effect does NOT re-run on collectionId changes —
   // only on pinnedList changes, which prevents the stale-write race.
   useEffect(() => {
-    lsSetJson(STORAGE_KEY.pinnedTokens(setNameRef.current), pinnedList);
+    lsSetJson(STORAGE_KEY_BUILDERS.pinnedTokens(collectionIdRef.current), pinnedList);
   }, [pinnedList]);
 
   const paths = useMemo(() => new Set(pinnedList), [pinnedList]);

@@ -5,7 +5,7 @@ import { ConfirmModal } from './ConfirmModal';
 
 export interface UnusedToken {
   path: string;
-  set: string;
+  collectionId: string;
   $type: string;
   $lifecycle?: 'draft' | 'published' | 'deprecated';
 }
@@ -15,7 +15,7 @@ export interface UnusedTokensPanelProps {
   unusedTokens: UnusedToken[];
   hasUsageData: boolean;
   unusedCount: number;
-  onNavigateToToken?: (path: string, set: string) => void;
+  onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
   onMutate: () => void;
 }
@@ -35,8 +35,8 @@ const LIFECYCLE_ORDER: Record<LifecycleValue, number> = {
   deprecated: 2,
 };
 
-function tokenKey(token: { set: string; path: string }): string {
-  return `${token.set}:${token.path}`;
+function tokenKey(token: { collectionId: string; path: string }): string {
+  return `${token.collectionId}:${token.path}`;
 }
 
 function normalizeLifecycle(lifecycle?: UnusedToken['$lifecycle']): LifecycleValue {
@@ -60,7 +60,7 @@ export function UnusedTokensPanel({
 }: UnusedTokensPanelProps) {
   const [showUnused, setShowUnused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [setFilter, setSetFilter] = useState('all');
+  const [collectionFilter, setCollectionFilter] = useState('all');
   const [lifecycleFilter, setLifecycleFilter] = useState<'all' | LifecycleValue>('all');
   const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [stagedActions, setStagedActions] = useState<Record<string, CleanupAction>>({});
@@ -68,7 +68,7 @@ export function UnusedTokensPanel({
   const [confirmApplyStaged, setConfirmApplyStaged] = useState(false);
   const [deletingUnused, setDeletingUnused] = useState<Set<string>>(new Set());
   const [deprecatingUnused, setDeprecatingUnused] = useState<Set<string>>(new Set());
-  const [collapsedSets, setCollapsedSets] = useState<Set<string>>(new Set());
+  const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
   const [expandedCounts, setExpandedCounts] = useState<Record<string, number>>({});
   const ITEMS_PER_PAGE = 20;
 
@@ -80,7 +80,7 @@ export function UnusedTokensPanel({
         lifecycle: normalizeLifecycle(token.$lifecycle),
       }))
       .sort((a, b) => (
-        a.set.localeCompare(b.set)
+        a.collectionId.localeCompare(b.collectionId)
         || LIFECYCLE_ORDER[a.lifecycle] - LIFECYCLE_ORDER[b.lifecycle]
         || a.path.localeCompare(b.path)
       ))
@@ -102,14 +102,14 @@ export function UnusedTokensPanel({
     });
   }, [queueTokens]);
 
-  const availableSets = useMemo(() => (
-    [...new Set(queueTokens.map(token => token.set))].sort((a, b) => a.localeCompare(b))
+  const availableCollections = useMemo(() => (
+    [...new Set(queueTokens.map(token => token.collectionId))].sort((a, b) => a.localeCompare(b))
   ), [queueTokens]);
 
   const filteredTokens = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return queueTokens.filter(token => {
-      if (setFilter !== 'all' && token.set !== setFilter) return false;
+      if (collectionFilter !== 'all' && token.collectionId !== collectionFilter) return false;
       if (lifecycleFilter !== 'all' && token.lifecycle !== lifecycleFilter) return false;
 
       const stagedAction = stagedActions[token.key];
@@ -118,30 +118,30 @@ export function UnusedTokensPanel({
       if ((stageFilter === 'delete' || stageFilter === 'deprecate') && stagedAction !== stageFilter) return false;
 
       if (!query) return true;
-      return [token.path, token.set, token.$type, token.lifecycle]
+      return [token.path, token.collectionId, token.$type, token.lifecycle]
         .some(value => value.toLowerCase().includes(query));
     });
-  }, [lifecycleFilter, queueTokens, searchQuery, setFilter, stageFilter, stagedActions]);
+  }, [collectionFilter, lifecycleFilter, queueTokens, searchQuery, stageFilter, stagedActions]);
 
   const groupedQueue = useMemo(() => {
     const grouped = new Map<string, Map<LifecycleValue, QueueToken[]>>();
     for (const token of filteredTokens) {
-      let lifecycleGroups = grouped.get(token.set);
+      let lifecycleGroups = grouped.get(token.collectionId);
       if (!lifecycleGroups) {
         lifecycleGroups = new Map<LifecycleValue, QueueToken[]>();
-        grouped.set(token.set, lifecycleGroups);
+        grouped.set(token.collectionId, lifecycleGroups);
       }
       const existing = lifecycleGroups.get(token.lifecycle) ?? [];
       existing.push(token);
       lifecycleGroups.set(token.lifecycle, existing);
     }
     return [...grouped.entries()]
-      .map(([setName, lifecycleGroups]) => {
+      .map(([collectionId, lifecycleGroups]) => {
         const lg = (['draft', 'published', 'deprecated'] as LifecycleValue[])
           .map(lifecycle => ({ lifecycle, tokens: lifecycleGroups.get(lifecycle) ?? [] }))
           .filter(group => group.tokens.length > 0);
         const totalCount = lg.reduce((sum, g) => sum + g.tokens.length, 0);
-        return { setName, lifecycleGroups: lg, totalCount };
+        return { collectionId, lifecycleGroups: lg, totalCount };
       })
       .sort((a, b) => b.totalCount - a.totalCount);
   }, [filteredTokens]);
@@ -158,7 +158,7 @@ export function UnusedTokensPanel({
   const visibleStagedCount = filteredTokens.filter(token => stagedActions[token.key]).length;
   const hasActiveFilters = (
     searchQuery.trim().length > 0
-    || setFilter !== 'all'
+    || collectionFilter !== 'all'
     || lifecycleFilter !== 'all'
     || stageFilter !== 'all'
   );
@@ -195,7 +195,7 @@ export function UnusedTokensPanel({
   };
 
   const executeCleanupAction = async (token: QueueToken, action: CleanupAction) => {
-    const endpoint = `${serverUrl}/api/tokens/${encodeURIComponent(token.set)}/${tokenPathToUrlSegment(token.path)}`;
+    const endpoint = `${serverUrl}/api/tokens/${encodeURIComponent(token.collectionId)}/${tokenPathToUrlSegment(token.path)}`;
     if (action === 'delete') {
       await apiFetch(endpoint, { method: 'DELETE' });
       return;
@@ -303,14 +303,14 @@ export function UnusedTokensPanel({
                       className="px-2.5 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
                     />
                     <select
-                      value={setFilter}
-                      onChange={(event) => setSetFilter(event.target.value)}
+                      value={collectionFilter}
+                      onChange={(event) => setCollectionFilter(event.target.value)}
                       className="px-2 py-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)]"
                       aria-label="Filter unused tokens by collection"
                     >
                       <option value="all">All collections</option>
-                      {availableSets.map(setName => (
-                        <option key={setName} value={setName}>{setName}</option>
+                      {availableCollections.map(collectionId => (
+                        <option key={collectionId} value={collectionId}>{collectionId}</option>
                       ))}
                     </select>
                     <select
@@ -408,30 +408,30 @@ export function UnusedTokensPanel({
                     {groupedQueue.map(group => {
                       const groupTokens = group.lifecycleGroups.flatMap(lifecycleGroup => lifecycleGroup.tokens);
                       const groupStagedCount = groupTokens.filter(token => stagedActions[token.key]).length;
-                      const isSetCollapsed = collapsedSets.has(group.setName);
-                      const visibleLimit = expandedCounts[group.setName] ?? ITEMS_PER_PAGE;
+                      const isCollectionCollapsed = collapsedCollections.has(group.collectionId);
+                      const visibleLimit = expandedCounts[group.collectionId] ?? ITEMS_PER_PAGE;
                       const allGroupTokens = groupTokens;
                       const visibleTokens = allGroupTokens.slice(0, visibleLimit);
                       const remainingCount = allGroupTokens.length - visibleLimit;
                       return (
-                        <section key={group.setName} className="bg-[var(--color-figma-bg)]">
+                        <section key={group.collectionId} className="bg-[var(--color-figma-bg)]">
                           <button
-                            onClick={() => setCollapsedSets(prev => {
+                            onClick={() => setCollapsedCollections(prev => {
                               const next = new Set(prev);
-                              if (next.has(group.setName)) next.delete(group.setName); else next.add(group.setName);
+                              if (next.has(group.collectionId)) next.delete(group.collectionId); else next.add(group.collectionId);
                               return next;
                             })}
                             className="w-full px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                           >
-                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isSetCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                            <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">{group.setName}</span>
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollectionCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                            <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">{group.collectionId}</span>
                             <span className="text-[10px] text-[var(--color-figma-text-secondary)] tabular-nums shrink-0">{groupTokens.length}</span>
                             {groupStagedCount > 0 && (
                               <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] shrink-0">{groupStagedCount} staged</span>
                             )}
                           </button>
 
-                          {!isSetCollapsed && (
+                          {!isCollectionCollapsed && (
                             <>
                               <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 flex flex-wrap items-center justify-end gap-1">
                                 <button
@@ -464,14 +464,14 @@ export function UnusedTokensPanel({
                                       return (
                                         <div key={token.key} className="px-3 py-2 flex items-center gap-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                                           <button
-                                            onClick={() => onNavigateToToken?.(token.path, token.set)}
+                                            onClick={() => onNavigateToToken?.(token.path, token.collectionId)}
                                             disabled={!onNavigateToToken || isBusy}
                                             className="min-w-0 flex-1 text-left disabled:cursor-default"
                                           >
                                             <div className={`text-[10px] font-mono truncate ${isBusy ? 'opacity-40 text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{token.path}</div>
                                             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
                                               <span>{token.$type}</span>
-                                              <span>{token.set}</span>
+                                              <span>{token.collectionId}</span>
                                               {stagedAction && (
                                                 <span className={`px-1.5 py-0.5 rounded border ${getActionBadgeClass(stagedAction)}`}>
                                                   Staged to {stagedAction}
@@ -526,7 +526,7 @@ export function UnusedTokensPanel({
                                   <button
                                     onClick={() => setExpandedCounts(prev => ({
                                       ...prev,
-                                      [group.setName]: visibleLimit + Math.min(remainingCount, ITEMS_PER_PAGE),
+                                      [group.collectionId]: visibleLimit + Math.min(remainingCount, ITEMS_PER_PAGE),
                                     }))}
                                     className="w-full px-3 py-2 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center"
                                   >

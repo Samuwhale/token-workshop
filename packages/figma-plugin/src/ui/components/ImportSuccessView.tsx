@@ -99,14 +99,14 @@ export function ImportSuccessView() {
           </div>
           {failedImportGroups.length > 0 ? (
             failedImportGroups.map(group => (
-              <div key={group.setName} className="mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
+              <div key={group.collectionId} className="mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.setName}</span>
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.collectionId}</span>
                   <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{group.paths.length}</span>
                 </div>
                 <ul className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
                   {group.paths.slice(0, 3).map(path => (
-                    <li key={`${group.setName}:${path}`} className="font-mono truncate" title={path}>{path}</li>
+                    <li key={`${group.collectionId}:${path}`} className="font-mono truncate" title={path}>{path}</li>
                   ))}
                   {group.paths.length > 3 && <li className="italic">...{group.paths.length - 3} more</li>}
                 </ul>

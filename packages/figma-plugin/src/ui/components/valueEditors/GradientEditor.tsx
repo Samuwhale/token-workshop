@@ -158,12 +158,12 @@ function GradientBar({ stops, selectedIdx, gradientType, onSelect, onMove, onAdd
   );
 }
 
-function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToSet, onSelect, onChange, onRemove }: {
+function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToCollectionId, onSelect, onChange, onRemove }: {
   stop: GradientStop;
   isSelected: boolean;
   canRemove: boolean;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   onSelect: () => void;
   onChange: (patch: Partial<GradientStop>) => void;
   onRemove: () => void;
@@ -238,7 +238,7 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToSet
               <AliasAutocomplete
                 query={aliasQuery}
                 allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
+                pathToCollectionId={pathToCollectionId}
                 filterType="color"
                 onSelect={path => {
                   onChange({ color: `{${path}}` });
@@ -291,7 +291,7 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToSet
   );
 }
 
-export const GradientEditor = memo(function GradientEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
+export const GradientEditor = memo(function GradientEditor({ value, onChange, allTokensFlat, pathToCollectionId }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string> }) {
   const stops: GradientStop[] = Array.isArray(value?.stops) && value.stops.length >= 2
     ? value.stops
     : [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }];
@@ -347,7 +347,7 @@ export const GradientEditor = memo(function GradientEditor({ value, onChange, al
           isSelected={idx === safeSelectedIdx}
           canRemove={stops.length > 2}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           onSelect={() => setSelectedIdx(idx)}
           onChange={patch => updateStop(idx, patch)}
           onRemove={() => removeStop(idx)}

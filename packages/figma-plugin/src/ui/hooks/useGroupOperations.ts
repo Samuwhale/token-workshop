@@ -6,8 +6,8 @@ import { nodeParentPath } from '../components/tokenListUtils';
 export interface UseGroupOperationsParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
-  sets: string[];
+  collectionId: string;
+  collectionIds: string[];
   siblingOrderMap: Map<string, string[]>;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -18,8 +18,8 @@ export interface UseGroupOperationsParams {
 export function useGroupOperations({
   connected,
   serverUrl,
-  setName,
-  sets,
+  collectionId,
+  collectionIds,
   siblingOrderMap,
   onRefresh,
   onPushUndo,
@@ -39,8 +39,8 @@ export function useGroupOperations({
 
   const [movingGroup, setMovingGroup] = useState<string | null>(null);
   const [copyingGroup, setCopyingGroup] = useState<string | null>(null);
-  const [moveGroupTargetSet, setMoveGroupTargetSet] = useState('');
-  const [copyGroupTargetSet, setCopyGroupTargetSet] = useState('');
+  const [moveGroupTargetCollectionId, setMoveGroupTargetCollectionId] = useState('');
+  const [copyGroupTargetCollectionId, setCopyGroupTargetCollectionId] = useState('');
   // Prevents concurrent move/copy calls from interleaving
   const groupOpInProgress = useRef(false);
 
@@ -48,7 +48,7 @@ export function useGroupOperations({
     if (!connected) return;
     onSetOperationLoading('Renaming group…');
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ oldGroupPath, newGroupPath, updateAliases }),
@@ -60,13 +60,13 @@ export function useGroupOperations({
     }
     setRenameGroupConfirm(null);
     if (onPushUndo) {
-      const capturedSet = setName;
+      const capturedCollectionId = collectionId;
       const capturedUrl = serverUrl;
       onPushUndo({
         description: `Rename group "${oldGroupPath.split('.').pop() ?? oldGroupPath}"`,
         restore: async () => {
           try {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/groups/rename`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ oldGroupPath: newGroupPath, newGroupPath: oldGroupPath }),
@@ -79,7 +79,7 @@ export function useGroupOperations({
         },
         redo: async () => {
           try {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/groups/rename`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ oldGroupPath, newGroupPath }),
@@ -94,13 +94,13 @@ export function useGroupOperations({
     }
     onRefresh();
     onSetOperationLoading(null);
-  }, [connected, serverUrl, setName, onRefresh, onPushUndo, onSetOperationLoading, onError]);
+  }, [connected, serverUrl, collectionId, onRefresh, onPushUndo, onSetOperationLoading, onError]);
 
   const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
     if (!connected) return;
     try {
       const data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; collectionId: string; oldValue: string; newValue: string }> }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename-preview?oldGroupPath=${encodeURIComponent(oldGroupPath)}&newGroupPath=${encodeURIComponent(newGroupPath)}`
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/rename-preview?oldGroupPath=${encodeURIComponent(oldGroupPath)}&newGroupPath=${encodeURIComponent(newGroupPath)}`
       );
       if (data.count > 0) {
         setRenameGroupConfirm({
@@ -116,26 +116,26 @@ export function useGroupOperations({
       return;
     }
     await executeGroupRename(oldGroupPath, newGroupPath);
-  }, [connected, serverUrl, setName, executeGroupRename, onError]);
+  }, [connected, serverUrl, collectionId, executeGroupRename, onError]);
 
   const handleRequestMoveGroup = useCallback((groupPath: string) => {
-    const otherSets = sets.filter(s => s !== setName);
-    setMoveGroupTargetSet(otherSets[0] ?? '');
+    const otherCollectionIds = collectionIds.filter((candidate) => candidate !== collectionId);
+    setMoveGroupTargetCollectionId(otherCollectionIds[0] ?? '');
     setMovingGroup(groupPath);
-  }, [sets, setName]);
+  }, [collectionIds, collectionId]);
 
   const handleConfirmMoveGroup = useCallback(async () => {
-    if (!movingGroup || !moveGroupTargetSet || !connected) { setMovingGroup(null); return; }
+    if (!movingGroup || !moveGroupTargetCollectionId || !connected) { setMovingGroup(null); return; }
     if (groupOpInProgress.current) return;
     groupOpInProgress.current = true;
     onSetOperationLoading('Moving group…');
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/move`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           groupPath: movingGroup,
-          targetCollectionId: moveGroupTargetSet,
+          targetCollectionId: moveGroupTargetCollectionId,
         }),
       });
       setMovingGroup(null);
@@ -146,26 +146,26 @@ export function useGroupOperations({
       groupOpInProgress.current = false;
       onSetOperationLoading(null);
     }
-  }, [movingGroup, moveGroupTargetSet, connected, serverUrl, setName, onRefresh, onSetOperationLoading, onError]);
+  }, [movingGroup, moveGroupTargetCollectionId, connected, serverUrl, collectionId, onRefresh, onSetOperationLoading, onError]);
 
   const handleRequestCopyGroup = useCallback((groupPath: string) => {
-    const otherSets = sets.filter(s => s !== setName);
-    setCopyGroupTargetSet(otherSets[0] ?? '');
+    const otherCollectionIds = collectionIds.filter((candidate) => candidate !== collectionId);
+    setCopyGroupTargetCollectionId(otherCollectionIds[0] ?? '');
     setCopyingGroup(groupPath);
-  }, [sets, setName]);
+  }, [collectionIds, collectionId]);
 
   const handleConfirmCopyGroup = useCallback(async () => {
-    if (!copyingGroup || !copyGroupTargetSet || !connected) { setCopyingGroup(null); return; }
+    if (!copyingGroup || !copyGroupTargetCollectionId || !connected) { setCopyingGroup(null); return; }
     if (groupOpInProgress.current) return;
     groupOpInProgress.current = true;
     onSetOperationLoading('Copying group…');
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/copy`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/copy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           groupPath: copyingGroup,
-          targetCollectionId: copyGroupTargetSet,
+          targetCollectionId: copyGroupTargetCollectionId,
         }),
       });
     } catch (err) {
@@ -178,13 +178,13 @@ export function useGroupOperations({
     setCopyingGroup(null);
     onRefresh();
     onSetOperationLoading(null);
-  }, [copyingGroup, copyGroupTargetSet, connected, serverUrl, setName, onRefresh, onSetOperationLoading, onError]);
+  }, [copyingGroup, copyGroupTargetCollectionId, connected, serverUrl, collectionId, onRefresh, onSetOperationLoading, onError]);
 
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
     onSetOperationLoading('Duplicating group…');
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/duplicate`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/duplicate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath }),
@@ -196,7 +196,7 @@ export function useGroupOperations({
     }
     onRefresh();
     onSetOperationLoading(null);
-  }, [connected, serverUrl, setName, onRefresh, onSetOperationLoading, onError]);
+  }, [connected, serverUrl, collectionId, onRefresh, onSetOperationLoading, onError]);
 
   const handleUpdateGroupMeta = useCallback(async (
     groupPath: string,
@@ -204,7 +204,7 @@ export function useGroupOperations({
   ) => {
     if (!connected) return;
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/meta`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/meta`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath, ...meta }),
@@ -213,14 +213,14 @@ export function useGroupOperations({
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Update group failed: network error');
     }
-  }, [connected, serverUrl, setName, onRefresh, onError]);
+  }, [connected, serverUrl, collectionId, onRefresh, onError]);
 
   const handleCreateGroup = useCallback(async (parent: string, name: string) => {
     if (!connected || !name.trim()) return;
     const groupPath = parent ? `${parent}.${name.trim()}` : name.trim();
     onSetOperationLoading('Creating group…');
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/create`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath }),
@@ -235,10 +235,10 @@ export function useGroupOperations({
     setNewGroupError('');
     onRefresh();
     onSetOperationLoading(null);
-  }, [connected, serverUrl, setName, onRefresh, onSetOperationLoading]);
+  }, [connected, serverUrl, collectionId, onRefresh, onSetOperationLoading]);
 
   const handleMoveTokenInGroup = useCallback(async (nodePath: string, nodeName: string, direction: 'up' | 'down') => {
-    if (!connected || !serverUrl || !setName) return;
+    if (!connected || !serverUrl || !collectionId) return;
     const parentPath = nodeParentPath(nodePath, nodeName) ?? '';
     const siblings = siblingOrderMap.get(parentPath) ?? [];
     const idx = siblings.indexOf(nodeName);
@@ -250,18 +250,18 @@ export function useGroupOperations({
     const prevOrder = [...siblings];
     onSetOperationLoading('Reordering…');
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
       });
       if (onPushUndo) {
-        const capturedSet = setName;
+        const capturedCollectionId = collectionId;
         const capturedUrl = serverUrl;
         onPushUndo({
           description: `Reorder "${nodeName}"`,
           restore: async () => {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/groups/reorder`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ groupPath: parentPath, orderedKeys: prevOrder }),
@@ -269,7 +269,7 @@ export function useGroupOperations({
             onRefresh();
           },
           redo: async () => {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/groups/reorder`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
@@ -284,7 +284,7 @@ export function useGroupOperations({
     } finally {
       onSetOperationLoading(null);
     }
-  }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo, onSetOperationLoading, onError]);
+  }, [connected, serverUrl, collectionId, siblingOrderMap, onRefresh, onPushUndo, onSetOperationLoading, onError]);
 
   return {
     // State
@@ -300,10 +300,10 @@ export function useGroupOperations({
     setMovingGroup,
     copyingGroup,
     setCopyingGroup,
-    moveGroupTargetSet,
-    setMoveGroupTargetSet,
-    copyGroupTargetSet,
-    setCopyGroupTargetSet,
+    moveGroupTargetCollectionId,
+    setMoveGroupTargetCollectionId,
+    copyGroupTargetCollectionId,
+    setCopyGroupTargetCollectionId,
     // Callbacks
     executeGroupRename,
     handleRenameGroup,

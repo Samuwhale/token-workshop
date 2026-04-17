@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 
 export interface SelectModeOverflowMenuProps {
   selectedPaths: Set<string>;
-  sets: string[];
+  collectionIds: string[];
   operationLoading: string | null;
   copyFeedback: boolean;
   copyCssFeedback: boolean;
@@ -11,15 +11,15 @@ export interface SelectModeOverflowMenuProps {
   onCopyCssVar: () => void;
   onCopyDtcgRef: () => void;
   onMoveToGroup: () => void;
-  onMoveToSet: () => void;
-  onCopyToSet: () => void;
+  onMoveToCollection: () => void;
+  onCopyToCollection: () => void;
   onCompare?: () => void;
   onLinkToTokens: () => void;
 }
 
 export function SelectModeOverflowMenu({
   selectedPaths,
-  sets,
+  collectionIds,
   operationLoading,
   copyFeedback,
   copyCssFeedback,
@@ -28,8 +28,8 @@ export function SelectModeOverflowMenu({
   onCopyCssVar,
   onCopyDtcgRef,
   onMoveToGroup,
-  onMoveToSet,
-  onCopyToSet,
+  onMoveToCollection,
+  onCopyToCollection,
   onCompare,
   onLinkToTokens,
 }: SelectModeOverflowMenuProps) {
@@ -103,12 +103,12 @@ export function SelectModeOverflowMenu({
           <button type="button" role="menuitem" onClick={() => { onMoveToGroup(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
             Move to group...
           </button>
-          {sets.length > 1 && (
+          {collectionIds.length > 1 && (
             <>
-              <button type="button" role="menuitem" onClick={() => { onMoveToSet(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
+              <button type="button" role="menuitem" onClick={() => { onMoveToCollection(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
                 Move to collection...
               </button>
-              <button type="button" role="menuitem" onClick={() => { onCopyToSet(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
+              <button type="button" role="menuitem" onClick={() => { onCopyToCollection(); setOpen(false); }} disabled={!!operationLoading} className={menuItemClass}>
                 Copy to collection...
               </button>
             </>

@@ -14,16 +14,16 @@ import { lsGetJson, lsSetJson } from '../../shared/storage';
 
 const STORAGE_PREFIX = 'tokenmanager:nodeGraph:';
 
-function loadPositions(activeSet: string): Record<string, { x: number; y: number }> {
-  return lsGetJson(`${STORAGE_PREFIX}${activeSet}`, {});
+function loadPositions(currentCollectionId: string): Record<string, { x: number; y: number }> {
+  return lsGetJson(`${STORAGE_PREFIX}${currentCollectionId}`, {});
 }
 
-function savePositions(activeSet: string, nodes: GraphNode[]): void {
+function savePositions(currentCollectionId: string, nodes: GraphNode[]): void {
   const positions: Record<string, { x: number; y: number }> = {};
   for (const n of nodes) {
     positions[n.id] = { x: n.x, y: n.y };
   }
-  lsSetJson(`${STORAGE_PREFIX}${activeSet}`, positions);
+  lsSetJson(`${STORAGE_PREFIX}${currentCollectionId}`, positions);
 }
 
 // ---------------------------------------------------------------------------
@@ -43,12 +43,12 @@ export interface UseNodeGraphResult {
 
 export function useNodeGraph(
   recipes: TokenRecipe[],
-  activeSet: string,
+  currentCollectionId: string,
   onPushUndo?: (slot: UndoSlot) => void,
 ): UseNodeGraphResult {
   const initialGraph = useMemo(() => {
     const base = recipesToGraph(recipes);
-    const saved = loadPositions(activeSet);
+    const saved = loadPositions(currentCollectionId);
     for (const node of base.nodes) {
       if (saved[node.id]) {
         node.x = saved[node.id].x;
@@ -56,7 +56,7 @@ export function useNodeGraph(
       }
     }
     return base;
-  }, [recipes, activeSet]);
+  }, [recipes, currentCollectionId]);
 
   const [graph, setGraph] = useState<NodeGraphState>(initialGraph);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -65,8 +65,8 @@ export function useNodeGraph(
   graphRef.current = graph;
   const onPushUndoRef = useRef(onPushUndo);
   onPushUndoRef.current = onPushUndo;
-  const activeSetRef = useRef(activeSet);
-  activeSetRef.current = activeSet;
+  const currentCollectionIdRef = useRef(currentCollectionId);
+  currentCollectionIdRef.current = currentCollectionId;
 
   // Keep graph in sync when recipes change
   const prevGenIdsRef = useRef<string>(recipes.map(g => g.id).join(','));
@@ -74,7 +74,7 @@ export function useNodeGraph(
   if (currentGenIds !== prevGenIdsRef.current) {
     prevGenIdsRef.current = currentGenIds;
     const base = recipesToGraph(recipes);
-    const saved = loadPositions(activeSet);
+    const saved = loadPositions(currentCollectionId);
     for (const node of base.nodes) {
       const existing = graph.nodes.find(n => n.id === node.id);
       if (existing) {
@@ -108,7 +108,7 @@ export function useNodeGraph(
     const toX = currentNode.x;
     const toY = currentNode.y;
     if (fromX === toX && fromY === toY) return;
-    const set = activeSetRef.current;
+    const collectionId = currentCollectionIdRef.current;
     onPushUndoRef.current?.({
       description: 'Move node',
       restore: async () => {
@@ -116,21 +116,21 @@ export function useNodeGraph(
           ...prev,
           nodes: prev.nodes.map(n => (n.id === nodeId ? { ...n, x: fromX, y: fromY } : n)),
         }));
-        savePositions(set, graphRef.current.nodes.map(n => (n.id === nodeId ? { ...n, x: fromX, y: fromY } : n)));
+        savePositions(collectionId, graphRef.current.nodes.map(n => (n.id === nodeId ? { ...n, x: fromX, y: fromY } : n)));
       },
       redo: async () => {
         setGraph(prev => ({
           ...prev,
           nodes: prev.nodes.map(n => (n.id === nodeId ? { ...n, x: toX, y: toY } : n)),
         }));
-        savePositions(set, graphRef.current.nodes.map(n => (n.id === nodeId ? { ...n, x: toX, y: toY } : n)));
+        savePositions(collectionId, graphRef.current.nodes.map(n => (n.id === nodeId ? { ...n, x: toX, y: toY } : n)));
       },
     });
   }, []);
 
   const persistPositions = useCallback(() => {
-    savePositions(activeSet, graph.nodes);
-  }, [activeSet, graph.nodes]);
+    savePositions(currentCollectionId, graph.nodes);
+  }, [currentCollectionId, graph.nodes]);
 
   return {
     graph,

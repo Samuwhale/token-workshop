@@ -5,7 +5,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Spinner } from './Spinner';
 import { createTokenValueBody, upsertToken } from '../shared/tokenMutations';
 import { dispatchToast } from '../shared/toastBus';
-import { getErrorMessage, stableStringify, SET_NAME_RE } from '../shared/utils';
+import { getErrorMessage, stableStringify, COLLECTION_NAME_RE } from '../shared/utils';
 import { getDefaultScopesForProperty } from './selectionInspectorUtils';
 import { AUTHORING_SURFACE_CLASSES } from './EditorShell';
 import { AUTHORING } from '../shared/editorClasses';
@@ -33,12 +33,12 @@ interface CanvasCreateTokenDialogProps {
   draft: CanvasCreateDraft;
   connected: boolean;
   serverUrl: string;
-  activeSet: string;
-  sets: string[];
+  currentCollectionId: string;
+  collectionIds: string[];
   onClose: () => void;
   onCreated: (result: {
     source: CanvasCreateDraft['source'];
-    setName: string;
+    collectionId: string;
     tokenPath: string;
     option: CanvasCreateDraftOption;
   }) => void | Promise<void>;
@@ -62,8 +62,8 @@ export function CanvasCreateTokenDialog({
   draft,
   connected,
   serverUrl,
-  activeSet,
-  sets,
+  currentCollectionId,
+  collectionIds,
   onClose,
   onCreated,
 }: CanvasCreateTokenDialogProps) {
@@ -71,21 +71,21 @@ export function CanvasCreateTokenDialog({
   useFocusTrap(dialogRef);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [targetSet, setTargetSet] = useState(activeSet);
+  const [targetCollectionId, setTargetCollectionId] = useState(currentCollectionId);
   const [tokenPath, setTokenPath] = useState(draft.options[0]?.suggestedPath ?? '');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
   const selectedOption = draft.options[selectedIndex] ?? null;
   const hasMultipleOptions = draft.options.length > 1;
-  const hasMultipleSets = sets.length > 1;
+  const hasMultipleCollections = collectionIds.length > 1;
 
   useEffect(() => {
     setSelectedIndex(0);
-    setTargetSet(activeSet);
+    setTargetCollectionId(currentCollectionId);
     setTokenPath(draft.options[0]?.suggestedPath ?? '');
     setError('');
-  }, [activeSet, draft]);
+  }, [currentCollectionId, draft]);
 
   useEffect(() => {
     if (!selectedOption) return;
@@ -121,7 +121,7 @@ export function CanvasCreateTokenDialog({
       setError('Connect to the token server before creating tokens from canvas values.');
       return;
     }
-    if (!SET_NAME_RE.test(targetSet)) {
+    if (!COLLECTION_NAME_RE.test(targetCollectionId)) {
       setError('Pick a valid destination set.');
       return;
     }
@@ -138,10 +138,10 @@ export function CanvasCreateTokenDialog({
     setError('');
 
     try {
-      await upsertToken(serverUrl, targetSet, tokenPath.trim(), buildTokenBody(selectedOption));
+      await upsertToken(serverUrl, targetCollectionId, tokenPath.trim(), buildTokenBody(selectedOption));
       await onCreated({
         source: draft.source,
-        setName: targetSet,
+        collectionId: targetCollectionId,
         tokenPath: tokenPath.trim(),
         option: selectedOption,
       });
@@ -254,21 +254,21 @@ export function CanvasCreateTokenDialog({
 
             <label className={AUTHORING.fieldStack}>
               <span className={AUTHORING.label}>Target set</span>
-              {hasMultipleSets ? (
+              {hasMultipleCollections ? (
                 <select
-                  value={targetSet}
-                  onChange={(event) => setTargetSet(event.target.value)}
+                  value={targetCollectionId}
+                  onChange={(event) => setTargetCollectionId(event.target.value)}
                   className={AUTHORING.select}
                 >
-                  {sets.map((setName) => (
-                    <option key={setName} value={setName}>
-                      {setName}
+                  {collectionIds.map((collectionId) => (
+                    <option key={collectionId} value={collectionId}>
+                      {collectionId}
                     </option>
                   ))}
                 </select>
               ) : (
                 <div className={`${AUTHORING.input} bg-[var(--color-figma-bg-secondary)] break-words`}>
-                  {targetSet}
+                  {targetCollectionId}
                 </div>
               )}
             </label>

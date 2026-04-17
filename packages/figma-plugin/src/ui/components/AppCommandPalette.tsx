@@ -3,7 +3,7 @@ import { createRecipeOwnershipKey } from "@tokenmanager/core";
 import { CommandPalette, type TokenEntry } from "./CommandPalette";
 import { useCommandPaletteCommands } from "../hooks/useCommandPaletteCommands";
 import {
-  useTokenSetsContext,
+  useCollectionStateContext,
   useTokenFlatMapContext,
   useRecipeContext,
 } from "../contexts/TokenDataContext";
@@ -20,19 +20,22 @@ export function AppCommandPalette({
   initialQuery: string;
   onClose: () => void;
 }) {
-  const { activeSet, setActiveSet } = useTokenSetsContext();
-  const { allTokensFlat, pathToSet } = useTokenFlatMapContext();
+  const {
+    currentCollectionId,
+    setCurrentCollectionId,
+  } = useCollectionStateContext();
+  const { allTokensFlat, pathToCollectionId } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useRecipeContext();
   const { navigateTo } = useNavigationContext();
   const { setEditingToken, setHighlightedToken, setPendingHighlight } =
     useEditorContext();
   const tokens = useTokensWorkspaceController();
-  const { commands, activeSetPaletteTokens } = useCommandPaletteCommands();
-  const pinnedTokensState = usePinnedTokens(activeSet);
+  const { commands, currentCollectionPaletteTokens } = useCommandPaletteCommands();
+  const pinnedTokensState = usePinnedTokens(currentCollectionId);
 
   const paletteTokens = useMemo<TokenEntry[]>(() => {
     return Object.entries(allTokensFlat).map(([path, entry]) => ({
-      set: pathToSet[path],
+      set: pathToCollectionId[path],
       path,
       type: entry.$type,
       value:
@@ -41,10 +44,10 @@ export function AppCommandPalette({
           : JSON.stringify(entry.$value),
       isAlias: isAlias(entry.$value),
       recipeName: derivedTokenPaths.get(
-        createRecipeOwnershipKey(pathToSet[path] ?? "", path),
+        createRecipeOwnershipKey(pathToCollectionId[path] ?? "", path),
       )?.name,
     }));
-  }, [allTokensFlat, derivedTokenPaths, pathToSet]);
+  }, [allTokensFlat, derivedTokenPaths, pathToCollectionId]);
 
   const pinnedPaletteTokens = useMemo<TokenEntry[]>(() => {
     return Array.from(pinnedTokensState.paths)
@@ -58,11 +61,11 @@ export function AppCommandPalette({
             typeof entry.$value === "string"
               ? entry.$value
               : JSON.stringify(entry.$value),
-          set: pathToSet[path],
+          set: pathToCollectionId[path],
           isAlias: isAlias(entry.$value),
         };
       });
-  }, [allTokensFlat, pathToSet, pinnedTokensState.paths]);
+  }, [allTokensFlat, pathToCollectionId, pinnedTokensState.paths]);
 
   const recentPaletteTokens = useMemo<TokenEntry[]>(() => {
     const maxRecent = 10;
@@ -79,26 +82,26 @@ export function AppCommandPalette({
             typeof entry.$value === "string"
               ? entry.$value
               : JSON.stringify(entry.$value),
-          set: pathToSet[path],
+          set: pathToCollectionId[path],
           isAlias: isAlias(entry.$value),
         };
       });
-  }, [allTokensFlat, pathToSet, tokens.recentlyTouched.timestamps]);
+  }, [allTokensFlat, pathToCollectionId, tokens.recentlyTouched.timestamps]);
 
   return (
     <CommandPalette
       initialQuery={initialQuery}
       commands={commands}
-      tokens={activeSetPaletteTokens}
+      tokens={currentCollectionPaletteTokens}
       allSetTokens={paletteTokens}
       pinnedTokens={pinnedPaletteTokens}
       recentTokens={recentPaletteTokens}
       onGoToToken={(path) => {
-        const targetSet = pathToSet[path];
+        const targetCollectionId = pathToCollectionId[path];
         navigateTo("tokens");
         setEditingToken(null);
-        if (targetSet && targetSet !== activeSet) {
-          setActiveSet(targetSet);
+        if (targetCollectionId && targetCollectionId !== currentCollectionId) {
+          setCurrentCollectionId(targetCollectionId);
           setPendingHighlight(path);
           return;
         }

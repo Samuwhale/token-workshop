@@ -6,7 +6,7 @@ export interface ExportPreset {
   name: string;
   platforms: string[];
   cssSelector: string;
-  selectedSets: string[] | null; // null = all sets
+  selectedCollections: string[] | null; // null = all collections
   selectedTypes: string[] | null; // null = all types
   pathPrefix: string;
   nestByPlatform: boolean;

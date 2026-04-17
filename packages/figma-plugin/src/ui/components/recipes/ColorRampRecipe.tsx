@@ -300,7 +300,7 @@ function SwatchCell({
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function ColorRampConfigEditor({ config, onChange, onInteractionStart, sourceHex, allTokensFlat, pathToSet }: {
+export function ColorRampConfigEditor({ config, onChange, onInteractionStart, sourceHex, allTokensFlat, pathToCollectionId }: {
   config: ColorRampConfig;
   onChange: (c: ColorRampConfig) => void;
   /** Call at the start of each discrete user interaction (drag, focus) so the
@@ -308,7 +308,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
   onInteractionStart?: () => void;
   sourceHex?: string;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }) {
   const [showFullEditor, setShowFullEditor] = useState(false);
   const activePresetIdx = COLOR_STEP_PRESETS.findIndex(
@@ -391,7 +391,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
             valueLabel={String(config.lightEnd)}
             filterType="number"
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             onLink={(path, val) => setTokenRef('lightEnd', path, val)}
             onUnlink={() => clearTokenRef('lightEnd')}
           >
@@ -410,7 +410,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
             valueLabel={String(config.darkEnd)}
             filterType="number"
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             onLink={(path, val) => setTokenRef('darkEnd', path, val)}
             onUnlink={() => clearTokenRef('darkEnd')}
           >
@@ -430,7 +430,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
           valueLabel={`${config.chromaBoost.toFixed(1)}x`}
           filterType="number"
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           onLink={(path, val) => setTokenRef('chromaBoost', path, val)}
           onUnlink={() => clearTokenRef('chromaBoost')}
         >

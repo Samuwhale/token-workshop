@@ -108,13 +108,13 @@ function Sparkline({ steps }: { steps: ScaleStep[] }) {
 
 interface ColorScaleRecipeProps {
   serverUrl: string;
-  activeSet: string;
+  currentCollectionId: string;
   existingPaths: Set<string>;
   onClose: () => void;
   onConfirm: (firstTokenPath?: string) => void;
 }
 
-export function ColorScaleRecipe({ serverUrl, activeSet, existingPaths, onClose, onConfirm }: ColorScaleRecipeProps) {
+export function ColorScaleRecipe({ serverUrl, currentCollectionId, existingPaths, onClose, onConfirm }: ColorScaleRecipeProps) {
   const [prefix, setPrefix] = useState('color');
   const [baseHex, setBaseHex] = useState('#3b82f6');
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -142,7 +142,7 @@ export function ColorScaleRecipe({ serverUrl, activeSet, existingPaths, onClose,
     abortRef.current = controller;
     try {
       const results = await Promise.allSettled(scale.map(step =>
-        createToken(serverUrl, activeSet, `${prefix}.${step.label}`, createTokenBody({
+        createToken(serverUrl, currentCollectionId, `${prefix}.${step.label}`, createTokenBody({
           $type: 'color',
           $value: step.hex,
         }), { signal: controller.signal })

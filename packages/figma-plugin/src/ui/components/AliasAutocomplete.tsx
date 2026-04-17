@@ -8,7 +8,7 @@ import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   filterType?: string;
   onSelect: (path: string) => void;
   onClose: () => void;
@@ -38,7 +38,7 @@ function formatValuePreview(value: unknown): string {
 export function AliasAutocomplete({
   query,
   allTokensFlat,
-  pathToSet = {},
+  pathToCollectionId = {},
   filterType,
   onSelect,
   onClose,
@@ -197,9 +197,9 @@ export function AliasAutocomplete({
           )}
 
           {/* Set name */}
-          {pathToSet[path] && (
+          {pathToCollectionId[path] && (
             <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-              {pathToSet[path]}
+              {pathToCollectionId[path]}
             </span>
           )}
         </button>

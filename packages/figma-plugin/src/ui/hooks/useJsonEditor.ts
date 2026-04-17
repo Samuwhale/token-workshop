@@ -9,7 +9,7 @@ export interface UseJsonEditorParams {
   viewMode: string;
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   tokens: TokenNode[];
   onRefresh: () => void;
@@ -19,7 +19,7 @@ export function useJsonEditor({
   viewMode,
   connected,
   serverUrl,
-  setName,
+  collectionId,
   allTokensFlat,
   tokens,
   onRefresh,
@@ -31,11 +31,11 @@ export function useJsonEditor({
   const [jsonBrokenRefs, setJsonBrokenRefs] = useState<string[]>([]);
   const jsonTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load raw JSON when entering JSON view (or when setName changes in JSON view)
+  // Load raw JSON when entering JSON view (or when collectionId changes in JSON view)
   useEffect(() => {
-    if (viewMode !== "json" || !connected || !serverUrl || !setName) return;
+    if (viewMode !== "json" || !connected || !serverUrl || !collectionId) return;
     if (jsonDirty) return; // don't clobber unsaved edits
-    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
+    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/raw`)
       .then((data) => {
         const text = JSON.stringify(data, null, 2);
         setJsonText(text);
@@ -43,7 +43,7 @@ export function useJsonEditor({
         setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
       })
       .catch(() => setJsonError("Failed to load JSON"));
-  }, [viewMode, setName, connected, serverUrl, jsonDirty, allTokensFlat]);
+  }, [viewMode, collectionId, connected, serverUrl, jsonDirty, allTokensFlat]);
 
   // Sync from list view → JSON when tokens change externally (not dirty)
   useEffect(() => {
@@ -52,10 +52,10 @@ export function useJsonEditor({
       jsonDirty ||
       !connected ||
       !serverUrl ||
-      !setName
+      !collectionId
     )
       return;
-    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
+    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/raw`)
       .then((data) => {
         const text = JSON.stringify(data, null, 2);
         setJsonText(text);
@@ -68,7 +68,7 @@ export function useJsonEditor({
     jsonDirty,
     connected,
     serverUrl,
-    setName,
+    collectionId,
     allTokensFlat,
   ]);
 
@@ -94,7 +94,7 @@ export function useJsonEditor({
     try {
       const parsed = JSON.parse(jsonText);
       await apiFetch(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}`,
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -112,12 +112,12 @@ export function useJsonEditor({
     } finally {
       setJsonSaving(false);
     }
-  }, [jsonError, jsonText, serverUrl, setName, onRefresh]);
+  }, [jsonError, jsonText, serverUrl, collectionId, onRefresh]);
 
   const handleJsonRevert = useCallback(() => {
     setJsonDirty(false);
     apiFetch(
-      `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`,
+      `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/raw`,
     )
       .then((data) => {
         const text = JSON.stringify(data, null, 2);
@@ -128,7 +128,7 @@ export function useJsonEditor({
       .catch((err) =>
         console.warn("[TokenList] reload raw JSON failed:", err),
       );
-  }, [serverUrl, setName, allTokensFlat]);
+  }, [serverUrl, collectionId, allTokensFlat]);
 
   return {
     jsonText,

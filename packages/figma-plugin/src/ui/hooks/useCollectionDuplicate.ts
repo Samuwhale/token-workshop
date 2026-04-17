@@ -1,13 +1,12 @@
 import { apiFetch, isNetworkError } from '../shared/apiFetch';
+import type { CollectionSummary } from './useTokens';
 import type { UndoSlot } from './useUndo';
 
-interface UseSetDuplicateParams {
+interface UseCollectionDuplicateParams {
   serverUrl: string;
   connected: boolean;
   getDisconnectSignal: () => AbortSignal;
-  sets: string[];
-  tokenCounts: Record<string, number>;
-  addSetToState: (name: string, count: number) => void;
+  syncCollectionSummariesToState: (collectionSummaries: CollectionSummary[]) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
@@ -15,39 +14,44 @@ interface UseSetDuplicateParams {
   pushUndo: (slot: UndoSlot) => void;
 }
 
-export function useSetDuplicate({
+export function useCollectionDuplicate({
   serverUrl, connected, getDisconnectSignal,
-  sets: _sets, tokenCounts, addSetToState, refreshTokens,
+  syncCollectionSummariesToState, refreshTokens,
   setSuccessToast, setErrorToast, markDisconnected, pushUndo,
-}: UseSetDuplicateParams) {
+}: UseCollectionDuplicateParams) {
 
-  const handleDuplicateSet = async (setName: string) => {
+  const handleDuplicateCollection = async (collectionId: string) => {
     if (!connected) return;
     let newName: string;
     try {
       const signal = AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]);
-      const result = await apiFetch<{ ok: true; id: string; originalId: string }>(
-        `${serverUrl}/api/collections/${encodeURIComponent(setName)}/duplicate`,
+      const result = await apiFetch<{
+        ok: true;
+        id: string;
+        originalId: string;
+        collections: CollectionSummary[];
+      }>(
+        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/duplicate`,
         { method: 'POST', signal },
       );
       newName = result.id;
+      syncCollectionSummariesToState(result.collections);
     } catch (err) {
       if (isNetworkError(err)) markDisconnected();
       else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
       return;
     }
-    addSetToState(newName, tokenCounts[setName] ?? 0);
-    setSuccessToast(`Duplicated set "${setName}" → "${newName}"`);
+    setSuccessToast(`Duplicated collection "${collectionId}" → "${newName}"`);
     const url = serverUrl;
     const dupName = newName;
     pushUndo({
-      description: `Duplicated set "${setName}" → "${dupName}"`,
+      description: `Duplicated collection "${collectionId}" → "${dupName}"`,
       restore: async () => {
         await apiFetch(`${url}/api/collections/${encodeURIComponent(dupName)}`, { method: 'DELETE' });
         refreshTokens();
       },
       redo: async () => {
-        await apiFetch(`${url}/api/collections/${encodeURIComponent(setName)}/duplicate`, {
+        await apiFetch(`${url}/api/collections/${encodeURIComponent(collectionId)}/duplicate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ newName: dupName }),
@@ -57,5 +61,5 @@ export function useSetDuplicate({
     });
   };
 
-  return { handleDuplicateSet };
+  return { handleDuplicateCollection };
 }

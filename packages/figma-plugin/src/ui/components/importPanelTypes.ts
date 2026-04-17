@@ -92,9 +92,9 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     family: 'figma',
     label: 'Figma Variables',
     shortLabel: 'Variables',
-    description: 'Read variables and map to token sets',
-    destinationLabel: 'Map collections to sets',
-    destinationDescription: 'Each enabled mode maps to a token set.',
+    description: 'Read variables and map to token collections',
+    destinationLabel: 'Map collections to collections',
+    destinationDescription: 'Each enabled mode maps to a token collection.',
   },
   styles: {
     source: 'styles',
@@ -102,8 +102,8 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     label: 'Figma Styles',
     shortLabel: 'Styles',
     description: 'Read paint, text, and effect styles',
-    destinationLabel: 'Choose target set',
-    destinationDescription: 'Import styles into an existing or new set.',
+    destinationLabel: 'Choose target collection',
+    destinationDescription: 'Import styles into an existing or new collection.',
   },
   json: {
     source: 'json',
@@ -111,8 +111,8 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     label: 'DTCG JSON file',
     shortLabel: 'DTCG JSON',
     description: 'Import a DTCG JSON token file',
-    destinationLabel: 'Choose target set',
-    destinationDescription: 'Choose a destination set for the parsed tokens.',
+    destinationLabel: 'Choose target collection',
+    destinationDescription: 'Choose a destination collection for the parsed tokens.',
     fileSupport: {
       label: 'DTCG JSON (.json)',
       accept: '.json,application/json',
@@ -124,8 +124,8 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     label: 'CSS custom properties',
     shortLabel: 'CSS',
     description: 'Parse static CSS custom properties',
-    destinationLabel: 'Choose target set',
-    destinationDescription: 'Choose a destination set for parsed CSS tokens.',
+    destinationLabel: 'Choose target collection',
+    destinationDescription: 'Choose a destination collection for parsed CSS tokens.',
     fileSupport: {
       label: 'CSS files (.css)',
       accept: '.css,text/css',
@@ -137,8 +137,8 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     label: 'Tailwind config',
     shortLabel: 'Tailwind',
     description: 'Parse theme values from a Tailwind config',
-    destinationLabel: 'Choose target set',
-    destinationDescription: 'Choose a destination set for Tailwind tokens.',
+    destinationLabel: 'Choose target collection',
+    destinationDescription: 'Choose a destination collection for Tailwind tokens.',
     fileSupport: {
       label: 'Tailwind configs (.js, .ts, .mjs, .cjs)',
       accept: '.js,.ts,.mjs,.cjs',
@@ -209,7 +209,11 @@ export function markDuplicatePaths(importTokens: ImportToken[]): ImportToken[] {
   });
 }
 
-export function defaultSetName(collectionName: string, modeName: string, totalModes: number): string {
+export function defaultCollectionName(
+  collectionName: string,
+  modeName: string,
+  totalModes: number,
+): string {
   const base = slugify(collectionName);
   if (totalModes <= 1) return base;
   return `${base}/${slugify(modeName)}`;

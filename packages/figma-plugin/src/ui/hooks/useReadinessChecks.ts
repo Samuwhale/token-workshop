@@ -63,7 +63,7 @@ function summarizeValidationIssues(
 
 interface UseReadinessChecksParams {
   serverUrl: string;
-  activeSet: string;
+  currentCollectionId: string;
   connected: boolean;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
@@ -165,7 +165,7 @@ function buildResolverOrphanCleanupPlan(
 
 async function loadVariableSyncSnapshot(
   serverUrl: string,
-  activeSet: string,
+  currentCollectionId: string,
   readFigmaTokens: () => Promise<unknown[]>,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
@@ -174,7 +174,7 @@ async function loadVariableSyncSnapshot(
 ) {
   return loadVariablePublishSnapshot({
     serverUrl,
-    activeSet,
+    currentCollectionId,
     collectionMap,
     modeMap,
     readFigmaTokens,
@@ -206,7 +206,7 @@ export interface UseReadinessChecksReturn {
 
 export function useReadinessChecks({
   serverUrl,
-  activeSet,
+  currentCollectionId,
   connected,
   collectionMap,
   modeMap,
@@ -229,7 +229,7 @@ export function useReadinessChecks({
   useEffect(() => { latestTokenChangeKeyRef.current = tokenChangeKey; }, [tokenChangeKey]);
 
   const runReadinessChecks = useCallback(async () => {
-    if (!activeSet || isRunningRef.current) return;
+    if (!currentCollectionId || isRunningRef.current) return;
     isRunningRef.current = true;
     setReadinessLoading(true);
     setReadinessError(null);
@@ -237,7 +237,7 @@ export function useReadinessChecks({
     try {
       const snapshot = await loadVariableSyncSnapshot(
         serverUrl,
-        activeSet,
+        currentCollectionId,
         readFigmaTokens,
         collectionMap,
         modeMap,
@@ -246,7 +246,7 @@ export function useReadinessChecks({
       );
       const validationSnapshot = await refreshValidation();
       const activeValidationIssues =
-        validationSnapshot?.issues.filter((issue) => issue.collectionId === activeSet && issue.severity === 'error') ?? [];
+        validationSnapshot?.issues.filter((issue) => issue.collectionId === currentCollectionId && issue.severity === 'error') ?? [];
       const { localOnly: missingInFigma, figmaOnly: rawOrphans } = getSyncRowsByCategory(snapshot.rows);
       const resolverOrphanPlan = compareMode === 'resolver-publish' && resolverPublishMappings
         ? buildResolverOrphanCleanupPlan(snapshot, resolverPublishMappings)
@@ -268,7 +268,7 @@ export function useReadinessChecks({
           detail: missingInFigma.length > 0
             ? compareMode === 'resolver-publish'
               ? 'Some mapped resolver outputs are still missing in their target Figma modes. Sync the resolver mappings before compare/apply can reflect the saved mode routing.'
-              : 'Some local tokens are not yet published as Figma variables. Push them first so compare/apply runs against the full set.'
+              : 'Some local tokens are not yet published as Figma variables. Push them first so compare/apply runs against the full collection.'
             : undefined,
           recommendedActionLabel: missingInFigma.length > 0
             ? compareMode === 'resolver-publish'
@@ -285,7 +285,7 @@ export function useReadinessChecks({
           detail: orphanCount > 0
             ? compareMode === 'resolver-publish'
               ? 'Some mapped Figma collections still contain variables that are absent from every saved resolver output targeting that collection. Delete those resolver-targeted orphans before syncing again.'
-              : 'Figma still contains variables that no longer exist in this token set. Review or delete them before syncing again.'
+              : 'Figma still contains variables that no longer exist in this collection. Review or delete them before syncing again.'
             : undefined,
           recommendedActionLabel: orphanCount > 0
             ? compareMode === 'resolver-publish'
@@ -344,7 +344,7 @@ export function useReadinessChecks({
           severity: 'advisory',
           affectedCount: draftTokens.length || undefined,
           detail: draftTokens.length > 0
-            ? `${formatCount(draftTokens.length, 'draft token')} in this set still carries lifecycle="draft". Review them in Tokens before publishing to Figma.`
+            ? `${formatCount(draftTokens.length, 'draft token')} in this collection still carries lifecycle="draft". Review them in Tokens before publishing to Figma.`
             : undefined,
           recommendedActionLabel: draftTokens.length > 0 ? 'Review draft tokens in Tokens' : undefined,
           recommendedActionId: draftTokens.length > 0 ? 'review-draft-tokens' : undefined,
@@ -379,7 +379,7 @@ export function useReadinessChecks({
       }
     }
   }, [
-    activeSet,
+    currentCollectionId,
     collectionMap,
     compareMode,
     modeMap,
@@ -392,13 +392,13 @@ export function useReadinessChecks({
   ]);
 
   const triggerReadinessAction = useCallback(async (actionId: PublishPreflightActionId) => {
-    if (!activeSet) return;
+    if (!currentCollectionId) return;
 
     try {
       if (actionId === 'push-missing-variables') {
         const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(
           serverUrl,
-          activeSet,
+          currentCollectionId,
           readFigmaTokens,
           collectionMap,
           modeMap,
@@ -413,7 +413,7 @@ export function useReadinessChecks({
             $type: row.localType ?? local?.type ?? 'string',
             $value: row.localRaw ?? local?.raw ?? '',
             $extensions: scopes?.length ? { 'com.figma.scopes': scopes } : undefined,
-            setName: activeSet,
+            collectionId: currentCollectionId,
           };
         });
 
@@ -426,7 +426,7 @@ export function useReadinessChecks({
       if (actionId === 'delete-orphan-variables') {
         const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(
           serverUrl,
-          activeSet,
+          currentCollectionId,
           readFigmaTokens,
           collectionMap,
           modeMap,
@@ -455,7 +455,7 @@ export function useReadinessChecks({
       setReadinessError(describeError(error, 'Readiness action'));
     }
   }, [
-    activeSet,
+    currentCollectionId,
     collectionMap,
     compareMode,
     modeMap,
@@ -476,29 +476,29 @@ export function useReadinessChecks({
     setChecksStale(false);
     setReadinessError(null);
     setReadinessChecks([]);
-  }, [activeSet]);
+  }, [currentCollectionId]);
 
   useEffect(() => {
     if (restoredReadinessRef.current) return;
-    if (!connected || !activeSet || tokenChangeKey === undefined) return;
+    if (!connected || !currentCollectionId || tokenChangeKey === undefined) return;
     restoredReadinessRef.current = true;
     const stored = lsGet(LAST_READINESS_CHANGE_KEY);
     if (stored !== null && tokenChangeKey > parseInt(stored, 10)) {
       runReadinessChecksRef.current();
     }
-  }, [activeSet, connected, tokenChangeKey]);
+  }, [currentCollectionId, connected, tokenChangeKey]);
 
   useEffect(() => {
-    if (!connected || !activeSet || tokenChangeKey === undefined) return;
+    if (!connected || !currentCollectionId || tokenChangeKey === undefined) return;
     if (checksRunAtKey === null) return;
     if (tokenChangeKey === checksRunAtKey) return;
     runReadinessChecksRef.current();
-  }, [activeSet, checksRunAtKey, connected, tokenChangeKey]);
+  }, [currentCollectionId, checksRunAtKey, connected, tokenChangeKey]);
 
   useEffect(() => {
-    if (!checksStale || !connected || !activeSet) return;
+    if (!checksStale || !connected || !currentCollectionId) return;
     runReadinessChecksRef.current();
-  }, [checksStale, connected, activeSet]);
+  }, [checksStale, connected, currentCollectionId]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {

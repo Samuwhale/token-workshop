@@ -257,10 +257,10 @@ export function PromoteReviewPanel({
 export function RelocateTokenReviewPanel({
   mode,
   tokenPath,
-  setName,
-  sets,
-  targetSet,
-  onTargetSetChange,
+  collectionId,
+  collectionIds,
+  targetCollectionId,
+  onTargetCollectionChange,
   conflict,
   conflictAction,
   onConflictActionChange,
@@ -272,10 +272,10 @@ export function RelocateTokenReviewPanel({
 }: {
   mode: RelocateTokenReviewMode;
   tokenPath: string;
-  setName: string;
-  sets: string[];
-  targetSet: string;
-  onTargetSetChange: (value: string) => void;
+  collectionId: string;
+  collectionIds: string[];
+  targetCollectionId: string;
+  onTargetCollectionChange: (value: string) => void;
   conflict: TokenMapEntry | null;
   conflictAction: "overwrite" | "skip" | "rename";
   onConflictActionChange: (value: "overwrite" | "skip" | "rename") => void;
@@ -291,8 +291,8 @@ export function RelocateTokenReviewPanel({
 
   return (
     <ContextualReviewPanel
-      title={`${isMove ? "Move" : "Copy"} token to set`}
-      description={`${tokenPath} \u2192 ${targetSet || '...'}`}
+      title={`${isMove ? "Move" : "Copy"} token to collection`}
+      description={`${tokenPath} \u2192 ${targetCollectionId || '...'}`}
       onClose={onClose}
       footer={
         <>
@@ -307,7 +307,7 @@ export function RelocateTokenReviewPanel({
             type="button"
             onClick={onConfirm}
             disabled={
-              !targetSet ||
+              !targetCollectionId ||
               (conflictAction === "rename" && !conflictNewPath.trim())
             }
             className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
@@ -332,18 +332,18 @@ export function RelocateTokenReviewPanel({
 
         <div className="flex flex-col gap-1">
           <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Destination set
+            Destination collection
           </label>
           <select
-            value={targetSet}
-            onChange={(event) => onTargetSetChange(event.target.value)}
+            value={targetCollectionId}
+            onChange={(event) => onTargetCollectionChange(event.target.value)}
             className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           >
-            {sets
-              .filter((candidateSet) => candidateSet !== setName)
-              .map((candidateSet) => (
-                <option key={candidateSet} value={candidateSet}>
-                  {candidateSet}
+            {collectionIds
+              .filter((candidateCollection) => candidateCollection !== collectionId)
+              .map((candidateCollection) => (
+                <option key={candidateCollection} value={candidateCollection}>
+                  {candidateCollection}
                 </option>
               ))}
           </select>
@@ -352,7 +352,7 @@ export function RelocateTokenReviewPanel({
         {conflict ? (
           <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
             <NoticeFieldMessage severity="warning" className="font-medium">
-              Conflict: a token already exists at this path in {targetSet}
+              Conflict: a token already exists at this path in {targetCollectionId}
             </NoticeFieldMessage>
             <div className="grid grid-cols-2 gap-2 text-[10px]">
               <div>
@@ -400,7 +400,7 @@ export function RelocateTokenReviewPanel({
             {conflictAction === "rename" ? (
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  New path in target set
+                  New path in target collection
                 </label>
                 <input
                   type="text"

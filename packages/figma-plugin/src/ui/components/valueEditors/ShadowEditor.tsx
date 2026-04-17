@@ -4,7 +4,7 @@ import { inputClass, labelClass } from '../../shared/editorClasses';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput } from './valueEditorShared';
 
-export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTokensFlat, pathToSet, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; baseValue?: any }) {
+export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTokensFlat, pathToCollectionId, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; baseValue?: any }) {
   const rawVal = typeof value === 'object' ? value : {};
   const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
   const val = base ? { ...base, ...rawVal } : rawVal;
@@ -34,7 +34,7 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
             value={val.color || '#00000040'}
             onChange={v => update('color', v)}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             filterType="color"
             inputType="string"
             placeholder="#00000040 or {token}"
@@ -44,19 +44,19 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
       <div className="grid grid-cols-2 gap-2">
         <div>
           <div className={labelClass}>Offset X</div>
-          <SubPropInput value={getDim(val.offsetX)} onChange={v => setDim('offsetX', v)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} placeholder="0" />
+          <SubPropInput value={getDim(val.offsetX)} onChange={v => setDim('offsetX', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </div>
         <div>
           <div className={labelClass}>Offset Y</div>
-          <SubPropInput value={getDim(val.offsetY)} onChange={v => setDim('offsetY', v)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} placeholder="0" />
+          <SubPropInput value={getDim(val.offsetY)} onChange={v => setDim('offsetY', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </div>
         <div>
           <div className={labelClass}>Blur</div>
-          <SubPropInput value={getDim(val.blur)} onChange={v => setDim('blur', v)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} placeholder="0" />
+          <SubPropInput value={getDim(val.blur)} onChange={v => setDim('blur', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </div>
         <div>
           <div className={labelClass}>Spread</div>
-          <SubPropInput value={getDim(val.spread)} onChange={v => setDim('spread', v)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} placeholder="0" />
+          <SubPropInput value={getDim(val.spread)} onChange={v => setDim('spread', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </div>
       </div>
       <div>

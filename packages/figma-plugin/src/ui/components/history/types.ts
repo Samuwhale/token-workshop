@@ -107,7 +107,7 @@ export function snapshotDiffToChange(d: SnapshotDiff): TokenChange {
   const type = d.before?.$type ?? d.after?.$type ?? '';
   return {
     path: d.path,
-    set: d.collectionId,
+    collectionId: d.collectionId,
     type,
     status: d.status,
     before: d.before?.$value,

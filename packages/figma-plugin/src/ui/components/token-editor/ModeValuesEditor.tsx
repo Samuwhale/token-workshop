@@ -252,7 +252,7 @@ export function ModeValuesEditor({
         <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1 text-[10px] text-[var(--color-figma-text)]">
           {collectionCoverage.missingCount} mode value
           {collectionCoverage.missingCount === 1 ? "" : "s"} still need authoring
-          in {collectionDefinition.name}.
+          in {collectionDefinition.id}.
         </div>
       ) : null}
 
@@ -309,7 +309,7 @@ export function ModeValuesEditor({
                         )
                       }
                       allTokensFlat={allTokensFlat}
-                      pathToSet={pathToCollectionId}
+                      pathToCollectionId={pathToCollectionId}
                     />
                   </div>
                 ) : (
@@ -379,7 +379,7 @@ export function ModeValuesEditor({
                             : ""
                         }
                         allTokensFlat={allTokensFlat}
-                        pathToSet={pathToCollectionId}
+                        pathToCollectionId={pathToCollectionId}
                         filterType={tokenType}
                         onSelect={(path) => {
                           onModeValuesChange(

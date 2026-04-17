@@ -13,7 +13,7 @@ interface ModeValueEditorProps {
   value: unknown;
   onChange: (v: unknown) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }
 
 export function ModeValueEditor({
@@ -21,7 +21,7 @@ export function ModeValueEditor({
   value,
   onChange,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
 }: ModeValueEditorProps) {
   switch (tokenType) {
     case 'color':
@@ -38,7 +38,7 @@ export function ModeValueEditor({
           value={value ?? { value: 0, unit: 'px' }}
           onChange={onChange}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
         />
       );
     case 'number':

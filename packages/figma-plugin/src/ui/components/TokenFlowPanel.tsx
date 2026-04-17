@@ -45,7 +45,7 @@ export interface TokenDependencySnapshot {
 
 export interface TokenFlowPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   onNavigateToToken?: (path: string) => void;
   onEditToken?: (path: string) => void;
   /** When set, the panel auto-selects this token path on mount / change */
@@ -159,7 +159,7 @@ function formatValue(value: TokenValue | TokenReference): string {
 function walkDependencyNodes(
   seeds: string[],
   tokenMap: Record<string, TokenMapEntry>,
-  pathToSet: Record<string, string>,
+  pathToCollectionId: Record<string, string>,
   cycleNodes: Set<string>,
   getNext: (path: string) => string[],
 ): TokenDependencyNode[] {
@@ -174,7 +174,7 @@ function walkDependencyNodes(
     if (!entry) continue;
     nodes.push({
       path: current.path,
-      collectionId: pathToSet[current.path] ?? null,
+      collectionId: pathToCollectionId[current.path] ?? null,
       $type: entry.$type,
       $value: entry.$value,
       resolvedHex: tryResolveColor(current.path, tokenMap),
@@ -192,7 +192,7 @@ function walkDependencyNodes(
 export function buildTokenDependencySnapshot(
   selectedPath: string,
   tokenMap: Record<string, TokenMapEntry>,
-  pathToSet: Record<string, string>,
+  pathToCollectionId: Record<string, string>,
 ): TokenDependencySnapshot | null {
   const centerEntry = tokenMap[selectedPath];
   if (!centerEntry) return null;
@@ -214,7 +214,7 @@ export function buildTokenDependencySnapshot(
   return {
     centerNode: {
       path: selectedPath,
-      collectionId: pathToSet[selectedPath] ?? null,
+      collectionId: pathToCollectionId[selectedPath] ?? null,
       $type: centerEntry.$type,
       $value: centerEntry.$value,
       resolvedHex: tryResolveColor(selectedPath, tokenMap),
@@ -226,7 +226,7 @@ export function buildTokenDependencySnapshot(
     referenceNodes: walkDependencyNodes(
       directReferences,
       tokenMap,
-      pathToSet,
+      pathToCollectionId,
       cycleNodes,
       (path) => {
         const entry = tokenMap[path];
@@ -236,7 +236,7 @@ export function buildTokenDependencySnapshot(
     dependentNodes: walkDependencyNodes(
       directDependents,
       tokenMap,
-      pathToSet,
+      pathToCollectionId,
       cycleNodes,
       (path) => Array.from(dependentsMap.get(path) ?? []),
     ),
@@ -534,7 +534,7 @@ const MAX_ZOOM = 3;
 
 export function TokenFlowPanel({
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   onNavigateToToken,
   onEditToken,
   initialPath,
@@ -572,7 +572,7 @@ export function TokenFlowPanel({
     const snapshot = buildTokenDependencySnapshot(
       selectedPath,
       allTokensFlat,
-      pathToSet,
+      pathToCollectionId,
     );
     if (!snapshot) return null;
 
@@ -588,7 +588,7 @@ export function TokenFlowPanel({
       })),
       hasCycles: snapshot.hasCycles,
     };
-  }, [selectedPath, allTokensFlat, pathToSet]);
+  }, [selectedPath, allTokensFlat, pathToCollectionId]);
 
   // Reset expanded state when selection changes
   const prevSelectedRef = useRef(selectedPath);
@@ -1180,9 +1180,9 @@ export function TokenFlowPanel({
                 <span className="text-xs truncate font-medium">
                   {selectedPath}
                 </span>
-                {pathToSet[selectedPath] && (
+                {pathToCollectionId[selectedPath] && (
                   <span className="text-[10px] opacity-40 flex-shrink-0">
-                    in {pathToSet[selectedPath]}
+                    in {pathToCollectionId[selectedPath]}
                   </span>
                 )}
                 {onNavigateToToken && (

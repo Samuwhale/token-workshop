@@ -9,7 +9,7 @@ import type { ExtractAliasTokenDraft } from '../shared/tokenListModalTypes';
 export interface UseExtractToAliasParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   onRefresh: () => void;
 }
 
@@ -117,13 +117,13 @@ export async function promoteTokensToSharedAlias({
 export function useExtractToAlias({
   connected,
   serverUrl,
-  setName,
+  collectionId,
   onRefresh,
 }: UseExtractToAliasParams) {
   const [extractToken, setExtractToken] = useState<ExtractAliasTokenDraft | null>(null);
   const [extractMode, setExtractMode] = useState<'new' | 'existing'>('new');
   const [newPrimitivePath, setNewPrimitivePath] = useState('');
-  const [newPrimitiveSet, setNewPrimitiveSet] = useState('');
+  const [newPrimitiveCollectionId, setNewPrimitiveCollectionId] = useState('');
   const [existingAlias, setExistingAlias] = useState('');
   const [existingAliasSearch, setExistingAliasSearch] = useState('');
   const [extractError, setExtractError] = useState('');
@@ -131,13 +131,13 @@ export function useExtractToAlias({
   const handleOpenExtractToAlias = useCallback((path: string, $type?: string, $value?: unknown) => {
     const suggested = suggestSharedAliasPath([path], $type);
     setNewPrimitivePath(suggested);
-    setNewPrimitiveSet(setName);
+    setNewPrimitiveCollectionId(collectionId);
     setExistingAlias('');
     setExistingAliasSearch('');
     setExtractMode('new');
     setExtractError('');
     setExtractToken({ path, $type, $value });
-  }, [setName]);
+  }, [collectionId]);
 
   const handleConfirmExtractToAlias = useCallback(async () => {
     if (!extractToken || !connected) return;
@@ -149,8 +149,8 @@ export function useExtractToAlias({
         await promoteTokensToSharedAlias({
           serverUrl,
           primitivePath: newPrimitivePath.trim(),
-          primitiveCollectionId: newPrimitiveSet,
-          sourceTokens: [{ path: extractToken.path, collectionId: setName }],
+          primitiveCollectionId: newPrimitiveCollectionId,
+          sourceTokens: [{ path: extractToken.path, collectionId: collectionId }],
           tokenType: extractToken.$type,
           tokenValue: extractToken.$value,
         });
@@ -160,20 +160,20 @@ export function useExtractToAlias({
       }
     } else {
       if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
-      await updateToken(serverUrl, setName, extractToken.path, createTokenBody({
+      await updateToken(serverUrl, collectionId, extractToken.path, createTokenBody({
         $value: `{${existingAlias}}`,
       }));
     }
 
     setExtractToken(null);
     onRefresh();
-  }, [extractToken, extractMode, newPrimitivePath, newPrimitiveSet, existingAlias, connected, serverUrl, setName, onRefresh]);
+  }, [extractToken, extractMode, newPrimitivePath, newPrimitiveCollectionId, existingAlias, connected, serverUrl, collectionId, onRefresh]);
 
   return {
     extractToken, setExtractToken,
     extractMode, setExtractMode,
     newPrimitivePath, setNewPrimitivePath,
-    newPrimitiveSet, setNewPrimitiveSet,
+    newPrimitiveCollectionId, setNewPrimitiveCollectionId,
     existingAlias, setExistingAlias,
     existingAliasSearch, setExistingAliasSearch,
     extractError, setExtractError,

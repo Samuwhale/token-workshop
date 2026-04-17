@@ -143,7 +143,7 @@ export function FileTokenDiffList({
     const map = new Map<string, import('../../hooks/useGitDiff').TokenChange[]>();
     if (!tokenPreview) return map;
     for (const tc of tokenPreview) {
-      const fileName = tc.set + '.tokens.json';
+      const fileName = tc.collectionId + '.tokens.json';
       const arr = map.get(fileName);
       if (arr) arr.push(tc);
       else map.set(fileName, [tc]);

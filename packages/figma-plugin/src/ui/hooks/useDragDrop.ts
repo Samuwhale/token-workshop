@@ -7,7 +7,7 @@ import { isAbortError } from '../shared/utils';
 export interface UseDragDropParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   siblingOrderMap: Map<string, string[]>;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -19,7 +19,7 @@ export interface UseDragDropParams {
 export function useDragDrop({
   connected,
   serverUrl,
-  setName,
+  collectionId,
   siblingOrderMap,
   onRefresh,
   onPushUndo,
@@ -84,11 +84,11 @@ export function useDragDrop({
       return;
     }
 
-    const capturedSet = setName;
+    const capturedCollectionId = collectionId;
     const capturedUrl = serverUrl;
     const signal = abortRef.current.signal;
     try {
-      await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-rename-paths`, {
+      await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/batch-rename-paths`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ renames: planned, updateAliases: true }),
@@ -118,7 +118,7 @@ export function useDragDrop({
         restore: async () => {
           const undoRenames = planned.map(r => ({ oldPath: r.newPath, newPath: r.oldPath }));
           try {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-rename-paths`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/batch-rename-paths`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ renames: undoRenames, updateAliases: true }),
@@ -134,7 +134,7 @@ export function useDragDrop({
         },
         redo: async () => {
           try {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/batch-rename-paths`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/batch-rename-paths`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ renames: planned, updateAliases: true }),
@@ -154,10 +154,10 @@ export function useDragDrop({
       onRenamePath(oldPath, newPath);
     }
     onRefresh();
-  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo, onError, onRenamePath]);
+  }, [dragSource, connected, serverUrl, collectionId, onRefresh, onPushUndo, onError, onRenamePath]);
 
   const handleDropReorder = useCallback(async (targetPath: string, targetName: string, position: 'before' | 'after') => {
-    if (!dragSource || !connected || !serverUrl || !setName) return;
+    if (!dragSource || !connected || !serverUrl || !collectionId) return;
     setDragOverReorder(null);
     const source = dragSource;
     setDragOverGroup(null);
@@ -186,7 +186,7 @@ export function useDragDrop({
     const prevOrder = [...siblings];
     const signal = abortRef.current.signal;
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
@@ -205,7 +205,7 @@ export function useDragDrop({
     if (signal.aborted) return;
     setDragSource(null);
     if (onPushUndo) {
-      const capturedSet = setName;
+      const capturedCollectionId = collectionId;
       const capturedUrl = serverUrl;
       const label = source.names.length === 1
         ? `Reorder "${source.names[0]}"`
@@ -213,7 +213,7 @@ export function useDragDrop({
       onPushUndo({
         description: label,
         restore: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/groups/reorder`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ groupPath: targetParent, orderedKeys: prevOrder }),
@@ -221,7 +221,7 @@ export function useDragDrop({
           onRefresh();
         },
         redo: async () => {
-          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/groups/reorder`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
@@ -231,7 +231,7 @@ export function useDragDrop({
       });
     }
     onRefresh();
-  }, [dragSource, connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo, onError, handleDropOnGroup]);
+  }, [dragSource, connected, serverUrl, collectionId, siblingOrderMap, onRefresh, onPushUndo, onError, handleDropOnGroup]);
 
   return {
     dragSource,

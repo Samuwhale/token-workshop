@@ -34,7 +34,7 @@ interface MultiModeDataResult {
 }
 
 interface MultiModeData {
-  collection: { id: string; modes: { name: string }[]; name?: string };
+  collection: { id: string; modes: { name: string }[] };
   results: MultiModeDataResult[];
 }
 
@@ -55,13 +55,13 @@ interface TokenListTreeBodyProps {
   // View mode
   viewMode: "tree" | "json";
 
-  // Cross-set search
-  crossSetSearch: boolean;
-  crossSetResults: CrossSetResult[] | null;
-  crossSetTotal: number;
-  setCrossSetOffset: (v: number) => void;
-  CROSS_SET_PAGE_SIZE: number;
-  sets: string[];
+  // Cross-collection search
+  crossCollectionSearch: boolean;
+  crossCollectionResults: CrossSetResult[] | null;
+  crossCollectionTotal: number;
+  setCrossCollectionOffset: (v: number) => void;
+  CROSS_COLLECTION_PAGE_SIZE: number;
+  collectionIds: string[];
 
   // Search
   searchQuery: string;
@@ -96,7 +96,7 @@ interface TokenListTreeBodyProps {
   multiModeData: MultiModeData | null;
   multiModeDimId: string | null;
   multiModeDimensionName: string | null;
-  collections: { id: string; name: string; modes: { name: string }[] }[];
+  collections: { id: string; modes: { name: string }[] }[];
   setMultiModeDimId: (v: string) => void;
   getMultiModeValues: (tokenPath: string) => MultiModeValue[] | undefined;
 
@@ -104,7 +104,7 @@ interface TokenListTreeBodyProps {
   selectedPaths: Set<string>;
   sortOrder: string;
   connected: boolean;
-  setName: string;
+  collectionId: string;
   siblingOrderMap: Map<string, string[]>;
   showRecentlyTouched: boolean;
   showFlatSearchResults: boolean;
@@ -130,7 +130,7 @@ interface TokenListTreeBodyProps {
   handleCollapseBelow: (path: string) => void;
 
   // Navigation
-  onNavigateToSet?: (setName: string, tokenPath: string) => void;
+  onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
   onCreateNew?: (initialPath?: string) => void;
 
   // Filters
@@ -145,12 +145,12 @@ const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
     viewMode,
-    crossSetSearch,
-    crossSetResults,
-    crossSetTotal,
-    setCrossSetOffset,
-    CROSS_SET_PAGE_SIZE,
-    sets,
+    crossCollectionSearch,
+    crossCollectionResults,
+    crossCollectionTotal,
+    setCrossCollectionOffset,
+    CROSS_COLLECTION_PAGE_SIZE,
+    collectionIds,
     searchQuery,
     searchHighlight,
     availableTypes,
@@ -179,7 +179,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     selectedPaths,
     sortOrder,
     connected,
-    setName,
+    collectionId,
     siblingOrderMap,
     showRecentlyTouched,
     showFlatSearchResults,
@@ -195,7 +195,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     breadcrumbSegments,
     handleJumpToGroup,
     handleCollapseBelow,
-    onNavigateToSet,
+    onNavigateToCollection,
     onCreateNew,
     clearFilters,
   } = props;
@@ -212,7 +212,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           >
             {collections.map((collection) => (
               <option key={collection.id} value={collection.id}>
-                {collection.name}
+                {collection.id}
               </option>
             ))}
           </select>
@@ -235,8 +235,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   ) : null;
 
   // Cross-collection search results
-  if (crossSetResults !== null) {
-    if (crossSetResults.length === 0) {
+  if (crossCollectionResults !== null) {
+    if (crossCollectionResults.length === 0) {
       return (
         <>
           {multiModeHeaders}
@@ -283,10 +283,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       <>
         {multiModeHeaders}
         <div>
-          {sets
-            .filter((sn) => crossSetResults.some((r) => r.collectionId === sn))
+          {collectionIds
+            .filter((sn) => crossCollectionResults.some((r) => r.collectionId === sn))
             .map((sn) => {
-              const setResults = crossSetResults.filter(
+              const collectionResults = crossCollectionResults.filter(
                 (r) => r.collectionId === sn,
               );
               return (
@@ -294,13 +294,13 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   <div className="px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
                     {sn}{" "}
                     <span className="font-normal opacity-60">
-                      ({setResults.length})
+                      ({collectionResults.length})
                     </span>
                   </div>
-                  {setResults.map((r) => (
+                  {collectionResults.map((r) => (
                     <button
                       key={r.path}
-                      onClick={() => onNavigateToSet?.(r.collectionId, r.path)}
+                      onClick={() => onNavigateToCollection?.(r.collectionId, r.path)}
                       className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] border-b border-[var(--color-figma-border)]/50"
                     >
                       {r.entry.$type === "color" &&
@@ -330,19 +330,19 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 </div>
               );
             })}
-          {crossSetTotal > crossSetResults.length && (
+          {crossCollectionTotal > crossCollectionResults.length && (
             <div className="px-3 py-2 flex items-center justify-between border-t border-[var(--color-figma-border)]">
               <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                {crossSetResults.length} of {crossSetTotal} shown
+                {crossCollectionResults.length} of {crossCollectionTotal} shown
               </span>
               <button
                 className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                onClick={() => setCrossSetOffset(crossSetResults.length)}
+                onClick={() => setCrossCollectionOffset(crossCollectionResults.length)}
               >
                 Load{" "}
                 {Math.min(
-                  CROSS_SET_PAGE_SIZE,
-                  crossSetTotal - crossSetResults.length,
+                  CROSS_COLLECTION_PAGE_SIZE,
+                  crossCollectionTotal - crossCollectionResults.length,
                 )}{" "}
                 more
               </button>

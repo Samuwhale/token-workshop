@@ -20,22 +20,22 @@ import type { Density } from "../tokenListTypes";
 
 interface SharedDataDeps {
   effectiveAllTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }
 
 export function useTokenTreeSharedData(deps: SharedDataDeps): TokenTreeSharedDataContextType {
   return useMemo(
     () => ({
       allTokensFlat: deps.effectiveAllTokensFlat,
-      pathToSet: deps.pathToSet,
+      pathToCollectionId: deps.pathToCollectionId,
     }),
-    [deps.effectiveAllTokensFlat, deps.pathToSet],
+    [deps.effectiveAllTokensFlat, deps.pathToCollectionId],
   );
 }
 
 interface GroupStateDeps {
   density: Density;
-  setName: string;
+  collectionId: string;
   selectMode: boolean;
   expandedPaths: Set<string>;
   highlightedToken: string | null | undefined;
@@ -56,7 +56,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
   return useMemo(
     () => ({
       density: deps.density,
-      setName: deps.setName,
+      collectionId: deps.collectionId,
       selectMode: deps.selectMode,
       expandedPaths: deps.expandedPaths,
       highlightedToken: deps.highlightedToken ?? null,
@@ -71,7 +71,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       rovingFocusPath: deps.effectiveRovingPath,
     }),
     [
-      deps.density, deps.setName, deps.selectMode, deps.expandedPaths,
+      deps.density, deps.collectionId, deps.selectMode, deps.expandedPaths,
       deps.highlightedToken, deps.searchHighlight, deps.dragOverGroup,
       deps.dragOverGroupIsInvalid, deps.dragSource, deps.recipesByTargetGroup,
       deps.collectionCoverage, deps.condensedView, deps.effectiveRovingPath,
@@ -140,8 +140,8 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
 interface LeafStateDeps {
   density: Density;
   serverUrl: string;
-  setName: string;
-  sets: string[];
+  collectionId: string;
+  collectionIds: string[];
   selectionCapabilities: NodeCapabilities | null;
   duplicateCounts: Map<string, number>;
   selectMode: boolean;
@@ -173,8 +173,8 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
     () => ({
       density: deps.density,
       serverUrl: deps.serverUrl,
-      setName: deps.setName,
-      sets: deps.sets,
+      collectionId: deps.collectionId,
+      collectionIds: deps.collectionIds,
       selectionCapabilities: deps.selectionCapabilities,
       duplicateCounts: deps.duplicateCounts,
       selectMode: deps.selectMode,

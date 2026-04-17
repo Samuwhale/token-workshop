@@ -17,7 +17,7 @@ type SyncSubTab = "publish" | "export" | "history" | "health";
 export type SubTab = TokensSubTab | RecipesSubTab | CollectionsSubTab | InspectSubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
-  | "sets"
+  | "collection-manager"
   | "notifications"
   | "shortcuts"
   | "settings";
@@ -145,7 +145,7 @@ export type UtilityActionId =
 export type SecondarySurfaceAccess =
   | "shell-shortcut"
   | "workspace-context"
-  | "set-switcher"
+  | "collection-switcher"
   | "shell-menu"
   | "settings-help";
 
@@ -234,7 +234,7 @@ export type ImportResultSourceFamily =
 export interface ImportResultSummary {
   sourceType: ImportResultSourceType;
   sourceFamily: ImportResultSourceFamily;
-  destinationSets: string[];
+  destinationCollectionIds: string[];
   newCount: number;
   overwriteCount: number;
   mergeCount: number;
@@ -516,10 +516,10 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
     transition: secondaryTakeoverTransition("Import external tokens."),
   },
   {
-    id: "sets",
+    id: "collection-manager",
     label: "Manage collections",
     summaryTitle: "Manage collections",
-    access: "set-switcher",
+    access: "collection-switcher",
     transition: secondaryTakeoverTransition("Manage collections."),
   },
   {
@@ -647,7 +647,7 @@ function isLargeInitialImport(summary: ImportResultSummary): boolean {
   return (
     reviewedExistingCount === 0 &&
     (summary.totalImportedCount >= LARGE_INITIAL_IMPORT_TOKEN_THRESHOLD ||
-      summary.destinationSets.length >= LARGE_INITIAL_IMPORT_SET_THRESHOLD)
+      summary.destinationCollectionIds.length >= LARGE_INITIAL_IMPORT_SET_THRESHOLD)
   );
 }
 
@@ -662,7 +662,7 @@ function importedMultipleVariableCollections(
     return summary.sourceCollectionCount > 1;
   }
 
-  return summary.destinationSets.length > 1;
+  return summary.destinationCollectionIds.length > 1;
 }
 
 export function getImportResultNextStepRecommendations(
@@ -735,8 +735,10 @@ export function getImportResultNextStepRecommendations(
   return recommendations;
 }
 
-function getImportSetSortKey(setName: string): [number, number, number] {
-  const segments = setName
+function getImportCollectionSortKey(
+  collectionId: string,
+): [number, number, number] {
+  const segments = collectionId
     .split("/")
     .map((segment) => segment.trim().toLowerCase())
     .filter(Boolean);
@@ -750,24 +752,26 @@ function getImportSetSortKey(setName: string): [number, number, number] {
       ? 1
       : 2;
 
-  return [primaryRank, segments.length || 1, setName.length];
+  return [primaryRank, segments.length || 1, collectionId.length];
 }
 
-export function getMostRelevantImportDestinationSet(
-  summary: Pick<ImportResultSummary, "destinationSets">,
+export function getMostRelevantImportDestinationCollection(
+  summary: Pick<ImportResultSummary, "destinationCollectionIds">,
 ): string | null {
-  const uniqueSets = [...new Set(summary.destinationSets.filter(Boolean))];
-  if (uniqueSets.length === 0) {
+  const uniqueCollectionIds = [
+    ...new Set(summary.destinationCollectionIds.filter(Boolean)),
+  ];
+  if (uniqueCollectionIds.length === 0) {
     return null;
   }
 
-  const rankedSets = uniqueSets.map((setName, index) => ({
-    setName,
+  const rankedCollections = uniqueCollectionIds.map((collectionId, index) => ({
+    collectionId,
     index,
-    sortKey: getImportSetSortKey(setName),
+    sortKey: getImportCollectionSortKey(collectionId),
   }));
 
-  rankedSets.sort((a, b) => {
+  rankedCollections.sort((a, b) => {
     if (a.sortKey[0] !== b.sortKey[0]) {
       return a.sortKey[0] - b.sortKey[0];
     }
@@ -780,7 +784,7 @@ export function getMostRelevantImportDestinationSet(
     return a.index - b.index;
   });
 
-  return rankedSets[0]?.setName ?? null;
+  return rankedCollections[0]?.collectionId ?? null;
 }
 
 function matchesRoute(

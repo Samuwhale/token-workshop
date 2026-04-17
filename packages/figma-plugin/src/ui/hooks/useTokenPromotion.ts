@@ -11,7 +11,7 @@ import { createTokenBody, updateToken } from '../shared/tokenMutations';
 export interface UseTokenPromotionParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   selectedPaths: Set<string>;
@@ -23,7 +23,7 @@ export interface UseTokenPromotionParams {
 export function useTokenPromotion({
   connected: _connected,
   serverUrl,
-  setName,
+  collectionId,
   tokens,
   allTokensFlat,
   selectedPaths,
@@ -35,11 +35,11 @@ export function useTokenPromotion({
   const [promoteBusy, setPromoteBusy] = useState(false);
 
   const handleOpenPromoteModal = useCallback((pathsOverride?: Set<string>) => {
-    const flat: Array<{ path: string; $type: string; $value: unknown; setName: string }> = [];
+    const flat: Array<{ path: string; $type: string; $value: unknown; collectionId: string }> = [];
     const walk = (nodes: TokenNode[]) => {
       for (const node of nodes) {
         if (!node.isGroup) {
-          flat.push({ path: node.path, $type: node.$type ?? '', $value: node.$value, setName });
+          flat.push({ path: node.path, $type: node.$type ?? '', $value: node.$value, collectionId });
         }
         if (node.children) walk(node.children);
       }
@@ -72,7 +72,7 @@ export function useTokenPromotion({
       }
     });
     setPromoteRows(rows);
-  }, [tokens, allTokensFlat, selectedPaths, setName]);
+  }, [tokens, allTokensFlat, selectedPaths, collectionId]);
 
   const handleConfirmPromote = useCallback(async () => {
     if (!promoteRows) return;
@@ -81,7 +81,7 @@ export function useTokenPromotion({
     try {
       await Promise.all(
         toApply.map(r =>
-          updateToken(serverUrl, setName, r.path, createTokenBody({ $value: `{${r.proposedAlias}}` })),
+          updateToken(serverUrl, collectionId, r.path, createTokenBody({ $value: `{${r.proposedAlias}}` })),
         ),
       );
       setPromoteRows(null);
@@ -92,7 +92,7 @@ export function useTokenPromotion({
     } finally {
       setPromoteBusy(false);
     }
-  }, [promoteRows, serverUrl, setName, onRefresh, onClearSelection, onError]);
+  }, [promoteRows, serverUrl, collectionId, onRefresh, onClearSelection, onError]);
 
   return {
     promoteRows,

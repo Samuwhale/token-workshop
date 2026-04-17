@@ -12,7 +12,7 @@ import {
   FONT_WEIGHTS,
 } from './valueEditorShared';
 
-export const TypographyEditor = memo(function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef, baseValue, availableFonts, fontWeightsByFamily }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any; availableFonts?: string[]; fontWeightsByFamily?: Record<string, number[]> }) {
+export const TypographyEditor = memo(function TypographyEditor({ value, onChange, allTokensFlat, pathToCollectionId, fontFamilyRef, fontSizeRef, baseValue, availableFonts, fontWeightsByFamily }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any; availableFonts?: string[]; fontWeightsByFamily?: Record<string, number[]> }) {
   const rawVal = typeof value === 'object' ? value : {};
   // When extending, merge base + overrides for display, but only emit overrides on change
   const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
@@ -107,7 +107,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
           value={Array.isArray(val.fontFamily) ? val.fontFamily[0] : (val.fontFamily || '')}
           onChange={v => update('fontFamily', v)}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           availableFonts={availableFonts || []}
           inputRef={fontFamilyRef}
         />
@@ -123,7 +123,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
             value={val.fontSize ?? { value: 16, unit: 'px' }}
             onChange={v => update('fontSize', v)}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             units={['px', 'rem']}
             inputRef={fontSizeRef}
           />
@@ -139,7 +139,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
               value={val.fontWeight}
               onChange={v => update('fontWeight', v)}
               allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
+              pathToCollectionId={pathToCollectionId}
               autoFocus={val.fontWeight === '{'}
             />
           ) : (
@@ -187,7 +187,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
             value={typeof val.lineHeight === 'object' ? val.lineHeight.value : (val.lineHeight ?? 1.5)}
             onChange={v => update('lineHeight', v)}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             placeholder="1.5"
           />
         </div>
@@ -201,7 +201,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
             value={typeof val.letterSpacing === 'object' ? val.letterSpacing.value : (val.letterSpacing ?? 0)}
             onChange={v => update('letterSpacing', typeof v === 'string' && v.startsWith('{') ? v : { value: typeof v === 'number' ? v : parseFloat(String(v)) || 0, unit: 'px' })}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             placeholder="0"
           />
         </div>

@@ -6,7 +6,7 @@ export interface UseTokenSelectionParams {
   viewMode: string;
   flatItems: Array<{ node: TokenNode; depth: number }>;
   displayedLeafNodes: TokenNode[];
-  crossSetResults: unknown[] | null;
+  crossCollectionResults: unknown[] | null;
   onSelectionChange?: (paths: string[]) => void;
 }
 
@@ -14,7 +14,7 @@ export function useTokenSelection({
   viewMode,
   flatItems,
   displayedLeafNodes,
-  crossSetResults,
+  crossCollectionResults,
   onSelectionChange,
 }: UseTokenSelectionParams) {
   const [selectMode, setSelectMode] = useState(false);
@@ -28,10 +28,10 @@ export function useTokenSelection({
   }, [selectedPaths, onSelectionChange]);
 
   const displayedLeafPaths = useMemo(
-    () => crossSetResults !== null
-      ? new Set((crossSetResults as Array<{ path: string }>).map(r => r.path))
+    () => crossCollectionResults !== null
+      ? new Set((crossCollectionResults as Array<{ path: string }>).map(r => r.path))
       : new Set(displayedLeafNodes.map(n => n.path)),
-    [displayedLeafNodes, crossSetResults]
+    [crossCollectionResults, displayedLeafNodes]
   );
 
   const selectedLeafNodes = useMemo(

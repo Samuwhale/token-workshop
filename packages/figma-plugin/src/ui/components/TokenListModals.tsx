@@ -15,8 +15,8 @@ import type {
 } from '../shared/tokenListModalTypes';
 
 export interface TokenListModalsProps {
-  setName: string;
-  sets: string[];
+  collectionId: string;
+  collectionIds: string[];
   allTokensFlat: Record<string, TokenMapEntry>;
   connected: boolean;
 
@@ -56,8 +56,8 @@ export interface TokenListModalsProps {
   onSetExtractMode: (v: 'new' | 'existing') => void;
   newPrimitivePath: string;
   onSetNewPrimitivePath: (v: string) => void;
-  newPrimitiveSet: string;
-  onSetNewPrimitiveSet: (v: string) => void;
+  newPrimitiveCollectionId: string;
+  onSetNewPrimitiveCollectionId: (v: string) => void;
   existingAlias: string;
   onSetExistingAlias: (v: string) => void;
   existingAliasSearch: string;
@@ -77,8 +77,8 @@ export interface TokenListModalsProps {
   frError: string;
   frBusy: boolean;
   frRegexError: string | null;
-  frPreview: Array<{ oldPath: string; newPath: string; conflict: boolean; setName: string }>;
-  frValuePreview: Array<{ path: string; setName: string; oldValue: string; newValue: string }>;
+  frPreview: Array<{ oldPath: string; newPath: string; conflict: boolean; collectionId: string }>;
+  frValuePreview: Array<{ path: string; collectionId: string; oldValue: string; newValue: string }>;
   frConflictCount: number;
   frRenameCount: number;
   frValueCount: number;
@@ -102,11 +102,11 @@ export interface TokenListModalsProps {
   onSetPromoteRows: (v: PromoteRow[] | null) => void;
   handleConfirmPromote: () => void;
 
-  // Move token to set modal
+  // Move token to collection modal
   movingToken: string | null;
   movingGroup: string | null;
-  moveTargetSet: string;
-  onSetMoveTargetSet: (v: string) => void;
+  moveTargetCollectionId: string;
+  onSetMoveTargetCollectionId: (v: string) => void;
   onSetMovingToken: (v: string | null) => void;
   onSetMovingGroup: (v: string | null) => void;
   handleConfirmMoveToken: () => void;
@@ -119,11 +119,11 @@ export interface TokenListModalsProps {
   // Source token value for conflict diff (incoming value)
   moveSourceToken?: TokenMapEntry | null;
 
-  // Copy token to set modal
+  // Copy token to collection modal
   copyingToken: string | null;
   copyingGroup: string | null;
-  copyTargetSet: string;
-  onSetCopyTargetSet: (v: string) => void;
+  copyTargetCollectionId: string;
+  onSetCopyTargetCollectionId: (v: string) => void;
   onSetCopyingToken: (v: string | null) => void;
   onSetCopyingGroup: (v: string | null) => void;
   handleConfirmCopyToken: () => void;
@@ -146,19 +146,19 @@ export interface TokenListModalsProps {
   onSetMoveToGroupError: (v: string) => void;
   handleBatchMoveToGroup: () => void;
 
-  // Batch move selected tokens to another set
-  showBatchMoveToSet: boolean;
-  batchMoveToSetTarget: string;
-  onSetBatchMoveToSetTarget: (v: string) => void;
-  onSetShowBatchMoveToSet: (v: boolean) => void;
-  handleBatchMoveToSet: () => void;
+  // Batch move selected tokens to another collection
+  showBatchMoveToCollection: boolean;
+  batchMoveToCollectionTarget: string;
+  onSetBatchMoveToCollectionTarget: (v: string) => void;
+  onSetShowBatchMoveToCollection: (v: boolean) => void;
+  handleBatchMoveToCollection: () => void;
 
-  // Batch copy selected tokens to another set
-  showBatchCopyToSet: boolean;
-  batchCopyToSetTarget: string;
-  onSetBatchCopyToSetTarget: (v: string) => void;
-  onSetShowBatchCopyToSet: (v: boolean) => void;
-  handleBatchCopyToSet: () => void;
+  // Batch copy selected tokens to another collection
+  showBatchCopyToCollection: boolean;
+  batchCopyToCollectionTarget: string;
+  onSetBatchCopyToCollectionTarget: (v: string) => void;
+  onSetShowBatchCopyToCollection: (v: boolean) => void;
+  handleBatchCopyToCollection: () => void;
 }
 
 function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, recipeImpacts, modeImpacts, onConfirm, onCancel }: {
@@ -294,14 +294,14 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
 function ExtractToAliasModal() {
   const {
     allTokensFlat,
-    sets,
+    collectionIds,
     extractToken,
     extractMode,
     onSetExtractMode,
     newPrimitivePath,
     onSetNewPrimitivePath,
-    newPrimitiveSet,
-    onSetNewPrimitiveSet,
+    newPrimitiveCollectionId,
+    onSetNewPrimitiveCollectionId,
     existingAlias,
     onSetExistingAlias,
     existingAliasSearch,
@@ -374,11 +374,11 @@ function ExtractToAliasModal() {
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Create in collection</label>
                 <select
-                  value={newPrimitiveSet}
-                  onChange={e => onSetNewPrimitiveSet(e.target.value)}
+                  value={newPrimitiveCollectionId}
+                  onChange={e => onSetNewPrimitiveCollectionId(e.target.value)}
                   className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
                 >
-                  {sets.map(s => <option key={s} value={s}>{s}</option>)}
+                  {collectionIds.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </>
@@ -517,8 +517,8 @@ function DeleteImpactDetails({
         >
           <div className="max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {affectedRefs!.slice(0, 20).map((ref, i) => (
-              <div key={i} className="px-2 py-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${ref.setName}/${ref.path}`}>
-                <span className="text-[var(--color-figma-text-tertiary)]">{ref.setName}/</span>{ref.path}
+              <div key={i} className="px-2 py-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${ref.collectionId}/${ref.path}`}>
+                <span className="text-[var(--color-figma-text-tertiary)]">{ref.collectionId}/</span>{ref.path}
               </div>
             ))}
             {refCount > 20 && (
@@ -601,8 +601,8 @@ function CollapsibleSection({
 
 export function TokenListModals() {
   const {
-    setName,
-    sets,
+    collectionId,
+    collectionIds,
     allTokensFlat: _allTokensFlat,
     connected: _connected,
     deleteConfirm,
@@ -624,13 +624,13 @@ export function TokenListModals() {
     onSetRenameGroupConfirm,
     extractToken,
     movingGroup,
-    moveTargetSet,
-    onSetMoveTargetSet,
+    moveTargetCollectionId,
+    onSetMoveTargetCollectionId,
     onSetMovingGroup,
     handleConfirmMoveGroup,
     copyingGroup,
-    copyTargetSet,
-    onSetCopyTargetSet,
+    copyTargetCollectionId,
+    onSetCopyTargetCollectionId,
     onSetCopyingGroup,
     handleConfirmCopyGroup,
     showMoveToGroup,
@@ -641,16 +641,16 @@ export function TokenListModals() {
     onSetMoveToGroupTarget,
     onSetMoveToGroupError,
     handleBatchMoveToGroup,
-    showBatchMoveToSet,
-    batchMoveToSetTarget,
-    onSetBatchMoveToSetTarget,
-    onSetShowBatchMoveToSet,
-    handleBatchMoveToSet,
-    showBatchCopyToSet,
-    batchCopyToSetTarget,
-    onSetBatchCopyToSetTarget,
-    onSetShowBatchCopyToSet,
-    handleBatchCopyToSet,
+    showBatchMoveToCollection,
+    batchMoveToCollectionTarget,
+    onSetBatchMoveToCollectionTarget,
+    onSetShowBatchMoveToCollection,
+    handleBatchMoveToCollection,
+    showBatchCopyToCollection,
+    batchCopyToCollectionTarget,
+    onSetBatchCopyToCollectionTarget,
+    onSetShowBatchCopyToCollection,
+    handleBatchCopyToCollection,
   } = useTokenListModals();
 
   return (
@@ -769,11 +769,11 @@ export function TokenListModals() {
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination collection</label>
               <select
-                value={moveTargetSet}
-                onChange={e => onSetMoveTargetSet(e.target.value)}
+                value={moveTargetCollectionId}
+                onChange={e => onSetMoveTargetCollectionId(e.target.value)}
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               >
-                {sets.filter(s => s !== setName).map(s => (
+                {collectionIds.filter(s => s !== collectionId).map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
@@ -787,7 +787,7 @@ export function TokenListModals() {
               </button>
               <button
                 onClick={handleConfirmMoveGroup}
-                disabled={!moveTargetSet}
+                disabled={!moveTargetCollectionId}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
                 Move
@@ -808,11 +808,11 @@ export function TokenListModals() {
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination collection</label>
               <select
-                value={copyTargetSet}
-                onChange={e => onSetCopyTargetSet(e.target.value)}
+                value={copyTargetCollectionId}
+                onChange={e => onSetCopyTargetCollectionId(e.target.value)}
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               >
-                {sets.filter(s => s !== setName).map(s => (
+                {collectionIds.filter(s => s !== collectionId).map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
@@ -826,7 +826,7 @@ export function TokenListModals() {
               </button>
               <button
                 onClick={handleConfirmCopyGroup}
-                disabled={!copyTargetSet}
+                disabled={!copyTargetCollectionId}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
                 Copy
@@ -881,38 +881,44 @@ export function TokenListModals() {
       )}
 
       {/* Batch move selected tokens to another collection */}
-      {showBatchMoveToSet && (
+      {showBatchMoveToCollection && (
         <div
           className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-          onMouseDown={e => { if (e.target === e.currentTarget) onSetShowBatchMoveToSet(false); }}
+          onMouseDown={e => {
+            if (e.target === e.currentTarget) {
+              onSetShowBatchMoveToCollection(false);
+            }
+          }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
             <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Tokens will be removed from <span className="font-mono text-[var(--color-figma-text)]">{setName}</span> and added to the target collection.
+              Tokens will be removed from <span className="font-mono text-[var(--color-figma-text)]">{collectionId}</span> and added to the target collection.
             </div>
             <select
-              value={batchMoveToSetTarget}
-              onChange={e => onSetBatchMoveToSetTarget(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Escape') onSetShowBatchMoveToSet(false); }}
+              value={batchMoveToCollectionTarget}
+              onChange={e => onSetBatchMoveToCollectionTarget(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') onSetShowBatchMoveToCollection(false);
+              }}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               aria-label="Target collection"
               autoFocus
             >
-              {sets.filter(s => s !== setName).map(s => (
+              {collectionIds.filter(s => s !== collectionId).map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
             <div className="flex gap-2 justify-end">
               <button
-                onClick={() => onSetShowBatchMoveToSet(false)}
+                onClick={() => onSetShowBatchMoveToCollection(false)}
                 className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleBatchMoveToSet}
-                disabled={!batchMoveToSetTarget}
+                onClick={handleBatchMoveToCollection}
+                disabled={!batchMoveToCollectionTarget}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
                 Move
@@ -923,38 +929,44 @@ export function TokenListModals() {
       )}
 
       {/* Batch copy selected tokens to another collection */}
-      {showBatchCopyToSet && (
+      {showBatchCopyToCollection && (
         <div
           className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-          onMouseDown={e => { if (e.target === e.currentTarget) onSetShowBatchCopyToSet(false); }}
+          onMouseDown={e => {
+            if (e.target === e.currentTarget) {
+              onSetShowBatchCopyToCollection(false);
+            }
+          }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
             <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Copy {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Tokens will be duplicated into the target collection. Originals in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span> are kept.
+              Tokens will be duplicated into the target collection. Originals in <span className="font-mono text-[var(--color-figma-text)]">{collectionId}</span> are kept.
             </div>
             <select
-              value={batchCopyToSetTarget}
-              onChange={e => onSetBatchCopyToSetTarget(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Escape') onSetShowBatchCopyToSet(false); }}
+              value={batchCopyToCollectionTarget}
+              onChange={e => onSetBatchCopyToCollectionTarget(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') onSetShowBatchCopyToCollection(false);
+              }}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
               aria-label="Target collection"
               autoFocus
             >
-              {sets.filter(s => s !== setName).map(s => (
+              {collectionIds.filter(s => s !== collectionId).map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
             <div className="flex gap-2 justify-end">
               <button
-                onClick={() => onSetShowBatchCopyToSet(false)}
+                onClick={() => onSetShowBatchCopyToCollection(false)}
                 className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleBatchCopyToSet}
-                disabled={!batchCopyToSetTarget}
+                onClick={handleBatchCopyToCollection}
+                disabled={!batchCopyToCollectionTarget}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
                 Copy

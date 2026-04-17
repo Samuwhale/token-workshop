@@ -158,7 +158,7 @@ export function useRecipeSave({
     }
     if (isMultiBrand && inputTable) {
       if (!targetCollectionTemplate.trim()) {
-        setSaveError("Target set template is required for multi-brand mode.");
+        setSaveError("Target collection template is required for multi-brand mode.");
         return false;
       }
       if (inputTable.rows.some((r) => !r.brand.trim())) {

@@ -6,7 +6,7 @@ import { NoticeFieldMessage } from "../shared/noticeSystem";
 type TableRowField = keyof Omit<TableRow, "id">;
 
 export interface TableCreateFormProps {
-  setName: string;
+  collectionId: string;
   tableGroup: string;
   onSetTableGroup: (v: string) => void;
   tableRows: TableRow[];
@@ -27,7 +27,7 @@ export interface TableCreateFormProps {
 }
 
 export function TableCreateForm({
-  setName,
+  collectionId,
   tableGroup,
   onSetTableGroup,
   tableRows,
@@ -91,7 +91,7 @@ export function TableCreateForm({
             Bulk create in:
           </span>
           <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">
-            {setName}
+            {collectionId}
           </span>
         </div>
         {/* Group picker */}

@@ -37,7 +37,7 @@ interface PropertyRowProps {
   selectedNodes: SelectionNodeInfo[];
   tokenMap: Record<string, TokenMapEntry>;
   connected: boolean;
-  activeSet: string;
+  currentCollectionId: string;
   serverUrl: string;
   hasAnyTokens: boolean;
   creatingFromProp: BindableProperty | null;
@@ -103,7 +103,7 @@ export function PropertyRow({
   selectedNodes,
   tokenMap,
   connected,
-  activeSet,
+  currentCollectionId,
   serverUrl,
   hasAnyTokens,
   creatingFromProp,
@@ -139,7 +139,7 @@ export function PropertyRow({
   const isMixed = binding === 'mixed';
   const isUnbound = !binding || isMixed;
   const isThisPropActive = creatingFromProp === prop || bindingFromProp === prop;
-  const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && activeSet && !isThisPropActive;
+  const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && currentCollectionId && !isThisPropActive;
   const canBind = !isBound && connected && hasAnyTokens && !isThisPropActive;
   const canChangeBind = isBound && connected && hasAnyTokens && !isThisPropActive;
   const rowStateClass = isThisPropActive
@@ -247,7 +247,7 @@ export function PropertyRow({
   }, [creatingFromProp, prop]);
 
   const handleCreateToken = async () => {
-    if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !activeSet) return;
+    if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !currentCollectionId) return;
     const pathTrimmed = newTokenName.trim();
     if (!/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$/.test(pathTrimmed)) {
       setCreateError('Path must be dot-separated segments of letters, numbers, - and _');
@@ -261,7 +261,7 @@ export function PropertyRow({
 
     setCreating(true);
     try {
-      await createToken(serverUrl, activeSet, tokenPath, createTokenValueBody({
+      await createToken(serverUrl, currentCollectionId, tokenPath, createTokenValueBody({
         type: tokenType,
         value: tokenValue,
         defaultScopes: getDefaultScopesForProperty(prop),
@@ -286,7 +286,7 @@ export function PropertyRow({
   };
 
   const handleOverwriteToken = async () => {
-    if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !activeSet) return;
+    if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !currentCollectionId) return;
     const currentValue = getCurrentValue(selectedNodes, prop);
     const tokenType = getTokenTypeForProperty(prop);
     const tokenValue = getTokenValueFromProp(prop, currentValue);
@@ -294,7 +294,7 @@ export function PropertyRow({
 
     setCreating(true);
     try {
-      await updateToken(serverUrl, activeSet, tokenPath, createTokenValueBody({
+      await updateToken(serverUrl, currentCollectionId, tokenPath, createTokenValueBody({
         type: tokenType,
         value: tokenValue,
         defaultScopes: getDefaultScopesForProperty(prop),
@@ -736,7 +736,7 @@ export function PropertyRow({
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Token path (set: {activeSet})</label>
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Token path (set: {currentCollectionId})</label>
               <input
                 ref={nameInputRef}
                 value={newTokenName}

@@ -25,7 +25,7 @@ export interface TokenPickerProps {
   /** All tokens available for selection. */
   allTokensFlat: Record<string, TokenMapEntry>;
   /** Maps token path → set name (shown as secondary info). */
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   /** Filter to only tokens of this type (e.g. 'color', 'dimension'). */
   filterType?: string;
   /** Called when a token is selected. */
@@ -96,7 +96,7 @@ function resolveEntry(
  */
 export function TokenPickerDropdown({
   allTokensFlat,
-  pathToSet = {},
+  pathToCollectionId = {},
   filterType,
   onSelect,
   onClose,
@@ -303,9 +303,9 @@ export function TokenPickerDropdown({
               )}
 
               {/* Set name */}
-              {pathToSet[path] && (
+              {pathToCollectionId[path] && (
                 <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-                  {pathToSet[path]}
+                  {pathToCollectionId[path]}
                 </span>
               )}
             </button>
@@ -339,7 +339,7 @@ export function TokenPickerField({
   onSelect,
   onClear,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   filterType,
   excludePaths,
   label,
@@ -466,7 +466,7 @@ export function TokenPickerField({
           <div className="absolute left-0 right-0 top-0">
             <TokenPickerDropdown
               allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
+              pathToCollectionId={pathToCollectionId}
               filterType={filterType}
               excludePaths={excludePaths}
               onSelect={handleSelect}

@@ -4,14 +4,14 @@ import { tokenPathToUrlSegment, isAbortError } from '../shared/utils';
 
 interface UseTokenDependentsParams {
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   tokenPath: string;
   isCreateMode: boolean;
 }
 
 export function useTokenDependents({
   serverUrl,
-  setName,
+  collectionId,
   tokenPath,
   isCreateMode,
 }: UseTokenDependentsParams) {
@@ -27,7 +27,7 @@ export function useTokenDependents({
       setDependentsLoading(true);
       try {
         const data = await apiFetch<{ dependents?: Array<{ path: string; collectionId: string }> }>(
-          `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`,
+          `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/dependents/${encodedTokenPath}`,
           { signal: controller.signal }
         );
         setDependents(data.dependents ?? []);
@@ -40,7 +40,7 @@ export function useTokenDependents({
     };
     fetchDependents();
     return () => controller.abort();
-  }, [serverUrl, setName, tokenPath, isCreateMode, encodedTokenPath]);
+  }, [serverUrl, collectionId, tokenPath, isCreateMode, encodedTokenPath]);
 
   return { dependents, dependentsLoading };
 }

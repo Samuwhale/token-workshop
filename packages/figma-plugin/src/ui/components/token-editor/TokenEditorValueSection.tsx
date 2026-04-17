@@ -40,7 +40,7 @@ export interface TokenEditorValueSectionProps {
   isCreateMode: boolean;
   extendsPath: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   /** The initial server value (for showing diffs). Null when creating. */
   initialValue: TokenEditorValue | null;
   // Typography-specific
@@ -70,7 +70,7 @@ export function TokenEditorValueSection({
   isCreateMode,
   extendsPath,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   initialValue,
   fontFamilyRef,
   fontSizeRef,
@@ -147,7 +147,7 @@ export function TokenEditorValueSection({
             value={value}
             onChange={setValue}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             autoFocus={!isCreateMode}
           />
         )}
@@ -156,7 +156,7 @@ export function TokenEditorValueSection({
             value={value}
             onChange={setValue}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             fontFamilyRef={fontFamilyRef}
             fontSizeRef={fontSizeRef}
             baseValue={baseValue}
@@ -169,7 +169,7 @@ export function TokenEditorValueSection({
             value={value}
             onChange={setValue}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             baseValue={baseValue}
           />
         )}
@@ -178,7 +178,7 @@ export function TokenEditorValueSection({
             value={value}
             onChange={setValue}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             baseValue={baseValue}
           />
         )}
@@ -187,7 +187,7 @@ export function TokenEditorValueSection({
             value={value}
             onChange={setValue}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
           />
         )}
         {tokenType === "number" && (
@@ -196,7 +196,7 @@ export function TokenEditorValueSection({
             value={value}
             onChange={setValue}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             autoFocus={!isCreateMode}
           />
         )}
@@ -246,7 +246,7 @@ export function TokenEditorValueSection({
             value={value}
             onChange={setValue}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
           />
         )}
         {tokenType === "fontStyle" && (

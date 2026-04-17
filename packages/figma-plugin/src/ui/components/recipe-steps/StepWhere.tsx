@@ -70,7 +70,7 @@ export interface StepWhereProps {
   name: string;
   targetCollection: string;
   targetGroup: string;
-  allSets: string[];
+  collectionIds: string[];
   isMultiBrand: boolean;
   targetCollectionTemplate: string;
   onNameChange: (v: string) => void;
@@ -88,7 +88,7 @@ export function StepWhere({
   name,
   targetCollection,
   targetGroup,
-  allSets,
+  collectionIds,
   isMultiBrand,
   targetCollectionTemplate,
   onNameChange,
@@ -143,7 +143,7 @@ export function StepWhere({
                 onChange={e => onTargetCollectionChange(e.target.value)}
                 className={AUTHORING.recipeControl}
               >
-                {allSets.map(s => <option key={s} value={s}>{s}</option>)}
+                {collectionIds.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           )}

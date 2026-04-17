@@ -9,7 +9,7 @@ interface FormulaInputProps {
   value: string;
   onChange: (value: string) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   filterType?: string;
   placeholder?: string;
   autoFocus?: boolean;
@@ -128,7 +128,7 @@ export function FormulaInput({
   value,
   onChange,
   allTokensFlat,
-  pathToSet = {},
+  pathToCollectionId = {},
   filterType,
   placeholder = '{spacing.base} * 2',
   autoFocus,
@@ -386,9 +386,9 @@ export function FormulaInput({
               </span>
 
               {/* Set name */}
-              {pathToSet[path] && (
+              {pathToCollectionId[path] && (
                 <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-                  {pathToSet[path]}
+                  {pathToCollectionId[path]}
                 </span>
               )}
             </button>

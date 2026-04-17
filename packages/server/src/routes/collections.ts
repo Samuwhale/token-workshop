@@ -18,18 +18,7 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
 ) => {
   fastify.get("/collections", async (_request, reply) => {
     try {
-      const state = await fastify.collectionService.loadState();
-      const counts = await fastify.collectionService.getCollectionTokenCounts();
-      return {
-        collections: state.collections.map((collection) => ({
-          id: collection.id,
-          name: collection.name,
-          description: collection.description,
-          tokenCount: counts[collection.id] ?? 0,
-          modes: structuredClone(collection.modes),
-        })),
-        views: state.views,
-      };
+      return await fastify.collectionService.getCollectionsOverview();
     } catch (err) {
       return handleRouteError(reply, err, "Failed to load collections");
     }

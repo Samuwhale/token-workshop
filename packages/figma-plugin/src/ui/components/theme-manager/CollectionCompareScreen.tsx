@@ -12,14 +12,14 @@ interface CollectionCompareScreenProps {
   onClearTokenPath: () => void;
   allTokensFlat: Record<string, any>;
   pathToCollectionId: Record<string, string>;
-  pathToStorageSet: Record<string, string>;
+  pathToStorageCollectionId: Record<string, string>;
   collections: TokenCollection[];
-  sets: string[];
+  collectionIds: string[];
   modeOptionsKey: number;
   modeOptionsDefaultA: string;
   modeOptionsDefaultB: string;
-  onEditToken: (setName: string, tokenPath: string) => void;
-  onCreateToken: (tokenPath: string, setName: string) => void;
+  onEditToken: (collectionId: string, tokenPath: string) => void;
+  onCreateToken: (tokenPath: string, collectionId: string) => void;
   onGoToTokens: () => void;
   serverUrl: string;
   onTokensCreated: () => void;
@@ -36,9 +36,9 @@ export function CollectionCompareScreen({
   onClearTokenPath,
   allTokensFlat,
   pathToCollectionId,
-  pathToStorageSet,
+  pathToStorageCollectionId,
   collections,
-  sets,
+  collectionIds,
   modeOptionsKey,
   modeOptionsDefaultA,
   modeOptionsDefaultB,
@@ -100,9 +100,9 @@ export function CollectionCompareScreen({
           onClearTokenPath={onClearTokenPath}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={pathToCollectionId}
-          pathToStorageSet={pathToStorageSet}
+          pathToStorageCollectionId={pathToStorageCollectionId}
           collections={collections}
-          sets={sets}
+          collectionIds={collectionIds}
           modeOptionsKey={modeOptionsKey}
           modeOptionsDefaultA={modeOptionsDefaultA}
           modeOptionsDefaultB={modeOptionsDefaultB}

@@ -77,33 +77,35 @@ export function ChangeRow({ change, restoreButton }: { change: TokenChange; rest
   );
 }
 
-interface ChangesBySetListProps {
+interface ChangesByCollectionListProps {
   changes: TokenChange[];
-  /** Collapse state for each set section — callers own this state and initialize it on data arrival */
+  /** Collapse state for each collection section — callers own this state and initialize it on data arrival */
   openSections: Record<string, boolean>;
   onToggleSection: (key: string) => void;
   /** Optional per-row action button (e.g. restore button in GitCommitsSource) */
   renderRowActions?: (change: TokenChange) => React.ReactNode;
-  /** Show a "N changes across M sets" summary bar above the list */
+  /** Show a "N changes across M collections" summary bar above the list */
   showSummaryBar?: boolean;
 }
 
 /**
- * Renders token changes grouped by set name. Each group is a collapsible
+ * Renders token changes grouped by collection id. Each group is a collapsible
  * Section with a ChangeSummaryBadges badge. Callers own the openSections state
  * and must initialize it (set all keys to true) when data arrives.
  */
-export function ChangesBySetList({
+export function ChangesByCollectionList({
   changes,
   openSections,
   onToggleSection,
   renderRowActions,
   showSummaryBar,
-}: ChangesBySetListProps) {
-  const bySet = new Map<string, TokenChange[]>();
+}: ChangesByCollectionListProps) {
+  const changesByCollection = new Map<string, TokenChange[]>();
   for (const change of changes) {
-    if (!bySet.has(change.set)) bySet.set(change.set, []);
-    bySet.get(change.set)!.push(change);
+    if (!changesByCollection.has(change.collectionId)) {
+      changesByCollection.set(change.collectionId, []);
+    }
+    changesByCollection.get(change.collectionId)!.push(change);
   }
 
   return (
@@ -112,22 +114,22 @@ export function ChangesBySetList({
         <div className="flex items-center gap-2 px-1 py-1">
           <ChangeSummaryBadges {...summarizeChanges(changes)} />
           <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-            across {bySet.size} set{bySet.size !== 1 ? 's' : ''}
+            across {changesByCollection.size} collection{changesByCollection.size !== 1 ? 's' : ''}
           </span>
         </div>
       )}
-      {Array.from(bySet.entries()).map(([setName, setChanges]) => {
-        const setSummary = summarizeChanges(setChanges);
+      {Array.from(changesByCollection.entries()).map(([collectionId, collectionChanges]) => {
+        const collectionSummary = summarizeChanges(collectionChanges);
         return (
           <Section
-            key={setName}
-            title={setName}
-            open={openSections[setName] ?? true}
-            onToggle={() => onToggleSection(setName)}
-            badge={<ChangeSummaryBadges {...setSummary} />}
+            key={collectionId}
+            title={collectionId}
+            open={openSections[collectionId] ?? true}
+            onToggle={() => onToggleSection(collectionId)}
+            badge={<ChangeSummaryBadges {...collectionSummary} />}
           >
             <div className="divide-y divide-[var(--color-figma-border)]">
-              {setChanges.map((change, i) => (
+              {collectionChanges.map((change, i) => (
                 <ChangeRow
                   key={`${change.path}-${i}`}
                   change={change}

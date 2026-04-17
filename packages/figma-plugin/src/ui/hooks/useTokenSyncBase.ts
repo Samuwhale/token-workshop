@@ -70,10 +70,10 @@ export interface TokenSyncConfig<
   /** Return true when local and figma entries differ */
   isConflict: (local: TLocal, figma: TFigma) => boolean;
 
-  /** Optional custom snapshot loader for compare flows that do not map 1:1 to the active set. */
+  /** Optional custom snapshot loader for compare flows that do not map 1:1 to the active collection. */
   loadSnapshot?: (params: {
     serverUrl: string;
-    activeSet: string;
+    currentCollectionId: string;
     signal?: AbortSignal;
     readFigmaTokens: () => Promise<unknown[]>;
   }) => Promise<SyncSnapshot<TLocal, TFigma, TRow>>;
@@ -122,7 +122,7 @@ export function useTokenSyncBase<
   TFigma = unknown,
 >(
   serverUrl: string,
-  activeSet: string,
+  currentCollectionId: string,
   config: TokenSyncConfig<TRow, TLocal, TFigma>,
 ): TokenSyncReturn<TRow> {
   const [rows, setRows] = useState<TRow[]>([]);
@@ -169,7 +169,7 @@ export function useTokenSyncBase<
   }, []);
 
   const computeDiff = useCallback(async () => {
-    if (!activeSet) return;
+    if (!currentCollectionId) return;
     const cfg = configRef.current;
     setLoading(true);
     setError(null);
@@ -178,13 +178,13 @@ export function useTokenSyncBase<
       const snapshot = cfg.loadSnapshot
         ? await cfg.loadSnapshot({
           serverUrl,
-          activeSet,
+          currentCollectionId,
           signal: createFetchSignal(),
           readFigmaTokens: cfg.readFigmaTokens,
         })
         : await loadSyncSnapshot({
           serverUrl,
-          activeSet,
+          currentCollectionId,
           readFigmaTokens: cfg.readFigmaTokens,
           signal: createFetchSignal(),
           buildFigmaMap: cfg.buildFigmaMap,
@@ -205,7 +205,7 @@ export function useTokenSyncBase<
     } finally {
       setLoading(false);
     }
-  }, [serverUrl, activeSet]);
+  }, [serverUrl, currentCollectionId]);
 
   const applyDiff = useCallback(async () => {
     const cfg = configRef.current;
@@ -236,7 +236,7 @@ export function useTokenSyncBase<
         try {
           const patches = pullRows.map(r => ({ path: r.path, patch: cfg.buildPullPayload(r) }));
           await apiFetch(
-            `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch-update`,
+            `${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/batch-update`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -300,7 +300,7 @@ export function useTokenSyncBase<
         progressRef.current = null;
       }
     }
-  }, [serverUrl, activeSet]);
+  }, [serverUrl, currentCollectionId]);
 
   const syncCount = Object.values(dirs).filter(d => d !== 'skip').length;
   const pushCount = Object.values(dirs).filter(d => d === 'push').length;

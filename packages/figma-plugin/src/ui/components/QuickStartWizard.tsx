@@ -13,7 +13,7 @@ import { createRecipeDraftFromTemplate } from '../hooks/useRecipeDialog';
 
 type TaskId = 'foundations' | 'semantics' | 'modes';
 type ChecklistView = 'list' | 'template-picker' | 'modes-inline';
-type PrereqPhase = 'connect' | 'create-set' | null;
+type PrereqPhase = 'connect' | 'create-collection' | null;
 
 interface SemanticData {
   tokens: GeneratedTokenResult[];
@@ -24,13 +24,13 @@ interface SemanticData {
 
 interface QuickStartWizardProps {
   serverUrl: string;
-  activeSet: string;
-  allSets: string[];
+  currentCollectionId: string;
+  collectionIds: string[];
   connected: boolean;
   checking?: boolean;
   onClose: () => void;
   onComplete: () => void;
-  onSetCreated?: (name: string) => void;
+  onCollectionCreated?: (name: string) => void;
   onRetryConnection?: () => void;
   embedded?: boolean;
   onBack?: () => void;
@@ -99,10 +99,10 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
 }
 
 // ---------------------------------------------------------------------------
-// Create Set Step
+// Create Collection Step
 // ---------------------------------------------------------------------------
 
-function CreateSetStep({ serverUrl, onCreated }: {
+function CreateCollectionStep({ serverUrl, onCreated }: {
   serverUrl: string;
   onCreated: (name: string) => void;
 }) {
@@ -142,11 +142,11 @@ function CreateSetStep({ serverUrl, onCreated }: {
       </div>
 
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-set-name">
+        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-collection-name">
           Collection name
         </label>
         <input
-          id="wizard-set-name"
+          id="wizard-collection-name"
           type="text"
           value={name}
           onChange={e => { setName(e.target.value); setError(''); }}
@@ -174,12 +174,12 @@ function CreateSetStep({ serverUrl, onCreated }: {
 }
 
 // ---------------------------------------------------------------------------
-// Theme Step (inline)
+// Mode Step (inline)
 // ---------------------------------------------------------------------------
 
-function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
+function ModeStep({ serverUrl, currentCollectionId, onDone, onSkip }: {
   serverUrl: string;
-  activeSet: string;
+  currentCollectionId: string;
   onDone: () => void;
   onSkip: () => void;
 }) {
@@ -190,18 +190,18 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
   const [done, setDone] = useState(false);
 
   const handleCreate = async () => {
-    if (!activeSet.trim()) { setError('Create a collection first'); return; }
+    if (!currentCollectionId.trim()) { setError('Create a collection first'); return; }
     if (!lightName.trim() || !darkName.trim()) { setError('Both option names are required'); return; }
     setSaving(true);
     setError('');
     try {
-      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(activeSet)}/modes`, {
+      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(currentCollectionId)}/modes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: lightName.trim() }),
       });
 
-      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(activeSet)}/modes`, {
+      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(currentCollectionId)}/modes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: darkName.trim() }),
@@ -220,7 +220,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
       <div className="flex flex-col items-center gap-2 py-4 text-center">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
         <p className="text-[11px] font-medium text-[var(--color-figma-text)]">
-          Added {lightName} / {darkName} to "{activeSet}"
+          Added {lightName} / {darkName} to "{currentCollectionId}"
         </p>
         <button
           onClick={onDone}
@@ -235,7 +235,7 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add modes to "{activeSet}"</p>
+        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add modes to "{currentCollectionId}"</p>
         <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
           Each collection owns its own modes, just like Figma collections.
         </p>
@@ -373,13 +373,13 @@ function TaskChecklist({ completedTasks, semanticData, connected, onSelect }: {
 
 export function QuickStartWizard({
   serverUrl,
-  activeSet,
-  allSets,
+  currentCollectionId,
+  collectionIds,
   connected,
   checking,
   onClose,
   onComplete,
-  onSetCreated,
+  onCollectionCreated,
   onRetryConnection,
   embedded = false,
   onBack,
@@ -387,46 +387,40 @@ export function QuickStartWizard({
   const [completedTasks, setCompletedTasks] = useState<Set<TaskId>>(new Set());
   const [checklistView, setChecklistView] = useState<ChecklistView>('list');
 
-  // Prereq phase state
   const [prereqPhase, setPrereqPhase] = useState<PrereqPhase>(() => {
     if (!connected) return 'connect';
-    if (allSets.length === 0) return 'create-set';
+    if (collectionIds.length === 0) return 'create-collection';
     return null;
   });
 
-  const [wizardCreatedSet, setWizardCreatedSet] = useState<string | null>(null);
-  const effectiveActiveSet = wizardCreatedSet || activeSet;
+  const [wizardCreatedCollection, setWizardCreatedCollection] = useState<string | null>(null);
+  const effectiveCollectionId = wizardCreatedCollection || currentCollectionId;
 
-  const allSetsRef = useRef(allSets);
-  allSetsRef.current = allSets;
+  const collectionIdsRef = useRef(collectionIds);
+  collectionIdsRef.current = collectionIds;
   useEffect(() => {
     if (connected && prereqPhase === 'connect') {
-      setPrereqPhase(allSetsRef.current.length === 0 ? 'create-set' : null);
+      setPrereqPhase(collectionIdsRef.current.length === 0 ? 'create-collection' : null);
     }
   }, [connected, prereqPhase]);
 
-  // Data passed from foundations → semantics
   const [semanticData, setSemanticData] = useState<SemanticData | null>(null);
 
-  // Dialog overlay state
   const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(null);
   const [showSemanticDialog, setShowSemanticDialog] = useState(false);
 
-  // Track whether semantic intercept fired during current recipe session
   const semanticInterceptFired = useRef(false);
 
   const markCompleted = useCallback((task: TaskId) => {
     setCompletedTasks(prev => new Set([...prev, task]));
   }, []);
 
-  // Prereq: set created
-  const handleSetCreated = useCallback((name: string) => {
-    setWizardCreatedSet(name);
-    onSetCreated?.(name);
+  const handleCollectionCreated = useCallback((name: string) => {
+    setWizardCreatedCollection(name);
+    onCollectionCreated?.(name);
     setPrereqPhase(null);
-  }, [onSetCreated]);
+  }, [onCollectionCreated]);
 
-  // Foundations handlers
   const handleFoundationsInterceptSemantic = useCallback((data: SemanticData) => {
     setSemanticData(data);
     semanticInterceptFired.current = true;
@@ -446,7 +440,6 @@ export function QuickStartWizard({
     setSelectedTemplate(null);
   }, []);
 
-  // Semantics handlers
   const handleSemanticsCreated = useCallback(() => {
     setShowSemanticDialog(false);
     markCompleted('semantics');
@@ -456,7 +449,6 @@ export function QuickStartWizard({
     setShowSemanticDialog(false);
   }, []);
 
-  // Modes handlers
   const handleModesDone = useCallback(() => {
     setChecklistView('list');
     markCompleted('modes');
@@ -466,7 +458,6 @@ export function QuickStartWizard({
     setChecklistView('list');
   }, []);
 
-  // Task selection
   const handleTaskSelect = useCallback((taskId: TaskId) => {
     switch (taskId) {
       case 'foundations':
@@ -481,9 +472,7 @@ export function QuickStartWizard({
     }
   }, []);
 
-  // -- Prereq phase rendering --
-
-  if (prereqPhase === 'connect' || prereqPhase === 'create-set') {
+  if (prereqPhase === 'connect' || prereqPhase === 'create-collection') {
     const prereqContent = (
       <>
         {!embedded && (
@@ -504,10 +493,10 @@ export function QuickStartWizard({
               onClose={embedded && onBack ? onBack : onClose}
             />
           )}
-          {prereqPhase === 'create-set' && (
-            <CreateSetStep
+          {prereqPhase === 'create-collection' && (
+            <CreateCollectionStep
               serverUrl={serverUrl}
-              onCreated={handleSetCreated}
+              onCreated={handleCollectionCreated}
             />
           )}
         </div>
@@ -527,18 +516,14 @@ export function QuickStartWizard({
     );
   }
 
-  // -- Conditional replacement: when a sub-dialog is active, render it
-  // directly instead of the wizard. This avoids simultaneous overlays
-  // AND gives each dialog the full viewport width it was designed for. --
-
   if (selectedTemplate) {
     return (
       <TokenRecipeDialog
         serverUrl={serverUrl}
-        activeSet={effectiveActiveSet}
-        allSets={allSets}
+        currentCollectionId={effectiveCollectionId}
+        collectionIds={collectionIds}
         template={selectedTemplate}
-        initialDraft={createRecipeDraftFromTemplate(selectedTemplate, effectiveActiveSet)}
+        initialDraft={createRecipeDraftFromTemplate(selectedTemplate, effectiveCollectionId)}
         onBack={handleTemplateBack}
         onClose={onClose}
         onInterceptSemanticMapping={handleFoundationsInterceptSemantic}
@@ -560,8 +545,6 @@ export function QuickStartWizard({
       />
     );
   }
-
-  // -- Main checklist --
 
   const hasCompletedAny = completedTasks.size > 0;
 
@@ -649,9 +632,9 @@ export function QuickStartWizard({
         {checklistView === 'modes-inline' && (
           <div className="p-3 flex flex-col gap-2">
 
-            <ThemeStep
+            <ModeStep
               serverUrl={serverUrl}
-              activeSet={effectiveActiveSet}
+              currentCollectionId={effectiveCollectionId}
               onDone={handleModesDone}
               onSkip={handleModesBack}
             />

@@ -145,7 +145,7 @@ function GitPreviewModal({
   const bySet = useMemo(() => {
     if (!preview?.changes) {
       return [] as Array<{
-        set: string;
+        collectionId: string;
         added: import('../../hooks/useGitDiff').TokenChange[];
         modified: import('../../hooks/useGitDiff').TokenChange[];
         removed: import('../../hooks/useGitDiff').TokenChange[];
@@ -157,15 +157,18 @@ function GitPreviewModal({
       removed: import('../../hooks/useGitDiff').TokenChange[];
     }>();
     for (const change of preview.changes) {
-      if (!map.has(change.set)) {
-        map.set(change.set, { added: [], modified: [], removed: [] });
+      if (!map.has(change.collectionId)) {
+        map.set(change.collectionId, { added: [], modified: [], removed: [] });
       }
-      const entry = map.get(change.set)!;
+      const entry = map.get(change.collectionId)!;
       if (change.status === 'added') entry.added.push(change);
       else if (change.status === 'modified') entry.modified.push(change);
       else entry.removed.push(change);
     }
-    return [...map.entries()].map(([set, value]) => ({ set, ...value }));
+    return [...map.entries()].map(([collectionId, value]) => ({
+      collectionId,
+      ...value,
+    }));
   }, [preview?.changes]);
 
   const totalAdded = bySet.reduce((count, set) => count + set.added.length, 0);
@@ -252,19 +255,19 @@ function GitPreviewModal({
                     {totalModified > 0 && <span className="text-[var(--color-figma-warning,#e5a000)]">~{totalModified} modified</span>}
                     {totalRemoved > 0 && <span className="text-[var(--color-figma-error)]">−{totalRemoved} removed</span>}
                     <span className="text-[var(--color-figma-text-secondary)] ml-auto">
-                      {bySet.length} set{bySet.length !== 1 ? 's' : ''}
+                      {bySet.length} collection{bySet.length !== 1 ? 's' : ''}
                     </span>
                   </div>
 
                   <div className="space-y-px">
-                    {bySet.map(({ set, added, modified, removed }) => {
-                      const isExpanded = expandedSets.has(set);
+                    {bySet.map(({ collectionId, added, modified, removed }) => {
+                      const isExpanded = expandedSets.has(collectionId);
                       const allChanges = [...added, ...modified, ...removed];
                       return (
-                        <div key={set} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                        <div key={collectionId} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                           <button
                             className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                            onClick={() => toggleSet(set)}
+                            onClick={() => toggleSet(collectionId)}
                           >
                             <svg
                               width="8"
@@ -275,7 +278,7 @@ function GitPreviewModal({
                             >
                               <path d="M2 1l4 3-4 3V1z" />
                             </svg>
-                            <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 truncate">{set}</span>
+                            <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 truncate">{collectionId}</span>
                             <span className="flex items-center gap-2 text-[10px] font-mono shrink-0">
                               {added.length > 0 && <span className="text-[var(--color-figma-success)]">+{added.length}</span>}
                               {modified.length > 0 && <span className="text-[var(--color-figma-warning,#e5a000)]">~{modified.length}</span>}
@@ -364,14 +367,18 @@ function CommitPreviewModal({
 
   const relevantTokenChanges = useMemo(() => {
     if (!tokenPreview) return [];
-    const selectedSetNames = new Set(selectedFiles.map(file => file.replace('.tokens.json', '')));
-    return tokenPreview.filter(change => selectedSetNames.has(change.set));
+    const selectedCollectionIds = new Set(
+      selectedFiles.map((file) => file.replace('.tokens.json', '')),
+    );
+    return tokenPreview.filter((change) =>
+      selectedCollectionIds.has(change.collectionId),
+    );
   }, [selectedFiles, tokenPreview]);
 
   const changesByFile = useMemo(() => {
     const map = new Map<string, import('../../hooks/useGitDiff').TokenChange[]>();
     for (const change of relevantTokenChanges) {
-      const fileName = `${change.set}.tokens.json`;
+      const fileName = `${change.collectionId}.tokens.json`;
       const existing = map.get(fileName);
       if (existing) existing.push(change);
       else map.set(fileName, [change]);

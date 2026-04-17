@@ -25,7 +25,7 @@ interface AliasPickerProps {
   reference: string;
   tokenType: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   onToggleAlias: () => void;
   onReferenceChange: (ref: string) => void;
   showAutocomplete: boolean;
@@ -37,7 +37,7 @@ interface AliasPickerProps {
 
 export function AliasPicker({
   aliasMode, reference, tokenType,
-  allTokensFlat, pathToSet,
+  allTokensFlat, pathToCollectionId,
   onToggleAlias, onReferenceChange,
   showAutocomplete, onShowAutocompleteChange,
   aliasHasCycle, refInputRef,
@@ -117,7 +117,7 @@ export function AliasPicker({
               <AliasAutocomplete
                 query={reference.includes('{') ? reference.slice(reference.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
                 allTokensFlat={allTokensFlat}
-                pathToSet={pathToSet}
+                pathToCollectionId={pathToCollectionId}
                 filterType={tokenType}
                 onSelect={path => {
                   onReferenceChange(`{${path}}`);

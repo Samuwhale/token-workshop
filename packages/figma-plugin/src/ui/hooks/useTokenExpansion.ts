@@ -1,45 +1,51 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import { collectGroupPathsByDepth, collectAllGroupPaths } from '../components/tokenListUtils';
-import { lsGetJson, lsSetJson } from '../shared/storage';
+import { STORAGE_KEY_BUILDERS, lsGetJson, lsSetJson } from '../shared/storage';
 
 export interface UseTokenExpansionParams {
-  setName: string;
+  collectionId: string;
   tokens: TokenNode[];
   highlightedToken?: string | null;
   onClearHighlight?: () => void;
 }
 
 export function useTokenExpansion({
-  setName,
+  collectionId,
   tokens,
   highlightedToken,
   onClearHighlight,
 }: UseTokenExpansionParams) {
-  const setNameRef = useRef(setName);
-  setNameRef.current = setName;
-  const initializedForSet = useRef<string | null>(null);
+  const collectionIdRef = useRef(collectionId);
+  collectionIdRef.current = collectionId;
+  const initializedForCollection = useRef<string | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [expandedChains, setExpandedChains] = useState<Set<string>>(new Set());
 
-  // Initialize from localStorage on set change
+  // Initialize from localStorage on collection change.
   useEffect(() => {
     if (tokens.length === 0) {
-      initializedForSet.current = null;
+      initializedForCollection.current = null;
       setExpandedPaths(new Set());
       return;
     }
-    if (initializedForSet.current === setName) return;
-    initializedForSet.current = setName;
+    if (initializedForCollection.current === collectionId) return;
+    initializedForCollection.current = collectionId;
     const fallback = collectGroupPathsByDepth(tokens, 2);
-    const stored = lsGetJson<string[]>(`token-expand:${setName}`, fallback);
+    const stored = lsGetJson<string[]>(
+      STORAGE_KEY_BUILDERS.tokenExpansion(collectionId),
+      fallback,
+    );
     setExpandedPaths(new Set(stored));
-  }, [setName, tokens]);
+  }, [collectionId, tokens]);
 
   // Persist to localStorage
   useEffect(() => {
-    if (initializedForSet.current !== setNameRef.current) return;
-    lsSetJson(`token-expand:${setNameRef.current}`, [...expandedPaths]);
+    if (initializedForCollection.current !== collectionIdRef.current) return;
+    lsSetJson(
+      STORAGE_KEY_BUILDERS.tokenExpansion(collectionIdRef.current),
+      [...expandedPaths],
+    );
   }, [expandedPaths]);
 
   // Expand ancestors when highlightedToken changes
@@ -88,8 +94,8 @@ export function useTokenExpansion({
   }, []);
 
   return {
-    initializedForSet,
-    setNameRef,
+    initializedForCollection,
+    collectionIdRef,
     expandedPaths,
     setExpandedPaths,
     expandedChains,

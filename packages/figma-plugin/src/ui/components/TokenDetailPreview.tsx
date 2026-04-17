@@ -20,9 +20,9 @@ import { TokenStateSummary } from "./token-editor/TokenStateSummary";
 interface TokenDetailPreviewProps {
   tokenPath: string;
   tokenName?: string;
-  storageSetName: string;
+  storageCollectionId: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   tokenUsageCounts?: Record<string, number>;
   recipes?: TokenRecipe[];
   recipesBySource?: Map<string, TokenRecipe[]>;
@@ -40,9 +40,9 @@ interface TokenDetailPreviewProps {
 export function TokenDetailPreview({
   tokenPath,
   tokenName,
-  storageSetName,
+  storageCollectionId,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   tokenUsageCounts,
   recipes,
   recipesBySource,
@@ -67,9 +67,9 @@ export function TokenDetailPreview({
       rawValue,
       type,
       allTokensFlat,
-      pathToSet,
+      pathToCollectionId,
     );
-  }, [tokenPath, rawValue, type, allTokensFlat, pathToSet]);
+  }, [tokenPath, rawValue, type, allTokensFlat, pathToCollectionId]);
 
   const resolved = useMemo(() => {
     if (!rawValue) return null;
@@ -96,8 +96,8 @@ export function TokenDetailPreview({
   };
   const dependencySnapshot = useMemo(
     () =>
-      buildTokenDependencySnapshot(tokenPath, allTokensFlat, pathToSet ?? {}),
-    [tokenPath, allTokensFlat, pathToSet],
+      buildTokenDependencySnapshot(tokenPath, allTokensFlat, pathToCollectionId ?? {}),
+    [tokenPath, allTokensFlat, pathToCollectionId],
   );
   const dependentNodes = dependencySnapshot?.dependentNodes ?? [];
   const directAliasPath =
@@ -112,11 +112,12 @@ export function TokenDetailPreview({
   }, [recipesBySource, recipes, tokenPath]);
   const derivedRecipe = derivedTokenPaths?.get(
     createRecipeOwnershipKey(
-      pathToSet?.[tokenPath] ?? storageSetName,
+      pathToCollectionId?.[tokenPath] ?? storageCollectionId,
       tokenPath,
     ),
   );
-  const tokenSetName = pathToSet?.[tokenPath] ?? storageSetName;
+  const tokenCollectionId =
+    pathToCollectionId?.[tokenPath] ?? storageCollectionId;
   const usageCount = tokenUsageCounts?.[tokenPath] ?? 0;
   const presentation = readTokenPresentationMetadata(entry);
   const syncChanged = useMemo(() => {
@@ -213,7 +214,7 @@ export function TokenDetailPreview({
               {type}
             </span>
             <span className="text-[8px] text-[var(--color-figma-text-tertiary)]">
-              {tokenSetName}
+              {tokenCollectionId}
             </span>
           </div>
           {(lintViolations.length > 0 || syncChanged) && (
@@ -433,7 +434,8 @@ export function TokenDetailPreview({
                           node.path.split(".").pop() ?? node.path,
                         )}
                       </span>
-                      {node.collectionId && node.collectionId !== storageSetName && (
+                      {node.collectionId &&
+                        node.collectionId !== storageCollectionId && (
                         <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-px text-[8px] text-[var(--color-figma-text-secondary)]">
                           {node.collectionId}
                         </span>

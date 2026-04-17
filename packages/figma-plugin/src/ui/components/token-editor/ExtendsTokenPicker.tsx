@@ -6,13 +6,13 @@ import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
 export function ExtendsTokenPicker({
   tokenType,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   currentPath,
   onSelect,
 }: {
   tokenType: string;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   currentPath: string;
   onSelect: (path: string) => void;
 }) {
@@ -95,7 +95,7 @@ export function ExtendsTokenPicker({
               setSearch("");
             }}
             className={`${LONG_TEXT_CLASSES.monoPrimary} w-full px-2 py-1 text-left text-[11px] hover:bg-[var(--color-figma-bg-hover)]`}
-            title={`${p} (${pathToSet[p] || ""})`}
+            title={`${p} (${pathToCollectionId[p] || ""})`}
           >
             {p}
           </button>

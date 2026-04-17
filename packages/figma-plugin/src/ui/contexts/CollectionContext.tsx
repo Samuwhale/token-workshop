@@ -1,25 +1,14 @@
 /**
- * CollectionContext — split into two focused sub-contexts to minimise cascade
- * re-renders caused by unrelated state changes:
+ * CollectionContext — owns collection-specific UI state that is intentionally
+ * separate from the canonical collection authoring state in TokenDataContext.
  *
- *   CollectionSwitcherContext — collection/mode selection UI state, selected
- *                          modes, hover preview, and the derived modeResolvedTokensFlat memo.
- *                          `hoverPreviewModes` changes on every hover, so this
- *                          context is intentionally isolated from resolver state.
- *   ResolverContext      — DTCG resolver config and output previews.
- *                          Exposes the ResolverState interface directly so callers
- *                          can use `const resolverState = useResolverContext()`.
- *
- * `CollectionProvider` is a thin wrapper that stacks both providers. Resolver state
- * stays separate from the canonical collection-and-mode view exposed by
- * CollectionSwitcherContext.
+ *   CollectionUiContext — transient dropdown/open UI state only
+ *   ResolverContext     — DTCG resolver config and output previews
  */
 
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useMemo, useEffect, useRef, useState } from 'react';
 import type { RefObject, ReactNode } from 'react';
 import { useConnectionContext } from './ConnectionContext';
-import { useTokenSetsContext, useTokenFlatMapContext } from './TokenDataContext';
-import { useCollectionSwitcher } from '../hooks/useCollectionSwitcher';
 import { useResolvers } from '../hooks/useResolvers';
 import type {
   ResolverMeta,
@@ -27,14 +16,9 @@ import type {
   ResolverSelectionOrigin,
 } from '../hooks/useResolvers';
 import type { TokenMapEntry } from '../../shared/types';
-import type { SelectedModes, TokenCollection, ResolverFile } from '@tokenmanager/core';
+import type { ResolverFile } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-/** Resolver state is exposed directly from useResolverContext(). */
 export interface ResolverState {
   resolvers: ResolverMeta[];
   resolverLoadErrors: Record<string, { message: string; at: string }>;
@@ -52,64 +36,43 @@ export interface ResolverState {
   deleteResolver: (name: string) => Promise<void>;
   getResolverFile: (name: string) => Promise<ResolverFile>;
   updateResolver: (name: string, file: ResolverFile) => Promise<void>;
-  /** Register the undo push handler — call from App.tsx after mount. */
   setPushUndo: (fn: ((slot: UndoSlot) => void) | undefined) => void;
 }
 
-export interface CollectionSwitcherContextValue {
-  // ---- useCollectionSwitcher ------------------------------------------------
-  collections: TokenCollection[];
-  setCollections: React.Dispatch<React.SetStateAction<TokenCollection[]>>;
-  selectedModes: SelectedModes;
-  setSelectedModes: (map: SelectedModes) => void;
-  hoverPreviewModes: SelectedModes;
-  setHoverPreviewModes: React.Dispatch<React.SetStateAction<SelectedModes>>;
+export interface CollectionUiContextValue {
   openCollectionDropdown: string | null;
   setOpenCollectionDropdown: React.Dispatch<React.SetStateAction<string | null>>;
   collectionBarExpanded: boolean;
   setCollectionBarExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   collectionDropdownRef: RefObject<HTMLDivElement>;
-  collectionsError: string | null;
-  retryCollections: () => void;
-
-  // ---- Derived memos -------------------------------------------------------
-  /** Tokens resolved through the active collection/mode selections only. */
-  modeResolvedTokensFlat: Record<string, TokenMapEntry>;
 }
-
-// ---------------------------------------------------------------------------
-// Contexts and hooks
-// ---------------------------------------------------------------------------
 
 const ResolverContext = createContext<ResolverState | null>(null);
-const CollectionSwitcherContext = createContext<CollectionSwitcherContextValue | null>(null);
+const CollectionUiContext = createContext<CollectionUiContextValue | null>(null);
 
 export function useResolverContext(): ResolverState {
-  const ctx = useContext(ResolverContext);
-  if (!ctx) throw new Error('useResolverContext must be used inside CollectionProvider');
-  return ctx;
+  const context = useContext(ResolverContext);
+  if (!context) throw new Error('useResolverContext must be used inside CollectionProvider');
+  return context;
 }
 
-export function useCollectionSwitcherContext(): CollectionSwitcherContextValue {
-  const ctx = useContext(CollectionSwitcherContext);
-  if (!ctx) throw new Error('useCollectionSwitcherContext must be used inside CollectionProvider');
-  return ctx;
+export function useCollectionUiContext(): CollectionUiContextValue {
+  const context = useContext(CollectionUiContext);
+  if (!context) throw new Error('useCollectionUiContext must be used inside CollectionProvider');
+  return context;
 }
 
-// ---------------------------------------------------------------------------
-// Providers
-// ---------------------------------------------------------------------------
-
-function ResolverProvider({ children, serverUrl, connected }: {
+function ResolverProvider({
+  children,
+  serverUrl,
+  connected,
+}: {
   children: ReactNode;
   serverUrl: string;
   connected: boolean;
 }) {
   const resolverState = useResolvers(serverUrl, connected);
 
-  // useResolvers already returns a stable reference for its callbacks —
-  // wrap the whole object in a memo keyed on each field so consumers
-  // only re-render when something they actually care about changes.
   const value = useMemo<ResolverState>(
     () => ({
       resolvers: resolverState.resolvers,
@@ -158,72 +121,54 @@ function ResolverProvider({ children, serverUrl, connected }: {
   );
 }
 
-function CollectionSwitcherProvider({ children, serverUrl, connected }: {
-  children: ReactNode;
-  serverUrl: string;
-  connected: boolean;
-}) {
-  const { tokenRevision } = useTokenSetsContext();
-  const { allTokensFlat, pathToSet: pathToCollectionId } = useTokenFlatMapContext();
+function CollectionUiProvider({ children }: { children: ReactNode }) {
+  const [openCollectionDropdown, setOpenCollectionDropdown] = useState<string | null>(null);
+  const [collectionBarExpanded, setCollectionBarExpanded] = useState(false);
+  const collectionDropdownRef = useRef<HTMLDivElement>(null);
 
-  const {
-    collections, setCollections,
-    selectedModes, setSelectedModes,
-    hoverPreviewModes, setHoverPreviewModes,
-    openCollectionDropdown, setOpenCollectionDropdown,
-    collectionBarExpanded, setCollectionBarExpanded,
-    collectionDropdownRef,
-    modeResolvedTokensFlat: modeOnlyTokensFlat,
-    collectionsError, retryCollections,
-  } = useCollectionSwitcher(
-    serverUrl,
-    connected,
-    tokenRevision,
-    allTokensFlat,
-    pathToCollectionId,
-  );
+  useEffect(() => {
+    if (!openCollectionDropdown) return;
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (collectionDropdownRef.current && !collectionDropdownRef.current.contains(event.target as Node)) {
+        setOpenCollectionDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleDocumentMouseDown);
+    return () => document.removeEventListener('mousedown', handleDocumentMouseDown);
+  }, [openCollectionDropdown]);
 
-  const value = useMemo<CollectionSwitcherContextValue>(
+  const value = useMemo<CollectionUiContextValue>(
     () => ({
-      collections, setCollections,
-      selectedModes, setSelectedModes,
-      hoverPreviewModes, setHoverPreviewModes,
-      openCollectionDropdown, setOpenCollectionDropdown,
-      collectionBarExpanded, setCollectionBarExpanded,
-      collectionDropdownRef, collectionsError, retryCollections,
-      modeResolvedTokensFlat: modeOnlyTokensFlat,
+      openCollectionDropdown,
+      setOpenCollectionDropdown,
+      collectionBarExpanded,
+      setCollectionBarExpanded,
+      collectionDropdownRef,
     }),
     [
-      collections, setCollections,
-      selectedModes, setSelectedModes,
-      hoverPreviewModes, setHoverPreviewModes,
-      openCollectionDropdown, setOpenCollectionDropdown,
-      collectionBarExpanded, setCollectionBarExpanded,
-      collectionDropdownRef, collectionsError, retryCollections,
-      modeOnlyTokensFlat,
+      openCollectionDropdown,
+      setOpenCollectionDropdown,
+      collectionBarExpanded,
+      setCollectionBarExpanded,
+      collectionDropdownRef,
     ],
   );
 
   return (
-    <CollectionSwitcherContext.Provider value={value}>
+    <CollectionUiContext.Provider value={value}>
       {children}
-    </CollectionSwitcherContext.Provider>
+    </CollectionUiContext.Provider>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Public wrapper — stacks both providers (ResolverProvider first so
-// CollectionSwitcherProvider can read from it)
-// ---------------------------------------------------------------------------
 
 export function CollectionProvider({ children }: { children: ReactNode }) {
   const { serverUrl, connected } = useConnectionContext();
 
   return (
     <ResolverProvider serverUrl={serverUrl} connected={connected}>
-      <CollectionSwitcherProvider serverUrl={serverUrl} connected={connected}>
+      <CollectionUiProvider>
         {children}
-      </CollectionSwitcherProvider>
+      </CollectionUiProvider>
     </ResolverProvider>
   );
 }

@@ -8,11 +8,11 @@ interface ContrastCheckerProps {
   tokenPath: string;
   value: any;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   colorFlatMap: Record<string, unknown>;
 }
 
-export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToSet, colorFlatMap }: ContrastCheckerProps) {
+export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollectionId, colorFlatMap }: ContrastCheckerProps) {
   const [showContrast, setShowContrast] = useState(false);
   const [bgTokenPath, setBgTokenPath] = useState<string>('');
   const [bgQuery, setBgQuery] = useState('');
@@ -65,7 +65,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToSet, co
                   <AliasAutocomplete
                     query={bgQuery}
                     allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
+                    pathToCollectionId={pathToCollectionId}
                     filterType="color"
                     onSelect={path => { setBgTokenPath(path); setBgQuery(''); setBgSearchOpen(false); }}
                     onClose={() => setBgSearchOpen(false)}

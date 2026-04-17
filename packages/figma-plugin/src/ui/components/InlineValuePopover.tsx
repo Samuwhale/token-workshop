@@ -35,7 +35,7 @@ export interface InlineValuePopoverProps {
   tokenType: string;
   currentValue: unknown;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   /** Bounding rect of the token row — used to position the popover */
   anchorRect: DOMRect;
   onSave: (
@@ -54,29 +54,29 @@ function TypeEditor({
   value,
   onChange,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
 }: {
   type: string;
   value: unknown;
   onChange: (v: unknown) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
 }) {
   switch (type) {
     case 'shadow':
-      return <ShadowEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />;
+      return <ShadowEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} />;
     case 'border':
-      return <BorderEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />;
+      return <BorderEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} />;
     case 'typography':
-      return <TypographyEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />;
+      return <TypographyEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} />;
     case 'gradient':
-      return <GradientEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />;
+      return <GradientEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} />;
     case 'composition':
-      return <CompositionEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />;
+      return <CompositionEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} />;
     case 'cubicBezier':
       return <CubicBezierEditor value={value} onChange={onChange} />;
     case 'transition':
-      return <TransitionEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />;
+      return <TransitionEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} />;
     case 'strokeStyle':
       return <StrokeStyleEditor value={value} onChange={onChange} />;
     case 'fontStyle':
@@ -112,14 +112,14 @@ function AliasEditor({
   aliasQuery,
   setAliasQuery,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   onSelect,
 }: {
   tokenType: string;
   aliasQuery: string;
   setAliasQuery: (q: string) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
   onSelect: (path: string) => void;
 }) {
   return (
@@ -136,7 +136,7 @@ function AliasEditor({
       <AliasAutocomplete
         query={aliasQuery}
         allTokensFlat={allTokensFlat}
-        pathToSet={pathToSet}
+        pathToCollectionId={pathToCollectionId}
         filterType={tokenType || undefined}
         onSelect={onSelect}
         onClose={() => {}}
@@ -154,7 +154,7 @@ export function InlineValuePopover({
   tokenType,
   currentValue,
   allTokensFlat,
-  pathToSet = {},
+  pathToCollectionId = {},
   anchorRect,
   onSave,
   onOpenFullEditor,
@@ -281,7 +281,7 @@ export function InlineValuePopover({
             aliasQuery={aliasQuery}
             setAliasQuery={setAliasQuery}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             onSelect={handleAliasSelect}
           />
         ) : (
@@ -290,7 +290,7 @@ export function InlineValuePopover({
             value={draftValue}
             onChange={setDraftValue}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
           />
         )}
       </div>

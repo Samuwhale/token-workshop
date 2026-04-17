@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenRecipe } from './useRecipes';
-import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson, ssGet, ssSet } from '../shared/storage';
+import { STORAGE_KEY_BUILDERS, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson, ssGet, ssSet } from '../shared/storage';
 import { ALL_TOKEN_TYPES } from '../shared/tokenTypeCategories';
 
 export interface FilterPreset {
@@ -23,9 +23,9 @@ import { apiFetch } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
 export interface UseTokenSearchParams {
-  setName: string;
+  collectionId: string;
   tokens: TokenNode[];
-  sets: string[];
+  collectionIds: string[];
   serverUrl: string;
   onOpenCommandPaletteWithQuery?: (q: string) => void;
   virtualScrollTopRef: React.MutableRefObject<number>;
@@ -50,9 +50,9 @@ export interface UseTokenSearchParams {
 }
 
 export function useTokenSearch({
-  setName,
+  collectionId,
   tokens,
-  sets: _sets,
+  collectionIds: _collectionIds,
   serverUrl,
   onOpenCommandPaletteWithQuery: _onOpenCommandPaletteWithQuery,
   virtualScrollTopRef,
@@ -88,11 +88,11 @@ export function useTokenSearch({
   });
 
   useEffect(() => {
-    setTypeFilterState(lsGet(STORAGE_KEY.tokenTypeFilter(setName), ''));
-  }, [setName]);
+    setTypeFilterState(lsGet(STORAGE_KEY_BUILDERS.tokenTypeFilter(collectionId), ''));
+  }, [collectionId]);
 
-  // Declared before setSearchQuery to avoid TDZ — setSearchQuery references crossSetSearch
-  const [crossSetSearch, setCrossSetSearch] = useState(false);
+  // Declared before setSearchQuery to avoid TDZ — setSearchQuery references crossCollectionSearch
+  const [crossCollectionSearch, setCrossCollectionSearch] = useState(false);
 
   const saveScrollAnchor = useCallback(() => {
     const top = virtualScrollTopRef.current;
@@ -113,8 +113,8 @@ export function useTokenSearch({
   const setTypeFilter = useCallback((v: string) => {
     saveScrollAnchor();
     setTypeFilterState(v);
-    lsSet(STORAGE_KEY.tokenTypeFilter(setName), v);
-  }, [saveScrollAnchor, setName]);
+    lsSet(STORAGE_KEY_BUILDERS.tokenTypeFilter(collectionId), v);
+  }, [saveScrollAnchor, collectionId]);
 
   const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
     saveScrollAnchor();
@@ -175,24 +175,24 @@ export function useTokenSearch({
     return () => clearTimeout(timer);
   }, [tokens]);
 
-  // Cross-set search: debounced server-side search across all sets
-  const [crossSetResults, setCrossSetResults] = useState<Array<{ collectionId: string; path: string; entry: TokenMapEntry }> | null>(null);
-  const [crossSetTotal, setCrossSetTotal] = useState<number>(0);
-  const [crossSetOffset, setCrossSetOffset] = useState<number>(0);
-  const crossSetAbortRef = useRef<AbortController | null>(null);
-  const CROSS_SET_PAGE_SIZE = 200;
+  // Cross-collection search: debounced server-side search across all collections
+  const [crossCollectionResults, setCrossCollectionResults] = useState<Array<{ collectionId: string; path: string; entry: TokenMapEntry }> | null>(null);
+  const [crossCollectionTotal, setCrossCollectionTotal] = useState<number>(0);
+  const [crossCollectionOffset, setCrossCollectionOffset] = useState<number>(0);
+  const crossCollectionAbortRef = useRef<AbortController | null>(null);
+  const CROSS_COLLECTION_PAGE_SIZE = 200;
 
   // Reset offset when query changes
   useEffect(() => {
-    setCrossSetOffset(0);
-  }, [crossSetSearch, searchQuery]);
+    setCrossCollectionOffset(0);
+  }, [crossCollectionSearch, searchQuery]);
 
   useEffect(() => {
-    if (!crossSetSearch || !searchQuery.trim()) {
-      // When cross-set mode is active but no query, return null so the normal tree renders
-      // (rather than [] which would show "No tokens found across all sets")
-      setCrossSetResults(null);
-      setCrossSetTotal(0);
+    if (!crossCollectionSearch || !searchQuery.trim()) {
+      // When cross-collection mode is active but no query, return null so the normal tree renders
+      // (rather than [] which would show "No tokens found across all collections")
+      setCrossCollectionResults(null);
+      setCrossCollectionTotal(0);
       return;
     }
     const parsed = parseStructuredQuery(searchQuery);
@@ -204,12 +204,12 @@ export function useTokenSearch({
     if (parsed.descs.length) params.set('desc', parsed.descs.join(','));
     if (parsed.paths.length) params.set('path', parsed.paths.join(','));
     if (parsed.names.length) params.set('name', parsed.names.join(','));
-    params.set('limit', String(CROSS_SET_PAGE_SIZE));
-    if (crossSetOffset > 0) params.set('offset', String(crossSetOffset));
+    params.set('limit', String(CROSS_COLLECTION_PAGE_SIZE));
+    if (crossCollectionOffset > 0) params.set('offset', String(crossCollectionOffset));
 
-    crossSetAbortRef.current?.abort();
+    crossCollectionAbortRef.current?.abort();
     const ctrl = new AbortController();
-    crossSetAbortRef.current = ctrl;
+    crossCollectionAbortRef.current = ctrl;
 
     const timer = setTimeout(() => {
       apiFetch<{ data: Array<{ collectionId: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
@@ -219,28 +219,28 @@ export function useTokenSearch({
             path: r.path,
             entry: { $value: r.$value as any, $type: r.$type, $name: r.name },
           }));
-          setCrossSetTotal(data.total);
-          if (crossSetOffset > 0) {
-            setCrossSetResults(prev => [...(prev ?? []), ...mapped]);
+          setCrossCollectionTotal(data.total);
+          if (crossCollectionOffset > 0) {
+            setCrossCollectionResults(prev => [...(prev ?? []), ...mapped]);
           } else {
-            setCrossSetResults(mapped);
+            setCrossCollectionResults(mapped);
           }
         })
         .catch(err => {
           if (isAbortError(err)) return;
-          console.error('Cross-set search failed:', err);
+          console.error('Cross-collection search failed:', err);
         });
     }, 150);
 
     return () => { clearTimeout(timer); ctrl.abort(); };
-  }, [crossSetSearch, searchQuery, serverUrl, crossSetOffset]);
+  }, [crossCollectionOffset, crossCollectionSearch, searchQuery, serverUrl]);
 
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showPinnedOnly;
 
   // Count of active non-search filters (for compact filter indicator)
   const activeFilterCount = (typeFilter !== '' ? 1 : 0) + (refFilter !== 'all' ? 1 : 0) + (showDuplicates ? 1 : 0) + (showIssuesOnly ? 1 : 0) + (showRecentlyTouched ? 1 : 0) + (showPinnedOnly ? 1 : 0);
 
-  // Compute duplicate value info from all tokens in the current set
+  // Compute duplicate value info from all tokens in the current collection
   const { duplicateValuePaths, duplicateCounts } = useMemo(() => {
     const valueMap = new Map<string, string[]>(); // serialized value → paths
     const collectLeaves = (nodes: TokenNode[]) => {
@@ -463,7 +463,7 @@ export function useTokenSearch({
       const zoomNode = findGroupByPath(sortedTokens, zoomRootPath);
       baseTokens = zoomNode?.children ?? [];
     }
-    let result = filtersActive ? filterTokenNodes(baseTokens, setName, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths) : baseTokens;
+    let result = filtersActive ? filterTokenNodes(baseTokens, collectionId, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths) : baseTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && boundTokenPaths.size > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
@@ -476,7 +476,7 @@ export function useTokenSearch({
       else result = [];
     }
     return result;
-  }, [sortedTokens, zoomRootPath, setName, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedPaths, derivedTokenPaths, unusedTokenPaths]);
+  }, [sortedTokens, zoomRootPath, collectionId, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedPaths, derivedTokenPaths, unusedTokenPaths]);
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
@@ -496,8 +496,8 @@ export function useTokenSearch({
     setRefFilterState,
     showDuplicates,
     setShowDuplicatesState,
-    crossSetSearch,
-    setCrossSetSearch,
+    crossCollectionSearch,
+    setCrossCollectionSearch,
     filterPresets,
     showPresetDropdown,
     setShowPresetDropdown,
@@ -516,16 +516,16 @@ export function useTokenSearch({
     filterPanelOpen,
     setFilterPanelOpen,
     debouncedTokens,
-    crossSetResults,
-    crossSetTotal,
-    crossSetOffset,
-    setCrossSetOffset,
+    crossCollectionResults,
+    crossCollectionTotal,
+    crossCollectionOffset,
+    setCrossCollectionOffset,
     // Refs
     searchRef,
     qualifierHintsRef,
     filterPanelRef,
-    crossSetAbortRef,
-    CROSS_SET_PAGE_SIZE,
+    crossCollectionAbortRef,
+    CROSS_COLLECTION_PAGE_SIZE,
     // Callbacks
     saveScrollAnchor,
     setSearchQuery,

@@ -17,7 +17,10 @@ import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { Spinner } from "./Spinner";
 import { CollectionCompareScreen } from "./theme-manager/CollectionCompareScreen";
-import { useCollectionSwitcherContext } from "../contexts/CollectionContext";
+import {
+  useCollectionStateContext,
+  useTokenFlatMapContext,
+} from "../contexts/TokenDataContext";
 import { useModeCompare } from "../hooks/useModeCompare";
 import {
   buildSelectionLabel,
@@ -40,13 +43,13 @@ export interface CollectionManagerHandle {
 interface CollectionManagerProps {
   serverUrl: string;
   connected: boolean;
-  sets: string[];
+  collectionIds: string[];
   onCollectionsChange?: (collections: TokenCollection[]) => void;
-  onNavigateToToken?: (path: string, set: string) => void;
-  onCreateToken?: (tokenPath: string, set: string) => void;
+  onNavigateToToken?: (path: string, collectionId: string) => void;
+  onCreateToken?: (tokenPath: string, collectionId: string) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
-  pathToStorageSet?: Record<string, string>;
+  pathToStorageCollectionId?: Record<string, string>;
   onTokensCreated?: () => void;
   onGoToTokens?: () => void;
   collectionManagerHandle?: React.MutableRefObject<CollectionManagerHandle | null>;
@@ -88,13 +91,13 @@ function CollectionSection({
 export function CollectionManager({
   serverUrl,
   connected,
-  sets,
+  collectionIds,
   onCollectionsChange,
   onNavigateToToken,
   onCreateToken,
   allTokensFlat = {},
   pathToCollectionId = {},
-  pathToStorageSet = {},
+  pathToStorageCollectionId = {},
   onTokensCreated,
   onGoToTokens,
   collectionManagerHandle,
@@ -104,8 +107,8 @@ export function CollectionManager({
     setCollections,
     selectedModes,
     setSelectedModes,
-    modeResolvedTokensFlat,
-  } = useCollectionSwitcherContext();
+  } = useCollectionStateContext();
+  const { modeResolvedTokensFlat } = useTokenFlatMapContext();
   const compare = useModeCompare();
   const [activeView, setActiveView] = useState<ManagerView>("collections");
   const [views, setViews] = useState<ViewPreset[]>([]);
@@ -205,39 +208,39 @@ export function CollectionManager({
   );
 
   const handleSaveMode = useCallback(
-    async (setName: string) => {
-      const name = modeDrafts[setName]?.trim();
+    async (collectionId: string) => {
+      const name = modeDrafts[collectionId]?.trim();
       if (!name) return;
-      setModeSaving((previous) => ({ ...previous, [setName]: true }));
-      setModeErrors((previous) => ({ ...previous, [setName]: null }));
+      setModeSaving((previous) => ({ ...previous, [collectionId]: true }));
+      setModeErrors((previous) => ({ ...previous, [collectionId]: null }));
       try {
         await apiFetch(
-          `${serverUrl}/api/collections/${encodeURIComponent(setName)}/modes`,
+          `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
           },
         );
-        setModeDrafts((previous) => ({ ...previous, [setName]: "" }));
+        setModeDrafts((previous) => ({ ...previous, [collectionId]: "" }));
         await refreshCollectionsAndViews();
       } catch (error) {
         setModeErrors((previous) => ({
           ...previous,
-          [setName]:
+          [collectionId]:
             error instanceof Error ? error.message : "Failed to add mode",
         }));
       } finally {
-        setModeSaving((previous) => ({ ...previous, [setName]: false }));
+        setModeSaving((previous) => ({ ...previous, [collectionId]: false }));
       }
     },
     [modeDrafts, refreshCollectionsAndViews, serverUrl],
   );
 
   const handleDeleteMode = useCallback(
-    async (setName: string, modeName: string) => {
+    async (collectionId: string, modeName: string) => {
       await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(setName)}/modes/${encodeURIComponent(modeName)}`,
+        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
         { method: "DELETE" },
       );
       await refreshCollectionsAndViews();
@@ -315,14 +318,14 @@ export function CollectionManager({
           onClearTokenPath={() => compare.setCompareTokenPath("")}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={pathToCollectionId}
-          pathToStorageSet={pathToStorageSet}
+          pathToStorageCollectionId={pathToStorageCollectionId}
           collections={collections}
-          sets={sets}
+          collectionIds={collectionIds}
           modeOptionsKey={compare.compareModeKey}
           modeOptionsDefaultA={compare.compareModeDefaultA}
           modeOptionsDefaultB={compare.compareModeDefaultB}
-          onEditToken={(setName, tokenPath) => onNavigateToToken?.(tokenPath, setName)}
-          onCreateToken={(tokenPath, setName) => onCreateToken?.(tokenPath, setName)}
+          onEditToken={(collectionId, tokenPath) => onNavigateToToken?.(tokenPath, collectionId)}
+          onCreateToken={(tokenPath, collectionId) => onCreateToken?.(tokenPath, collectionId)}
           onGoToTokens={() => onGoToTokens?.()}
           serverUrl={serverUrl}
           onTokensCreated={() => onTokensCreated?.()}
@@ -376,7 +379,7 @@ export function CollectionManager({
                   >
                     <div className="min-w-0">
                       <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                        {dimension.name}
+                        {dimension.id}
                       </div>
                       <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                         {dimension.modes.length} mode
@@ -430,7 +433,7 @@ export function CollectionManager({
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                            {dimension.name}
+                            {dimension.id}
                           </div>
                           <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                             {dimension.modes.length} mode
@@ -621,7 +624,7 @@ export function CollectionManager({
                   <button
                     type="button"
                     onClick={() =>
-                      onNavigateToToken?.(tokenPath, pathToCollectionId[tokenPath] ?? sets[0] ?? "")
+                      onNavigateToToken?.(tokenPath, pathToCollectionId[tokenPath] ?? collectionIds[0] ?? "")
                     }
                     className="min-w-0 flex-1 truncate text-left text-[10px] text-[var(--color-figma-text)]"
                     title={tokenPath}

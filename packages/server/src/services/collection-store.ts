@@ -61,11 +61,6 @@ export function validateCollectionState(state: CollectionState): CollectionState
         "Collection state contains a collection with an empty id",
       );
     }
-    if (!collection.name.trim()) {
-      throw new ConflictError(
-        `Collection "${collection.id}" has an empty name in persisted state`,
-      );
-    }
     if (collectionIdSet.has(collection.id)) {
       duplicateCollectionIds.add(collection.id);
     } else {

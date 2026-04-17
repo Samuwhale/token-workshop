@@ -12,7 +12,7 @@ import { TokenStateSummary } from "./TokenStateSummary";
 
 export interface TokenEditorInfoSectionProps {
   tokenPath: string;
-  setName: string;
+  collectionId: string;
   serverUrl: string;
   tokenType: string;
   value: any;
@@ -31,7 +31,7 @@ export interface TokenEditorInfoSectionProps {
   dependentsLoading: boolean;
   colorFlatMap: Record<string, unknown>;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   initialValue: any | undefined;
   activeProducingRecipe: TokenRecipe | null;
   existingRecipesForToken: TokenRecipe[];
@@ -48,7 +48,7 @@ export interface TokenEditorInfoSectionProps {
 
 export function TokenEditorInfoSection({
   tokenPath,
-  setName,
+  collectionId,
   serverUrl,
   tokenType,
   value,
@@ -66,7 +66,7 @@ export function TokenEditorInfoSection({
   dependentsLoading,
   colorFlatMap,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   initialValue,
   activeProducingRecipe,
   existingRecipesForToken,
@@ -210,7 +210,7 @@ export function TokenEditorInfoSection({
                     <span className={`${LONG_TEXT_CLASSES.mono} flex-1 text-[var(--color-figma-accent)] group-hover:underline`}>
                       {node.path}
                     </span>
-                    {node.collectionId && node.collectionId !== setName && (
+                    {node.collectionId && node.collectionId !== collectionId && (
                       <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                         {node.collectionId}
                       </span>
@@ -326,7 +326,7 @@ export function TokenEditorInfoSection({
                         <span className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1 group-hover:underline`}>
                           {dep.path}
                         </span>
-                        {dep.collectionId && dep.collectionId !== setName && (
+                        {dep.collectionId && dep.collectionId !== collectionId && (
                           <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                             {dep.collectionId}
                           </span>
@@ -367,7 +367,7 @@ export function TokenEditorInfoSection({
           <TokenUsages
             dependents={dependents}
             dependentsLoading={dependentsLoading}
-            setName={setName}
+            collectionId={collectionId}
             tokenPath={tokenPath}
             tokenType={tokenType}
             value={value}
@@ -375,7 +375,7 @@ export function TokenEditorInfoSection({
             aliasMode={aliasMode}
             allTokensFlat={allTokensFlat}
             colorFlatMap={colorFlatMap}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             initialValue={initialValue}
             producingRecipe={activeProducingRecipe}
             sourceRecipes={existingRecipesForToken}

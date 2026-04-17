@@ -10,10 +10,10 @@ import type { RecipeImpact, ModeImpact } from '../components/tokenListTypes';
 export interface UseTokenRenameParams {
   connected: boolean;
   serverUrl: string;
-  setName: string;
+  collectionId: string;
   recipes?: TokenRecipe[];
   collections?: TokenCollection[];
-  perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   allTokensFlat?: Record<string, TokenMapEntry>;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -25,10 +25,10 @@ export interface UseTokenRenameParams {
 export function useTokenRename({
   connected,
   serverUrl,
-  setName,
+  collectionId,
   recipes,
   collections,
-  perSetFlat,
+  perCollectionFlat,
   allTokensFlat,
   onRefresh,
   onPushUndo,
@@ -46,8 +46,8 @@ export function useTokenRename({
   } | null>(null);
   const [pendingRenameToken, setPendingRenameToken] = useState<string | null>(null);
 
-  const setNameRef = useRef(setName);
-  setNameRef.current = setName;
+  const collectionIdRef = useRef(collectionId);
+  collectionIdRef.current = collectionId;
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
@@ -55,7 +55,7 @@ export function useTokenRename({
     if (!connected) return;
     onSetOperationLoading('Renaming token…');
     try {
-      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/tokens/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ oldPath, newPath, updateAliases }),
@@ -67,19 +67,19 @@ export function useTokenRename({
     }
     setRenameTokenConfirm(null);
     if (onPushUndo) {
-      const capturedSet = setName;
+      const capturedCollectionId = collectionId;
       const capturedUrl = serverUrl;
       onPushUndo({
         description: `Rename "${oldPath.split('.').pop() ?? oldPath}"`,
-        groupKey: `rename-${capturedSet}`,
+        groupKey: `rename-${capturedCollectionId}`,
         groupSummary: (n) => `Rename ${n} tokens`,
         restore: async () => {
-          if (setNameRef.current !== capturedSet) {
-            onError?.(`Undo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+          if (collectionIdRef.current !== capturedCollectionId) {
+            onError?.(`Undo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
             return;
           }
           try {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/tokens/rename`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
@@ -91,12 +91,12 @@ export function useTokenRename({
           }
         },
         redo: async () => {
-          if (setNameRef.current !== capturedSet) {
-            onError?.(`Redo skipped: active set changed to "${setNameRef.current}" (operation was on "${capturedSet}")`);
+          if (collectionIdRef.current !== capturedCollectionId) {
+            onError?.(`Redo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
             return;
           }
           try {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/tokens/rename`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ oldPath, newPath }),
@@ -112,14 +112,14 @@ export function useTokenRename({
     onRefresh();
     onRenamePath(oldPath, newPath);
     onSetOperationLoading(null);
-  }, [connected, serverUrl, setName, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError]);
+  }, [connected, serverUrl, collectionId, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError]);
 
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
     let data: { count: number; changes: Array<{ tokenPath: string; collectionId: string; oldValue: string; newValue: string }> };
     try {
       data = await apiFetch<{ count: number; changes: Array<{ tokenPath: string; collectionId: string; oldValue: string; newValue: string }> }>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename-preview?oldPath=${encodeURIComponent(oldPath)}&newPath=${encodeURIComponent(newPath)}`
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/tokens/rename-preview?oldPath=${encodeURIComponent(oldPath)}&newPath=${encodeURIComponent(newPath)}`
       );
     } catch (err) {
       console.warn('[useTokenRename] token rename preview failed:', err);
@@ -127,7 +127,7 @@ export function useTokenRename({
       return;
     }
     const targetPaths = new Set([oldPath]);
-    const source = perSetFlat ?? (allTokensFlat ? { '': allTokensFlat } : {});
+    const source = perCollectionFlat ?? (allTokensFlat ? { '': allTokensFlat } : {});
     const recipeImpacts = computeRecipeImpacts(targetPaths, recipes ?? []);
     const modeImpacts = computeModeImpacts(targetPaths, collections ?? [], source);
     if (data.count > 0 || recipeImpacts.length > 0 || modeImpacts.length > 0) {
@@ -142,7 +142,7 @@ export function useTokenRename({
     } else {
       await executeTokenRename(oldPath, newPath);
     }
-  }, [connected, serverUrl, setName, recipes, collections, perSetFlat, allTokensFlat, executeTokenRename, onError]);
+  }, [connected, serverUrl, collectionId, recipes, collections, perCollectionFlat, allTokensFlat, executeTokenRename, onError]);
 
   return {
     renameTokenConfirm,

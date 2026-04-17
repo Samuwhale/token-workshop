@@ -242,7 +242,7 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, sourceValue, allTokensFlat, pathToSet }: {
+export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, sourceValue, allTokensFlat, pathToCollectionId }: {
   config: TypeScaleConfig;
   onChange: (c: TypeScaleConfig) => void;
   /** Call at the start of each discrete user interaction so the undo system can
@@ -250,7 +250,7 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
   onInteractionStart?: () => void;
   sourceValue?: number;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  pathToSet?: Record<string, string>;
+  pathToCollectionId?: Record<string, string>;
 }) {
   const [customRatio, setCustomRatio] = useState('');
   const [isCustomRatio, setIsCustomRatio] = useState(false);
@@ -400,7 +400,7 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
           valueLabel={String(config.ratio)}
           filterType="number"
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           onLink={setRatioTokenRef}
           onUnlink={clearRatioTokenRef}
         >

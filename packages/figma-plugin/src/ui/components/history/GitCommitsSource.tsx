@@ -3,7 +3,7 @@ import { Spinner } from '../Spinner';
 import { apiFetch } from '../../shared/apiFetch';
 import { isAbortError } from '../../shared/utils';
 import { summarizeChanges, statusColor, formatRelativeTime } from '../../shared/changeHelpers';
-import { ChangesBySetList } from './ChangesBySetList';
+import { ChangesByCollectionList } from './ChangesByCollectionList';
 import type { CommitEntry, CommitDetail, UndoSlot, TokenChange } from './types';
 
 interface ServerTokenChange {
@@ -18,7 +18,7 @@ interface ServerTokenChange {
 function mapServerChange(change: ServerTokenChange): TokenChange {
   return {
     path: change.path,
-    set: change.collectionId,
+    collectionId: change.collectionId,
     type: change.type,
     status: change.status,
     before: change.before,
@@ -47,7 +47,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
   const [restoring, setRestoring] = useState<string | null>(null);
   const [pendingRestore, setPendingRestore] = useState<{
     hash: string;
-    tokens?: Array<{ path: string; set: string }>;
+    tokens?: Array<{ path: string; collectionId: string }>;
     label: string;
     summary: { added: number; modified: number; removed: number; total: number };
   } | null>(null);
@@ -162,8 +162,10 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       };
       setDetail(parsed);
       const sections: Record<string, boolean> = {};
-      const sets = new Set(parsed.changes.map((c: TokenChange) => c.set));
-      for (const s of sets) sections[s] = true;
+      const collectionIds = new Set(
+        parsed.changes.map((change: TokenChange) => change.collectionId),
+      );
+      for (const collectionId of collectionIds) sections[collectionId] = true;
       setOpenSections(sections);
     } catch (err) {
       setDetailError(String((err as Error).message || err));
@@ -199,7 +201,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
 
   const restoreFromCommit = useCallback(async (
     hash: string,
-    tokens?: Array<{ path: string; set: string }>,
+    tokens?: Array<{ path: string; collectionId: string }>,
   ) => {
     const key = tokens && tokens.length === 1 ? tokens[0].path : 'all';
     setRestoring(key);
@@ -210,7 +212,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         body: JSON.stringify({
           tokens: tokens?.map((token) => ({
             path: token.path,
-            collectionId: token.set,
+            collectionId: token.collectionId,
           })),
         }),
       });
@@ -239,11 +241,17 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
 
   const requestRestore = useCallback((
     hash: string,
-    tokens?: Array<{ path: string; set: string }>,
+    tokens?: Array<{ path: string; collectionId: string }>,
   ) => {
     if (!detail) return;
     const relevantChanges = tokens
-      ? detail.changes.filter(c => tokens.some(t => t.path === c.path && t.set === c.set))
+      ? detail.changes.filter((change) =>
+          tokens.some(
+            (token) =>
+              token.path === change.path &&
+              token.collectionId === change.collectionId,
+          ),
+        )
       : detail.changes;
     const summary = summarizeChanges(relevantChanges);
     const total = relevantChanges.length;
@@ -382,7 +390,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
               </p>
             </div>
           ) : detail ? (
-            <ChangesBySetList
+            <ChangesByCollectionList
               changes={detail.changes}
               openSections={openSections}
               onToggleSection={toggleSection}
@@ -390,7 +398,10 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    requestRestore(selectedHash!, [{ path: change.path, set: change.set }]);
+                    requestRestore(selectedHash!, [{
+                      path: change.path,
+                      collectionId: change.collectionId,
+                    }]);
                   }}
                   disabled={restoring !== null}
                   className="shrink-0 ml-auto opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto transition-opacity px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"

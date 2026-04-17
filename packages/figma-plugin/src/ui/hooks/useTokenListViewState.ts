@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
+import { STORAGE_KEY_BUILDERS, STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import { useSettingsListener } from "../components/SettingsPanel";
 import { DENSITY_ROW_HEIGHT } from "../components/tokenListTypes";
 import type { Density } from "../components/tokenListTypes";
@@ -8,19 +8,19 @@ import type { TokenCollection } from "@tokenmanager/core";
 
 const VALID_SORT_ORDERS: SortOrder[] = ["default", "alpha-asc", "by-type"];
 
-function dispatchTokenListViewChanged(setName: string): void {
+function dispatchTokenListViewChanged(collectionId: string): void {
   window.dispatchEvent(
-    new CustomEvent("tm-token-list-view-changed", { detail: { setName } }),
+    new CustomEvent("tm-token-list-view-changed", { detail: { collectionId } }),
   );
 }
 
 export interface UseTokenListViewStateParams {
-  setName: string;
+  collectionId: string;
   collections: TokenCollection[];
 }
 
 export function useTokenListViewState({
-  setName,
+  collectionId,
   collections,
 }: UseTokenListViewStateParams) {
   // --- Recently touched filter ---
@@ -33,37 +33,37 @@ export function useTokenListViewState({
   const [viewMode, setViewModeState] = useState<"tree" | "json">("tree");
 
   useEffect(() => {
-    const stored = lsGet(STORAGE_KEY.tokenViewMode(setName));
+    const stored = lsGet(STORAGE_KEY_BUILDERS.tokenViewMode(collectionId));
     setViewModeState(stored === "json" ? "json" : "tree");
-  }, [setName]);
+  }, [collectionId]);
 
   const setViewMode = useCallback(
     (mode: "tree" | "json") => {
       setViewModeState(mode);
-      lsSet(STORAGE_KEY.tokenViewMode(setName), mode);
-      dispatchTokenListViewChanged(setName);
+      lsSet(STORAGE_KEY_BUILDERS.tokenViewMode(collectionId), mode);
+      dispatchTokenListViewChanged(collectionId);
     },
-    [setName],
+    [collectionId],
   );
 
   // --- Sort order ---
   const [sortOrder, setSortOrderState] = useState<SortOrder>("default");
 
   useEffect(() => {
-    const stored = lsGet(STORAGE_KEY.tokenSort(setName));
+    const stored = lsGet(STORAGE_KEY_BUILDERS.tokenSort(collectionId));
     setSortOrderState(
       VALID_SORT_ORDERS.includes(stored as SortOrder)
         ? (stored as SortOrder)
         : "default",
     );
-  }, [setName]);
+  }, [collectionId]);
 
   const setSortOrder = useCallback(
     (order: SortOrder) => {
       setSortOrderState(order);
-      lsSet(STORAGE_KEY.tokenSort(setName), order);
+      lsSet(STORAGE_KEY_BUILDERS.tokenSort(collectionId), order);
     },
-    [setName],
+    [collectionId],
   );
 
   // --- Show resolved values ---
@@ -71,20 +71,20 @@ export function useTokenListViewState({
 
   useEffect(() => {
     setShowResolvedValuesState(
-      lsGet(STORAGE_KEY.tokenShowResolvedValues(setName)) === "1",
+      lsGet(STORAGE_KEY_BUILDERS.tokenShowResolvedValues(collectionId)) === "1",
     );
-  }, [setName]);
+  }, [collectionId]);
 
   const setShowResolvedValues = useCallback(
     (value: boolean | ((current: boolean) => boolean)) => {
       setShowResolvedValuesState((current) => {
         const next = typeof value === "function" ? value(current) : value;
-        lsSet(STORAGE_KEY.tokenShowResolvedValues(setName), next ? "1" : "0");
-        dispatchTokenListViewChanged(setName);
+        lsSet(STORAGE_KEY_BUILDERS.tokenShowResolvedValues(collectionId), next ? "1" : "0");
+        dispatchTokenListViewChanged(collectionId);
         return next;
       });
     },
-    [setName],
+    [collectionId],
   );
 
   // --- Stats bar ---
@@ -97,11 +97,11 @@ export function useTokenListViewState({
       setStatsBarOpenState((current) => {
         const next = typeof value === "function" ? value(current) : value;
         lsSet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN, next ? "true" : "false");
-        dispatchTokenListViewChanged(setName);
+        dispatchTokenListViewChanged(collectionId);
         return next;
       });
     },
-    [setName],
+    [collectionId],
   );
 
   // --- Density ---
@@ -180,11 +180,11 @@ export function useTokenListViewState({
       setModeLensEnabledState((current) => {
         const next = typeof v === "function" ? v(current) : v;
         lsSet("tm_mode_lens", next ? "1" : "0");
-        dispatchTokenListViewChanged(setName);
+        dispatchTokenListViewChanged(collectionId);
         return next;
       });
     },
-    [setName],
+    [collectionId],
   );
 
   return {

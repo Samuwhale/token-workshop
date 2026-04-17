@@ -39,9 +39,9 @@ export interface FilterMenuProps {
   onToggleRecentlyTouched: () => void;
   inspectMode: boolean;
   onToggleInspectMode: () => void;
-  crossSetSearch: boolean;
-  onToggleCrossSetSearch: () => void;
-  hasMultipleSets: boolean;
+  crossCollectionSearch: boolean;
+  onToggleCrossCollectionSearch: () => void;
+  hasMultipleCollections: boolean;
   refFilter: "all" | "aliases" | "direct";
   onRefFilterChange: (v: "all" | "aliases" | "direct") => void;
   showDuplicates: boolean;
@@ -451,11 +451,11 @@ export function FilterMenu(props: FilterMenuProps) {
               checked={props.inspectMode}
               onClick={() => runAndClose(props.onToggleInspectMode)}
             />
-            {props.hasMultipleSets && (
+            {props.hasMultipleCollections && (
               <MenuItem
                 label="Search across all collections"
-                checked={props.crossSetSearch}
-                onClick={() => runAndClose(props.onToggleCrossSetSearch)}
+                checked={props.crossCollectionSearch}
+                onClick={() => runAndClose(props.onToggleCrossCollectionSearch)}
               />
             )}
             <MenuItem

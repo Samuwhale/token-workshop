@@ -4,7 +4,7 @@ import { isAbortError } from '../shared/utils';
 
 export type Severity = 'error' | 'warning' | 'info';
 
-export interface LintRuleSetOverride {
+export interface LintRuleCollectionOverride {
   enabled?: boolean;
   severity?: Severity;
   options?: Record<string, unknown>;
@@ -23,7 +23,7 @@ export interface LintRuleConfig {
    * Per-collection overrides — merged with the global rule config when linting a specific collection.
    * Keyed by collection id. Unset fields fall back to the global values.
    */
-  collectionOverrides?: Record<string, LintRuleSetOverride>;
+  collectionOverrides?: Record<string, LintRuleCollectionOverride>;
 }
 
 export interface LintConfig {

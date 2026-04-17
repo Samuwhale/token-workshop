@@ -5,13 +5,13 @@ export function useModalVisibility() {
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showQuickApply, setShowQuickApply] = useState(false);
-  const [showSetSwitcher, setShowSetSwitcher] = useState(false);
+  const [showCollectionSwitcher, setShowCollectionSwitcher] = useState(false);
 
   return {
     showPasteModal, setShowPasteModal,
     showColorScaleGen, setShowColorScaleGen,
     showCommandPalette, setShowCommandPalette,
     showQuickApply, setShowQuickApply,
-    showSetSwitcher, setShowSetSwitcher,
+    showCollectionSwitcher, setShowCollectionSwitcher,
   };
 }

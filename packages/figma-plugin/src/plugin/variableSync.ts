@@ -22,7 +22,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
     description: string;
     hiddenFromPublishing: boolean;
     scopes: string[];
-    pluginData: { tokenPath: string; tokenSet: string };
+    pluginData: { tokenPath: string; tokenCollection: string };
   }
   const variableSnapshots = new Map<string, VariableSnapshot>();
   const createdVariableIds: string[] = [];
@@ -89,7 +89,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
             scopes: [...oldVar.scopes],
             pluginData: {
               tokenPath: oldVar.getPluginData('tokenPath'),
-              tokenSet: oldVar.getPluginData('tokenSet'),
+              tokenCollection: oldVar.getPluginData('tokenCollection'),
             },
           });
         }
@@ -120,8 +120,8 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       const explicitCollectionName = token.figmaCollection?.trim();
       const colName = explicitCollectionName
         ? explicitCollectionName
-        : (token.setName && collectionMap[token.setName])
-          ? collectionMap[token.setName]
+        : (token.collectionId && collectionMap[token.collectionId])
+          ? collectionMap[token.collectionId]
           : VARIABLE_COLLECTION_NAME;
       const collection = getOrCreateCollection(colName);
 
@@ -145,7 +145,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
             scopes: [...existing.scopes],
             pluginData: {
               tokenPath: existing.getPluginData('tokenPath'),
-              tokenSet: existing.getPluginData('tokenSet'),
+              tokenCollection: existing.getPluginData('tokenCollection'),
             },
           });
         }
@@ -169,7 +169,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       try {
         // Resolve the target mode: use modeMap if provided, otherwise fall back to first mode
         const explicitModeName = token.figmaMode?.trim();
-        const desiredModeName = explicitModeName || (token.setName ? modeMap[token.setName] : undefined);
+        const desiredModeName = explicitModeName || (token.collectionId ? modeMap[token.collectionId] : undefined);
         const modeId = desiredModeName
           ? getOrCreateMode(collection, desiredModeName)
           : collection.modes[0].modeId;
@@ -187,7 +187,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
         // Store mapping in shared plugin data
         variable.setPluginData('tokenPath', token.path);
-        variable.setPluginData('tokenSet', token.setName || '');
+        variable.setPluginData('tokenCollection', token.collectionId || '');
       } catch (tokenError) {
         console.error(`Failed to apply variable for ${token.path}:`, tokenError);
         failures.push({ path: token.path, error: getErrorMessage(tokenError) });
@@ -203,7 +203,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       description: string;
       hiddenFromPublishing: boolean;
       scopes: string[];
-      pluginData: { tokenPath: string; tokenSet: string };
+      pluginData: { tokenPath: string; tokenCollection: string };
     }> = {};
     for (const [varId, snap] of variableSnapshots) {
       snapshotRecords[varId] = snap;
@@ -239,7 +239,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       try { v.scopes = snapshot.scopes as VariableScope[]; } catch (e) { errs.push(`scopes: ${getErrorMessage(e)}`); }
       try {
         v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
-        v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
+        v.setPluginData('tokenCollection', snapshot.pluginData.tokenCollection);
       } catch (e) { errs.push(`pluginData: ${getErrorMessage(e)}`); }
       if (errs.length > 0) throw new Error(`var ${varId}: ${errs.join('; ')}`);
     });
@@ -322,7 +322,7 @@ export async function revertVariables(
     try { v.scopes = snapshot.scopes as VariableScope[]; } catch (e) { failures.push(`scopes(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
     try {
       v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
-      v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
+      v.setPluginData('tokenCollection', snapshot.pluginData.tokenCollection);
     } catch (e) { failures.push(`pluginData(${varId}): ${getErrorMessage(e)}`); varFailed = true; }
     if (varFailed) failedRestoreVarIds.add(varId);
   });

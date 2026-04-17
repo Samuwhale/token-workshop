@@ -3,7 +3,8 @@ import { Spinner } from './Spinner';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenRecipe } from '../hooks/useRecipes';
-import { useCollectionSwitcherContext, useResolverContext } from '../contexts/CollectionContext';
+import { useResolverContext } from '../contexts/CollectionContext';
+import { useCollectionStateContext } from '../contexts/TokenDataContext';
 
 interface BoundLayer {
   id: string;
@@ -22,7 +23,7 @@ interface BoundVariable {
 interface TokenUsagesProps {
   dependents: Array<{ path: string; collectionId: string }>;
   dependentsLoading: boolean;
-  setName: string;
+  collectionId: string;
   tokenPath: string;
   tokenType: string;
   value: any;
@@ -31,7 +32,7 @@ interface TokenUsagesProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   colorFlatMap: Record<string, unknown>;
   /** Maps each token path to its owning set name. */
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   initialValue: any;
   /** Recipe that produces this token (if any). */
   producingRecipe: TokenRecipe | null;
@@ -81,18 +82,18 @@ const RECIPE_TYPE_STYLES: Record<string, { label: string; classes: string }> = {
 };
 
 export function TokenUsages({
-  dependents, dependentsLoading, setName, tokenPath, tokenType, value,
-  isDirty, aliasMode, allTokensFlat, colorFlatMap, pathToSet, initialValue,
+  dependents, dependentsLoading, collectionId, tokenPath, tokenType, value,
+  isDirty, aliasMode, allTokensFlat, colorFlatMap, pathToCollectionId, initialValue,
   producingRecipe, sourceRecipes, onNavigateToToken, onShowReferences, onNavigateToRecipe,
 }: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
 
   // Collection and resolver contexts for assignment data.
-  const { collections } = useCollectionSwitcherContext();
+  const { collections } = useCollectionStateContext();
   const { resolvers } = useResolverContext();
 
   // Which collection owns this token
-  const owningSet = pathToSet[tokenPath] ?? setName;
+  const owningSet = pathToCollectionId[tokenPath] ?? collectionId;
 
   // Collection mode values defined directly on this token.
   const collectionAssignments = useMemo(() => {
@@ -112,7 +113,7 @@ export function TokenUsages({
       for (const option of collection.modes) {
         if (option.name in collectionModes) {
           result.push({
-            collectionName: collection.name,
+            collectionName: collection.id,
             optionName: option.name,
             status: "mode",
           });
@@ -386,7 +387,7 @@ export function TokenUsages({
                       <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={dep.path}>
                         {dep.path}
                       </span>
-                      {dep.collectionId !== setName && (
+                      {dep.collectionId !== collectionId && (
                         <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                           {dep.collectionId}
                         </span>

@@ -327,12 +327,12 @@ export function GitPreviewModal({
                         const beforeStr = change.before != null ? (typeof change.before === 'string' ? change.before : JSON.stringify(change.before)) : undefined;
                         const afterStr = change.after != null ? (typeof change.after === 'string' ? change.after : JSON.stringify(change.after)) : undefined;
                         return (
-                          <div key={`${change.set}.${change.path}`} className="py-1 border-b border-[var(--color-figma-border)] last:border-b-0">
+                          <div key={`${change.collectionId}.${change.path}`} className="py-1 border-b border-[var(--color-figma-border)] last:border-b-0">
                             <div className="flex items-center gap-1 min-w-0">
-                              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={`${change.set} / ${change.path}`}>
+                              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={`${change.collectionId} / ${change.path}`}>
                                 {change.path}
                               </span>
-                              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.set}</span>
+                              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.collectionId}</span>
                             </div>
                             {change.status === 'modified' && (
                               <div className="ml-2 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
@@ -440,14 +440,18 @@ export function CommitPreviewModal({
 
   const relevantTokenChanges = useMemo(() => {
     if (!tokenPreview) return [];
-    const selectedSetNames = new Set(selectedFiles.map(f => f.replace('.tokens.json', '')));
-    return tokenPreview.filter(c => selectedSetNames.has(c.set));
+    const selectedCollectionIds = new Set(
+      selectedFiles.map((file) => file.replace('.tokens.json', '')),
+    );
+    return tokenPreview.filter((change) =>
+      selectedCollectionIds.has(change.collectionId),
+    );
   }, [tokenPreview, selectedFiles]);
 
   const changesByFile = useMemo(() => {
     const map = new Map<string, import('../../hooks/useGitDiff').TokenChange[]>();
     for (const tc of relevantTokenChanges) {
-      const fileName = tc.set + '.tokens.json';
+      const fileName = tc.collectionId + '.tokens.json';
       const arr = map.get(fileName);
       if (arr) arr.push(tc);
       else map.set(fileName, [tc]);

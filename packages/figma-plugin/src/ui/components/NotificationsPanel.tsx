@@ -4,7 +4,7 @@ import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
 import {
   useTokenFlatMapContext,
-  useTokenSetsContext,
+  useCollectionStateContext,
 } from "../contexts/TokenDataContext";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 
@@ -201,7 +201,7 @@ function inferWorkspaceAction(message: string): InboxAction {
 
 function buildInboxItem(
   entry: NotificationEntry,
-  pathToSet: Record<string, string>,
+  pathToCollectionId: Record<string, string>,
 ): InboxItem {
   const severity = classifySeverity(entry);
   const quoted = extractQuotedStrings(entry.message);
@@ -209,20 +209,20 @@ function buildInboxItem(
     entry.message.match(/alias target not found:\s*(.+)$/i)?.[1]?.trim() ??
     null;
   const quotedTokenPath = quoted.find((candidate) =>
-    Boolean(pathToSet[candidate] || candidate.includes(".")),
+    Boolean(pathToCollectionId[candidate] || candidate.includes(".")),
   );
   const tokenPath =
     explicitAliasTarget &&
-    (pathToSet[explicitAliasTarget] || explicitAliasTarget.includes("."))
+    (pathToCollectionId[explicitAliasTarget] || explicitAliasTarget.includes("."))
       ? explicitAliasTarget
       : (quotedTokenPath ?? null);
-  const tokenSet = tokenPath ? (pathToSet[tokenPath] ?? null) : null;
+  const tokenCollection = tokenPath ? (pathToCollectionId[tokenPath] ?? null) : null;
   const action = tokenPath
     ? { label: "Open token", target: { kind: "token", tokenPath } as const }
     : inferWorkspaceAction(entry.message);
   const scopeLabel = tokenPath
-    ? tokenSet
-      ? `Token in ${tokenSet}`
+    ? tokenCollection
+      ? `Token in ${tokenCollection}`
       : "Token"
     : action.target.kind === "surface"
       ? action.target.surface === "settings"
@@ -277,14 +277,17 @@ export function NotificationsPanel({
   const [filter, setFilter] = useState<InboxFilter>("all");
   const { navigateTo, openSecondarySurface, beginHandoff } =
     useNavigationContext();
-  const { activeSet, setActiveSet } = useTokenSetsContext();
-  const { pathToSet } = useTokenFlatMapContext();
-  const { setHighlightedToken, setPendingHighlightForSet } = useEditorContext();
+  const {
+    currentCollectionId,
+    setCurrentCollectionId,
+  } = useCollectionStateContext();
+  const { pathToCollectionId } = useTokenFlatMapContext();
+  const { setHighlightedToken, setPendingHighlightForCollection } = useEditorContext();
 
   const inbox = useMemo(() => {
     const deduped = new Map<string, InboxItem>();
     for (const entry of history) {
-      const candidate = buildInboxItem(entry, pathToSet);
+      const candidate = buildInboxItem(entry, pathToCollectionId);
       const existing = deduped.get(candidate.dedupeKey);
       if (!existing) {
         deduped.set(candidate.dedupeKey, candidate);
@@ -313,7 +316,7 @@ export function NotificationsPanel({
         b.latestTimestamp - a.latestTimestamp
       );
     });
-  }, [history, pathToSet]);
+  }, [history, pathToCollectionId]);
 
   const visibleItems = useMemo(
     () => inbox.filter((item) => filterMatches(filter, item)),
@@ -324,17 +327,17 @@ export function NotificationsPanel({
     if (!action) return;
     const actionName = action.label.replace(/^Open\s+/i, "").toLowerCase();
     if (action.target.kind === "token") {
-      const targetSet = pathToSet[action.target.tokenPath] ?? activeSet;
+      const targetCollectionId = pathToCollectionId[action.target.tokenPath] ?? currentCollectionId;
       beginHandoff({
         reason:
           "Inspect the token referenced by this notification, then return to Notifications.",
       });
       navigateTo("tokens", "tokens", { preserveHandoff: true });
-      if (targetSet === activeSet) {
+      if (targetCollectionId === currentCollectionId) {
         setHighlightedToken(action.target.tokenPath);
       } else {
-        setPendingHighlightForSet(action.target.tokenPath, targetSet);
-        setActiveSet(targetSet);
+        setPendingHighlightForCollection(action.target.tokenPath, targetCollectionId);
+        setCurrentCollectionId(targetCollectionId);
       }
       return;
     }

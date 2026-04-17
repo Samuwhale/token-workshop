@@ -89,7 +89,7 @@ export const SubPropInput = memo(function SubPropInput({
   value,
   onChange,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   filterType,
   placeholder,
   className,
@@ -100,7 +100,7 @@ export const SubPropInput = memo(function SubPropInput({
   value: any;
   onChange: (v: any) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   filterType?: string;
   placeholder?: string;
   className?: string;
@@ -176,7 +176,7 @@ export const SubPropInput = memo(function SubPropInput({
         <AliasAutocomplete
           query={displayValue.includes('{') ? displayValue.slice(displayValue.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           filterType={filterType}
           onSelect={path => {
             onChange(`{${path}}`);
@@ -197,7 +197,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
   value,
   onChange,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   units = ['px', 'rem'],
   placeholder = '0',
   inputRef,
@@ -205,7 +205,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
   value: any;
   onChange: (v: any) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   units?: string[];
   placeholder?: string;
   inputRef?: Ref<HTMLInputElement>;
@@ -219,7 +219,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
         value={value}
         onChange={onChange}
         allTokensFlat={allTokensFlat}
-        pathToSet={pathToSet}
+        pathToCollectionId={pathToCollectionId}
         filterType="dimension"
         inputType="string"
         autoFocus={value === '{'}
@@ -274,14 +274,14 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
   value,
   onChange,
   allTokensFlat,
-  pathToSet,
+  pathToCollectionId,
   availableFonts,
   inputRef,
 }: {
   value: any;
   onChange: (v: any) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToSet: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
   availableFonts: string[];
   inputRef?: Ref<HTMLInputElement>;
 }) {
@@ -327,7 +327,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
           <AliasAutocomplete
             query={String(value ?? '').includes('{') ? String(value ?? '').slice(String(value ?? '').lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
             allTokensFlat={allTokensFlat}
-            pathToSet={pathToSet}
+            pathToCollectionId={pathToCollectionId}
             filterType="fontFamily"
             onSelect={path => {
               onChange(`{${path}}`);

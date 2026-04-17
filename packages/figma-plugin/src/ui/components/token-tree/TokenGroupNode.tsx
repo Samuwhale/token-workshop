@@ -63,7 +63,7 @@ export const TokenGroupNode = memo(
 
     const {
       density,
-      setName,
+      collectionId,
       selectMode,
       expandedPaths,
       highlightedToken,
@@ -192,7 +192,7 @@ export const TokenGroupNode = memo(
     const leafCount = countLeaves(node);
     const targetRecipe =
       recipesByTargetGroup?.get(
-        createRecipeOwnershipKey(setName, node.path),
+        createRecipeOwnershipKey(collectionId, node.path),
       ) ?? null;
     const managedRecipeLeafCount = useMemo(() => {
       if (!targetRecipe) return 0;

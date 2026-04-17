@@ -17,10 +17,14 @@ interface PreviewPanelProps {
   onNavigateToToken?: (path: string) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
   /** When set, the panel renders token detail instead of collection templates */
-  focusedToken?: { path: string; name?: string; set: string } | null;
-  pathToSet?: Record<string, string>;
+  focusedToken?: { path: string; name?: string; currentCollectionId: string } | null;
+  pathToCollectionId?: Record<string, string>;
   onClearFocus?: () => void;
-  onEditToken?: (path: string, name?: string, set?: string) => void;
+  onEditToken?: (
+    path: string,
+    name?: string,
+    currentCollectionId?: string,
+  ) => void;
   serverUrl?: string;
   tokenUsageCounts?: Record<string, number>;
   recipes?: TokenRecipe[];
@@ -227,7 +231,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = {}, onSelectedModesChange, onGoToTokens, onNavigateToToken, onNavigateToRecipe, focusedToken, pathToSet, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = {}, onSelectedModesChange, onGoToTokens, onNavigateToToken, onNavigateToRecipe, focusedToken, pathToCollectionId, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = lsGet(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -422,9 +426,9 @@ export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = 
         <TokenDetailPreview
           tokenPath={focusedToken.path}
           tokenName={focusedToken.name}
-          storageSetName={focusedToken.set}
+          storageCollectionId={focusedToken.currentCollectionId}
           allTokensFlat={allTokensFlat}
-          pathToSet={pathToSet}
+          pathToCollectionId={pathToCollectionId}
           tokenUsageCounts={tokenUsageCounts}
           recipes={recipes}
           recipesBySource={recipesBySource}
@@ -432,7 +436,13 @@ export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = 
           lintViolations={lintViolations?.filter(violation => violation.path === focusedToken.path)}
           syncSnapshot={syncSnapshot}
           serverUrl={serverUrl}
-          onEdit={() => onEditToken?.(focusedToken.path, focusedToken.name, focusedToken.set)}
+          onEdit={() =>
+            onEditToken?.(
+              focusedToken.path,
+              focusedToken.name,
+              focusedToken.currentCollectionId,
+            )
+          }
           onClose={onClearFocus ?? (() => {})}
           onNavigateToAlias={(path) => onNavigateToToken?.(path)}
           onNavigateToRecipe={onNavigateToRecipe}
@@ -485,7 +495,7 @@ export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = 
               const activeOption = selectedModes[collection.id] ?? collection.modes[0]?.name ?? '';
               return (
                 <label key={collection.id} className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  <span className="shrink-0">{collection.name}</span>
+                  <span className="shrink-0">{collection.id}</span>
                   <select
                     value={activeOption}
                     onChange={e => onSelectedModesChange?.({ ...selectedModes, [collection.id]: e.target.value })}

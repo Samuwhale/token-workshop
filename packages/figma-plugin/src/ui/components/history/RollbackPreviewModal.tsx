@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../../shared/apiFetch';
 import { summarizeChanges, ChangeSummaryBadges } from '../../shared/changeHelpers';
-import { ChangesBySetList } from './ChangesBySetList';
+import { ChangesByCollectionList } from './ChangesByCollectionList';
 import { Spinner } from '../Spinner';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { isAbortError } from '../../shared/utils';
@@ -66,7 +66,7 @@ export function RollbackPreviewModal({
         setChanges(unified);
         setMetadataChanges(data.metadataChanges ?? []);
         const sections: Record<string, boolean> = {};
-        for (const c of unified) sections[c.set] = true;
+        for (const change of unified) sections[change.collectionId] = true;
         setOpenSections(sections);
       })
       .catch(err => {
@@ -194,7 +194,7 @@ export function RollbackPreviewModal({
           )}
 
           {!diffLoading && changes && changes.length > 0 && (
-            <ChangesBySetList
+            <ChangesByCollectionList
               changes={changes}
               openSections={openSections}
               onToggleSection={toggleSection}

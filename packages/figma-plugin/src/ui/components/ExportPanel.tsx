@@ -7,7 +7,7 @@ import { useExportPresets, type ExportPreset } from '../hooks/useExportPresets';
 import { usePlatformConfig } from '../hooks/usePlatformConfig';
 import { useExportResults } from '../hooks/useExportResults';
 import { useFigmaVariables } from '../hooks/useFigmaVariables';
-import { useTokenSetsContext } from '../contexts/TokenDataContext';
+import { useCollectionStateContext } from '../contexts/TokenDataContext';
 import { useTokensWorkspaceController } from '../contexts/WorkspaceControllerContext';
 import { PlatformExportConfig } from './PlatformExportConfig';
 import { FigmaVariablesPanel } from './FigmaVariablesPanel';
@@ -32,7 +32,12 @@ function sanitizeDestinationSetName(value: string): string {
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const help = usePanelHelp('export');
-  const { sets, addSetToState, refreshTokens } = useTokenSetsContext();
+  const {
+    collections,
+    addCollectionToState,
+    refreshCollections: refreshTokens,
+  } = useCollectionStateContext();
+  const collectionIds = collections.map((collection) => collection.id);
   const { pushUndo } = useTokensWorkspaceController();
   const [mode, setMode] = useState<ExportMode>('platforms');
   const [showRepo, setShowRepo] = useState(false);
@@ -63,8 +68,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const figmaVariables = useFigmaVariables({
     connected,
     serverUrl,
-    sets,
-    addSetToState,
+    collectionIds,
+    addCollectionToState,
     refreshTokens,
     pushUndo,
     setError,
@@ -81,7 +86,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       name,
       platforms: [...platformConfig.selected],
       cssSelector: platformConfig.cssSelector,
-      selectedSets: platformConfig.selectedSets === null ? null : [...platformConfig.selectedSets],
+      selectedCollections:
+        platformConfig.selectedCollections === null
+          ? null
+          : [...platformConfig.selectedCollections],
       selectedTypes: platformConfig.selectedTypes === null ? null : [...platformConfig.selectedTypes],
       pathPrefix: platformConfig.pathPrefix,
       nestByPlatform: platformConfig.nestByPlatform,
@@ -96,7 +104,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const handleLoadPreset = (preset: ExportPreset) => {
     platformConfig.setSelected(new Set(preset.platforms));
     platformConfig.setCssSelector(preset.cssSelector);
-    platformConfig.setSelectedSets(preset.selectedSets === null ? null : new Set(preset.selectedSets));
+    platformConfig.setSelectedCollections(
+      preset.selectedCollections === null
+        ? null
+        : new Set(preset.selectedCollections),
+    );
     platformConfig.setSelectedTypes(preset.selectedTypes === null ? null : new Set(preset.selectedTypes));
     platformConfig.setPathPrefix(preset.pathPrefix);
     platformConfig.setNestByPlatform(preset.nestByPlatform);
@@ -107,7 +119,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   };
 
   const handleLoadPresetFiltersOnly = (preset: ExportPreset) => {
-    platformConfig.setSelectedSets(preset.selectedSets === null ? null : new Set(preset.selectedSets));
+    platformConfig.setSelectedCollections(
+      preset.selectedCollections === null
+        ? null
+        : new Set(preset.selectedCollections),
+    );
     platformConfig.setSelectedTypes(preset.selectedTypes === null ? null : new Set(preset.selectedTypes));
     platformConfig.setPathPrefix(preset.pathPrefix);
   };
@@ -163,7 +179,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   }, [  
     platformConfig.selected,
     platformConfig.cssSelector,
-    platformConfig.selectedSets,
+    platformConfig.selectedCollections,
     platformConfig.selectedTypes,
     platformConfig.pathPrefix,
     diffState.changesOnly,
@@ -266,7 +282,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               onLoadPreset={handleLoadPreset}
               onLoadPresetFiltersOnly={handleLoadPresetFiltersOnly}
               onDeletePreset={handleDeletePreset}
-              sets={sets}
+              collectionIds={collectionIds}
               connected={connected}
               savePresetInputRef={savePresetInputRef}
             />
@@ -338,7 +354,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           results={exportResults.results}
           exporting={exportResults.exporting}
           selected={platformConfig.selected}
-          selectedSets={platformConfig.selectedSets}
+          selectedCollections={platformConfig.selectedCollections}
           zipProgress={exportResults.zipProgress}
           handleExport={exportResults.handleExport}
           handleCopyAllPlatformResults={exportResults.handleCopyAllPlatformResults}
@@ -453,8 +469,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 </div>
               )}
               <datalist id="figma-save-destination-options">
-                {sets.map(setName => (
-                  <option key={setName} value={setName} />
+                {collectionIds.map(collectionId => (
+                  <option key={collectionId} value={collectionId} />
                 ))}
               </datalist>
               <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto">
@@ -636,7 +652,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           copiedFile={exportResults.copiedFile}
           changesOnly={diffState.changesOnly}
           changedTokenCount={diffState.changesOnly && diffState.diffPaths !== null ? diffState.diffPaths.length : null}
-          selectedSetCount={platformConfig.selectedSets !== null ? platformConfig.selectedSets.size : null}
+          selectedCollectionCount={
+            platformConfig.selectedCollections !== null
+              ? platformConfig.selectedCollections.size
+              : null
+          }
           onDownloadZip={exportResults.handleDownloadZip}
           onDownloadFile={exportResults.handleDownloadFile}
           onCopyFile={exportResults.handleCopyFile}

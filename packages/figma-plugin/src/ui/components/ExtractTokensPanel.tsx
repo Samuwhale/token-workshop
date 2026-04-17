@@ -18,7 +18,7 @@ import {
 
 interface ExtractTokensPanelProps {
   connected: boolean;
-  activeSet: string;
+  currentCollectionId: string;
   serverUrl: string;
   tokenMap: Record<string, TokenMapEntry>;
   onTokenCreated: () => void;
@@ -87,7 +87,7 @@ function formatValuePreview(entry: ExtractedTokenEntry): string {
 
 export function ExtractTokensPanel({
   connected,
-  activeSet,
+  currentCollectionId,
   serverUrl,
   tokenMap,
   onTokenCreated,
@@ -232,7 +232,7 @@ export function ExtractTokensPanel({
   }, []);
 
   const handleCreate = async () => {
-    if (!tokens || creating || !connected || !activeSet) return;
+    if (!tokens || creating || !connected || !currentCollectionId) return;
     const toCreate = tokens
       .map((t, i) => ({ ...t, name: names[i] ?? t.suggestedName, idx: i }))
       .filter((_, i) => selected.has(i));
@@ -261,9 +261,9 @@ export function ExtractTokensPanel({
       try {
         const body = createTokenValueBody({ type: item.tokenType, value: item.value });
         if (tokenMap[item.name]) {
-          await updateToken(serverUrl, activeSet, item.name, body);
+          await updateToken(serverUrl, currentCollectionId, item.name, body);
         } else {
-          await upsertToken(serverUrl, activeSet, item.name, body);
+          await upsertToken(serverUrl, currentCollectionId, item.name, body);
         }
         created++;
         succeededItems.push(item);

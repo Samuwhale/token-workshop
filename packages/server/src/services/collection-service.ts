@@ -105,6 +105,15 @@ export interface CollectionPreflightImpact {
   recipeTargets: CollectionRecipeTargetImpact[];
 }
 
+export interface CollectionSummary extends TokenCollection {
+  tokenCount: number;
+}
+
+export interface CollectionsOverview {
+  collections: CollectionSummary[];
+  views: ViewPreset[];
+}
+
 export type CollectionPreflightBlockerCode =
   | "generated-token-ownership"
   | "recipe-target-collection"
@@ -231,7 +240,7 @@ export interface CollectionDuplicateMutationResult {
 }
 
 export interface CollectionCreateMutationResult {
-  result: { id: string; name: string };
+  result: { id: string };
   afterSnapshot: Record<string, SnapshotEntry>;
   previousCollectionState: CollectionState;
 }
@@ -273,7 +282,7 @@ function renameCollectionIdsInState(
     collections: state.collections.map((collection) => {
       const nextId = renameMap.get(collection.id);
       return nextId
-        ? { ...collection, id: nextId, name: nextId }
+        ? { ...collection, id: nextId }
         : collection;
     }),
     views: state.views.map((view) => {
@@ -931,6 +940,18 @@ export class CollectionService {
     return result;
   }
 
+  async getCollectionsOverview(): Promise<CollectionsOverview> {
+    const state = await this.loadState();
+    const counts = this.tokenStore.getStoredCollectionTokenCounts();
+    return {
+      collections: state.collections.map((collection) => ({
+        ...structuredClone(collection),
+        tokenCount: counts[collection.id] ?? 0,
+      })),
+      views: structuredClone(state.views),
+    };
+  }
+
   async requireCollectionsExist(collectionIds: Iterable<string>): Promise<void> {
     const uniqueIds = [...new Set(collectionIds)].filter(Boolean);
     if (uniqueIds.length === 0) {
@@ -1383,7 +1404,6 @@ export class CollectionService {
             modes: [],
             ...(definition ? structuredClone(definition) : {}),
             id: collectionId,
-            name: collectionId,
           },
         ],
         views: stateBefore.views,
@@ -1559,7 +1579,7 @@ export class CollectionService {
       await this.createCollection(collectionId, tokens ?? {});
       const afterSnapshot = await snapshotCollection(this.tokenStore, collectionId);
       return {
-        result: { id: collectionId, name: collectionId },
+        result: { id: collectionId },
         afterSnapshot,
         previousCollectionState,
       };
