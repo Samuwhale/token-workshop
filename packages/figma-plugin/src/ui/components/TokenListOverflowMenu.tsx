@@ -240,7 +240,7 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
             : props.currentLibraryViewMode === "mode-options"
               ? "View: Modes"
               : props.currentLibraryViewMode === "active-mode"
-                ? "View: Preview"
+                ? "View: Active mode"
                 : "View: JSON"}
         </span>
       </button>
@@ -266,7 +266,7 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
             )}
             {props.hasCollections && (
               <MenuItem
-                label="Current Preview"
+                label="Active Mode"
                 checked={props.currentLibraryViewMode === "active-mode"}
                 onClick={() => runAndClose(() => props.onActivateViewMode("active-mode"))}
               />
@@ -344,7 +344,7 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
             )}
             {props.hasCollections && (
               <MenuItem
-                label="Preview values"
+                label="Resolved values"
                 checked={props.modeLensEnabled}
                 onClick={() => runAndClose(props.onToggleModeLens)}
               />

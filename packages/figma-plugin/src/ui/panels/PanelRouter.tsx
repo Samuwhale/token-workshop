@@ -10,13 +10,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { GraphPanel } from "../components/GraphPanel";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
 import { TokenRecipeDialog } from "../components/TokenRecipeDialog";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
-import { CollectionManager } from "../components/CollectionManager";
 import { CollectionStructureManager } from "../components/CollectionSwitcher";
 import { PublishPanel } from "../components/PublishPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
@@ -60,7 +58,6 @@ import {
   useCollectionStructureWorkspaceController,
   useShellWorkspaceController,
   useSyncWorkspaceController,
-  useCollectionWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
@@ -132,7 +129,6 @@ export function PanelRouter({
   const shell = useShellWorkspaceController();
   const editorShell = useEditorShellController();
   const tokensController = useTokensWorkspaceController();
-  const collectionController = useCollectionWorkspaceController();
   const applyController = useApplyWorkspaceController();
   const syncController = useSyncWorkspaceController();
   const collectionStructureController = useCollectionStructureWorkspaceController();
@@ -140,7 +136,6 @@ export function PanelRouter({
     ...shell,
     ...editorShell,
     ...tokensController,
-    ...collectionController,
     ...applyController,
     ...syncController,
     onShowPasteModal: shell.openPasteModal,
@@ -165,6 +160,7 @@ export function PanelRouter({
     activeSubTab,
     activeSecondarySurface,
     navigateTo,
+    openSecondarySurface,
     setSubTab,
     beginHandoff,
     closeSecondarySurface,
@@ -230,7 +226,7 @@ export function PanelRouter({
     perCollectionFlat,
     syncSnapshot,
     tokensError,
-    setFilteredCollectionCount: setFilteredSetCount,
+    setFilteredCollectionCount,
     modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
   const {
@@ -583,7 +579,7 @@ export function PanelRouter({
     },
     onRefreshRecipes: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
-    onFilteredCountChange: setFilteredSetCount,
+    onFilteredCountChange: setFilteredCollectionCount,
     onNavigateToCollection: controller.handleNavigateToCollection,
     onViewTokenHistory: (path: string) => {
       setHistoryFilterPath(path);
@@ -686,7 +682,7 @@ export function PanelRouter({
           }),
         onNavigateToRecipe: controller.handleNavigateToRecipe,
         onOpenRecipeEditor: openRecipeEditor,
-        onNavigateToCollections: () => navigateTo("collections", "collections"),
+        onOpenManageCollections: () => openSecondarySurface("collection-manager"),
       }
     : null;
 
@@ -896,7 +892,7 @@ export function PanelRouter({
           collectionMap,
           modeMap,
           collections,
-          unthemedAllTokensFlat: allTokensFlat,
+          unresolvedAllTokensFlat: allTokensFlat,
           pathToCollectionId,
           selectedModes,
         }}
@@ -1162,12 +1158,6 @@ export function PanelRouter({
     tokens: {
       tokens: renderDefineTokens,
     },
-    recipes: {
-      recipes: renderRecipes,
-    },
-    collections: {
-      collections: renderDefineCollections,
-    },
     inspect: {
       inspect: renderApplyInspect,
       "canvas-analysis": renderApplyCanvasAnalysis,
@@ -1350,72 +1340,6 @@ export function PanelRouter({
         </div>
         {renderNarrowTokensContextualSurface()}
       </>
-    );
-  }
-
-  function renderDefineCollections(): ReactNode {
-    return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <ErrorBoundary
-            panelName="Collections"
-            onReset={() => navigateTo("tokens", "tokens")}
-          >
-            <CollectionManager
-              serverUrl={serverUrl}
-              connected={connected}
-              collectionIds={collectionIds}
-              onCollectionsChange={setCollections}
-              onNavigateToToken={(path, collectionId) => {
-                beginHandoff({
-                  reason: "View or edit this token, then return to Collections",
-                });
-                navigateTo("tokens", "tokens", { preserveHandoff: true });
-                controller.handleNavigateToCollection(collectionId, path);
-              }}
-              onCreateToken={(tokenPath, collectionId) => {
-                beginHandoff({
-                  reason: "Create this token, then return to Collections",
-                });
-                navigateTo("tokens", "tokens", { preserveHandoff: true });
-                setEditingToken({ path: tokenPath, currentCollectionId: collectionId, isCreate: true });
-              }}
-              allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToCollectionId}
-              pathToStorageCollectionId={pathToCollectionId}
-              onTokensCreated={controller.refreshAll}
-              onGoToTokens={() => {
-                beginHandoff({
-                  reason: "Browse tokens, then return to Collections",
-                });
-                navigateTo("tokens", "tokens", { preserveHandoff: true });
-              }}
-              collectionManagerHandle={controller.collectionManagerHandleRef}
-            />
-          </ErrorBoundary>
-        </div>
-      </div>
-    );
-  }
-
-  function renderRecipes(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Recipes"
-        onReset={() => navigateTo("tokens", "tokens")}
-      >
-        <GraphPanel
-          serverUrl={serverUrl}
-          currentCollectionId={currentCollectionId}
-          collectionIds={collectionIds}
-          recipes={recipes}
-          connected={connected}
-          onRefresh={controller.refreshAll}
-          onPushUndo={controller.pushUndo}
-          allTokensFlat={allTokensFlat}
-          onViewTokens={openGeneratedTokens}
-        />
-      </ErrorBoundary>
     );
   }
 

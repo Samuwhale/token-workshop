@@ -47,7 +47,7 @@ interface TaskDef {
 }
 
 const TASKS: TaskDef[] = [
-  { id: 'foundations', label: 'Recipes', description: 'Color, spacing, or type recipe' },
+  { id: 'foundations', label: 'Foundations', description: 'Generate colors, spacing, or type scales' },
   { id: 'semantics', label: 'Semantics', description: 'Map aliases to foundations' },
   { id: 'modes', label: 'Modes', description: 'Add collection-owned modes' },
 ];

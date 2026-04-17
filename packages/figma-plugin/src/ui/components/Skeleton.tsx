@@ -36,34 +36,6 @@ export function SkeletonTimelineRow({ titleWidth = 'w-2/3' }: { titleWidth?: str
 }
 
 /**
- * Skeleton for a recipe pipeline card (GraphPanel style):
- * badge | name | toggle — then source → name → target row
- */
-export function SkeletonRecipeCard() {
-  return (
-    <div
-      className="p-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
-      aria-hidden="true"
-    >
-      {/* header row */}
-      <div className="flex items-center gap-2 mb-3">
-        <Skeleton className="h-[18px] w-16 rounded-full" />
-        <Skeleton className="h-[10px] flex-1 max-w-[40%]" />
-        <Skeleton className="h-[18px] w-8 rounded ml-auto" />
-      </div>
-      {/* pipeline row: source → name → target */}
-      <div className="flex items-center gap-1.5">
-        <Skeleton className="h-[22px] w-[90px] rounded" />
-        <Skeleton className="h-[6px] w-5 rounded-full" />
-        <Skeleton className="h-[22px] w-[70px] rounded" />
-        <Skeleton className="h-[6px] w-5 rounded-full" />
-        <Skeleton className="h-[22px] flex-1 rounded" />
-      </div>
-    </div>
-  );
-}
-
-/**
  * Skeleton for an import list row (ImportPanel style):
  * icon | name | type badge
  */

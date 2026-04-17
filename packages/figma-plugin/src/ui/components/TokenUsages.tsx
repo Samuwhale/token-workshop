@@ -42,7 +42,7 @@ interface TokenUsagesProps {
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   /** Open the dependency graph focused on a token */
   onShowReferences?: (path: string) => void;
-  /** Navigate to a recipe in GraphPanel */
+  /** Navigate to a recipe's contextual editor */
   onNavigateToRecipe?: (recipeId: string) => void;
 }
 

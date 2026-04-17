@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { createRecipeOwnershipKey } from "@tokenmanager/core";
 import type { Command, TokenEntry } from "../components/CommandPalette";
 import { inferTypeFromValue } from "../components/tokenListHelpers";
@@ -24,7 +24,6 @@ import { useEditorContext } from "../contexts/EditorContext";
 import {
   useShellWorkspaceController,
   useSyncWorkspaceController,
-  useCollectionWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 
@@ -57,10 +56,14 @@ export function useCommandPaletteCommands(): {
     highlightedToken,
     setHighlightedToken,
     setEditingToken,
+    setShowTokensCompare,
+    setTokensCompareMode,
+    setTokensCompareModeKey,
+    setTokensComparePath,
+    setTokensComparePaths,
   } = useEditorContext();
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
-  const collectionsWorkspace = useCollectionWorkspaceController();
   const sync = useSyncWorkspaceController();
 
   const [exportPresetRev, setExportPresetRev] = useState(0);
@@ -120,7 +123,7 @@ export function useCommandPaletteCommands(): {
         label: "Switch collection…",
         description: `Jump between ${collectionIds.length} collections`,
         category: "Collections",
-        shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_SET),
+        shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION),
         handler: shell.toggleCollectionSwitcher,
       },
       {
@@ -318,6 +321,19 @@ export function useCommandPaletteCommands(): {
     }));
   }, [navigateTo, setCurrentCollectionId, setEditingToken, collectionTokenCounts, collectionIds]);
 
+  const openCompareInTokens = useCallback(
+    (mode: "mode-options" | "cross-collection", path?: string) => {
+      setEditingToken(null);
+      setTokensCompareMode(mode);
+      setTokensComparePath(path ?? "");
+      setTokensComparePaths(new Set());
+      setTokensCompareModeKey((key) => key + 1);
+      setShowTokensCompare(true);
+      navigateTo("tokens", "tokens");
+    },
+    [navigateTo, setEditingToken, setShowTokensCompare, setTokensCompareMode, setTokensCompareModeKey, setTokensComparePath, setTokensComparePaths],
+  );
+
   const modeCompareCommands = useMemo<Command[]>(() => {
     return [
       ...(collections.length > 0
@@ -327,12 +343,7 @@ export function useCommandPaletteCommands(): {
               label: "Compare collection modes…",
               description: "Open a side-by-side diff across collection modes",
               category: "Modes" as const,
-              handler: () => {
-                collectionsWorkspace.collectionManagerHandleRef.current?.navigateToCompare(
-                  "mode-options",
-                );
-                navigateTo("collections");
-              },
+              handler: () => openCompareInTokens("mode-options"),
             },
           ]
         : []),
@@ -343,19 +354,10 @@ export function useCommandPaletteCommands(): {
           label: `Compare ${collection.id} modes: ${collection.modes[0].name} vs ${collection.modes[1].name}`,
           description: `See token differences across ${collection.id} modes`,
           category: "Modes" as const,
-          handler: () => {
-            collectionsWorkspace.collectionManagerHandleRef.current?.navigateToCompare(
-              "mode-options",
-              undefined,
-              undefined,
-              `${collection.id}:${collection.modes[0].name}`,
-              `${collection.id}:${collection.modes[1].name}`,
-            );
-            navigateTo("collections");
-          },
+          handler: () => openCompareInTokens("mode-options"),
         })),
     ];
-  }, [collections, navigateTo, collectionsWorkspace.collectionManagerHandleRef]);
+  }, [collections, openCompareInTokens]);
 
   const contextualCommands = useMemo<Command[]>(() => {
     const inCurrentCollection =
@@ -467,12 +469,7 @@ export function useCommandPaletteCommands(): {
               description:
                 "Focus a token first, then run this command to compare its values across collection modes",
               category: "Modes" as const,
-              handler: () => {
-                collectionsWorkspace.collectionManagerHandleRef.current?.navigateToCompare(
-                  "cross-collection",
-                );
-                navigateTo("collections");
-              },
+              handler: () => openCompareInTokens("cross-collection"),
             },
           ]
         : []),
@@ -483,9 +480,9 @@ export function useCommandPaletteCommands(): {
     collections.length,
     highlightedToken,
     navigateTo,
+    openCompareInTokens,
     pathToCollectionId,
     setHighlightedToken,
-    collectionsWorkspace.collectionManagerHandleRef,
     tokens,
   ]);
 

@@ -14,10 +14,9 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "tokens" | "collections" | "inspect" | "sync";
+      topTab: "tokens" | "inspect" | "sync";
       subTab:
         | "tokens"
-        | "collections"
         | "inspect"
         | "canvas-analysis"
         | "publish"
@@ -25,7 +24,7 @@ type ActionTarget =
         | "history"
         | "health";
     }
-  | { kind: "surface"; surface: "import" | "settings" };
+  | { kind: "surface"; surface: "import" | "collection-manager" | "settings" };
 
 interface NotificationsPanelProps {
   history: NotificationEntry[];
@@ -132,13 +131,13 @@ function inferWorkspaceAction(message: string): InboxAction {
     };
   }
   if (
-    lower.includes("theme") ||
+    lower.includes("collection") ||
     lower.includes("mode") ||
     lower.includes("layer")
   ) {
     return {
-      label: "Open modes",
-      target: { kind: "workspace", topTab: "collections", subTab: "collections" },
+      label: "Manage collections",
+      target: { kind: "surface", surface: "collection-manager" },
     };
   }
   if (
@@ -227,7 +226,9 @@ function buildInboxItem(
     : action.target.kind === "surface"
       ? action.target.surface === "settings"
         ? "Settings"
-        : "Import"
+        : action.target.surface === "collection-manager"
+          ? "Collections"
+          : "Import"
       : action.label
           .replace(/^Open\s+/i, "")
           .replace(/^./, (char) => char.toUpperCase());

@@ -26,7 +26,7 @@ export interface ModeValuesEditorProps {
   value: unknown;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
-  onNavigateToCollections?: () => void;
+  onOpenManageCollections?: () => void;
   selectedModes?: Record<string, string>;
   serverUrl?: string;
   onCollectionModeCreated?: () => void;
@@ -78,7 +78,7 @@ export function ModeValuesEditor({
   value,
   allTokensFlat = {},
   pathToCollectionId = {},
-  onNavigateToCollections,
+  onOpenManageCollections,
   selectedModes = {},
   serverUrl,
   onCollectionModeCreated,
@@ -211,13 +211,13 @@ export function ModeValuesEditor({
               Add modes
             </button>
           ) : null}
-          {onNavigateToCollections ? (
+          {onOpenManageCollections ? (
             <button
               type="button"
-              onClick={onNavigateToCollections}
+              onClick={onOpenManageCollections}
               className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:underline"
             >
-              Open collections
+              Manage collections
             </button>
           ) : null}
         </div>
@@ -275,7 +275,7 @@ export function ModeValuesEditor({
             !isAlias &&
             !forceAliasInput &&
             !showingAutocomplete;
-          const isCurrentPreview = selectedModes[collectionId] === option.name;
+          const isSelectedMode = selectedModes[collectionId] === option.name;
 
           return (
             <div
@@ -284,7 +284,7 @@ export function ModeValuesEditor({
                 isOverridden
                   ? "border-l-2 border-l-[var(--color-figma-accent)]"
                   : "border-l-2 border-l-transparent"
-              } ${isCurrentPreview ? "bg-[var(--color-figma-accent)]/5" : ""}`}
+              } ${isSelectedMode ? "bg-[var(--color-figma-accent)]/5" : ""}`}
             >
               <span
                 className="w-[92px] shrink-0 truncate text-[10px] font-medium text-[var(--color-figma-text)]"

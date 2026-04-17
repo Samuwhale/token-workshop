@@ -57,7 +57,7 @@ export const SHORTCUT_KEYS = {
   OPEN_SETTINGS:         '⌘,',
   SHOW_SHORTCUTS:        '?',
   TOGGLE_QUICK_APPLY:    '⌘⇧A',
-  QUICK_SWITCH_SET:      '⌘⇧S',
+  QUICK_SWITCH_COLLECTION: '⌘⇧S',
   TOGGLE_PREVIEW:        '⌘P',
   // Navigation
   GO_TO_DEFINE:          '⌘1',
@@ -86,8 +86,8 @@ export const SHORTCUT_KEYS = {
   TOKEN_RENAME:          'F2',
   TOKEN_DELETE:          '⌫',
   TOKEN_DUPLICATE:       '⌘D',
-  TOKEN_BATCH_MOVE_TO_SET: '⌘⇧M',
-  TOKEN_BATCH_COPY_TO_SET: '⌘⇧Y',
+  TOKEN_BATCH_MOVE_TO_COLLECTION: '⌘⇧M',
+  TOKEN_BATCH_COPY_TO_COLLECTION: '⌘⇧Y',
   // Paste Modal
   PASTE_CONFIRM:         '⌘↵',
 } as const;
@@ -138,7 +138,7 @@ export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
   OPEN_SETTINGS:         { key: ',',          meta: true,  shift: false, alt: false },
   SHOW_SHORTCUTS:        { key: '?',          meta: false },                           // shift not checked: '?' implies Shift on US keyboards
   TOGGLE_QUICK_APPLY:    { key: 'a',          meta: true,  shift: true,  alt: false },
-  QUICK_SWITCH_SET:      { key: 's',          meta: true,  shift: true,  alt: false },
+  QUICK_SWITCH_COLLECTION: { key: 's',          meta: true,  shift: true,  alt: false },
   TOGGLE_PREVIEW:        { key: 'p',          meta: true,  shift: false, alt: false },
   // Navigation
   GO_TO_DEFINE:          { key: '1',          meta: true,  shift: false, alt: false },
@@ -167,8 +167,8 @@ export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
   TOKEN_RENAME:            { key: 'F2',         meta: false, shift: false, alt: false },
   TOKEN_DELETE:            { key: 'Backspace',  meta: false, shift: false, alt: false },
   TOKEN_DUPLICATE:         { key: 'd',          meta: true,  shift: false, alt: false },
-  TOKEN_BATCH_MOVE_TO_SET: { key: 'm',          meta: true,  shift: true,  alt: false },
-  TOKEN_BATCH_COPY_TO_SET: { key: 'y',          meta: true,  shift: true,  alt: false },
+  TOKEN_BATCH_MOVE_TO_COLLECTION: { key: 'm',          meta: true,  shift: true,  alt: false },
+  TOKEN_BATCH_COPY_TO_COLLECTION: { key: 'y',          meta: true,  shift: true,  alt: false },
   // Paste Modal (same combo as EDITOR_SAVE — context-only, not a real conflict)
   PASTE_CONFIRM:         { key: 'Enter',      meta: true,  shift: false, alt: false },
 };
@@ -242,8 +242,8 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Tokens workspace',         mac: SHORTCUT_KEYS.GO_TO_DEFINE },
   { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Apply workspace',          mac: SHORTCUT_KEYS.GO_TO_APPLY },
   { id: 'GO_TO_SYNC',            group: 'Navigation',      description: 'Go to Sync workspace',           mac: SHORTCUT_KEYS.GO_TO_SYNC },
-  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open Modes workspace',           mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
-  { id: 'QUICK_SWITCH_SET',      group: 'Navigation',      description: 'Quick-switch collection',         mac: SHORTCUT_KEYS.QUICK_SWITCH_SET },
+  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Manage collections',             mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
+  { id: 'QUICK_SWITCH_COLLECTION', group: 'Navigation',      description: 'Quick-switch collection',         mac: SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION },
 
   // ── Command Palette ──────────────────────────────────────────────────────
   { id: 'PALETTE_NAVIGATE',      group: 'Command Palette', description: 'Navigate results',               mac: '↑↓',    displayOnly: true },
@@ -288,8 +288,8 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'TOKEN_RENAME',            group: 'Token List',      description: 'Rename token',                              mac: SHORTCUT_KEYS.TOKEN_RENAME,    displayOnly: true },
   { id: 'TOKEN_DELETE',            group: 'Token List',      description: 'Delete token / delete selected (batch)',    mac: SHORTCUT_KEYS.TOKEN_DELETE,    altMac: 'Del' },
   { id: 'TOKEN_DUPLICATE',         group: 'Token List',      description: 'Duplicate token',                           mac: SHORTCUT_KEYS.TOKEN_DUPLICATE, displayOnly: true },
-  { id: 'TOKEN_BATCH_MOVE_TO_SET', group: 'Token List',      description: 'Move selected tokens to another set',       mac: SHORTCUT_KEYS.TOKEN_BATCH_MOVE_TO_SET },
-  { id: 'TOKEN_BATCH_COPY_TO_SET', group: 'Token List',      description: 'Copy selected tokens to another set',       mac: SHORTCUT_KEYS.TOKEN_BATCH_COPY_TO_SET },
+  { id: 'TOKEN_BATCH_MOVE_TO_COLLECTION', group: 'Token List',      description: 'Move selected tokens to another collection', mac: SHORTCUT_KEYS.TOKEN_BATCH_MOVE_TO_COLLECTION },
+  { id: 'TOKEN_BATCH_COPY_TO_COLLECTION', group: 'Token List',      description: 'Copy selected tokens to another collection', mac: SHORTCUT_KEYS.TOKEN_BATCH_COPY_TO_COLLECTION },
 
   // ── Token Editor ─────────────────────────────────────────────────────────
   { id: 'EDITOR_NEXT',           group: 'Token Editor',    description: 'Next token',                     mac: SHORTCUT_KEYS.EDITOR_NEXT_TOKEN },

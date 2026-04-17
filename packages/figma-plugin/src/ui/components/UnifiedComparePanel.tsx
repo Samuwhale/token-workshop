@@ -1,10 +1,6 @@
 /**
- * UnifiedComparePanel — shared wrapper used by both the Tokens tab and the
- * Collections tab to show the three-mode comparison UI. Extracts the back-button
- * chrome that was previously duplicated inside CollectionManager.
- *
- * Both entry points use the same CompareView underneath; the only difference
- * is the `backLabel` and `onBack` callback.
+ * UnifiedComparePanel — wrapper for the three-mode comparison UI shown in
+ * the Tokens workspace contextual panel.
  */
 
 import { CompareView } from './CompareView';

@@ -6,13 +6,24 @@ import {
   createFetchSignal,
   isNetworkError,
 } from "../shared/apiFetch";
+import {
+  deserializeTokenCollections,
+  type SerializedTokenCollection,
+  type ViewPreset,
+} from "@tokenmanager/core";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useCollectionStateContext } from "../contexts/TokenDataContext";
 import type {
   CollectionPreflightImpact,
   CollectionStructuralOperation,
   CollectionStructuralPreflight,
-} from "../shared/setStructuralPreflight";
+} from "../shared/collectionStructuralPreflight";
+import {
+  buildSelectionLabel,
+  createViewPresetName,
+  createViewPreset,
+  normalizeModeSelections,
+} from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
 
 interface FolderGroup {
@@ -1054,6 +1065,10 @@ export function CollectionStructureManager({
               onRenameConfirm={onRenameConfirm}
               onRenameCancel={onRenameCancel}
             />
+
+            <CollectionModeManagement serverUrl={serverUrl} connected={connected} />
+
+            <SavedViewsSection serverUrl={serverUrl} connected={connected} />
           </>
         )}
       </div>
@@ -1095,6 +1110,286 @@ export function CollectionStructureManager({
           />
         )}
     </>
+  );
+}
+
+function CollectionModeManagement({
+  serverUrl,
+  connected,
+}: {
+  serverUrl: string;
+  connected: boolean;
+}) {
+  const {
+    collections,
+    setCollections,
+  } = useCollectionStateContext();
+  const [modeDrafts, setModeDrafts] = useState<Record<string, string>>({});
+  const [modeSaving, setModeSaving] = useState<Record<string, boolean>>({});
+  const [modeErrors, setModeErrors] = useState<Record<string, string | null>>({});
+
+  const refreshCollections = useCallback(async () => {
+    if (!connected) return;
+    try {
+      const result = await apiFetch<{
+        collections?: SerializedTokenCollection[];
+      }>(`${serverUrl}/api/collections`);
+      setCollections(deserializeTokenCollections(result.collections ?? []));
+    } catch {
+      // silent — user can retry
+    }
+  }, [connected, serverUrl, setCollections]);
+
+  const handleSaveMode = useCallback(
+    async (collectionId: string) => {
+      const name = modeDrafts[collectionId]?.trim();
+      if (!name) return;
+      setModeSaving((prev) => ({ ...prev, [collectionId]: true }));
+      setModeErrors((prev) => ({ ...prev, [collectionId]: null }));
+      try {
+        await apiFetch(
+          `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          },
+        );
+        setModeDrafts((prev) => ({ ...prev, [collectionId]: "" }));
+        await refreshCollections();
+      } catch (error) {
+        setModeErrors((prev) => ({
+          ...prev,
+          [collectionId]:
+            error instanceof Error ? error.message : "Failed to add mode",
+        }));
+      } finally {
+        setModeSaving((prev) => ({ ...prev, [collectionId]: false }));
+      }
+    },
+    [modeDrafts, refreshCollections, serverUrl],
+  );
+
+  const handleDeleteMode = useCallback(
+    async (collectionId: string, modeName: string) => {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
+        { method: "DELETE" },
+      );
+      await refreshCollections();
+    },
+    [refreshCollections, serverUrl],
+  );
+
+  if (collections.length === 0) return null;
+
+  return (
+    <div className="border-t border-[var(--color-figma-border)] px-3 py-3">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)]">
+        Modes
+      </div>
+      <div className="space-y-3">
+        {collections.map((collection) => (
+          <div
+            key={collection.id}
+            className="rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
+          >
+            <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+              <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                {collection.id}
+              </div>
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                {collection.modes.length} mode{collection.modes.length === 1 ? "" : "s"}
+              </div>
+            </div>
+            <div className="space-y-1.5 px-3 py-2">
+              {collection.modes.map((mode) => (
+                <div
+                  key={mode.name}
+                  className="flex items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5"
+                >
+                  <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                    {mode.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteMode(collection.id, mode.name)}
+                    className="rounded px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={modeDrafts[collection.id] ?? ""}
+                  onChange={(e) =>
+                    setModeDrafts((prev) => ({ ...prev, [collection.id]: e.target.value }))
+                  }
+                  placeholder="Add mode"
+                  className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)]"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleSaveMode(collection.id);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleSaveMode(collection.id)}
+                  disabled={!modeDrafts[collection.id]?.trim() || modeSaving[collection.id]}
+                  className="rounded bg-[var(--color-figma-accent)] px-3 py-1 text-[10px] font-medium text-white disabled:opacity-40"
+                >
+                  {modeSaving[collection.id] ? "Adding..." : "Add"}
+                </button>
+              </div>
+              {modeErrors[collection.id] ? (
+                <div className="text-[10px] text-[var(--color-figma-error)]">
+                  {modeErrors[collection.id]}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SavedViewsSection({
+  serverUrl,
+  connected,
+}: {
+  serverUrl: string;
+  connected: boolean;
+}) {
+  const {
+    collections,
+    selectedModes,
+    setSelectedModes,
+  } = useCollectionStateContext();
+  const [views, setViews] = useState<ViewPreset[]>([]);
+  const [viewsLoading, setViewsLoading] = useState(false);
+  const [newViewName, setNewViewName] = useState("");
+
+  const refreshViews = useCallback(async () => {
+    if (!connected) return;
+    setViewsLoading(true);
+    try {
+      const result = await apiFetch<{ views?: ViewPreset[] }>(
+        `${serverUrl}/api/collections`,
+      );
+      setViews(result.views ?? []);
+    } catch {
+      // silent
+    } finally {
+      setViewsLoading(false);
+    }
+  }, [connected, serverUrl]);
+
+  useEffect(() => {
+    void refreshViews();
+  }, [refreshViews]);
+
+  const handleSaveView = useCallback(async () => {
+    const proposedName =
+      newViewName.trim() ||
+      createViewPresetName(collections, selectedModes);
+    const view = createViewPreset({
+      id: `${Date.now()}`,
+      name: proposedName,
+      collections,
+      selections: selectedModes,
+    });
+    await apiFetch(`${serverUrl}/api/views`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(view),
+    });
+    setNewViewName("");
+    await refreshViews();
+  }, [collections, newViewName, refreshViews, selectedModes, serverUrl]);
+
+  const handleApplyView = useCallback(
+    (view: ViewPreset) => {
+      setSelectedModes(normalizeModeSelections(collections, view.selections));
+    },
+    [collections, setSelectedModes],
+  );
+
+  const handleDeleteView = useCallback(
+    async (viewId: string) => {
+      await apiFetch(`${serverUrl}/api/views/${encodeURIComponent(viewId)}`, {
+        method: "DELETE",
+      });
+      await refreshViews();
+    },
+    [refreshViews, serverUrl],
+  );
+
+  return (
+    <div className="border-t border-[var(--color-figma-border)] px-3 py-3">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)]">
+        Saved views{views.length > 0 ? ` (${views.length})` : ""}
+      </div>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newViewName}
+            onChange={(e) => setNewViewName(e.target.value)}
+            placeholder={
+              collections.length > 0
+                ? createViewPresetName(collections, selectedModes)
+                : "View name"
+            }
+            className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)]"
+          />
+          <button
+            type="button"
+            onClick={() => void handleSaveView()}
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[11px] font-medium text-white"
+          >
+            Save
+          </button>
+        </div>
+        {views.length === 0 && !viewsLoading ? (
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            No saved views yet.
+          </div>
+        ) : null}
+        {views.map((view) => (
+          <div
+            key={view.id}
+            className="flex items-center justify-between gap-2 rounded border border-[var(--color-figma-border)] px-2.5 py-2"
+          >
+            <div className="min-w-0">
+              <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                {view.name}
+              </div>
+              <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+                {buildSelectionLabel(collections, view.selections)}
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => handleApplyView(view)}
+                className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+              >
+                Apply
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteView(view.id)}
+                className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

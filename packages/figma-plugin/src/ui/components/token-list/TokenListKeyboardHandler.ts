@@ -251,9 +251,9 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         return;
       }
 
-      // Cmd+Shift+M: batch move selected tokens to another set
+      // Cmd+Shift+M: batch move selected tokens to another collection
       if (
-        matchesShortcut(e, "TOKEN_BATCH_MOVE_TO_SET") &&
+        matchesShortcut(e, "TOKEN_BATCH_MOVE_TO_COLLECTION") &&
         selectMode &&
         selectedPaths.size > 0
       ) {
@@ -263,9 +263,9 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         return;
       }
 
-      // Cmd+Shift+Y: batch copy selected tokens to another set
+      // Cmd+Shift+Y: batch copy selected tokens to another collection
       if (
-        matchesShortcut(e, "TOKEN_BATCH_COPY_TO_SET") &&
+        matchesShortcut(e, "TOKEN_BATCH_COPY_TO_COLLECTION") &&
         selectMode &&
         selectedPaths.size > 0
       ) {

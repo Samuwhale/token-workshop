@@ -145,7 +145,7 @@ export function TokenList({
     collectionMap = {},
     modeMap = {},
     collections = [],
-    unthemedAllTokensFlat,
+    unresolvedAllTokensFlat,
     pathToCollectionId = {},
     selectedModes = {},
   },
@@ -476,7 +476,7 @@ export function TokenList({
     if (
       !multiModeEnabled ||
       !multiModeDimId ||
-      !unthemedAllTokensFlat ||
+      !unresolvedAllTokensFlat ||
       activeCollections.length === 0
     )
       return null;
@@ -495,7 +495,7 @@ export function TokenList({
         optionName: option.name,
         collectionId: collection.id,
         resolved: applyModeSelectionsToTokens(
-          unthemedAllTokensFlat,
+          unresolvedAllTokensFlat,
           collections,
           { [collection.id]: option.name },
           pathToCollectionId,
@@ -506,7 +506,7 @@ export function TokenList({
   }, [
     multiModeEnabled,
     multiModeDimId,
-    unthemedAllTokensFlat,
+    unresolvedAllTokensFlat,
     activeCollections,
     collections,
     pathToCollectionId,
@@ -517,7 +517,7 @@ export function TokenList({
   const modeVariantPaths = useMemo<Set<string>>(() => {
     if (
       multiModeEnabled ||
-      !unthemedAllTokensFlat ||
+      !unresolvedAllTokensFlat ||
       activeCollections.length === 0
     )
       return new Set();
@@ -527,7 +527,7 @@ export function TokenList({
     if (!collection) return new Set();
 
     const candidatePaths = new Set<string>();
-    for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
+    for (const [path, entry] of Object.entries(unresolvedAllTokensFlat)) {
       const modeValues = getInlineModeValues(entry, collection.id);
       if (Object.keys(modeValues).length > 0) {
         candidatePaths.add(path);
@@ -537,7 +537,7 @@ export function TokenList({
 
     const optionResults = collection.modes.map((option) =>
       applyModeSelectionsToTokens(
-        unthemedAllTokensFlat,
+        unresolvedAllTokensFlat,
         activeCollections,
         {
           [collection.id]: option.name,
@@ -564,7 +564,7 @@ export function TokenList({
     return varies;
   }, [
     multiModeEnabled,
-    unthemedAllTokensFlat,
+    unresolvedAllTokensFlat,
     activeCollections,
     pathToCollectionId,
   ]);
@@ -1077,7 +1077,7 @@ export function TokenList({
           : "mode columns",
       );
     } else if (modeLensEnabled) {
-      viewLabels.push("current preview values");
+      viewLabels.push("mode-resolved values");
     }
     if (inspectMode) {
       viewLabels.push("selection-related tokens");
@@ -2129,9 +2129,9 @@ export function TokenList({
   const effectiveRovingPath =
     rovingFocusPath ?? flatItems[0]?.node.path ?? null;
 
-  const effectiveAllTokensFlat = modeLensEnabled || !unthemedAllTokensFlat
+  const effectiveAllTokensFlat = modeLensEnabled || !unresolvedAllTokensFlat
     ? allTokensFlat
-    : unthemedAllTokensFlat;
+    : unresolvedAllTokensFlat;
 
   const tokenTreeSharedData = useTokenTreeSharedData({
     effectiveAllTokensFlat, pathToCollectionId,

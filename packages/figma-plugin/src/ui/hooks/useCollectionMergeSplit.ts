@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import type { UndoSlot } from "./useUndo";
 import { apiFetch } from "../shared/apiFetch";
-import type { CollectionStructuralPreflight } from "../shared/setStructuralPreflight";
+import type { CollectionStructuralPreflight } from "../shared/collectionStructuralPreflight";
 import { stableStringify } from "../shared/utils";
 
 interface MergeCollectionResponse {

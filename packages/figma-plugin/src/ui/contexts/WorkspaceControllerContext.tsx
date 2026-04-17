@@ -7,7 +7,6 @@ import type {
   SetStateAction,
 } from "react";
 import type { TokenListImperativeHandle } from "../components/tokenListTypes";
-import type { CollectionManagerHandle } from "../components/CollectionManager";
 import type { PublishPanelHandle } from "../components/PublishPanel";
 import type { StartHereBranch } from "../components/WelcomePrompt";
 import type { LintViolation } from "../hooks/useLint";
@@ -105,10 +104,6 @@ export interface TokensWorkspaceController {
   handlePaletteMove: (path: string) => void;
   requestPaletteDelete: (paths: string[], label: string) => void;
   handlePaletteDeleteToken: (path: string) => void;
-}
-
-export interface CollectionWorkspaceController {
-  collectionManagerHandleRef: MutableRefObject<CollectionManagerHandle | null>;
 }
 
 export interface ApplyWorkspaceController {
@@ -216,7 +211,6 @@ export interface WorkspaceControllerValue {
   shell: ShellWorkspaceController;
   editor: EditorShellController;
   tokens: TokensWorkspaceController;
-  collections: CollectionWorkspaceController;
   apply: ApplyWorkspaceController;
   sync: SyncWorkspaceController;
   collectionStructure: CollectionStructureWorkspaceController;
@@ -259,10 +253,6 @@ export function useEditorShellController(): EditorShellController {
 
 export function useTokensWorkspaceController(): TokensWorkspaceController {
   return useWorkspaceControllerContext().tokens;
-}
-
-export function useCollectionWorkspaceController(): CollectionWorkspaceController {
-  return useWorkspaceControllerContext().collections;
 }
 
 export function useApplyWorkspaceController(): ApplyWorkspaceController {

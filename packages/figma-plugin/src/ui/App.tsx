@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { TokenListImperativeHandle } from "./components/tokenListTypes";
-import type { CollectionManagerHandle } from "./components/CollectionManager";
 import type { PublishPanelHandle } from "./components/PublishPanel";
 import { ToastStack } from "./components/ToastStack";
 import { useToastStack } from "./hooks/useToastStack";
@@ -613,10 +612,7 @@ export function App() {
   }, [editingRecipe, editingRecipeData, setEditingRecipe]);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
-  // Imperative handle to TokenList compare actions — populated by TokenList via compareHandle prop
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
-  // Imperative handle to CollectionManager — populated by CollectionManager for command palette actions
-  const collectionManagerHandleRef = useRef<CollectionManagerHandle | null>(null);
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
   // Open compare view within the Tokens tab in 'cross-collection' mode for a specific token
   const handleOpenCrossCollectionCompare = useCallback(
@@ -1234,15 +1230,14 @@ export function App() {
       e.preventDefault();
       setShowQuickApply((v) => !v);
     }
-    if (matchesShortcut(e, "QUICK_SWITCH_SET")) {
+    if (matchesShortcut(e, "QUICK_SWITCH_COLLECTION")) {
       e.preventDefault();
       toggleCollectionSwitcher();
     }
     if (matchesShortcut(e, "GO_TO_RESOLVER")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("collections", "collections");
-      closeSecondarySurface();
+      openSecondarySurface("collection-manager");
     }
     if (matchesShortcut(e, "SHOW_SHORTCUTS")) {
       e.preventDefault();
@@ -1563,9 +1558,6 @@ export function App() {
       requestPaletteDelete: (paths: string[], label: string) =>
         setPaletteDeleteConfirm({ paths, label }),
       handlePaletteDeleteToken,
-    },
-    collections: {
-      collectionManagerHandleRef,
     },
     apply: {
       triggerCreateToken,

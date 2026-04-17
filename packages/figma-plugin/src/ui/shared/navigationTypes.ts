@@ -8,13 +8,11 @@ import { STORAGE_KEYS } from "./storage";
 import type { RecipeDialogInitialDraft } from "../hooks/useRecipeDialog";
 import type { RecipeTemplate } from "../hooks/useRecipes";
 
-export type TopTab = "tokens" | "recipes" | "collections" | "inspect" | "sync";
+export type TopTab = "tokens" | "inspect" | "sync";
 type TokensSubTab = "tokens";
-type RecipesSubTab = "recipes";
-type CollectionsSubTab = "collections";
 type InspectSubTab = "inspect" | "canvas-analysis";
 type SyncSubTab = "publish" | "export" | "history" | "health";
-export type SubTab = TokensSubTab | RecipesSubTab | CollectionsSubTab | InspectSubTab | SyncSubTab;
+export type SubTab = TokensSubTab | InspectSubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
   | "collection-manager"
@@ -86,16 +84,6 @@ export const TOP_TABS: {
     subTabs: [{ id: "tokens", label: "Tokens" }],
   },
   {
-    id: "recipes",
-    label: "Recipes",
-    subTabs: [{ id: "recipes", label: "Recipes" }],
-  },
-  {
-    id: "collections",
-    label: "Collections",
-    subTabs: [{ id: "collections", label: "Collections" }],
-  },
-  {
     id: "inspect",
     label: "Inspect",
     subTabs: [
@@ -117,16 +105,12 @@ export const TOP_TABS: {
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   tokens: "tokens",
-  recipes: "recipes",
-  collections: "collections",
   inspect: "inspect",
   sync: "publish",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   tokens: STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
-  recipes: STORAGE_KEYS.ACTIVE_SUB_TAB_RECIPES,
-  collections: STORAGE_KEYS.ACTIVE_SUB_TAB_COLLECTIONS,
   inspect: STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
   sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
 };
@@ -135,7 +119,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "tokens" | "recipes" | "collections" | "inspect" | "sync";
+export type WorkspaceId = "tokens" | "inspect" | "sync";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -144,7 +128,6 @@ export type UtilityActionId =
   | "window-size";
 export type SecondarySurfaceAccess =
   | "shell-shortcut"
-  | "workspace-context"
   | "collection-switcher"
   | "shell-menu"
   | "settings-help";
@@ -262,7 +245,7 @@ export interface ImportNextStepRecommendation {
   rationale: string;
 }
 
-const PRIMARY_IMPORT_SET_SEGMENTS = new Set([
+const PRIMARY_IMPORT_COLLECTION_SEGMENTS = new Set([
   "base",
   "default",
   "core",
@@ -432,8 +415,6 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Design",
     items: [
       { id: "tokens", label: "Tokens", railCode: "To", topTab: "tokens", subTab: "tokens", workspaceId: "tokens" },
-      { id: "recipes", label: "Recipes", railCode: "Re", topTab: "recipes", subTab: "recipes", workspaceId: "recipes" },
-      { id: "collections", label: "Collections", railCode: "Co", topTab: "collections", subTab: "collections", workspaceId: "collections" },
     ],
   },
   {
@@ -464,22 +445,6 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "tokens",
     subTab: "tokens",
     transition: workspaceTransition("Browse and edit tokens."),
-  },
-  {
-    id: "recipes",
-    label: "Recipes",
-    summaryTitle: "Recipes",
-    topTab: "recipes",
-    subTab: "recipes",
-    transition: workspaceTransition("Manage token generators."),
-  },
-  {
-    id: "collections",
-    label: "Collections",
-    summaryTitle: "Collections",
-    topTab: "collections",
-    subTab: "collections",
-    transition: workspaceTransition("Manage collection modes and preview coverage."),
   },
   {
     id: "inspect",
@@ -606,7 +571,7 @@ export function getSurfaceKindLabel(kind: SurfaceKind): string {
 }
 
 export const LARGE_INITIAL_IMPORT_TOKEN_THRESHOLD = 150;
-export const LARGE_INITIAL_IMPORT_SET_THRESHOLD = 4;
+export const LARGE_INITIAL_IMPORT_COLLECTION_THRESHOLD = 4;
 
 function createWorkspaceRecommendation(
   topTab: TopTab,
@@ -647,7 +612,7 @@ function isLargeInitialImport(summary: ImportResultSummary): boolean {
   return (
     reviewedExistingCount === 0 &&
     (summary.totalImportedCount >= LARGE_INITIAL_IMPORT_TOKEN_THRESHOLD ||
-      summary.destinationCollectionIds.length >= LARGE_INITIAL_IMPORT_SET_THRESHOLD)
+      summary.destinationCollectionIds.length >= LARGE_INITIAL_IMPORT_COLLECTION_THRESHOLD)
   );
 }
 
@@ -695,9 +660,9 @@ export function getImportResultNextStepRecommendations(
   if (importedMultipleVariableCollections(summary)) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "collections",
-        "collections",
-        "Multiple collections imported — review collection modes and preview setup.",
+        "tokens",
+        "tokens",
+        "Multiple collections imported — review modes in Manage collections.",
       ),
     );
   }
@@ -744,9 +709,9 @@ function getImportCollectionSortKey(
     .filter(Boolean);
   const lastSegment = segments.at(-1) ?? "";
   const hasPrimarySegment = segments.some((segment) =>
-    PRIMARY_IMPORT_SET_SEGMENTS.has(segment),
+    PRIMARY_IMPORT_COLLECTION_SEGMENTS.has(segment),
   );
-  const primaryRank = PRIMARY_IMPORT_SET_SEGMENTS.has(lastSegment)
+  const primaryRank = PRIMARY_IMPORT_COLLECTION_SEGMENTS.has(lastSegment)
     ? 0
     : hasPrimarySegment
       ? 1

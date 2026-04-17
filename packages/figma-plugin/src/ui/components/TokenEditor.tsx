@@ -80,7 +80,7 @@ interface TokenEditorProps {
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
   onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
-  onNavigateToCollections?: () => void;
+  onOpenManageCollections?: () => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
 
@@ -109,7 +109,7 @@ export function TokenEditor({
   onNavigateToToken,
   onNavigateToRecipe,
   onOpenRecipeEditor,
-  onNavigateToCollections,
+  onOpenManageCollections,
   pushUndo,
 }: TokenEditorProps) {
   const collectionSwitcher = useCollectionStateContext();
@@ -1548,7 +1548,7 @@ export function TokenEditor({
           value={value}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={effectivePathToCollectionId}
-          onNavigateToCollections={onNavigateToCollections}
+          onOpenManageCollections={onOpenManageCollections}
           selectedModes={collectionSwitcher.selectedModes}
           serverUrl={serverUrl}
           onCollectionModeCreated={collectionSwitcher.refreshCollections}

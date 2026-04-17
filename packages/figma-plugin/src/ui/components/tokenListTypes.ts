@@ -105,7 +105,7 @@ export interface TokenListData {
   /** Collections available for multi-mode column view */
   collections?: TokenCollection[];
   /** Raw allTokensFlat before applying collection mode selections */
-  unthemedAllTokensFlat?: Record<string, TokenMapEntry>;
+  unresolvedAllTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token paths to their collection id */
   pathToCollectionId?: Record<string, string>;
   /** Currently selected collection modes (collectionId → modeName) */
@@ -147,7 +147,7 @@ export interface TokenListActions {
   onEditRecipe?: (recipeId: string) => void;
   onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
-  /** Navigate to Recipes tab with the create dialog open */
+  /** Open the recipe editor to create a new recipe */
   onNavigateToNewRecipe?: () => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
@@ -383,7 +383,7 @@ export interface TokenTreeGroupActionsContextType {
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
   onEditRecipe?: (recipeId: string) => void;
-  /** Navigate to the Recipes tab with the given recipe focused */
+  /** Open the recipe editor for the given recipe */
   onNavigateToRecipe?: (recipeId: string) => void;
   /** One-click regenerate a specific recipe (by id) — runs POST /api/recipes/:id/run */
   onRegenerateRecipe?: (recipeId: string) => Promise<void>;

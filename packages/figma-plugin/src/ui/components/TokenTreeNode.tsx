@@ -4,7 +4,7 @@
  * All rendering logic lives in:
  *   - token-tree/TokenGroupNode.tsx  (group/folder rows)
  *   - token-tree/TokenLeafNode.tsx   (leaf token rows)
- *   - token-tree/MultiModeCell.tsx   (per-theme-option inline cells)
+ *   - token-tree/MultiModeCell.tsx   (per-mode-option inline cells)
  *   - token-tree/tokenTreeNodeUtils.tsx (shared helpers)
  */
 import type { TokenTreeNodeProps } from "./tokenListTypes";
