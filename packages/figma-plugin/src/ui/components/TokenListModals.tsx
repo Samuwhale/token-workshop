@@ -459,9 +459,9 @@ function DeleteImpactDetails({
   const tokenCount = pathList?.length ?? 0;
   const refCount = affectedRefs?.length ?? 0;
   const genCount = recipeImpacts?.length ?? 0;
-  const themeCount = modeImpacts?.length ?? 0;
+  const modeImpactCount = modeImpacts?.length ?? 0;
 
-  const hasSideEffects = refCount > 0 || genCount > 0 || themeCount > 0;
+  const hasSideEffects = refCount > 0 || genCount > 0 || modeImpactCount > 0;
 
   return (
     <div className="mt-2 flex flex-col gap-2">
@@ -483,9 +483,9 @@ function DeleteImpactDetails({
             {genCount} recipe{genCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
-        {themeCount > 0 && (
+        {modeImpactCount > 0 && (
           <NoticePill severity="info" className="border-blue-500/30 bg-blue-500/10 text-blue-600">
-            {themeCount} mode value{themeCount !== 1 ? 's' : ''}
+            {modeImpactCount} mode value{modeImpactCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
       </div>
@@ -547,11 +547,11 @@ function DeleteImpactDetails({
       )}
 
       {/* Collapsible: mode impacts */}
-      {themeCount > 0 && (
+      {modeImpactCount > 0 && (
         <CollapsibleSection
           open={modesOpen}
           onToggle={() => setModesOpen(v => !v)}
-          label={`Affected mode values (${themeCount})`}
+          label={`Affected mode values (${modeImpactCount})`}
         >
           <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {modeImpacts!.map((impact, i) => (
