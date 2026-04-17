@@ -32,7 +32,6 @@ import {
 import {
   clampMenuPosition,
   computePaddingLeft,
-  CondensedAncestorBreadcrumb,
   DepthBar,
   EMPTY_LINT_VIOLATIONS,
   RecipeGlyph,

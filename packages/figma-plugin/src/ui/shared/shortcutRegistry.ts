@@ -198,7 +198,7 @@ export function matchesShortcut(
 // ---------------------------------------------------------------------------
 // Dev-mode conflict detection — runs once at module load in non-production builds
 // ---------------------------------------------------------------------------
-if (process.env.NODE_ENV !== 'production') {
+if (import.meta.env.DEV) {
   (() => {
     const seen = new Map<string, string>();
     for (const [id, matcher] of Object.entries(SHORTCUT_MATCHERS) as [string, KeyMatcher | undefined][]) {

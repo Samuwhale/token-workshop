@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import type { LintViolation } from "../../hooks/useLint";
 
 export interface ToolbarStateChip {
   key: string;

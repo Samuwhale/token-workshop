@@ -9,7 +9,7 @@
       "@/*": ["./src/*"],
       "@tokenmanager/core": ["../core/src"]
     },
-    "types": ["@figma/plugin-typings"]
+    "types": ["@figma/plugin-typings", "vite/client"]
   },
   "include": ["src/**/*"],
   "references": [{ "path": "../core" }]

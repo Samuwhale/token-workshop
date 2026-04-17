@@ -1,6 +1,6 @@
 import { useCallback, type MutableRefObject } from "react";
 import type { TokenNode } from "../../hooks/useTokens";
-import type { TokenMapEntry, StylesAppliedMessage } from "../../../shared/types";
+import type { TokenMapEntry } from "../../../shared/types";
 import type { VariableDiffPendingState } from "../../shared/tokenListModalTypes";
 import {
   isAlias,

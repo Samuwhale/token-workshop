@@ -21,6 +21,15 @@ import {
   labToHex,
   hslToSrgb,
   srgbToHsl,
+  parseAnyColor,
+  toOklch,
+  toDisplayP3,
+  toSrgb,
+  serializeColor,
+  toHex,
+  parsedColorLuminance,
+  isWideGamut,
+  srgbFallbackHex,
 } from '@tokenmanager/core';
 
 // ---------------------------------------------------------------------------
@@ -68,7 +77,6 @@ export function formatHexAs(colorStr: string, format: ColorFormat): string {
 
 function formatWideGamut(colorStr: string, format: ColorFormat): string {
   try {
-    const { parseAnyColor, toOklch, toDisplayP3, toSrgb, serializeColor, toHex } = require('@tokenmanager/core');
     const parsed = parseAnyColor(colorStr);
     if (!parsed) return colorStr;
     switch (format) {
@@ -122,7 +130,6 @@ export function parseColorInput(input: string): string | null {
   }
   // CSS Color 4 — oklch(), oklab(), color(display-p3 ...), hwb(), lab(), lch()
   try {
-    const { parseAnyColor, serializeColor } = require('@tokenmanager/core');
     const parsed = parseAnyColor(trimmed);
     if (parsed) return serializeColor(parsed);
   } catch {
@@ -246,7 +253,6 @@ export function colorLuminance(colorStr: string): number | null {
   if (hexLum !== null) return hexLum;
   // CSS Color 4 — use core parser
   try {
-    const { parseAnyColor, parsedColorLuminance } = require('@tokenmanager/core');
     const parsed = parseAnyColor(colorStr);
     if (parsed) return parsedColorLuminance(parsed);
   } catch {
@@ -280,7 +286,6 @@ export function isWideGamutColor(colorStr: string): boolean {
   // Hex is always sRGB
   if (colorStr.startsWith('#')) return false;
   try {
-    const { isWideGamut } = require('@tokenmanager/core');
     return isWideGamut(colorStr);
   } catch {
     logCoreUnavailable();
@@ -295,7 +300,6 @@ export function getSrgbFallback(colorStr: string): string | null {
   if (!colorStr || typeof colorStr !== 'string') return null;
   if (colorStr.startsWith('#')) return colorStr.slice(0, 7);
   try {
-    const { srgbFallbackHex } = require('@tokenmanager/core');
     return srgbFallbackHex(colorStr);
   } catch {
     logCoreUnavailable();

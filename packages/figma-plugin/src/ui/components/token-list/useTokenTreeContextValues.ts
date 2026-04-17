@@ -1,14 +1,12 @@
 import { useMemo } from "react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { TokenRecipe } from "../../hooks/useRecipes";
-import type { LintViolation } from "../../hooks/useLint";
 import type {
   NodeCapabilities,
   TokenMapEntry,
   SelectionNodeInfo,
 } from "../../../shared/types";
 import type { TokenCollection } from "@tokenmanager/core";
-import type { MultiModeValue } from "../tokenListTypes";
 import type {
   TokenTreeGroupActionsContextType,
   TokenTreeGroupStateContextType,
@@ -132,7 +130,6 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
         : undefined,
       onRovingFocus: deps.setRovingFocusPath,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [deps],
   );
 }
@@ -200,7 +197,6 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       modeLensEnabled: deps.modeLensEnabled,
       tokenModeMissing: deps.tokenModeMissing,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [deps],
   );
 }
@@ -279,7 +275,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onTabToNext: deps.handleTabToNext,
       onRovingFocus: deps.setRovingFocusPath,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [deps],
   );
 }

@@ -70,7 +70,6 @@ import {
   computePaddingLeft,
   CondensedAncestorBreadcrumb,
   DepthBar,
-  RecipeGlyph,
   getIncomingRefs,
   getQuickRecipeTypeForToken,
   getTokenRowStatus,
