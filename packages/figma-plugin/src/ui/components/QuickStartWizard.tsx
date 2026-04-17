@@ -123,7 +123,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
       await apiFetch(`${serverUrl}/api/collections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({ id: trimmed }),
       });
       onCreated(trimmed);
     } catch (err) {

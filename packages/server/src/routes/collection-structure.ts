@@ -41,17 +41,17 @@ function buildWorkspaceTokensFromSnapshot(
 
 export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/collections — create a collection
-  fastify.post<{ Body: { name: string; tokens?: Record<string, unknown> } }>(
+  fastify.post<{ Body: { id: string; tokens?: Record<string, unknown> } }>(
     "/collections",
     async (request, reply) => {
-      const { name, tokens } = request.body || {};
-      if (!name) {
-        return reply.status(400).send({ error: "Collection name is required" });
+      const { id, tokens } = request.body || {};
+      if (!id) {
+        return reply.status(400).send({ error: "Collection id is required" });
       }
-      if (!isValidCollectionName(name)) {
+      if (!isValidCollectionName(id)) {
         return reply.status(400).send({
           error:
-            "Collection name must contain only alphanumeric characters, dashes, underscores, and / for folders",
+            "Collection id must contain only alphanumeric characters, dashes, underscores, and / for folders",
         });
       }
 
@@ -60,32 +60,32 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
       > | null = null;
       try {
         mutation = await fastify.collectionService.createCollectionOperation({
-          collectionId: name,
+          collectionId: id,
           tokens: (tokens as TokenGroup | undefined) ?? undefined,
         });
         await fastify.operationLog.record({
           type: "collection-create",
-          description: `Create collection "${name}"`,
-          resourceId: name,
+          description: `Create collection "${id}"`,
+          resourceId: id,
           affectedPaths: Object.keys(mutation.afterSnapshot),
           beforeSnapshot: {},
           afterSnapshot: mutation.afterSnapshot,
           rollbackSteps: [
-            { action: "delete-collection", collectionId: name },
+            { action: "delete-collection", collectionId: id },
             buildCollectionsRollbackStep(mutation.previousCollectionState),
           ],
         });
         const overview = await fastify.collectionService.getCollectionsOverview();
         return reply
           .status(201)
-          .send({ ok: true, id: name, name, collections: overview.collections });
+          .send({ ok: true, id, collections: overview.collections });
       } catch (err) {
         if (mutation) {
           await fastify.tokenLock
-            .withLock(() => fastify.collectionService.deleteCollection(name))
+            .withLock(() => fastify.collectionService.deleteCollection(id))
             .catch((rollbackErr) => {
               fastify.log.error(
-                { err: rollbackErr, operation: "collection-create", collectionId: name },
+                { err: rollbackErr, operation: "collection-create", collectionId: id },
                 "Rollback failed: could not delete created collection after operation-log failure",
               );
             });

@@ -106,7 +106,7 @@ export function useVariablesImport({
             await apiFetch(`${serverUrl}/api/collections`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: collectionId }),
+              body: JSON.stringify({ id: collectionId }),
             });
           } catch (err) {
             if (!(err instanceof ApiError && err.status === 409)) {

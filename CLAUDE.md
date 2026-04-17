@@ -24,6 +24,12 @@ This project is in **rapid, active development** and has not shipped to any user
 
 ## UI Guidance
 
+- Optimize UX and information architecture for how Figma designers already think about their work
+- Prefer mental models, naming, grouping, and flows that feel native to Figma and design-system workflows
+- Make primary concepts, actions, and consequences obvious without requiring users to translate from developer-centric terminology
+- Keep interaction patterns predictable and easy to learn so designers can build confidence quickly
+- Reduce ambiguity: users should be able to understand what something is, why it matters, and what will happen next at a glance
+- Favor simple, legible task flows over flexible but abstract or overloaded interfaces
 - Never use eyebrow text, overlines, or similar pre-heading label treatments
 - Be extremely wary of chrome and UI clutter
 - Remove or avoid any decorative controls, wrappers, labels, or helper surfaces that do not materially improve comprehension or task flow

@@ -1,5 +1,15 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { TOKEN_TYPE_VALUES, TokenValidator, isReference, parseReference, type Token, type TokenGroup } from '@tokenmanager/core';
+import {
+  TOKEN_TYPE_VALUES,
+  TokenValidator,
+  flattenTokenGroup,
+  isReference,
+  parseReference,
+  readTokenCollectionModeValues,
+  type Token,
+  type TokenCollection,
+  type TokenGroup,
+} from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
 import type { SnapshotEntry } from '../services/operation-log.js';
 import {
@@ -86,6 +96,41 @@ function wildcardParamToTokenPath(pathParam: string): string {
   return pathParam.split('/').join('.');
 }
 
+function validateCollectionScopedModeValues(
+  collectionId: string,
+  validModeNames: Set<string>,
+  tokenPath: string,
+  token: Pick<Token, '$extensions'>,
+): string | null {
+  const modeValues = readTokenCollectionModeValues(token);
+  const referencedCollectionIds = Object.keys(modeValues);
+  if (referencedCollectionIds.length === 0) {
+    return null;
+  }
+
+  const foreignCollectionId = referencedCollectionIds.find(
+    (candidateCollectionId) => candidateCollectionId !== collectionId,
+  );
+  if (foreignCollectionId) {
+    return `Token "${tokenPath}" can only define mode values for its own collection "${collectionId}", but found "${foreignCollectionId}"`;
+  }
+
+  for (const modeName of Object.keys(modeValues[collectionId] ?? {})) {
+    if (!validModeNames.has(modeName)) {
+      return `Token "${tokenPath}" defines unknown mode "${modeName}" for collection "${collectionId}"`;
+    }
+  }
+
+  return null;
+}
+
+function findCollectionDefinition(
+  collections: TokenCollection[],
+  collectionId: string,
+): TokenCollection | undefined {
+  return collections.find((collection) => collection.id === collectionId);
+}
+
 function mergeCollectionSnapshot(
   target: Record<string, SnapshotEntry>,
   collectionId: string,
@@ -115,6 +160,51 @@ function groupSnapshotEntriesByCollection(
 
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
+
+  async function loadCollectionModeNames(
+    collectionId: string,
+  ): Promise<Set<string>> {
+    const state = await fastify.collectionService.loadState();
+    const collection = findCollectionDefinition(state.collections, collectionId);
+    if (!collection) {
+      throw new Error(`Collection "${collectionId}" not found`);
+    }
+    return new Set(collection.modes.map((mode) => mode.name));
+  }
+
+  async function validateTokenModesForCollectionWrite(
+    collectionId: string,
+    tokenPath: string,
+    token: Pick<Token, '$extensions'>,
+    validModeNames?: Set<string>,
+  ): Promise<string | null> {
+    const modeNames = validModeNames ?? await loadCollectionModeNames(collectionId);
+    return validateCollectionScopedModeValues(
+      collectionId,
+      modeNames,
+      tokenPath,
+      token,
+    );
+  }
+
+  async function validateTokenGroupModesForCollectionWrite(
+    collectionId: string,
+    tokens: TokenGroup,
+  ): Promise<string | null> {
+    const validModeNames = await loadCollectionModeNames(collectionId);
+    for (const [tokenPath, token] of flattenTokenGroup(tokens)) {
+      const error = validateCollectionScopedModeValues(
+        collectionId,
+        validModeNames,
+        tokenPath,
+        token,
+      );
+      if (error) {
+        return error;
+      }
+    }
+    return null;
+  }
 
   async function ensureCollectionsExist(
     reply: Parameters<typeof handleRouteError>[0],
@@ -574,8 +664,20 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return withLock(async () => {
       try {
+        await fastify.collectionService.requireCollectionsExist([collectionId]);
+        const validModeNames = await loadCollectionModeNames(collectionId);
         // Type-aware validation for each patch (needs existing token for inherited type)
         for (const p of patches) {
+          const modeError = await validateTokenModesForCollectionWrite(
+            collectionId,
+            p.path,
+            p.patch as Pick<Token, '$extensions'>,
+            validModeNames,
+          );
+          if (modeError) {
+            return reply.status(400).send({ error: modeError });
+          }
+
           const patchVal = (p.patch as Record<string, unknown>).$value;
           if (patchVal !== undefined) {
             const patchType = (p.patch as Record<string, unknown>).$type as string | undefined;
@@ -919,9 +1021,20 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         await fastify.collectionService.requireCollectionsExist([collectionId]);
+        const validModeNames = await loadCollectionModeNames(collectionId);
         // Check alias targets exist (allow intra-batch references)
         const batchPaths = new Set(tokens.map(t => t.path));
         for (const t of tokens) {
+          const modeError = await validateTokenModesForCollectionWrite(
+            collectionId,
+            t.path,
+            t,
+            validModeNames,
+          );
+          if (modeError) {
+            return reply.status(400).send({ error: modeError });
+          }
+
           if (isReference(t.$value)) {
             const targetPath = parseReference(t.$value as string);
             if (!fastify.tokenStore.tokenPathExists(targetPath) && !batchPaths.has(targetPath)) {
@@ -1338,6 +1451,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.collectionService.requireCollectionsExist([collectionId]);
+          const modeError = await validateTokenGroupModesForCollectionWrite(
+            collectionId,
+            body as TokenGroup,
+          );
+          if (modeError) {
+            return reply.status(400).send({ error: modeError });
+          }
           const before = await snapshotCollection(fastify.tokenStore, collectionId);
           await fastify.tokenStore.replaceCollectionTokens(collectionId, body as TokenGroup);
           const after = await snapshotCollection(fastify.tokenStore, collectionId);
@@ -1406,6 +1526,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.collectionService.requireCollectionsExist([collectionId]);
+          const modeError = await validateTokenModesForCollectionWrite(
+            collectionId,
+            tokenPath,
+            body,
+          );
+          if (modeError) {
+            return reply.status(400).send({ error: modeError });
+          }
           // Check if token already exists
           const existing = await fastify.tokenStore.getToken(collectionId, tokenPath);
           if (existing) {
@@ -1457,6 +1585,15 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
       return withLock(async () => {
         try {
+          await fastify.collectionService.requireCollectionsExist([collectionId]);
+          const modeError = await validateTokenModesForCollectionWrite(
+            collectionId,
+            tokenPath,
+            body,
+          );
+          if (modeError) {
+            return reply.status(400).send({ error: modeError });
+          }
           // Validate $value against effective type (own or inherited from existing token)
           if (body.$value !== undefined) {
             const existingForType = await fastify.tokenStore.getToken(collectionId, tokenPath);

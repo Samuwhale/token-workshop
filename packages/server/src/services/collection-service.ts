@@ -328,7 +328,6 @@ function copyCollectionIdsInState(
       ...targetCollectionIds.map((targetCollectionId) => ({
         ...structuredClone(source),
         id: targetCollectionId,
-        name: targetCollectionId,
       })),
     ],
     views: state.views.map((view) => {

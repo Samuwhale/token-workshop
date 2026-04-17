@@ -994,12 +994,11 @@ export function App() {
       const result = await apiFetch<{
         ok: true;
         id: string;
-        name: string;
         collections: CollectionSummary[];
       }>(`${serverUrl}/api/collections`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ id: name }),
         signal: AbortSignal.any([
           AbortSignal.timeout(5000),
           getDisconnectSignal(),
