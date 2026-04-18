@@ -467,15 +467,6 @@ export function CollectionDetailsPanel({
           </Section>
 
           <Section
-            title="Automation"
-            description="Automations stay contextual. Collection setup keeps structure changes separate from authoring."
-          >
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Structural changes here affect every token in this collection. Review them before running automations or publishing.
-            </p>
-          </Section>
-
-          <Section
             title="Actions"
             description="Duplicate, split, merge, and delete are collection operations, not separate workspaces."
           >

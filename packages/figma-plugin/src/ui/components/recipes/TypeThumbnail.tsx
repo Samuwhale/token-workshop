@@ -91,12 +91,5 @@ export function TypeThumbnail({ type, size = 16 }: { type: RecipeType; size?: nu
           <path d="M8 2 A6 6 0 0 1 8 14 Z" fill={color} opacity={0.7} />
         </svg>
       );
-    case 'contrastCheck':
-      return (
-        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <rect x={1} y={1} width={14} height={14} rx={2} stroke={color} strokeWidth={1} opacity={0.3} />
-          <path d="M4 8.5L7 11.5L12 5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
-        </svg>
-      );
   }
 }

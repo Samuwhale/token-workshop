@@ -10,11 +10,10 @@ import type {
   RecipeConfig,
   RecipeSemanticLayer,
   GeneratedTokenResult,
-  InputTable,
 } from "./useRecipes";
 import {
   requestRecipePreview,
-  hasPreviewRisks,
+  requiresPreviewReview,
   type RecipePreviewAnalysis,
 } from "./useAutomationPreview";
 
@@ -31,13 +30,11 @@ interface UseRecipeSaveParams {
   name: string;
   sourceTokenPath?: string;
   inlineValue?: unknown;
+  sourceValue?: unknown;
   targetCollection: string;
   targetGroup: string;
   config: RecipeConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
-  isMultiBrand: boolean;
-  inputTable: InputTable | undefined;
-  targetCollectionTemplate: string;
   typeNeedsValue: boolean;
   hasValue: boolean;
   previewTokens: GeneratedTokenResult[];
@@ -91,13 +88,11 @@ export function useRecipeSave({
   name,
   sourceTokenPath,
   inlineValue,
+  sourceValue,
   targetCollection,
   targetGroup,
   config,
   pendingOverrides,
-  isMultiBrand,
-  inputTable,
-  targetCollectionTemplate,
   typeNeedsValue,
   hasValue,
   previewTokens: _previewTokens,
@@ -143,54 +138,22 @@ export function useRecipeSave({
 
   const validateBeforeSave = useCallback((): boolean => {
     if (!targetGroup.trim()) {
-      setSaveError("Target group is required.");
+      setSaveError("Group name is required.");
       return false;
     }
     if (!name.trim()) {
-      setSaveError("Automation name is required.");
+      setSaveError("Generator name is required.");
       return false;
     }
-    if (!isMultiBrand && typeNeedsValue && !hasValue) {
+    if (typeNeedsValue && !hasValue) {
       setSaveError(
-        "This automation type requires a source token or base value.",
+        "This generator needs a source token or base value.",
       );
       return false;
-    }
-    if (isMultiBrand && inputTable) {
-      if (!targetCollectionTemplate.trim()) {
-        setSaveError("Target collection template is required for multi-brand mode.");
-        return false;
-      }
-      if (inputTable.rows.some((r) => !r.brand.trim())) {
-        setSaveError("All brand rows must have a non-empty brand name.");
-        return false;
-      }
-      const brandNames = inputTable.rows.map((r) =>
-        r.brand.trim().toLowerCase(),
-      );
-      const duplicate = brandNames.find((b, i) => brandNames.indexOf(b) !== i);
-      if (duplicate) {
-        const duplicateName =
-          inputTable.rows
-            .find((r) => r.brand.trim().toLowerCase() === duplicate)
-            ?.brand.trim() ?? duplicate;
-        setSaveError(
-          `Duplicate brand name "${duplicateName}" — each brand name must be unique.`,
-        );
-        return false;
-      }
     }
     setSaveError("");
     return true;
-  }, [
-    targetGroup,
-    name,
-    isMultiBrand,
-    typeNeedsValue,
-    hasValue,
-    inputTable,
-    targetCollectionTemplate,
-  ]);
+  }, [targetGroup, name, typeNeedsValue, hasValue]);
 
   /** Inner save logic — commits the recipe to the server. */
   const commitSave = useCallback(
@@ -207,7 +170,7 @@ export function useRecipeSave({
         const body = {
           type: selectedType,
           name: name.trim(),
-          sourceToken: isMultiBrand ? undefined : sourceTokenPath || undefined,
+          sourceToken: sourceTokenPath || undefined,
           inlineValue:
             !sourceTokenPath && inlineValue !== undefined && inlineValue !== ""
               ? inlineValue
@@ -231,9 +194,6 @@ export function useRecipeSave({
             Object.keys(pendingOverrides).length > 0
               ? pendingOverrides
               : undefined,
-          ...(isMultiBrand && inputTable
-            ? { inputTable, targetCollectionTemplate: targetCollectionTemplate.trim() }
-            : {}),
         };
         const saveUrl =
           isEditing && existingRecipe
@@ -259,11 +219,9 @@ export function useRecipeSave({
               config: prevGen.config,
               semanticLayer: prevGen.semanticLayer ?? null,
               overrides: prevGen.overrides,
-              inputTable: prevGen.inputTable,
-              targetCollectionTemplate: prevGen.targetCollectionTemplate,
             };
             pushUndo({
-              description: `Edited automation "${prevGen.name}"`,
+              description: `Edited generator "${prevGen.name}"`,
               restore: async () => {
                 await apiFetch(`${serverUrl}/api/recipes/${prevGen.id}`, {
                   method: "PUT",
@@ -283,7 +241,7 @@ export function useRecipeSave({
             const newId = savedGen.id;
             const genName = name.trim();
             pushUndo({
-              description: `Created automation "${genName}"`,
+              description: `Created generator "${genName}"`,
               restore: async () => {
                 await apiFetch(
                   `${serverUrl}/api/recipes/${newId}?deleteTokens=true`,
@@ -297,8 +255,8 @@ export function useRecipeSave({
         setSaving(false);
         dispatchToast(
           isEditing
-            ? `Automation "${name.trim()}" updated`
-            : `Automation "${name.trim()}" created`,
+            ? `Generator "${name.trim()}" updated`
+            : `Generator "${name.trim()}" created`,
           "success",
           getToastAction(targetGroupAtSave, targetCollectionAtSave),
         );
@@ -323,9 +281,6 @@ export function useRecipeSave({
       inlineValue,
       config,
       pendingOverrides,
-      isMultiBrand,
-      inputTable,
-      targetCollectionTemplate,
       onSaved,
       getToastAction,
       pushUndo,
@@ -343,16 +298,15 @@ export function useRecipeSave({
       const latestPreview = await requestRecipePreview({
         serverUrl,
         selectedType,
-        sourceTokenPath: isMultiBrand ? undefined : sourceTokenPath,
+        sourceTokenPath,
         inlineValue,
+        sourceValue,
         targetGroup,
         targetCollection,
         config,
         pendingOverrides,
         baseRecipeId: existingRecipe?.id,
         detachedPaths: existingRecipe?.detachedPaths,
-        inputTable: isMultiBrand ? inputTable : undefined,
-        targetCollectionTemplate: isMultiBrand ? targetCollectionTemplate : undefined,
       });
       if (overwriteCheckRequestIdRef.current !== requestId) return false;
       setOverwritePendingPaths(
@@ -385,17 +339,15 @@ export function useRecipeSave({
     config,
     existingRecipe,
     inlineValue,
-    inputTable,
-    isMultiBrand,
     pendingOverrides,
     requestPreviewRefresh,
     reviewedPreviewFingerprint,
     selectedType,
     serverUrl,
+    sourceValue,
     sourceTokenPath,
     targetGroup,
     targetCollection,
-    targetCollectionTemplate,
   ]);
 
   /** Step 1: Validate inputs and either commit directly (no risks) or show
@@ -408,7 +360,7 @@ export function useRecipeSave({
     setReviewedPreviewFingerprint(previewFingerprint);
 
     // No risks — skip confirmation and commit directly
-    if (!hasPreviewRisks(previewAnalysis)) {
+    if (!requiresPreviewReview(previewAnalysis)) {
       const revalidated = await revalidatePreview();
       if (revalidated) {
         return commitSave(
@@ -448,6 +400,15 @@ export function useRecipeSave({
   const handleQuickSave = useCallback(async () => {
     if (!validateBeforeSave()) return false;
     setReviewedPreviewFingerprint(previewFingerprint);
+    if (requiresPreviewReview(previewAnalysis)) {
+      setPreviewReviewStale(false);
+      setOverwritePendingPaths(
+        previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
+      );
+      setOverwriteCheckError("");
+      setShowConfirmation(true);
+      return false;
+    }
     const revalidated = await revalidatePreview();
     if (!revalidated) return false;
     return commitSave(
@@ -461,7 +422,9 @@ export function useRecipeSave({
     validateBeforeSave,
     commitSave,
     previewFingerprint,
+    previewAnalysis,
     revalidatePreview,
+    requiresPreviewReview,
     semanticEnabled,
     semanticPrefix,
     semanticMappings,

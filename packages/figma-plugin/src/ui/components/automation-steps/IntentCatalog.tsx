@@ -7,7 +7,7 @@ import {
   getTemplateSemanticCount,
   getTemplateStepCount,
 } from "../graph-templates";
-import { getAutomationTypeLabel } from "../AutomationPipelineCard";
+import { getAutomationTypeLabel } from "../../shared/automationUtils";
 
 // ---------------------------------------------------------------------------
 // Pipeline stage visualization

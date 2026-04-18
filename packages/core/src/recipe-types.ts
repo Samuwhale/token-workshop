@@ -20,8 +20,7 @@ export type RecipeType =
   | 'shadowScale'
   | 'customScale'
   | 'accessibleColorPair'
-  | 'darkModeInversion'
-  | 'contrastCheck';
+  | 'darkModeInversion';
 
 // ---------------------------------------------------------------------------
 // Color Ramp
@@ -246,32 +245,6 @@ export interface DarkModeInversionConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Contrast Check
-// ---------------------------------------------------------------------------
-
-export interface ContrastCheckStep {
-  /** Semantic name for this color (e.g. "50", "primary", "accent") */
-  name: string;
-  /** Hex color string to check as the foreground (or swatch) color */
-  hex: string;
-}
-
-export interface ContrastCheckConfig {
-  /** Background color to compute contrast against. Default: '#ffffff' */
-  backgroundHex: string;
-  /** Colors to check */
-  steps: ContrastCheckStep[];
-  /** Which WCAG levels to enforce (shown in preview and warnings). Default: ['AA', 'AAA'] */
-  levels: ('AA' | 'AAA')[];
-  /**
-   * Maps config field names to token paths for runtime resolution.
-   */
-  $tokenRefs?: {
-    backgroundHex?: string;
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Union
 // ---------------------------------------------------------------------------
 
@@ -285,8 +258,7 @@ export type RecipeConfig =
   | ShadowScaleConfig
   | CustomScaleConfig
   | AccessibleColorPairConfig
-  | DarkModeInversionConfig
-  | ContrastCheckConfig;
+  | DarkModeInversionConfig;
 
 export interface SemanticTokenMapping {
   semantic: string;
@@ -340,18 +312,6 @@ export interface TokenRecipe {
    */
   overrides?: Record<string, { value: unknown; locked: boolean }>;
   /**
-   * When present, the recipe runs once per row using each row's input value
-   * as the source, writing to the collection derived from `targetCollectionTemplate`.
-   */
-  inputTable?: InputTable;
-  /**
-   * Template for the target collection name when `inputTable` is present.
-   * `{brand}` is replaced with each row's `brand` slug.
-   * e.g. "brands/{brand}" → "brands/berry", "brands/mango"
-   * Falls back to `targetCollection` when absent.
-   */
-  targetCollectionTemplate?: string;
-  /**
    * When false, the recipe is disabled and will be skipped during auto-run cascades
    * triggered by source token changes. Manual re-runs still work.
    * Defaults to true (enabled) when absent.
@@ -381,34 +341,6 @@ export interface TokenRecipe {
      *  Contains the name of the upstream recipe whose failure caused this skip. */
     blockedBy?: string;
   };
-}
-
-// ---------------------------------------------------------------------------
-// Multi-brand input table
-// ---------------------------------------------------------------------------
-
-/** A single brand row in an InputTable. */
-export interface InputTableRow {
-  /** Slug used to substitute `{brand}` in `targetCollectionTemplate`, e.g. "berry". */
-  brand: string;
-  /**
-   * Named inputs for this row. The key matching `InputTable.inputKey` is used
-   * as the recipe's source value (e.g. `{ brandColor: "#8B5CF6" }`).
-   */
-  inputs: Record<string, unknown>;
-}
-
-/**
- * A table of brand rows. Each row runs the recipe independently and writes
- * to a brand-specific collection.
- */
-export interface InputTable {
-  /**
-   * The column name whose value is used as the recipe's source value for
-   * each brand row, e.g. "brandColor".
-   */
-  inputKey: string;
-  rows: InputTableRow[];
 }
 
 export interface RecipeManagedOutput {
@@ -486,19 +418,9 @@ export function getRecipeStepNames(
 }
 
 export function getRecipeOutputCollectionIds(
-  recipe: Pick<TokenRecipe, "targetCollection" | "targetCollectionTemplate" | "inputTable">,
+  recipe: Pick<TokenRecipe, "targetCollection">,
 ): string[] {
-  if (!recipe.inputTable?.rows.length) {
-    return [recipe.targetCollection];
-  }
-  const collectionIds = new Set<string>();
-  for (const row of recipe.inputTable.rows) {
-    const collectionId = recipe.targetCollectionTemplate
-      ? recipe.targetCollectionTemplate.replace("{brand}", row.brand)
-      : recipe.targetCollection;
-    collectionIds.add(collectionId);
-  }
-  return [...collectionIds];
+  return [recipe.targetCollection];
 }
 
 export function getRecipeManagedOutputs(
@@ -506,10 +428,8 @@ export function getRecipeManagedOutputs(
     TokenRecipe,
     | "config"
     | "detachedPaths"
-    | "inputTable"
     | "targetGroup"
     | "targetCollection"
-    | "targetCollectionTemplate"
   >,
 ): RecipeManagedOutput[] {
   const detachedPathSet = new Set(recipe.detachedPaths ?? []);
@@ -537,10 +457,8 @@ export function getRecipeManagedOutputPaths(
     TokenRecipe,
     | "config"
     | "detachedPaths"
-    | "inputTable"
     | "targetGroup"
     | "targetCollection"
-    | "targetCollectionTemplate"
   >,
 ): string[] {
   return [...new Set(getRecipeManagedOutputs(recipe).map((output) => output.path))];
@@ -681,12 +599,6 @@ export const DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG: AccessibleColorPairConfig = {
 export const DEFAULT_DARK_MODE_INVERSION_CONFIG: DarkModeInversionConfig = {
   stepName: 'dark',
   chromaBoost: 1.0,
-};
-
-export const DEFAULT_CONTRAST_CHECK_CONFIG: ContrastCheckConfig = {
-  backgroundHex: '#ffffff',
-  steps: [],
-  levels: ['AA', 'AAA'],
 };
 
 export const DEFAULT_SHADOW_SCALE_CONFIG: ShadowScaleConfig = {

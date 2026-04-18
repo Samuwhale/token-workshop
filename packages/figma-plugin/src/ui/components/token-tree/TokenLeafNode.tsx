@@ -84,6 +84,7 @@ import type { MenuPosition } from "./tokenTreeNodeShared";
 import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
 import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
 import { MultiModeCell } from "./MultiModeCell";
+import { getSingleObviousRecipeType } from "../recipes/recipeUtils";
 
 export const TokenLeafNode = memo(
   function TokenLeafNode(props: TokenTreeNodeProps) {
@@ -139,6 +140,7 @@ export const TokenLeafNode = memo(
       onRequestCopyToken,
       onDuplicateToken,
       onDetachFromRecipe,
+      onSaveGeneratedException,
       onExtractToAlias,
       onHoverToken,
       onFilterByType,
@@ -202,12 +204,18 @@ export const TokenLeafNode = memo(
     const [inlinePopoverOpen, setInlinePopoverOpen] = useState(false);
     const [inlinePopoverAnchor, setInlinePopoverAnchor] =
       useState<DOMRect | null>(null);
-    const [showGeneratedEditWarning, setShowGeneratedEditWarning] =
+    const [generatedTokenChoiceOpen, setGeneratedTokenChoiceOpen] =
       useState(false);
+    const [generatedTokenChoiceBusy, setGeneratedTokenChoiceBusy] = useState<
+      "manual-exception" | "detach" | null
+    >(null);
     const [pendingGeneratedSave, setPendingGeneratedSave] = useState<{
       nextValue: unknown;
       previousState?: { type?: string; value: unknown };
       afterSave?: () => void;
+      commit: () => void | Promise<void>;
+      allowManualException: boolean;
+      manualExceptionReason?: string;
     } | null>(null);
     const [showDetachTokenConfirm, setShowDetachTokenConfirm] = useState(false);
     const nodeRef = useRef<HTMLDivElement>(null);
@@ -284,15 +292,20 @@ export const TokenLeafNode = memo(
     const openQuickRecipe = useCallback(() => {
       if (!quickRecipeType || !onOpenAutomationEditor) return;
       closeTokenMenus();
+      const obviousType = getSingleObviousRecipeType(node.$type);
       onOpenAutomationEditor({
         mode: "create",
         sourceTokenPath: node.path,
         sourceTokenName: node.name,
         sourceTokenType: node.$type,
         sourceTokenValue: node.$value,
-        initialDraft: {
-          selectedType: quickRecipeType,
-        },
+        ...(obviousType
+          ? {
+              initialDraft: {
+                selectedType: obviousType,
+              },
+            }
+          : {}),
       });
     }, [closeTokenMenus, node.$type, node.$value, node.name, node.path, onOpenAutomationEditor, quickRecipeType]);
 
@@ -405,6 +418,12 @@ export const TokenLeafNode = memo(
     const producingRecipe =
       derivedTokenPaths?.get(createRecipeOwnershipKey(collectionId, node.path)) ??
       null;
+
+    useEffect(() => {
+      setGeneratedTokenChoiceOpen(false);
+      setGeneratedTokenChoiceBusy(null);
+      setPendingGeneratedSave(null);
+    }, [node.path, producingRecipe?.id]);
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
     const isModeLensVariant = modeLensEnabled && modeVariantPaths?.has(node.path);
@@ -452,6 +471,21 @@ export const TokenLeafNode = memo(
       [node.$type, node.path, onInlineSave],
     );
 
+    const getOverrideableGeneratedStepName = useCallback(() => {
+      if (!producingRecipe) {
+        return null;
+      }
+      const prefix = `${producingRecipe.targetGroup}.`;
+      if (!node.path.startsWith(prefix)) {
+        return null;
+      }
+      const stepName = node.path.slice(prefix.length);
+      if (!stepName || stepName.includes(".")) {
+        return null;
+      }
+      return stepName;
+    }, [node.path, producingRecipe]);
+
     const requestInlineValueSave = useCallback(
       (
         nextValue: unknown,
@@ -462,10 +496,108 @@ export const TokenLeafNode = memo(
           commitInlineValueChange(nextValue, previousState, afterSave);
           return;
         }
-        setPendingGeneratedSave({ nextValue, previousState, afterSave });
-        setShowGeneratedEditWarning(true);
+        setPendingGeneratedSave({
+          nextValue,
+          previousState,
+          afterSave,
+          commit: () =>
+            commitInlineValueChange(nextValue, previousState, afterSave),
+          allowManualException: true,
+        });
+        setGeneratedTokenChoiceOpen(true);
       },
       [commitInlineValueChange, producingRecipe],
+    );
+
+    const handleSaveGeneratedExceptionChoice = useCallback(async () => {
+      if (
+        !pendingGeneratedSave ||
+        !onSaveGeneratedException ||
+        !pendingGeneratedSave.allowManualException
+      ) {
+        return;
+      }
+      setGeneratedTokenChoiceBusy("manual-exception");
+      try {
+        const saved = await onSaveGeneratedException(
+          node.path,
+          pendingGeneratedSave.nextValue,
+        );
+        if (!saved) {
+          return;
+        }
+        pendingGeneratedSave.afterSave?.();
+        setGeneratedTokenChoiceOpen(false);
+        setPendingGeneratedSave(null);
+        dispatchToast(`Saved manual exception for "${node.path}"`, "success");
+      } finally {
+        setGeneratedTokenChoiceBusy(null);
+      }
+    }, [node.path, onSaveGeneratedException, pendingGeneratedSave]);
+
+    const handleDetachAndSaveGeneratedToken = useCallback(async () => {
+      if (!pendingGeneratedSave || !onDetachFromRecipe) {
+        return;
+      }
+      setGeneratedTokenChoiceBusy("detach");
+      try {
+        const detached = await onDetachFromRecipe(node.path);
+        if (!detached) {
+          return;
+        }
+        await pendingGeneratedSave.commit();
+        setGeneratedTokenChoiceOpen(false);
+        setPendingGeneratedSave(null);
+        dispatchToast(`Detached "${node.path}" from its generator`, "success");
+      } finally {
+        setGeneratedTokenChoiceBusy(null);
+      }
+    }, [node.path, onDetachFromRecipe, pendingGeneratedSave]);
+
+    const handleMultiModeGeneratedSaveRequest = useCallback(
+      (
+        nextValue: unknown,
+        targetCollectionId: string,
+        collectionId: string,
+        optionName: string,
+        previousState?: { type?: string; value: unknown },
+      ) => {
+        if (!node.$type || !onMultiModeInlineSave) {
+          return;
+        }
+        if (!producingRecipe) {
+          onMultiModeInlineSave(
+            node.path,
+            node.$type,
+            nextValue,
+            targetCollectionId,
+            collectionId,
+            optionName,
+            previousState,
+          );
+          return;
+        }
+        setPendingGeneratedSave({
+          nextValue,
+          previousState,
+          commit: () =>
+            onMultiModeInlineSave(
+              node.path,
+              node.$type!,
+              nextValue,
+              targetCollectionId,
+              collectionId,
+              optionName,
+              previousState,
+              { allowGeneratedEdit: true },
+            ),
+          allowManualException: false,
+          manualExceptionReason:
+            "Manual exceptions only preserve the generated step value. Detach this token if it needs a mode-specific override.",
+        });
+        setGeneratedTokenChoiceOpen(true);
+      },
+      [node.$type, node.path, onMultiModeInlineSave, producingRecipe],
     );
 
     // Inline quick-edit eligibility
@@ -1852,7 +1984,7 @@ export const TokenLeafNode = memo(
                       className={MENU_ITEM_CLASS}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
-                      <span className="flex-1">Create automation from this token</span>
+                      <span className="flex-1">Generate from this token</span>
                       <span className={MENU_SHORTCUT_CLASS}>G</span>
                     </button>
                   )}
@@ -1865,7 +1997,7 @@ export const TokenLeafNode = memo(
                       className={MENU_ITEM_CLASS}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M5.16 11.75l-1.72 1.71a5 5 0 0 0 7.07 7.07l1.72-1.71" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
-                      <span className="flex-1">Detach from automation</span>
+                      <span className="flex-1">Detach from generator</span>
                     </button>
                   )}
                   <button
@@ -2055,29 +2187,100 @@ export const TokenLeafNode = memo(
             </div>
           )}
 
-          {showGeneratedEditWarning && producingRecipe && pendingGeneratedSave && (
-            <ConfirmModal
-              title="Edit Managed Token?"
-              description={`"${node.path}" is managed by "${producingRecipe.name}". This manual change will be overwritten the next time the automation runs unless you detach the token first.`}
-              confirmLabel="Save anyway"
-              onCancel={() => {
-                setShowGeneratedEditWarning(false);
-                setPendingGeneratedSave(null);
-              }}
-              onConfirm={async () => {
-                commitInlineValueChange(
-                  pendingGeneratedSave.nextValue,
-                  pendingGeneratedSave.previousState,
-                  pendingGeneratedSave.afterSave,
-                );
-                setShowGeneratedEditWarning(false);
-                setPendingGeneratedSave(null);
+          {generatedTokenChoiceOpen && producingRecipe && pendingGeneratedSave && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                  setGeneratedTokenChoiceOpen(false);
+                  setPendingGeneratedSave(null);
+                }
               }}
             >
-              <div className="mt-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Use <span className="font-medium text-[var(--color-figma-text)]">Detach from automation</span> in the token actions menu if you want this token to become independently editable.
+              <div className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+                <div className="px-4 pt-4 pb-3">
+                  <h3 className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+                    This token is generated
+                  </h3>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    <span className="font-medium text-[var(--color-figma-text)]">
+                      {producingRecipe.name}
+                    </span>{" "}
+                    owns <span className="font-mono text-[var(--color-figma-text)]">{node.path}</span>.
+                    Choose how this edit should behave before saving.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 px-4 pb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeneratedTokenChoiceOpen(false);
+                      setPendingGeneratedSave(null);
+                      if (!onOpenAutomationEditor) {
+                        return;
+                      }
+                      closeTokenMenus();
+                      onOpenAutomationEditor({
+                        mode: "edit",
+                        id: producingRecipe.id,
+                      });
+                    }}
+                    disabled={!onOpenAutomationEditor || generatedTokenChoiceBusy !== null}
+                    className="rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-left text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                  >
+                    Edit generator
+                  </button>
+                  <button
+                    type="button"
+                  onClick={() => {
+                      void handleSaveGeneratedExceptionChoice();
+                    }}
+                    disabled={
+                      !onSaveGeneratedException ||
+                      !pendingGeneratedSave.allowManualException ||
+                      !getOverrideableGeneratedStepName() ||
+                      generatedTokenChoiceBusy !== null
+                    }
+                    className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                  >
+                    {generatedTokenChoiceBusy === "manual-exception"
+                      ? "Saving manual exception…"
+                      : "Make manual exception"}
+                  </button>
+                  {(!pendingGeneratedSave.allowManualException ||
+                    !onSaveGeneratedException ||
+                    !getOverrideableGeneratedStepName()) && (
+                    <p className="px-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                      {pendingGeneratedSave.manualExceptionReason ??
+                        "This generated token cannot keep a manual exception here. Detach it first if it needs to diverge."}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleDetachAndSaveGeneratedToken();
+                    }}
+                    disabled={!onDetachFromRecipe || generatedTokenChoiceBusy !== null}
+                    className="rounded-md border border-[var(--color-figma-border)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                  >
+                    {generatedTokenChoiceBusy === "detach"
+                      ? "Detaching…"
+                      : "Detach from generator"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeneratedTokenChoiceOpen(false);
+                      setPendingGeneratedSave(null);
+                    }}
+                    disabled={generatedTokenChoiceBusy !== null}
+                    className="text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </ConfirmModal>
+            </div>
           )}
 
           {showDetachTokenConfirm && producingRecipe && onDetachFromRecipe && (
@@ -2133,7 +2336,23 @@ export const TokenLeafNode = memo(
                   targetCollectionId={mv.targetCollectionId}
                   collectionId={mv.collectionId}
                   optionName={mv.optionName}
-                  onSave={onMultiModeInlineSave}
+                  onSave={(
+                    _path,
+                    _type,
+                    nextValue,
+                    targetCollectionId,
+                    collectionId,
+                    optionName,
+                    previousState,
+                  ) =>
+                    handleMultiModeGeneratedSaveRequest(
+                      nextValue,
+                      targetCollectionId,
+                      collectionId,
+                      optionName,
+                      previousState,
+                    )
+                  }
                   isTabPending={
                     pendingTabEdit?.path === node.path &&
                     pendingTabEdit?.columnId === mv.optionName

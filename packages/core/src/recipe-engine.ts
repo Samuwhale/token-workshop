@@ -13,7 +13,6 @@ import type {
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
-  ContrastCheckConfig,
   GeneratedTokenResult,
 } from './recipe-types.js';
 import { validateStepName } from './recipe-types.js';
@@ -527,54 +526,6 @@ export function runDarkModeInversionRecipe(
     type: 'color',
     value: invertedHex,
   }];
-}
-
-// ---------------------------------------------------------------------------
-// Contrast Check
-// ---------------------------------------------------------------------------
-
-/**
- * Compute WCAG contrast ratio for each step color against the background.
- *
- * Outputs one `number` token per step containing the contrast ratio (e.g. 4.54).
- * The `isOverridden` flag is set to true when the step fails AA (ratio < 4.5),
- * so callers can use it as a failure indicator without an extra pass.
- */
-export function runContrastCheckRecipe(
-  config: ContrastCheckConfig,
-  targetGroup: string,
-): GeneratedTokenResult[] {
-  const { backgroundHex, steps, levels } = config;
-
-  // Validate step names before generating
-  for (const step of steps) {
-    validateStepName(step.name);
-  }
-
-  const bgLum = wcagLuminance(backgroundHex);
-  if (bgLum === null) throw new Error(`Invalid hex color for contrastCheck recipe: "${backgroundHex}"`);
-  // Use the strictest configured level as the failure threshold.
-  // levels includes 'AAA' → 7.0:1; levels includes only 'AA' → 4.5:1; default → 4.5:1
-  const failThreshold = levels?.includes('AAA') ? 7.0 : 4.5;
-
-  return steps.map(step => {
-    const fgLum = wcagLuminance(step.hex);
-    let ratio: number | null = null;
-    if (fgLum !== null && bgLum !== null) {
-      const [lighter, darker] = fgLum > bgLum ? [fgLum, bgLum] : [bgLum, fgLum];
-      ratio = parseFloat(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
-    }
-
-    return {
-      stepName: step.name,
-      path: `${targetGroup}.${step.name}`,
-      type: 'number',
-      value: ratio ?? 1,
-      // Re-use isOverridden as a "contrast failure" flag so the UI can show warnings
-      // without adding a new field to GeneratedTokenResult
-      isOverridden: ratio === null || ratio < failThreshold,
-    };
-  });
 }
 
 // ---------------------------------------------------------------------------

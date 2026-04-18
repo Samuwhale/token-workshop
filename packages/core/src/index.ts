@@ -167,15 +167,11 @@ export type {
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
-  ContrastCheckStep,
-  ContrastCheckConfig,
   RecipeConfig,
   RecipeSemanticLayer,
   SemanticTokenMapping,
   TokenRecipe,
   GeneratedTokenResult,
-  InputTableRow,
-  InputTable,
 } from './recipe-types.js';
 export {
   createRecipeOwnershipKey,
@@ -196,7 +192,6 @@ export {
   DEFAULT_CUSTOM_SCALE_CONFIG,
   DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG,
   DEFAULT_DARK_MODE_INVERSION_CONFIG,
-  DEFAULT_CONTRAST_CHECK_CONFIG,
 } from './recipe-types.js';
 
 // Recipe engine
@@ -211,6 +206,5 @@ export {
   runCustomScaleRecipe,
   runAccessibleColorPairRecipe,
   runDarkModeInversionRecipe,
-  runContrastCheckRecipe,
   applyOverrides,
 } from './recipe-engine.js';

@@ -26,6 +26,10 @@ export interface UseTokenSaveParams {
   onError?: (msg: string) => void;
 }
 
+interface MultiModeSaveOptions {
+  allowGeneratedEdit?: boolean;
+}
+
 function cloneUndoValue<T>(value: T): T {
   if (value === undefined || value === null) return value;
   if (typeof structuredClone === 'function') return structuredClone(value);
@@ -49,6 +53,30 @@ export function useTokenSave({
   collectionIdRef.current = collectionId;
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
+
+  const findProducingRecipe = useCallback((path: string) => {
+    return recipes?.find((recipe) =>
+      getRecipeManagedOutputs(recipe).some(
+        (output) =>
+          output.key === createRecipeOwnershipKey(collectionId, path),
+      ),
+    );
+  }, [collectionId, recipes]);
+
+  const getOverrideableStepName = useCallback(
+    (recipe: TokenRecipe, path: string): string | null => {
+      const prefix = `${recipe.targetGroup}.`;
+      if (!path.startsWith(prefix)) {
+        return null;
+      }
+      const stepName = path.slice(prefix.length);
+      if (!stepName || stepName.includes(".")) {
+        return null;
+      }
+      return stepName;
+    },
+    [],
+  );
 
   const handleInlineSave = useCallback(async (
     path: string,
@@ -166,8 +194,15 @@ export function useTokenSave({
     _collectionId: string,
     optionName: string,
     _previousState?: { type?: string; value: unknown },
+    options?: MultiModeSaveOptions,
   ) => {
     if (!connected) return;
+    if (!options?.allowGeneratedEdit && findProducingRecipe(path)) {
+      onError?.(
+        "This generated token must be edited through its generator, saved as a manual exception, or detached first.",
+      );
+      return;
+    }
 
     // Read the current token to get its full $extensions for deep merge.
     // The server PATCH replaces $extensions wholesale, so we must send
@@ -230,20 +265,77 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-  }, [connected, serverUrl, allTokensFlat, onRefresh, onPushUndo, onRecordTouch, onError, perCollectionFlat]);
+  }, [
+    connected,
+    findProducingRecipe,
+    serverUrl,
+    allTokensFlat,
+    onRefresh,
+    onPushUndo,
+    onRecordTouch,
+    onError,
+    perCollectionFlat,
+  ]);
 
-  const handleDetachFromRecipe = useCallback(async (path: string) => {
-    if (!connected) return;
-    try {
-      const derivedRecipe = recipes?.find((recipe) =>
-        getRecipeManagedOutputs(recipe).some(
-          (output) =>
-            output.key === createRecipeOwnershipKey(collectionId, path),
-        ),
+  const handleSaveGeneratedException = useCallback(async (
+    path: string,
+    newValue: unknown,
+  ): Promise<boolean> => {
+    if (!connected) return false;
+    const derivedRecipe = findProducingRecipe(path);
+    if (!derivedRecipe) {
+      onError?.("Manual exception failed: generator ownership not found");
+      return false;
+    }
+    const stepName = getOverrideableStepName(derivedRecipe, path);
+    if (!stepName) {
+      onError?.(
+        "Manual exception failed: this generated token must be detached before it can diverge.",
       );
+      return false;
+    }
+    try {
+      await apiFetch(
+        `${serverUrl}/api/recipes/${derivedRecipe.id}/steps/${encodeURIComponent(stepName)}/override`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ value: newValue, locked: true }),
+        },
+      );
+    } catch (err) {
+      onError?.(
+        err instanceof ApiError
+          ? err.message
+          : "Manual exception failed: network error",
+      );
+      return false;
+    }
+    await applyTokenMutationSuccess({
+      onRefresh,
+      onRecordTouch,
+      touchedPath: path,
+    });
+    onRefreshAutomations?.();
+    return true;
+  }, [
+    connected,
+    findProducingRecipe,
+    getOverrideableStepName,
+    onError,
+    onRecordTouch,
+    onRefresh,
+    onRefreshAutomations,
+    serverUrl,
+  ]);
+
+  const handleDetachFromRecipe = useCallback(async (path: string): Promise<boolean> => {
+    if (!connected) return false;
+    try {
+      const derivedRecipe = findProducingRecipe(path);
       if (!derivedRecipe) {
-        onError?.('Detach failed: recipe ownership not found');
-        return;
+        onError?.("Detach failed: generator ownership not found");
+        return false;
       }
       await apiFetch(`${serverUrl}/api/recipes/${derivedRecipe.id}/detach`, {
         method: 'POST',
@@ -252,16 +344,18 @@ export function useTokenSave({
       });
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Detach failed: network error');
-      return;
+      return false;
     }
     onRefresh();
     onRefreshAutomations?.();
-  }, [connected, recipes, onError, onRefresh, onRefreshAutomations, serverUrl, collectionId]);
+    return true;
+  }, [connected, findProducingRecipe, onError, onRefresh, onRefreshAutomations, serverUrl]);
 
   return {
     handleInlineSave,
     handleDescriptionSave,
     handleMultiModeInlineSave,
+    handleSaveGeneratedException,
     handleDetachFromRecipe,
   };
 }

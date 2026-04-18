@@ -264,7 +264,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'QUALIFIER_DESC',        group: 'Token Search',    description: 'Search within descriptions',                 mac: 'desc:primary',        displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_PATH',        group: 'Token Search',    description: 'Filter by path prefix',                      mac: 'path:colors.brand',   displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_NAME',        group: 'Token Search',    description: 'Search by leaf name only',                   mac: 'name:500',            displayOnly: true, qualifier: true },
-  { id: 'QUALIFIER_RECIPE',   group: 'Token Search',    description: 'Filter by automation name',                  mac: 'recipe:color-ramp', displayOnly: true, qualifier: true },
+  { id: 'QUALIFIER_RECIPE',   group: 'Token Search',    description: 'Filter by generator name',                   mac: 'recipe:color-ramp', displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_GROUP',       group: 'Token Search',    description: 'Navigate to a group path',                   mac: 'group:colors.brand',  displayOnly: true, qualifier: true },
 
   // ── Apply ────────────────────────────────────────────────────────────────

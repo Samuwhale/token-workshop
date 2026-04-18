@@ -2,7 +2,6 @@ import type {
   AccessibleColorPairConfig,
   BorderRadiusScaleConfig,
   ColorRampConfig,
-  ContrastCheckConfig,
   CustomScaleConfig,
   DarkModeInversionConfig,
   RecipeConfig,
@@ -324,30 +323,6 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
       prefix: "theme.dark",
       mappings: [{ semantic: "surface.page", step: "inverted" }],
     },
-  },
-  {
-    id: "contrast-audit",
-    label: "Contrast audit",
-    description: "Check multiple foreground swatches against one background color.",
-    whenToUse:
-      "Use when you need a quick accessibility readout before committing to semantic aliases or publishing a palette.",
-    stages: ["Goal", "Background", "Sample swatches", "AA and AAA check"],
-    starterPresetName: "Surface contrast audit",
-    starterPreset: "A neutral surface background with sample text, icon, and muted foreground checks.",
-    sourceRequirement: "No source token required.",
-    defaultPrefix: "contrast",
-    recipeType: "contrastCheck",
-    requiresSource: false,
-    config: {
-      backgroundHex: "#FFFFFF",
-      steps: [
-        { name: "text.primary", hex: "#111827" },
-        { name: "text.secondary", hex: "#4B5563" },
-        { name: "icon.default", hex: "#6B7280" },
-        { name: "text.inverse", hex: "#FFFFFF" },
-      ],
-      levels: ["AA", "AAA"],
-    } satisfies ContrastCheckConfig,
   },
 ];
 

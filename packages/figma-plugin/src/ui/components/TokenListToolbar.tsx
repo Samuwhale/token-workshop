@@ -347,16 +347,13 @@ export function TokenListToolbar({
                   {onCreateAutomation && (
                     <>
                       <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                      <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                        Automation
-                      </div>
                       <button
                         role="menuitem"
                         onClick={() => runCreateToolsAction(onCreateAutomation)}
                         disabled={!connected}
                         className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        Create semantic aliases
+                        Generate group…
                       </button>
                     </>
                   )}

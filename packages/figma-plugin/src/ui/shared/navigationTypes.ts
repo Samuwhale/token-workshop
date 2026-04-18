@@ -8,12 +8,11 @@ import { STORAGE_KEYS } from "./storage";
 import type { RecipeDialogInitialDraft } from "../hooks/useAutomationDialog";
 import type { RecipeTemplate } from "../hooks/useRecipes";
 
-export type TopTab = "tokens" | "inspect" | "sync" | "automations";
+export type TopTab = "tokens" | "inspect" | "sync";
 type TokensSubTab = "tokens";
 type InspectSubTab = "inspect" | "canvas-analysis";
 type SyncSubTab = "publish" | "export" | "history" | "health";
-type AutomationsSubTab = "automations";
-export type SubTab = TokensSubTab | InspectSubTab | SyncSubTab | AutomationsSubTab;
+export type SubTab = TokensSubTab | InspectSubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
   | "notifications"
@@ -94,11 +93,6 @@ export const TOP_TABS: {
     ],
   },
   {
-    id: "automations",
-    label: "Automations",
-    subTabs: [{ id: "automations", label: "Automations" }],
-  },
-  {
     id: "sync",
     label: "Publish",
     subTabs: [
@@ -113,14 +107,12 @@ export const TOP_TABS: {
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   tokens: "tokens",
   inspect: "inspect",
-  automations: "automations",
   sync: "publish",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   tokens: STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
   inspect: STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
-  automations: STORAGE_KEYS.ACTIVE_SUB_TAB_AUTOMATIONS,
   sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
 };
 
@@ -128,7 +120,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "tokens" | "inspect" | "sync" | "automations";
+export type WorkspaceId = "tokens" | "inspect" | "sync";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -368,8 +360,8 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         usage: "Edit or create a token.",
       },
       "automation-editor": {
-        label: "Automation editor",
-        usage: "Configure an automation.",
+        label: "Generator editor",
+        usage: "Configure a generated group.",
       },
       "token-preview": {
         label: "Token preview",
@@ -437,7 +429,6 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Primary",
     items: [
       { id: "tokens", label: "Tokens", railCode: "To", topTab: "tokens", subTab: "tokens", workspaceId: "tokens" },
-      { id: "automations", label: "Automations", railCode: "Au", topTab: "automations", subTab: "automations", workspaceId: "automations" },
       { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "inspect", subTab: "inspect", workspaceId: "inspect" },
       { id: "publish", label: "Publish", railCode: "Pu", topTab: "sync", subTab: "publish", workspaceId: "sync" },
     ],
@@ -452,14 +443,6 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "tokens",
     subTab: "tokens",
     transition: workspaceTransition("Browse and edit tokens."),
-  },
-  {
-    id: "automations",
-    label: "Automations",
-    summaryTitle: "Automations",
-    topTab: "automations",
-    subTab: "automations",
-    transition: workspaceTransition("Create and manage automations."),
   },
   {
     id: "inspect",

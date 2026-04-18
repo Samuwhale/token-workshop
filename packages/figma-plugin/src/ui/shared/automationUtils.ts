@@ -22,8 +22,6 @@ export function getAutomationTypeLabel(type: RecipeType): string {
       return "Shadow scale";
     case "customScale":
       return "Custom scale";
-    case "contrastCheck":
-      return "Contrast check";
     case "accessibleColorPair":
       return "Accessible color pair";
     case "darkModeInversion":
@@ -100,6 +98,6 @@ export function getStatusLabel(status: DashboardStatus, isPaused: boolean): stri
     case "neverRun":
       return "Never run";
     default:
-      return "Automation";
+      return "Generator";
   }
 }

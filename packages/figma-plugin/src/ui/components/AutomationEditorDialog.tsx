@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import type { TokenRecipe, RecipeTemplate } from "../hooks/useRecipes";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
+import type { SelectedModes, TokenCollection } from "@tokenmanager/core";
 import type { SemanticStarter } from "./graph-templates";
 import {
   useRecipeDialog,
   type RecipeDialogInitialDraft,
 } from "../hooks/useAutomationDialog";
 import type { RecipeSaveSuccessInfo } from "../hooks/useAutomationSave";
-import { hasPreviewRisks } from "../hooks/useAutomationPreview";
+import { requiresPreviewReview } from "../hooks/useAutomationPreview";
 import { StepIntent } from "./automation-steps/StepIntent";
 import { StepSource } from "./automation-steps/StepSource";
 import type { StepWhereProps } from "./automation-steps/StepWhere";
@@ -18,6 +19,7 @@ import { StepSave } from "./automation-steps/StepSave";
 import { Spinner } from "./Spinner";
 import type { ToastAction } from "../shared/toastBus";
 import { GRAPH_TEMPLATES } from "./graph-templates";
+import { getSingleObviousRecipeType } from "./recipes/recipeUtils";
 
 // ---------------------------------------------------------------------------
 // Props (unchanged public API)
@@ -30,10 +32,13 @@ export interface AutomationEditorDialogProps {
   sourceTokenType?: string;
   sourceTokenValue?: any;
   intentPreset?: "semantic-aliases";
-  collectionIds: string[];
   currentCollectionId: string;
   /** All tokens flat map for source token autocomplete and config field tokenRefs */
   allTokensFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
+  /** Mode-resolved token map for previews so the dialog matches the currently viewed collection mode. */
+  sourceValuesFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
+  collections?: TokenCollection[];
+  selectedModes?: SelectedModes;
   existingRecipe?: TokenRecipe;
   initialDraft?: RecipeDialogInitialDraft;
   /** Pre-fill from a quick-start template */
@@ -105,9 +110,11 @@ export function AutomationEditorDialog({
   sourceTokenType,
   sourceTokenValue,
   intentPreset,
-  collectionIds,
   currentCollectionId,
   allTokensFlat,
+  sourceValuesFlat,
+  collections = [],
+  selectedModes = {},
   existingRecipe,
   initialDraft,
   template,
@@ -132,6 +139,7 @@ export function AutomationEditorDialog({
     template,
     initialDraft,
     allTokensFlat,
+    sourceValuesFlat,
     onSaved,
     onInterceptSemanticMapping,
     getSuccessToastAction,
@@ -139,14 +147,30 @@ export function AutomationEditorDialog({
   });
   const requestClose = editorSessionHost?.requestClose ?? onClose;
   const activeSourceValue =
-    (dialog.editableSourcePath && allTokensFlat?.[dialog.editableSourcePath]?.$value) ??
-    (dialog.editableSourcePath === sourceTokenPath ? sourceTokenValue : undefined);
+    (dialog.editableSourcePath &&
+      sourceValuesFlat?.[dialog.editableSourcePath]?.$value) ??
+    (dialog.editableSourcePath === sourceTokenPath
+      ? sourceTokenValue
+      : undefined);
+  const activeModeLabel = useMemo(() => {
+    const collection = collections.find(
+      (candidate) => candidate.id === dialog.targetCollection,
+    );
+    if (!collection || collection.modes.length === 0) {
+      return null;
+    }
+    return selectedModes[collection.id] ?? collection.modes[0]?.name ?? null;
+  }, [collections, dialog.targetCollection, selectedModes]);
 
   // --- Stepper state ---
   const hidesIntentStep = Boolean(existingRecipe);
   const hasPrefilledSource = Boolean(sourceTokenPath?.trim());
+  const hasExplicitOutcome = Boolean(template || initialDraft?.selectedType);
+  const hasSingleObviousOutcome = Boolean(
+    hasPrefilledSource && getSingleObviousRecipeType(sourceTokenType),
+  );
   const initialStep: Step =
-    hidesIntentStep || hasPrefilledSource ? 2 : 1;
+    hidesIntentStep || hasExplicitOutcome || hasSingleObviousOutcome ? 2 : 1;
   const [activeStep, setActiveStep] = useState<Step>(initialStep);
   const intentTemplates =
     intentPreset === "semantic-aliases"
@@ -160,32 +184,27 @@ export function AutomationEditorDialog({
       : "What do you want to create?";
   const intentDescription =
     intentPreset === "semantic-aliases"
-      ? "Choose the kind of foundation you want to turn into semantic aliases. You can tune the automation details in the next step."
-      : "Start from the outcome you want. You can tune the automation details in the next step.";
+      ? "Choose the kind of foundation you want to turn into semantic aliases. You can tune the generator in the next step."
+      : "Start from the outcome you want. You can tune the generator in the next step.";
 
   useEffect(() => {
     setActiveStep(initialStep);
   }, [initialStep]);
 
   // Destination props passed into StepSource's inline output section
-  const destinationProps: Omit<StepWhereProps, 'onToggleMultiBrand' | 'inputTable' | 'onInputTableChange'> = {
+  const destinationProps: StepWhereProps = {
     name: dialog.name,
     targetCollection: dialog.targetCollection,
     targetGroup: dialog.targetGroup,
-    collectionIds,
-    isMultiBrand: dialog.isMultiBrand,
-    targetCollectionTemplate: dialog.targetCollectionTemplate,
     onNameChange: dialog.handleNameChange,
-    onTargetCollectionChange: dialog.setTargetCollection,
     onTargetGroupChange: dialog.setTargetGroup,
-    onTargetCollectionTemplateChange: dialog.setTargetCollectionTemplate,
   };
 
   // --- Save logic ---
   const canSave =
     dialog.targetGroup.trim().length > 0 &&
     dialog.name.trim().length > 0 &&
-    (dialog.isMultiBrand || !dialog.typeNeedsValue || dialog.hasValue);
+    (!dialog.typeNeedsValue || dialog.hasValue);
 
   const handleSave = async () => {
     if (dialog.showConfirmation) {
@@ -207,7 +226,7 @@ export function AutomationEditorDialog({
           if (dialog.isEditing) {
             return `Save (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`;
           }
-        return "Create automation";
+          return "Create generator";
         })();
 
       return (
@@ -269,8 +288,8 @@ export function AutomationEditorDialog({
 
     // Step 2: Configure + Destination (merged)
     const missingFields: string[] = [];
-    if (!dialog.targetGroup.trim()) missingFields.push("output path");
-    if (!dialog.name.trim()) missingFields.push("name");
+    if (!dialog.targetGroup.trim()) missingFields.push("group");
+    if (!dialog.name.trim()) missingFields.push("generator name");
 
     return (
       <div className={AUTHORING_SURFACE_CLASSES.footer}>
@@ -293,15 +312,15 @@ export function AutomationEditorDialog({
             <button
               type="button"
               onClick={handleSave}
-              disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading || (dialog.typeNeedsValue && !dialog.hasValue && !dialog.isMultiBrand)}
+              disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
               className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
             >
               {dialog.saving && <Spinner size="sm" className="text-white" />}
               {dialog.overwriteCheckLoading
                 ? "Checking\u2026"
-                : hasPreviewRisks(dialog.previewAnalysis)
-                  ? "Review"
-                  : dialog.isEditing ? "Save" : "Create automation"}
+                : requiresPreviewReview(dialog.previewAnalysis)
+                  ? "Review changes"
+                  : dialog.isEditing ? "Save generator" : "Create generator"}
             </button>
           </div>
         </div>
@@ -371,10 +390,10 @@ export function AutomationEditorDialog({
         className="text-[14px] font-semibold text-[var(--color-figma-text)]"
       >
         {dialog.isEditing
-          ? "Edit automation"
+          ? "Edit generator"
           : template
             ? template.label
-            : "New automation"}
+            : "New generator"}
       </span>
       {!dialog.showConfirmation && (
         <StepDots active={displayStep} total={stepCount} />
@@ -426,9 +445,6 @@ export function AutomationEditorDialog({
               targetGroup={dialog.targetGroup}
               targetCollection={dialog.targetCollection}
               isEditing={dialog.isEditing}
-              isMultiBrand={dialog.isMultiBrand}
-              inputTable={dialog.inputTable}
-              targetCollectionTemplate={dialog.targetCollectionTemplate}
               previewTokens={dialog.previewTokens}
               previewAnalysis={dialog.previewAnalysis}
               existingOverwritePathSet={dialog.existingOverwritePathSet}
@@ -485,15 +501,9 @@ export function AutomationEditorDialog({
                   sourceTokenPath={dialog.editableSourcePath || undefined}
                   sourceTokenValue={activeSourceValue}
                   inlineValue={dialog.inlineValue}
-                  isMultiBrand={dialog.isMultiBrand}
-                  inputTable={dialog.inputTable}
-                  onToggleMultiBrand={dialog.handleToggleMultiBrand}
-                  onInputTableChange={dialog.setInputTable}
                   previewTokens={dialog.previewTokens}
                   previewLoading={dialog.previewLoading}
                   previewError={dialog.previewError}
-                  previewBrand={dialog.previewBrand}
-                  multiBrandPreviews={dialog.multiBrandPreviews}
                   pendingOverrides={dialog.pendingOverrides}
                   lockedCount={dialog.lockedCount}
                   overwrittenEntries={dialog.overwrittenEntries}
@@ -512,6 +522,7 @@ export function AutomationEditorDialog({
                   onClearAllOverrides={dialog.clearAllOverrides}
                   destination={destinationProps}
                   detachedCount={existingRecipe?.detachedPaths?.length ?? 0}
+                  collectionModeLabel={activeModeLabel}
                 />
               )}
             </>

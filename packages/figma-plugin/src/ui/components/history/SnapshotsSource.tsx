@@ -646,7 +646,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
                       {(s.collectionCount + s.resolverCount + s.recipeCount) > 0 ? ` · ${[
                         s.collectionCount > 0 ? `${s.collectionCount} ${s.collectionCount === 1 ? 'collection' : 'collections'}` : '',
                         s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',
-                        s.recipeCount > 0 ? `${s.recipeCount} ${s.recipeCount === 1 ? 'automation' : 'automations'}` : '',
+                        s.recipeCount > 0 ? `${s.recipeCount} ${s.recipeCount === 1 ? 'generator' : 'generators'}` : '',
                       ].filter(Boolean).join(' · ')}` : ''}
                     </p>
                   </div>

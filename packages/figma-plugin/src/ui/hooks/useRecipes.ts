@@ -21,8 +21,7 @@ export type RecipeType =
   | 'shadowScale'
   | 'customScale'
   | 'accessibleColorPair'
-  | 'darkModeInversion'
-  | 'contrastCheck';
+  | 'darkModeInversion';
 
 export type RecipeDashboardStatus =
   | 'upToDate'
@@ -138,20 +137,6 @@ export interface CustomScaleConfig {
   roundTo: number;
 }
 
-export interface ContrastCheckStep {
-  name: string;
-  hex: string;
-}
-
-export interface ContrastCheckConfig {
-  backgroundHex: string;
-  steps: ContrastCheckStep[];
-  levels: ('AA' | 'AAA')[];
-  $tokenRefs?: {
-    backgroundHex?: string;
-  };
-}
-
 export interface AccessibleColorPairConfig {
   contrastLevel: 'AA' | 'AAA';
   backgroundStep: string;
@@ -176,22 +161,11 @@ export type RecipeConfig =
   | ShadowScaleConfig
   | CustomScaleConfig
   | AccessibleColorPairConfig
-  | DarkModeInversionConfig
-  | ContrastCheckConfig;
+  | DarkModeInversionConfig;
 
 export interface StepOverride {
   value: unknown;
   locked: boolean;
-}
-
-export interface InputTableRow {
-  brand: string;
-  inputs: Record<string, unknown>;
-}
-
-export interface InputTable {
-  inputKey: string;
-  rows: InputTableRow[];
 }
 
 export interface SemanticTokenMapping {
@@ -217,8 +191,6 @@ export interface TokenRecipe {
   semanticLayer?: RecipeSemanticLayer;
   detachedPaths?: string[];
   overrides?: Record<string, StepOverride>;
-  inputTable?: InputTable;
-  targetCollectionTemplate?: string;
   /** When false, the recipe is disabled and skipped during auto-run. Defaults to true. */
   enabled?: boolean;
   createdAt: string;

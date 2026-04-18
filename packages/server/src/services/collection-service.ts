@@ -91,7 +91,6 @@ export interface CollectionRecipeTargetImpact {
   recipeId: string;
   recipeName: string;
   targetGroup: string;
-  templateTarget: boolean;
 }
 
 export interface CollectionPreflightImpact {
@@ -162,7 +161,6 @@ interface CollectionRecipeMeta {
   name: string;
   targetCollections: string[];
   targetGroup: string;
-  templateTarget: boolean;
 }
 
 interface LoadedCollectionDependencyData {
@@ -672,7 +670,6 @@ function buildRecipeTargets(
       recipeId: recipe.id,
       recipeName: recipe.name,
       targetGroup: recipe.targetGroup,
-      templateTarget: recipe.templateTarget,
     }))
     .sort((a, b) => a.recipeName.localeCompare(b.recipeName));
 }
@@ -716,9 +713,7 @@ function buildRecipeTargetBlockers(
     collectionId: collectionImpact.collectionId,
     recipeId: recipe.recipeId,
     recipeName: recipe.recipeName,
-    message: recipe.templateTarget
-      ? `Recipe "${recipe.recipeName}" still targets "${collectionImpact.collectionId}" via a target collection template${recipe.targetGroup ? ` at ${recipe.targetGroup}` : ""}.`
-      : `Recipe "${recipe.recipeName}" still targets "${collectionImpact.collectionId}"${recipe.targetGroup ? ` at ${recipe.targetGroup}` : ""}.`,
+    message: `Recipe "${recipe.recipeName}" still targets "${collectionImpact.collectionId}"${recipe.targetGroup ? ` at ${recipe.targetGroup}` : ""}.`,
   }));
 }
 
@@ -749,16 +744,14 @@ function buildGeneratedOwnershipBlockers(
 function buildRenameBlockers(
   collectionImpact: CollectionPreflightImpact,
 ): CollectionPreflightBlocker[] {
-  return collectionImpact.recipeTargets
-    .filter((recipe) => recipe.templateTarget)
-    .map((recipe) => ({
-      id: `recipe-target-template:${recipe.recipeId}:${collectionImpact.collectionId}`,
-      code: "recipe-target-collection",
-      collectionId: collectionImpact.collectionId,
-      recipeId: recipe.recipeId,
-      recipeName: recipe.recipeName,
-      message: `Recipe "${recipe.recipeName}" still targets "${collectionImpact.collectionId}" via a target collection template and must be updated before this collection is renamed.`,
-    }));
+  return collectionImpact.recipeTargets.map((recipe) => ({
+    id: `recipe-target:${recipe.recipeId}:${collectionImpact.collectionId}`,
+    code: "recipe-target-collection",
+    collectionId: collectionImpact.collectionId,
+    recipeId: recipe.recipeId,
+    recipeName: recipe.recipeName,
+    message: `Recipe "${recipe.recipeName}" still targets "${collectionImpact.collectionId}" and must be updated before this collection is renamed.`,
+  }));
 }
 
 function buildRemovalBlockers(
@@ -1149,7 +1142,6 @@ export class CollectionService {
           name: recipe.name,
           targetCollections: recipe.targetCollections,
           targetGroup: recipe.targetGroup,
-          templateTarget: recipe.templateTarget,
         })),
       allOwnedTokens: this.tokenStore.findTokensByRecipeId("*"),
       collectionsById: new Map(),

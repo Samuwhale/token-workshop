@@ -42,6 +42,10 @@ interface UseTokenEditorSaveParams {
   onSaved?: (savedPath: string) => void;
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   pushUndo?: (slot: UndoSlot) => void;
+  beforeSave?: (
+    forceOverwrite: boolean,
+    createAnother: boolean,
+  ) => Promise<boolean> | boolean;
   // For keyboard handler
   handleToggleAlias: () => void;
   showAutocomplete: boolean;
@@ -70,6 +74,7 @@ export function useTokenEditorSave({
   onSaved,
   onSaveAndCreateAnother,
   pushUndo,
+  beforeSave,
   handleToggleAlias,
   showAutocomplete,
   setShowAutocomplete,
@@ -109,6 +114,12 @@ export function useTokenEditorSave({
   };
 
   const handleSave = async (forceOverwrite = false, createAnother = false) => {
+    if (beforeSave) {
+      const shouldContinue = await beforeSave(forceOverwrite, createAnother);
+      if (!shouldContinue) {
+        return false;
+      }
+    }
     if (isCreateMode && !editPath.trim()) {
       setSaveRetryArgs(null);
       setError('Token path cannot be empty');

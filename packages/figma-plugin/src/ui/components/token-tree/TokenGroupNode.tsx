@@ -210,7 +210,7 @@ export const TokenGroupNode = memo(
         : `${managedRecipeLeafCount}/${leafCount} tokens`;
       groupMetadataSegments.push({
         label: `${countLabel} via ${targetRecipe.name}`,
-        title: `${formatAutomationSummaryTitle(targetRecipe)}\n${managedRecipeLeafCount} of ${leafCount} token${leafCount === 1 ? "" : "s"} managed by this automation`,
+        title: `${formatAutomationSummaryTitle(targetRecipe)}\n${managedRecipeLeafCount} of ${leafCount} token${leafCount === 1 ? "" : "s"} managed by this generator`,
         tone: targetRecipe.isStale ? "warning" : "accent",
       });
     } else {
@@ -501,7 +501,7 @@ export const TokenGroupNode = memo(
               title={`${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"}`}
             >
               <AutomationGlyph size={6} className="shrink-0" />
-              <span>Automation</span>
+              <span>Generated</span>
               <span className="text-[var(--color-figma-text-tertiary)]">
                 {managedRecipeLeafCount}
               </span>
@@ -630,7 +630,7 @@ export const TokenGroupNode = memo(
                       className={MENU_ITEM_CLASS}
                     >
                       <AutomationGlyph size={8} className="shrink-0 opacity-60" />
-                      <span className="flex-1">Open automation</span>
+                      <span className="flex-1">Open generator</span>
                     </button>
                     <div role="separator" className={MENU_SEPARATOR_CLASS} />
                   </>
@@ -772,7 +772,7 @@ export const TokenGroupNode = memo(
                     className={MENU_ITEM_CLASS}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
-                    <span className="flex-1">Maintain this group with automation</span>
+                    <span className="flex-1">Generate this group</span>
                     <span className={MENU_SHORTCUT_CLASS}>G</span>
                   </button>
                 )}
@@ -922,8 +922,8 @@ export const TokenGroupNode = memo(
 
         {showDetachGroupConfirm && targetRecipe && (
           <ConfirmModal
-            title="Detach group from automation?"
-            description={`Convert ${managedRecipeLeafCount} automation-managed token${managedRecipeLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetRecipe.name}" will stop updating them.`}
+            title="Detach group from generator?"
+            description={`Convert ${managedRecipeLeafCount} generator-managed token${managedRecipeLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetRecipe.name}" will stop updating them.`}
             confirmLabel="Detach group"
             onCancel={() => setShowDetachGroupConfirm(false)}
             onConfirm={async () => {

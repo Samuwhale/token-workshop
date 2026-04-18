@@ -1,7 +1,7 @@
 import type { TokenRecipe } from "../../hooks/useRecipes";
 import type { TokensLibraryAutomationEditorTarget } from "../../shared/navigationTypes";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
-import { getQuickAutomationTypeForToken } from "../token-tree/tokenTreeNodeShared";
+import { getSingleObviousRecipeType } from "../recipes/recipeUtils";
 
 export interface TokenEditorDerivedGroupsProps {
   tokenPath: string;
@@ -20,12 +20,7 @@ export function TokenEditorDerivedGroups({
   existingRecipesForToken,
   openAutomationEditor,
 }: TokenEditorDerivedGroupsProps) {
-  const quickType = getQuickAutomationTypeForToken(
-    tokenPath,
-    tokenName ?? tokenPath.split(".").pop() ?? "",
-    tokenType,
-    value,
-  );
+  const obviousType = getSingleObviousRecipeType(tokenType);
   const recipeTypeLabel = (type: TokenRecipe["type"]) => {
     switch (type) {
       case "colorRamp":
@@ -44,7 +39,7 @@ export function TokenEditorDerivedGroups({
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-            Automations
+            Generated groups
           </span>
           {existingRecipesForToken.length > 0 && (
             <span className="text-[10px] tabular-nums text-[var(--color-figma-text-secondary)]">
@@ -96,7 +91,7 @@ export function TokenEditorDerivedGroups({
           </div>
         ) : (
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            No automations yet.
+            No generated groups yet.
           </p>
         )}
         <button
@@ -107,14 +102,14 @@ export function TokenEditorDerivedGroups({
               sourceTokenName: tokenName,
               sourceTokenType: tokenType,
               sourceTokenValue: value,
-              ...(quickType
-                ? { initialDraft: { selectedType: quickType } }
+              ...(obviousType
+                ? { initialDraft: { selectedType: obviousType } }
                 : {}),
             });
           }}
           className="self-start rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
         >
-          Create automation from this token
+          Generate from this token
         </button>
       </div>
     </div>

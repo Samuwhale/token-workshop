@@ -3,7 +3,7 @@ import { getRecipeManagedOutputs } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath } from "../../../shared/resolveAlias";
 import type { RecipeType, TokenRecipe } from "../../hooks/useRecipes";
-import { getAutomationTypeLabel } from "../AutomationPipelineCard";
+import { getAutomationTypeLabel } from "../../shared/automationUtils";
 import { detectRecipeType } from "../recipes/recipeUtils";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
@@ -157,7 +157,7 @@ function formatRecipeRunAt(lastRunAt?: string): string {
 
 export function formatAutomationSummaryTitle(recipe: TokenRecipe): string {
   return [
-    `Automation: ${recipe.name}`,
+    `Generator: ${recipe.name}`,
     recipe.sourceToken ? `Source token: ${recipe.sourceToken}` : null,
     recipe.isStale ? "Source changed" : null,
   ]
@@ -224,7 +224,7 @@ export function AutomationSummaryRow({
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span className="inline-flex items-center gap-1 font-medium text-[var(--color-figma-text)]">
               <AutomationGlyph />
-              <span>Automation</span>
+              <span>Generated</span>
             </span>
             <span aria-hidden="true" className="text-[var(--color-figma-text-tertiary)]/70">
               ·
@@ -272,8 +272,8 @@ export function AutomationSummaryRow({
             </span>
           </div>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            This automation owns {managedTokenCount} token
-            {managedTokenCount === 1 ? "" : "s"}. Edit the automation to change
+            This generator owns {managedTokenCount} token
+            {managedTokenCount === 1 ? "" : "s"}. Edit the generator to change
             them, or detach them first to make manual edits stick.
           </p>
         </div>
@@ -362,17 +362,17 @@ export function getQuickAutomationTypeForToken(
 export function getQuickAutomationActionLabel(type: RecipeType): string {
   switch (type) {
     case "colorRamp":
-      return "Create color palette…";
+      return "Generate palette…";
     case "typeScale":
-      return "Create type scale…";
+      return "Generate type scale…";
     case "spacingScale":
-      return "Create spacing scale…";
+      return "Generate spacing scale…";
     case "opacityScale":
-      return "Create opacity scale…";
+      return "Generate opacity scale…";
     case "borderRadiusScale":
-      return "Create radius scale…";
+      return "Generate radius scale…";
     default:
-      return `Create ${getAutomationTypeLabel(type).toLowerCase()}…`;
+      return `Generate ${getAutomationTypeLabel(type).toLowerCase()}…`;
   }
 }
 

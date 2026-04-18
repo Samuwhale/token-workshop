@@ -389,8 +389,8 @@ export function App() {
   const onAutomationError = useCallback(
     ({ recipeId, message }: { recipeId?: string; message: string }) => {
       const label = recipeId
-        ? `Automation "${recipeId}" failed`
-        : "Automation failed";
+        ? `Generator "${recipeId}" failed`
+        : "Generator failed";
       setErrorToast(`${label}: ${message}`);
     },
     [setErrorToast],
@@ -703,7 +703,7 @@ export function App() {
         const n = affectedGens.length;
         const genIds = affectedGens.map((g) => g.id);
         pushActionToast(
-          `Source token for ${n} ${n === 1 ? "automation" : "automations"} changed`,
+          `Source token for ${n} ${n === 1 ? "generator" : "generators"} changed`,
           {
             label: "Re-run",
             onClick: async () => {
@@ -1656,11 +1656,6 @@ export function App() {
                           {item.id === "tokens" && (
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M8 1.5L14 5v6l-6 3.5L2 11V5z" />
-                            </svg>
-                          )}
-                          {item.id === "automations" && (
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M4 2v4l4 2-4 2v4" /><path d="M12 4v8" />
                             </svg>
                           )}
                           {item.id === "canvas" && (

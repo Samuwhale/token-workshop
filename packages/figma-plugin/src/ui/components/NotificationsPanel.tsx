@@ -14,10 +14,9 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "tokens" | "inspect" | "sync" | "automations";
+      topTab: "tokens" | "inspect" | "sync";
       subTab:
         | "tokens"
-        | "automations"
         | "inspect"
         | "canvas-analysis"
         | "publish"
@@ -127,8 +126,8 @@ function inferWorkspaceAction(message: string): InboxAction {
   }
   if (lower.includes("recipe") || lower.includes("automation")) {
     return {
-      label: "Open automations",
-      target: { kind: "workspace", topTab: "automations", subTab: "automations" },
+      label: "Open tokens",
+      target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },
     };
   }
   if (

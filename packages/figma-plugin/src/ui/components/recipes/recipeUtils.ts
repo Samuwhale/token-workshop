@@ -16,7 +16,6 @@ import { DEFAULT_OPACITY_SCALE_CONFIG } from './OpacityScaleRecipe';
 import { DEFAULT_BORDER_RADIUS_CONFIG } from './BorderRadiusRecipe';
 import { DEFAULT_Z_INDEX_CONFIG } from './ZIndexRecipe';
 import { DEFAULT_CUSTOM_CONFIG } from './CustomScaleRecipe';
-import { DEFAULT_CONTRAST_CHECK_CONFIG } from './ContrastCheckRecipe';
 import { DEFAULT_SHADOW_SCALE_CONFIG } from './ShadowScaleRecipe';
 
 // ---------------------------------------------------------------------------
@@ -37,6 +36,19 @@ export function detectRecipeType(sourceTokenType: string, sourceTokenValue: any)
     return numVal < 50 ? 'typeScale' : 'spacingScale';
   }
   return 'colorRamp';
+}
+
+export function getSingleObviousRecipeType(
+  sourceTokenType: string | undefined,
+): RecipeType | undefined {
+  switch (sourceTokenType) {
+    case 'color':
+      return 'colorRamp';
+    case 'fontSize':
+      return 'typeScale';
+    default:
+      return undefined;
+  }
 }
 
 export function suggestTargetGroup(sourceTokenPath: string, sourceTokenName?: string): string {
@@ -71,7 +83,6 @@ export function defaultConfigForType(type: RecipeType): RecipeConfig {
     case 'customScale': return { ...DEFAULT_CUSTOM_CONFIG, steps: DEFAULT_CUSTOM_CONFIG.steps.map(s => ({ ...s })) };
     case 'accessibleColorPair': return { contrastLevel: 'AA' as const, backgroundStep: 'bg', foregroundStep: 'fg' };
     case 'darkModeInversion': return { stepName: 'inverted', chromaBoost: 0 };
-    case 'contrastCheck': return { ...DEFAULT_CONTRAST_CHECK_CONFIG, steps: [] };
   }
 }
 
@@ -114,7 +125,7 @@ export function isInlineValueCompatibleWithType(type: RecipeType, value: unknown
 /** Types that need a value (from source token OR inline input) */
 export const VALUE_REQUIRED_TYPES: RecipeType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'accessibleColorPair', 'darkModeInversion'];
 // Types that work standalone (no value at all)
-export const STANDALONE_TYPES: RecipeType[] = ['opacityScale', 'zIndexScale', 'shadowScale', 'contrastCheck'];
+export const STANDALONE_TYPES: RecipeType[] = ['opacityScale', 'zIndexScale', 'shadowScale'];
 // Types that work either way
 export const FLEXIBLE_TYPES: RecipeType[] = ['customScale'];
 
@@ -130,7 +141,6 @@ export const TYPE_LABELS: Record<RecipeType, string> = {
   customScale: 'Custom Formula',
   accessibleColorPair: 'Contrast-Safe Pair',
   darkModeInversion: 'Dark Mode Variant',
-  contrastCheck: 'Contrast Checker',
 };
 
 /** Primary recipe types shown by default */
@@ -140,7 +150,7 @@ export const PRIMARY_TYPES: RecipeType[] = [
 ];
 /** Advanced/niche recipe types shown in a collapsible section */
 export const ADVANCED_TYPES: RecipeType[] = [
-  'accessibleColorPair', 'darkModeInversion', 'contrastCheck',
+  'accessibleColorPair', 'darkModeInversion',
 ];
 
 export const ALL_TYPES: RecipeType[] = [...PRIMARY_TYPES, ...ADVANCED_TYPES];
@@ -161,5 +171,4 @@ export const TYPE_DESCRIPTIONS: Record<RecipeType, string> = {
   customScale: 'Write a custom formula to create any numeric scale',
   accessibleColorPair: 'Create foreground + background colors that meet WCAG contrast',
   darkModeInversion: 'Create a dark mode version of a color with perceptual accuracy',
-  contrastCheck: 'Check WCAG contrast ratios for a set of color pairs',
 };

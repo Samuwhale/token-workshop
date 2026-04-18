@@ -157,7 +157,7 @@ export function TokenStateSummary({
       sourceRecipes.length > 0 ||
       (typeof usageCount === "number" && usageCount > 0),
   );
-  const sourceRecipesLabel = sourceRecipes.length === 1 ? "Automation" : "Automations";
+  const sourceRecipesLabel = sourceRecipes.length === 1 ? "Generator" : "Generators";
 
   if (!hasContent) return null;
 

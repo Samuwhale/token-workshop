@@ -43,7 +43,7 @@ interface DetachOutputsBody {
 type SnapshotMap = Record<string, SnapshotEntry>;
 type RecipeSnapshotTarget = Pick<
   TokenRecipe,
-  'targetCollection' | 'targetCollectionTemplate' | 'inputTable' | 'targetGroup' | 'semanticLayer'
+  'targetCollection' | 'targetGroup' | 'semanticLayer'
 >;
 
 interface LoggedRecipeMutationConfig<TResult> {
@@ -72,20 +72,8 @@ interface DeleteRecipeResult {
   tokensDeleted: number;
 }
 
-function getRecipeCollectionIds(recipe: Pick<TokenRecipe, 'targetCollection' | 'targetCollectionTemplate' | 'inputTable'>): string[] {
-  if (!recipe.inputTable?.rows.length) {
-    return recipe.targetCollection ? [recipe.targetCollection] : [];
-  }
-  const collectionIds = new Set<string>();
-  for (const row of recipe.inputTable.rows) {
-    if (!row.brand.trim()) continue;
-    collectionIds.add(
-      recipe.targetCollectionTemplate
-        ? recipe.targetCollectionTemplate.replace('{brand}', row.brand)
-        : recipe.targetCollection,
-    );
-  }
-  return [...collectionIds];
+function getRecipeCollectionIds(recipe: Pick<TokenRecipe, 'targetCollection'>): string[] {
+  return recipe.targetCollection ? [recipe.targetCollection] : [];
 }
 
 async function snapshotTokenPaths(
@@ -169,7 +157,7 @@ function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
 }
 
 async function validateRecipeTargetCollections(
-  recipe: Pick<TokenRecipe, 'targetCollection' | 'targetCollectionTemplate' | 'inputTable'>,
+  recipe: Pick<TokenRecipe, 'targetCollection'>,
   requireCollectionsExist: (collectionIds: Iterable<string>) => Promise<void>,
 ): Promise<void> {
   await requireCollectionsExist(getRecipeOutputCollectionIds(recipe));
@@ -249,7 +237,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/recipes — create a new recipe and run it immediately
   fastify.post<{ Body: CreateBody }>('/recipes', async (request, reply) => {
-    const { type, sourceToken, inlineValue, targetCollection, targetGroup, name, config, overrides, inputTable, targetCollectionTemplate } = request.body ?? {} as CreateBody;
+    const { type, sourceToken, inlineValue, targetCollection, targetGroup, name, config, overrides } = request.body ?? {} as CreateBody;
     if (typeof type !== 'string' || typeof targetCollection !== 'string' || typeof targetGroup !== 'string' || !type || !targetCollection || !targetGroup) {
       return reply.status(400).send({
         error: 'type, targetCollection, and targetGroup are required',
@@ -260,8 +248,6 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         await validateRecipeTargetCollections(
           {
             targetCollection,
-            targetCollectionTemplate: targetCollectionTemplate ?? undefined,
-            inputTable: inputTable as TokenRecipe['inputTable'],
           },
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
         );
@@ -272,8 +258,6 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, {
             targetCollection,
             targetGroup,
-            inputTable,
-            targetCollectionTemplate: targetCollectionTemplate ?? undefined,
             semanticLayer: request.body?.semanticLayer,
           } as RecipeSnapshotTarget),
           mutate: async () => {
@@ -286,8 +270,6 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
               name: typeof name === 'string' ? name : sourceToken ? `${sourceToken} ${type}` : type,
               config,
               overrides,
-              inputTable,
-              targetCollectionTemplate: targetCollectionTemplate ?? undefined,
               semanticLayer: request.body?.semanticLayer,
             });
             await fastify.recipeService.run(recipe.id, fastify.tokenStore);
@@ -317,10 +299,8 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           inlineValue: body.inlineValue,
           targetGroup: body.targetGroup ?? '',
           targetCollection: body.targetCollection ?? '',
-          targetCollectionTemplate: body.targetCollectionTemplate,
           config: body.config,
           overrides: body.overrides,
-          inputTable: body.inputTable,
           semanticLayer: body.semanticLayer,
           baseRecipeId: body.baseRecipeId,
           detachedPaths: body.detachedPaths,
@@ -363,20 +343,15 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         if (typeof body.sourceToken === 'string') updates.sourceToken = body.sourceToken;
         if (typeof body.targetCollection === 'string') updates.targetCollection = body.targetCollection;
         if (typeof body.targetGroup === 'string') updates.targetGroup = body.targetGroup;
-        if (typeof body.targetCollectionTemplate === 'string') updates.targetCollectionTemplate = body.targetCollectionTemplate;
         if (body.inlineValue !== undefined) updates.inlineValue = body.inlineValue;
         if (body.type !== undefined) updates.type = body.type;
         if (body.overrides !== undefined) updates.overrides = body.overrides;
-        if (body.inputTable !== undefined) updates.inputTable = body.inputTable;
         if (body.config !== undefined) updates.config = body.config;
         if (body.semanticLayer !== undefined) updates.semanticLayer = body.semanticLayer;
 
         await validateRecipeTargetCollections(
           {
             targetCollection: updates.targetCollection ?? existing.targetCollection,
-            targetCollectionTemplate:
-              updates.targetCollectionTemplate ?? existing.targetCollectionTemplate,
-            inputTable: (updates.inputTable as TokenRecipe['inputTable'] | undefined) ?? existing.inputTable,
           },
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
         );

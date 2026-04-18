@@ -245,7 +245,7 @@ export interface HealthPanelProps {
   collections?: TokenCollection[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
-  onNavigateTo: (topTab: "tokens" | "inspect" | "sync" | "automations", subTab?: string) => void;
+  onNavigateTo: (topTab: "tokens" | "inspect" | "sync", subTab?: string) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onNavigateToAutomation?: (recipeId: string) => void;
   onTriggerHeatmap: () => void;
@@ -991,10 +991,10 @@ export function HealthPanel({
     if (errorRecipes.length > 0) {
       items.push({
         severity: "critical",
-        category: "Automations",
-        message: `${formatCount(errorRecipes.length, "automation")} failed`,
+        category: "Generators",
+        message: `${formatCount(errorRecipes.length, "generator")} failed`,
         count: errorRecipes.length,
-        ctaLabel: "Inspect automations",
+        ctaLabel: "Inspect generators",
         action: { kind: "automation", recipeId: errorRecipes[0]?.id ?? null },
       });
     }
@@ -1047,10 +1047,10 @@ export function HealthPanel({
     if (staleRecipes.length > 0) {
       items.push({
         severity: "warning",
-        category: "Automations",
-        message: `${formatCount(staleRecipes.length, "automation")} stale`,
+        category: "Generators",
+        message: `${formatCount(staleRecipes.length, "generator")} stale`,
         count: staleRecipes.length,
-        ctaLabel: "Run automations",
+        ctaLabel: "Run generators",
         action: { kind: "automation", recipeId: staleRecipes[0]?.id ?? null },
       });
     }
@@ -1106,7 +1106,7 @@ export function HealthPanel({
             onNavigateToAutomation(action.recipeId);
             return;
           }
-          onNavigateTo("automations", "automations");
+          onNavigateTo("tokens", "tokens");
         };
       case "canvas":
         return () => {

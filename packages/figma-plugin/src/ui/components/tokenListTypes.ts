@@ -452,7 +452,11 @@ export interface TokenTreeLeafActionsContextType {
   onRequestMoveToken?: (tokenPath: string) => void;
   onRequestCopyToken?: (tokenPath: string) => void;
   onDuplicateToken?: (path: string) => void;
-  onDetachFromRecipe?: (path: string) => Promise<void>;
+  onDetachFromRecipe?: (path: string) => Promise<boolean>;
+  onSaveGeneratedException?: (
+    path: string,
+    newValue: unknown,
+  ) => Promise<boolean>;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
   onHoverToken?: (path: string) => void;
   onFilterByType?: (type: string) => void;
@@ -488,6 +492,7 @@ export interface TokenTreeLeafActionsContextType {
     collectionId: string,
     optionName: string,
     previousState?: { type?: string; value: unknown },
+    options?: { allowGeneratedEdit?: boolean },
   ) => void;
   onOpenAutomationEditor?: (target: TokensLibraryAutomationEditorTarget) => void;
   /** Toggle starred (cross-collection favorites) for the current token */

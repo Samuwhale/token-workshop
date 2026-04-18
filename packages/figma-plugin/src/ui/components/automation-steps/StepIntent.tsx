@@ -1,5 +1,5 @@
 /**
- * Step 1 — Outcome selection: choose the automation outcome before editing details.
+ * Step 1 — Outcome selection: choose the generator outcome before editing details.
  */
 import type { RecipeType, RecipeConfig } from "../../hooks/useRecipes";
 import type { GraphTemplate } from "../graph-templates";
@@ -31,7 +31,7 @@ export interface StepIntentProps {
 export function StepIntent({
   templates = GRAPH_TEMPLATES,
   title = "What do you want to create?",
-  description = "Start from the outcome you want. You can tune the automation details in the next step.",
+  description = "Start from the outcome you want. You can tune the generator in the next step.",
   selectedType,
   recommendedType,
   connected,

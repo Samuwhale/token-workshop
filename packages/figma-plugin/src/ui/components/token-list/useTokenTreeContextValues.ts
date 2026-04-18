@@ -212,7 +212,11 @@ interface LeafActionsDeps {
   handleRequestMoveTokenReview: (path: string) => void;
   handleRequestCopyTokenReview: (path: string) => void;
   handleDuplicateToken: (path: string) => void;
-  handleDetachFromRecipe: (path: string) => Promise<void>;
+  handleDetachFromRecipe: (path: string) => Promise<boolean>;
+  handleSaveGeneratedException: (
+    path: string,
+    newValue: unknown,
+  ) => Promise<boolean>;
   handleOpenExtractToAlias: (path: string, $type?: string, $value?: any) => void;
   handleHoverToken: (path: string) => void;
   setTypeFilter: (v: string) => void;
@@ -250,6 +254,7 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onRequestCopyToken: deps.handleRequestCopyTokenReview,
       onDuplicateToken: deps.handleDuplicateToken,
       onDetachFromRecipe: deps.handleDetachFromRecipe,
+      onSaveGeneratedException: deps.handleSaveGeneratedException,
       onExtractToAlias: deps.handleOpenExtractToAlias,
       onHoverToken: deps.handleHoverToken,
       onFilterByType: deps.setTypeFilter,

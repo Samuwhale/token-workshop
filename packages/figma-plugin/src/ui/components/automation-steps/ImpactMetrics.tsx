@@ -46,8 +46,8 @@ export function ImpactMetrics({ previewAnalysis, className }: ImpactMetricsProps
       tone: manualConflictEntries.length > 0 ? 'error' : 'neutral',
       detail:
         manualConflictEntries.length === 0
-          ? 'No drifted automation outputs detected.'
-          : 'Automation-owned outputs were manually edited since the last run.',
+          ? 'No drifted generated outputs detected.'
+          : 'Generator-owned outputs were manually edited since the last run.',
     },
     {
       label: 'Deleted outputs',

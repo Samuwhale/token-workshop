@@ -5,7 +5,6 @@ import type {
   RecipeType,
   RecipeConfig,
   GeneratedTokenResult,
-  InputTable,
 } from './useRecipes';
 
 export interface OverwrittenEntry {
@@ -80,6 +79,13 @@ export function hasPreviewRisks(analysis: RecipePreviewAnalysis | null): boolean
   );
 }
 
+export function requiresPreviewReview(
+  analysis: RecipePreviewAnalysis | null,
+): boolean {
+  if (!analysis) return true;
+  return hasPreviewRisks(analysis) || analysis.safeUpdates.length >= 12;
+}
+
 export interface RecipePreviewResponse {
   count: number;
   tokens: GeneratedTokenResult[];
@@ -98,8 +104,6 @@ export interface RecipePreviewRequest {
   sourceValue?: unknown;
   baseRecipeId?: string;
   detachedPaths?: string[];
-  inputTable?: InputTable;
-  targetCollectionTemplate?: string;
   signal?: AbortSignal;
 }
 
@@ -115,8 +119,6 @@ export async function requestRecipePreview({
   sourceValue,
   baseRecipeId,
   detachedPaths,
-  inputTable,
-  targetCollectionTemplate,
   signal,
 }: RecipePreviewRequest): Promise<RecipePreviewResponse> {
   const body: Record<string, unknown> = {
@@ -128,8 +130,6 @@ export async function requestRecipePreview({
     sourceValue,
     baseRecipeId,
     detachedPaths,
-    inputTable,
-    targetCollectionTemplate,
   };
 
   if (sourceTokenPath) {
@@ -151,13 +151,11 @@ interface UseRecipePreviewParams {
   selectedType: RecipeType;
   sourceTokenPath?: string;
   inlineValue?: unknown;
+  sourceValue?: unknown;
   targetGroup: string;
   targetCollection: string;
   config: RecipeConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
-  isMultiBrand: boolean;
-  inputTable?: InputTable;
-  targetCollectionTemplate: string;
   existingRecipeId?: string;
   detachedPaths?: string[];
   refreshNonce?: number;
@@ -171,8 +169,6 @@ export interface UseRecipePreviewReturn {
   overwrittenEntries: OverwrittenEntry[];
   existingOverwritePathSet: Set<string>;
   previewDiff: RecipePreviewDiff | null;
-  previewBrand: string | undefined;
-  multiBrandPreviews: Map<string, GeneratedTokenResult[]>;
   previewFingerprint: string;
   previewAnalysis: RecipePreviewAnalysis | null;
 }
@@ -200,13 +196,11 @@ export function useRecipePreview({
   selectedType,
   sourceTokenPath,
   inlineValue,
+  sourceValue,
   targetGroup,
   targetCollection,
   config,
   pendingOverrides,
-  isMultiBrand,
-  inputTable,
-  targetCollectionTemplate,
   existingRecipeId,
   detachedPaths,
   refreshNonce = 0,
@@ -215,28 +209,11 @@ export function useRecipePreview({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
   const [previewAnalysis, setPreviewAnalysis] = useState<RecipePreviewAnalysis | null>(null);
-  const [multiBrandPreviews, setMultiBrandPreviews] = useState<Map<string, GeneratedTokenResult[]>>(new Map());
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const multiBrandAbortRef = useRef<AbortController | null>(null);
-
-  const firstBrandRow = useMemo(() => {
-    if (!isMultiBrand || !inputTable || inputTable.rows.length === 0) return undefined;
-    return inputTable.rows.find((row) => row.brand.trim() && row.inputs[inputTable.inputKey] !== undefined);
-  }, [isMultiBrand, inputTable]);
 
   const fetchPreview = useCallback(() => {
-    if (isMultiBrand && !firstBrandRow) {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-      abortRef.current?.abort();
-      setPreviewTokens([]);
-      setPreviewAnalysis(null);
-      setPreviewError('');
-      setPreviewLoading(false);
-      return;
-    }
-
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     setPreviewLoading(true);
     debounceTimerRef.current = setTimeout(async () => {
@@ -250,15 +227,13 @@ export function useRecipePreview({
           selectedType,
           sourceTokenPath,
           inlineValue,
+          sourceValue,
           targetGroup,
           targetCollection,
           config,
           pendingOverrides,
-          sourceValue: isMultiBrand && firstBrandRow ? firstBrandRow.inputs[inputTable!.inputKey] : undefined,
           baseRecipeId: existingRecipeId,
           detachedPaths,
-          inputTable: isMultiBrand ? inputTable : undefined,
-          targetCollectionTemplate: isMultiBrand ? targetCollectionTemplate : undefined,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
@@ -278,17 +253,14 @@ export function useRecipePreview({
     config,
     detachedPaths,
     existingRecipeId,
-    firstBrandRow,
     inlineValue,
-    inputTable,
-    isMultiBrand,
     pendingOverrides,
     selectedType,
     serverUrl,
+    sourceValue,
     sourceTokenPath,
     targetGroup,
     targetCollection,
-    targetCollectionTemplate,
   ]);
 
   useEffect(() => {
@@ -298,78 +270,9 @@ export function useRecipePreview({
     };
   }, [fetchPreview, refreshNonce]);
 
-  const allBrandRows = useMemo(() => {
-    if (!isMultiBrand || !inputTable || inputTable.rows.length === 0) return [];
-    return inputTable.rows.filter((row) => row.brand.trim() && row.inputs[inputTable.inputKey] !== undefined);
-  }, [isMultiBrand, inputTable]);
-
-  useEffect(() => {
-    multiBrandAbortRef.current?.abort();
-
-    if (!isMultiBrand || allBrandRows.length === 0) {
-      setMultiBrandPreviews(new Map());
-      return;
-    }
-
-    const controller = new AbortController();
-    multiBrandAbortRef.current = controller;
-
-    const fetchAll = async () => {
-      const results = new Map<string, GeneratedTokenResult[]>();
-      const requests = allBrandRows.map(async (row) => {
-        try {
-          const response = await requestRecipePreview({
-            serverUrl,
-            selectedType,
-            targetGroup,
-            targetCollection,
-            config,
-            pendingOverrides,
-            sourceValue: row.inputs[inputTable!.inputKey],
-            baseRecipeId: existingRecipeId,
-            detachedPaths,
-            signal: controller.signal,
-          });
-          return { brand: row.brand, tokens: response.tokens ?? [] };
-        } catch (err) {
-          if (isAbortError(err)) return null;
-          return { brand: row.brand, tokens: [] as GeneratedTokenResult[] };
-        }
-      });
-
-      const settled = await Promise.all(requests);
-      if (controller.signal.aborted) return;
-      for (const result of settled) {
-        if (!result) continue;
-        results.set(result.brand, result.tokens);
-      }
-      setMultiBrandPreviews(results);
-    };
-
-    const timer = setTimeout(fetchAll, 350);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [
-    allBrandRows,
-    config,
-    detachedPaths,
-    existingRecipeId,
-    inputTable,
-    isMultiBrand,
-    pendingOverrides,
-    selectedType,
-    serverUrl,
-    targetGroup,
-    targetCollection,
-    targetCollectionTemplate,
-  ]);
-
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
-      multiBrandAbortRef.current?.abort();
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, []);
@@ -405,7 +308,6 @@ export function useRecipePreview({
   );
 
   const previewDiff = previewAnalysis?.diff ?? null;
-  const previewBrand = isMultiBrand && firstBrandRow ? firstBrandRow.brand : undefined;
 
   return {
     previewTokens,
@@ -415,8 +317,6 @@ export function useRecipePreview({
     overwrittenEntries,
     existingOverwritePathSet,
     previewDiff,
-    previewBrand,
-    multiBrandPreviews,
     previewFingerprint: previewAnalysis?.fingerprint ?? '',
     previewAnalysis,
   };

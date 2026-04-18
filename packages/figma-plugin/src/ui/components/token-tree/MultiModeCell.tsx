@@ -41,6 +41,7 @@ export function MultiModeCell({
     collectionId: string,
     optionName: string,
     previousState?: { type?: string; value: unknown },
+    options?: { allowGeneratedEdit?: boolean },
   ) => void;
   isTabPending?: boolean;
   onTabActivated?: () => void;

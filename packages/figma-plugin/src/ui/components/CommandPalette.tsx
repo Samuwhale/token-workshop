@@ -572,7 +572,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                 { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
                 { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
                 { qual: 'group:colors', desc: 'Navigate directly to a token group', insert: '>group:' },
-                { qual: 'recipe:color-ramp', desc: 'Tokens produced by a specific automation', insert: '>recipe:' },
+                { qual: 'recipe:color-ramp', desc: 'Tokens produced by a specific generator', insert: '>recipe:' },
               ].map(({ qual, desc, insert }) => (
                 <button
                   key={qual}
@@ -595,7 +595,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                   { val: 'duplicate', desc: 'Tokens sharing a value' },
                   { val: 'description', desc: 'Tokens with a description' },
                   { val: 'extension', desc: 'Tokens with extensions' },
-                  { val: 'generated', desc: 'Automation-managed tokens' },
+                  { val: 'generated', desc: 'Generator-managed tokens' },
                   { val: 'unused', desc: 'No Figma usage or dependents' },
                 ].map(({ val, desc }) => (
                   <button

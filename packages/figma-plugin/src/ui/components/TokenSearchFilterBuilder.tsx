@@ -37,7 +37,7 @@ const FILTER_SECTION_LABELS: Record<FilterBuilderSection, string> = {
   name: 'Name',
   value: 'Value',
   desc: 'Description',
-  recipe: 'Automation',
+  recipe: 'Generator',
 };
 
 const TEXT_SECTION_PLACEHOLDERS: Record<TextFilterSection, string> = {

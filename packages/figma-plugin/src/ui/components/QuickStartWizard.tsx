@@ -521,7 +521,6 @@ export function QuickStartWizard({
       <AutomationEditorDialog
         serverUrl={serverUrl}
         currentCollectionId={effectiveCollectionId}
-        collectionIds={collectionIds}
         template={selectedTemplate}
         initialDraft={createRecipeDraftFromTemplate(selectedTemplate, effectiveCollectionId)}
         onBack={handleTemplateBack}

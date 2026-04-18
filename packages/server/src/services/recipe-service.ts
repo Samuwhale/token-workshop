@@ -10,7 +10,6 @@ import type {
   GeneratedTokenResult,
   TokenType,
   Token,
-  InputTable,
   ColorRampConfig,
   TypeScaleConfig,
   SpacingScaleConfig,
@@ -21,7 +20,6 @@ import type {
   CustomScaleConfig,
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
-  ContrastCheckConfig,
   DimensionUnit,
 } from "@tokenmanager/core";
 import {
@@ -37,7 +35,6 @@ import {
   runCustomScaleRecipe,
   runAccessibleColorPairRecipe,
   runDarkModeInversionRecipe,
-  runContrastCheckRecipe,
   applyOverrides,
   getRecipeOutputCollectionIds,
   getRecipeManagedOutputPaths,
@@ -66,7 +63,6 @@ const VALID_RECIPE_TYPES = [
   "customScale",
   "accessibleColorPair",
   "darkModeInversion",
-  "contrastCheck",
 ] as const satisfies readonly RecipeType[];
 
 const VALID_RECIPE_TYPE_SET = new Set<RecipeType>(VALID_RECIPE_TYPES);
@@ -79,13 +75,11 @@ export type RecipeCreateInput = Omit<
   | "type"
   | "config"
   | "overrides"
-  | "inputTable"
   | "semanticLayer"
 > & {
   type: unknown;
   config?: unknown;
   overrides?: unknown;
-  inputTable?: unknown;
   semanticLayer?: unknown;
 };
 
@@ -97,14 +91,12 @@ export type RecipeUpdateInput = Partial<
     | "type"
     | "config"
     | "overrides"
-    | "inputTable"
     | "semanticLayer"
   >
 > & {
   type?: unknown;
   config?: unknown;
   overrides?: unknown;
-  inputTable?: unknown;
   semanticLayer?: unknown;
 };
 
@@ -114,8 +106,6 @@ export type RecipePreviewInput = Pick<
   | "inlineValue"
   | "targetGroup"
   | "targetCollection"
-  | "targetCollectionTemplate"
-  | "inputTable"
   | "semanticLayer"
 > & {
   type: unknown;
@@ -194,7 +184,6 @@ export interface RecipeCollectionDependencyMeta {
   name: string;
   targetCollections: string[];
   targetGroup: string;
-  templateTarget: boolean;
 }
 
 export interface OrphanedRecipeToken {
@@ -358,38 +347,6 @@ function normalizeRecipeType(rawType: unknown): RecipeType {
     );
   }
   return rawType as RecipeType;
-}
-
-function normalizeInputTable(raw: unknown): InputTable | undefined {
-  if (raw === undefined) return undefined;
-  if (!isObj(raw)) {
-    throw new BadRequestError("inputTable must be an object");
-  }
-  if (typeof raw.inputKey !== "string" || raw.inputKey === "") {
-    throw new BadRequestError("inputTable.inputKey must be a non-empty string");
-  }
-  if (!Array.isArray(raw.rows)) {
-    throw new BadRequestError("inputTable.rows must be an array");
-  }
-  const rows: InputTable["rows"] = [];
-  for (let i = 0; i < raw.rows.length; i++) {
-    const row = raw.rows[i];
-    if (!isObj(row)) {
-      throw new BadRequestError(`inputTable.rows[${i}] must be an object`);
-    }
-    if (typeof row.brand !== "string" || row.brand === "") {
-      throw new BadRequestError(
-        `inputTable.rows[${i}].brand must be a non-empty string`,
-      );
-    }
-    if (!isObj(row.inputs)) {
-      throw new BadRequestError(
-        `inputTable.rows[${i}].inputs must be an object`,
-      );
-    }
-    rows.push({ brand: row.brand, inputs: row.inputs });
-  }
-  return { inputKey: raw.inputKey, rows };
 }
 
 function normalizeOverrides(
@@ -929,43 +886,6 @@ function normalizeRecipeConfig(
         ...(tokenRefs && { $tokenRefs: tokenRefs }),
       } satisfies DarkModeInversionConfig;
     }
-    case "contrastCheck": {
-      if (typeof c.backgroundHex !== "string")
-        throw new BadRequestError(
-          'contrastCheck config requires "backgroundHex" as string',
-        );
-      if (
-        !Array.isArray(c.steps) ||
-        !c.steps.every(
-          (step: unknown) =>
-            isObj(step) &&
-            typeof step.name === "string" &&
-            typeof step.hex === "string",
-        )
-      ) {
-        throw new BadRequestError(
-          'contrastCheck config requires "steps" as Array<{name: string, hex: string}>',
-        );
-      }
-      if (
-        !Array.isArray(c.levels) ||
-        !c.levels.every((level: unknown) => level === "AA" || level === "AAA")
-      ) {
-        throw new BadRequestError(
-          'contrastCheck config requires "levels" as Array<"AA" | "AAA">',
-        );
-      }
-      const tokenRefs = validateTokenRefs(c.$tokenRefs, ["backgroundHex"]);
-      return {
-        backgroundHex: c.backgroundHex as string,
-        steps: (c.steps as Array<Record<string, unknown>>).map((step) => ({
-          name: step.name as string,
-          hex: step.hex as string,
-        })),
-        levels: c.levels as ("AA" | "AAA")[],
-        ...(tokenRefs && { $tokenRefs: tokenRefs }),
-      } satisfies ContrastCheckConfig;
-    }
   }
 }
 
@@ -986,14 +906,6 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
   if (raw.sourceToken !== undefined && typeof raw.sourceToken !== "string") {
     throw new BadRequestError("sourceToken must be a string when provided");
   }
-  if (
-    raw.targetCollectionTemplate !== undefined &&
-    typeof raw.targetCollectionTemplate !== "string"
-  ) {
-    throw new BadRequestError(
-      "targetCollectionTemplate must be a string when provided",
-    );
-  }
   if (raw.enabled !== undefined && typeof raw.enabled !== "boolean") {
     throw new BadRequestError("enabled must be a boolean when provided");
   }
@@ -1003,7 +915,6 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
 
   const type = normalizeRecipeType(raw.type);
   const overrides = normalizeOverrides(raw.overrides);
-  const inputTable = normalizeInputTable(raw.inputTable);
   const semanticLayer = normalizeSemanticLayer(raw.semanticLayer);
   const detachedPaths = normalizeDetachedPaths(raw.detachedPaths);
   const lastRunError = normalizeLastRunError(raw.lastRunError);
@@ -1019,10 +930,6 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
     ...(semanticLayer && { semanticLayer }),
     ...(detachedPaths && { detachedPaths }),
     ...(overrides && { overrides }),
-    ...(inputTable && { inputTable }),
-    ...(raw.targetCollectionTemplate !== undefined && {
-      targetCollectionTemplate: raw.targetCollectionTemplate,
-    }),
     ...(raw.enabled !== undefined && { enabled: raw.enabled }),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
@@ -1280,9 +1187,6 @@ export class RecipeService {
       name: recipe.name,
       targetCollections: getRecipeOutputCollectionIds(recipe),
       targetGroup: recipe.targetGroup,
-      templateTarget: Boolean(
-        recipe.targetCollectionTemplate && recipe.inputTable?.rows.length,
-      ),
     }));
   }
 
@@ -1752,15 +1656,12 @@ export class RecipeService {
       : undefined;
     const detachedPaths =
       normalizeDetachedPaths(data.detachedPaths) ?? baseRecipe?.detachedPaths;
-    const inputTable = normalizeInputTable(data.inputTable);
     const semanticLayer = normalizeSemanticLayer(data.semanticLayer);
     const normalizedData: RecipePreviewInput & {
       type: RecipeType;
       config: RecipeConfig;
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
-      inputTable?: InputTable;
-      targetCollectionTemplate?: string;
       semanticLayer?: RecipeSemanticLayer;
     } = {
       sourceToken: data.sourceToken,
@@ -1771,10 +1672,6 @@ export class RecipeService {
       type,
       config: normalizeRecipeConfig(type, data.config),
       overrides: normalizeOverrides(data.overrides),
-      ...(inputTable && { inputTable }),
-      ...(typeof data.targetCollectionTemplate === "string" && {
-        targetCollectionTemplate: data.targetCollectionTemplate,
-      }),
       ...(semanticLayer && { semanticLayer }),
       ...(detachedPaths && { detachedPaths }),
     };
@@ -1822,8 +1719,6 @@ export class RecipeService {
       config: RecipeConfig;
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
-      inputTable?: InputTable;
-      targetCollectionTemplate?: string;
       semanticLayer?: RecipeSemanticLayer;
     },
     preview: GeneratedTokenResult[],
@@ -2390,16 +2285,11 @@ export class RecipeService {
     recipe: TokenRecipe,
     tokenStore: TokenStore,
   ): Promise<GeneratedTokenResult[]> {
-    let results: GeneratedTokenResult[];
-    if (recipe.inputTable && recipe.inputTable.rows.length > 0) {
-      results = await this.executeRecipeMultiBrand(recipe, tokenStore);
-    } else {
-      results = await this.executeSingleBrand(
-        recipe,
-        tokenStore,
-        recipe.targetCollection,
-      );
-    }
+    const results = await this.executeSingleBrand(
+      recipe,
+      tokenStore,
+      recipe.targetCollection,
+    );
 
     // Track when the recipe was last run and what the source token's value was,
     // so the UI can detect whether re-running is needed after a source token edit.
@@ -2454,13 +2344,11 @@ export class RecipeService {
   private buildRecipeExtensions(
     recipe: TokenRecipe,
     outputKind: "scale" | "semantic",
-    brand?: string,
   ): Token["$extensions"] {
     return {
       "com.tokenmanager.recipe": {
         recipeId: recipe.id,
         sourceToken: recipe.sourceToken ?? "",
-        ...(brand ? { brand } : {}),
         outputKind,
       },
     };
@@ -2515,24 +2403,12 @@ export class RecipeService {
     ];
   }
 
-  private getEffectiveTargetCollection(
-    recipe: Pick<TokenRecipe, "targetCollection" | "targetCollectionTemplate">,
-    brand?: string,
-  ): string {
-    if (brand && recipe.targetCollectionTemplate) {
-      return recipe.targetCollectionTemplate.replace("{brand}", brand);
-    }
-    return recipe.targetCollection;
-  }
-
   private async collectDesiredPreviewOutputs(
     data: RecipePreviewInput & {
       type: RecipeType;
       config: RecipeConfig;
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
-      inputTable?: InputTable;
-      targetCollectionTemplate?: string;
       semanticLayer?: RecipeSemanticLayer;
     },
     preview: GeneratedTokenResult[],
@@ -2542,26 +2418,6 @@ export class RecipeService {
       targetGroup: data.targetGroup,
       semanticLayer: data.semanticLayer ?? baseRecipe?.semanticLayer,
     };
-
-    if (data.inputTable?.rows.length) {
-      const desiredOutputs: Array<{ collectionId: string; path: string }> = [];
-      for (const row of data.inputTable.rows) {
-        const brand = row.brand.trim();
-        if (!brand) continue;
-        const sourceValue = row.inputs[data.inputTable.inputKey];
-        if (sourceValue === undefined) continue;
-        const effectiveTargetCollection = this.getEffectiveTargetCollection(data, brand);
-        const results = await this.computeResultsWithValue(data, sourceValue);
-        desiredOutputs.push(
-          ...this.buildDesiredGeneratedOutputs(
-            recipeShape,
-            effectiveTargetCollection,
-            results,
-          ),
-        );
-      }
-      return desiredOutputs;
-    }
 
     return this.buildDesiredGeneratedOutputs(
       recipeShape,
@@ -2575,14 +2431,9 @@ export class RecipeService {
     tokenStore: TokenStore,
     effectiveTargetCollection: string,
     results: GeneratedTokenResult[],
-    brand?: string,
   ): Promise<void> {
     const semanticResults = this.buildSemanticAliasResults(recipe, results);
-    const extensions = this.buildRecipeExtensions(
-      recipe,
-      "semantic",
-      brand,
-    );
+    const extensions = this.buildRecipeExtensions(recipe, "semantic");
 
     for (const result of semanticResults) {
       const token: Token = {
@@ -2758,168 +2609,6 @@ export class RecipeService {
     return results;
   }
 
-  /** Multi-brand path: runs once per row, writing to a brand-specific collection. */
-  private async executeRecipeMultiBrand(
-    recipe: TokenRecipe,
-    tokenStore: TokenStore,
-  ): Promise<GeneratedTokenResult[]> {
-    const { inputTable, targetCollectionTemplate, targetCollection } = recipe;
-    const allResults: GeneratedTokenResult[] = [];
-
-    // Determine all collections that will be written to so we can snapshot them before any writes.
-    const affectedCollectionIds = new Set<string>();
-    for (const owned of tokenStore.findTokensByRecipeId(recipe.id)) {
-      affectedCollectionIds.add(owned.collectionId);
-    }
-    for (const row of inputTable!.rows) {
-      if (!row.brand.trim()) continue;
-      const collectionId = targetCollectionTemplate
-        ? targetCollectionTemplate.replace("{brand}", row.brand)
-        : targetCollection!;
-      affectedCollectionIds.add(collectionId);
-    }
-
-    // Capture pre-run state for each affected collection so partial failures can be rolled back.
-    const preRunSnapshots = new Map<string, Record<string, Token>>();
-    for (const collectionId of affectedCollectionIds) {
-      const flatTokens = await tokenStore.getFlatTokensForCollection(collectionId);
-      preRunSnapshots.set(
-        collectionId,
-        structuredClone(flatTokens) as Record<string, Token>,
-      );
-    }
-
-    let succeeded = false;
-    try {
-      const desiredOutputs: Array<{ collectionId: string; path: string }> = [];
-      for (const row of inputTable!.rows) {
-        if (!row.brand.trim()) continue;
-        const sourceValue = row.inputs[inputTable!.inputKey];
-        if (sourceValue === undefined) continue;
-
-        const effectiveTargetCollection = targetCollectionTemplate
-          ? targetCollectionTemplate.replace("{brand}", row.brand)
-          : targetCollection;
-
-        const results = await this.computeResultsWithValue(
-          recipe,
-          sourceValue,
-        );
-        desiredOutputs.push(
-          ...this.buildDesiredGeneratedOutputs(
-            recipe,
-            effectiveTargetCollection,
-            results,
-          ),
-        );
-
-        const extensions = this.buildRecipeExtensions(
-          recipe,
-          "scale",
-          row.brand,
-        );
-        tokenStore.beginBatch();
-        try {
-          for (const result of results) {
-            const token = {
-              $type: result.type as TokenType,
-              $value: result.value as Token["$value"],
-              $extensions: extensions,
-            };
-            const existing = await tokenStore.getToken(
-              effectiveTargetCollection,
-              result.path,
-            );
-            if (existing) {
-              await tokenStore.updateToken(
-                effectiveTargetCollection,
-                result.path,
-                token,
-              );
-            } else {
-              await tokenStore.createToken(
-                effectiveTargetCollection,
-                result.path,
-                token,
-              );
-            }
-          }
-        } finally {
-          tokenStore.endBatch();
-        }
-        await this.syncSemanticLayer(
-          recipe,
-          tokenStore,
-          effectiveTargetCollection,
-          results,
-          row.brand,
-        );
-        allResults.push(...results);
-      }
-      await this.cleanupStaleGeneratedOutputs(
-        recipe,
-        tokenStore,
-        desiredOutputs,
-      );
-      succeeded = true;
-    } catch (err) {
-      // Roll back all affected collections using allSettled so no collection is skipped on failure.
-      const collectionIds = [...preRunSnapshots.keys()];
-      const rollbackResults = await Promise.allSettled(
-        collectionIds.map(async (collectionId) => {
-          const preSnapshot = preRunSnapshots.get(collectionId)!;
-          const currentTokens =
-            await tokenStore.getFlatTokensForCollection(collectionId);
-          const restoreItems: Array<{ path: string; token: Token | null }> = [];
-          for (const [p, t] of Object.entries(preSnapshot)) {
-            restoreItems.push({ path: p, token: t });
-          }
-          for (const p of Object.keys(currentTokens)) {
-            if (!(p in preSnapshot)) {
-              restoreItems.push({ path: p, token: null });
-            }
-          }
-          if (restoreItems.length > 0) {
-            await tokenStore.restoreSnapshot(collectionId, restoreItems);
-          }
-        }),
-      );
-
-      const rollbackFailures = rollbackResults
-        .map((r, i) => ({ r, collectionId: collectionIds[i] }))
-        .filter(({ r }) => r.status === "rejected");
-
-      if (rollbackFailures.length > 0) {
-        const details = rollbackFailures
-          .map(({ collectionId, r }) => {
-            const reason = (r as PromiseRejectedResult).reason;
-            const msg =
-              reason instanceof Error ? reason.message : String(reason);
-            console.error(
-              `[RecipeService] Rollback failed for collection "${collectionId}":`,
-              reason,
-            );
-            return `"${collectionId}": ${msg}`;
-          })
-          .join("; ");
-        const originalMsg = err instanceof Error ? err.message : String(err);
-        throw new Error(
-          `Recipe run failed (${originalMsg}) and rollback of ${rollbackFailures.length} collection(s) also failed (${details}). Token state may be inconsistent.`,
-          { cause: err },
-        );
-      }
-      throw err;
-    } finally {
-      // Only clear non-locked overrides when the run completed successfully.
-      // On partial failure the overrides must remain intact so a re-run produces the same result.
-      if (succeeded) {
-        await this.clearNonLockedOverrides(recipe);
-      }
-    }
-
-    return allResults;
-  }
-
   /**
    * Core dispatch: given a pre-resolved source value (or undefined for source-free recipes),
    * run the appropriate recipe and apply overrides.
@@ -3050,13 +2739,6 @@ export class RecipeService {
         results = runDarkModeInversionRecipe(
           hex,
           config as DarkModeInversionConfig,
-          targetGroup,
-        );
-        break;
-      }
-      case "contrastCheck": {
-        results = runContrastCheckRecipe(
-          config as ContrastCheckConfig,
           targetGroup,
         );
         break;

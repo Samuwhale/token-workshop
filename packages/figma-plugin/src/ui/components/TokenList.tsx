@@ -316,7 +316,7 @@ export function TokenList({
   );
 
   const staleRecipeBannerStorageKey = useMemo(
-    () => STORAGE_KEY_BUILDERS.staleAutomationBannerDismissed(collectionId),
+    () => STORAGE_KEY_BUILDERS.staleGeneratedBannerDismissed(collectionId),
     [collectionId],
   );
 
@@ -340,7 +340,7 @@ export function TokenList({
     dismissedStaleRecipeSignature,
     setDismissedStaleRecipeSignature,
   ] = useState<string | null>(() =>
-    lsGet(STORAGE_KEY_BUILDERS.staleAutomationBannerDismissed(collectionId)),
+    lsGet(STORAGE_KEY_BUILDERS.staleGeneratedBannerDismissed(collectionId)),
   );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
@@ -1428,6 +1428,7 @@ export function TokenList({
     handleInlineSave,
     handleDescriptionSave: _handleDescriptionSave,
     handleMultiModeInlineSave,
+    handleSaveGeneratedException,
     handleDetachFromRecipe,
     handleRequestMoveToken,
     handleConfirmMoveToken,
@@ -2151,7 +2152,7 @@ export function TokenList({
   const tokenTreeLeafActions = useTokenTreeLeafActions({
     onEdit, onPreview, requestDeleteToken, handleTokenSelect, onNavigateToAlias,
     onRefresh, onPushUndo, handleRequestMoveTokenReview, handleRequestCopyTokenReview,
-    handleDuplicateToken, handleDetachFromRecipe, handleOpenExtractToAlias,
+    handleDuplicateToken, handleDetachFromRecipe, handleSaveGeneratedException, handleOpenExtractToAlias,
     handleHoverToken, setTypeFilter, handleInlineSave, handleRenameToken,
     onViewTokenHistory,
     collectionsLength: activeCollections.length,

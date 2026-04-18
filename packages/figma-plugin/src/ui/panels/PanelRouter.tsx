@@ -14,7 +14,6 @@ import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
 import { AutomationEditorDialog } from "../components/AutomationEditorDialog";
-import { AutomationListPanel } from "../components/AutomationListPanel";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
 import { CollectionRail } from "../components/CollectionRail";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
@@ -422,8 +421,13 @@ export function PanelRouter({
   );
 
   const openNewAutomation = useCallback(() => {
-    openAutomationEditor({ mode: "create", intentPreset: "semantic-aliases" });
-  }, [openAutomationEditor]);
+    openAutomationEditor({
+      mode: "create",
+      initialDraft: {
+        targetCollection: currentCollectionId,
+      },
+    });
+  }, [currentCollectionId, openAutomationEditor]);
 
   const openAutomationFromSource = useCallback((source: {
     path: string;
@@ -432,15 +436,20 @@ export function PanelRouter({
     value?: unknown;
     initialDraft?: RecipeDialogInitialDraft;
   }) => {
+    const sourceCollectionId =
+      pathToCollectionId[source.path] ?? currentCollectionId;
     openAutomationEditor({
       mode: "create",
       sourceTokenPath: source.path,
       sourceTokenName: source.name,
       sourceTokenType: source.type,
       sourceTokenValue: source.value,
-      initialDraft: source.initialDraft,
+      initialDraft: {
+        ...source.initialDraft,
+        targetCollection: sourceCollectionId,
+      },
     });
-  }, [openAutomationEditor]);
+  }, [currentCollectionId, openAutomationEditor, pathToCollectionId]);
 
   const openGeneratedTokens = useCallback(
     (targetGroup: string, targetCollectionId: string) => {
@@ -768,9 +777,11 @@ export function PanelRouter({
     (editingAutomation.mode !== "edit" || editingAutomationData)
       ? {
           serverUrl,
-          collectionIds,
           currentCollectionId,
           allTokensFlat,
+          sourceValuesFlat: modeResolvedTokensFlat,
+          collections,
+          selectedModes,
           sourceTokenPath:
             editingAutomation.mode === "create"
               ? editingAutomation.sourceTokenPath
@@ -791,7 +802,7 @@ export function PanelRouter({
             editingAutomation.mode === "create"
               ? editingAutomation.intentPreset
               : undefined,
-          existingAutomation:
+          existingRecipe:
             editingAutomation.mode === "edit"
               ? (editingAutomationData ?? undefined)
               : undefined,
@@ -1301,9 +1312,6 @@ export function PanelRouter({
     tokens: {
       tokens: renderDefineTokens,
     },
-    automations: {
-      automations: renderAutomationsList,
-    },
     inspect: {
       inspect: renderCanvasWorkspace,
       "canvas-analysis": renderCanvasWorkspace,
@@ -1515,28 +1523,6 @@ export function PanelRouter({
       </>
     );
   }
-
-  function renderAutomationsList(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Automations"
-        onReset={() => navigateTo("automations", "automations")}
-      >
-        <AutomationListPanel
-          onCreateAutomation={() => {
-            navigateTo("tokens", "tokens");
-            openNewAutomation();
-          }}
-          onEditAutomation={(recipeId: string) => {
-            navigateTo("tokens", "tokens");
-            openAutomationEditor({ mode: "edit", id: recipeId });
-          }}
-          onViewOutputs={openGeneratedTokens}
-        />
-      </ErrorBoundary>
-    );
-  }
-
   function renderSyncPublish(): ReactNode {
     return (
       <ErrorBoundary
@@ -1629,7 +1615,7 @@ export function PanelRouter({
           onNavigateToAutomation={(recipeId) => {
             beginHandoff({
               reason:
-                "Inspect the automation behind this audit finding, then return to Audit.",
+                "Inspect the generator behind this audit finding, then return to Audit.",
             });
             navigateTo("tokens", "tokens", { preserveHandoff: true });
             openAutomationEditor({ mode: "edit", id: recipeId });

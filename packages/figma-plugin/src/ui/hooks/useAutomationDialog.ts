@@ -5,7 +5,6 @@ import type {
   RecipeConfig,
   GeneratedTokenResult,
   RecipeTemplate,
-  InputTable,
 } from "./useRecipes";
 import {
   detectRecipeType,
@@ -44,6 +43,8 @@ interface UseRecipeDialogParams {
   initialDraft?: RecipeDialogInitialDraft;
   /** Flat token map for source path lookups (used by recommendedType). */
   allTokensFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
+  /** Mode-resolved token map for previewing source values in the currently selected mode. */
+  sourceValuesFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
   onSaved: (info?: RecipeSaveSuccessInfo) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog internally */
   onInterceptSemanticMapping?: (data: {
@@ -138,8 +139,6 @@ interface RecipeDirtySnapshot {
   inlineValue: unknown;
   configs: Partial<Record<RecipeType, RecipeConfig>>;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
-  inputTable: InputTable | undefined;
-  targetCollectionTemplate: string;
   semanticEnabled: boolean;
   semanticPrefix: string;
   semanticMappings: Array<{ semantic: string; step: string }>;
@@ -154,7 +153,6 @@ function createRecipeDirtySnapshot(
     inlineValue: cloneOptionalDraftValue(snapshot.inlineValue),
     configs: cloneRecipeDraftValue(snapshot.configs),
     pendingOverrides: cloneRecipeDraftValue(snapshot.pendingOverrides),
-    inputTable: cloneOptionalDraftValue(snapshot.inputTable),
     semanticMappings: cloneRecipeDraftValue(snapshot.semanticMappings),
   };
 }
@@ -198,7 +196,6 @@ function mergeRecipeDrafts(
 interface UseRecipeDialogReturn {
   // Derived
   isEditing: boolean;
-  isMultiBrand: boolean;
   typeNeedsValue: boolean;
   hasSource: boolean;
   hasValue: boolean;
@@ -223,14 +220,10 @@ interface UseRecipeDialogReturn {
   targetGroup: string;
   editableSourcePath: string;
   inlineValue: unknown;
-  inputTable: InputTable | undefined;
-  targetCollectionTemplate: string;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   previewTokens: GeneratedTokenResult[];
   previewLoading: boolean;
   previewError: string;
-  previewBrand: string | undefined;
-  multiBrandPreviews: Map<string, GeneratedTokenResult[]>;
   previewFingerprint: string;
   previewAnalysis: RecipePreviewAnalysis | null;
   overwrittenEntries: OverwrittenEntry[];
@@ -252,12 +245,9 @@ interface UseRecipeDialogReturn {
   handleNameChange: (value: string) => void;
   setTargetCollection: (value: string) => void;
   setTargetGroup: (value: string) => void;
-  setTargetCollectionTemplate: (value: string) => void;
   setEditableSourcePath: (value: string) => void;
   setInlineValue: (value: unknown) => void;
   handleConfigChange: (type: RecipeType, cfg: RecipeConfig) => void;
-  handleToggleMultiBrand: () => void;
-  setInputTable: (table: InputTable | undefined) => void;
   handleOverrideChange: (
     stepName: string,
     value: string,
@@ -286,6 +276,7 @@ export function useRecipeDialog({
   template,
   initialDraft,
   allTokensFlat,
+  sourceValuesFlat,
   onSaved,
   onInterceptSemanticMapping,
   getSuccessToastAction,
@@ -368,9 +359,6 @@ export function useRecipeDialog({
     existingRecipe?.overrides ??
     resolvedInitialDraft?.pendingOverrides ??
     {};
-  const initialInputTable = existingRecipe?.inputTable ?? undefined;
-  const initialTargetCollectionTemplate =
-    existingRecipe?.targetCollectionTemplate ?? "brands/{brand}";
   const initialSemanticEnabled =
     resolvedInitialDraft?.semanticEnabled ??
     Boolean(existingRecipe?.semanticLayer?.mappings.length);
@@ -401,13 +389,6 @@ export function useRecipeDialog({
     Record<string, { value: unknown; locked: boolean }>
   >(() => cloneRecipeDraftValue(initialPendingOverrides));
 
-  const [inputTable, setInputTable] = useState<InputTable | undefined>(() =>
-    cloneOptionalDraftValue(initialInputTable),
-  );
-  const [targetCollectionTemplate, setTargetCollectionTemplate] = useState<string>(
-    initialTargetCollectionTemplate,
-  );
-
   const nameWasAutoRef = useRef(
     resolvedInitialDraft?.nameIsAuto ??
       (!existingRecipe && !resolvedInitialDraft?.name),
@@ -422,8 +403,6 @@ export function useRecipeDialog({
       inlineValue: initialInlineValue,
       configs: initialConfigs,
       pendingOverrides: initialPendingOverrides,
-      inputTable: initialInputTable,
-      targetCollectionTemplate: initialTargetCollectionTemplate,
       semanticEnabled: initialSemanticEnabled,
       semanticPrefix: initialSemanticPrefix,
       semanticMappings: initialSemanticMappings,
@@ -535,7 +514,6 @@ export function useRecipeDialog({
   }, [configRedoStack, configs, selectedType]);
 
   // Derived values
-  const isMultiBrand = Boolean(inputTable);
   const typeNeedsValue = VALUE_REQUIRED_TYPES.includes(selectedType);
   const hasSource = Boolean(editableSourcePath.trim());
   const hasInlineValue = inlineValue !== undefined && inlineValue !== "";
@@ -551,6 +529,9 @@ export function useRecipeDialog({
   // --- Sub-hooks ---
 
   const effectiveSourcePath = editableSourcePath.trim() || undefined;
+  const previewSourceValue =
+    (effectiveSourcePath && sourceValuesFlat?.[effectiveSourcePath]?.$value) ??
+    (effectiveSourcePath === sourceTokenPath ? sourceTokenValue : undefined);
 
   const {
     previewTokens,
@@ -561,20 +542,16 @@ export function useRecipeDialog({
     existingOverwritePathSet,
     previewFingerprint,
     previewAnalysis,
-    previewBrand,
-    multiBrandPreviews,
   } = useRecipePreview({
     serverUrl,
     selectedType,
     sourceTokenPath: effectiveSourcePath,
     inlineValue,
+    sourceValue: previewSourceValue,
     targetGroup,
     targetCollection,
     config: currentConfig,
     pendingOverrides,
-    isMultiBrand,
-    inputTable,
-    targetCollectionTemplate,
     existingRecipeId: existingRecipe?.id,
     detachedPaths: existingRecipe?.detachedPaths,
     refreshNonce: previewRefreshNonce,
@@ -608,13 +585,11 @@ export function useRecipeDialog({
     name,
     sourceTokenPath: effectiveSourcePath,
     inlineValue,
+    sourceValue: previewSourceValue,
     targetCollection,
     targetGroup,
     config: currentConfig,
     pendingOverrides,
-    isMultiBrand,
-    inputTable,
-    targetCollectionTemplate,
     typeNeedsValue,
     hasValue,
     previewTokens,
@@ -642,8 +617,6 @@ export function useRecipeDialog({
       inlineValue,
       configs,
       pendingOverrides,
-      inputTable,
-      targetCollectionTemplate,
       semanticEnabled,
       semanticPrefix,
       semanticMappings,
@@ -656,7 +629,6 @@ export function useRecipeDialog({
     configs,
     editableSourcePath,
     inlineValue,
-    inputTable,
     name,
     pendingOverrides,
     selectedSemanticPatternId,
@@ -666,7 +638,6 @@ export function useRecipeDialog({
     semanticPrefix,
     targetGroup,
     targetCollection,
-    targetCollectionTemplate,
   ]);
 
   // --- Config handlers ---
@@ -703,12 +674,6 @@ export function useRecipeDialog({
     setConfigs((prev) => ({ ...prev, [type]: cfg }));
   };
 
-  const handleToggleMultiBrand = () => {
-    setInputTable(
-      inputTable ? undefined : { inputKey: "brandColor", rows: [] },
-    );
-  };
-
   const handleOverrideChange = (
     stepName: string,
     value: string,
@@ -738,18 +703,6 @@ export function useRecipeDialog({
   const setTargetGroupDirty = useCallback(
     (v: string) => {
       setTargetGroup(v);
-    },
-    [],
-  );
-  const setTargetCollectionTemplateDirty = useCallback(
-    (v: string) => {
-      setTargetCollectionTemplate(v);
-    },
-    [],
-  );
-  const setInputTableDirty = useCallback(
-    (t: InputTable | undefined) => {
-      setInputTable(t);
     },
     [],
   );
@@ -787,7 +740,6 @@ export function useRecipeDialog({
   return {
     // Derived
     isEditing,
-    isMultiBrand,
     typeNeedsValue,
     hasSource,
     hasValue,
@@ -809,16 +761,12 @@ export function useRecipeDialog({
     targetGroup,
     editableSourcePath,
     inlineValue,
-    inputTable,
-    targetCollectionTemplate,
     pendingOverrides,
     previewTokens,
     previewLoading,
     previewError,
     previewFingerprint,
     previewAnalysis,
-    previewBrand,
-    multiBrandPreviews,
     overwrittenEntries,
     existingOverwritePathSet,
     existingTokensError,
@@ -838,12 +786,9 @@ export function useRecipeDialog({
     handleNameChange,
     setTargetCollection: setTargetCollectionDirty,
     setTargetGroup: setTargetGroupDirty,
-    setTargetCollectionTemplate: setTargetCollectionTemplateDirty,
     setEditableSourcePath,
     setInlineValue,
     handleConfigChange,
-    handleToggleMultiBrand,
-    setInputTable: setInputTableDirty,
     handleOverrideChange,
     handleOverrideClear,
     clearAllOverrides,

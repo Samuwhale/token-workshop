@@ -31,8 +31,6 @@ export interface UnifiedSourceInputProps {
   sourceTokenValue: unknown;
   /** Inline value when no source token is bound. */
   inlineValue: unknown;
-  /** Whether multi-brand mode is active (changes hint text). */
-  isMultiBrand: boolean;
   /** All tokens for the picker. */
   allTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token path → set name. */
@@ -52,7 +50,6 @@ export function UnifiedSourceInput({
   sourceTokenPath,
   sourceTokenValue: _sourceTokenValue,
   inlineValue,
-  isMultiBrand,
   allTokensFlat,
   pathToCollectionId,
   onSourcePathChange,
@@ -163,11 +160,6 @@ export function UnifiedSourceInput({
                 resolved
               </span>
             </div>
-          )}
-          {isMultiBrand && (
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Used as a preview reference. Each brand's value comes from the table above.
-            </p>
           )}
         </div>
       )}

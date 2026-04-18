@@ -1,4 +1,4 @@
-import { adaptShortcut } from "../shared/utils";
+import { adaptShortcut, stableStringify } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -288,8 +288,88 @@ export function TokenEditor({
     handleTypeChange,
     focusBlockedField,
   } = typeParsing;
+  const recipes$ = useTokenEditorRecipes({
+    tokenPath,
+    tokenType,
+    recipes,
+  });
+  const {
+    existingRecipesForToken,
+    canBeRecipeSource,
+  } = recipes$;
+  const producingRecipe =
+    derivedTokenPaths?.get(createRecipeOwnershipKey(ownerCollectionId, tokenPath)) ??
+    null;
+  const [detachedFromRecipe, setDetachedFromRecipe] = useState(false);
+  const [detachingRecipeOwnership, setDetachingRecipeOwnership] =
+    useState(false);
+  const activeProducingRecipe =
+    detachedFromRecipe ? null : producingRecipe;
+  const [generatedTokenChoiceOpen, setGeneratedTokenChoiceOpen] =
+    useState(false);
+  const [generatedTokenChoiceBusy, setGeneratedTokenChoiceBusy] =
+    useState<"manual-exception" | "detach" | null>(null);
+  const pendingGeneratedSaveArgsRef = useRef<[boolean, boolean] | null>(null);
+  const generatedSaveBypassRef = useRef(false);
+  const initialFieldsSnapshot = initialRef.current;
+  const hasGeneratedValueChanges = useMemo(() => {
+    if (!initialFieldsSnapshot) {
+      return false;
+    }
+    return (
+      stableStringify(value) !== stableStringify(initialFieldsSnapshot.value) ||
+      reference !== initialFieldsSnapshot.reference
+    );
+  }, [initialFieldsSnapshot, reference, value]);
+  const hasGeneratedNonValueChanges = useMemo(() => {
+    if (!initialFieldsSnapshot) {
+      return false;
+    }
+    return (
+      tokenType !== initialFieldsSnapshot.type ||
+      description !== initialFieldsSnapshot.description ||
+      stableStringify(scopes) !== stableStringify(initialFieldsSnapshot.scopes) ||
+      stableStringify(colorModifiers) !==
+        stableStringify(initialFieldsSnapshot.colorModifiers) ||
+      stableStringify(modeValues) !==
+        stableStringify(initialFieldsSnapshot.modeValues) ||
+      extensionsJsonText !== initialFieldsSnapshot.extensionsJsonText ||
+      lifecycle !== initialFieldsSnapshot.lifecycle ||
+      extendsPath !== initialFieldsSnapshot.extendsPath
+    );
+  }, [
+    colorModifiers,
+    description,
+    extendsPath,
+    extensionsJsonText,
+    initialFieldsSnapshot,
+    lifecycle,
+    modeValues,
+    scopes,
+    tokenType,
+  ]);
+  const canCreateManualException =
+    hasGeneratedValueChanges && !hasGeneratedNonValueChanges;
 
   const requestClose = editorSessionHost.requestClose;
+  const beforeSaveGeneratedToken = useCallback(
+    async (forceOverwrite: boolean, createAnother: boolean) => {
+      if (
+        isCreateMode ||
+        !activeProducingRecipe ||
+        generatedSaveBypassRef.current
+      ) {
+        if (generatedSaveBypassRef.current) {
+          generatedSaveBypassRef.current = false;
+        }
+        return true;
+      }
+      pendingGeneratedSaveArgsRef.current = [forceOverwrite, createAnother];
+      setGeneratedTokenChoiceOpen(true);
+      return false;
+    },
+    [activeProducingRecipe, isCreateMode],
+  );
 
   const saveHook = useTokenEditorSave({
     serverUrl,
@@ -313,6 +393,7 @@ export function TokenEditor({
     onSaved,
     onSaveAndCreateAnother,
     pushUndo,
+    beforeSave: beforeSaveGeneratedToken,
     handleToggleAlias,
     showAutocomplete,
     setShowAutocomplete,
@@ -396,34 +477,19 @@ export function TokenEditor({
     lsSet('tm_last_token_type', tokenType);
   }, [isCreateMode, tokenType]);
 
-  const recipes$ = useTokenEditorRecipes({
-    tokenPath,
-    tokenType,
-    recipes,
-  });
-  const {
-    existingRecipesForToken,
-    canBeRecipeSource,
-  } = recipes$;
-  const producingRecipe =
-    derivedTokenPaths?.get(createRecipeOwnershipKey(ownerCollectionId, tokenPath)) ??
-    null;
-  const [detachedFromRecipe, setDetachedFromRecipe] = useState(false);
-  const [detachingRecipeOwnership, setDetachingRecipeOwnership] =
-    useState(false);
-  const activeProducingRecipe =
-    detachedFromRecipe ? null : producingRecipe;
-
   const openAutomationEditor = useCallback((target: TokensLibraryAutomationEditorTarget) => {
     onOpenAutomationEditor?.(target);
   }, [onOpenAutomationEditor]);
 
   useEffect(() => {
     setDetachedFromRecipe(false);
+    setGeneratedTokenChoiceOpen(false);
+    pendingGeneratedSaveArgsRef.current = null;
+    generatedSaveBypassRef.current = false;
   }, [tokenPath, producingRecipe?.id]);
 
-  const handleDetachRecipeOwnership = useCallback(async () => {
-    if (!producingRecipe) return;
+  const handleDetachRecipeOwnership = useCallback(async (): Promise<boolean> => {
+    if (!producingRecipe) return false;
     setDetachingRecipeOwnership(true);
     try {
       setError(null);
@@ -461,12 +527,108 @@ export function TokenEditor({
         `Detached "${tokenPath}" from "${producingRecipe.name}"`,
         "success",
       );
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to detach token from recipe");
+      return false;
     } finally {
       setDetachingRecipeOwnership(false);
     }
   }, [initialServerSnapshotRef, onRefresh, producingRecipe, serverUrl, tokenPath]);
+
+  const getProducingRecipeStepName = useCallback(() => {
+    if (!activeProducingRecipe) {
+      return null;
+    }
+    const prefix = `${activeProducingRecipe.targetGroup}.`;
+    if (!tokenPath.startsWith(prefix)) {
+      return null;
+    }
+    const stepName = tokenPath.slice(prefix.length);
+    if (!stepName || stepName.includes(".")) {
+      return null;
+    }
+    return stepName;
+  }, [activeProducingRecipe, tokenPath]);
+
+  const handleSaveManualException = useCallback(async () => {
+    if (!canCreateManualException) {
+      setError(
+        "Manual exceptions only support value edits. Detach this token if you need to keep the other changes.",
+      );
+      return;
+    }
+    const stepName = getProducingRecipeStepName();
+    if (!activeProducingRecipe || !stepName) {
+      setError("This token cannot store a manual exception. Edit the generator or detach it instead.");
+      return;
+    }
+
+    setGeneratedTokenChoiceBusy("manual-exception");
+    try {
+      setError(null);
+      await apiFetch(
+        `${serverUrl}/api/recipes/${activeProducingRecipe.id}/steps/${encodeURIComponent(stepName)}/override`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            value: reference || value,
+            locked: true,
+          }),
+        },
+      );
+      clearEditorDraft(ownerCollectionId, tokenPath);
+      onSaved?.(tokenPath);
+      onRefresh?.();
+      dispatchToast(
+        `Saved manual exception for "${tokenPath}"`,
+        "success",
+      );
+      setGeneratedTokenChoiceOpen(false);
+      pendingGeneratedSaveArgsRef.current = null;
+      onBack();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to save manual exception",
+      );
+    } finally {
+      setGeneratedTokenChoiceBusy(null);
+    }
+  }, [
+    activeProducingRecipe,
+    canCreateManualException,
+    getProducingRecipeStepName,
+    onBack,
+    onRefresh,
+    onSaved,
+    ownerCollectionId,
+    reference,
+    serverUrl,
+    tokenPath,
+    value,
+  ]);
+
+  const handleDetachAndSaveGeneratedToken = useCallback(async () => {
+    const saveArgs = pendingGeneratedSaveArgsRef.current ?? [false, false];
+    setGeneratedTokenChoiceBusy("detach");
+    try {
+      const detached = await handleDetachRecipeOwnership();
+      if (!detached) {
+        return;
+      }
+      generatedSaveBypassRef.current = true;
+      setGeneratedTokenChoiceOpen(false);
+      pendingGeneratedSaveArgsRef.current = null;
+      await handleSaveRef.current(saveArgs[0], saveArgs[1]);
+    } finally {
+      setGeneratedTokenChoiceBusy(null);
+    }
+  }, [handleDetachRecipeOwnership, handleSaveRef]);
 
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
@@ -1563,14 +1725,14 @@ export function TokenEditor({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                  Automation
+                  Generated
                 </p>
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   Managed by{" "}
                   <span className="font-medium text-[var(--color-figma-text)]">
                     {activeProducingRecipe.name}
                   </span>
-                  . Manual edits will be overwritten when the automation runs again.
+                  . Saving here will ask whether to edit the generator, keep a manual exception, or detach this token.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -1589,7 +1751,7 @@ export function TokenEditor({
                     }}
                     className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
                   >
-                    Edit automation
+                    Edit generator
                   </button>
                 )}
                 <button
@@ -1600,7 +1762,7 @@ export function TokenEditor({
                   disabled={detachingRecipeOwnership}
                   className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
                 >
-                  {detachingRecipeOwnership ? "Detaching…" : "Detach"}
+                  {detachingRecipeOwnership ? "Detaching…" : "Detach from generator"}
                 </button>
               </div>
             </div>
@@ -1763,6 +1925,95 @@ export function TokenEditor({
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />
+      )}
+
+      {generatedTokenChoiceOpen && activeProducingRecipe && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setGeneratedTokenChoiceOpen(false);
+            }
+          }}
+        >
+          <div className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
+            <div className="px-4 pt-4 pb-3">
+              <h3 className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+                This token is generated
+              </h3>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                <span className="font-medium text-[var(--color-figma-text)]">
+                  {activeProducingRecipe.name}
+                </span>{" "}
+                owns <span className="font-mono text-[var(--color-figma-text)]">{tokenPath}</span>.
+                Choose how this edit should behave before saving.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 px-4 pb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setGeneratedTokenChoiceOpen(false);
+                  pendingGeneratedSaveArgsRef.current = null;
+                  if (onOpenAutomationEditor) {
+                    openAutomationEditor({
+                      mode: "edit",
+                      id: activeProducingRecipe.id,
+                    });
+                    requestClose();
+                    return;
+                  }
+                  onNavigateToAutomation?.(activeProducingRecipe.id);
+                }}
+                className="rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-left text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+              >
+                Edit generator
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleSaveManualException();
+                }}
+                disabled={
+                  generatedTokenChoiceBusy !== null || !canCreateManualException
+                }
+                className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+              >
+                {generatedTokenChoiceBusy === "manual-exception"
+                  ? "Saving manual exception…"
+                  : "Make manual exception"}
+              </button>
+              {!canCreateManualException && (
+                <p className="px-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                  Manual exceptions only preserve the generated value. Detach this token if you need to keep description, scope, mode, lifecycle, or extension edits.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  void handleDetachAndSaveGeneratedToken();
+                }}
+                disabled={generatedTokenChoiceBusy !== null}
+                className="rounded-md border border-[var(--color-figma-border)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+              >
+                {generatedTokenChoiceBusy === "detach"
+                  ? "Detaching…"
+                  : "Detach from generator"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGeneratedTokenChoiceOpen(false);
+                  pendingGeneratedSaveArgsRef.current = null;
+                }}
+                disabled={generatedTokenChoiceBusy !== null}
+                className="text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Conflict confirmation */}

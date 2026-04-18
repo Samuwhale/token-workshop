@@ -38,8 +38,8 @@ export function TokenListStaleAutomationBanner({
     >
       <span>
         {staleRecipesForSet.length === 1
-          ? "1 automation is"
-          : `${staleRecipesForSet.length} automations are`}{" "}
+          ? "1 generator is"
+          : `${staleRecipesForSet.length} generators are`}{" "}
         out of date:{" "}
         {staleRecipesForSet.map((recipe, i) => (
           <span key={recipe.id}>
