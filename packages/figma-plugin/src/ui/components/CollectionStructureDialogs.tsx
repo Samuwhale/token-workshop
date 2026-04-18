@@ -111,7 +111,7 @@ function CollectionPreflightCard({
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           {label ? (
-            <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)]">
+            <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)]">
               {label}
             </div>
           ) : null}
@@ -172,12 +172,12 @@ function CollectionPreflightCard({
                       </span>
                     </div>
                     {ownership.targetGroup ? (
-                      <div className="mt-0.5 truncate font-mono text-[9px]">
+                      <div className="mt-0.5 truncate font-mono text-[10px]">
                         {ownership.targetGroup}
                       </div>
                     ) : null}
                     {ownership.samplePaths.length > 0 ? (
-                      <div className="mt-1 truncate text-[9px] opacity-80">
+                      <div className="mt-1 truncate text-[10px] opacity-80">
                         {ownership.samplePaths.join(", ")}
                       </div>
                     ) : null}
@@ -198,7 +198,7 @@ function CollectionPreflightCard({
                     className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]"
                   >
                     <span className="truncate">{recipe.recipeName}</span>
-                    <span className="truncate font-mono text-[9px]">
+                    <span className="truncate font-mono text-[10px]">
                       {recipe.targetGroup}
                     </span>
                   </div>
@@ -372,7 +372,7 @@ export function SetDeleteDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+          <span className="text-[14px] font-semibold text-[var(--color-figma-text)]">
             Delete "{deletingCollectionId}"?
           </span>
           <button
@@ -474,7 +474,7 @@ export function CollectionMergeInline({
   return (
     <>
       <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-        <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+        <span className="text-[14px] font-semibold text-[var(--color-figma-text)]">
           Copy tokens from &ldquo;{mergingCollectionId}&rdquo; into&hellip;
         </span>
       </div>
@@ -664,7 +664,7 @@ export function SetSplitDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+          <span className="text-[14px] font-semibold text-[var(--color-figma-text)]">
             Split "{splittingCollectionId}"
           </span>
           <button

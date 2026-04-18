@@ -34,15 +34,15 @@ import {
   computePaddingLeft,
   DepthBar,
   EMPTY_LINT_VIOLATIONS,
-  RecipeGlyph,
-  RecipeSummaryRow,
+  AutomationGlyph,
+  AutomationSummaryRow,
   getManagedRecipeLeafCount,
   MENU_DANGER_ITEM_CLASS,
   MENU_ITEM_CLASS,
   MENU_SEPARATOR_CLASS,
   MENU_SHORTCUT_CLASS,
   MENU_SURFACE_CLASS,
-  formatRecipeSummaryTitle,
+  formatAutomationSummaryTitle,
 } from "./tokenTreeNodeShared";
 import type { MenuPosition } from "./tokenTreeNodeShared";
 import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
@@ -103,14 +103,14 @@ export const TokenGroupNode = memo(
       onSyncGroup,
       onSyncGroupStyles,
       onSetGroupScopes,
-      onGenerateScaleFromGroup,
+      onCreateAutomationFromGroup,
       onZoomIntoGroup,
       onDragOverGroup,
       onDropOnGroup,
-      onEditRecipe,
-      onNavigateToRecipe,
-      onRegenerateRecipe,
-      onDetachRecipeGroup,
+      onEditAutomation,
+      onNavigateToAutomation,
+      onRunAutomation,
+      onDetachAutomationGroup,
       onNavigateToToken,
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
@@ -210,7 +210,7 @@ export const TokenGroupNode = memo(
         : `${managedRecipeLeafCount}/${leafCount} tokens`;
       groupMetadataSegments.push({
         label: `${countLabel} via ${targetRecipe.name}`,
-        title: `${formatRecipeSummaryTitle(targetRecipe)}\n${managedRecipeLeafCount} of ${leafCount} token${leafCount === 1 ? "" : "s"} managed by this recipe`,
+        title: `${formatAutomationSummaryTitle(targetRecipe)}\n${managedRecipeLeafCount} of ${leafCount} token${leafCount === 1 ? "" : "s"} managed by this automation`,
         tone: targetRecipe.isStale ? "warning" : "accent",
       });
     } else {
@@ -466,7 +466,7 @@ export const TokenGroupNode = memo(
                   {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
                 </span>
                 {groupMetadataSegments.length > 0 && (
-                  <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-[9px]">
+                  <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-[10px]">
                     {renderRowMetadataSegments(groupMetadataSegments)}
                   </div>
                 )}
@@ -476,18 +476,13 @@ export const TokenGroupNode = memo(
           {!renamingGroup &&
             isGroupActive &&
             collectionCoverageSummary &&
-            collectionCoverageSummary.total > 0 && (
+            collectionCoverageSummary.total > 0 &&
+            collectionCoverageSummary.totalMissing > 0 && (
               <span
-                className={`shrink-0 text-[9px] ${collectionCoverageSummary.totalMissing > 0 ? "text-[var(--color-figma-warning)]" : collectionCoverageSummary.configured === collectionCoverageSummary.total ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-text-tertiary)]"}`}
-                title={
-                  collectionCoverageSummary.totalMissing > 0
-                    ? `${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} missing across ${collectionCoverageSummary.total} tokens`
-                    : `${collectionCoverageSummary.configured} of ${collectionCoverageSummary.total} tokens have collection mode overrides`
-                }
+                className="shrink-0 text-[9px] font-normal text-[var(--color-figma-text-tertiary)]"
+                title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} missing across ${collectionCoverageSummary.total} tokens`}
               >
-                {collectionCoverageSummary.totalMissing > 0
-                  ? `${collectionCoverageSummary.totalMissing} missing`
-                  : `${collectionCoverageSummary.configured}/${collectionCoverageSummary.total}`}
+                {collectionCoverageSummary.totalMissing} missing
               </span>
             )}
         {!renamingGroup && isGroupActive && targetRecipe && (
@@ -495,9 +490,9 @@ export const TokenGroupNode = memo(
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (targetRecipe.id) onNavigateToRecipe?.(targetRecipe.id);
+                if (targetRecipe.id) onNavigateToAutomation?.(targetRecipe.id);
               }}
-              disabled={!targetRecipe.id || !onNavigateToRecipe}
+              disabled={!targetRecipe.id || !onNavigateToAutomation}
               className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${
                 targetRecipe.isStale
                   ? "bg-amber-500/10 text-amber-600"
@@ -505,8 +500,8 @@ export const TokenGroupNode = memo(
               } disabled:cursor-default disabled:opacity-100`}
               title={`${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"}`}
             >
-              <RecipeGlyph size={6} className="shrink-0" />
-              <span>Recipe</span>
+              <AutomationGlyph size={6} className="shrink-0" />
+              <span>Automation</span>
               <span className="text-[var(--color-figma-text-tertiary)]">
                 {managedRecipeLeafCount}
               </span>
@@ -622,7 +617,7 @@ export const TokenGroupNode = memo(
                     <span className={MENU_SHORTCUT_CLASS}>S</span>
                   </button>
                 )}
-                {targetRecipe?.id && onNavigateToRecipe && (
+                {targetRecipe?.id && onNavigateToAutomation && (
                   <>
                     <button
                       role="menuitem"
@@ -630,12 +625,12 @@ export const TokenGroupNode = memo(
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         closeGroupMenus();
-                        onNavigateToRecipe(targetRecipe.id!);
+                        onNavigateToAutomation(targetRecipe.id!);
                       }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <RecipeGlyph size={8} className="shrink-0 opacity-60" />
-                      <span className="flex-1">Open recipe</span>
+                      <AutomationGlyph size={8} className="shrink-0 opacity-60" />
+                      <span className="flex-1">Open automation</span>
                     </button>
                     <div role="separator" className={MENU_SEPARATOR_CLASS} />
                   </>
@@ -764,7 +759,7 @@ export const TokenGroupNode = memo(
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
                   <span className="flex-1">Copy to collection</span>
                 </button>
-                {onGenerateScaleFromGroup && (
+                {onCreateAutomationFromGroup && (
                   <button
                     role="menuitem"
                     tabIndex={-1}
@@ -772,7 +767,7 @@ export const TokenGroupNode = memo(
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       closeGroupMenus();
-                      onGenerateScaleFromGroup(node.path, dominantTypeForGroup);
+                      onCreateAutomationFromGroup(node.path, dominantTypeForGroup);
                     }}
                     className={MENU_ITEM_CLASS}
                   >
@@ -889,7 +884,7 @@ export const TokenGroupNode = memo(
         )}
 
         {!props.skipChildren && isExpanded && targetRecipe && (
-          <RecipeSummaryRow
+          <AutomationSummaryRow
             depth={depth}
             condensedView={condensedView}
             recipe={targetRecipe}
@@ -897,12 +892,12 @@ export const TokenGroupNode = memo(
             running={regenerating}
             detaching={detachingGroup}
             onRun={
-              targetRecipe.id && onRegenerateRecipe
+              targetRecipe.id && onRunAutomation
                 ? async () => {
                     if (regenerating) return;
                     setRegenerating(true);
                     try {
-                      await onRegenerateRecipe(targetRecipe.id);
+                      await onRunAutomation(targetRecipe.id);
                     } finally {
                       setRegenerating(false);
                     }
@@ -910,12 +905,12 @@ export const TokenGroupNode = memo(
                 : undefined
             }
             onEdit={
-              targetRecipe.id && onEditRecipe
-                ? () => onEditRecipe(targetRecipe.id)
+              targetRecipe.id && onEditAutomation
+                ? () => onEditAutomation(targetRecipe.id)
                 : undefined
             }
             onDetach={
-              targetRecipe.id && onDetachRecipeGroup
+              targetRecipe.id && onDetachAutomationGroup
                 ? () => {
                     setShowDetachGroupConfirm(true);
                   }
@@ -927,18 +922,18 @@ export const TokenGroupNode = memo(
 
         {showDetachGroupConfirm && targetRecipe && (
           <ConfirmModal
-            title="Detach Group From Recipe?"
-            description={`Convert ${managedRecipeLeafCount} recipe-managed token${managedRecipeLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetRecipe.name}" will stop updating them.`}
+            title="Detach group from automation?"
+            description={`Convert ${managedRecipeLeafCount} automation-managed token${managedRecipeLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetRecipe.name}" will stop updating them.`}
             confirmLabel="Detach group"
             onCancel={() => setShowDetachGroupConfirm(false)}
             onConfirm={async () => {
-              if (!targetRecipe.id || !onDetachRecipeGroup) {
+              if (!targetRecipe.id || !onDetachAutomationGroup) {
                 setShowDetachGroupConfirm(false);
                 return;
               }
               setDetachingGroup(true);
               try {
-                await onDetachRecipeGroup(targetRecipe.id, node.path);
+                await onDetachAutomationGroup(targetRecipe.id, node.path);
                 setShowDetachGroupConfirm(false);
               } finally {
                 setDetachingGroup(false);

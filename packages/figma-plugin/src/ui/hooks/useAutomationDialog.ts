@@ -20,17 +20,17 @@ import {
 import {
   useRecipePreview,
   type RecipePreviewAnalysis,
-} from "./useRecipePreview";
+} from "./useAutomationPreview";
 import {
   useRecipeSave,
   type RecipeSaveSuccessInfo,
-} from "./useRecipeSave";
+} from "./useAutomationSave";
 import type { UndoSlot } from "./useUndo";
 import type { ToastAction } from "../shared/toastBus";
 import { stableStringify } from "../shared/utils";
 
-import type { OverwrittenEntry } from "./useRecipePreview";
-export type { OverwrittenEntry } from "./useRecipePreview";
+import type { OverwrittenEntry } from "./useAutomationPreview";
+export type { OverwrittenEntry } from "./useAutomationPreview";
 
 interface UseRecipeDialogParams {
   serverUrl: string;

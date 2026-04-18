@@ -268,7 +268,7 @@ function ExtensionsEditor({
                     <span>{extensionsJsonError}</span>
                   </p>
                   {jsonErrorInfo?.errorLine !== undefined && jsonErrorInfo.col !== undefined && (
-                    <div className="font-mono text-[9px] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1.5 py-1 overflow-x-auto">
+                    <div className="font-mono text-[10px] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1.5 py-1 overflow-x-auto">
                       <div className="text-[var(--color-figma-text)] whitespace-pre">{jsonErrorInfo.errorLine}</div>
                       <div className="text-[var(--color-figma-error)] whitespace-pre" aria-hidden="true">{' '.repeat(Math.max(0, jsonErrorInfo.col - 1))}^</div>
                     </div>
@@ -380,12 +380,17 @@ export function MetadataEditor({
           type="button"
           onClick={() => setShowScopes(v => !v)}
           title="Scopes control which Figma properties this variable is offered for"
-          className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+          className="w-full px-3 py-2 flex flex-col items-start bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
         >
-          <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : ''}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-180' : ''}`}>
-            <path d="M2 3.5l3 3 3-3"/>
-          </svg>
+          <span className="flex w-full items-center justify-between">
+            <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : ''}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-180' : ''}`}>
+              <path d="M2 3.5l3 3 3-3"/>
+            </svg>
+          </span>
+          <span className="mt-0.5 text-[10px] font-normal text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">
+            Control where this token can be applied in Figma
+          </span>
         </button>
         {showScopes && (
           <div className="px-3 py-2 flex flex-col gap-1.5">
@@ -404,7 +409,7 @@ export function MetadataEditor({
                 />
                 <span className="flex flex-col">
                   <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
                 </span>
               </label>
             ))}

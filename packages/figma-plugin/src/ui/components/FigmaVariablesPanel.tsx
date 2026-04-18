@@ -579,7 +579,7 @@ export function FigmaVariablesPanel({
                               {variable.scopes.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-1.5">
                                   {variable.scopes.map(scope => (
-                                    <span key={scope} className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[7px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
+                                    <span key={scope} className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
                                       {scope}
                                     </span>
                                   ))}

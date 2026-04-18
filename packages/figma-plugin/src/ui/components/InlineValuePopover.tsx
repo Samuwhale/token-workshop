@@ -253,7 +253,7 @@ export function InlineValuePopover({
               setAliasQuery('');
             }
           }}
-          className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${
+          className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
             aliasMode
               ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/25'
               : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'

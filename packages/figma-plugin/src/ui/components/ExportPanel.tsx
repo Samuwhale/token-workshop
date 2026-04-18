@@ -303,7 +303,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           )}
 
           {/* Repository workflow — expert entry, collapsed by default */}
-          <div className="border-t border-[var(--color-figma-border)] pt-3 -mx-3 px-3">
+          <div className="border-t border-[var(--color-figma-border)] pt-4 -mx-3 px-3">
             <button
               onClick={() => setShowRepo(prev => !prev)}
               disabled={!connected}
@@ -422,7 +422,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           >
             <div className="mt-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
                   Preview
                 </span>
                 <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
@@ -503,7 +503,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                                 {item.modeName}
                               </span>
                             )}
-                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
                               item.destinationExists
                                 ? 'bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#b45309)]'
                                 : 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
@@ -517,18 +517,18 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                               </span>
                             )}
                             {itemStatus === 'saved' && (
-                              <span className="px-1.5 py-0.5 rounded text-[8px] font-medium uppercase bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                              <span className="px-1.5 py-0.5 rounded text-[8px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
                                 Saved
                               </span>
                             )}
                             {itemStatus === 'failed' && (
-                              <span className="px-1.5 py-0.5 rounded text-[8px] font-medium uppercase bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]">
+                              <span className="px-1.5 py-0.5 rounded text-[8px] font-medium bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]">
                                 Failed
                               </span>
                             )}
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                               {item.varCount} var{item.varCount !== 1 ? 's' : ''}
                             </span>
                             <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[8px] font-medium text-[var(--color-figma-accent)]">
@@ -547,7 +547,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             </span>
                           </div>
                         </div>
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">
                           {item.destinationChanged
                             ? 'Destination changed'
                             : `${item.destinationTokenCount} existing token${item.destinationTokenCount !== 1 ? 's' : ''}`}
@@ -556,7 +556,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
                       <div className="mt-2 grid grid-cols-1 gap-2">
                         <div>
-                          <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                          <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
                             Set
                           </label>
                           <input
@@ -585,7 +585,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                         </div>
 
                         <div>
-                          <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                          <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
                             Merge strategy
                           </label>
                           <select
@@ -610,7 +610,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                         </div>
 
                         <div>
-                          <label className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+                          <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
                             Path prefix
                           </label>
                           <input

@@ -15,7 +15,7 @@ interface PreviewPanelProps {
   onSelectedModesChange?: (selectedModes: Record<string, string>) => void;
   onGoToTokens?: () => void;
   onNavigateToToken?: (path: string) => void;
-  onNavigateToRecipe?: (recipeId: string) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
   /** When set, the panel renders token detail instead of collection templates */
   focusedToken?: { path: string; name?: string; currentCollectionId: string } | null;
   pathToCollectionId?: Record<string, string>;
@@ -231,7 +231,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = {}, onSelectedModesChange, onGoToTokens, onNavigateToToken, onNavigateToRecipe, focusedToken, pathToCollectionId, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = {}, onSelectedModesChange, onGoToTokens, onNavigateToToken, onNavigateToAutomation, focusedToken, pathToCollectionId, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = lsGet(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -445,7 +445,7 @@ export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = 
           }
           onClose={onClearFocus ?? (() => {})}
           onNavigateToAlias={(path) => onNavigateToToken?.(path)}
-          onNavigateToRecipe={onNavigateToRecipe}
+          onNavigateToAutomation={onNavigateToAutomation}
         />
       </div>
     );
@@ -1066,10 +1066,10 @@ function ShadowSwatch({ path, value, darkMode, onNavigateToToken }: { path: stri
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
         <div className={`text-[10px] font-medium truncate ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>{leafName}</div>
-        <div className={`text-[9px] font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
+        <div className={`text-[10px] font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
       </div>
       {copied && (
-        <div className="absolute top-1 right-1 text-[9px] text-green-500 font-medium">{copied}</div>
+        <div className="absolute top-1 right-1 text-[10px] text-green-500 font-medium">{copied}</div>
       )}
       {onNavigateToToken && (
         <button
@@ -1101,13 +1101,13 @@ function TransitionRow({ path, value, type, darkMode, onNavigateToToken }: { pat
     <div className="group flex items-center gap-3">
       <div className="w-28 shrink-0">
         <div className={`text-[10px] font-medium truncate ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>{leafName}</div>
-        <div className={`text-[9px] font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
-        <div className={`text-[9px] uppercase tracking-wide ${darkMode ? 'text-neutral-600' : 'text-neutral-400'}`}>{type}</div>
+        <div className={`text-[10px] font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
+        <div className={`text-[10px] ${darkMode ? 'text-neutral-600' : 'text-neutral-400'}`}>{type}</div>
       </div>
       {/* Hover demo: a box that slides on hover using the token's transition */}
       <div className="relative flex-1 h-8 overflow-hidden rounded">
         <div
-          className={`absolute left-0 top-0 h-full w-6 rounded flex items-center justify-center text-[9px] ${
+          className={`absolute left-0 top-0 h-full w-6 rounded flex items-center justify-center text-[10px] ${
             darkMode ? 'bg-[var(--color-figma-accent,#0d99ff)]' : 'bg-[var(--color-figma-accent,#0d99ff)]'
           } text-white`}
           style={{ transition: transitionValue }}

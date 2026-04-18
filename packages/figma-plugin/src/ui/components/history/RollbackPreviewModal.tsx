@@ -120,7 +120,7 @@ export function RollbackPreviewModal({
       >
         {/* Header */}
         <div className="px-4 pt-4 pb-3 shrink-0 border-b border-[var(--color-figma-border)]">
-          <h3 id="rollback-preview-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+          <h3 id="rollback-preview-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">
             Preview rollback
           </h3>
           <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed truncate" title={opDescription}>
@@ -132,7 +132,7 @@ export function RollbackPreviewModal({
         {!diffLoading && summary && !noChanges && (
           <div className="px-4 py-2 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
             <ChangeSummaryBadges {...summary} />
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
               {metadataChanges.length > 0
                 ? `and ${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''} will change`
                 : 'will change'}
@@ -141,7 +141,7 @@ export function RollbackPreviewModal({
         )}
         {!diffLoading && !summary && metadataChanges.length > 0 && (
           <div className="px-4 py-2 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
               {metadataChanges.length} metadata field{metadataChanges.length !== 1 ? 's' : ''} will change
             </span>
           </div>

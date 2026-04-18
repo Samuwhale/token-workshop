@@ -126,7 +126,7 @@ function ContrastBadgeRow({ tokens, bg, label }: {
 }) {
   return (
     <div className="flex items-center gap-0.5">
-      <span className="w-[18px] shrink-0 text-[7px] text-[var(--color-figma-text-secondary)] leading-none select-none">{label}</span>
+      <span className="w-[18px] shrink-0 text-[8px] text-[var(--color-figma-text-secondary)] leading-none select-none">{label}</span>
       <div className="flex gap-0.5 flex-1 min-w-0">
         {tokens.map((t) => {
           const hex = String(t.value);
@@ -143,7 +143,7 @@ function ContrastBadgeRow({ tokens, bg, label }: {
             >
               {level ? (
                 <span
-                  className={`text-[6px] font-bold leading-none px-[2px] rounded-sm ${
+                  className={`text-[8px] font-bold leading-none px-[2px] rounded-sm ${
                     level === 'AAA'
                       ? 'bg-[var(--color-figma-success)] text-white'
                       : 'bg-[var(--color-figma-warning)] text-white'
@@ -152,7 +152,7 @@ function ContrastBadgeRow({ tokens, bg, label }: {
                   {level}
                 </span>
               ) : (
-                <span className="text-[7px] text-[var(--color-figma-text-secondary)]/40 leading-none" aria-hidden="true">—</span>
+                <span className="text-[8px] text-[var(--color-figma-text-secondary)]/40 leading-none" aria-hidden="true">—</span>
               )}
             </div>
           );
@@ -259,7 +259,7 @@ function SwatchCell({
       />
 
       {/* Step label */}
-      <span className={`text-[7px] font-mono leading-none ${isLight ? 'text-black/50' : 'text-white/60'}`}>{token.stepName}</span>
+      <span className={`text-[8px] font-mono leading-none ${isLight ? 'text-black/50' : 'text-white/60'}`}>{token.stepName}</span>
 
       {/* Lock badge for overridden swatches */}
       {isOverridden && (
@@ -377,7 +377,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
                     <div key={i} className="flex-1" style={{ background: hex }} />
                   ))}
                 </div>
-                <span className={`text-[9px] font-medium text-center ${
+                <span className={`text-[10px] font-medium text-center ${
                   isActive ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
                 }`}>{preset.label}</span>
               </button>

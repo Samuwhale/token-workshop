@@ -3,7 +3,7 @@
  * deleted outputs, and detached outputs.
  * Used only by StepSave.
  */
-import type { RecipePreviewAnalysis } from '../../hooks/useRecipePreview';
+import type { RecipePreviewAnalysis } from '../../hooks/useAutomationPreview';
 import { ValueDiff } from '../ValueDiff';
 import { AUTHORING } from '../../shared/editorClasses';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';

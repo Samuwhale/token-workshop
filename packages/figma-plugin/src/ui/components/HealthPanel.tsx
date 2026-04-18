@@ -40,7 +40,7 @@ type HealthStatus = "healthy" | "warning" | "critical";
 
 type PriorityIssueAction =
   | { kind: "lint" }
-  | { kind: "recipe"; recipeId: string | null }
+  | { kind: "automation"; recipeId: string | null }
   | { kind: "validation-scroll" }
   | { kind: "alias-opportunities-scroll" }
   | { kind: "deprecated-scroll" }
@@ -245,9 +245,9 @@ export interface HealthPanelProps {
   collections?: TokenCollection[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
-  onNavigateTo: (topTab: "tokens" | "inspect" | "sync", subTab?: string) => void;
+  onNavigateTo: (topTab: "tokens" | "inspect" | "sync" | "automations", subTab?: string) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
-  onNavigateToRecipe?: (recipeId: string) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
   onTriggerHeatmap: () => void;
   /** Shared validation cache — avoids re-fetching when switching from Analytics tab */
   validationIssues: ValidationIssue[] | null;
@@ -274,7 +274,7 @@ export function HealthPanel({
   heatmapResult,
   onNavigateTo,
   onNavigateToToken,
-  onNavigateToRecipe,
+  onNavigateToAutomation,
   onTriggerHeatmap,
   validationIssues: validationIssuesProp,
   validationSummary,
@@ -991,11 +991,11 @@ export function HealthPanel({
     if (errorRecipes.length > 0) {
       items.push({
         severity: "critical",
-        category: "Recipes",
-        message: `${formatCount(errorRecipes.length, "recipe")} failed`,
+        category: "Automations",
+        message: `${formatCount(errorRecipes.length, "automation")} failed`,
         count: errorRecipes.length,
-        ctaLabel: "Inspect recipes",
-        action: { kind: "recipe", recipeId: errorRecipes[0]?.id ?? null },
+        ctaLabel: "Inspect automations",
+        action: { kind: "automation", recipeId: errorRecipes[0]?.id ?? null },
       });
     }
 
@@ -1047,11 +1047,11 @@ export function HealthPanel({
     if (staleRecipes.length > 0) {
       items.push({
         severity: "warning",
-        category: "Recipes",
-        message: `${formatCount(staleRecipes.length, "recipe")} stale`,
+        category: "Automations",
+        message: `${formatCount(staleRecipes.length, "automation")} stale`,
         count: staleRecipes.length,
-        ctaLabel: "Run recipes",
-        action: { kind: "recipe", recipeId: staleRecipes[0]?.id ?? null },
+        ctaLabel: "Run automations",
+        action: { kind: "automation", recipeId: staleRecipes[0]?.id ?? null },
       });
     }
 
@@ -1100,13 +1100,13 @@ export function HealthPanel({
     switch (action.kind) {
       case "lint":
         return () => onNavigateTo("tokens", "tokens");
-      case "recipe":
+      case "automation":
         return () => {
-          if (action.recipeId && onNavigateToRecipe) {
-            onNavigateToRecipe(action.recipeId);
+          if (action.recipeId && onNavigateToAutomation) {
+            onNavigateToAutomation(action.recipeId);
             return;
           }
-          onNavigateTo("tokens", "tokens");
+          onNavigateTo("automations", "automations");
         };
       case "canvas":
         return () => {
@@ -1193,7 +1193,7 @@ export function HealthPanel({
               </NoticeBanner>
             )}
 
-            <section className="rounded border border-[var(--color-figma-border)] mb-3 overflow-hidden">
+            <section className="rounded border border-[var(--color-figma-border)] mb-4 overflow-hidden">
               <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-[var(--color-figma-bg-secondary)]/35">
                 <div className="flex items-center gap-2 min-w-0">
                   {validationIssuesProp !== null && (
@@ -1265,10 +1265,10 @@ export function HealthPanel({
             {validationIssuesProp !== null && (
               <div
                 id="health-validation-section"
-                className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2"
+                className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-3"
               >
                 <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
                     <button
                       onClick={() =>
                         setValidationReportExpanded((current) => !current)
@@ -1654,10 +1654,10 @@ export function HealthPanel({
 
             {/* Suppressed Issues */}
             {suppressedKeys.size > 0 && (
-              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
+              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-3">
                 <button
                   onClick={() => setShowSuppressed((v) => !v)}
-                  className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+                  className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[11px] text-[var(--color-figma-text)] font-semibold"
                 >
                   <span className="flex items-center gap-1.5">
                     Suppressed Issues
@@ -1739,9 +1739,9 @@ export function HealthPanel({
             </div>
 
             <div id="health-deprecated-section">
-              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
-                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-3">
+                <div className="px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
                     Deprecated in use
                   </span>
                   {deprecatedUsageLoading ? (
@@ -1912,9 +1912,9 @@ export function HealthPanel({
             </div>
 
             <div id="health-alias-opportunities-section">
-              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
-                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-3">
+                <div className="px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
                     Alias Opportunities
                   </span>
                   {aliasOpportunityGroups.length > 0 ? (

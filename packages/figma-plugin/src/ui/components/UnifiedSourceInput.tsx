@@ -159,7 +159,7 @@ export function UnifiedSourceInput({
                   ? JSON.stringify(resolvedDisplay)
                   : String(resolvedDisplay)}
               </span>
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-auto">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
                 resolved
               </span>
             </div>

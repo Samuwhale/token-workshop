@@ -78,7 +78,7 @@ import type {
 } from "../../shared/types";
 import { useTokenListModalContext } from "./token-list/useTokenListModalContext";
 import { useToolbarStateChips } from "./token-list/useToolbarStateChips";
-import { TokenListStaleRecipeBanner } from "./token-list/TokenListStaleRecipeBanner";
+import { TokenListStaleAutomationBanner } from "./token-list/TokenListStaleAutomationBanner";
 import {
   useTokenTreeSharedData,
   useTokenTreeGroupState,
@@ -163,8 +163,8 @@ export function TokenList({
     onSyncGroup,
     onSyncGroupStyles,
     onSetGroupScopes,
-    onGenerateScaleFromGroup,
-    onRefreshRecipes,
+    onCreateAutomationFromGroup,
+    onRefreshAutomations,
     onToggleIssuesOnly,
     onFilteredCountChange,
     onNavigateToCollection,
@@ -173,10 +173,10 @@ export function TokenList({
     starredPaths,
     onError,
     onViewTokenHistory,
-    onEditRecipe,
-    onOpenRecipeEditor,
-    onNavigateToRecipe,
-    onNavigateToNewRecipe,
+    onEditAutomation,
+    onOpenAutomationEditor,
+    onNavigateToAutomation,
+    onNavigateToNewAutomation,
     onShowReferences: _onShowReferences,
     onDisplayedLeafNodesChange,
     onSelectionChange,
@@ -316,7 +316,7 @@ export function TokenList({
   );
 
   const staleRecipeBannerStorageKey = useMemo(
-    () => STORAGE_KEY_BUILDERS.staleRecipeBannerDismissed(collectionId),
+    () => STORAGE_KEY_BUILDERS.staleAutomationBannerDismissed(collectionId),
     [collectionId],
   );
 
@@ -340,7 +340,7 @@ export function TokenList({
     dismissedStaleRecipeSignature,
     setDismissedStaleRecipeSignature,
   ] = useState<string | null>(() =>
-    lsGet(STORAGE_KEY_BUILDERS.staleRecipeBannerDismissed(collectionId)),
+    lsGet(STORAGE_KEY_BUILDERS.staleAutomationBannerDismissed(collectionId)),
   );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
@@ -1381,7 +1381,7 @@ export function TokenList({
     collections,
     onRefresh,
     onPushUndo,
-    onRefreshRecipes,
+    onRefreshAutomations,
     onSetOperationLoading: setOperationLoading,
     onSetLocallyDeletedPaths: setLocallyDeletedPaths,
     onRecordTouch: recentlyTouched.recordTouch,
@@ -1445,7 +1445,7 @@ export function TokenList({
     }
   }, [deleteError, setDeleteError]);
 
-  const handleRegenerateRecipe = useCallback(
+  const handleRunAutomation = useCallback(
     async (recipeId: string) => {
       try {
         await apiFetch(`${serverUrl}/api/recipes/${recipeId}/run`, {
@@ -1459,7 +1459,7 @@ export function TokenList({
     [serverUrl, onRefresh, onError],
   );
 
-  const handleDetachRecipeGroup = useCallback(
+  const handleDetachAutomationGroup = useCallback(
     async (recipeId: string, groupPath: string) => {
       try {
         await apiFetch(`${serverUrl}/api/recipes/${recipeId}/detach`, {
@@ -1473,12 +1473,12 @@ export function TokenList({
           }),
         });
         onRefresh();
-        onRefreshRecipes?.();
+        onRefreshAutomations?.();
       } catch {
         onError?.("Failed to detach recipe group");
       }
     },
-    [onError, onRefresh, onRefreshRecipes, serverUrl],
+    [onError, onRefresh, onRefreshAutomations, serverUrl],
   );
 
   const handleDismissStaleRecipeBanner = useCallback(() => {
@@ -2129,10 +2129,10 @@ export function TokenList({
     handleToggleExpand, requestDeleteGroup, handleOpenCreateSibling,
     setNewGroupDialogParent, handleRenameGroup, handleUpdateGroupMeta,
     handleRequestMoveGroup, handleRequestCopyGroup, handleDuplicateGroup,
-    onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
+    onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onCreateAutomationFromGroup,
     handleZoomIntoGroup, handleDragOverGroup, handleDropOnGroup,
-    onEditRecipe, onNavigateToRecipe, handleRegenerateRecipe,
-    handleDetachRecipeGroup, onNavigateToAlias, setRovingFocusPath,
+    onEditAutomation, onNavigateToAutomation, handleRunAutomation,
+    handleDetachAutomationGroup, onNavigateToAlias, setRovingFocusPath,
   });
 
   const tokenTreeLeafState = useTokenTreeLeafState({
@@ -2159,7 +2159,7 @@ export function TokenList({
     handleDragStartNotify: handleDragStart,
     handleDragEndNotify: handleDragEnd,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
-    multiModeData, handleMultiModeInlineSave, onOpenRecipeEditor, onToggleStar,
+    multiModeData, handleMultiModeInlineSave, onOpenAutomationEditor, onToggleStar,
     handleClearPendingRename, handleClearPendingTabEdit, handleTabToNext,
     setRovingFocusPath,
   });
@@ -2342,7 +2342,7 @@ export function TokenList({
             onOpenImportPanel={onOpenImportPanel}
             onOpenCreateCollection={onOpenCreateCollection}
             scenarioControl={toolbarScenarioControl}
-            onCreateRecipe={onNavigateToNewRecipe}
+            onCreateAutomation={onNavigateToNewAutomation}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
             modeLensEnabled={modeLensEnabled}
@@ -2409,12 +2409,12 @@ export function TokenList({
         {searchQuery ? `${displayedLeafNodes.length} tokens found` : ""}
       </div>
       {showStaleRecipeBanner && (
-        <TokenListStaleRecipeBanner
+        <TokenListStaleAutomationBanner
           staleRecipesForSet={staleRecipesForSet}
           runningStaleRecipes={runningStaleRecipes}
           onDismiss={handleDismissStaleRecipeBanner}
           onRegenerateAll={handleRegenerateAllStaleRecipes}
-          onNavigateToRecipe={onNavigateToRecipe}
+          onNavigateToAutomation={onNavigateToAutomation}
         />
       )}
       {/* Token stats bar — compact single row with type breakdown */}

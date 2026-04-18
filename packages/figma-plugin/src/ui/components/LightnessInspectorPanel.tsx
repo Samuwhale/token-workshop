@@ -171,7 +171,7 @@ export function LightnessInspectorPanel({
                         {anomalyPairs.map(({ fromPath, toPath }) => (
                           <span
                             key={`${fromPath}->${toPath}`}
-                            className="rounded border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 font-mono text-[9px] leading-none"
+                            className="rounded border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 font-mono text-[10px] leading-none"
                           >
                             {fromPath} → {toPath}
                           </span>

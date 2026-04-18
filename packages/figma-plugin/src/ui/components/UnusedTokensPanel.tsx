@@ -427,7 +427,7 @@ export function UnusedTokensPanel({
                             <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">{group.collectionId}</span>
                             <span className="text-[10px] text-[var(--color-figma-text-secondary)] tabular-nums shrink-0">{groupTokens.length}</span>
                             {groupStagedCount > 0 && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] shrink-0">{groupStagedCount} staged</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] shrink-0">{groupStagedCount} staged</span>
                             )}
                           </button>
 
@@ -436,20 +436,20 @@ export function UnusedTokensPanel({
                               <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 flex flex-wrap items-center justify-end gap-1">
                                 <button
                                   onClick={() => stageTokens(groupTokens, 'deprecate')}
-                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                                 >
                                   Stage collection to deprecate
                                 </button>
                                 <button
                                   onClick={() => stageTokens(groupTokens, 'delete')}
-                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
+                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
                                 >
                                   Stage collection to delete
                                 </button>
                                 <button
                                   onClick={() => clearStagedTokens(groupTokens.filter(token => stagedActions[token.key]))}
                                   disabled={groupStagedCount === 0}
-                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 >
                                   Clear collection
                                 </button>
@@ -469,7 +469,7 @@ export function UnusedTokensPanel({
                                             className="min-w-0 flex-1 text-left disabled:cursor-default"
                                           >
                                             <div className={`text-[10px] font-mono truncate ${isBusy ? 'opacity-40 text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{token.path}</div>
-                                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
                                               <span>{token.$type}</span>
                                               <span>{token.collectionId}</span>
                                               {stagedAction && (
@@ -488,14 +488,14 @@ export function UnusedTokensPanel({
                                                 <button
                                                   onClick={() => setStagedActions(prev => ({ ...prev, [token.key]: stagedAction === 'delete' ? 'deprecate' : 'delete' }))}
                                                   disabled={isBusy}
-                                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                                 >
                                                   Stage to {stagedAction === 'delete' ? 'deprecate' : 'delete'}
                                                 </button>
                                                 <button
                                                   onClick={() => clearStagedTokens([token])}
                                                   disabled={isBusy}
-                                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                                 >
                                                   Clear
                                                 </button>
@@ -505,14 +505,14 @@ export function UnusedTokensPanel({
                                                 <button
                                                   onClick={() => stageTokens([token], 'deprecate')}
                                                   disabled={isBusy}
-                                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                                 >
                                                   Stage deprecate
                                                 </button>
                                                 <button
                                                   onClick={() => stageTokens([token], 'delete')}
                                                   disabled={isBusy}
-                                                  className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                                 >
                                                   Stage delete
                                                 </button>

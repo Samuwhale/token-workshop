@@ -137,7 +137,7 @@ export function LayerSearchPanel({
       {results.length > 0 && (
         <div className="max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
           {totalSearched !== null && (
-            <div className="border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)]">
+            <div className="border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
               {results.length < 50
                 ? `${results.length} result${results.length !== 1 ? "s" : ""} · searched ${totalSearched} layer${totalSearched !== 1 ? "s" : ""}`
                 : `Top 50 results · searched ${totalSearched} layer${totalSearched !== 1 ? "s" : ""}`}

@@ -21,7 +21,7 @@ import type {
   DarkModeInversionConfig,
 } from '../../hooks/useRecipes';
 import type { TokenMapEntry } from '../../../shared/types';
-import type { OverwrittenEntry } from '../../hooks/useRecipePreview';
+import type { OverwrittenEntry } from '../../hooks/useAutomationPreview';
 import { StepWhere, type StepWhereProps } from './StepWhere';
 
 import { ColorRampConfigEditor, ColorSwatchPreview } from '../recipes/ColorRampRecipe';
@@ -241,7 +241,7 @@ export function StepSource({
                   onConfigChange(selectedType, starterConfig);
                 }
               }}
-              className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+              className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
               title="Reset to defaults"
             >
               Reset
@@ -302,7 +302,7 @@ export function StepSource({
             {Array.from(multiBrandPreviews.entries()).map(([brand, tokens]) => (
               <div key={brand} className="border border-[var(--color-figma-border)] rounded-lg bg-[var(--color-figma-bg-secondary)]">
                 <div className="px-2.5 pt-2 pb-1">
-                  <span className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider">{brand}</span>
+                  <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider">{brand}</span>
                 </div>
                 <div className="px-2.5 pb-2.5">
                   {tokens.length > 0 ? (
@@ -317,7 +317,7 @@ export function StepSource({
                       {(selectedType === 'zIndexScale' || selectedType === 'customScale') && <GenericPreview tokens={tokens} overrides={pendingOverrides} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} />}
                     </>
                   ) : (
-                    <span className="text-[9px] text-[var(--color-figma-text-secondary)]">No preview</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">No preview</span>
                   )}
                 </div>
               </div>
@@ -375,7 +375,7 @@ export function StepSource({
         {lockedCount > 0 && (
           <button
             onClick={onClearAllOverrides}
-            className="mt-1.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors"
+            className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors"
           >
             Clear {lockedCount} override{lockedCount !== 1 ? 's' : ''}
           </button>
@@ -405,7 +405,7 @@ export function StepSource({
               <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Output</span>
             </div>
             {!outputExpanded && (
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)] truncate max-w-[60%] text-right font-mono">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate max-w-[60%] text-right font-mono">
                 {destination.targetGroup || 'Set output path'}
               </span>
             )}

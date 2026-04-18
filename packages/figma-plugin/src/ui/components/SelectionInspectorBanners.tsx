@@ -125,7 +125,7 @@ export function SelectionInspectorBanners({
               </strong>{" "}
               to all <strong>{propTypeSuggestion.tokenType}</strong> properties?
             </span>
-            <span className="truncate text-[9px] text-[var(--color-figma-text-secondary)]">
+            <span className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
               {propTypeSuggestion.targetProps
                 .map((prop) => PROPERTY_LABELS[prop])
                 .join(", ")}

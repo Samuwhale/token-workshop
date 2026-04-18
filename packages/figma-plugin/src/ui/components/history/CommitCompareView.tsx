@@ -88,19 +88,19 @@ export function CommitCompareView({
       <div className="shrink-0 grid grid-cols-2 gap-px bg-[var(--color-figma-border)] border-b border-[var(--color-figma-border)]">
         <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
+            <span className="text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
             <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commitA.hash.slice(0, 7)}</span>
           </div>
           <p className="text-[10px] font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitA.message}>{commitA.message}</p>
-          <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitA.date))}</p>
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitA.date))}</p>
         </div>
         <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
+            <span className="text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
             <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commitB.hash.slice(0, 7)}</span>
           </div>
           <p className="text-[10px] font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitB.message}>{commitB.message}</p>
-          <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitB.date))}</p>
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitB.date))}</p>
         </div>
       </div>
 

@@ -209,7 +209,7 @@ export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'desc', qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary', valueHint: 'Enter words from the token description.' },
   { key: 'path', qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand', valueHint: 'Enter a path segment like colors.brand or spacing.' },
   { key: 'name', qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500', valueHint: 'Enter the token leaf name, such as 500 or primary.' },
-  { key: 'recipe', qualifier: 'recipe:', desc: 'Filter by recipe name', example: 'recipe:color-ramp', valueHint: 'Enter the recipe name that produced the token.' },
+  { key: 'recipe', qualifier: 'recipe:', desc: 'Filter by automation name', example: 'recipe:color-ramp', valueHint: 'Enter the automation name that produced the token.' },
   { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];
 

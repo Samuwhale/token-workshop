@@ -28,8 +28,8 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
   return (
     <div className="flex flex-col gap-2 mt-2">
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_20px] gap-2 px-0.5">
-        <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Brand</span>
-        <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">{table.inputKey || 'value'}</span>
+        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Brand</span>
+        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">{table.inputKey || 'value'}</span>
         <span className="w-5" />
       </div>
       {table.rows.map((row, i) => (
@@ -50,7 +50,7 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
             type="button"
             onClick={() => removeRow(i)}
             aria-label="Remove row"
-            className="mt-2 w-5 text-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[12px] shrink-0 leading-none"
+            className="mt-2 w-5 text-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[13px] shrink-0 leading-none"
           >&times;</button>
         </div>
       ))}
@@ -145,9 +145,9 @@ export function StepWhere({
         <div className={AUTHORING.recipeFieldGrid}>
           {!isMultiBrand ? (
             <div className={AUTHORING.recipeFieldStack}>
-              <label htmlFor="step-where-target-set" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Token collection</label>
+              <label htmlFor="step-where-target-collection" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Token collection</label>
               <select
-                id="step-where-target-set"
+                id="step-where-target-collection"
                 value={targetCollection}
                 onChange={e => onTargetCollectionChange(e.target.value)}
                 className={AUTHORING.recipeControl}
@@ -177,7 +177,7 @@ export function StepWhere({
                 <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
                   Advanced output
                 </p>
-                <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
                   Use this when one automation needs to publish into multiple collections.
                 </p>
               </div>
@@ -197,16 +197,16 @@ export function StepWhere({
             {isMultiBrand ? (
               <>
                 <div className={AUTHORING.recipeFieldStack}>
-                  <label htmlFor="step-where-set-template" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Collection template</label>
+                  <label htmlFor="step-where-collection-template" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Collection template</label>
                   <input
-                    id="step-where-set-template"
+                    id="step-where-collection-template"
                     type="text"
                     value={targetCollectionTemplate}
                     onChange={e => onTargetCollectionTemplateChange(e.target.value)}
                     placeholder="brands/{brand}"
                     className={AUTHORING.recipeControlMono}
                   />
-                  <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
                     {'{brand}'} replaced per row
                   </p>
                 </div>

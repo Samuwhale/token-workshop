@@ -111,7 +111,7 @@ export function SelectionSyncStatusPill({
   return (
     <div className={`shrink-0 flex items-center gap-1 ${className}`.trim()}>
       <span
-        className={`rounded-full px-2 py-1 text-[9px] font-medium ${status.toneClass}`.trim()}
+        className={`rounded-full px-2 py-1 text-[10px] font-medium ${status.toneClass}`.trim()}
       >
         {status.label}
       </span>
@@ -119,7 +119,7 @@ export function SelectionSyncStatusPill({
         <button
           type="button"
           onClick={onRemapClick}
-          className="rounded-full bg-[var(--color-figma-warning,#f5a623)]/12 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-warning,#b45309)] transition-colors hover:bg-[var(--color-figma-warning,#f5a623)]/20"
+          className="rounded-full bg-[var(--color-figma-warning,#f5a623)]/12 px-2 py-1 text-[10px] font-medium text-[var(--color-figma-warning,#b45309)] transition-colors hover:bg-[var(--color-figma-warning,#f5a623)]/20"
           title={`Open Remap with ${status.remapCount} missing token path${status.remapCount !== 1 ? "s" : ""}`}
         >
           Remap

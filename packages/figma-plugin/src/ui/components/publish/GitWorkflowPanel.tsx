@@ -208,7 +208,7 @@ function GitPreviewModal({
         aria-labelledby="git-preview-dialog-title"
       >
         <div className="px-4 pt-4 pb-2">
-          <h3 id="git-preview-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <h3 id="git-preview-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">{subtitle}</p>
         </div>
 
@@ -423,7 +423,7 @@ function CommitPreviewModal({
         aria-labelledby="git-commit-dialog-title"
       >
         <div className="px-4 pt-4 pb-2">
-          <h3 id="git-commit-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
+          <h3 id="git-commit-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             Review before committing.
           </p>
@@ -444,7 +444,7 @@ function CommitPreviewModal({
                 )}
               </span>
               {!tokenPreviewLoading && relevantTokenChanges.length > 0 && (
-                <span className="flex gap-1.5 text-[9px] font-mono">
+                <span className="flex gap-1.5 text-[10px] font-mono">
                   {totalAdded > 0 && <span className="text-[var(--color-figma-success)]">+{totalAdded}</span>}
                   {totalModified > 0 && <span className="text-[var(--color-figma-warning)]">~{totalModified}</span>}
                   {totalRemoved > 0 && <span className="text-[var(--color-figma-error)]">−{totalRemoved}</span>}
@@ -500,7 +500,7 @@ function CommitPreviewModal({
                         {change.file}
                       </span>
                       {hasTokenChanges && (
-                        <span className="flex gap-1.5 text-[9px] font-mono shrink-0">
+                        <span className="flex gap-1.5 text-[10px] font-mono shrink-0">
                           {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
                           {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
                           {removedCount > 0 && <span className="text-[var(--color-figma-error)]">−{removedCount}</span>}
@@ -617,7 +617,7 @@ function ApplyRepositoryDiffModal({
         aria-labelledby="git-apply-dialog-title"
       >
         <div className="px-4 pt-4 pb-2">
-          <h3 id="git-apply-dialog-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">Apply changes</h3>
+          <h3 id="git-apply-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">Apply changes</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             Review sync directions before applying.
           </p>

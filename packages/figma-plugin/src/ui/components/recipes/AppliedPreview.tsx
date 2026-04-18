@@ -147,7 +147,7 @@ export function AppliedPreview({ type, tokens }: { type: RecipeType; tokens: Gen
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors mb-1.5"
+        className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors mb-1.5"
       >
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"
           style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 100ms' }}

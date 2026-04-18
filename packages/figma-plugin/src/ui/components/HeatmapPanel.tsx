@@ -560,7 +560,7 @@ function NodeRow({
         <span className="flex-1 min-w-0">
           <span className="block text-[10px] text-[var(--color-figma-text)] truncate">{node.name}</span>
           {node.pageName ? (
-            <span className="block text-[9px] text-[var(--color-figma-text-tertiary)] truncate">{node.pageName}</span>
+            <span className="block text-[10px] text-[var(--color-figma-text-tertiary)] truncate">{node.pageName}</span>
           ) : null}
         </span>
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
@@ -578,7 +578,7 @@ function NodeRow({
           {onCreate && (
             <button
               onClick={e => { e.stopPropagation(); onCreate(); }}
-              className="text-[9px] px-1.5 py-0.5 rounded font-medium border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded font-medium border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               aria-label={`Create token for ${node.name}`}
               title="Create token from this value"
             >
@@ -588,7 +588,7 @@ function NodeRow({
           {onBind && (
             <button
               onClick={e => { e.stopPropagation(); onBind(); }}
-              className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] transition-colors"
               aria-label={`Bind ${node.name} to a token`}
               title="Quick bind to token"
             >

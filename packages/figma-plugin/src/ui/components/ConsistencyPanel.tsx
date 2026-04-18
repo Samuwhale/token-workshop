@@ -89,7 +89,7 @@ function SuggestionCard({
             <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
               {formatValue(suggestion.tokenValue as string | number, suggestion.property)}
             </span>
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">·</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">·</span>
             <button
               onClick={() => setExpanded(v => !v)}
               className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
@@ -137,7 +137,7 @@ function SuggestionCard({
           )}
           {uniqueMatches.map((match: ConsistencyMatch, idx: number) => (
             <div key={idx} className="flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]">
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-10 shrink-0">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-10 shrink-0">
                 {NODE_TYPE_LABELS[match.nodeType] ?? match.nodeType}
               </span>
               <button
@@ -150,7 +150,7 @@ function SuggestionCard({
               {rejected && onCreateMatch && (
                 <button
                   onClick={() => onCreateMatch(suggestion, match)}
-                  className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Create token
                 </button>
@@ -421,13 +421,13 @@ export function ConsistencyPanel({
                     <div className="flex items-center justify-between pt-1">
                       <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                         {CATEGORY_LABELS[cat]}
-                        <span className="ml-1 font-normal text-[9px]">
+                        <span className="ml-1 font-normal text-[10px]">
                           ({catInstanceCount})
                         </span>
                       </p>
                       <button
                         onClick={() => setSnapConfirm(catSuggestions)}
-                        className="px-1.5 py-0.5 rounded text-[9px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                        className="px-1.5 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                       >
                         Snap {catSuggestions.length} in {CATEGORY_LABELS[cat]}
                       </button>

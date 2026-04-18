@@ -78,7 +78,7 @@ function Section({
         className={`flex w-full items-center justify-between bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-out outline-none hover:bg-[var(--color-figma-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/30 active:translate-y-px ${open ? "bg-[var(--color-figma-bg)]" : ""}`}
       >
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
             {title}
           </span>
           {suffix}
@@ -94,7 +94,7 @@ function Section({
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
       </button>
-      {open && <div className="p-2.5 flex flex-col gap-2">{children}</div>}
+      {open && <div className="p-2.5 flex flex-col gap-3">{children}</div>}
     </div>
   );
 }
@@ -584,7 +584,7 @@ export function SettingsPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-2.5 p-2.5">
+        <div className="flex flex-col gap-4 p-2.5">
 
           {/* ── Everyday preferences (always visible) ── */}
           <div className="flex flex-col gap-2.5">
@@ -944,7 +944,7 @@ export function SettingsPanel({
                   >
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`rounded px-1 text-[9px] font-medium ${entry.status === "added" ? "bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]" : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"}`}
+                        className={`rounded px-1 text-[10px] font-medium ${entry.status === "added" ? "bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]" : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"}`}
                       >
                         {entry.status === "added" ? "NEW" : "CHANGED"}
                       </span>
@@ -954,14 +954,14 @@ export function SettingsPanel({
                     </div>
                     {entry.status === "changed" &&
                       entry.oldValue !== null && (
-                        <span className="truncate pl-0.5 font-mono text-[9px] text-[var(--color-figma-text-secondary)]">
+                        <span className="truncate pl-0.5 font-mono text-[10px] text-[var(--color-figma-text-secondary)]">
                           <span className="text-[var(--color-figma-error)]">
                             -
                           </span>{" "}
                           {entry.oldValue}
                         </span>
                       )}
-                    <span className="truncate pl-0.5 font-mono text-[9px] text-[var(--color-figma-text-secondary)]">
+                    <span className="truncate pl-0.5 font-mono text-[10px] text-[var(--color-figma-text-secondary)]">
                       <span className="text-[var(--color-figma-success)]">
                         +
                       </span>{" "}
@@ -1009,7 +1009,7 @@ export function SettingsPanel({
           )}
 
           {/* ── Danger zone ── */}
-          <div className="border-t border-[var(--color-figma-border)] pt-3">
+          <div className="border-t border-[var(--color-figma-border)] pt-4">
             {!showClearConfirm ? (
               <button
                 onClick={() => {

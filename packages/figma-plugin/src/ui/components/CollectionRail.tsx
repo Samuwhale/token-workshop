@@ -186,7 +186,7 @@ export function CollectionRail({
               {indented ? leafName(collectionId) : collectionId}
             </span>
             {isActive ? (
-              <span className="shrink-0 text-[9px] text-[var(--color-figma-accent)]">
+              <span className="shrink-0 text-[10px] text-[var(--color-figma-accent)]">
                 Active
               </span>
             ) : null}
@@ -346,7 +346,7 @@ export function CollectionRail({
                       <path d="M2 1l4 3-4 3V1z" />
                     </svg>
                     <span className="truncate">{group.folder}/</span>
-                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                       {group.collectionIds.length}
                     </span>
                   </button>

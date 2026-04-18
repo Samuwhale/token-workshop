@@ -283,7 +283,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
             className="flex-1 bg-transparent outline-none text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {currentBinding && currentBinding !== 'mixed' && (
-            <span className="text-[9px] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>
+            <span className="text-[10px] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>
               {currentBinding}
             </span>
           )}
@@ -291,7 +291,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
             <button
               onClick={handleUnbind}
               title={`Unbind ${PROPERTY_LABELS[activeProp]} (Backspace)`}
-              className="shrink-0 flex items-center gap-0.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
+              className="shrink-0 flex items-center gap-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
             >
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -312,7 +312,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
               {/* Recently used section */}
               {recentCandidates.length > 0 && (
                 <>
-                  <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium px-3 pt-1.5 pb-0.5 flex items-center gap-1">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium px-3 pt-1.5 pb-0.5 flex items-center gap-1">
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                     </svg>
@@ -354,9 +354,9 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                           <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>current</span>
                         )}
                         {valueDisplay && !isCurrent && (
-                          <span className={`text-[9px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>{valueDisplay}</span>
+                          <span className={`text-[10px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>{valueDisplay}</span>
                         )}
-                        <span className={`text-[9px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>{c.entry.$type}</span>
+                        <span className={`text-[10px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>{c.entry.$type}</span>
                       </button>
                     );
                   })}
@@ -387,7 +387,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                   return (
                     <div key={c.path}>
                       {showGroupHeader && (
-                        <div className={`text-[9px] font-medium px-3 pt-1.5 pb-0.5 ${
+                        <div className={`text-[10px] font-medium px-3 pt-1.5 pb-0.5 ${
                           !isFirstGroup ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5' : ''
                         } ${
                           c.confidence === 'strong' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
@@ -429,11 +429,11 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                           </span>
                         )}
                         {valueDisplay && !isCurrent && (
-                          <span className={`text-[9px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                          <span className={`text-[10px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
                             {valueDisplay}
                           </span>
                         )}
-                        <span className={`text-[9px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                        <span className={`text-[10px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
                           {c.entry.$type}
                         </span>
                       </button>

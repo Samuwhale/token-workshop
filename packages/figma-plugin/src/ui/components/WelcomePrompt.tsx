@@ -289,7 +289,7 @@ export function WelcomePrompt({
                   </svg>
                 </button>
               )}
-              <h2 id="welcome-dialog-title" className="text-[13px] font-semibold text-[var(--color-figma-text)]">
+              <h2 id="welcome-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">
                 {branchTitle}
               </h2>
             </div>

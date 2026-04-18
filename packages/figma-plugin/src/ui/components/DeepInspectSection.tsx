@@ -74,7 +74,7 @@ function DeepBindPanel({
           <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
-        <span className="text-[9px] text-[var(--color-figma-accent)] font-medium flex-1 truncate">
+        <span className="text-[10px] text-[var(--color-figma-accent)] font-medium flex-1 truncate">
           {currentBinding ? 'Remap' : 'Bind'} on {childNode.name}
         </span>
         <button
@@ -128,10 +128,10 @@ function DeepBindPanel({
           placeholder="Search tokens\u2026"
           aria-autocomplete="list"
           aria-label="Search token candidates"
-          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
         />
         {candidates.length === 0 ? (
-          <div className="text-[9px] text-[var(--color-figma-text-secondary)] py-1 text-center">
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1 text-center">
             {query
               ? "No matching tokens"
               : `No ${compatibleTypes.join(" or ")} tokens`}
@@ -174,16 +174,16 @@ function DeepBindPanel({
                     </div>
                   )}
                   <span
-                    className={`text-[9px] font-mono truncate flex-1 ${isSelected ? "text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text)]"}`}
+                    className={`text-[10px] font-mono truncate flex-1 ${isSelected ? "text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text)]"}`}
                   >
                     {path}
                   </span>
                   {isCurrent && (
-                    <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">
+                    <span className="text-[8px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">
                       current
                     </span>
                   )}
-                  <span className="text-[7px] text-[var(--color-figma-text-secondary)] shrink-0">
+                  <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
                     {entry.$type}
                   </span>
                 </button>

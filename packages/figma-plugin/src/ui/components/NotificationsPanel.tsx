@@ -14,9 +14,10 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "tokens" | "inspect" | "sync";
+      topTab: "tokens" | "inspect" | "sync" | "automations";
       subTab:
         | "tokens"
+        | "automations"
         | "inspect"
         | "canvas-analysis"
         | "publish"
@@ -124,10 +125,10 @@ function inferWorkspaceAction(message: string): InboxAction {
       target: { kind: "surface", surface: "import" },
     };
   }
-  if (lower.includes("recipe")) {
+  if (lower.includes("recipe") || lower.includes("automation")) {
     return {
-      label: "Open tokens",
-      target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },
+      label: "Open automations",
+      target: { kind: "workspace", topTab: "automations", subTab: "automations" },
     };
   }
   if (
@@ -257,12 +258,12 @@ function buildInboxItem(
   };
 }
 
-function severityStripe(item: InboxItem): string {
+function severityTint(item: InboxItem): string {
   if (item.severity === "blocker")
-    return "border-l-2 border-l-[var(--color-figma-error)]";
+    return "bg-[var(--color-figma-error)]/8";
   if (item.severity === "attention")
-    return "border-l-2 border-l-[var(--color-figma-warning)]";
-  return "border-l-2 border-l-[var(--color-figma-success)]";
+    return "bg-[var(--color-figma-warning)]/8";
+  return "bg-[var(--color-figma-success)]/8";
 }
 
 function filterMatches(filter: InboxFilter, item: InboxItem): boolean {
@@ -435,7 +436,7 @@ function NotificationCard({
   onOpen: (action: InboxAction | null) => void;
 }) {
   return (
-    <div className={`border-b border-[var(--color-figma-border)] py-1.5 pl-2.5 ${severityStripe(item)}`}>
+    <div className={`border-b border-[var(--color-figma-border)] py-1.5 pl-2.5 ${severityTint(item)}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-1.5">

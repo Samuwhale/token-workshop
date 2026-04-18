@@ -1135,7 +1135,7 @@ export function TokenFlowPanel({
                 >
                   −
                 </button>
-                <span className="text-[9px] px-1 min-w-[30px] text-center tabular-nums">
+                <span className="text-[10px] px-1 min-w-[30px] text-center tabular-nums">
                   {Math.round(zoom * 100)}%
                 </span>
                 <button

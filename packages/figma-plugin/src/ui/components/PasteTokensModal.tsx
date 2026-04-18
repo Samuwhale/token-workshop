@@ -336,7 +336,7 @@ export function PasteTokensModal({
         {/* Header */}
         <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-start justify-between gap-2">
           <div>
-            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Paste Tokens</div>
+            <div className="text-[14px] font-semibold text-[var(--color-figma-text)]">Paste Tokens</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
               into <span className="font-mono text-[var(--color-figma-text)]">{currentCollectionId}</span>
             </div>
@@ -439,8 +439,8 @@ export function PasteTokensModal({
                 <div className="max-h-28 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
                   {parsedSkipped.map((entry, i) => (
                     <div key={i} className="px-2 py-1.5 flex flex-col gap-0.5">
-                      <span className="font-mono text-[var(--color-figma-text)] text-[9px]">{entry.path}</span>
-                      <span className="text-[var(--color-figma-text-secondary)] text-[9px]">
+                      <span className="font-mono text-[var(--color-figma-text)] text-[10px]">{entry.path}</span>
+                      <span className="text-[var(--color-figma-text-secondary)] text-[10px]">
                         {entry.reason}
                         {entry.originalExpression && (
                           <> — <code className="font-mono text-[var(--color-figma-text)]">{entry.originalExpression.length > 48 ? entry.originalExpression.slice(0, 48) + '…' : entry.originalExpression}</code></>

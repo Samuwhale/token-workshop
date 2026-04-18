@@ -102,7 +102,7 @@ export function ImportSuccessView() {
               <div key={group.collectionId} className="mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.collectionId}</span>
-                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{group.paths.length}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{group.paths.length}</span>
                 </div>
                 <ul className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
                   {group.paths.slice(0, 3).map(path => (

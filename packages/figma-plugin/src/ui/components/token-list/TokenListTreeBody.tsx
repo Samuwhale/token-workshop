@@ -541,7 +541,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             </div>
             {zoomSiblingBranches.length > 0 && (
               <div className="mt-1 flex items-center gap-1 overflow-x-auto">
-                <span className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
                   Other branches
                 </span>
                 {zoomSiblingBranches.map((branch) => (

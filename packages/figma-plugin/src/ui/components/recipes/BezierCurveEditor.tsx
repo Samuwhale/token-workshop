@@ -219,7 +219,7 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
               key={p.label}
               onClick={() => { onDragStart?.(); onChange([...p.curve]); }}
               title={`cubic-bezier(${p.curve.join(', ')})`}
-              className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
+              className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
                 isActive
                   ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                   : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -278,7 +278,7 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
             {/* L* label for first, middle, last */}
             {(i === 0 || i === stepDots.length - 1 || i === Math.floor(stepDots.length / 2)) && (
               <text x={dot.sx} y={dot.sy - 6} textAnchor="middle"
-                className="text-[7px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
+                className="text-[8px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
                 L*{Math.round(dot.lstar)}
               </text>
             )}
@@ -297,19 +297,19 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
 
         {/* Axis labels */}
         <text x={PAD - 2} y={PAD + GH + 2} textAnchor="end"
-          className="text-[7px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
+          className="text-[8px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
           L*{lightEnd}
         </text>
         <text x={PAD - 2} y={PAD + 4} textAnchor="end"
-          className="text-[7px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
+          className="text-[8px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
           L*{darkEnd}
         </text>
         <text x={PAD} y={H - 4} textAnchor="middle"
-          className="text-[7px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
+          className="text-[8px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
           Light
         </text>
         <text x={PAD + GW} y={H - 4} textAnchor="middle"
-          className="text-[7px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
+          className="text-[8px] fill-[var(--color-figma-text-secondary)]" style={{ userSelect: 'none' }}>
           Dark
         </text>
       </svg>

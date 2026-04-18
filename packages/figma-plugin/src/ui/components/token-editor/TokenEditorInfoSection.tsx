@@ -43,7 +43,7 @@ export interface TokenEditorInfoSectionProps {
   // Navigation
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  onNavigateToRecipe?: (recipeId: string) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
 }
 
 export function TokenEditorInfoSection({
@@ -76,7 +76,7 @@ export function TokenEditorInfoSection({
   onRefsExpandedChange,
   onShowReferences,
   onNavigateToToken,
-  onNavigateToRecipe,
+  onNavigateToAutomation,
 }: TokenEditorInfoSectionProps) {
   return (
     <div className="mt-1 border-t border-[var(--color-figma-border)] pt-2">
@@ -100,7 +100,7 @@ export function TokenEditorInfoSection({
             ? (path) => onNavigateToToken(path, tokenPath)
             : undefined
         }
-        onNavigateToRecipe={onNavigateToRecipe}
+        onNavigateToAutomation={onNavigateToAutomation}
       />
 
       <div className="flex gap-0.5">
@@ -162,7 +162,7 @@ export function TokenEditorInfoSection({
           {/* Outgoing: walk the full reference chain inline */}
           {referenceTrace.length > 0 && (
             <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">
                 References
               </span>
               {referenceTrace.slice(0, 8).map((node) => {
@@ -241,7 +241,7 @@ export function TokenEditorInfoSection({
                 );
               })}
               {referenceTrace.length > 8 && (
-                <div className="px-1.5 pt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                <div className="px-1.5 pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
                   + {referenceTrace.length - 8} more
                 </div>
               )}
@@ -257,7 +257,7 @@ export function TokenEditorInfoSection({
                 disabled={
                   dependentsLoading ? false : dependentTrace.length === 0
                 }
-                className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
+                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
               >
                 {dependentsLoading ? (
                   <span>&larr; Loading…</span>
@@ -357,7 +357,7 @@ export function TokenEditorInfoSection({
                     );
                   })}
                   {dependentTrace.length > 20 && (
-                    <div className="px-1.5 pt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                    <div className="px-1.5 pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
                       + {dependentTrace.length - 20} more
                     </div>
                   )}
@@ -387,7 +387,7 @@ export function TokenEditorInfoSection({
             sourceRecipes={existingRecipesForToken}
             onNavigateToToken={onNavigateToToken}
             onShowReferences={onShowReferences}
-            onNavigateToRecipe={onNavigateToRecipe}
+            onNavigateToAutomation={onNavigateToAutomation}
           />
         </div>
       )}

@@ -8,13 +8,13 @@ import type { SemanticStarter } from "./graph-templates";
 import {
   useRecipeDialog,
   type RecipeDialogInitialDraft,
-} from "../hooks/useRecipeDialog";
-import type { RecipeSaveSuccessInfo } from "../hooks/useRecipeSave";
-import { hasPreviewRisks } from "../hooks/useRecipePreview";
-import { StepIntent } from "./recipe-steps/StepIntent";
-import { StepSource } from "./recipe-steps/StepSource";
-import type { StepWhereProps } from "./recipe-steps/StepWhere";
-import { StepSave } from "./recipe-steps/StepSave";
+} from "../hooks/useAutomationDialog";
+import type { RecipeSaveSuccessInfo } from "../hooks/useAutomationSave";
+import { hasPreviewRisks } from "../hooks/useAutomationPreview";
+import { StepIntent } from "./automation-steps/StepIntent";
+import { StepSource } from "./automation-steps/StepSource";
+import type { StepWhereProps } from "./automation-steps/StepWhere";
+import { StepSave } from "./automation-steps/StepSave";
 import { Spinner } from "./Spinner";
 import type { ToastAction } from "../shared/toastBus";
 import { GRAPH_TEMPLATES } from "./graph-templates";
@@ -23,7 +23,7 @@ import { GRAPH_TEMPLATES } from "./graph-templates";
 // Props (unchanged public API)
 // ---------------------------------------------------------------------------
 
-export interface TokenRecipeDialogProps {
+export interface AutomationEditorDialogProps {
   serverUrl: string;
   sourceTokenPath?: string;
   sourceTokenName?: string;
@@ -98,7 +98,7 @@ function StepDots({ active, total }: { active: Step; total: number }) {
 // Stepper recipe dialog
 // ---------------------------------------------------------------------------
 
-export function TokenRecipeDialog({
+export function AutomationEditorDialog({
   serverUrl,
   sourceTokenPath,
   sourceTokenName,
@@ -120,7 +120,7 @@ export function TokenRecipeDialog({
   onPushUndo,
   presentation = "modal",
   editorSessionHost,
-}: TokenRecipeDialogProps) {
+}: AutomationEditorDialogProps) {
   const dialog = useRecipeDialog({
     serverUrl,
     sourceTokenPath,
@@ -368,7 +368,7 @@ export function TokenRecipeDialog({
     <div className="flex items-center gap-2.5">
       <span
         id="token-recipe-dialog-title"
-        className="text-[12px] font-semibold text-[var(--color-figma-text)]"
+        className="text-[14px] font-semibold text-[var(--color-figma-text)]"
       >
         {dialog.isEditing
           ? "Edit automation"

@@ -2,21 +2,21 @@ import { Spinner } from "../Spinner";
 import { NoticeBanner } from "../../shared/noticeSystem";
 import type { TokenRecipe } from "../../hooks/useRecipes";
 
-interface TokenListStaleRecipeBannerProps {
+interface TokenListStaleAutomationBannerProps {
   staleRecipesForSet: TokenRecipe[];
   runningStaleRecipes: boolean;
   onDismiss: () => void;
   onRegenerateAll: () => void;
-  onNavigateToRecipe?: (recipeId: string) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
 }
 
-export function TokenListStaleRecipeBanner({
+export function TokenListStaleAutomationBanner({
   staleRecipesForSet,
   runningStaleRecipes,
   onDismiss,
   onRegenerateAll,
-  onNavigateToRecipe,
-}: TokenListStaleRecipeBannerProps) {
+  onNavigateToAutomation,
+}: TokenListStaleAutomationBannerProps) {
   return (
     <NoticeBanner
       severity="warning"
@@ -38,16 +38,16 @@ export function TokenListStaleRecipeBanner({
     >
       <span>
         {staleRecipesForSet.length === 1
-          ? "1 recipe is"
-          : `${staleRecipesForSet.length} recipes are`}{" "}
+          ? "1 automation is"
+          : `${staleRecipesForSet.length} automations are`}{" "}
         out of date:{" "}
         {staleRecipesForSet.map((recipe, i) => (
           <span key={recipe.id}>
             {i > 0 && ", "}
-            {onNavigateToRecipe ? (
+            {onNavigateToAutomation ? (
               <button
                 type="button"
-                onClick={() => onNavigateToRecipe(recipe.id)}
+                onClick={() => onNavigateToAutomation(recipe.id)}
                 className="underline decoration-amber-500/40 hover:decoration-amber-600 hover:text-amber-800 transition-colors"
               >
                 {recipe.name}

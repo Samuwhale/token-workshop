@@ -116,7 +116,7 @@ export function ExportPreviewModal({
               <tbody>
                 {lines.map((line, lineIdx) => (
                   <tr key={lineIdx} className="hover:bg-[var(--color-figma-bg-hover)]/50">
-                    <td className="px-2 py-0 text-[9px] font-mono text-[var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
+                    <td className="px-2 py-0 text-[10px] font-mono text-[var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
                       {lineIdx + 1}
                     </td>
                     <td className="px-3 py-0 text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre break-all">

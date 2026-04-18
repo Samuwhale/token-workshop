@@ -113,7 +113,7 @@ export function ChangesByCollectionList({
       {showSummaryBar && (
         <div className="flex items-center gap-2 px-1 py-1">
           <ChangeSummaryBadges {...summarizeChanges(changes)} />
-          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             across {changesByCollection.size} collection{changesByCollection.size !== 1 ? 's' : ''}
           </span>
         </div>

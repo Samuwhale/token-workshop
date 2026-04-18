@@ -227,7 +227,7 @@ export function SpacingScaleConfigEditor({ config, onChange, onInteractionStart 
                     />
                   ))}
                 </div>
-                <span className={`text-[9px] font-medium text-center ${
+                <span className={`text-[10px] font-medium text-center ${
                   isActive ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
                 }`}>{preset.label}</span>
               </button>

@@ -171,7 +171,7 @@ export function ColorScaleRecipe({ serverUrl, currentCollectionId, existingPaths
       <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
-          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Generate Color Scale</span>
+          <span className="text-[14px] font-semibold text-[var(--color-figma-text)]">Generate Color Scale</span>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -231,7 +231,7 @@ export function ColorScaleRecipe({ serverUrl, currentCollectionId, existingPaths
                     />
                     <div className="py-1 text-center bg-[var(--color-figma-bg-secondary)]">
                       <div className="text-[8px] font-medium text-[var(--color-figma-text)] leading-tight">{step.label}</div>
-                      <div className="text-[7px] text-[var(--color-figma-text-secondary)] font-mono leading-tight truncate px-0.5">{step.hex}</div>
+                      <div className="text-[8px] text-[var(--color-figma-text-secondary)] font-mono leading-tight truncate px-0.5">{step.hex}</div>
                     </div>
                   </div>
                 ))}
@@ -255,7 +255,7 @@ export function ColorScaleRecipe({ serverUrl, currentCollectionId, existingPaths
                 <Sparkline steps={scale} />
                 <div className="flex justify-between mt-0.5">
                   {scale.map(s => (
-                    <span key={s.label} className="text-[7px] text-[var(--color-figma-text-secondary)]">{s.label}</span>
+                    <span key={s.label} className="text-[8px] text-[var(--color-figma-text-secondary)]">{s.label}</span>
                   ))}
                 </div>
               </div>

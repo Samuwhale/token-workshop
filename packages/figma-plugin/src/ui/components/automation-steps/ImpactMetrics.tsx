@@ -1,4 +1,4 @@
-import type { RecipePreviewAnalysis } from '../../hooks/useRecipePreview';
+import type { RecipePreviewAnalysis } from '../../hooks/useAutomationPreview';
 import { AUTHORING } from '../../shared/editorClasses';
 
 export interface ImpactMetricsProps {
@@ -46,8 +46,8 @@ export function ImpactMetrics({ previewAnalysis, className }: ImpactMetricsProps
       tone: manualConflictEntries.length > 0 ? 'error' : 'neutral',
       detail:
         manualConflictEntries.length === 0
-          ? 'No drifted recipe outputs detected.'
-          : 'Recipe-owned outputs were manually edited since the last run.',
+          ? 'No drifted automation outputs detected.'
+          : 'Automation-owned outputs were manually edited since the last run.',
     },
     {
       label: 'Deleted outputs',
@@ -97,7 +97,7 @@ export function ImpactMetrics({ previewAnalysis, className }: ImpactMetricsProps
                     {metric.count}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[9.5px] leading-snug text-[var(--color-figma-text-secondary)]">
+                <p className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
                   {metric.detail}
                 </p>
               </div>

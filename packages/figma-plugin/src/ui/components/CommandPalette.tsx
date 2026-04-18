@@ -461,7 +461,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               : 'Search expert actions… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
-            className="flex-1 bg-transparent outline-none text-[12px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+            className="flex-1 bg-transparent outline-none text-[13px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {isTokenMode && (
             <span className="text-[10px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
@@ -500,7 +500,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
         {/* Qualifier hint chips — persistent reference row */}
         {isTokenMode && (
           <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 flex-wrap items-center">
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">filters:</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">filters:</span>
             {(showAllQualifiers ? QUERY_QUALIFIERS : QUERY_QUALIFIERS.slice(0, 6)).map(q => (
               <button
                 key={q.qualifier}
@@ -540,7 +540,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)]">Filter syntax</span>
               <button
-                className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] opacity-60 hover:opacity-100 transition-opacity"
+                className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] opacity-60 hover:opacity-100 transition-opacity"
                 onClick={() => setShowHelp(false)}
               >
                 close
@@ -548,7 +548,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </div>
             {/* Group: type & value */}
             <div className="mb-2">
-              <div className="mb-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Type &amp; content</div>
+              <div className="mb-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Type &amp; content</div>
               {[
                 { qual: 'type:color', desc: 'Filter by token type (color, dimension, number, string…)', insert: '>type:' },
                 { qual: 'value:#ff0000', desc: 'Tokens whose value contains the given string', insert: '>value:' },
@@ -567,12 +567,12 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </div>
             {/* Group: path & name */}
             <div className="mb-2">
-              <div className="mb-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Path &amp; name</div>
+              <div className="mb-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Path &amp; name</div>
               {[
                 { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
                 { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
                 { qual: 'group:colors', desc: 'Navigate directly to a token group', insert: '>group:' },
-                { qual: 'recipe:color-ramp', desc: 'Tokens produced by a specific recipe', insert: '>recipe:' },
+                { qual: 'recipe:color-ramp', desc: 'Tokens produced by a specific automation', insert: '>recipe:' },
               ].map(({ qual, desc, insert }) => (
                 <button
                   key={qual}
@@ -587,7 +587,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </div>
             {/* Group: has: */}
             <div className="mb-1.5">
-              <div className="mb-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Presence filters (has:)</div>
+              <div className="mb-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] opacity-60">Presence filters (has:)</div>
               <div className="grid grid-cols-2 gap-x-3">
                 {[
                   { val: 'alias', desc: 'Reference tokens only' },
@@ -595,7 +595,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                   { val: 'duplicate', desc: 'Tokens sharing a value' },
                   { val: 'description', desc: 'Tokens with a description' },
                   { val: 'extension', desc: 'Tokens with extensions' },
-                  { val: 'generated', desc: 'Recipe-managed tokens' },
+                  { val: 'generated', desc: 'Automation-managed tokens' },
                   { val: 'unused', desc: 'No Figma usage or dependents' },
                 ].map(({ val, desc }) => (
                   <button
@@ -605,12 +605,12 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     onClick={() => { setQuery(`>has:${val} `); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                   >
                     <code className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0">has:{val}</code>
-                    <span className="text-[9px] text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)] truncate">{desc}</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)] truncate">{desc}</span>
                   </button>
                 ))}
               </div>
             </div>
-            <div className="pt-1 border-t border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">
+            <div className="pt-1 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">
               Combine qualifiers: <code className="font-mono">type:color has:alias path:brand</code>
             </div>
           </div>
@@ -619,7 +619,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
         {/* Qualifier value autocomplete chips */}
         {qualifierCompletions.length > 0 && (
           <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 flex-wrap items-center">
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">
               {activeQualifier?.qualifier}:
             </span>
             {qualifierCompletions.map(val => (
@@ -982,7 +982,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         {section.header === 'Recently used' && cmd.category && (
-                          <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                          <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                             {cmd.category}
                           </span>
                         )}
@@ -1028,7 +1028,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {cmd.category && (
-                      <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                         {cmd.category}
                       </span>
                     )}

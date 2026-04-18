@@ -42,11 +42,11 @@ export const VALUE_FORMAT_HINTS: Record<string, string> = {
 export const InheritedBadge = memo(function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
   return (
     <span className="inline-flex items-center gap-0.5 ml-1">
-      <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">inherited</span>
+      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">inherited</span>
       <button
         type="button"
         onClick={onOverride}
-        className="text-[9px] text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+        className="text-[10px] text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
         title={`Override ${propKey}`}
       >override</button>
     </span>
@@ -58,7 +58,7 @@ export const RevertBadge = memo(function RevertBadge({ propKey, onRevert }: { pr
     <button
       type="button"
       onClick={onRevert}
-      className="ml-1 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+      className="ml-1 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
       title={`Revert ${propKey} to inherited value`}
     >revert</button>
   );

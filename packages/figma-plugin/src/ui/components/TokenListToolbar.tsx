@@ -67,7 +67,7 @@ export interface TokenListToolbarProps {
   onToggleMultiMode: () => void;
   modeLensEnabled: boolean;
   onToggleModeLens: () => void;
-  onCreateRecipe?: () => void;
+  onCreateAutomation?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
   onFindReplace?: () => void;
@@ -131,7 +131,7 @@ export function TokenListToolbar({
   onToggleMultiMode,
   modeLensEnabled,
   onToggleModeLens,
-  onCreateRecipe,
+  onCreateAutomation,
   onSelectTokens,
   onBulkEdit,
   onFindReplace,
@@ -259,7 +259,7 @@ export function TokenListToolbar({
                   </svg>
                 </button>
               )}
-              <span className="truncate px-1.5 text-[12px] font-semibold text-[var(--color-figma-text)]">
+              <span className="truncate px-1.5 text-[14px] font-semibold text-[var(--color-figma-text)]">
                 {collectionId}
               </span>
               {zoomRootPath && (
@@ -307,7 +307,7 @@ export function TokenListToolbar({
                   className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
                   role="menu"
                 >
-                  <div className="px-2.5 pb-0.5 pt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                  <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                     Create
                   </div>
                   <button
@@ -344,15 +344,15 @@ export function TokenListToolbar({
                       New collection
                     </button>
                   )}
-                  {onCreateRecipe && (
+                  {onCreateAutomation && (
                     <>
                       <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                      <div className="px-2.5 pb-0.5 pt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                      <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                         Automation
                       </div>
                       <button
                         role="menuitem"
-                        onClick={() => runCreateToolsAction(onCreateRecipe)}
+                        onClick={() => runCreateToolsAction(onCreateAutomation)}
                         disabled={!connected}
                         className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                       >
@@ -401,7 +401,7 @@ export function TokenListToolbar({
                     </button>
                   )}
                   <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  <div className="px-2.5 pb-0.5 pt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                  <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                     Import
                   </div>
                   <button
@@ -642,7 +642,7 @@ export function TokenListToolbar({
 
         {(filterItems.length > 0 || viewItems.length > 0) && (
           <div className="flex items-center gap-1.5">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5 text-[9px] leading-tight">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5 text-[10px] leading-tight">
               {filterItems.map((item) => (
                 <button
                   key={item.key}
@@ -672,7 +672,7 @@ export function TokenListToolbar({
               <button
                 type="button"
                 onClick={() => { clearFilters(); clearViewModes(); }}
-                className="shrink-0 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
               >
                 Clear
               </button>

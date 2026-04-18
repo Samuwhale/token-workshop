@@ -30,7 +30,7 @@ function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }
   };
   const labels: Record<string, string> = { local: 'Session', action: 'Edit', commit: 'Git', snapshot: 'Snapshot' };
   return (
-    <span className={`shrink-0 text-[9px] font-medium px-1 py-0.5 rounded ${styles[kind]}`}>
+    <span className={`shrink-0 text-[10px] font-medium px-1 py-0.5 rounded ${styles[kind]}`}>
       {labels[kind]}
     </span>
   );
@@ -48,8 +48,8 @@ function RecoverySection({
 }) {
   return (
     <section className="border-b border-[var(--color-figma-border)]">
-      <div className="flex items-center gap-3 px-3 py-2 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_78%,transparent)]">
-        <h2 className="flex-1 min-w-0 text-[11px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
+      <div className="flex items-center gap-3 px-3 py-2.5 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_78%,transparent)]">
+        <h2 className="flex-1 min-w-0 text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {children}
@@ -67,7 +67,7 @@ function RecoverySubsection({
   return (
     <div className="border-t border-[var(--color-figma-border)] first:border-t-0">
       <div className="px-3 py-1.5 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_42%,transparent)]">
-        <p className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)]">{title}</p>
+        <p className="text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">{title}</p>
       </div>
       {children}
     </div>
@@ -94,7 +94,7 @@ function formatSnapshotWorkspaceCounts(snapshot: SnapshotSummary) {
     parts.push(`${snapshot.resolverCount} ${snapshot.resolverCount === 1 ? 'resolver' : 'resolvers'}`);
   }
   if (snapshot.recipeCount > 0) {
-    parts.push(`${snapshot.recipeCount} ${snapshot.recipeCount === 1 ? 'recipe' : 'recipes'}`);
+    parts.push(`${snapshot.recipeCount} ${snapshot.recipeCount === 1 ? 'automation' : 'automations'}`);
   }
   return parts.join(' · ');
 }
@@ -499,7 +499,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                           <TypePill kind="local" />
                           <span className="text-[10px] truncate min-w-0 text-[var(--color-figma-text)]">{description}</span>
                         </div>
-                        <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+                        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
                           Not persisted yet
                         </p>
                       </div>
@@ -509,7 +509,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                             onClick={() => handleUndoToEntry(stepsToUndo)}
                             disabled={isBusy}
                             title={isTop ? 'Undo this action (⌘Z)' : `Undo this and ${stepsToUndo - 1} newer action${stepsToUndo > 2 ? 's' : ''}`}
-                            className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                            className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                           >
                             {isUndoingThis ? (
                               <span className="flex items-center gap-1"><Spinner size="xs" />Undoing…</span>
@@ -552,16 +552,16 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{op.resourceId}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{op.resourceId}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
                         </div>
                         {isSetMetadata && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {metadataChanges.map((change) => (
                               <span
                                 key={`${op.id}-${change.field}`}
-                                className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
                                 title={`${change.label}: ${formatMetadataValue(change.before)} → ${formatMetadataValue(change.after)}`}
                               >
                                 {change.label}: {formatMetadataValue(change.before)} → {formatMetadataValue(change.after)}
@@ -572,12 +572,12 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                       </div>
                       <div className="shrink-0 mt-0.5 flex items-center gap-1">
                         {isError ? (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning,#f59e0b)_12%,transparent)] text-[var(--color-figma-warning,#f59e0b)]">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning,#f59e0b)_12%,transparent)] text-[var(--color-figma-warning,#f59e0b)]">
                             Failed
                           </span>
                         ) : op.rolledBack ? (
                           <>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
                               Rolled back
                             </span>
                             {redoableOpIds?.has(op.id) && onServerRedo && (
@@ -585,7 +585,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                                 onClick={() => handleRedo(op.id)}
                                 disabled={redoing !== null || rollingBack !== null}
                                 title="Redo this operation"
-                                className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                                className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                               >
                                 {redoing === op.id ? (
                                   <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span>
@@ -597,7 +597,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                           <button
                             onClick={() => setConfirmOp(op)}
                             disabled={rollingBack !== null}
-                            className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                            className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                           >
                             {rollingBack === op.id ? (
                               <span className="flex items-center gap-1"><Spinner size="xs" />Rolling back…</span>
@@ -699,11 +699,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                       <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{snapshot.label}</span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
                       {formatSnapshotWorkspaceCounts(snapshot) ? (
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatSnapshotWorkspaceCounts(snapshot)}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatSnapshotWorkspaceCounts(snapshot)}</span>
                       ) : null}
-                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
                     </div>
                   </div>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" aria-hidden="true">
@@ -797,25 +797,25 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {isA && (
-                            <span className="shrink-0 text-[9px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
+                            <span className="shrink-0 text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
                           )}
                           {isB && (
-                            <span className="shrink-0 text-[9px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
+                            <span className="shrink-0 text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
                           )}
                           <TypePill kind="commit" />
                           <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
-                          <span className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
+                          <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-1">
                         {canSetA && (
                           <button
                             onClick={() => setCompareA(commit)}
-                            className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)]"
+                            className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)]"
                           >
                             {compareA === null ? 'Set A' : 'Swap A'}
                           </button>
@@ -826,7 +826,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                               setCompareB(commit);
                               setShowCompare(true);
                             }}
-                            className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] text-[var(--color-figma-success)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)]"
+                            className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] text-[var(--color-figma-success)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)]"
                           >
                             Set B
                           </button>
@@ -834,7 +834,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                         {isA && !isB && (
                           <button
                             onClick={() => setCompareA(null)}
-                            className="text-[9px] px-1 py-0.5 rounded transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                            className="text-[10px] px-1 py-0.5 rounded transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
                             title="Clear A"
                             aria-label="Clear A"
                           >
@@ -864,9 +864,9 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                         <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
-                        <span className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
+                        <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
                       </div>
                     </div>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" aria-hidden="true">

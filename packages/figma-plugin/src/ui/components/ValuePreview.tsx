@@ -53,7 +53,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
           title={value + (wg ? `\nsRGB fallback: ${fallback}` : '')}
         />
         {wg && (
-          <span className="px-1 py-px rounded text-[7px] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30 shrink-0" title={`Wide-gamut · sRGB fallback: ${fallback}`}>
+          <span className="px-1 py-px rounded text-[8px] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30 shrink-0" title={`Wide-gamut · sRGB fallback: ${fallback}`}>
             P3
           </span>
         )}

@@ -1,119 +1,25 @@
 import { useCallback, useMemo, useState } from "react";
-import type { TokenRecipe, RecipeType } from "../hooks/useRecipes";
+import type { TokenRecipe } from "../hooks/useRecipes";
 import { getRecipeDashboardStatus } from "../hooks/useRecipes";
 import { apiFetch } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
+import {
+  getAutomationTypeLabel,
+  formatRelativeTimestamp,
+  getAutomationStatusDetail,
+  getSimplifiedStatus,
+  getStatusDotClass,
+  getStatusLabel,
+} from "../shared/automationUtils";
 
-export function getRecipeTypeLabel(type: RecipeType): string {
-  switch (type) {
-    case "colorRamp":
-      return "Color ramp";
-    case "spacingScale":
-      return "Spacing scale";
-    case "typeScale":
-      return "Type scale";
-    case "opacityScale":
-      return "Opacity scale";
-    case "borderRadiusScale":
-      return "Border radius";
-    case "zIndexScale":
-      return "Z-index scale";
-    case "shadowScale":
-      return "Shadow scale";
-    case "customScale":
-      return "Custom scale";
-    case "contrastCheck":
-      return "Contrast check";
-    case "accessibleColorPair":
-      return "Accessible color pair";
-    case "darkModeInversion":
-      return "Dark mode inversion";
-    default:
-      return type;
-  }
-}
-
-type DashboardStatus = ReturnType<typeof getRecipeDashboardStatus>;
-
-function formatRelativeTimestamp(value?: string): string | null {
-  if (!value) return null;
-  const time = new Date(value).getTime();
-  if (!Number.isFinite(time)) return null;
-  const diffMinutes = Math.max(0, Math.round((Date.now() - time) / 60000));
-  if (diffMinutes < 1) return "just now";
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.round(diffHours / 24);
-  return `${diffDays}d ago`;
-}
-
-function getRecipeStatusDetail(recipe: TokenRecipe, status: DashboardStatus): string {
-  if (status === "blocked") {
-    const blockedBy = recipe.blockedByRecipes?.filter((dependency) => dependency.name) ?? [];
-    if (blockedBy.length > 0) {
-      return `${blockedBy.length} blocked`;
-    }
-  }
-  if (recipe.lastRunError?.message) return recipe.lastRunError.message;
-  if (recipe.lastRunSummary?.message) return recipe.lastRunSummary.message;
-  if (recipe.staleReason) return recipe.staleReason;
-  return "";
-}
-
-type SimplifiedStatus = "ready" | "needsRun" | "error";
-
-function getSimplifiedStatus(status: DashboardStatus): SimplifiedStatus {
-  switch (status) {
-    case "upToDate":
-      return "ready";
-    case "stale":
-    case "neverRun":
-      return "needsRun";
-    case "failed":
-    case "blocked":
-      return "error";
-    default:
-      return "needsRun";
-  }
-}
-
-function getStatusDotClass(simpleStatus: SimplifiedStatus, isPaused: boolean): string {
-  if (isPaused) return "border-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-text-tertiary)]/20";
-  switch (simpleStatus) {
-    case "ready":
-      return "border-[var(--color-figma-success,#22c55e)] bg-[var(--color-figma-success,#22c55e)]";
-    case "needsRun":
-      return "border-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning,#f59e0b)]";
-    case "error":
-      return "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]";
-  }
-}
-
-function getStatusLabel(status: DashboardStatus, isPaused: boolean): string {
-  if (isPaused) return "Paused";
-  switch (status) {
-    case "upToDate":
-      return "Up to date";
-    case "stale":
-      return "Stale";
-    case "failed":
-      return "Failed";
-    case "blocked":
-      return "Blocked";
-    case "neverRun":
-      return "Never run";
-    default:
-      return "Recipe";
-  }
-}
+export { getAutomationTypeLabel };
 
 function StatusDot({
   simpleStatus,
   isPaused,
   title,
 }: {
-  simpleStatus: SimplifiedStatus;
+  simpleStatus: "ready" | "needsRun" | "error";
   isPaused: boolean;
   title: string;
 }) {
@@ -126,7 +32,6 @@ function StatusDot({
   );
 }
 
-/** Play icon for Run/Retry actions */
 function PlayIcon() {
   return (
     <svg
@@ -142,7 +47,6 @@ function PlayIcon() {
   );
 }
 
-/** Eye icon for View action */
 function ViewIcon() {
   return (
     <svg
@@ -162,7 +66,6 @@ function ViewIcon() {
   );
 }
 
-/** Resume icon (pause bars) */
 function ResumeIcon() {
   return (
     <svg
@@ -178,27 +81,27 @@ function ResumeIcon() {
   );
 }
 
-export interface RecipePipelineCardProps {
+export interface AutomationPipelineCardProps {
   recipe: TokenRecipe;
   isFocused?: boolean;
   focusRef?: React.RefObject<HTMLDivElement | null>;
   serverUrl: string;
   onRefresh: () => void;
   onViewTokens?: (targetGroup: string, targetCollection: string) => void;
-  onEditRecipe?: (recipeId: string) => void;
+  onEditAutomation?: (recipeId: string) => void;
   onContextMenu?: (event: React.MouseEvent, recipe: TokenRecipe) => void;
 }
 
-export function RecipePipelineCard({
+export function AutomationPipelineCard({
   recipe,
   isFocused,
   focusRef,
   serverUrl,
   onRefresh,
   onViewTokens,
-  onEditRecipe,
+  onEditAutomation,
   onContextMenu,
-}: RecipePipelineCardProps) {
+}: AutomationPipelineCardProps) {
   const [running, setRunning] = useState(false);
   const [togglingEnabled, setTogglingEnabled] = useState(false);
 
@@ -206,11 +109,11 @@ export function RecipePipelineCard({
   const isPaused = recipe.enabled === false;
   const simpleStatus = getSimplifiedStatus(status);
   const statusLabel = getStatusLabel(status, isPaused);
-  const statusDetail = getRecipeStatusDetail(recipe, status);
+  const statusDetail = getAutomationStatusDetail(recipe, status);
   const lastRunAt = formatRelativeTimestamp(recipe.lastRunSummary?.at);
 
   const tooltipText = useMemo(() => {
-    const parts = [getRecipeTypeLabel(recipe.type), statusLabel];
+    const parts = [getAutomationTypeLabel(recipe.type), statusLabel];
     if (lastRunAt) parts.push(`Last run: ${lastRunAt}`);
     if (statusDetail) parts.push(statusDetail);
     return parts.join(" \u00b7 ");
@@ -224,10 +127,10 @@ export function RecipePipelineCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: isPaused }),
       });
-      dispatchToast(isPaused ? "Recipe resumed" : "Recipe paused", "success");
+      dispatchToast(isPaused ? "Automation resumed" : "Automation paused", "success");
       onRefresh();
     } catch (error) {
-      dispatchToast(error instanceof Error ? error.message : "Unable to update recipe", "error");
+      dispatchToast(error instanceof Error ? error.message : "Unable to update automation", "error");
     } finally {
       setTogglingEnabled(false);
     }
@@ -243,8 +146,8 @@ export function RecipePipelineCard({
       const count = result.count ?? 0;
       dispatchToast(
         count > 0
-          ? `Recipe ran — ${count} token${count === 1 ? "" : "s"} updated`
-          : "Recipe ran",
+          ? `Automation ran — ${count} token${count === 1 ? "" : "s"} updated`
+          : "Automation ran",
         "success",
         onViewTokens
           ? {
@@ -255,7 +158,7 @@ export function RecipePipelineCard({
       );
       onRefresh();
     } catch (error) {
-      dispatchToast(error instanceof Error ? error.message : "Unable to run recipe", "error");
+      dispatchToast(error instanceof Error ? error.message : "Unable to run automation", "error");
     } finally {
       setRunning(false);
     }
@@ -303,11 +206,11 @@ export function RecipePipelineCard({
         ref={isFocused ? (focusRef as React.LegacyRef<HTMLDivElement>) : undefined}
         role="button"
         tabIndex={0}
-        onClick={() => onEditRecipe?.(recipe.id)}
+        onClick={() => onEditAutomation?.(recipe.id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onEditRecipe?.(recipe.id);
+            onEditAutomation?.(recipe.id);
           }
         }}
         onContextMenu={(e) => {

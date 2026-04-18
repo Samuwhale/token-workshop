@@ -203,7 +203,7 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
       >
         <div className="mt-2 flex flex-col gap-1.5">
             {/* Column headers */}
-            <div className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)] pl-0.5">
+            <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] pl-0.5">
               <span className="w-12">Name</span>
               <span className="w-9 text-right">dX</span>
               <span className="w-9 text-right">dY</span>

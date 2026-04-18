@@ -1091,6 +1091,7 @@ export function PublishPanel({
           <div ref={preflightRef}>
             <WorkflowStage
               title="Preflight"
+              description="Check for issues before publishing to Figma"
               expanded={selectedStage === 'preflight'}
               onSelect={() => setSelectedStage('preflight')}
               statusSeverity={preflightCardState.severity}
@@ -1161,7 +1162,7 @@ export function PublishPanel({
                 </button>
               ) : null}
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {compareTargets.map((target) => (
                     <button
@@ -1176,7 +1177,7 @@ export function PublishPanel({
                       ].join(' ')}
                     >
                       {target.label}
-                      <span className="ml-1.5 text-[9px] opacity-75">{target.badge}</span>
+                      <span className="ml-1.5 text-[10px] opacity-75">{target.badge}</span>
                     </button>
                   ))}
                 </div>
@@ -1235,7 +1236,7 @@ export function PublishPanel({
                 </button>
               ) : null}
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {(publishAllBusy || quickSyncing || compareAllLoading) && (
                   <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text)]">
                     <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
@@ -1649,8 +1650,8 @@ function PublishAllPreviewModal({
       onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
         <div ref={dialogRef} className="w-full max-w-[400px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="publish-all-modal-title">
-        <div className="px-4 pt-4 pb-2">
-          <h3 id="publish-all-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+        <div className="px-4 pt-4 pb-3">
+          <h3 id="publish-all-modal-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">
             Review Figma sync
           </h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1826,6 +1827,7 @@ function stageStatusTextClass(severity: NoticeSeverity): string {
 
 function WorkflowStage({
   title,
+  description,
   statusLabel,
   statusSeverity,
   expanded,
@@ -1836,6 +1838,7 @@ function WorkflowStage({
   helpToggle,
 }: {
   title: string;
+  description?: string;
   statusLabel: string;
   statusSeverity: NoticeSeverity;
   expanded: boolean;
@@ -1848,7 +1851,7 @@ function WorkflowStage({
   return (
     <section
       className={[
-        'border-b border-[var(--color-figma-border)] py-3',
+        'border-b border-[var(--color-figma-border)] py-4',
         disabled ? 'opacity-70' : '',
       ].join(' ')}
     >
@@ -1860,8 +1863,11 @@ function WorkflowStage({
           className="min-w-0 flex-1 text-left disabled:cursor-not-allowed"
         >
           <div className="min-w-0">
-            <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
-            <p className={`mt-0.5 text-[10px] ${stageStatusTextClass(statusSeverity)}`}>
+            <h2 className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
+            {description && (
+              <p className="mt-0.5 text-[10px] text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">{description}</p>
+            )}
+            <p className={`mt-1 text-[10px] ${stageStatusTextClass(statusSeverity)}`}>
               {statusLabel}
             </p>
           </div>
@@ -1873,7 +1879,7 @@ function WorkflowStage({
       </div>
 
       {expanded && children ? (
-        <div className="mt-3 border-l border-[var(--color-figma-border)] pl-4">{children}</div>
+        <div className="mt-4 border-l border-[var(--color-figma-border)] pl-4">{children}</div>
       ) : null}
     </section>
   );
@@ -1897,15 +1903,15 @@ function DisclosureSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-b border-[var(--color-figma-border)] py-3">
+    <section className="border-b border-[var(--color-figma-border)] py-4">
       <button
         type="button"
         onClick={onToggle}
         className="flex w-full items-start justify-between gap-3 text-left"
       >
         <div className="min-w-0">
-          <h2 className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
-          <p className={`mt-0.5 text-[10px] ${stageStatusTextClass(statusSeverity)}`}>
+          <h2 className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
+          <p className={`mt-1 text-[10px] ${stageStatusTextClass(statusSeverity)}`}>
             {statusLabel}
             <span className="mx-1 text-[var(--color-figma-text-tertiary)]">·</span>
             <span className="text-[var(--color-figma-text-secondary)]">{summary}</span>
@@ -1917,7 +1923,7 @@ function DisclosureSection({
       </button>
 
       {expanded ? (
-        <div className="mt-3 border-l border-[var(--color-figma-border)] pl-4">{children}</div>
+        <div className="mt-4 border-l border-[var(--color-figma-border)] pl-4">{children}</div>
       ) : null}
     </section>
   );

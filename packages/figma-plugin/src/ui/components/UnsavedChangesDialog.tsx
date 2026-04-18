@@ -52,7 +52,7 @@ export function UnsavedChangesDialog({
         <div className="px-4 pt-4 pb-3">
           <h3
             id="unsaved-changes-title"
-            className="text-[12px] font-semibold text-[var(--color-figma-text)]"
+            className="text-[14px] font-semibold text-[var(--color-figma-text)]"
           >
             Unsaved changes
           </h3>

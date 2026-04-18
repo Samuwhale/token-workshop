@@ -34,7 +34,7 @@ interface TokenDetailPreviewProps {
   onEdit: () => void;
   onClose: () => void;
   onNavigateToAlias?: (path: string) => void;
-  onNavigateToRecipe?: (recipeId: string) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
 }
 
 export function TokenDetailPreview({
@@ -53,7 +53,7 @@ export function TokenDetailPreview({
   onEdit,
   onClose,
   onNavigateToAlias,
-  onNavigateToRecipe,
+  onNavigateToAutomation,
 }: TokenDetailPreviewProps) {
   const entry = allTokensFlat[tokenPath];
   const name = tokenName ?? tokenPath.split(".").pop() ?? tokenPath;
@@ -221,7 +221,7 @@ export function TokenDetailPreview({
             <div className="mt-2 flex flex-wrap gap-1">
               {lintViolations.length > 0 && (
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                     lintTone === "error"
                       ? "bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]"
                       : lintTone === "warning"
@@ -248,7 +248,7 @@ export function TokenDetailPreview({
                 </span>
               )}
               {syncChanged && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-warning)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-warning)]">
                   <span
                     className="h-2 w-2 rounded-full bg-current"
                     aria-hidden="true"
@@ -266,12 +266,12 @@ export function TokenDetailPreview({
               {lintViolations.map((violation, index) => (
                 <div
                   key={`${violation.path}-${violation.message}-${index}`}
-                  className={`rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 border-l-2 ${
+                  className={`rounded border border-[var(--color-figma-border)] px-2 py-1.5 ${
                     violation.severity === "error"
-                      ? "border-l-[var(--color-figma-error)]"
+                      ? "bg-[var(--color-figma-error)]/8"
                       : violation.severity === "warning"
-                        ? "border-l-[var(--color-figma-warning)]"
-                        : "border-l-[var(--color-figma-text-tertiary)]"
+                        ? "bg-[var(--color-figma-warning)]/8"
+                        : "bg-[var(--color-figma-bg-secondary)]"
                   }`}
                 >
                   <div className="text-[10px] text-[var(--color-figma-text)]">
@@ -311,7 +311,7 @@ export function TokenDetailPreview({
               generatedRecipe={derivedRecipe ?? null}
               usageCount={usageCount}
               onNavigateToPath={onNavigateToAlias}
-              onNavigateToRecipe={onNavigateToRecipe}
+              onNavigateToAutomation={onNavigateToAutomation}
               onHighlightUsage={
                 usageCount > 0
                   ? () => {
@@ -356,7 +356,7 @@ export function TokenDetailPreview({
 
             {resolutionSteps && resolutionSteps.length >= 2 && (
               <div className="mb-2">
-                <div className="text-[9px] font-semibold text-[var(--color-figma-text-tertiary)] mb-1">
+                <div className="text-[10px] font-semibold text-[var(--color-figma-text-tertiary)] mb-1">
                   Resolves to
                 </div>
                 {(() => {
@@ -377,7 +377,7 @@ export function TokenDetailPreview({
                           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
                             <path d="M4 0v4M1 4l3 4 3-4" />
                           </svg>
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                             via {middleCount} alias{middleCount !== 1 ? "es" : ""}
                           </span>
                         </div>
@@ -419,7 +419,7 @@ export function TokenDetailPreview({
 
             {dependentNodes.length > 0 && (
               <div className="flex flex-col gap-1">
-                <div className="text-[9px] font-semibold text-[var(--color-figma-text-tertiary)] mb-0.5">
+                <div className="text-[10px] font-semibold text-[var(--color-figma-text-tertiary)] mb-0.5">
                   Used by {dependentNodes.length}
                 </div>
                 <div className="flex flex-col gap-1">
@@ -453,7 +453,7 @@ export function TokenDetailPreview({
                     </button>
                   ))}
                   {dependentNodes.length > 6 && (
-                    <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                       + {dependentNodes.length - 6} more
                     </div>
                   )}

@@ -102,7 +102,7 @@ export function CollectionCreateDialog({
         <div className="border-b border-[var(--color-figma-border)] px-4 py-3">
           <h2
             id="new-collection-dialog-title"
-            className="text-[12px] font-semibold text-[var(--color-figma-text)]"
+            className="text-[14px] font-semibold text-[var(--color-figma-text)]"
           >
             New collection
           </h2>

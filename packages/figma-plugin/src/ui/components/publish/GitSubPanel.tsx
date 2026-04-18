@@ -118,7 +118,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
 
       {!git.gitLoading && !git.gitStatus?.isRepo && (
         <div className="flex flex-col items-center justify-center py-3 gap-3 px-3">
-          <p className="text-[12px] text-[var(--color-figma-text-secondary)]">No Git repository initialized</p>
+          <p className="text-[13px] text-[var(--color-figma-text-secondary)]">No Git repository initialized</p>
           <div className="w-full flex flex-col gap-2">
             <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote URL</label>
             <input
@@ -158,12 +158,12 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   {git.allChanges.length > 0 ? `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
                 </span>
                 {git.gitStatus.remote && (git.gitStatus.status?.ahead ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Push`} className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                  <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Push`} className="text-[10px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
                     ↑{git.gitStatus.status!.ahead}
                   </span>
                 )}
                 {git.gitStatus.remote && (git.gitStatus.status?.behind ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Pull`} className="text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
+                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Pull`} className="text-[10px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
                     ↓{git.gitStatus.status!.behind}
                   </span>
                 )}
@@ -262,7 +262,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                       }
                       return next;
                     })}
-                    className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-success)]/40 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/10 transition-colors"
+                    className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-success)]/40 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/10 transition-colors"
                   >
                     All yours
                   </button>
@@ -275,7 +275,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                       }
                       return next;
                     })}
-                    className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)]/40 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                    className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)]/40 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                   >
                     All server&rsquo;s
                   </button>
@@ -302,7 +302,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
                                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                               </svg>
-                              <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                                 {diff ? diff.aLines.filter(l => l.changed).length : 0} line{diff && diff.aLines.filter(l => l.changed).length !== 1 ? 's' : ''} changed in yours · {diff ? diff.bLines.filter(l => l.changed).length : 0} in server&rsquo;s
                               </span>
                             </div>
@@ -362,7 +362,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                           <div className="border-t border-[var(--color-figma-border)] flex justify-center">
                             <button
                               onClick={() => toggleRegionExpand(regionKey)}
-                              className="w-full px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors text-center"
+                              className="w-full px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors text-center"
                             >
                               {isExpanded ? 'Show less' : 'Show full context'}
                             </button>
@@ -409,7 +409,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   <button
                     onClick={git.regenerateCommitMsg}
                     title="Re-generate from changed files"
-                    className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   >
                     Suggest
                   </button>
@@ -429,7 +429,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                     }}
                   />
                   {!git.commitMsgUserEdited?.current && git.commitMsg && (
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-[var(--color-figma-text-tertiary)] pointer-events-none select-none">auto</span>
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--color-figma-text-tertiary)] pointer-events-none select-none">auto</span>
                   )}
                 </div>
                 <button

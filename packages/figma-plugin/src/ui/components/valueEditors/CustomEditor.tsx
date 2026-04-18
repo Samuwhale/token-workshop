@@ -38,7 +38,7 @@ export const CustomEditor = memo(function CustomEditor({ value, onChange }: { va
         placeholder='String, number, or JSON object'
       />
       {parseError && (
-        <p className="text-[9px] text-[var(--color-figma-warning)]">{parseError}</p>
+        <p className="text-[10px] text-[var(--color-figma-warning)]">{parseError}</p>
       )}
     </div>
   );

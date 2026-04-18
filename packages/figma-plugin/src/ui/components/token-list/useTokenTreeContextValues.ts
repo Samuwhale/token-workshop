@@ -90,14 +90,14 @@ interface GroupActionsDeps {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onGenerateScaleFromGroup?: (groupPath: string, tokenType: string | null) => void;
+  onCreateAutomationFromGroup?: (groupPath: string, tokenType: string | null) => void;
   handleZoomIntoGroup: (groupPath: string) => void;
   handleDragOverGroup: (groupPath: string | null, invalid?: boolean) => void;
   handleDropOnGroup: (groupPath: string) => void;
-  onEditRecipe?: (recipeId: string) => void;
-  onNavigateToRecipe?: (recipeId: string) => void;
-  handleRegenerateRecipe: (recipeId: string) => Promise<void>;
-  handleDetachRecipeGroup: (recipeId: string, groupPath: string) => Promise<void>;
+  onEditAutomation?: (recipeId: string) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
+  handleRunAutomation: (recipeId: string) => Promise<void>;
+  handleDetachAutomationGroup: (recipeId: string, groupPath: string) => Promise<void>;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   setRovingFocusPath: (path: string) => void;
 }
@@ -117,14 +117,14 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       onSyncGroup: deps.onSyncGroup,
       onSyncGroupStyles: deps.onSyncGroupStyles,
       onSetGroupScopes: deps.onSetGroupScopes,
-      onGenerateScaleFromGroup: deps.onGenerateScaleFromGroup,
+      onCreateAutomationFromGroup: deps.onCreateAutomationFromGroup,
       onZoomIntoGroup: deps.handleZoomIntoGroup,
       onDragOverGroup: deps.handleDragOverGroup,
       onDropOnGroup: deps.handleDropOnGroup,
-      onEditRecipe: deps.onEditRecipe,
-      onNavigateToRecipe: deps.onNavigateToRecipe,
-      onRegenerateRecipe: deps.handleRegenerateRecipe,
-      onDetachRecipeGroup: deps.handleDetachRecipeGroup,
+      onEditAutomation: deps.onEditAutomation,
+      onNavigateToAutomation: deps.onNavigateToAutomation,
+      onRunAutomation: deps.handleRunAutomation,
+      onDetachAutomationGroup: deps.handleDetachAutomationGroup,
       onNavigateToToken: deps.onNavigateToAlias
         ? (path: string) => deps.onNavigateToAlias!(path)
         : undefined,
@@ -228,7 +228,7 @@ interface LeafActionsDeps {
   handleDropReorder: (path: string, name: string, position: "before" | "after") => void;
   multiModeData: any;
   handleMultiModeInlineSave: any;
-  onOpenRecipeEditor?: any;
+  onOpenAutomationEditor?: any;
   onToggleStar?: (path: string) => void;
   handleClearPendingRename: () => void;
   handleClearPendingTabEdit: () => void;
@@ -268,7 +268,7 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onMultiModeInlineSave: deps.multiModeData
         ? deps.handleMultiModeInlineSave
         : undefined,
-      onOpenRecipeEditor: deps.onOpenRecipeEditor,
+      onOpenAutomationEditor: deps.onOpenAutomationEditor,
       onToggleStar: deps.onToggleStar,
       clearPendingRename: deps.handleClearPendingRename,
       clearPendingTabEdit: deps.handleClearPendingTabEdit,

@@ -9,7 +9,7 @@ import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenRecipe } from "../hooks/useRecipes";
 import type { LintViolation } from "../hooks/useLint";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
-import type { TokensLibraryRecipeEditorTarget } from "../shared/navigationTypes";
+import type { TokensLibraryAutomationEditorTarget } from "../shared/navigationTypes";
 import type { StartHereBranch } from "./WelcomePrompt";
 import type { TokenCollection } from "@tokenmanager/core";
 
@@ -130,11 +130,11 @@ export interface TokenListActions {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onGenerateScaleFromGroup?: (
+  onCreateAutomationFromGroup?: (
     groupPath: string,
     tokenType: string | null,
   ) => void;
-  onRefreshRecipes?: () => void;
+  onRefreshAutomations?: () => void;
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
@@ -144,11 +144,11 @@ export interface TokenListActions {
   starredPaths?: Set<string>;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
-  onEditRecipe?: (recipeId: string) => void;
-  onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
-  onNavigateToRecipe?: (recipeId: string) => void;
+  onEditAutomation?: (recipeId: string) => void;
+  onOpenAutomationEditor?: (target: TokensLibraryAutomationEditorTarget) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
   /** Open the recipe editor to create a new recipe */
-  onNavigateToNewRecipe?: () => void;
+  onNavigateToNewAutomation?: () => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
@@ -370,19 +370,19 @@ export interface TokenTreeGroupActionsContextType {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onGenerateScaleFromGroup?: (
+  onCreateAutomationFromGroup?: (
     groupPath: string,
     tokenType: string | null,
   ) => void;
   onZoomIntoGroup?: (groupPath: string) => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
-  onEditRecipe?: (recipeId: string) => void;
+  onEditAutomation?: (recipeId: string) => void;
   /** Open the recipe editor for the given recipe */
-  onNavigateToRecipe?: (recipeId: string) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
   /** One-click regenerate a specific recipe (by id) — runs POST /api/recipes/:id/run */
-  onRegenerateRecipe?: (recipeId: string) => Promise<void>;
-  onDetachRecipeGroup?: (
+  onRunAutomation?: (recipeId: string) => Promise<void>;
+  onDetachAutomationGroup?: (
     recipeId: string,
     groupPath: string,
   ) => Promise<void>;
@@ -489,7 +489,7 @@ export interface TokenTreeLeafActionsContextType {
     optionName: string,
     previousState?: { type?: string; value: unknown },
   ) => void;
-  onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
+  onOpenAutomationEditor?: (target: TokensLibraryAutomationEditorTarget) => void;
   /** Toggle starred (cross-collection favorites) for the current token */
   onToggleStar?: (path: string) => void;
   /** Clear the pending rename (called by the node once it activates rename mode) */

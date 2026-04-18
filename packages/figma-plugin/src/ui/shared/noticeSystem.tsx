@@ -189,7 +189,7 @@ export interface NoticePillProps {
 export function NoticePill({ severity, children, title, icon, className }: NoticePillProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${PILL_TONE[severity]}${className ? ` ${className}` : ''}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${PILL_TONE[severity]}${className ? ` ${className}` : ''}`}
       title={title}
     >
       {icon}
@@ -222,7 +222,7 @@ export function NoticeCountBadge({ severity, count, title, className }: NoticeCo
 
   return (
     <span
-      className={`inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-bold leading-none ${tone}${className ? ` ${className}` : ''}`}
+      className={`inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[10px] font-bold leading-none ${tone}${className ? ` ${className}` : ''}`}
       title={title}
     >
       {count}

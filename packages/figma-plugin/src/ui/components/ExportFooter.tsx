@@ -89,7 +89,7 @@ export function ExportFooter({
             </svg>
             Changes only
             {changesOnly && diffPaths !== null && !diffLoading && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-semibold leading-none ${
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none ${
                 diffPaths.length === 0
                   ? 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'
                   : 'bg-[var(--color-figma-accent)] text-white'
@@ -354,7 +354,7 @@ export function ExportFooter({
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   Save one set per mode
                 </span>
-                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
                   ({figmaCollections.filter(c => c.modes.length > 1).reduce((n, c) => n + c.modes.length, 0) + figmaCollections.filter(c => c.modes.length === 1).length} sets)
                 </span>
               </label>

@@ -3,7 +3,7 @@ import { getRecipeManagedOutputs } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath } from "../../../shared/resolveAlias";
 import type { RecipeType, TokenRecipe } from "../../hooks/useRecipes";
-import { getRecipeTypeLabel } from "../RecipePipelineCard";
+import { getAutomationTypeLabel } from "../AutomationPipelineCard";
 import { detectRecipeType } from "../recipes/recipeUtils";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
@@ -119,7 +119,7 @@ const RECIPE_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
-export function RecipeGlyph({
+export function AutomationGlyph({
   size = 8,
   strokeWidth = 1.5,
   className,
@@ -155,9 +155,9 @@ function formatRecipeRunAt(lastRunAt?: string): string {
   return RECIPE_RUN_AT_FORMATTER.format(date);
 }
 
-export function formatRecipeSummaryTitle(recipe: TokenRecipe): string {
+export function formatAutomationSummaryTitle(recipe: TokenRecipe): string {
   return [
-    `Recipe: ${recipe.name}`,
+    `Automation: ${recipe.name}`,
     recipe.sourceToken ? `Source token: ${recipe.sourceToken}` : null,
     recipe.isStale ? "Source changed" : null,
   ]
@@ -184,7 +184,7 @@ function countManagedRecipeLeaves(
   );
 }
 
-export function RecipeSummaryRow({
+export function AutomationSummaryRow({
   depth,
   condensedView,
   recipe,
@@ -208,7 +208,7 @@ export function RecipeSummaryRow({
   onNavigateToSourceToken?: (path: string) => void;
 }) {
   const sourceLabel = recipe.sourceToken || "Standalone";
-  const typeLabel = getRecipeTypeLabel(recipe.type);
+  const typeLabel = getAutomationTypeLabel(recipe.type);
   const lastRunLabel = formatRecipeRunAt(recipe.lastRunAt);
 
   return (
@@ -223,8 +223,8 @@ export function RecipeSummaryRow({
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span className="inline-flex items-center gap-1 font-medium text-[var(--color-figma-text)]">
-              <RecipeGlyph />
-              <span>Recipe</span>
+              <AutomationGlyph />
+              <span>Automation</span>
             </span>
             <span aria-hidden="true" className="text-[var(--color-figma-text-tertiary)]/70">
               ·
@@ -272,8 +272,8 @@ export function RecipeSummaryRow({
             </span>
           </div>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            This recipe owns {managedTokenCount} token
-            {managedTokenCount === 1 ? "" : "s"}. Edit the recipe to change
+            This automation owns {managedTokenCount} token
+            {managedTokenCount === 1 ? "" : "s"}. Edit the automation to change
             them, or detach them first to make manual edits stick.
           </p>
         </div>
@@ -337,7 +337,7 @@ export function clampMenuPosition(
   };
 }
 
-export function getQuickRecipeTypeForToken(
+export function getQuickAutomationTypeForToken(
   path: string,
   name: string,
   tokenType: string | undefined,
@@ -359,7 +359,7 @@ export function getQuickRecipeTypeForToken(
   return null;
 }
 
-export function getQuickRecipeActionLabel(type: RecipeType): string {
+export function getQuickAutomationActionLabel(type: RecipeType): string {
   switch (type) {
     case "colorRamp":
       return "Create color palette…";
@@ -372,7 +372,7 @@ export function getQuickRecipeActionLabel(type: RecipeType): string {
     case "borderRadiusScale":
       return "Create radius scale…";
     default:
-      return `Create ${getRecipeTypeLabel(type).toLowerCase()}…`;
+      return `Create ${getAutomationTypeLabel(type).toLowerCase()}…`;
   }
 }
 
@@ -436,7 +436,7 @@ export function TokenRowBrowseMetaBadge({
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
       ) : (
-        <RecipeGlyph size={8} className="shrink-0" />
+        <AutomationGlyph size={8} className="shrink-0" />
       )}
       <span
         className={`truncate ${expanded ? "max-w-[140px]" : "max-w-[88px]"}`}
@@ -582,7 +582,7 @@ export function getBrowseMetaForReference(
   };
 }
 
-export function getBrowseMetaForRecipe(sourceToken: string, expanded: boolean) {
+export function getBrowseMetaForAutomation(sourceToken: string, expanded: boolean) {
   return {
     kind: "recipe" as const,
     compactLabel: getCompactPathLabel(sourceToken),

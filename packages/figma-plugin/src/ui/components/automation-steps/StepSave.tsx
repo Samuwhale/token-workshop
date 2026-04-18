@@ -6,7 +6,7 @@ import type {
   GeneratedTokenResult,
   InputTable,
 } from '../../hooks/useRecipes';
-import type { RecipePreviewAnalysis } from '../../hooks/useRecipePreview';
+import type { RecipePreviewAnalysis } from '../../hooks/useAutomationPreview';
 import { Spinner } from '../Spinner';
 import { AUTHORING } from '../../shared/editorClasses';
 import { RiskDetailSections } from './RiskDetailSections';
@@ -119,7 +119,7 @@ export function StepSave({
           </span>
           <div className="max-h-[80px] overflow-y-auto flex flex-col gap-0.5">
             {overwritePendingPaths.map((p: string) => (
-              <div key={p} className="text-[9px] font-mono text-[var(--color-figma-warning)]/80 truncate" title={p}>{p}</div>
+              <div key={p} className="text-[10px] font-mono text-[var(--color-figma-warning)]/80 truncate" title={p}>{p}</div>
             ))}
           </div>
         </div>

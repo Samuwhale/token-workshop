@@ -43,7 +43,7 @@ interface TokenUsagesProps {
   /** Open the dependency graph focused on a token */
   onShowReferences?: (path: string) => void;
   /** Navigate to a recipe's contextual editor */
-  onNavigateToRecipe?: (recipeId: string) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
 }
 
 const NODE_TYPE_ICONS: Record<string, string> = {
@@ -84,7 +84,7 @@ const RECIPE_TYPE_STYLES: Record<string, { label: string; classes: string }> = {
 export function TokenUsages({
   dependents, dependentsLoading, collectionId, tokenPath, tokenType, value,
   isDirty, aliasMode, allTokensFlat, colorFlatMap, pathToCollectionId, initialValue,
-  producingRecipe, sourceRecipes, onNavigateToToken, onShowReferences, onNavigateToRecipe,
+  producingRecipe, sourceRecipes, onNavigateToToken, onShowReferences, onNavigateToAutomation,
 }: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -313,7 +313,7 @@ export function TokenUsages({
                           <path d="M1 3h5M4 1l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                         <span className="font-mono truncate max-w-[80px]" title={newValueStr}>{newValueStr}</span>
-                        <span className="text-[9px] opacity-50">(unsaved)</span>
+                        <span className="text-[10px] opacity-50">(unsaved)</span>
                       </>
                     )}
                   </span>
@@ -336,7 +336,7 @@ export function TokenUsages({
           {showComponentList && componentNames.length > 0 && (
             <div className="px-3 py-1.5 flex flex-wrap gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
               {componentNames.map(name => (
-                <span key={name} className="px-1.5 py-0.5 rounded text-[9px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] truncate max-w-[120px]" title={name}>
+                <span key={name} className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] truncate max-w-[120px]" title={name}>
                   {name}
                 </span>
               ))}
@@ -357,7 +357,7 @@ export function TokenUsages({
                   <button
                     type="button"
                     onClick={() => onShowReferences(tokenPath)}
-                    className="text-[9px] normal-case tracking-normal text-[var(--color-figma-accent)] hover:underline opacity-100 transition-colors"
+                    className="text-[10px] normal-case tracking-normal text-[var(--color-figma-accent)] hover:underline opacity-100 transition-colors"
                     title="View in dependency graph"
                   >
                     View in graph
@@ -469,17 +469,17 @@ export function TokenUsages({
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Managed by</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
                       RECIPE_TYPE_STYLES[producingRecipe.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
                       {RECIPE_TYPE_STYLES[producingRecipe.type]?.label ?? producingRecipe.type}
                     </span>
-                    {onNavigateToRecipe ? (
+                    {onNavigateToAutomation ? (
                       <button
                         type="button"
                         className="flex-1 min-w-0 text-left text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline truncate"
                         title={`Open recipe "${producingRecipe.name}" in Graph panel`}
-                        onClick={() => onNavigateToRecipe(producingRecipe.id)}
+                        onClick={() => onNavigateToAutomation(producingRecipe.id)}
                       >
                         {producingRecipe.name}
                       </button>
@@ -496,7 +496,7 @@ export function TokenUsages({
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Source for</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
                       RECIPE_TYPE_STYLES[gen.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
                       {RECIPE_TYPE_STYLES[gen.type]?.label ?? gen.type}
@@ -551,7 +551,7 @@ export function TokenUsages({
                       {resolver.name}
                     </span>
                     {resolver.description && (
-                      <span className="shrink-0 text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 truncate max-w-[80px]" title={resolver.description}>
+                      <span className="shrink-0 text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 truncate max-w-[80px]" title={resolver.description}>
                         {resolver.description}
                       </span>
                     )}
@@ -592,7 +592,7 @@ export function TokenUsages({
                         {layer.name}
                       </span>
                       {layer.componentName && (
-                        <span className="block text-[9px] text-[var(--color-figma-text-secondary)] truncate opacity-70">
+                        <span className="block text-[10px] text-[var(--color-figma-text-secondary)] truncate opacity-70">
                           {layer.componentName}
                         </span>
                       )}
@@ -613,7 +613,7 @@ export function TokenUsages({
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No usages found</p>
-              <p className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, recipe, layer, collection mode, or resolver.</p>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, recipe, layer, collection mode, or resolver.</p>
             </div>
           )}
         </div>

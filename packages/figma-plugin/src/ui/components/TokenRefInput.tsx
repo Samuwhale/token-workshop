@@ -109,7 +109,7 @@ export function TokenRefInput({
             onClick={openPicker}
             title="Link to a token"
             aria-label="Link to a token"
-            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
@@ -134,7 +134,7 @@ export function TokenRefInput({
             {tokenRef}
           </span>
           {linkedValueLabel && (
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
               {linkedValueLabel}
             </span>
           )}
@@ -143,7 +143,7 @@ export function TokenRefInput({
             onClick={onUnlink}
             title="Unlink token — edit value directly"
             aria-label="Unlink token"
-            className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+            className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>

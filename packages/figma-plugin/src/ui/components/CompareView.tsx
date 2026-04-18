@@ -895,7 +895,7 @@ function ModePairsMode({
                       <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">{par}.</span>
                     )}
                     <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{leaf}</span>
-                    <span className="ml-auto text-[8px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
+                    <span className="ml-auto text-[8px] text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
                       {diff.type}
                     </span>
                   </div>
@@ -1139,7 +1139,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
               <option key={collectionId} value={collectionId}>{collectionId}</option>
             ))}
           </select>
-          {loadingA && <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Loading…</span>}
+          {loadingA && <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Loading…</span>}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
@@ -1153,7 +1153,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
               <option key={collectionId} value={collectionId}>{collectionId}</option>
             ))}
           </select>
-          {loadingB && <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Loading…</span>}
+          {loadingB && <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Loading…</span>}
         </div>
       </div>
 
@@ -1301,10 +1301,10 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                       <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">{par}.</span>
                     )}
                     <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{diff.name}</span>
-                    <span className={`ml-auto text-[8px] uppercase tracking-wide shrink-0 px-1 py-0.5 rounded ${statusColor}`}>
+                    <span className={`ml-auto text-[8px] shrink-0 px-1 py-0.5 rounded ${statusColor}`}>
                       {statusLabel}
                     </span>
-                    <span className="text-[8px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
+                    <span className="text-[8px] text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
                       {diff.type}
                     </span>
                   </div>

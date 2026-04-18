@@ -120,7 +120,7 @@ export function TokenEditorValueSection({
           </div>
         </div>
         {VALUE_FORMAT_HINTS[tokenType] && (
-          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">
             {VALUE_FORMAT_HINTS[tokenType]}
           </span>
         )}

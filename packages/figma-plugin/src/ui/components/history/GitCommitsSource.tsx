@@ -301,7 +301,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
           <polyline points="12 6 12 12 16 14" />
         </svg>
         <div className="flex flex-col gap-1">
-          <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No commits yet</p>
+          <p className="text-[14px] font-semibold text-[var(--color-figma-text)]">No commits yet</p>
           <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
             Commit changes in the Publish tab to start tracking version history.
           </p>
@@ -404,7 +404,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
                     }]);
                   }}
                   disabled={restoring !== null}
-                  className="shrink-0 ml-auto opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto transition-opacity px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                  className="shrink-0 ml-auto opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto transition-opacity px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
                   title={`Restore ${change.path} to its previous value`}
                 >
                   {restoring === change.path ? (
@@ -424,7 +424,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
             <div className="bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded-lg shadow-xl mx-4 max-w-[280px] w-full overflow-hidden">
               <div className="px-4 pt-4 pb-3">
-                <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">Confirm restore</p>
+                <p className="text-[14px] font-semibold text-[var(--color-figma-text)]">Confirm restore</p>
                 <p className="text-[11px] text-[var(--color-figma-text-secondary)] mt-1.5 leading-relaxed">
                   {pendingRestore.summary.total === 1
                     ? 'This will overwrite 1 token:'

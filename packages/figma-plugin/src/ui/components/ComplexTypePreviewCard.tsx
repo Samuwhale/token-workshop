@@ -71,7 +71,7 @@ function TypographyPreview({ value }: { value: Record<string, any> }) {
       >
         The quick brown fox jumps over the lazy dog
       </div>
-      <div className="text-[9px] text-[var(--color-figma-text-tertiary)] truncate">
+      <div className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
         {props.join(' · ')}
       </div>
     </div>
@@ -143,7 +143,7 @@ function CubicBezierPreview({ value }: { value: number[] }) {
         <circle cx={sx} cy={sy} r="3" fill="var(--color-figma-text-secondary)" />
         <circle cx={ex} cy={ey} r="3" fill="var(--color-figma-text-secondary)" />
       </svg>
-      <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+      <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
         cubic-bezier({value.join(', ')})
       </div>
     </div>
@@ -205,7 +205,7 @@ function BorderPreview({ value }: { value: Record<string, any> }) {
         className="w-20 h-14 rounded-lg bg-[var(--color-figma-bg)]"
         style={{ border }}
       />
-      <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+      <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
         {widthStr} {styleStr}
         {typeof value.color === 'string' && (
           <div className="flex items-center gap-1 mt-0.5">

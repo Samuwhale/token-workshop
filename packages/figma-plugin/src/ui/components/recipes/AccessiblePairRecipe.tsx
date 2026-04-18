@@ -59,7 +59,7 @@ export function AccessiblePairConfigEditor({ config, onChange }: {
             aria-label="Background step name"
             className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
           />
-          <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
             Token name for the background color.
           </p>
         </div>
@@ -75,7 +75,7 @@ export function AccessiblePairConfigEditor({ config, onChange }: {
             aria-label="Foreground step name"
             className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
           />
-          <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
             Token name for the foreground color.
           </p>
         </div>

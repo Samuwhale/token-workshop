@@ -17,6 +17,10 @@ This project is in **rapid, active development** and has not shipped to any user
 - Do not add shims, re-exports, deprecation warnings, or compatibility layers
 - Do not write hacks or shortcut implementations
 
+## Canonical Domain Model
+
+Keep one canonical authoring model aligned to the Figma mental model: collections are the primary container, modes belong to collections, and tokens belong to collections and vary only by their own collection's modes. Do not reintroduce overlapping `set`, `theme`, or mixed view-state concepts into the domain model; selected modes and hover preview are view state only, and recipes are advanced automation layered on top of authored tokens.
+
 ## Tests
 
 - Do NOT write, expand, or refactor tests unless explicitly asked

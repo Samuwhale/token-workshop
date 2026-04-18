@@ -22,7 +22,7 @@ export interface UseTokenSaveParams {
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRecordTouch: (path: string) => void;
-  onRefreshRecipes?: () => void;
+  onRefreshAutomations?: () => void;
   onError?: (msg: string) => void;
 }
 
@@ -42,7 +42,7 @@ export function useTokenSave({
   onRefresh,
   onPushUndo,
   onRecordTouch,
-  onRefreshRecipes,
+  onRefreshAutomations,
   onError,
 }: UseTokenSaveParams) {
   const collectionIdRef = useRef(collectionId);
@@ -255,8 +255,8 @@ export function useTokenSave({
       return;
     }
     onRefresh();
-    onRefreshRecipes?.();
-  }, [connected, recipes, onError, onRefresh, onRefreshRecipes, serverUrl, collectionId]);
+    onRefreshAutomations?.();
+  }, [connected, recipes, onError, onRefresh, onRefreshAutomations, serverUrl, collectionId]);
 
   return {
     handleInlineSave,

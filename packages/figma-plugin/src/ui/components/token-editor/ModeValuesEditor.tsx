@@ -131,7 +131,7 @@ export function ModeValuesEditor({
           </p>
         </div>
         {collectionCoverage ? (
-          <div className="flex shrink-0 flex-col items-end gap-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+          <div className="flex shrink-0 flex-col items-end gap-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span>
               {collectionCoverage.filledCount}/{collectionCoverage.optionCount} filled
             </span>
@@ -175,10 +175,14 @@ export function ModeValuesEditor({
             <div
               key={option.name}
               className={`group flex items-center gap-2 px-2.5 py-1.5 ${
-                isOverridden
-                  ? "border-l-2 border-l-[var(--color-figma-accent)]"
-                  : "border-l-2 border-l-transparent"
-              } ${isSelectedMode ? "bg-[var(--color-figma-accent)]/5" : ""}`}
+                isOverridden && isSelectedMode
+                  ? "bg-[var(--color-figma-accent)]/12"
+                  : isOverridden
+                    ? "bg-[var(--color-figma-accent)]/8"
+                    : isSelectedMode
+                      ? "bg-[var(--color-figma-accent)]/5"
+                      : ""
+              }`}
             >
               <span
                 className="w-[92px] shrink-0 truncate text-[10px] font-medium text-[var(--color-figma-text)]"

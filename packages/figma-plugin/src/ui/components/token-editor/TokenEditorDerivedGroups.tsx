@@ -1,7 +1,7 @@
 import type { TokenRecipe } from "../../hooks/useRecipes";
-import type { TokensLibraryRecipeEditorTarget } from "../../shared/navigationTypes";
+import type { TokensLibraryAutomationEditorTarget } from "../../shared/navigationTypes";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
-import { getQuickRecipeTypeForToken } from "../token-tree/tokenTreeNodeShared";
+import { getQuickAutomationTypeForToken } from "../token-tree/tokenTreeNodeShared";
 
 export interface TokenEditorDerivedGroupsProps {
   tokenPath: string;
@@ -9,7 +9,7 @@ export interface TokenEditorDerivedGroupsProps {
   tokenType: string;
   value: any;
   existingRecipesForToken: TokenRecipe[];
-  openRecipeEditor: (target: TokensLibraryRecipeEditorTarget) => void;
+  openAutomationEditor: (target: TokensLibraryAutomationEditorTarget) => void;
 }
 
 export function TokenEditorDerivedGroups({
@@ -18,9 +18,9 @@ export function TokenEditorDerivedGroups({
   tokenType,
   value,
   existingRecipesForToken,
-  openRecipeEditor,
+  openAutomationEditor,
 }: TokenEditorDerivedGroupsProps) {
-  const quickType = getQuickRecipeTypeForToken(
+  const quickType = getQuickAutomationTypeForToken(
     tokenPath,
     tokenName ?? tokenPath.split(".").pop() ?? "",
     tokenType,
@@ -41,15 +41,20 @@ export function TokenEditorDerivedGroups({
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-      <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-        <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-          Recipes
-        </span>
-        {existingRecipesForToken.length > 0 && (
-          <span className="text-[10px] tabular-nums text-[var(--color-figma-text-secondary)]">
-            {existingRecipesForToken.length}
+      <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            Automations
           </span>
-        )}
+          {existingRecipesForToken.length > 0 && (
+            <span className="text-[10px] tabular-nums text-[var(--color-figma-text-secondary)]">
+              {existingRecipesForToken.length}
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 text-[10px] text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">
+          Auto-generate token groups from a formula
+        </p>
       </div>
       <div className="px-3 py-2 flex flex-col gap-2">
         {existingRecipesForToken.length > 0 ? (
@@ -76,7 +81,7 @@ export function TokenEditorDerivedGroups({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    openRecipeEditor({
+                    openAutomationEditor({
                       mode: 'edit',
                       id: gen.id,
                     });
@@ -91,12 +96,12 @@ export function TokenEditorDerivedGroups({
           </div>
         ) : (
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            No recipes yet.
+            No automations yet.
           </p>
         )}
         <button
           onClick={() => {
-            openRecipeEditor({
+            openAutomationEditor({
               mode: 'create',
               sourceTokenPath: tokenPath,
               sourceTokenName: tokenName,
@@ -109,7 +114,7 @@ export function TokenEditorDerivedGroups({
           }}
           className="self-start rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
         >
-          Generate scale from this token
+          Create automation from this token
         </button>
       </div>
     </div>

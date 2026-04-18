@@ -165,7 +165,7 @@ export function RemapAutocompleteInput({
                     {preview}
                   </span>
                 ) : null}
-                <span className="shrink-0 text-[7px] text-[var(--color-figma-text-secondary)]">
+                <span className="shrink-0 text-[8px] text-[var(--color-figma-text-secondary)]">
                   {entry?.$type ?? "stale"}
                 </span>
               </button>

@@ -115,10 +115,10 @@ export function PlatformExportConfig({
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
               Presets
             </div>
-            <kbd className="text-[9px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 font-mono leading-none" title="Export with preset (command palette)">⌘⇧E</kbd>
+            <kbd className="text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 font-mono leading-none" title="Export with preset (command palette)">⌘⇧E</kbd>
           </div>
           <button
             onClick={() => {
@@ -187,7 +187,7 @@ export function PlatformExportConfig({
                 <button
                   onClick={() => onLoadPresetFiltersOnly(preset)}
                   title="Apply collections, types, and path prefix from this preset — keeps the current platform selection"
-                  className="px-1.5 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="px-1.5 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   aria-label={`Apply filters only from preset ${preset.name}`}
                 >
                   Filters
@@ -213,7 +213,7 @@ export function PlatformExportConfig({
       {/* Target Platforms */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
             Target Platforms
           </div>
           <button
@@ -681,7 +681,7 @@ export function PlatformExportConfig({
       {/* ZIP Options (shown after first export) */}
       {results.length > 0 && (
         <div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-2">
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium mb-2">
             ZIP Options
           </div>
           <div className="flex flex-col gap-2 mb-3">
@@ -717,7 +717,7 @@ export function PlatformExportConfig({
                 )}
               </div>
               <span className="text-[10px] text-[var(--color-figma-text)]">Nest files by platform folder</span>
-              <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">e.g. css/variables.css</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">e.g. css/variables.css</span>
             </label>
           </div>
         </div>
@@ -730,7 +730,7 @@ export function PlatformExportConfig({
         return (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
                 Preview
               </div>
               <div className="flex items-center gap-2">
@@ -775,7 +775,7 @@ export function PlatformExportConfig({
                         : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
                     }`}
                   >
-                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium uppercase font-sans">
+                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium font-sans">
                       {file.platform}
                     </span>
                     {file.path}
@@ -808,7 +808,7 @@ export function PlatformExportConfig({
                   <tbody>
                     {lines.map((line, lineIdx) => (
                       <tr key={lineIdx} className="hover:bg-[var(--color-figma-bg-hover)]/50">
-                        <td className="px-2 py-0 text-[9px] font-mono text-[var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
+                        <td className="px-2 py-0 text-[10px] font-mono text-[var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
                           {lineIdx + 1}
                         </td>
                         <td className="px-3 py-0 text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre break-all">

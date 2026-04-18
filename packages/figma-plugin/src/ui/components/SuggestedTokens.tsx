@@ -77,7 +77,7 @@ export function SuggestedTokens({
           <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
             {title}
           </span>
-          <span className="text-[9px] bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
+          <span className="text-[10px] bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
             {suggestions.length}
           </span>
         </button>
@@ -114,7 +114,7 @@ export function SuggestedTokens({
                       />
                     ) : (
                       <div className="w-3 h-3 rounded-sm bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center">
-                        <span className="text-[7px] text-[var(--color-figma-text-secondary)] font-bold leading-none">
+                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] font-bold leading-none">
                           {s.entry.$type.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -156,7 +156,7 @@ export function SuggestedTokens({
                     <div className="absolute right-1 top-0 bottom-0 flex items-center">
                       <button
                         onClick={() => onApply(s.path, s.bestProperty)}
-                        className="opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-figma-accent)]"
+                        className="opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-figma-accent)]"
                         title={`Apply "${s.path}" to ${propLabel}`}
                         aria-label={`Apply ${s.path} to ${propLabel}`}
                       >
@@ -176,7 +176,7 @@ export function SuggestedTokens({
                 setShowAll(true);
                 lsSet(LS_SHOW_ALL_KEY, 'true');
               }}
-              className="w-full text-[9px] text-[var(--color-figma-accent)] text-center py-1.5 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+              className="w-full text-[10px] text-[var(--color-figma-accent)] text-center py-1.5 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-accent)]/5 transition-colors"
             >
               Show {weakGroup!.items.length} more
             </button>
@@ -187,7 +187,7 @@ export function SuggestedTokens({
                 setShowAll(false);
                 lsSet(LS_SHOW_ALL_KEY, 'false');
               }}
-              className="w-full text-[9px] text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full text-[10px] text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Hide weak
             </button>

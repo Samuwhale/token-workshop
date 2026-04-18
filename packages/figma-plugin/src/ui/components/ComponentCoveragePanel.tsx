@@ -140,19 +140,19 @@ export function ComponentCoveragePanel() {
         <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
           <div className="grid grid-cols-4 divide-x divide-[var(--color-figma-border)]">
             <div className="px-2 py-2 text-center">
-              <div className="text-[14px] font-bold text-[var(--color-figma-text)]">{coverageResult.totalComponents}</div>
+              <div className="text-[13px] font-bold text-[var(--color-figma-text)]">{coverageResult.totalComponents}</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Total</div>
             </div>
             <div className="px-2 py-2 text-center">
-              <div className="text-[14px] font-bold text-[var(--color-figma-success)]">{coverageResult.tokenizedComponents}</div>
+              <div className="text-[13px] font-bold text-[var(--color-figma-success)]">{coverageResult.tokenizedComponents}</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Tokenized</div>
             </div>
             <div className="px-2 py-2 text-center">
-              <div className="text-[14px] font-bold text-[var(--color-figma-warning)]">{coverageResult.totalUntokenized}</div>
+              <div className="text-[13px] font-bold text-[var(--color-figma-warning)]">{coverageResult.totalUntokenized}</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Untokenized</div>
             </div>
             <div className="px-2 py-2 text-center">
-              <div className="text-[14px] font-bold text-[var(--color-figma-text)]">
+              <div className="text-[13px] font-bold text-[var(--color-figma-text)]">
                 {coverageResult.totalComponents > 0
                   ? Math.round((coverageResult.tokenizedComponents / coverageResult.totalComponents) * 100)
                   : 0}%

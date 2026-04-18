@@ -280,7 +280,7 @@ export function ContrastCheckConfigEditor({ config, onChange, allTokensFlat, pat
                   </span>
                 )}
                 <button onClick={() => removeStep(idx)} title="Remove step" aria-label="Remove step"
-                  className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[12px] leading-none">×</button>
+                  className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[13px] leading-none">×</button>
               </div>
             );
           })}

@@ -195,7 +195,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
               }}
             >
               <span
-                className="shrink-0 w-[28px] text-center text-[12px] leading-none overflow-hidden"
+                className="shrink-0 w-[28px] text-center text-[13px] leading-none overflow-hidden"
                 style={{ fontFamily: family }}
                 aria-hidden="true"
               >

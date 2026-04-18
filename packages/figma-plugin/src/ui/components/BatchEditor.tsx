@@ -1040,7 +1040,7 @@ export function BatchEditor({
       {/* Header */}
       <div className="tm-authoring-surface__header flex items-center justify-between shrink-0">
         <div className="min-w-0 flex-1">
-          <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+          <div className="text-[14px] font-semibold text-[var(--color-figma-text)]">
             Bulk edit {selectedPaths.size} token{selectedPaths.size !== 1 ? 's' : ''}
           </div>
           {selectionScope && (
@@ -1173,7 +1173,7 @@ export function BatchEditor({
           </button>
           {showScopes && (
             <div className="ml-[16px] mt-1 space-y-1">
-              <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
                 Applied to {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'}. Empty = all scopes.
               </p>
               {availableScopes.map(scope => (
@@ -1190,7 +1190,7 @@ export function BatchEditor({
                   />
                   <span className="flex flex-col">
                     <span className="text-[10px] text-[var(--color-figma-text)] leading-snug">{scope.label}</span>
-                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">{scope.description}</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">{scope.description}</span>
                   </span>
                 </label>
               ))}
@@ -1198,7 +1198,7 @@ export function BatchEditor({
                 <button
                   type="button"
                   onClick={() => setBatchScopes([])}
-                  className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] underline"
+                  className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] underline"
                 >
                   Clear all scopes
                 </button>
@@ -1222,7 +1222,7 @@ export function BatchEditor({
         </button>
         {showExtensions && (
           <div className="ml-[16px] mt-1 space-y-1">
-            <p className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
               Merged into <span className="font-mono">$extensions</span> on {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'}. Values parsed as JSON.
             </p>
             {batchExtensions.map((entry, i) => (
@@ -1258,7 +1258,7 @@ export function BatchEditor({
             <button
               type="button"
               onClick={() => setBatchExtensions(prev => [...prev, { key: '', value: '' }])}
-              className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
             >
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><path d="M4 1v6M1 4h6"/></svg>
               Add extension key

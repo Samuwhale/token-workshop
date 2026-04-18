@@ -240,14 +240,14 @@ export function FileTokenDiffList({
                   {change.file}
                 </button>
                 {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && hasTokenChanges && (
-                  <span className="flex gap-1.5 text-[9px] font-mono shrink-0 ml-auto">
+                  <span className="flex gap-1.5 text-[10px] font-mono shrink-0 ml-auto">
                     {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
                     {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
                     {removedCount > 0 && <span className="text-[var(--color-figma-error)]">&minus;{removedCount}</span>}
                   </span>
                 )}
                 {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && !hasTokenChanges && change.status !== 'D' && (
-                  <span className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
+                  <span className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
@@ -311,7 +311,7 @@ export function SyncDiffSummary({ rows, dirs }: {
                 <div key={getDiffRowId(r)} className="px-2 py-1">
                   <div className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</div>
                   {r.targetLabel ? (
-                    <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] truncate" title={r.targetLabel}>
+                    <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] truncate" title={r.targetLabel}>
                       {r.targetLabel}
                     </div>
                   ) : null}
@@ -352,7 +352,7 @@ export function SyncDiffSummary({ rows, dirs }: {
 
 function ScopesPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] leading-4">
+    <span className="inline-flex items-center px-1 py-0 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] leading-4">
       {label}
     </span>
   );
@@ -428,13 +428,13 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
         <div className="min-w-0 flex-1">
           <div className="text-[10px] text-[var(--color-figma-text)] truncate font-mono" title={row.path}>{row.path}</div>
           {row.targetLabel ? (
-            <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] truncate" title={row.targetLabel}>
+            <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] truncate" title={row.targetLabel}>
               {row.targetLabel}
             </div>
           ) : null}
         </div>
         {reviewOnly ? (
-          <span className="shrink-0 rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+          <span className="shrink-0 rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
             Review only
           </span>
         ) : (
@@ -476,21 +476,21 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
         <div className="pl-0.5">
           {/* Scope summary row */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Scopes:</span>
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Scopes:</span>
             {(canEditScopes ? (scopeValue?.length ? scopeValue : null) : (figmaScopeValue ?? null))
               ? (canEditScopes ? scopeValue! : figmaScopeValue!).map(s => {
                   const opt = scopeOptions!.find(o => o.value === s);
                   return <ScopesPill key={s} label={opt?.label ?? s} />;
                 })
-              : <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">All scopes</span>
+              : <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">All scopes</span>
             }
             {scopesDiffer && (
-              <span className="text-[9px] text-[var(--color-figma-warning)] font-medium shrink-0" title="Local and Figma scopes differ">scope conflict</span>
+              <span className="text-[10px] text-[var(--color-figma-warning)] font-medium shrink-0" title="Local and Figma scopes differ">scope conflict</span>
             )}
             {canEditScopes && (
               <button
                 onClick={() => setScopesExpanded(v => !v)}
-                className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] flex items-center gap-0.5 shrink-0"
+                className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] flex items-center gap-0.5 shrink-0"
                 aria-expanded={scopesExpanded}
                 aria-label="Edit scopes"
               >
@@ -504,20 +504,20 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
 
           {/* Scope editor (expanded) */}
           {canEditScopes && scopesExpanded && (
-            <div className="mt-1 pl-1 border-l-2 border-[var(--color-figma-accent)]/30">
+            <div className="mt-1 pl-2">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Select which Figma properties can use this variable</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Select which Figma properties can use this variable</span>
                 {scopeValue?.length ? (
                   <button
                     onClick={() => onScopesChange!([])}
-                    className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                    className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
                   >
                     Clear (all)
                   </button>
                 ) : (
                   <button
                     onClick={() => onScopesChange!(scopeOptions!.map(o => o.value))}
-                    className="text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                    className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
                   >
                     Select all
                   </button>
@@ -534,13 +534,13 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
           {/* Figma-only: show figma scopes conflict hint for conflict rows */}
           {row.cat === 'conflict' && scopesDiffer && figmaScopeValue !== undefined && scopeOptions && (
             <div className="mt-0.5 flex items-start gap-1 flex-wrap">
-              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Figma:</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Figma:</span>
               {figmaScopeValue.length
                 ? figmaScopeValue.map(s => {
                     const opt = scopeOptions.find(o => o.value === s);
                     return <ScopesPill key={s} label={opt?.label ?? s} />;
                   })
-                : <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">All scopes</span>
+                : <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">All scopes</span>
               }
             </div>
           )}

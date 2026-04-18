@@ -168,16 +168,16 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                     {desc}
                   </span>
                   {i === 0 && (
-                    <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] font-medium">
+                    <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] font-medium">
                       Undo available
                     </span>
                   )}
-                  <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                  <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
                     Local
                   </span>
                 </div>
               ))}
-              <p className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] italic">
+              <p className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] italic">
                 Local actions are undoable with ⌘Z but lost on refresh.
               </p>
             </div>
@@ -271,13 +271,13 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                         {op.resourceId}
                       </span>
-                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                         · {op.affectedPaths.length} path{op.affectedPaths.length !== 1 ? 's' : ''}
                       </span>
-                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                         · {formatRelativeTime(new Date(op.timestamp))}
                       </span>
                     </div>
@@ -285,7 +285,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                   <div className="shrink-0 mt-0.5 flex items-center gap-1">
                     {op.rolledBack ? (
                       <>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
                           Rolled back
                         </span>
                         {redoableOpIds?.has(op.id) && onServerRedo && (
@@ -293,7 +293,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                             onClick={() => handleRedo(op.id)}
                             disabled={redoing !== null || rollingBack !== null}
                             title="Redo this operation (⌘Y)"
-                            className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                            className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                           >
                             {redoing === op.id ? (
                               <span className="flex items-center gap-1">
@@ -308,7 +308,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                       <button
                         onClick={() => setConfirmOp(op)}
                         disabled={rollingBack !== null}
-                        className="text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                        className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                       >
                         {rollingBack === op.id ? (
                           <span className="flex items-center gap-1">
@@ -331,7 +331,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                   </button>
                 </div>
               )}
-              <p className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] italic">
+              <p className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] italic">
                 Server operations persist across sessions and can be rolled back.
               </p>
             </div>

@@ -233,7 +233,7 @@ export function TokenPickerDropdown({
           </div>
         )}
         {hasRecent && !query.trim() && (
-          <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
+          <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
             Recent
           </div>
         )}
@@ -283,7 +283,7 @@ export function TokenPickerDropdown({
 
               {/* Type badge */}
               <span
-                className={`text-[8px] px-1 py-0.5 rounded font-medium uppercase shrink-0 ${
+                className={`text-[8px] px-1 py-0.5 rounded font-medium shrink-0 ${
                   TOKEN_TYPE_BADGE_CLASS[entry.$type ?? ''] ?? 'token-type-string'
                 }`}
               >

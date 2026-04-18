@@ -163,7 +163,7 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
                         {entry.description}
                       </span>
                       {entry.rolledBack && (
-                        <span className="shrink-0 px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)] leading-none">
+                        <span className="shrink-0 px-1 py-px rounded text-[10px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)] leading-none">
                           rolled back
                         </span>
                       )}
@@ -172,7 +172,7 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
                           type="button"
                           onClick={() => handleRollback(entry.id)}
                           disabled={rollingBack === entry.id}
-                          className="shrink-0 px-1 py-px rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-transparent hover:border-[var(--color-figma-border)] disabled:opacity-50 leading-none"
+                          className="shrink-0 px-1 py-px rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-transparent hover:border-[var(--color-figma-border)] disabled:opacity-50 leading-none"
                           title="Undo this change"
                         >
                           {rollingBack === entry.id ? '…' : 'Undo'}

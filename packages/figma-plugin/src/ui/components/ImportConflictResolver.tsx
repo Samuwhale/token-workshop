@@ -98,7 +98,7 @@ export function ImportConflictResolver() {
               key={d}
               onClick={() => applyToVisible(d)}
               title={`${d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}${hasActiveFilter ? ' visible' : ' all'}`}
-              className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${
+              className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                 d === 'accept'
                   ? 'text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10'
                   : d === 'merge'
@@ -129,7 +129,7 @@ export function ImportConflictResolver() {
         {(sortedConflictTypes.length > 1 || conflictPaths.length > 5) && (
           <button
             onClick={() => setShowFilters(v => !v)}
-            className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
               showFilters || hasActiveFilter
                 ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                 : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30'
@@ -195,7 +195,7 @@ export function ImportConflictResolver() {
                           setConflictDecisions(next);
                         }}
                         aria-pressed={decision === d}
-                        className={`px-1 py-0.5 text-[9px] font-medium transition-colors ${
+                        className={`px-1 py-0.5 text-[10px] font-medium transition-colors ${
                           i > 0 ? 'border-l border-[var(--color-figma-border)]' : ''
                         } ${
                           decision === d

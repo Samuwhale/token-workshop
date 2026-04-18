@@ -61,16 +61,16 @@ function GradientStopMarker({ position, color, isSelected, onSelect, onMove, get
       onPointerUp={handlePointerUp}
       onClick={e => e.stopPropagation()}
     >
-      {/* Triangle tooth pointing up into the gradient bar */}
+      {/* Caret pointing up into the gradient bar */}
       <div
         className="absolute"
         style={{
           top: -4,
-          width: 0,
-          height: 0,
-          borderLeft: '4px solid transparent',
-          borderRight: '4px solid transparent',
-          borderBottom: isSelected ? '4px solid var(--color-figma-accent)' : '4px solid var(--color-figma-text-secondary)',
+          width: 6,
+          height: 6,
+          transform: 'rotate(45deg)',
+          backgroundColor: isSelected ? 'var(--color-figma-accent)' : 'var(--color-figma-bg-secondary)',
+          boxShadow: isSelected ? '0 0 0 1px var(--color-figma-accent)' : '0 0 0 1px var(--color-figma-text-tertiary)',
         }}
       />
       {/* Color swatch circle */}

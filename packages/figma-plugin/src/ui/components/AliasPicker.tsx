@@ -83,7 +83,7 @@ export function AliasPicker({
             }`}
           >
             Reference
-            <kbd className="font-sans text-[9px] opacity-70">⌘L</kbd>
+            <kbd className="font-sans text-[10px] opacity-70">⌘L</kbd>
           </button>
         </div>
       </div>

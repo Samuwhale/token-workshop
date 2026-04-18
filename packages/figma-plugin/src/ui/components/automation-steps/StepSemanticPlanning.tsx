@@ -55,7 +55,7 @@ function StateButton({
       <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
         {label}
       </div>
-      <div className="mt-0.5 text-[9.5px] leading-snug text-[var(--color-figma-text-secondary)]">
+      <div className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
         {description}
       </div>
     </button>
@@ -319,7 +319,7 @@ export function StepSemanticPlanning({
             Alias output preview
           </div>
           <span
-            className={`rounded-full px-2 py-0.5 text-[9px] font-medium ${
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
               state === 'skip'
                 ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]'
                 : state === 'suggested'

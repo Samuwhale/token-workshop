@@ -347,7 +347,7 @@ export function FormulaInput({
           ref={listRef}
           className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
         >
-          <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] border-b border-[var(--color-figma-border)] uppercase tracking-wider">
+          <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] border-b border-[var(--color-figma-border)] uppercase tracking-wider">
             Token references
           </div>
           {acEntries.map(([path, entry], idx) => (
@@ -381,7 +381,7 @@ export function FormulaInput({
               )}
 
               {/* Type badge */}
-              <span className={`text-[8px] px-1 py-0.5 rounded font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[entry.$type ?? ''] ?? 'token-type-string'}`}>
+              <span className={`text-[8px] px-1 py-0.5 rounded font-medium shrink-0 ${TOKEN_TYPE_BADGE_CLASS[entry.$type ?? ''] ?? 'token-type-string'}`}>
                 {entry.$type}
               </span>
 
@@ -399,7 +399,7 @@ export function FormulaInput({
       {/* Operator hints bar */}
       {showOperatorHints && !showAutocomplete && (
         <div className="absolute z-40 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg px-1 py-1 flex items-center gap-0.5 flex-wrap">
-          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] mr-1">Operators:</span>
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] mr-1">Operators:</span>
           {OPERATORS.map(({ op, label }) => (
             <button
               key={op}
@@ -410,7 +410,7 @@ export function FormulaInput({
               {op}
             </button>
           ))}
-          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] ml-1">Type <kbd className="px-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">{'{'}</kbd> for token ref</span>
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] ml-1">Type <kbd className="px-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">{'{'}</kbd> for token ref</span>
         </div>
       )}
     </div>

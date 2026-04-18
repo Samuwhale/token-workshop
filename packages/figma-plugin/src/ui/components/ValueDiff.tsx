@@ -12,7 +12,7 @@ export function OriginalValuePreview({ type, value }: { type: string; value: any
 
   return (
     <div className="flex items-start gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide shrink-0 pt-0.5">Current</span>
+      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0 pt-0.5">Current</span>
       <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
         {type === 'color' && typeof value === 'string' && (
           <>
@@ -200,7 +200,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
     const a6 = typeof after === 'string' ? after.slice(0, 7) : null;
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide shrink-0">Before</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
         <div className="flex items-center gap-1.5 min-w-0">
           {b6 && (
             <div
@@ -240,7 +240,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
     const deltaStr = delta !== 0 ? `${delta > 0 ? '+' : ''}${delta}${unit}` : null;
     return (
       <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide shrink-0">Before</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
         <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{beforeLabel}</span>
         <ArrowRight />
         <span className="text-[10px] font-mono text-[var(--color-figma-text)]">{afterLabel}</span>
@@ -260,7 +260,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
     const deltaStr = delta !== 0 ? `${delta > 0 ? '+' : ''}${delta}` : null;
     return (
       <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide shrink-0">Before</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
         <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{String(before ?? '')}</span>
         <ArrowRight />
         <span className="text-[10px] font-mono text-[var(--color-figma-text)]">{String(after ?? '')}</span>
@@ -280,7 +280,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
     const afterFamily = Array.isArray(after?.fontFamily) ? after.fontFamily[0] : (after?.fontFamily ?? '');
     return (
       <div className="flex flex-col gap-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Before → After</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Before → After</span>
         <div className="flex items-center gap-2 min-w-0">
           <TypoPreviewSwatch value={before} />
           <span
@@ -307,7 +307,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
   if (type === 'shadow') {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide shrink-0">Before</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
         <div className="flex items-center gap-1.5 min-w-0">
           <ShadowPreviewSwatch value={before} />
           <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={formatShadow(before)}>{formatShadow(before)}</span>
@@ -324,7 +324,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
   if (type === 'border') {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide shrink-0">Before</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
         <div className="flex items-center gap-1.5 min-w-0">
           <BorderPreviewSwatch value={before} />
           <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={formatBorder(before)}>{formatBorder(before)}</span>
@@ -341,7 +341,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
   if (type === 'gradient') {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide shrink-0">Before</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
         <div className="flex items-center gap-1.5 min-w-0">
           <GradientPreviewSwatch value={before} />
           <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">{formatGradient(before)}</span>
@@ -360,7 +360,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
   const afterDisplay = typeof after === 'object' ? JSON.stringify(after) : String(after ?? '');
   return (
     <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-      <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide shrink-0">Before</span>
+      <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
       <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate max-w-[80px]" title={beforeDisplay}>
         {beforeDisplay}
       </span>

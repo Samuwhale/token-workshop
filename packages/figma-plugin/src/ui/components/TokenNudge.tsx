@@ -23,13 +23,13 @@ function LinkIcon() {
 function MatchLabel({ label }: { label: 'Exact' | 'Close' }) {
   if (label === 'Exact') {
     return (
-      <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
+      <span className="px-1 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
         Exact
       </span>
     );
   }
   return (
-    <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">
+    <span className="px-1 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">
       Close
     </span>
   );
@@ -68,7 +68,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
           </button>
           <MatchLabel label={m.label} />
           {m.label === 'Close' && (
-            <span className="opacity-40 text-[9px]">
+            <span className="opacity-40 text-[10px]">
               {isColor ? `ΔE ${m.distance.toFixed(1)}` : formatValue(tokenType, m.resolvedValue)}
             </span>
           )}
@@ -120,7 +120,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
             <strong className="flex-1 min-w-0 truncate">{`{${formatDisplayPath(m.path, leafName)}}`}</strong>
             <MatchLabel label={m.label} />
             {m.label === 'Close' && isColor && (
-              <span className="opacity-40 text-[9px]">ΔE {m.distance.toFixed(1)}</span>
+              <span className="opacity-40 text-[10px]">ΔE {m.distance.toFixed(1)}</span>
             )}
           </button>
         );

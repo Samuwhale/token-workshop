@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
 import type { GeneratedTokenResult, RecipeType } from '../hooks/useRecipes';
 import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
-import { TokenRecipeDialog } from './TokenRecipeDialog';
+import { AutomationEditorDialog } from './AutomationEditorDialog';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { apiFetch } from '../shared/apiFetch';
-import { createRecipeDraftFromTemplate } from '../hooks/useRecipeDialog';
+import { createRecipeDraftFromTemplate } from '../hooks/useAutomationDialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -477,7 +477,7 @@ export function QuickStartWizard({
       <>
         {!embedded && (
           <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Start a new token system</div>
+            <div className="text-[14px] font-semibold text-[var(--color-figma-text)]">Start a new token system</div>
             <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
@@ -518,7 +518,7 @@ export function QuickStartWizard({
 
   if (selectedTemplate) {
     return (
-      <TokenRecipeDialog
+      <AutomationEditorDialog
         serverUrl={serverUrl}
         currentCollectionId={effectiveCollectionId}
         collectionIds={collectionIds}
@@ -571,7 +571,7 @@ export function QuickStartWizard({
                 </svg>
               </button>
             )}
-              <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+              <div className="text-[14px] font-semibold text-[var(--color-figma-text)]">
               {viewTitle ?? 'Start a new token system'}
             </div>
           </div>

@@ -171,13 +171,13 @@ export function TableCreateForm({
               gridTemplateColumns: "minmax(0,1fr) 76px minmax(0,1fr) 18px",
             }}
           >
-            <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">
+            <span className="text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">
               Name
             </span>
-            <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">
+            <span className="text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">
               Type
             </span>
-            <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">
+            <span className="text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">
               Value
             </span>
             <span />

@@ -58,7 +58,7 @@ interface PropertyRowProps {
 }
 
 const ACTION_BUTTON_BASE_CLASS =
-  'inline-flex min-h-[24px] items-center gap-1 rounded-md border px-2 py-1 text-[9px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]';
+  'inline-flex min-h-[24px] items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]';
 
 const ACTION_BUTTON_TONE_CLASS = {
   default:
@@ -356,7 +356,7 @@ export function PropertyRow({
                 </div>
               </div>
               {statusLabel && (
-                <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-medium ${statusBadgeClass}`}>
+                <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium ${statusBadgeClass}`}>
                   {statusLabel}
                 </span>
               )}
@@ -468,7 +468,7 @@ export function PropertyRow({
         return (
           <div className="mx-2 mb-1 rounded border border-[var(--color-figma-warning,#f5a623)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
             <div className="px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-warning,#f5a623)]/5">
-              <span className="text-[9px] text-[var(--color-figma-warning,#f5a623)] font-medium">
+              <span className="text-[10px] text-[var(--color-figma-warning,#f5a623)] font-medium">
                 Distinct bindings across {rootNodes.length} layers
               </span>
             </div>
@@ -489,7 +489,7 @@ export function PropertyRow({
                     <span className={`text-[10px] font-mono truncate flex-1 ${b ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] italic'}`}>
                       {b ?? 'unbound'}
                     </span>
-                    <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
                       {count} {count === 1 ? 'layer' : 'layers'}
                     </span>
                   </div>
@@ -606,7 +606,7 @@ export function PropertyRow({
                             </div>
                           )}
                           <span className={`text-[10px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>{path}</span>
-                          {isCurrent && <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>}
+                          {isCurrent && <span className="text-[8px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>}
                           {resolvedValueDisplay && !isCurrent && <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">{resolvedValueDisplay}</span>}
                           <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
                         </button>
@@ -671,7 +671,7 @@ export function PropertyRow({
                           {path}
                         </span>
                         {isCurrent && (
-                          <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
+                          <span className="text-[8px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
                         )}
                         {resolvedValueDisplay && !isCurrent && (
                           <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">

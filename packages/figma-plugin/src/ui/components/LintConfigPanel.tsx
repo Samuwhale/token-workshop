@@ -281,7 +281,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{preset.label}</span>
                     {isActive && (
-                      <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[9px] font-medium text-white">
+                      <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-white">
                         Active
                       </span>
                     )}
@@ -299,7 +299,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                               className="h-1.5 w-1.5 shrink-0 rounded-full"
                               style={{ backgroundColor: SEVERITY_COLORS[presetRule.severity ?? 'warning'] }}
                             />
-                            <span className="text-[9px] text-[var(--color-figma-text)]">{rule.label}</span>
+                            <span className="text-[10px] text-[var(--color-figma-text)]">{rule.label}</span>
                           </div>
                         ) : null;
                       })}
@@ -372,7 +372,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                       <option key={severity} value={severity}>{severity}</option>
                     ))}
                   </select>
-                  <span className="max-w-[120px] text-right text-[9px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                  <span className="max-w-[120px] text-right text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
                     {SEVERITY_HELP[ruleConfig.severity ?? 'warning']}
                   </span>
                 </div>

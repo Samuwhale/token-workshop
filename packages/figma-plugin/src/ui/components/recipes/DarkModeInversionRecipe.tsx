@@ -58,7 +58,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
           aria-label="Step name"
           className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
         />
-        <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
           Output token name.
         </p>
       </div>
@@ -97,7 +97,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
             aria-label="Chroma boost slider"
             className="w-full accent-[var(--color-figma-accent)]"
           />
-          <div className="flex justify-between text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+          <div className="flex justify-between text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
             <span>0 — gray</span>
             <span>1 — preserve</span>
             <span>2 — boost</span>

@@ -15,7 +15,7 @@ export function GamutIndicator({ color, showFallback = false }: { color: string;
         P3
       </span>
       {showFallback && fallback && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+        <span className="inline-flex items-center gap-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
           <span
             className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
             style={{ backgroundColor: fallback }}

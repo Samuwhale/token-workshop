@@ -204,7 +204,7 @@ function ChannelInput({
   const display = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toString();
   return (
     <div className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
-      <label className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase">{label}</label>
+      <label className="text-[10px] text-[var(--color-figma-text-secondary)]">{label}</label>
       <input
         type="text"
         value={display}
@@ -742,7 +742,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
         const level = ratio === null ? null : ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA18' : 'Fail';
         return (
           <div className="border-t border-[var(--color-figma-border)] pt-2 flex items-center gap-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase shrink-0">Contrast</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Contrast</span>
             <button
               type="button"
               title={contrastBg ? `Background: ${contrastBg} (click to change)` : 'Pick a background color'}
@@ -773,7 +773,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <>
                 <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[8px] font-bold" style={{ color: hex6, backgroundColor: contrastBg }}>A</div>
                 <span className="text-[10px] text-[var(--color-figma-text)] tabular-nums font-medium">{ratio.toFixed(1)}:1</span>
-                <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
+                <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
                   level === 'AAA' ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]' :
                   level === 'AA' ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]' :
                   level === 'AA18' ? 'bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]' :
@@ -833,7 +833,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       {/* Alpha numeric + eyedropper row */}
       <div className="flex gap-1.5 items-end">
         <div className="flex flex-col items-center gap-0.5 w-14">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase">Alpha</label>
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Alpha</label>
           <input
             type="text"
             value={alphaInput}
@@ -930,7 +930,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
           <button
             type="button"
             onClick={() => setShowTokens(!showTokens)}
-            className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] uppercase hover:text-[var(--color-figma-text)] transition-colors"
+            className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
           >
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={showTokens ? 'rotate-90' : ''}>
               <path d="M2 1l4 3-4 3V1z" />

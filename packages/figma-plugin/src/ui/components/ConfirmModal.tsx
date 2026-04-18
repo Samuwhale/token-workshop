@@ -69,7 +69,7 @@ export function ConfirmModal({
     >
       <div ref={dialogRef} className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
         <div className="px-4 pt-4 pb-3">
-          <h3 id="confirm-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <h3 id="confirm-modal-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           {description && (
             <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               {description}

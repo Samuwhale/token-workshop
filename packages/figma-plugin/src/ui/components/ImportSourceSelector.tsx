@@ -119,7 +119,7 @@ export function ImportSourceSelector() {
       {/* Source list */}
       {SOURCE_GROUPS.map(group => (
         <div key={group.family}>
-          <div className="text-[9px] font-medium uppercase tracking-wider text-[var(--color-figma-text-tertiary)] mb-1">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-figma-text-tertiary)] mb-1">
             {group.label}
           </div>
           <div className="flex flex-col rounded border border-[var(--color-figma-border)] overflow-hidden divide-y divide-[var(--color-figma-border)]">

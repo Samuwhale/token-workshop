@@ -130,7 +130,7 @@ function MenuItem({
         </span>
       )}
       {shortcut && (
-        <span className="shrink-0 font-mono text-[9px] text-[var(--color-figma-text-tertiary)]">
+        <span className="shrink-0 font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">
           {shortcut}
         </span>
       )}
@@ -140,7 +140,7 @@ function MenuItem({
 
 function MenuLabel({ children }: { children: string }) {
   return (
-    <div className="px-2.5 pt-1.5 pb-0.5 text-[9px] font-semibold text-[var(--color-figma-text-tertiary)]">
+    <div className="px-2.5 pt-1.5 pb-0.5 text-[10px] font-semibold text-[var(--color-figma-text-tertiary)]">
       {children}
     </div>
   );

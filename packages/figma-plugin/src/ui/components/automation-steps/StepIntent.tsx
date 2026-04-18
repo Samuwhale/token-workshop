@@ -4,7 +4,7 @@
 import type { RecipeType, RecipeConfig } from "../../hooks/useRecipes";
 import type { GraphTemplate } from "../graph-templates";
 import { GRAPH_TEMPLATES } from "../graph-templates";
-import { createRecipeDraftFromTemplate } from "../../hooks/useRecipeDialog";
+import { createRecipeDraftFromTemplate } from "../../hooks/useAutomationDialog";
 import { AUTHORING } from "../../shared/editorClasses";
 import { RecipeIntentCatalog } from "./IntentCatalog";
 
@@ -50,7 +50,7 @@ export function StepIntent({
   return (
     <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
       <div className="mb-3 flex flex-col gap-1">
-        <h3 className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+        <h3 className="text-[14px] font-semibold text-[var(--color-figma-text)]">
           {title}
         </h3>
         <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">

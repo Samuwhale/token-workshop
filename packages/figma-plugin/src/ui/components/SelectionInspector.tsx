@@ -804,11 +804,11 @@ export function SelectionInspector({
           <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">
             {headerLabel}
           </span>
-          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
             {totalBindings}/{workflowSummary.visiblePropertyCount} bound
           </span>
           {mixedBindings > 0 && (
-            <span className="text-[9px] text-[var(--color-figma-warning,#f5a623)] shrink-0">
+            <span className="text-[10px] text-[var(--color-figma-warning,#f5a623)] shrink-0">
               {mixedBindings} mixed
             </span>
           )}
@@ -828,7 +828,7 @@ export function SelectionInspector({
             <button
               onClick={() => onSync("selection")}
               disabled={syncing}
-              className="rounded px-1.5 py-0.5 text-[9px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors disabled:opacity-50"
+              className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors disabled:opacity-50"
               title="Sync selection"
             >
               Sync
@@ -874,7 +874,7 @@ export function SelectionInspector({
             <button
               key={mode}
               onClick={() => setPropFilterMode(propFilterMode === mode ? "all" : mode)}
-              className={`rounded px-1.5 py-0.5 text-[9px] transition-colors ${
+              className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                 propFilterMode === mode
                   ? "bg-[var(--color-figma-accent)]/20 font-medium text-[var(--color-figma-accent)]"
                   : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -886,7 +886,7 @@ export function SelectionInspector({
           {mixedBindings > 0 && (
             <button
               onClick={() => setPropFilterMode(propFilterMode === "mixed" ? "all" : "mixed")}
-              className={`rounded px-1.5 py-0.5 text-[9px] transition-colors ${
+              className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                 propFilterMode === "mixed"
                   ? "bg-[var(--color-figma-warning,#f5a623)]/20 font-medium text-[var(--color-figma-warning,#f5a623)]"
                   : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -898,7 +898,7 @@ export function SelectionInspector({
           {isFilterActive && (
             <button
               onClick={clearPropFilters}
-              className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
+              className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
               Clear
             </button>
@@ -913,7 +913,7 @@ export function SelectionInspector({
                   return next;
                 });
               }}
-              className={`rounded px-1.5 py-0.5 text-[9px] transition-colors ${
+              className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                 showSuggestions
                   ? "bg-[var(--color-figma-accent)]/20 font-medium text-[var(--color-figma-accent)]"
                   : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -924,7 +924,7 @@ export function SelectionInspector({
           )}
           <button
             onClick={handleToggleDeepInspect}
-            className={`rounded px-1.5 py-0.5 text-[9px] transition-colors ${
+            className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
               deepInspect
                 ? "bg-[var(--color-figma-accent)]/20 font-medium text-[var(--color-figma-accent)]"
                 : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -1003,7 +1003,7 @@ export function SelectionInspector({
                           onClick={() =>
                             handleUnbindAllInGroup(boundPropsInGroup)
                           }
-                          className="opacity-0 group-hover/groupheader:opacity-100 pointer-events-none group-hover/groupheader:pointer-events-auto transition-opacity text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1 py-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                          className="opacity-0 group-hover/groupheader:opacity-100 pointer-events-none group-hover/groupheader:pointer-events-auto transition-opacity text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1 py-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] shrink-0"
                           title={`Unbind all ${group.label.toLowerCase()} properties`}
                         >
                           Unbind all
@@ -1105,7 +1105,7 @@ export function SelectionInspector({
                   }
                   openExtractPanel();
                 }}
-                className={`rounded px-2 py-1 text-[9px] transition-colors ${
+                className={`rounded px-2 py-1 text-[10px] transition-colors ${
                   showExtractPanel
                     ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
                     : "bg-[var(--color-figma-accent)] text-white hover:opacity-90"
@@ -1122,7 +1122,7 @@ export function SelectionInspector({
                   openRemapPanel(remapMissingTokens);
                 }
               }}
-              className={`rounded px-2 py-1 text-[9px] transition-colors ${
+              className={`rounded px-2 py-1 text-[10px] transition-colors ${
                 showRemapPanel
                   ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
                   : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -1134,7 +1134,7 @@ export function SelectionInspector({
               <button
                 onClick={() => setShowClearConfirm(true)}
                 title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
-                className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error,#f56565)]"
+                className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error,#f56565)]"
               >
                 Clear all
               </button>
@@ -1143,7 +1143,7 @@ export function SelectionInspector({
               <button
                 onClick={() => onSync("page")}
                 disabled={syncing}
-                className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
               >
                 Sync page
               </button>

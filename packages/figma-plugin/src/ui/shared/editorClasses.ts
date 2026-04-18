@@ -37,7 +37,7 @@ export const AUTHORING = {
 
   // --- Summary cards ---
   summaryCard:
-    'flex flex-col gap-1.5 border-l-2 border-[var(--color-figma-border)] pl-3 py-0.5 min-w-0',
+    'flex flex-col gap-1.5 pl-3 py-0.5 min-w-0',
   summaryRow:
     'flex flex-wrap items-start gap-x-2 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]',
   summaryLabel:

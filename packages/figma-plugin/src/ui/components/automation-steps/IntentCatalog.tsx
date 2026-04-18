@@ -7,7 +7,7 @@ import {
   getTemplateSemanticCount,
   getTemplateStepCount,
 } from "../graph-templates";
-import { getRecipeTypeLabel } from "../RecipePipelineCard";
+import { getAutomationTypeLabel } from "../AutomationPipelineCard";
 
 // ---------------------------------------------------------------------------
 // Pipeline stage visualization
@@ -142,15 +142,15 @@ export function TemplateIcon({ id }: { id: string }) {
             className="flex h-full w-5 items-center justify-center rounded-sm"
             style={{ background: "hsl(240, 55%, 40%)" }}
           >
-            <span className="text-[7px] font-bold leading-none text-white">
+            <span className="text-[8px] font-bold leading-none text-white">
               Aa
             </span>
           </div>
           <div className="flex h-full flex-col justify-center gap-0.5">
-            <div className="text-[7px] font-medium leading-none text-[var(--color-figma-text-secondary)]">
+            <div className="text-[8px] font-medium leading-none text-[var(--color-figma-text-secondary)]">
               4.5:1
             </div>
-            <div className="text-[6.5px] leading-none text-[var(--color-figma-text-tertiary)]">
+            <div className="text-[8px] leading-none text-[var(--color-figma-text-tertiary)]">
               AA
             </div>
           </div>
@@ -288,12 +288,12 @@ export function RecipeIntentCard({
               {template.label}
             </span>
             {isSuggested && (
-              <span className="rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-accent)]">
+              <span className="rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)]">
                 Suggested
               </span>
             )}
-            <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-px text-[9px] text-[var(--color-figma-text-secondary)]">
-              {getRecipeTypeLabel(template.recipeType)}
+            <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-px text-[10px] text-[var(--color-figma-text-secondary)]">
+              {getAutomationTypeLabel(template.recipeType)}
             </span>
           </div>
           <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
@@ -304,7 +304,7 @@ export function RecipeIntentCard({
               <PipelineStages stages={template.stages} />
             </div>
           )}
-          <div className="mt-2 flex items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
             <span>
               {stepCount} starter step{stepCount === 1 ? "" : "s"}
             </span>

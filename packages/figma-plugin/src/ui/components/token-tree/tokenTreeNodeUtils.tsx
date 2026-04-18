@@ -7,6 +7,8 @@ export type RowMetadataSegment = {
   title?: string;
   tone?: "default" | "accent" | "warning" | "danger";
   onClick?: () => void;
+  /** When true the segment is invisible at rest and fades in on row hover. */
+  hoverOnly?: boolean;
 };
 
 function getRowMetadataToneClass(
@@ -25,35 +27,40 @@ function getRowMetadataToneClass(
 }
 
 export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
-  return segments.map((segment, index) => (
-    <span
-      key={`${segment.label}-${index}`}
-      className="inline-flex min-w-0 items-center gap-1"
-    >
-      {index > 0 && (
-        <span
-          aria-hidden="true"
-          className="text-[var(--color-figma-text-tertiary)]/60"
-        >
-          ·
-        </span>
-      )}
+  return segments.map((segment, index) => {
+    const hoverClass = segment.hoverOnly
+      ? "opacity-0 group-hover:opacity-100 transition-opacity"
+      : "";
+    return (
       <span
-        className={`truncate ${getRowMetadataToneClass(segment.tone)} ${
-          segment.onClick ? "cursor-pointer hover:underline" : ""
-        }`}
-        title={segment.title ?? segment.label}
-        onClick={
-          segment.onClick
-            ? (event) => {
-                event.stopPropagation();
-                segment.onClick?.();
-              }
-            : undefined
-        }
+        key={`${segment.label}-${index}`}
+        className={`inline-flex min-w-0 items-center gap-1 ${hoverClass}`}
       >
-        {segment.label}
+        {index > 0 && (
+          <span
+            aria-hidden="true"
+            className="text-[var(--color-figma-text-tertiary)]/60"
+          >
+            ·
+          </span>
+        )}
+        <span
+          className={`truncate ${getRowMetadataToneClass(segment.tone)} ${
+            segment.onClick ? "cursor-pointer hover:underline" : ""
+          }`}
+          title={segment.title ?? segment.label}
+          onClick={
+            segment.onClick
+              ? (event) => {
+                  event.stopPropagation();
+                  segment.onClick?.();
+                }
+              : undefined
+          }
+        >
+          {segment.label}
+        </span>
       </span>
-    </span>
-  ));
+    );
+  });
 }

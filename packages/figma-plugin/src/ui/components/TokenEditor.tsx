@@ -40,7 +40,7 @@ import {
   formatDraftAge,
 } from "../hooks/useTokenEditorUtils";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
-import type { TokensLibraryRecipeEditorTarget } from "../shared/navigationTypes";
+import type { TokensLibraryAutomationEditorTarget } from "../shared/navigationTypes";
 import { lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
@@ -78,8 +78,8 @@ interface TokenEditorProps {
   derivedTokenPaths?: Map<string, TokenRecipe>;
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  onNavigateToRecipe?: (recipeId: string) => void;
-  onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
+  onNavigateToAutomation?: (recipeId: string) => void;
+  onOpenAutomationEditor?: (target: TokensLibraryAutomationEditorTarget) => void;
   onOpenCollectionSetup?: () => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
@@ -107,8 +107,8 @@ export function TokenEditor({
   derivedTokenPaths,
   onShowReferences,
   onNavigateToToken,
-  onNavigateToRecipe,
-  onOpenRecipeEditor,
+  onNavigateToAutomation,
+  onOpenAutomationEditor,
   onOpenCollectionSetup,
   pushUndo,
 }: TokenEditorProps) {
@@ -414,9 +414,9 @@ export function TokenEditor({
   const activeProducingRecipe =
     detachedFromRecipe ? null : producingRecipe;
 
-  const openRecipeEditor = useCallback((target: TokensLibraryRecipeEditorTarget) => {
-    onOpenRecipeEditor?.(target);
-  }, [onOpenRecipeEditor]);
+  const openAutomationEditor = useCallback((target: TokensLibraryAutomationEditorTarget) => {
+    onOpenAutomationEditor?.(target);
+  }, [onOpenAutomationEditor]);
 
   useEffect(() => {
     setDetachedFromRecipe(false);
@@ -767,7 +767,7 @@ export function TokenEditor({
           </div>
           {isDirty && (
             <span
-              className="shrink-0 px-1 py-px rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
+              className="shrink-0 px-1 py-px rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
               title="Unsaved changes"
               aria-label="Unsaved changes"
             >
@@ -894,7 +894,7 @@ export function TokenEditor({
     <>
       {collectionsWithModes.length > 0 && !isCreateMode && (
         <div className="flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30">
-          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Mode</span>
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Mode</span>
           {collectionsWithModes.map((collection) => {
             const activeOption =
               collectionState.selectedModes[collection.id] ||
@@ -917,7 +917,7 @@ export function TokenEditor({
                     });
                   }
                 }}
-                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-accent)] transition-colors"
+                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-accent)] transition-colors"
                 title={`${collection.id}: ${activeOption} (click to cycle)`}
               >
                 {collectionsWithModes.length > 1 ? `${collection.id}: ` : ""}
@@ -1250,7 +1250,7 @@ export function TokenEditor({
           );
         })}
         {dependentTrace.length > 20 && (
-          <div className="px-1.5 pt-0.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+          <div className="px-1.5 pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
             + {dependentTrace.length - 20} more
           </div>
         )}
@@ -1334,7 +1334,7 @@ export function TokenEditor({
                               setPendingTypeChange(null);
                               onShowReferences(dep.path);
                             }}
-                            className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-[9px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-warning)]/20 hover:text-[var(--color-figma-warning)] transition-colors text-left w-full"
+                            className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-warning)]/20 hover:text-[var(--color-figma-warning)] transition-colors text-left w-full"
                             title={`Open ${dep.path} in dependency graph`}
                           >
                             <svg
@@ -1362,7 +1362,7 @@ export function TokenEditor({
                         ) : (
                           <span
                             key={dep.path}
-                            className="flex items-center gap-1 px-1 py-0.5 font-mono text-[9px] text-[var(--color-figma-text)]"
+                            className="flex items-center gap-1 px-1 py-0.5 font-mono text-[10px] text-[var(--color-figma-text)]"
                           >
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                             {dep.collectionId !== ownerCollectionId && (
@@ -1374,7 +1374,7 @@ export function TokenEditor({
                         ),
                       )}
                       {dependents.length > 20 && (
-                        <span className="px-1 py-0.5 text-[9px] text-[var(--color-figma-warning)]/70 italic">
+                        <span className="px-1 py-0.5 text-[10px] text-[var(--color-figma-warning)]/70 italic">
                           and {dependents.length - 20} more…
                         </span>
                       )}
@@ -1563,29 +1563,29 @@ export function TokenEditor({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                  Recipe
+                  Automation
                 </p>
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   Managed by{" "}
                   <span className="font-medium text-[var(--color-figma-text)]">
                     {activeProducingRecipe.name}
                   </span>
-                  . Manual edits will be overwritten when the recipe runs again.
+                  . Manual edits will be overwritten when the automation runs again.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {(onOpenRecipeEditor || onNavigateToRecipe) && (
+                {(onOpenAutomationEditor || onNavigateToAutomation) && (
                   <button
                     type="button"
                     onClick={() => {
-                      if (onOpenRecipeEditor) {
-                        openRecipeEditor({
+                      if (onOpenAutomationEditor) {
+                        openAutomationEditor({
                           mode: "edit",
                           id: activeProducingRecipe.id,
                         });
                         return;
                       }
-                      onNavigateToRecipe?.(activeProducingRecipe.id);
+                      onNavigateToAutomation?.(activeProducingRecipe.id);
                     }}
                     className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
                   >
@@ -1697,7 +1697,7 @@ export function TokenEditor({
                 tokenType={tokenType}
                 value={value}
                 existingRecipesForToken={existingRecipesForToken}
-                openRecipeEditor={openRecipeEditor}
+                openAutomationEditor={openAutomationEditor}
               />
             )}
 
@@ -1746,7 +1746,7 @@ export function TokenEditor({
                 onRefsExpandedChange={setRefsExpanded}
                 onShowReferences={onShowReferences}
                 onNavigateToToken={onNavigateToToken}
-                onNavigateToRecipe={onNavigateToRecipe}
+                onNavigateToAutomation={onNavigateToAutomation}
               />
             )}
           </div>

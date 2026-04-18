@@ -16,7 +16,7 @@ import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
 import type {
   TokensLibraryContextualSurface,
-  TokensLibraryRecipeEditorTarget,
+  TokensLibraryAutomationEditorTarget,
 } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
@@ -33,13 +33,13 @@ export type EditingToken = {
 };
 
 export type PreviewingToken = { path: string; name?: string; currentCollectionId: string };
-export type EditingRecipe = TokensLibraryRecipeEditorTarget;
+export type EditingAutomation = TokensLibraryAutomationEditorTarget;
 export type InspectingCollection = { collectionId: string };
 export type EditorContextualSurfaceTarget =
   | { surface: null }
   | { surface: "collection-details"; collection: InspectingCollection }
   | { surface: 'token-editor'; token: EditingToken }
-  | { surface: 'recipe-editor'; recipe: EditingRecipe }
+  | { surface: 'automation-editor'; automation: EditingAutomation }
   | { surface: 'token-preview'; token: PreviewingToken }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshCompareModeConfig?: boolean }
   | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean };
@@ -52,8 +52,8 @@ export interface TokensContextualSurfaceState {
 export interface EditorContextValue {
   editingToken: EditingToken | null;
   setEditingToken: Dispatch<SetStateAction<EditingToken | null>>;
-  editingRecipe: EditingRecipe | null;
-  setEditingRecipe: Dispatch<SetStateAction<EditingRecipe | null>>;
+  editingAutomation: EditingAutomation | null;
+  setEditingAutomation: Dispatch<SetStateAction<EditingAutomation | null>>;
   previewingToken: PreviewingToken | null;
   setPreviewingToken: Dispatch<SetStateAction<PreviewingToken | null>>;
   inspectingCollection: InspectingCollection | null;
@@ -115,7 +115,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const { pathToCollectionId } = useTokenFlatMapContext();
 
   const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
-  const [editingRecipe, setEditingRecipe] = useState<EditingRecipe | null>(null);
+  const [editingAutomation, setEditingAutomation] = useState<EditingAutomation | null>(null);
   const [previewingToken, setPreviewingToken] = useState<PreviewingToken | null>(null);
   const [inspectingCollection, setInspectingCollection] = useState<InspectingCollection | null>(null);
   const [showTokensCompare, setShowTokensCompare] = useState(false);
@@ -158,14 +158,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!showTokensCompare) return;
-    if (editingToken || editingRecipe || previewingToken || inspectingCollection) {
+    if (editingToken || editingAutomation || previewingToken || inspectingCollection) {
       setShowTokensCompare(false);
     }
-  }, [showTokensCompare, editingToken, editingRecipe, previewingToken, inspectingCollection]);
+  }, [showTokensCompare, editingToken, editingAutomation, previewingToken, inspectingCollection]);
 
   const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
     setEditingToken(null);
-    setEditingRecipe(null);
+    setEditingAutomation(null);
     setPreviewingToken(null);
     setInspectingCollection(null);
     setShowTokensCompare(false);
@@ -182,8 +182,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (target.surface === 'recipe-editor') {
-      setEditingRecipe(target.recipe);
+    if (target.surface === 'automation-editor') {
+      setEditingAutomation(target.automation);
       return;
     }
 
@@ -208,7 +208,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     setShowTokensCompare(true);
   }, [
-    setEditingRecipe,
+    setEditingAutomation,
     setEditingToken,
     setInspectingCollection,
     setPreviewingToken,
@@ -222,11 +222,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const activeSurface = useMemo<TokensLibraryContextualSurface | null>(() => {
     if (inspectingCollection) return "collection-details";
     if (editingToken) return 'token-editor';
-    if (editingRecipe) return 'recipe-editor';
+    if (editingAutomation) return 'automation-editor';
     if (previewingToken) return 'token-preview';
     if (showTokensCompare) return 'compare';
     return null;
-  }, [inspectingCollection, editingToken, editingRecipe, previewingToken, showTokensCompare]);
+  }, [inspectingCollection, editingToken, editingAutomation, previewingToken, showTokensCompare]);
 
   const tokensContextualSurfaceState = useMemo<TokensContextualSurfaceState>(() => ({
     activeSurface,
@@ -236,8 +236,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const value = useMemo<EditorContextValue>(() => ({
     editingToken,
     setEditingToken,
-    editingRecipe,
-    setEditingRecipe,
+    editingAutomation,
+    setEditingAutomation,
     previewingToken,
     setPreviewingToken,
     inspectingCollection,
@@ -270,7 +270,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setAliasNotFoundHandler,
   }), [
     editingToken,
-    editingRecipe,
+    editingAutomation,
     previewingToken,
     inspectingCollection,
     highlightedToken,

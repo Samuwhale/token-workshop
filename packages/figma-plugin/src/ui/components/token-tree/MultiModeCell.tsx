@@ -301,7 +301,7 @@ export function MultiModeCell({
               style={{ top: aliasPopoverPos.y, left: aliasPopoverPos.x }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mb-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+              <div className="mb-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
                 Redirect alias ·{" "}
                 <span className="font-mono normal-case text-[var(--color-figma-text)]">
                   {optionName}

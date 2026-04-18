@@ -82,7 +82,7 @@ export function SyncPreviewModal({
     >
       <div ref={dialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 id="preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <h3 id="preview-modal-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             {onConfirm ? 'Review before applying.' : 'Dry run \u2014 no changes written.'}
           </p>
@@ -276,7 +276,7 @@ export function GitPreviewModal({
     >
       <div ref={gitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-preview-modal-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 id="git-preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <h3 id="git-preview-modal-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">{subtitle}</p>
         </div>
 
@@ -332,7 +332,7 @@ export function GitPreviewModal({
                               <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={`${change.collectionId} / ${change.path}`}>
                                 {change.path}
                               </span>
-                              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.collectionId}</span>
+                              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.collectionId}</span>
                             </div>
                             {change.status === 'modified' && (
                               <div className="ml-2 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
@@ -484,7 +484,7 @@ export function CommitPreviewModal({
     >
       <div ref={commitDialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="commit-preview-modal-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 id="commit-preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">Save version</h3>
+          <h3 id="commit-preview-modal-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">Save version</h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             Review before saving.
           </p>
@@ -503,7 +503,7 @@ export function CommitPreviewModal({
                 {skippedCount > 0 && <span className="text-[var(--color-figma-text-tertiary)]"> ({skippedCount} skipped)</span>}
               </span>
               {!tokenPreviewLoading && relevantTokenChanges.length > 0 && (
-                <span className="flex gap-1.5 text-[9px] font-mono">
+                <span className="flex gap-1.5 text-[10px] font-mono">
                   {totalAdded > 0 && <span className="text-[var(--color-figma-success)]">+{totalAdded}</span>}
                   {totalModified > 0 && <span className="text-[var(--color-figma-warning)]">~{totalModified}</span>}
                   {totalRemoved > 0 && <span className="text-[var(--color-figma-error)]">&minus;{totalRemoved}</span>}
@@ -546,7 +546,7 @@ export function CommitPreviewModal({
                       </span>
                       <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1 min-w-0">{change.file}</span>
                       {hasTokenChanges && (
-                        <span className="flex gap-1.5 text-[9px] font-mono shrink-0">
+                        <span className="flex gap-1.5 text-[10px] font-mono shrink-0">
                           {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
                           {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
                           {removedCount > 0 && <span className="text-[var(--color-figma-error)]">&minus;{removedCount}</span>}

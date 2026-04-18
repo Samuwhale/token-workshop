@@ -16,7 +16,7 @@ import {
   requestRecipePreview,
   hasPreviewRisks,
   type RecipePreviewAnalysis,
-} from "./useRecipePreview";
+} from "./useAutomationPreview";
 
 export interface RecipeSaveSuccessInfo {
   targetGroup: string;
@@ -152,7 +152,7 @@ export function useRecipeSave({
     }
     if (!isMultiBrand && typeNeedsValue && !hasValue) {
       setSaveError(
-        "This recipe type requires a source token or base value.",
+        "This automation type requires a source token or base value.",
       );
       return false;
     }
@@ -263,7 +263,7 @@ export function useRecipeSave({
               targetCollectionTemplate: prevGen.targetCollectionTemplate,
             };
             pushUndo({
-              description: `Edited recipe "${prevGen.name}"`,
+              description: `Edited automation "${prevGen.name}"`,
               restore: async () => {
                 await apiFetch(`${serverUrl}/api/recipes/${prevGen.id}`, {
                   method: "PUT",
@@ -283,7 +283,7 @@ export function useRecipeSave({
             const newId = savedGen.id;
             const genName = name.trim();
             pushUndo({
-              description: `Created recipe "${genName}"`,
+              description: `Created automation "${genName}"`,
               restore: async () => {
                 await apiFetch(
                   `${serverUrl}/api/recipes/${newId}?deleteTokens=true`,
@@ -297,8 +297,8 @@ export function useRecipeSave({
         setSaving(false);
         dispatchToast(
           isEditing
-            ? `Recipe "${name.trim()}" updated`
-            : `Recipe "${name.trim()}" created`,
+            ? `Automation "${name.trim()}" updated`
+            : `Automation "${name.trim()}" created`,
           "success",
           getToastAction(targetGroupAtSave, targetCollectionAtSave),
         );

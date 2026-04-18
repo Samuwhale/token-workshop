@@ -402,7 +402,7 @@ export function SemanticMappingDialog({
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)] shrink-0">
           <div>
-            <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+            <span className="text-[14px] font-semibold text-[var(--color-figma-text)]">
               {title}
             </span>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">

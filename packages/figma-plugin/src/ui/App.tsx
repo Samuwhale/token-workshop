@@ -19,6 +19,7 @@ import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Tooltip } from "./shared/Tooltip";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
+import { SegmentedControl } from "./components/SegmentedControl";
 import { PanelRouter } from "./panels/PanelRouter";
 import { useServerEvents } from "./hooks/useServerEvents";
 import type { CollectionSummary, TokenNode } from "./hooks/useTokens";
@@ -108,8 +109,8 @@ export function App() {
   const {
     editingToken,
     setEditingToken,
-    editingRecipe,
-    setEditingRecipe,
+    editingAutomation,
+    setEditingAutomation,
     previewingToken,
     setPreviewingToken,
     inspectingCollection,
@@ -385,11 +386,11 @@ export function App() {
       setResolverPushUndo(undefined);
     };
   }, [pushUndo, setResolverPushUndo]);
-  const onRecipeError = useCallback(
+  const onAutomationError = useCallback(
     ({ recipeId, message }: { recipeId?: string; message: string }) => {
       const label = recipeId
-        ? `Recipe "${recipeId}" failed`
-        : "Recipe auto-run failed";
+        ? `Automation "${recipeId}" failed`
+        : "Automation failed";
       setErrorToast(`${label}: ${message}`);
     },
     [setErrorToast],
@@ -444,7 +445,7 @@ export function App() {
   useServerEvents(
     serverUrl,
     connected,
-    onRecipeError,
+    onAutomationError,
     refreshAllExternal,
     onServiceError,
   );
@@ -631,21 +632,21 @@ export function App() {
   const handlePreviewClose = useCallback(() => {
     setPreviewingToken(null);
   }, [setPreviewingToken]);
-  const editingRecipeData =
-    editingRecipe?.mode === "edit"
-      ? (recipes.find((recipe) => recipe.id === editingRecipe.id) ??
+  const editingAutomationData =
+    editingAutomation?.mode === "edit"
+      ? (recipes.find((recipe) => recipe.id === editingAutomation.id) ??
         null)
       : null;
   useEffect(() => {
     if (
-      !editingRecipe ||
-      editingRecipe.mode !== "edit" ||
-      editingRecipeData
+      !editingAutomation ||
+      editingAutomation.mode !== "edit" ||
+      editingAutomationData
     ) {
       return;
     }
-    setEditingRecipe(null);
-  }, [editingRecipe, editingRecipeData, setEditingRecipe]);
+    setEditingAutomation(null);
+  }, [editingAutomation, editingAutomationData, setEditingAutomation]);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
@@ -654,7 +655,7 @@ export function App() {
   const handleOpenCrossCollectionCompare = useCallback(
     (path: string) => {
       setEditingToken(null);
-      setEditingRecipe(null);
+      setEditingAutomation(null);
       setPreviewingToken(null);
       setTokensCompareMode("cross-collection");
       setTokensComparePath(path);
@@ -664,7 +665,7 @@ export function App() {
     },
     [
       navigateTo,
-      setEditingRecipe,
+      setEditingAutomation,
       setEditingToken,
       setPreviewingToken,
       setShowTokensCompare,
@@ -702,7 +703,7 @@ export function App() {
         const n = affectedGens.length;
         const genIds = affectedGens.map((g) => g.id);
         pushActionToast(
-          `Source token for ${n} ${n === 1 ? "recipe" : "recipes"} changed`,
+          `Source token for ${n} ${n === 1 ? "automation" : "automations"} changed`,
           {
             label: "Re-run",
             onClick: async () => {
@@ -759,12 +760,12 @@ export function App() {
     },
     [currentCollectionId, setHighlightedToken, setPendingHighlightForCollection, setCurrentCollectionId],
   );
-  const handleNavigateToRecipe = useCallback(
+  const handleNavigateToAutomation = useCallback(
     (recipeId: string) => {
       navigateTo("tokens", "tokens");
       switchContextualSurface({
-        surface: "recipe-editor",
-        recipe: { mode: "edit", id: recipeId },
+        surface: "automation-editor",
+        automation: { mode: "edit", id: recipeId },
       });
     },
     [navigateTo, switchContextualSurface],
@@ -806,7 +807,7 @@ export function App() {
   }, []);
   const useSidePanel =
     windowWidth >= getContextualPanelMinWidth(sidebarCollapsed) &&
-    !!(editingToken || editingRecipeData || previewingToken || inspectingCollection) &&
+    !!(editingToken || editingAutomationData || previewingToken || inspectingCollection) &&
     activeSecondarySurface === null &&
     activeTopTab === "tokens" &&
     activeSubTab === "tokens" &&
@@ -1416,7 +1417,7 @@ export function App() {
       setErrorToast,
       setSuccessToast,
       handleNavigateToCollection,
-      handleNavigateToRecipe,
+      handleNavigateToAutomation,
       flowPanelInitialPath,
       setFlowPanelInitialPath,
       tokenListCompareRef,
@@ -1635,13 +1636,6 @@ export function App() {
         <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-0.5 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
           {SIDEBAR_GROUPS.map((group, groupIndex) => (
             <div key={group.id} className={sidebarCollapsed ? 'mb-1' : 'mb-1.5'}>
-              {!sidebarCollapsed && (
-                <div className="px-1.5 py-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-tertiary)]">
-                    {group.label}
-                  </span>
-                </div>
-              )}
               {sidebarCollapsed && groupIndex > 0 && (
                 <div className="mx-1 mb-1 border-t border-[var(--color-figma-border)]" />
               )}
@@ -1653,13 +1647,32 @@ export function App() {
                       <Tooltip key={item.id} label={item.label} position="right">
                         <button
                           onClick={() => handleSidebarItemClick(item)}
-                          className={`flex h-7 w-7 items-center justify-center rounded-md text-[9px] font-medium outline-none transition-colors ${
+                          className={`flex h-7 w-7 items-center justify-center rounded-md outline-none transition-colors ${
                             isActive
                               ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
                               : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
                           }`}
                         >
-                          {item.railCode}
+                          {item.id === "tokens" && (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M8 1.5L14 5v6l-6 3.5L2 11V5z" />
+                            </svg>
+                          )}
+                          {item.id === "automations" && (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M4 2v4l4 2-4 2v4" /><path d="M12 4v8" />
+                            </svg>
+                          )}
+                          {item.id === "canvas" && (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M2 5V2h3" /><path d="M14 5V2h-3" /><path d="M2 11v3h3" /><path d="M14 11v3h-3" />
+                            </svg>
+                          )}
+                          {item.id === "publish" && (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M8 10V2" /><path d="M4.5 5.5L8 2l3.5 3.5" /><path d="M3 10v3h10v-3" />
+                            </svg>
+                          )}
                         </button>
                       </Tooltip>
                     );
@@ -1697,7 +1710,7 @@ export function App() {
               >
                 <span>Notifications</span>
                 {notificationCount > 0 && (
-                  <span className="text-[9px] tabular-nums text-[var(--color-figma-text-tertiary)]">{notificationCount}</span>
+                  <span className="text-[10px] tabular-nums text-[var(--color-figma-text-tertiary)]">{notificationCount}</span>
                 )}
               </button>
               <button
@@ -1776,37 +1789,23 @@ export function App() {
                 <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
                   {activeWorkspace.label}
                 </div>
-                <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                  {activeWorkspace.transition.usage}
-                </div>
               </div>
               {activeSecondarySurface === null && activeWorkspace.sections?.length ? (
-                <div className="flex items-center gap-1 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-0.5">
-                  {activeWorkspace.sections.map((section) => {
-                    const isActive = section.id === activeSubTab;
-                    return (
-                      <button
-                        key={section.id}
-                        type="button"
-                        onClick={() =>
-                          guardEditorAction(() => {
-                            navigateTo(section.topTab, section.subTab);
-                            if (section.id === "canvas-analysis") {
-                              triggerHeatmapScan();
-                            }
-                          })
+                <SegmentedControl
+                  options={activeWorkspace.sections.map((s) => ({ value: s.id, label: s.label }))}
+                  value={activeSubTab}
+                  onChange={(id) => {
+                    const section = activeWorkspace.sections!.find((s) => s.id === id);
+                    if (section) {
+                      guardEditorAction(() => {
+                        navigateTo(section.topTab, section.subTab);
+                        if (section.id === "canvas-analysis") {
+                          triggerHeatmapScan();
                         }
-                        className={`rounded px-2 py-0.5 text-[10px] transition-colors ${
-                          isActive
-                            ? "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)]"
-                            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                        }`}
-                      >
-                        {section.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                      });
+                    }
+                  }}
+                />
               ) : null}
             </div>
 
@@ -1915,7 +1914,7 @@ export function App() {
         <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
-              <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+              <span className="text-[13px] font-semibold text-[var(--color-figma-text)]">
                 Set Figma Scopes
               </span>
               <button

@@ -258,8 +258,8 @@ export function DuplicateDetectionPanel({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.tokens.length} matching tokens</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{group.typeLabel}</span>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded border ${isConfigured ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{group.typeLabel}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${isConfigured ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
                           {isConfigured ? 'Configured' : 'Needs canonical'}
                         </span>
                       </div>
@@ -292,8 +292,8 @@ export function DuplicateDetectionPanel({
                                     {isSelected && <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>}
                                   </div>
                                   <div className="mt-1 pl-5 flex flex-wrap gap-1">
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Lifecycle: {formatLifecycle(token.lifecycle)}</span>
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Scopes: {formatScopes(token.scopes)}</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Lifecycle: {formatLifecycle(token.lifecycle)}</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Scopes: {formatScopes(token.scopes)}</span>
                                   </div>
                                 </button>
                                 {onNavigateToToken && (
