@@ -240,7 +240,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
             </kbd>
           </div>
           {/* Property tab pills */}
-          <div className="flex gap-0.5 overflow-x-auto pb-0 -mb-px">
+          <div className="flex gap-0.5 overflow-x-auto">
             {eligibleProps.map(prop => {
               const isActive = prop === activeProp;
               const binding = getBindingForProperty(rootNodes, prop);
@@ -249,10 +249,10 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
                 <button
                   key={prop}
                   onClick={() => setActiveProp(prop)}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-t border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+                  className={`px-2 py-1 text-[10px] font-medium rounded transition-colors whitespace-nowrap shrink-0 ${
                     isActive
-                      ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                      : 'border-transparent text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                      ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 font-semibold'
+                      : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                   }`}
                 >
                   {PROPERTY_LABELS[prop]}
