@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Base skeleton block — a pulsing placeholder rectangle.
  * Use `className` to set width, height, and rounding.

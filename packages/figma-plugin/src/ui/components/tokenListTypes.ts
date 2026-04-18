@@ -165,16 +165,10 @@ export interface TokenListActions {
   onShowPasteModal?: () => void;
   /** Open the import surface from the Tokens workspace */
   onOpenImportPanel?: () => void;
-  /** Open the collection switcher from the Tokens workspace */
-  onOpenCollectionSwitcher?: () => void;
   /** Open the collection creation flow */
   onOpenCreateCollection?: () => void;
   /** Open the cross-collection "where is this token defined" overlay for the given path */
   onFindInAllCollections?: (path: string) => void;
-  /** Called when a cross-collection token drag starts — lets the parent expose drop zones on collection tabs */
-  onTokenDragStart?: (paths: string[], sourceCollectionId: string) => void;
-  /** Called when a token drag ends (drop or cancel) — lets the parent hide drop zones */
-  onTokenDragEnd?: () => void;
   /** Open the unified start-here flow from token-level empty states */
   onOpenStartHere?: (branch?: StartHereBranch) => void;
   onTogglePreviewSplit?: () => void;
@@ -219,6 +213,7 @@ export interface TokenListProps {
   editingTokenPath?: string | null;
   /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */
   compareHandle?: React.MutableRefObject<TokenListImperativeHandle | null>;
+  toolbarScenarioControl?: React.ReactNode;
 }
 
 export interface AffectedRef {

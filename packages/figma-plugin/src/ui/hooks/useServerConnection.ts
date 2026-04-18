@@ -3,10 +3,23 @@ import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
 const DEFAULT_URL = 'http://localhost:9400';
 
+function getQueryServerUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const value = new URLSearchParams(window.location.search).get('serverUrl');
+    return value && value.trim().length > 0 ? value.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useServerConnection() {
   const [connected, setConnected] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [serverUrl, setServerUrl] = useState(() => lsGet(STORAGE_KEYS.SERVER_URL, DEFAULT_URL));
+  const [serverUrl, setServerUrl] = useState(
+    () => getQueryServerUrl() ?? lsGet(STORAGE_KEYS.SERVER_URL, DEFAULT_URL),
+  );
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 

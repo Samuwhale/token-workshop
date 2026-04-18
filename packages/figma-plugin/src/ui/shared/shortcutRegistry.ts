@@ -240,10 +240,10 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
 
   // ── Navigation ──────────────────────────────────────────────────────────
   { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Tokens workspace',         mac: SHORTCUT_KEYS.GO_TO_DEFINE },
-  { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Apply workspace',          mac: SHORTCUT_KEYS.GO_TO_APPLY },
-  { id: 'GO_TO_SYNC',            group: 'Navigation',      description: 'Go to Sync workspace',           mac: SHORTCUT_KEYS.GO_TO_SYNC },
-  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Manage collections',             mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
-  { id: 'QUICK_SWITCH_COLLECTION', group: 'Navigation',      description: 'Quick-switch collection',         mac: SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION },
+  { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Canvas workspace',         mac: SHORTCUT_KEYS.GO_TO_APPLY },
+  { id: 'GO_TO_SYNC',            group: 'Navigation',      description: 'Go to Publish workspace',        mac: SHORTCUT_KEYS.GO_TO_SYNC },
+  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open collection setup',          mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
+  { id: 'QUICK_SWITCH_COLLECTION', group: 'Navigation',      description: 'Focus collection rail',          mac: SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION },
 
   // ── Command Palette ──────────────────────────────────────────────────────
   { id: 'PALETTE_NAVIGATE',      group: 'Command Palette', description: 'Navigate results',               mac: '↑↓',    displayOnly: true },

@@ -31,11 +31,11 @@ export function getDeleteModalProps(
   if (deleteConfirm.type === "token") {
     const name = deleteConfirm.path.split(".").pop() ?? deleteConfirm.path;
     const { orphanCount, affectedRefs } = deleteConfirm;
-    const setCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
+    const collectionCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
     const parts: string[] = [];
     if (orphanCount > 0)
       parts.push(
-        `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${setCount} collection${setCount !== 1 ? "s" : ""}`,
+        `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
       );
     if (genImpacts)
       parts.push(
@@ -60,13 +60,13 @@ export function getDeleteModalProps(
 
   if (deleteConfirm.type === "group") {
     const { orphanCount, affectedRefs } = deleteConfirm;
-    const setCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
+    const collectionCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
     const parts: string[] = [
       `delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? "s" : ""}`,
     ];
     if (orphanCount > 0)
       parts.push(
-        `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${setCount} collection${setCount !== 1 ? "s" : ""}`,
+        `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
       );
     if (genImpacts)
       parts.push(
@@ -87,11 +87,11 @@ export function getDeleteModalProps(
   }
 
   const { paths, orphanCount, affectedRefs } = deleteConfirm;
-  const setCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
+  const collectionCount = new Set(affectedRefs.map((r) => r.collectionId)).size;
   const parts: string[] = [];
   if (orphanCount > 0)
     parts.push(
-      `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${setCount} collection${setCount !== 1 ? "s" : ""}`,
+      `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
     );
   if (genImpacts)
     parts.push(

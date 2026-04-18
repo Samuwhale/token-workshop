@@ -565,6 +565,7 @@ export interface ScanSingleTokenUsageMessage {
 export interface SearchLayersMessage {
   type: 'search-layers';
   query: string;
+  correlationId?: string;
 }
 
 // --- Scan token variable bindings ---

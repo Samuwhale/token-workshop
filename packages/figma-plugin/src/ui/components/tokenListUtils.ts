@@ -790,7 +790,7 @@ export function sortLeafNodes(
   nodes: TokenNode[],
   field: TableSortField,
   dir: TableSortDir,
-  allTokensFlat: Record<string, TokenMapEntry>,
+  _allTokensFlat: Record<string, TokenMapEntry>,
   resolvedCache: Map<string, string>,
 ): TokenNode[] {
   const sorted = [...nodes];

@@ -122,7 +122,7 @@ export function CanvasCreateTokenDialog({
       return;
     }
     if (!COLLECTION_NAME_RE.test(targetCollectionId)) {
-      setError('Pick a valid destination set.');
+      setError('Pick a valid destination collection.');
       return;
     }
     if (!tokenPath.trim()) {
@@ -253,7 +253,7 @@ export function CanvasCreateTokenDialog({
             )}
 
             <label className={AUTHORING.fieldStack}>
-              <span className={AUTHORING.label}>Target set</span>
+              <span className={AUTHORING.label}>Target collection</span>
               {hasMultipleCollections ? (
                 <select
                   value={targetCollectionId}

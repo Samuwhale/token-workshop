@@ -29,12 +29,6 @@ export function useTokenAliasEditor({
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
 
-  const _aliasHasCycle = (() => {
-    // This is intentionally not a hook - computed inline each render
-    // Moved to useTokenTypeParsing per plan
-    return null;
-  })();
-
   const handleToggleAlias = useCallback(() => {
     const next = !aliasMode;
     setAliasMode(next);

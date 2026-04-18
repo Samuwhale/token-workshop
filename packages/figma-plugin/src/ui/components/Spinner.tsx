@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface SpinnerProps {
   /** Visual size of the spinner. Default: 'sm' (10px). */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';

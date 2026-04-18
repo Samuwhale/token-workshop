@@ -17,6 +17,7 @@ import type { StepWhereProps } from "./recipe-steps/StepWhere";
 import { StepSave } from "./recipe-steps/StepSave";
 import { Spinner } from "./Spinner";
 import type { ToastAction } from "../shared/toastBus";
+import { GRAPH_TEMPLATES } from "./graph-templates";
 
 // ---------------------------------------------------------------------------
 // Props (unchanged public API)
@@ -28,6 +29,7 @@ export interface TokenRecipeDialogProps {
   sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
+  intentPreset?: "semantic-aliases";
   collectionIds: string[];
   currentCollectionId: string;
   /** All tokens flat map for source token autocomplete and config field tokenRefs */
@@ -102,6 +104,7 @@ export function TokenRecipeDialog({
   sourceTokenName,
   sourceTokenType,
   sourceTokenValue,
+  intentPreset,
   collectionIds,
   currentCollectionId,
   allTokensFlat,
@@ -145,6 +148,20 @@ export function TokenRecipeDialog({
   const initialStep: Step =
     hidesIntentStep || hasPrefilledSource ? 2 : 1;
   const [activeStep, setActiveStep] = useState<Step>(initialStep);
+  const intentTemplates =
+    intentPreset === "semantic-aliases"
+      ? GRAPH_TEMPLATES.filter(
+          (template) => (template.semanticStarter?.mappings.length ?? 0) > 0,
+        )
+      : GRAPH_TEMPLATES;
+  const intentTitle =
+    intentPreset === "semantic-aliases"
+      ? "What foundations do you want to alias?"
+      : "What do you want to create?";
+  const intentDescription =
+    intentPreset === "semantic-aliases"
+      ? "Choose the kind of foundation you want to turn into semantic aliases. You can tune the automation details in the next step."
+      : "Start from the outcome you want. You can tune the automation details in the next step.";
 
   useEffect(() => {
     setActiveStep(initialStep);
@@ -182,16 +199,16 @@ export function TokenRecipeDialog({
   const footerContent = (() => {
     // Step 3 confirmation view (after "Review" click)
     if (dialog.showConfirmation) {
-      const saveLabel = (() => {
-        if (dialog.saving)
+        const saveLabel = (() => {
+          if (dialog.saving)
           return dialog.isEditing ? "Saving\u2026" : "Creating\u2026";
-        if (dialog.overwriteCheckLoading) return "Checking\u2026";
-        if (dialog.previewReviewStale) return "Review update";
-        if (dialog.isEditing) {
-          return `Save (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`;
-        }
-        return "Create";
-      })();
+          if (dialog.overwriteCheckLoading) return "Checking\u2026";
+          if (dialog.previewReviewStale) return "Review update";
+          if (dialog.isEditing) {
+            return `Save (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`;
+          }
+        return "Create automation";
+        })();
 
       return (
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
@@ -238,11 +255,11 @@ export function TokenRecipeDialog({
             </button>
             <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
               <button
-                type="button"
-                onClick={() => setActiveStep(2)}
-                className={AUTHORING.footerBtnPrimary}
-              >
-                Next
+              type="button"
+              onClick={() => setActiveStep(2)}
+              className={AUTHORING.footerBtnPrimary}
+            >
+                Continue
               </button>
             </div>
           </div>
@@ -284,7 +301,7 @@ export function TokenRecipeDialog({
                 ? "Checking\u2026"
                 : hasPreviewRisks(dialog.previewAnalysis)
                   ? "Review"
-                  : dialog.isEditing ? "Save" : "Create"}
+                  : dialog.isEditing ? "Save" : "Create automation"}
             </button>
           </div>
         </div>
@@ -354,10 +371,10 @@ export function TokenRecipeDialog({
         className="text-[12px] font-semibold text-[var(--color-figma-text)]"
       >
         {dialog.isEditing
-          ? "Edit recipe"
+          ? "Edit automation"
           : template
             ? template.label
-            : "New recipe"}
+            : "New automation"}
       </span>
       {!dialog.showConfirmation && (
         <StepDots active={displayStep} total={stepCount} />
@@ -425,6 +442,9 @@ export function TokenRecipeDialog({
             <>
               {!hidesIntentStep && activeStep === 1 && (
                 <StepIntent
+                  templates={intentTemplates}
+                  title={intentTitle}
+                  description={intentDescription}
                   selectedType={dialog.selectedType}
                   recommendedType={dialog.recommendedType}
                   connected

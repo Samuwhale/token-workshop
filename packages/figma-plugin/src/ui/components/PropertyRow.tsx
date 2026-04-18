@@ -565,7 +565,7 @@ export function PropertyRow({
             />
             {bindCandidates.length === 0 && recentBindCandidates.length === 0 ? (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1 text-center">
-                {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in set`}
+                {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in this collection`}
               </div>
             ) : (
               <div id="bind-candidates-listbox" role="listbox" aria-label="Token candidates" className="max-h-[156px] overflow-y-auto flex flex-col gap-px">
@@ -736,7 +736,7 @@ export function PropertyRow({
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Token path (set: {currentCollectionId})</label>
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Token path (collection: {currentCollectionId})</label>
               <input
                 ref={nameInputRef}
                 value={newTokenName}

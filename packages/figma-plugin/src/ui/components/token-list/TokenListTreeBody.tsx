@@ -56,7 +56,6 @@ interface TokenListTreeBodyProps {
   viewMode: "tree" | "json";
 
   // Cross-collection search
-  crossCollectionSearch: boolean;
   crossCollectionResults: CrossSetResult[] | null;
   crossCollectionTotal: number;
   setCrossCollectionOffset: (v: number) => void;
@@ -104,7 +103,6 @@ interface TokenListTreeBodyProps {
   selectedPaths: Set<string>;
   sortOrder: string;
   connected: boolean;
-  collectionId: string;
   siblingOrderMap: Map<string, string[]>;
   showRecentlyTouched: boolean;
   showFlatSearchResults: boolean;
@@ -145,7 +143,6 @@ const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
 export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
     viewMode,
-    crossCollectionSearch,
     crossCollectionResults,
     crossCollectionTotal,
     setCrossCollectionOffset,
@@ -179,7 +176,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     selectedPaths,
     sortOrder,
     connected,
-    collectionId,
     siblingOrderMap,
     showRecentlyTouched,
     showFlatSearchResults,

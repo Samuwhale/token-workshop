@@ -3,6 +3,7 @@ import type {
   Dispatch,
   MutableRefObject,
   ReactNode,
+  Ref,
   RefObject,
   SetStateAction,
 } from "react";
@@ -35,7 +36,8 @@ export interface ShellWorkspaceController {
   openCollectionCreateDialog: () => void;
   openColorScaleRecipe: () => void;
   toggleQuickApply: () => void;
-  toggleCollectionSwitcher: () => void;
+  focusCollectionRail: () => void;
+  collectionRailFocusRequestKey: number;
   openStartHere: (branch?: StartHereBranch) => void;
   restartGuidedSetup: () => void;
   handleClearAllComplete: () => void;
@@ -94,8 +96,6 @@ export interface TokensWorkspaceController {
   setFlowPanelInitialPath: (path: string | null) => void;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
   tokenListSelection: string[];
-  onTokenDragStart: (paths: string[], sourceCollectionId: string) => void;
-  onTokenDragEnd: () => void;
   recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
   handleOpenCrossCollectionCompare: (path: string) => void;
@@ -146,33 +146,23 @@ export interface SyncWorkspaceController {
 }
 
 export interface CollectionStructureWorkspaceController {
-  onOpenQuickSwitch: () => void;
+  onCreateCollectionByName: (name: string) => Promise<string>;
   onRename: (collectionId: string) => void;
   onDuplicate: (collectionId: string) => void;
   onDelete: (collectionId: string) => void;
-  onReorder: (collectionId: string, direction: "left" | "right") => void;
-  onReorderFull: (newOrder: string[]) => void;
-  onOpenCreateCollection: () => void;
   onEditInfo: (collectionId: string) => void;
   onMerge?: (collectionId: string) => void;
   onSplit: (collectionId: string) => void;
-  onBulkDelete: (collectionIds: string[]) => Promise<void>;
-  onBulkDuplicate: (collectionIds: string[]) => Promise<void>;
-  onBulkMoveToFolder: (
-    moves: Array<{ from: string; to: string }>,
-  ) => Promise<void>;
   renamingCollectionId: string | null;
   renameValue: string;
   setRenameValue: (value: string) => void;
   renameError: string;
-  setRenameError: (value: string) => void;
-  renameInputRef: RefObject<HTMLInputElement | null>;
+  renameInputRef: Ref<HTMLInputElement>;
   onRenameConfirm: () => void;
   onRenameCancel: () => void;
   editingMetadataCollectionId: string | null;
   metadataDescription: string;
   setMetadataDescription: (value: string) => void;
-  onMetadataClose: () => void;
   onMetadataSave: () => void;
   deletingCollectionId: string | null;
   onDeleteConfirm: () => void | Promise<void>;

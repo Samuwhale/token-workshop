@@ -57,7 +57,7 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
     title: 'From Figma',
     description: 'Read variables or styles from this file',
     destinationLabel: 'Map destinations',
-    destinationDescription: 'Choose destination sets for each collection or style.',
+    destinationDescription: 'Choose destination collections for each collection or style.',
     supportedFileFormats: [],
   },
   'token-files': {
@@ -65,7 +65,7 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
     title: 'From token files',
     description: 'Import DTCG-compatible JSON token files',
     destinationLabel: 'Choose destination',
-    destinationDescription: 'Pick the destination set for this token file.',
+    destinationDescription: 'Pick the destination collection for this token file.',
     supportedFileFormats: ['DTCG JSON (.json)'],
   },
   code: {
@@ -73,7 +73,7 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
     title: 'From code',
     description: 'Extract tokens from CSS or Tailwind config',
     destinationLabel: 'Choose destination',
-    destinationDescription: 'Pick the destination set for extracted tokens.',
+    destinationDescription: 'Pick the destination collection for extracted tokens.',
     supportedFileFormats: ['CSS files (.css)', 'Tailwind configs (.js, .ts, .mjs, .cjs)'],
   },
   migration: {
@@ -81,7 +81,7 @@ export const IMPORT_FAMILY_DEFINITIONS: Record<SourceFamily, ImportFamilyDefinit
     title: 'Migrate from another tool',
     description: 'Import from Tokens Studio or similar tools',
     destinationLabel: 'Choose destination',
-    destinationDescription: 'Route imported data into new or existing sets.',
+    destinationDescription: 'Route imported data into new or existing collections.',
     supportedFileFormats: ['Tokens Studio JSON (.json)'],
   },
 };
@@ -149,9 +149,9 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     family: 'migration',
     label: 'Tokens Studio export',
     shortLabel: 'Tokens Studio',
-    description: 'Import Tokens Studio JSON (single or multi-set)',
+    description: 'Import Tokens Studio JSON (single or multi-collection)',
     destinationLabel: 'Choose destination',
-    destinationDescription: 'Single-set goes to one set; multi-set keeps its mapping.',
+    destinationDescription: 'Single-collection imports go to one collection; multi-collection imports keep their mapping.',
     fileSupport: {
       label: 'Tokens Studio JSON (.json)',
       accept: '.json,application/json',

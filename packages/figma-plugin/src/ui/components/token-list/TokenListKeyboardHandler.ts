@@ -16,7 +16,6 @@ interface KeyboardHandlerConfig {
   siblingOrderMap: Map<string, string[]>;
   displayedLeafNodesRef: MutableRefObject<TokenNode[]>;
   copyTokensAsJsonRef: MutableRefObject<(nodes: TokenNode[]) => void>;
-  copyTokensAsCssVarRef: MutableRefObject<(nodes: TokenNode[]) => void>;
   copyTokensAsPreferredRef: MutableRefObject<(nodes: TokenNode[]) => void>;
   copyTokensAsDtcgRefRef: MutableRefObject<(nodes: TokenNode[]) => void>;
   lastSelectedPathRef: MutableRefObject<string | null>;
@@ -60,7 +59,6 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
     siblingOrderMap,
     displayedLeafNodesRef,
     copyTokensAsJsonRef,
-    copyTokensAsCssVarRef,
     copyTokensAsPreferredRef,
     copyTokensAsDtcgRefRef,
     lastSelectedPathRef,
@@ -531,7 +529,6 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       setVirtualScrollTop,
       displayedLeafNodesRef,
       copyTokensAsJsonRef,
-      copyTokensAsCssVarRef,
       copyTokensAsPreferredRef,
       copyTokensAsDtcgRefRef,
       virtualListRef,

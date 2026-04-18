@@ -5,6 +5,7 @@ import { apiFetch } from '../shared/apiFetch';
 import { createTokenBody, updateToken } from '../shared/tokenMutations';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
+import { getPluginMessageFromEvent } from '../../shared/utils';
 import type {
   StylesAppliedMessage,
   VariablesAppliedMessage,
@@ -74,7 +75,7 @@ export function useFigmaSync(
     const signal = abortRef.current.signal;
     const handler = (ev: MessageEvent) => {
       if (signal.aborted) return;
-      const msg = ev.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{ type?: string; current?: number; total?: number }>(ev);
       if (msg?.type === 'variable-sync-progress') {
         setSyncGroupProgress({ current: msg.current as number, total: msg.total as number });
       } else if (msg?.type === 'style-sync-progress') {

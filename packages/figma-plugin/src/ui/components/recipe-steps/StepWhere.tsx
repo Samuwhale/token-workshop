@@ -2,6 +2,7 @@
  * Destination fields: output path, name, collection, and multi-brand controls.
  * Rendered inline within StepSource or standalone.
  */
+import { useEffect, useState } from "react";
 import type { InputTable, InputTableRow } from '../../hooks/useRecipes';
 import { AUTHORING } from '../../shared/editorClasses';
 
@@ -100,6 +101,14 @@ export function StepWhere({
   onInputTableChange,
   inline = false,
 }: StepWhereProps) {
+  const [advancedOutputOpen, setAdvancedOutputOpen] = useState(isMultiBrand);
+
+  useEffect(() => {
+    if (isMultiBrand) {
+      setAdvancedOutputOpen(true);
+    }
+  }, [isMultiBrand]);
+
   const fields = (
     <>
       <div className={`${inline ? '' : AUTHORING.recipeSectionCard} ${AUTHORING.recipeFieldGrid}`}>
@@ -118,7 +127,7 @@ export function StepWhere({
           />
         </div>
         <div className={AUTHORING.recipeFieldStack}>
-          <label htmlFor="step-where-recipe-name" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Recipe name</label>
+          <label htmlFor="step-where-recipe-name" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Automation name</label>
           <input
             id="step-where-recipe-name"
             type="text"
@@ -134,7 +143,7 @@ export function StepWhere({
 
       <div className={inline ? '' : AUTHORING.recipeSectionCard}>
         <div className={AUTHORING.recipeFieldGrid}>
-          {!isMultiBrand && (
+          {!isMultiBrand ? (
             <div className={AUTHORING.recipeFieldStack}>
               <label htmlFor="step-where-target-set" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Token collection</label>
               <select
@@ -146,41 +155,67 @@ export function StepWhere({
                 {collectionIds.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-          )}
-          {isMultiBrand && (
-            <div className={AUTHORING.recipeFieldStack}>
-              <label htmlFor="step-where-set-template" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Collection template</label>
-              <input
-                id="step-where-set-template"
-                type="text"
-                value={targetCollectionTemplate}
-                onChange={e => onTargetCollectionTemplateChange(e.target.value)}
-                placeholder="brands/{brand}"
-                className={AUTHORING.recipeControlMono}
-              />
-              <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                {'{brand}'} replaced per row
-              </p>
-            </div>
-          )}
+          ) : null}
         </div>
 
-        {/* Multi-brand toggle */}
         <button
           type="button"
-          onClick={onToggleMultiBrand}
+          onClick={() => setAdvancedOutputOpen((value) => !value)}
           className={`mt-1 text-[10px] transition-colors ${
-            isMultiBrand
-              ? 'text-[var(--color-figma-accent)]'
+            advancedOutputOpen
+              ? 'text-[var(--color-figma-text)]'
               : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
           }`}
         >
-          {isMultiBrand ? 'Switch to single collection' : 'Publish to multiple collections'}
+          {advancedOutputOpen ? 'Hide advanced output' : 'Advanced output'}
         </button>
 
-        {/* Multi-brand input table */}
-        {isMultiBrand && inputTable && (
-          <InputTableEditor table={inputTable} onChange={onInputTableChange} />
+        {advancedOutputOpen && (
+          <div className="mt-3 flex flex-col gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                  Advanced output
+                </p>
+                <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                  Use this when one automation needs to publish into multiple collections.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onToggleMultiBrand}
+                className={`shrink-0 text-[10px] font-medium ${
+                  isMultiBrand
+                    ? 'text-[var(--color-figma-accent)]'
+                    : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+                }`}
+              >
+                {isMultiBrand ? 'Use one collection instead' : 'Publish to multiple collections'}
+              </button>
+            </div>
+
+            {isMultiBrand ? (
+              <>
+                <div className={AUTHORING.recipeFieldStack}>
+                  <label htmlFor="step-where-set-template" className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Collection template</label>
+                  <input
+                    id="step-where-set-template"
+                    type="text"
+                    value={targetCollectionTemplate}
+                    onChange={e => onTargetCollectionTemplateChange(e.target.value)}
+                    placeholder="brands/{brand}"
+                    className={AUTHORING.recipeControlMono}
+                  />
+                  <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                    {'{brand}'} replaced per row
+                  </p>
+                </div>
+                {inputTable ? (
+                  <InputTableEditor table={inputTable} onChange={onInputTableChange} />
+                ) : null}
+              </>
+            ) : null}
+          </div>
         )}
       </div>
     </>

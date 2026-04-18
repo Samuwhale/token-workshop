@@ -172,7 +172,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     }
     if (crossCollectionSearch) {
       chips.push({
-        key: "cross-set",
+        key: "cross-collection",
         label: "Search all collections",
         tone: "filter",
         onRemove: () => setCrossCollectionSearch(false),

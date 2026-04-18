@@ -17,6 +17,7 @@ interface UseCollectionDeleteParams {
   setErrorToast: (msg: string) => void;
   markDisconnected: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
+  onDeleteComplete?: (deletedCollectionId: string, nextCollectionId: string) => void;
 }
 
 export function useCollectionDelete({
@@ -26,6 +27,7 @@ export function useCollectionDelete({
   refreshTokens,
   setSuccessToast, setErrorToast, markDisconnected,
   onPushUndo,
+  onDeleteComplete,
 }: UseCollectionDeleteParams) {
   const [deletingCollectionId, setDeletingCollectionId] = useState<string | null>(null);
 
@@ -58,6 +60,7 @@ export function useCollectionDelete({
       }
 
       const name = deletingCollectionId;
+      onDeleteComplete?.(name, newActive);
       setDeletingCollectionId(null);
       setSuccessToast(`Deleted collection "${name}"`);
 

@@ -11,7 +11,7 @@ import { createRecipeDraftFromTemplate } from '../hooks/useRecipeDialog';
 // Types
 // ---------------------------------------------------------------------------
 
-type TaskId = 'foundations' | 'semantics' | 'modes';
+type TaskId = 'modes' | 'foundations' | 'semantics';
 type ChecklistView = 'list' | 'template-picker' | 'modes-inline';
 type PrereqPhase = 'connect' | 'create-collection' | null;
 
@@ -47,9 +47,9 @@ interface TaskDef {
 }
 
 const TASKS: TaskDef[] = [
-  { id: 'foundations', label: 'Foundations', description: 'Generate colors, spacing, or type scales' },
-  { id: 'semantics', label: 'Semantics', description: 'Map aliases to foundations' },
-  { id: 'modes', label: 'Modes', description: 'Add collection-owned modes' },
+  { id: 'modes', label: 'Modes', description: 'Add the variations this collection needs' },
+  { id: 'foundations', label: 'Foundations', description: 'Generate colors, spacing, type, or other base scales' },
+  { id: 'semantics', label: 'Semantics', description: 'Create semantic aliases from your foundations' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -65,9 +65,9 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Start the server</p>
+        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Connect your token project</p>
         <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-          Run in your project directory:
+          Run this in your token project folder, then come back here:
         </p>
       </div>
 
@@ -137,7 +137,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
       <div>
         <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token collection</p>
         <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-          A JSON file for your design foundations.
+          This is the container where you will author tokens and modes.
         </p>
       </div>
 
@@ -477,7 +477,7 @@ export function QuickStartWizard({
       <>
         {!embedded && (
           <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Guided setup</div>
+            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">Start a new token system</div>
             <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
@@ -571,8 +571,8 @@ export function QuickStartWizard({
                 </svg>
               </button>
             )}
-            <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              {viewTitle ?? 'Guided setup'}
+              <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+              {viewTitle ?? 'Start a new token system'}
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">

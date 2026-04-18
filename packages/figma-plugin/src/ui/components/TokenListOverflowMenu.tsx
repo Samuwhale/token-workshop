@@ -197,7 +197,12 @@ function useDropdownMenu() {
   return { open, setOpen, containerRef, buttonRef, menuRef, runAndClose };
 }
 
-export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: LibraryViewMode; onActivateViewMode: (mode: LibraryViewMode) => void }) {
+export function ViewMenu(
+  props: TokenListOverflowMenuProps & {
+    currentLibraryViewMode: LibraryViewMode;
+    onActivateViewMode: (mode: LibraryViewMode) => void;
+  },
+) {
   const { open, setOpen, containerRef, buttonRef, menuRef, runAndClose } =
     useDropdownMenu();
   const [groupsExpanded, setGroupsExpanded] = useState(true);
@@ -248,7 +253,7 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
       {open && (
         <div
           ref={menuRef}
-          className="absolute right-0 top-full z-50 mt-1 w-[200px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
+          className="absolute right-0 top-full z-50 mt-1 w-[224px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">
@@ -374,6 +379,83 @@ export function ViewMenu(props: ViewMenuProps & { currentLibraryViewMode: Librar
                   )
                 }
               />
+            )}
+            <div className={MENU_SECTION_BORDER}>
+              <MenuLabel>Filters</MenuLabel>
+            </div>
+            {props.lintCount > 0 && (
+              <MenuItem
+                label="Only tokens with issues"
+                checked={props.showIssuesOnly}
+                suffix={`${props.lintCount}`}
+                onClick={() =>
+                  runAndClose(() => props.onToggleIssuesOnly?.())
+                }
+              />
+            )}
+            {props.recentlyTouchedCount > 0 && (
+              <MenuItem
+                label="Recently touched"
+                checked={props.showRecentlyTouched}
+                suffix={`${props.recentlyTouchedCount}`}
+                onClick={() => runAndClose(props.onToggleRecentlyTouched)}
+              />
+            )}
+            <MenuItem
+              label="Related to selection"
+              checked={props.inspectMode}
+              onClick={() => runAndClose(props.onToggleInspectMode)}
+            />
+            {props.hasMultipleCollections && (
+              <MenuItem
+                label="Search across all collections"
+                checked={props.crossCollectionSearch}
+                onClick={() =>
+                  runAndClose(props.onToggleCrossCollectionSearch)
+                }
+              />
+            )}
+            <MenuItem
+              label={
+                props.refFilter === "all"
+                  ? "Reference mode: all tokens"
+                  : props.refFilter === "aliases"
+                    ? "Reference mode: alias tokens"
+                    : "Reference mode: direct values"
+              }
+              onClick={() =>
+                runAndClose(() => {
+                  const next =
+                    props.refFilter === "all"
+                      ? "aliases"
+                      : props.refFilter === "aliases"
+                        ? "direct"
+                        : "all";
+                  props.onRefFilterChange(next as "all" | "aliases" | "direct");
+                })
+              }
+              checked={props.refFilter !== "all"}
+            />
+            <MenuItem
+              label="Duplicate values only"
+              checked={props.showDuplicates}
+              onClick={() => runAndClose(props.onToggleDuplicates)}
+            />
+            {props.filterPresets.length > 0 && (
+              <>
+                <div className={MENU_SECTION_BORDER}>
+                  <MenuLabel>Saved filters</MenuLabel>
+                </div>
+                {props.filterPresets.map((preset) => (
+                  <MenuItem
+                    key={preset.id}
+                    label={preset.name}
+                    onClick={() =>
+                      runAndClose(() => props.onApplyFilterPreset(preset))
+                    }
+                  />
+                ))}
+              </>
             )}
           </div>
         </div>

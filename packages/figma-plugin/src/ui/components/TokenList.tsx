@@ -185,10 +185,7 @@ export function TokenList({
     onOpenCommandPaletteWithQuery,
     onShowPasteModal,
     onOpenImportPanel,
-    onOpenCollectionSwitcher,
     onOpenCreateCollection,
-    onTokenDragStart,
-    onTokenDragEnd,
     onOpenStartHere: _onOpenStartHere,
     onTogglePreviewSplit,
   },
@@ -199,6 +196,7 @@ export function TokenList({
   showPreviewSplit = false,
   editingTokenPath,
   compareHandle,
+  toolbarScenarioControl,
 }: TokenListProps) {
   const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
@@ -239,7 +237,7 @@ export function TokenList({
       }
     }
     return ids;
-  }, [allTokensFlat, pathToCollectionId, pathToCollectionId, collectionId]);
+  }, [allTokensFlat, pathToCollectionId, collectionId]);
   const activeCollections = useMemo(
     () =>
       collections.filter((collection) =>
@@ -351,7 +349,6 @@ export function TokenList({
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   const copyTokensAsJsonRef = useRef<(nodes: TokenNode[]) => void>(() => {});
-  const copyTokensAsCssVarRef = useRef<(nodes: TokenNode[]) => void>(() => {});
   const copyTokensAsPreferredRef = useRef<(nodes: TokenNode[]) => void>(
     () => {},
   );
@@ -817,20 +814,6 @@ export function TokenList({
     handleDropOnGroup,
     handleDropReorder,
   } = dragDrop;
-
-  // Wrap drag callbacks to notify parent so it can expose set-tab drop zones
-  const handleDragStartNotify = useCallback(
-    (paths: string[], names: string[]) => {
-      handleDragStart(paths, names);
-      onTokenDragStart?.(paths, collectionId);
-    },
-    [handleDragStart, onTokenDragStart, collectionId],
-  );
-
-  const handleDragEndNotify = useCallback(() => {
-    handleDragEnd();
-    onTokenDragEnd?.();
-  }, [handleDragEnd, onTokenDragEnd]);
 
   const groupOps = useGroupOperations({
     connected,
@@ -1646,7 +1629,6 @@ export function TokenList({
     siblingOrderMap,
     displayedLeafNodesRef,
     copyTokensAsJsonRef,
-    copyTokensAsCssVarRef: copyTokensAsCssVarRef,
     copyTokensAsPreferredRef,
     copyTokensAsDtcgRefRef,
     lastSelectedPathRef,
@@ -1860,7 +1842,6 @@ export function TokenList({
     setCopyAliasFeedback,
   });
   copyTokensAsJsonRef.current = copyTokensAsJson;
-  copyTokensAsCssVarRef.current = copyTokensAsCssVar;
   copyTokensAsDtcgRefRef.current = copyTokensAsDtcgRef;
   copyTokensAsPreferredRef.current = copyTokensAsPreferred;
 
@@ -2175,8 +2156,8 @@ export function TokenList({
     onViewTokenHistory,
     collectionsLength: activeCollections.length,
     handleCompareAcrossCollections,
-    handleDragStartNotify,
-    handleDragEndNotify,
+    handleDragStartNotify: handleDragStart,
+    handleDragEndNotify: handleDragEnd,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, onOpenRecipeEditor, onToggleStar,
     handleClearPendingRename, handleClearPendingTabEdit, handleTabToNext,
@@ -2242,7 +2223,7 @@ export function TokenList({
 
   return (
     <div
-      className="flex flex-col h-full relative"
+      className="relative flex h-full min-h-0 flex-col"
       data-tokens-library-surface-slot={librarySurfaceSlot}
       onKeyDown={handleListKeyDown}
     >
@@ -2359,8 +2340,8 @@ export function TokenList({
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
-            onOpenCollectionSwitcher={onOpenCollectionSwitcher}
             onOpenCreateCollection={onOpenCreateCollection}
+            scenarioControl={toolbarScenarioControl}
             onCreateRecipe={onNavigateToNewRecipe}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
@@ -2473,7 +2454,6 @@ export function TokenList({
         >
           <TokenListTreeBody
             viewMode={viewMode}
-            crossCollectionSearch={crossCollectionSearch}
             crossCollectionResults={crossCollectionResults}
             crossCollectionTotal={crossCollectionTotal}
             setCrossCollectionOffset={setCrossCollectionOffset}
@@ -2518,7 +2498,6 @@ export function TokenList({
             selectedPaths={selectedPaths}
             sortOrder={sortOrder}
             connected={connected}
-            collectionId={collectionId}
             siblingOrderMap={siblingOrderMap}
             showRecentlyTouched={showRecentlyTouched}
             showFlatSearchResults={showFlatSearchResults}

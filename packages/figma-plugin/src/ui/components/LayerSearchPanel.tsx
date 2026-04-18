@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { LayerSearchResult } from "../../shared/types";
+import type { LayerSearchResult, LayerSearchResultMessage } from "../../shared/types";
+import { getPluginMessageFromEvent, postPluginMessage } from "../../shared/utils";
 
 const nodeTypeIcons: Record<string, string> = {
   FRAME: "▢",
@@ -27,19 +28,27 @@ export function LayerSearchPanel({
   const [totalSearched, setTotalSearched] = useState<number | null>(null);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      const msg = event.data?.pluginMessage;
-      if (msg?.type === "search-layers-result") {
-        setResults(msg.results);
-        setTotalSearched(msg.totalSearched ?? null);
-        setSearching(false);
-      }
+      const msg = getPluginMessageFromEvent<LayerSearchResultMessage>(event);
+      if (msg?.type !== "search-layers-result") return;
+      if (msg.correlationId !== requestIdRef.current) return;
+      setResults(msg.results);
+      setTotalSearched(msg.totalSearched ?? null);
+      setSearching(false);
     };
     window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+      requestIdRef.current = null;
+      window.removeEventListener("message", handler);
+    };
   }, []);
 
   useEffect(() => {
@@ -50,6 +59,7 @@ export function LayerSearchPanel({
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!value.trim()) {
+      requestIdRef.current = null;
       setResults([]);
       setTotalSearched(null);
       setSearching(false);
@@ -57,10 +67,9 @@ export function LayerSearchPanel({
     }
     setSearching(true);
     debounceRef.current = setTimeout(() => {
-      parent.postMessage(
-        { pluginMessage: { type: "search-layers", query: value } },
-        "*",
-      );
+      const correlationId = `search-layers-${Date.now()}-${Math.random()}`;
+      requestIdRef.current = correlationId;
+      postPluginMessage({ type: "search-layers", query: value, correlationId });
     }, 200);
   }, []);
 

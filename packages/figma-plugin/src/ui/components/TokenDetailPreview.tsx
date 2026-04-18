@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import { createRecipeOwnershipKey, type TokenCollection } from "@tokenmanager/core";
+import { createRecipeOwnershipKey } from "@tokenmanager/core";
 import type { TokenRecipe } from "../hooks/useRecipes";
 import type { LintViolation } from "../hooks/useLint";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
@@ -296,7 +296,17 @@ export function TokenDetailPreview({
               lifecycle={presentation.lifecycle}
               provenance={presentation.provenance}
               aliasPath={directAliasPath}
+              aliasCollectionId={
+                directAliasPath
+                  ? (pathToCollectionId?.[directAliasPath] ?? null)
+                  : null
+              }
               extendsPath={presentation.extendsPath}
+              extendsCollectionId={
+                presentation.extendsPath
+                  ? (pathToCollectionId?.[presentation.extendsPath] ?? null)
+                  : null
+              }
               sourceRecipes={sourceRecipes}
               generatedRecipe={derivedRecipe ?? null}
               usageCount={usageCount}

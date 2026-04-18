@@ -19,8 +19,8 @@ export function EmptyState({ connected, onOpenStartHere }: EmptyStateProps) {
           </svg>
         )}
         title="No tokens"
-        description={connected ? "Create a token or import a file." : "Connect a server to begin."}
-        primaryAction={{ label: connected ? 'Create' : 'Connect', onClick: onOpenStartHere }}
+        description={connected ? "Import an existing token system or create a collection to begin." : "Connect your token project to begin."}
+        primaryAction={{ label: connected ? 'Get started' : 'Connect', onClick: onOpenStartHere }}
       />
     </div>
   );

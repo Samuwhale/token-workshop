@@ -6,7 +6,7 @@ const FOLDER_PATH_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 interface CollectionCreateDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string) => Promise<void>;
+  onCreate: (name: string) => Promise<string>;
 }
 
 export function CollectionCreateDialog({

@@ -22,6 +22,7 @@ import {
   getObjectAtPath,
   setGroupAtPath,
   getTokenAtPath,
+  getTokenAtPathWithInheritedType,
   setTokenAtPath,
   deleteTokenAtPath,
   collectGroupLeafTokens,
@@ -788,7 +789,7 @@ export class TokenStore {
   ): Promise<Token | undefined> {
     const collection = this.collections.get(collectionId);
     if (!collection) return undefined;
-    return getTokenAtPath(collection.tokens, tokenPath);
+    return getTokenAtPathWithInheritedType(collection.tokens, tokenPath);
   }
 
   async createToken(

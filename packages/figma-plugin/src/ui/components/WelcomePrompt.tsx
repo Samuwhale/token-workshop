@@ -6,7 +6,7 @@ import { QuickStartWizard } from "./QuickStartWizard";
 export type StartHereBranch =
   | "root"
   | "import"
-  | "guided-setup";
+  | "start-new";
 
 type StartHereBranchCopy = {
   title: string;
@@ -19,17 +19,17 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
     description: "",
   },
   import: {
-    title: "Import existing tokens",
-    description: "",
+    title: "Import an existing token system",
+    description: "Bring in Figma variables or token files, then review the imported collections in Tokens.",
   },
-  "guided-setup": {
-    title: "Guided setup",
-    description: "",
+  "start-new": {
+    title: "Start a new token system",
+    description: "Create your first collection, add modes if needed, generate foundations, and turn them into semantics.",
   },
 };
 
 export const TOKENS_START_HERE_BRANCHES = [
-  "guided-setup",
+  "start-new",
   "import",
 ] as const satisfies readonly StartHereBranch[];
 
@@ -50,7 +50,6 @@ interface WelcomePromptProps {
   onClose: () => void;
   onImportFigma?: () => void;
   onPasteJSON: () => void;
-  onCreateToken: () => void;
   onGuidedSetupComplete: () => void;
   onCollectionCreated?: (name: string) => void;
 }
@@ -145,7 +144,6 @@ export function WelcomePrompt({
   onClose,
   onImportFigma,
   onPasteJSON,
-  onCreateToken,
   onGuidedSetupComplete,
   onCollectionCreated,
 }: WelcomePromptProps) {
@@ -163,10 +161,10 @@ export function WelcomePrompt({
   const renderRoot = () => (
     <div className="flex flex-col gap-3">
       <ActionRow
-        title="Guided setup"
-        description="Build token foundations step by step."
+        title="Start a new token system"
+        description="Create a collection, add modes, generate foundations, and create semantic aliases."
         emphasized
-        onClick={() => setBranch("guided-setup")}
+        onClick={() => setBranch("start-new")}
         icon={
           <svg
             width="14"
@@ -185,8 +183,8 @@ export function WelcomePrompt({
       />
       <div>
         <ActionRow
-          title="Import existing tokens"
-          description="Import Figma variables or token files."
+          title="Import an existing token system"
+          description="Bring in Figma variables or token files."
           onClick={() => setBranch("import")}
           icon={
             <svg
@@ -203,28 +201,6 @@ export function WelcomePrompt({
               <path d="M12 3v12" />
               <path d="M7 10l5 5 5-5" />
               <path d="M5 21h14" />
-            </svg>
-          }
-        />
-        <ActionRow
-          title="Create a token"
-          description="Add a token or group directly."
-          disabled={!connected}
-          onClick={() => handleAction(onCreateToken)}
-          icon={
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M12 5v14" />
-              <path d="M5 12h14" />
             </svg>
           }
         />
@@ -366,7 +342,7 @@ export function WelcomePrompt({
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {branch === "root" && renderRoot()}
           {branch === "import" && renderImport()}
-          {branch === "guided-setup" && (
+          {branch === "start-new" && (
             <div className="h-full">
               <QuickStartWizard
                 serverUrl={serverUrl}

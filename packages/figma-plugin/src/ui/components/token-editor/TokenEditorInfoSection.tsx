@@ -86,7 +86,13 @@ export function TokenEditorInfoSection({
         lifecycle={lifecycle}
         provenance={provenance}
         aliasPath={aliasPath}
+        aliasCollectionId={
+          aliasPath ? (pathToCollectionId[aliasPath] ?? null) : null
+        }
         extendsPath={extendsPath}
+        extendsCollectionId={
+          extendsPath ? (pathToCollectionId[extendsPath] ?? null) : null
+        }
         sourceRecipes={existingRecipesForToken}
         generatedRecipe={activeProducingRecipe}
         onNavigateToPath={

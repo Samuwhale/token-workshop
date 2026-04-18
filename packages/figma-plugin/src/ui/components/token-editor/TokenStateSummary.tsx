@@ -14,7 +14,9 @@ interface TokenStateSummaryProps {
   lifecycle: "draft" | "published" | "deprecated";
   provenance: string | null;
   aliasPath: string | null;
+  aliasCollectionId?: string | null;
   extendsPath: string | null;
+  extendsCollectionId?: string | null;
   sourceRecipes: TokenRecipe[];
   generatedRecipe: TokenRecipe | null;
   usageCount?: number;
@@ -83,13 +85,52 @@ function RecipeLinks({
   );
 }
 
+function TokenReferenceValue({
+  path,
+  collectionId,
+  onNavigateToPath,
+}: {
+  path: string;
+  collectionId?: string | null;
+  onNavigateToPath?: (path: string) => void;
+}) {
+  return (
+    <div className="min-w-0">
+      {onNavigateToPath ? (
+        <button
+          type="button"
+          onClick={() => onNavigateToPath(path)}
+          className="block truncate text-left font-mono text-[var(--color-figma-accent)] hover:underline"
+          title={path}
+        >
+          {compactTokenPath(path)}
+        </button>
+      ) : (
+        <span
+          className="block truncate font-mono text-[var(--color-figma-text)]"
+          title={path}
+        >
+          {compactTokenPath(path)}
+        </span>
+      )}
+      {collectionId ? (
+        <div className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+          {collectionId}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function TokenStateSummary({
   tokenType,
   scopes,
   lifecycle,
   provenance,
   aliasPath,
+  aliasCollectionId,
   extendsPath,
+  extendsCollectionId,
   sourceRecipes,
   generatedRecipe,
   usageCount,
@@ -127,39 +168,21 @@ export function TokenStateSummary({
       <dl className="grid grid-cols-[84px_minmax(0,1fr)] gap-x-3 gap-y-1.5">
         {aliasPath && (
           <SummaryRow label="Alias of">
-            {onNavigateToPath ? (
-              <button
-                type="button"
-                onClick={() => onNavigateToPath(aliasPath)}
-                className="truncate text-left font-mono text-[var(--color-figma-accent)] hover:underline"
-                title={aliasPath}
-              >
-                {compactTokenPath(aliasPath)}
-              </button>
-            ) : (
-              <span className="font-mono text-[var(--color-figma-text)]" title={aliasPath}>
-                {compactTokenPath(aliasPath)}
-              </span>
-            )}
+            <TokenReferenceValue
+              path={aliasPath}
+              collectionId={aliasCollectionId}
+              onNavigateToPath={onNavigateToPath}
+            />
           </SummaryRow>
         )}
 
         {extendsPath && (
           <SummaryRow label="Extends">
-            {onNavigateToPath ? (
-              <button
-                type="button"
-                onClick={() => onNavigateToPath(extendsPath)}
-                className="truncate text-left font-mono text-[var(--color-figma-accent)] hover:underline"
-                title={extendsPath}
-              >
-                {compactTokenPath(extendsPath)}
-              </button>
-            ) : (
-              <span className="font-mono text-[var(--color-figma-text)]" title={extendsPath}>
-                {compactTokenPath(extendsPath)}
-              </span>
-            )}
+            <TokenReferenceValue
+              path={extendsPath}
+              collectionId={extendsCollectionId}
+              onNavigateToPath={onNavigateToPath}
+            />
           </SummaryRow>
         )}
 

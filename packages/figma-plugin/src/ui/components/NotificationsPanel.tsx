@@ -24,7 +24,7 @@ type ActionTarget =
         | "history"
         | "health";
     }
-  | { kind: "surface"; surface: "import" | "collection-manager" | "settings" };
+  | { kind: "surface"; surface: "import" | "settings" };
 
 interface NotificationsPanelProps {
   history: NotificationEntry[];
@@ -136,8 +136,8 @@ function inferWorkspaceAction(message: string): InboxAction {
     lower.includes("layer")
   ) {
     return {
-      label: "Manage collections",
-      target: { kind: "surface", surface: "collection-manager" },
+      label: "Open tokens",
+      target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },
     };
   }
   if (
@@ -226,9 +226,7 @@ function buildInboxItem(
     : action.target.kind === "surface"
       ? action.target.surface === "settings"
         ? "Settings"
-        : action.target.surface === "collection-manager"
-          ? "Collections"
-          : "Import"
+        : "Import"
       : action.label
           .replace(/^Open\s+/i, "")
           .replace(/^./, (char) => char.toUpperCase());

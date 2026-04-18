@@ -147,7 +147,7 @@ export function useRecipeSave({
       return false;
     }
     if (!name.trim()) {
-      setSaveError("Recipe name is required.");
+      setSaveError("Automation name is required.");
       return false;
     }
     if (!isMultiBrand && typeNeedsValue && !hasValue) {

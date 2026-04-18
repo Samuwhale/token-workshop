@@ -1,7 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
-import { apiFetch } from "../../shared/apiFetch";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { ModeValueEditor } from "./ModeValueEditor";
 import { summarizeModeCoverage } from "./modeCoverage";
@@ -26,10 +25,8 @@ export interface ModeValuesEditorProps {
   value: unknown;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
-  onOpenManageCollections?: () => void;
+  onOpenCollectionSetup?: () => void;
   selectedModes?: Record<string, string>;
-  serverUrl?: string;
-  onCollectionModeCreated?: () => void;
 }
 
 function updateCollectionMode(
@@ -78,19 +75,13 @@ export function ModeValuesEditor({
   value,
   allTokensFlat = {},
   pathToCollectionId = {},
-  onOpenManageCollections,
+  onOpenCollectionSetup,
   selectedModes = {},
-  serverUrl,
-  onCollectionModeCreated,
 }: ModeValuesEditorProps) {
   const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(
     null,
   );
   const [aliasInputKeys, setAliasInputKeys] = useState<Set<string>>(new Set());
-  const [inlineCreating, setInlineCreating] = useState(false);
-  const [inlineModes, setInlineModes] = useState("");
-  const [inlineError, setInlineError] = useState<string | null>(null);
-  const [inlineSaving, setInlineSaving] = useState(false);
 
   const collectionDefinition = useMemo(
     () => getTokenCollection(collections, collectionId),
@@ -102,94 +93,7 @@ export function ModeValuesEditor({
   const hasTokens = Object.keys(allTokensFlat).length > 0;
   const useRichEditor = RICH_EDITOR_TYPES.has(tokenType);
 
-  const handleInlineCreate = useCallback(async () => {
-    if (!serverUrl) return;
-    const modeNames = inlineModes
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean);
-    if (modeNames.length === 0) {
-      setInlineError("Enter at least one mode name");
-      return;
-    }
-
-    setInlineSaving(true);
-    setInlineError(null);
-    try {
-      for (const modeName of modeNames) {
-        await apiFetch(
-          `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: modeName }),
-          },
-        );
-      }
-      setInlineCreating(false);
-      setInlineModes("");
-      onCollectionModeCreated?.();
-    } catch (error) {
-      setInlineError(
-        error instanceof Error ? error.message : "Failed to save collection modes",
-      );
-    } finally {
-      setInlineSaving(false);
-    }
-  }, [collectionId, inlineModes, onCollectionModeCreated, serverUrl]);
-
   if (!collectionDefinition || collectionDefinition.modes.length === 0) {
-    if (inlineCreating && serverUrl) {
-      return (
-        <div className="flex flex-col gap-2 rounded-md border border-dashed border-[var(--color-figma-border)] px-2.5 py-2">
-          <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Add collection modes
-          </p>
-          <input
-            type="text"
-            value={inlineModes}
-            onChange={(event) => {
-              setInlineModes(event.target.value);
-              setInlineError(null);
-            }}
-            placeholder="Light, Dark or Brand A, Brand B"
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/40"
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                void handleInlineCreate();
-              }
-            }}
-            autoFocus
-          />
-          {inlineError ? (
-            <p className="text-[10px] text-[var(--color-figma-error)]">
-              {inlineError}
-            </p>
-          ) : null}
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setInlineCreating(false);
-                setInlineError(null);
-              }}
-              className="rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleInlineCreate()}
-              disabled={inlineSaving}
-              className="rounded bg-[var(--color-figma-accent)] px-3 py-1 text-[10px] font-medium text-white disabled:opacity-40"
-            >
-              {inlineSaving ? "Saving..." : "Save modes"}
-            </button>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
         <div className="min-w-0">
@@ -197,30 +101,20 @@ export function ModeValuesEditor({
             Collection modes
           </p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            This collection has no modes yet. Add modes here, then author values
-            directly on this token.
+            This collection has no modes yet. Open collection setup to define
+            the variations for this collection before you author mode-specific
+            values.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {serverUrl ? (
-            <button
-              type="button"
-              onClick={() => setInlineCreating(true)}
-              className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-            >
-              Add modes
-            </button>
-          ) : null}
-          {onOpenManageCollections ? (
-            <button
-              type="button"
-              onClick={onOpenManageCollections}
-              className="shrink-0 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:underline"
-            >
-              Manage collections
-            </button>
-          ) : null}
-        </div>
+        {onOpenCollectionSetup ? (
+          <button
+            type="button"
+            onClick={onOpenCollectionSetup}
+            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+          >
+            Open collection setup
+          </button>
+        ) : null}
       </div>
     );
   }

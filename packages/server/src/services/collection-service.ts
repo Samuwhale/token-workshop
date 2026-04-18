@@ -774,17 +774,10 @@ function buildRemovalBlockers(
 function buildPreflightWarnings(params: {
   operation: CollectionStructuralOperation;
   source: CollectionPreflightImpact;
-  _target?: CollectionPreflightImpact;
   deleteOriginal?: boolean;
   splitPreview: CollectionSplitPreviewItem[];
 }): string[] {
-  const {
-    operation,
-    source,
-    _target,
-    deleteOriginal = false,
-    splitPreview,
-  } = params;
+  const { operation, source, deleteOriginal = false, splitPreview } = params;
   const warnings: string[] = [];
 
   if (operation === "split") {
@@ -1299,7 +1292,6 @@ export class CollectionService {
     const warnings = buildPreflightWarnings({
       operation,
       source: sourceImpact,
-      _target: affectedCollectionImpacts[1],
       deleteOriginal,
       splitPreview,
     });

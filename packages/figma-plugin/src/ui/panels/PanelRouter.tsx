@@ -8,14 +8,16 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
 import { TokenRecipeDialog } from "../components/TokenRecipeDialog";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
-import { CollectionStructureManager } from "../components/CollectionSwitcher";
+import { CollectionRail } from "../components/CollectionRail";
+import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
+import { CollectionScenarioControl } from "../components/CollectionScenarioControl";
 import { PublishPanel } from "../components/PublishPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 import { ImportPanel } from "../components/ImportPanel";
@@ -41,9 +43,6 @@ import {
   useTokenFlatMapContext,
   useRecipeContext,
 } from "../contexts/TokenDataContext";
-import {
-  useCollectionUiContext,
-} from "../contexts/CollectionContext";
 import {
   useSelectionContext,
   useHeatmapContext,
@@ -160,8 +159,6 @@ export function PanelRouter({
     activeSubTab,
     activeSecondarySurface,
     navigateTo,
-    openSecondarySurface,
-    setSubTab,
     beginHandoff,
     closeSecondarySurface,
   } = useNavigationContext();
@@ -172,6 +169,7 @@ export function PanelRouter({
     setEditingRecipe,
     previewingToken,
     setPreviewingToken,
+    inspectingCollection,
     highlightedToken,
     setHighlightedToken,
     createFromEmpty,
@@ -208,7 +206,6 @@ export function PanelRouter({
     useSyncContext();
   const {
     collections,
-    setCollections,
     currentCollectionId,
     setCurrentCollectionId,
     currentCollectionTokens: tokens,
@@ -234,7 +231,6 @@ export function PanelRouter({
     recipesByTargetGroup,
     derivedTokenPaths,
   } = useRecipeContext();
-  void useCollectionUiContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
     heatmapResult,
@@ -247,6 +243,8 @@ export function PanelRouter({
     cancelHeatmapScan: _cancelHeatmapScan,
   } = useHeatmapContext();
   const { tokenUsageCounts } = useUsageContext();
+  const canvasSelectionRef = useRef<HTMLDivElement>(null);
+  const canvasAnalysisRef = useRef<HTMLDivElement>(null);
 
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(
     null,
@@ -271,12 +269,44 @@ export function PanelRouter({
     if (!showPreviewSplit) return;
     if (
       activeTokensContextualSurface === "compare" ||
+      activeTokensContextualSurface === "collection-details" ||
       activeTokensContextualSurface === "token-editor" ||
       activeTokensContextualSurface === "recipe-editor"
     ) {
       setShowPreviewSplit(false);
     }
   }, [activeTokensContextualSurface, setShowPreviewSplit, showPreviewSplit]);
+
+  useEffect(() => {
+    if (activeTopTab !== "inspect") {
+      return;
+    }
+
+    const target =
+      activeSubTab === "canvas-analysis"
+        ? canvasAnalysisRef.current
+        : canvasSelectionRef.current;
+    target?.scrollIntoView({ block: "start" });
+  }, [activeSubTab, activeTopTab]);
+
+  useEffect(() => {
+    if (
+      activeTopTab === "inspect" &&
+      activeSubTab === "canvas-analysis" &&
+      !heatmapLoading &&
+      !heatmapResult &&
+      !heatmapError
+    ) {
+      triggerHeatmapScan();
+    }
+  }, [
+    activeSubTab,
+    activeTopTab,
+    heatmapError,
+    heatmapLoading,
+    heatmapResult,
+    triggerHeatmapScan,
+  ]);
 
   const editingTokenType = editingToken
     ? (allTokensFlat[editingToken.path]?.$type ?? editingToken.initialType)
@@ -391,7 +421,7 @@ export function PanelRouter({
   );
 
   const openNewRecipe = useCallback(() => {
-    openRecipeEditor({ mode: "create" });
+    openRecipeEditor({ mode: "create", intentPreset: "semantic-aliases" });
   }, [openRecipeEditor]);
 
   const openRecipeFromSource = useCallback((source: {
@@ -500,6 +530,12 @@ export function PanelRouter({
       setHighlightedToken,
       refreshAll,
     ],
+  );
+
+  const ownerCollectionIdForEditor = useCallback(
+    (tokenPath: string, fallbackCollectionId: string) =>
+      pathToCollectionId[tokenPath] ?? fallbackCollectionId,
+    [pathToCollectionId],
   );
 
   useEffect(() => {
@@ -634,12 +670,9 @@ export function PanelRouter({
     onOpenCommandPaletteWithQuery: controller.openCommandPaletteWithQuery,
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
-    onOpenCollectionSwitcher: controller.toggleCollectionSwitcher,
     onOpenCreateCollection: controller.onOpenCollectionCreateDialog,
     onOpenStartHere: controller.onOpenStartHere,
     onTogglePreviewSplit: () => controller.setShowPreviewSplit((v) => !v),
-    onTokenDragStart: controller.onTokenDragStart,
-    onTokenDragEnd: controller.onTokenDragEnd,
   };
 
   // Common TokenEditor props shared between side-panel and drawer variants
@@ -682,7 +715,11 @@ export function PanelRouter({
           }),
         onNavigateToRecipe: controller.handleNavigateToRecipe,
         onOpenRecipeEditor: openRecipeEditor,
-        onOpenManageCollections: () => openSecondarySurface("collection-manager"),
+        onOpenCollectionSetup: () =>
+          switchContextualSurface({
+            surface: "collection-details",
+            collection: { collectionId: ownerCollectionIdForEditor(editingToken.path, editingToken.currentCollectionId) },
+          }),
       }
     : null;
 
@@ -749,6 +786,10 @@ export function PanelRouter({
             editingRecipe.mode === "create"
               ? editingRecipe.sourceTokenValue
               : undefined,
+          intentPreset:
+            editingRecipe.mode === "create"
+              ? editingRecipe.intentPreset
+              : undefined,
           existingRecipe:
             editingRecipe.mode === "edit"
               ? (editingRecipeData ?? undefined)
@@ -792,6 +833,70 @@ export function PanelRouter({
 
   const getTokensContextualSurfaceRenderState =
     (): TokensContextualSurfaceRenderState | null => {
+      if (
+        activeTokensContextualSurface === "collection-details" &&
+        inspectingCollection
+      ) {
+        return {
+          surface: "collection-details",
+          content: (
+            <CollectionDetailsPanel
+              collection={
+                collections.find(
+                  (collection) => collection.id === inspectingCollection.collectionId,
+                ) ?? null
+              }
+              collectionIds={collectionIds}
+              collectionTokenCounts={collectionTokenCounts}
+              collectionDescriptions={collectionDescriptions}
+              serverUrl={serverUrl}
+              connected={connected}
+              onClose={() => switchContextualSurface({ surface: null })}
+              onRename={collectionStructureController.onRename}
+              onDuplicate={collectionStructureController.onDuplicate}
+              onDelete={collectionStructureController.onDelete}
+              onEditInfo={collectionStructureController.onEditInfo}
+              onMerge={collectionStructureController.onMerge}
+              onSplit={collectionStructureController.onSplit}
+              renamingCollectionId={collectionStructureController.renamingCollectionId}
+              renameValue={collectionStructureController.renameValue}
+              setRenameValue={collectionStructureController.setRenameValue}
+              renameError={collectionStructureController.renameError}
+              renameInputRef={collectionStructureController.renameInputRef}
+              onRenameConfirm={collectionStructureController.onRenameConfirm}
+              onRenameCancel={collectionStructureController.onRenameCancel}
+              editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
+              metadataDescription={collectionStructureController.metadataDescription}
+              setMetadataDescription={collectionStructureController.setMetadataDescription}
+              onMetadataSave={collectionStructureController.onMetadataSave}
+              deletingCollectionId={collectionStructureController.deletingCollectionId}
+              onDeleteConfirm={collectionStructureController.onDeleteConfirm}
+              onDeleteCancel={collectionStructureController.onDeleteCancel}
+              mergingCollectionId={collectionStructureController.mergingCollectionId}
+              mergeTargetCollectionId={collectionStructureController.mergeTargetCollectionId}
+              mergeConflicts={collectionStructureController.mergeConflicts}
+              mergeResolutions={collectionStructureController.mergeResolutions}
+              mergeChecked={collectionStructureController.mergeChecked}
+              mergeLoading={collectionStructureController.mergeLoading}
+              onMergeTargetChange={collectionStructureController.onMergeTargetChange}
+              setMergeResolutions={collectionStructureController.setMergeResolutions}
+              onMergeCheckConflicts={collectionStructureController.onMergeCheckConflicts}
+              onMergeConfirm={collectionStructureController.onMergeConfirm}
+              onMergeClose={collectionStructureController.onMergeClose}
+              splittingCollectionId={collectionStructureController.splittingCollectionId}
+              splitPreview={collectionStructureController.splitPreview}
+              splitDeleteOriginal={collectionStructureController.splitDeleteOriginal}
+              splitLoading={collectionStructureController.splitLoading}
+              setSplitDeleteOriginal={collectionStructureController.setSplitDeleteOriginal}
+              onSplitConfirm={collectionStructureController.onSplitConfirm}
+              onSplitClose={collectionStructureController.onSplitClose}
+            />
+          ),
+          onDismiss: () => switchContextualSurface({ surface: null }),
+          height: "78%",
+        };
+      }
+
       if (
         activeTokensContextualSurface === "token-editor" &&
         editingToken &&
@@ -904,6 +1009,15 @@ export function PanelRouter({
         showPreviewSplit={controller.showPreviewSplit}
         editingTokenPath={editingToken?.path}
         compareHandle={controller.tokenListCompareRef}
+        toolbarScenarioControl={
+          <CollectionScenarioControl
+            collections={collections}
+            selectedModes={selectedModes}
+            setSelectedModes={setSelectedModes}
+            serverUrl={serverUrl}
+            connected={connected}
+          />
+        }
       />
     </div>
   );
@@ -912,7 +1026,7 @@ export function PanelRouter({
     surfaceState: TokensContextualSurfaceRenderState,
   ) => (
     <div
-      className="shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-row overflow-hidden"
+      className="flex min-h-0 shrink-0 flex-row overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
       style={{ width: editorWidth }}
       data-surface-kind={controller.contextualEditorTransition.kind}
       data-surface-presentation={
@@ -940,7 +1054,7 @@ export function PanelRouter({
         title="Drag to resize"
         aria-hidden="true"
       />
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {surfaceState.content}
       </div>
     </div>
@@ -980,13 +1094,13 @@ export function PanelRouter({
           onClick={() => surfaceState.onDismiss()}
         />
         <div
-          className="relative flex flex-col rounded-t-xl bg-[var(--color-figma-bg)] shadow-2xl drawer-slide-up"
+          className="relative flex min-h-0 flex-col rounded-t-xl bg-[var(--color-figma-bg)] shadow-2xl drawer-slide-up"
           style={{ height: surfaceState.height }}
         >
           <div className="flex justify-center pt-2 pb-1 shrink-0">
             <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
           </div>
-          <div className="flex-1 overflow-hidden">{surfaceState.content}</div>
+          <div className="min-h-0 flex-1 overflow-hidden">{surfaceState.content}</div>
         </div>
       </div>
     );
@@ -1027,62 +1141,6 @@ export function PanelRouter({
   const SECONDARY_PANEL_MAP: Partial<
     Record<SecondarySurfaceId, SecondaryPanelRenderer>
   > = {
-    "collection-manager": () => (
-      <CollectionStructureManager
-        collectionIds={collectionIds}
-        currentCollectionId={currentCollectionId}
-        onClose={closeSecondarySurface}
-        onOpenQuickSwitch={collectionStructureController.onOpenQuickSwitch}
-        onRename={collectionStructureController.onRename}
-        onDuplicate={collectionStructureController.onDuplicate}
-        onDelete={collectionStructureController.onDelete}
-        onReorder={collectionStructureController.onReorder}
-        onReorderFull={collectionStructureController.onReorderFull}
-        onOpenCreateCollection={collectionStructureController.onOpenCreateCollection}
-        onEditInfo={collectionStructureController.onEditInfo}
-        onMerge={collectionStructureController.onMerge}
-        onSplit={collectionStructureController.onSplit}
-        collectionTokenCounts={collectionTokenCounts}
-        collectionDescriptions={collectionDescriptions}
-        onBulkDelete={collectionStructureController.onBulkDelete}
-        onBulkDuplicate={collectionStructureController.onBulkDuplicate}
-        onBulkMoveToFolder={collectionStructureController.onBulkMoveToFolder}
-        renamingCollectionId={collectionStructureController.renamingCollectionId}
-        renameValue={collectionStructureController.renameValue}
-        setRenameValue={collectionStructureController.setRenameValue}
-        renameError={collectionStructureController.renameError}
-        setRenameError={collectionStructureController.setRenameError}
-        renameInputRef={collectionStructureController.renameInputRef}
-        onRenameConfirm={collectionStructureController.onRenameConfirm}
-        onRenameCancel={collectionStructureController.onRenameCancel}
-        editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
-        metadataDescription={collectionStructureController.metadataDescription}
-        setMetadataDescription={collectionStructureController.setMetadataDescription}
-        onMetadataClose={collectionStructureController.onMetadataClose}
-        onMetadataSave={collectionStructureController.onMetadataSave}
-        deletingCollectionId={collectionStructureController.deletingCollectionId}
-        onDeleteConfirm={collectionStructureController.onDeleteConfirm}
-        onDeleteCancel={collectionStructureController.onDeleteCancel}
-        mergingCollectionId={collectionStructureController.mergingCollectionId}
-        mergeTargetCollectionId={collectionStructureController.mergeTargetCollectionId}
-        mergeConflicts={collectionStructureController.mergeConflicts}
-        mergeResolutions={collectionStructureController.mergeResolutions}
-        mergeChecked={collectionStructureController.mergeChecked}
-        mergeLoading={collectionStructureController.mergeLoading}
-        onMergeTargetChange={collectionStructureController.onMergeTargetChange}
-        setMergeResolutions={collectionStructureController.setMergeResolutions}
-        onMergeCheckConflicts={collectionStructureController.onMergeCheckConflicts}
-        onMergeConfirm={collectionStructureController.onMergeConfirm}
-        onMergeClose={collectionStructureController.onMergeClose}
-        splittingCollectionId={collectionStructureController.splittingCollectionId}
-        splitPreview={collectionStructureController.splitPreview}
-        splitDeleteOriginal={collectionStructureController.splitDeleteOriginal}
-        splitLoading={collectionStructureController.splitLoading}
-        setSplitDeleteOriginal={collectionStructureController.setSplitDeleteOriginal}
-        onSplitConfirm={collectionStructureController.onSplitConfirm}
-        onSplitClose={collectionStructureController.onSplitClose}
-      />
-    ),
     import: () => (
       <ErrorBoundary panelName="Import" onReset={closeSecondarySurface}>
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -1148,6 +1206,90 @@ export function PanelRouter({
     return secondaryRenderer ? secondaryRenderer() : null;
   }
 
+  function renderCanvasWorkspace(): ReactNode {
+    return (
+      <div className="flex h-full min-h-0 flex-col min-[1080px]:flex-row">
+        <div
+          ref={canvasSelectionRef}
+          className="min-h-[360px] min-w-0 flex-1 border-b border-[var(--color-figma-border)] min-[1080px]:border-b-0 min-[1080px]:border-r"
+        >
+          <ErrorBoundary
+            panelName="Canvas selection"
+            onReset={() => navigateTo("tokens", "tokens")}
+          >
+            <SelectionInspector
+              selectedNodes={selectedNodes}
+              selectionLoading={selectionLoading}
+              tokenMap={allTokensFlat}
+              onSync={sync}
+              syncing={syncing}
+              syncProgress={syncProgress}
+              syncResult={syncResult}
+              syncError={syncError}
+              connected={connected}
+              currentCollectionId={currentCollectionId}
+              serverUrl={serverUrl}
+              onTokenCreated={refreshTokens}
+              onNavigateToToken={(path) => {
+                setHighlightedToken(path);
+                navigateTo("tokens", "tokens");
+              }}
+              onPushUndo={controller.pushUndo}
+              onToast={controller.setSuccessToast}
+              onGoToTokens={() => navigateTo("tokens", "tokens")}
+              triggerCreateToken={controller.triggerCreateToken}
+            />
+          </ErrorBoundary>
+        </div>
+        <div ref={canvasAnalysisRef} className="min-h-[320px] min-w-0 flex-1">
+          <ErrorBoundary
+            panelName="Canvas analysis"
+            onReset={() => navigateTo("inspect", "inspect")}
+          >
+            <CanvasAnalysisPanel
+              availableTokens={allTokensFlat}
+              heatmapResult={heatmapResult}
+              heatmapLoading={heatmapLoading}
+              heatmapProgress={heatmapProgress}
+              heatmapError={heatmapError}
+              onSelectNodes={(ids) =>
+                parent.postMessage(
+                  {
+                    pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
+                  },
+                  "*",
+                )
+              }
+              onBatchBind={(nodeIds, tokenPath, property) => {
+                const entry = allTokensFlat[tokenPath];
+                if (!entry) return;
+                parent.postMessage(
+                  {
+                    pluginMessage: {
+                      type: "batch-bind-heatmap-nodes",
+                      nodeIds,
+                      tokenPath,
+                      tokenType: entry.$type,
+                      targetProperty: property,
+                      resolvedValue: entry.$value,
+                    },
+                  },
+                  "*",
+                );
+              }}
+              onSelectNode={(nodeId) =>
+                parent.postMessage(
+                  { pluginMessage: { type: "select-node", nodeId } },
+                  "*",
+                )
+              }
+            />
+          </ErrorBoundary>
+        </div>
+      </div>
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Sub-tab panel routing — O(1) lookup, no repeated condition guards
   // ---------------------------------------------------------------------------
@@ -1159,8 +1301,8 @@ export function PanelRouter({
       tokens: renderDefineTokens,
     },
     inspect: {
-      inspect: renderApplyInspect,
-      "canvas-analysis": renderApplyCanvasAnalysis,
+      inspect: renderCanvasWorkspace,
+      "canvas-analysis": renderCanvasWorkspace,
     },
     sync: {
       publish: renderSyncPublish,
@@ -1190,8 +1332,9 @@ export function PanelRouter({
           </svg>
         )}
         title="No tokens yet"
-        description="Set up your first tokens with guided setup, templates, or import."
-        primaryAction={{ label: "Get started", onClick: () => controller.onOpenStartHere() }}
+        description="Import an existing token system or create a collection to start authoring."
+        primaryAction={{ label: "Import tokens", onClick: () => controller.onShowImportPanel() }}
+        secondaryAction={{ label: "Create collection", onClick: () => controller.onOpenCollectionCreateDialog() }}
       />
     );
 
@@ -1238,7 +1381,7 @@ export function PanelRouter({
           renderTokensStartSurface()}
         {/* Main content: TokenList variants */}
         {hasTokensLibrarySurface && !controller.showPreviewSplit && (
-          <div className="flex h-full overflow-hidden">
+          <div className="flex h-full min-h-0 overflow-hidden">
             {renderTokensLibraryBody()}
             {wideContextualSurface
               ? renderWideTokensContextualSurface(wideContextualSurface)
@@ -1335,89 +1478,37 @@ export function PanelRouter({
 
     return (
       <>
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {renderLibrarySection()}
+        <div className="flex h-full min-h-0 overflow-hidden">
+          <CollectionRail
+            collections={collections}
+            currentCollectionId={currentCollectionId}
+            collectionTokenCounts={collectionTokenCounts}
+            focusRequestKey={shell.collectionRailFocusRequestKey}
+            onSelectCollection={(collectionId) => {
+              if (collectionId !== currentCollectionId) {
+                setCurrentCollectionId(collectionId);
+              }
+              navigateTo("tokens", "tokens");
+            }}
+            onCreateCollection={async (name) => {
+              const createdCollectionId =
+                await collectionStructureController.onCreateCollectionByName(name);
+              setCurrentCollectionId(createdCollectionId);
+              return createdCollectionId;
+            }}
+            onOpenCollectionDetails={(collectionId) =>
+              switchContextualSurface({
+                surface: "collection-details",
+                collection: { collectionId },
+              })
+            }
+          />
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            {renderLibrarySection()}
+          </div>
         </div>
         {renderNarrowTokensContextualSurface()}
       </>
-    );
-  }
-
-  function renderApplyInspect(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Inspector"
-        onReset={() => navigateTo("tokens", "tokens")}
-      >
-        <SelectionInspector
-          selectedNodes={selectedNodes}
-          selectionLoading={selectionLoading}
-          tokenMap={allTokensFlat}
-          onSync={sync}
-          syncing={syncing}
-          syncProgress={syncProgress}
-          syncResult={syncResult}
-          syncError={syncError}
-          connected={connected}
-          currentCollectionId={currentCollectionId}
-          serverUrl={serverUrl}
-          onTokenCreated={refreshTokens}
-          onNavigateToToken={(path) => {
-            setHighlightedToken(path);
-            navigateTo("tokens", "tokens");
-          }}
-          onPushUndo={controller.pushUndo}
-          onToast={controller.setSuccessToast}
-          onGoToTokens={() => navigateTo("tokens", "tokens")}
-          triggerCreateToken={controller.triggerCreateToken}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  function renderApplyCanvasAnalysis(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Canvas Analysis"
-        onReset={() => navigateTo("inspect", "inspect")}
-      >
-        <CanvasAnalysisPanel
-          availableTokens={allTokensFlat}
-          heatmapResult={heatmapResult}
-          heatmapLoading={heatmapLoading}
-          heatmapProgress={heatmapProgress}
-          heatmapError={heatmapError}
-          onSelectNodes={(ids) =>
-            parent.postMessage(
-              { pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids } },
-              "*",
-            )
-          }
-          onBatchBind={(nodeIds, tokenPath, property) => {
-            const entry = allTokensFlat[tokenPath];
-            if (!entry) return;
-            parent.postMessage(
-              {
-                pluginMessage: {
-                  type: "batch-bind-heatmap-nodes",
-                  nodeIds,
-                  tokenPath,
-                  tokenType: entry.$type,
-                  targetProperty: property,
-                  resolvedValue: entry.$value,
-                },
-              },
-              "*",
-            );
-          }}
-          onSelectNode={(nodeId) =>
-            parent.postMessage(
-              { pluginMessage: { type: "select-node", nodeId } },
-              "*",
-            )
-          }
-        />
-      </ErrorBoundary>
     );
   }
 
@@ -1457,7 +1548,7 @@ export function PanelRouter({
     return (
       <ErrorBoundary
         panelName="History"
-        onReset={() => navigateTo("sync", "health")}
+        onReset={() => navigateTo("sync", "history")}
       >
         <HistoryPanel
           serverUrl={serverUrl}
@@ -1485,7 +1576,7 @@ export function PanelRouter({
     return (
       <ErrorBoundary
         panelName="Audit"
-        onReset={() => navigateTo("sync", "history")}
+        onReset={() => navigateTo("sync", "health")}
       >
         <HealthPanel
           serverUrl={serverUrl}

@@ -1,6 +1,7 @@
 import {
   type Token,
   type TokenGroup,
+  type TokenType,
   isDTCGToken,
 } from '@tokenmanager/core';
 import { BadRequestError } from '../errors.js';
@@ -163,6 +164,28 @@ export function getTokenAtPath(group: TokenGroup, tokenPath: string): Token | un
     current = (current as TokenGroup)[part];
   }
   return isDTCGToken(current) ? (current as Token) : undefined;
+}
+
+export function getTokenAtPathWithInheritedType(
+  group: TokenGroup,
+  tokenPath: string,
+): Token | undefined {
+  const parts = tokenPath.split('.');
+  let current: TokenTreeNode = group as TokenGroup;
+  let inheritedType: TokenType | undefined = group.$type;
+
+  for (const part of parts) {
+    if (!current || typeof current !== 'object') return undefined;
+    current = (current as TokenGroup)[part];
+    if (!current || typeof current !== 'object') return undefined;
+    if (!isDTCGToken(current)) {
+      inheritedType = (current as TokenGroup).$type ?? inheritedType;
+    }
+  }
+
+  if (!isDTCGToken(current)) return undefined;
+  const token = current as Token;
+  return !token.$type && inheritedType ? { ...token, $type: inheritedType } : token;
 }
 
 export function setTokenAtPath(group: TokenGroup, tokenPath: string, token: Token): void {

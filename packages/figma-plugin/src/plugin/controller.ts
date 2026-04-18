@@ -543,7 +543,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     }
     case 'search-layers':
       try {
-        searchLayers(msg.query);
+        searchLayers(msg.query, msg.correlationId);
       } catch (e) {
         reportError('search-layers', e);
       }

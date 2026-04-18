@@ -39,6 +39,10 @@
 
   <script>
     const frame = document.getElementById('plugin-frame');
+    const serverUrl = new URLSearchParams(window.location.search).get('serverUrl');
+    if (serverUrl) {
+      frame.src = `../dist/ui.html?serverUrl=${encodeURIComponent(serverUrl)}`;
+    }
     const logEl = document.getElementById('log');
     const statusEl = document.getElementById('status');
     const countEl = document.getElementById('msg-count');
@@ -71,6 +75,62 @@
       'get-selection': () => ({
         type: 'selection',
         nodes: [],
+      }),
+
+      'read-variables': (msg) => ({
+        type: 'variables-read',
+        correlationId: msg.correlationId,
+        collections: [
+          {
+            name: 'Foundations',
+            modes: [
+              {
+                modeId: 'mode-light',
+                modeName: 'Light',
+                tokens: [
+                  {
+                    path: 'color.brand.primary',
+                    $type: 'color',
+                    $value: '#3B82F6',
+                    $description: 'Primary brand color',
+                    $scopes: ['FILL_COLOR'],
+                    hiddenFromPublishing: false,
+                  },
+                  {
+                    path: 'space.4',
+                    $type: 'dimension',
+                    $value: { value: 4, unit: 'px' },
+                    $description: 'Base spacing unit',
+                    $scopes: ['GAP'],
+                    hiddenFromPublishing: false,
+                  },
+                ],
+              },
+              {
+                modeId: 'mode-dark',
+                modeName: 'Dark',
+                tokens: [
+                  {
+                    path: 'color.brand.primary',
+                    $type: 'color',
+                    $value: '#60A5FA',
+                    $description: 'Primary brand color',
+                    $scopes: ['FILL_COLOR'],
+                    hiddenFromPublishing: false,
+                  },
+                  {
+                    path: 'space.4',
+                    $type: 'dimension',
+                    $value: { value: 4, unit: 'px' },
+                    $description: 'Base spacing unit',
+                    $scopes: ['GAP'],
+                    hiddenFromPublishing: false,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       }),
 
       'get-selected-modes': () => ({

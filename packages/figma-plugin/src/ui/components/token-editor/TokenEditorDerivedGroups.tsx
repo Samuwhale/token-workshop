@@ -109,7 +109,7 @@ export function TokenEditorDerivedGroups({
           }}
           className="self-start rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
         >
-          Create recipe from this token
+          Generate scale from this token
         </button>
       </div>
     </div>

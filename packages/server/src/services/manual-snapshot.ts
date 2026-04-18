@@ -1010,7 +1010,7 @@ export class ManualSnapshotStore {
   }
 
   private async captureRestoreWorkspaceState(
-    tokenStore: TokenStore,
+    _tokenStore: TokenStore,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
     recipeService: RecipeService,

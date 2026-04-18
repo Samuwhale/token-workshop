@@ -34,8 +34,10 @@ export type EditingToken = {
 
 export type PreviewingToken = { path: string; name?: string; currentCollectionId: string };
 export type EditingRecipe = TokensLibraryRecipeEditorTarget;
+export type InspectingCollection = { collectionId: string };
 export type EditorContextualSurfaceTarget =
   | { surface: null }
+  | { surface: "collection-details"; collection: InspectingCollection }
   | { surface: 'token-editor'; token: EditingToken }
   | { surface: 'recipe-editor'; recipe: EditingRecipe }
   | { surface: 'token-preview'; token: PreviewingToken }
@@ -54,6 +56,8 @@ export interface EditorContextValue {
   setEditingRecipe: Dispatch<SetStateAction<EditingRecipe | null>>;
   previewingToken: PreviewingToken | null;
   setPreviewingToken: Dispatch<SetStateAction<PreviewingToken | null>>;
+  inspectingCollection: InspectingCollection | null;
+  setInspectingCollection: Dispatch<SetStateAction<InspectingCollection | null>>;
   highlightedToken: string | null;
   setHighlightedToken: (path: string | null) => void;
   createFromEmpty: boolean;
@@ -113,6 +117,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<EditingRecipe | null>(null);
   const [previewingToken, setPreviewingToken] = useState<PreviewingToken | null>(null);
+  const [inspectingCollection, setInspectingCollection] = useState<InspectingCollection | null>(null);
   const [showTokensCompare, setShowTokensCompare] = useState(false);
   const {
     compareMode: tokensCompareMode,
@@ -153,18 +158,24 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!showTokensCompare) return;
-    if (editingToken || editingRecipe || previewingToken) {
+    if (editingToken || editingRecipe || previewingToken || inspectingCollection) {
       setShowTokensCompare(false);
     }
-  }, [showTokensCompare, editingToken, editingRecipe, previewingToken]);
+  }, [showTokensCompare, editingToken, editingRecipe, previewingToken, inspectingCollection]);
 
   const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
     setEditingToken(null);
     setEditingRecipe(null);
     setPreviewingToken(null);
+    setInspectingCollection(null);
     setShowTokensCompare(false);
 
     if (target.surface === null) return;
+
+    if (target.surface === "collection-details") {
+      setInspectingCollection(target.collection);
+      return;
+    }
 
     if (target.surface === 'token-editor') {
       setEditingToken(target.token);
@@ -199,6 +210,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }, [
     setEditingRecipe,
     setEditingToken,
+    setInspectingCollection,
     setPreviewingToken,
     setShowTokensCompare,
     setTokensCompareMode,
@@ -208,12 +220,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   ]);
 
   const activeSurface = useMemo<TokensLibraryContextualSurface | null>(() => {
+    if (inspectingCollection) return "collection-details";
     if (editingToken) return 'token-editor';
     if (editingRecipe) return 'recipe-editor';
     if (previewingToken) return 'token-preview';
     if (showTokensCompare) return 'compare';
     return null;
-  }, [editingToken, editingRecipe, previewingToken, showTokensCompare]);
+  }, [inspectingCollection, editingToken, editingRecipe, previewingToken, showTokensCompare]);
 
   const tokensContextualSurfaceState = useMemo<TokensContextualSurfaceState>(() => ({
     activeSurface,
@@ -227,6 +240,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setEditingRecipe,
     previewingToken,
     setPreviewingToken,
+    inspectingCollection,
+    setInspectingCollection,
     highlightedToken,
     setHighlightedToken,
     createFromEmpty,
@@ -257,6 +272,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     editingToken,
     editingRecipe,
     previewingToken,
+    inspectingCollection,
     highlightedToken,
     createFromEmpty,
     setCreateFromEmpty,

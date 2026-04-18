@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Spinner } from './Spinner';
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 
 interface CoverageResult {
   totalComponents: number;
@@ -15,11 +16,20 @@ export function ComponentCoveragePanel() {
   const [showUntokenized, setShowUntokenized] = useState(false);
   const coveragePendingRef = useRef<Map<string, (data: unknown) => void>>(new Map());
   const coverageCancelRef = useRef<(() => void) | null>(null);
+  const mountedRef = useRef(true);
+  const cancelPendingCoverageRequests = useCallback(() => {
+    coverageCancelRef.current?.();
+    coveragePendingRef.current.clear();
+  }, []);
 
   // Listen for component-coverage-result / component-coverage-error from controller
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{
+        type?: string;
+        correlationId?: string;
+        error?: string;
+      }>(ev);
       if (msg?.type === 'component-coverage-result' && msg.correlationId) {
         const resolve = coveragePendingRef.current.get(msg.correlationId);
         if (resolve) {
@@ -35,8 +45,12 @@ export function ComponentCoveragePanel() {
       }
     };
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+    return () => {
+      mountedRef.current = false;
+      cancelPendingCoverageRequests();
+      window.removeEventListener('message', handler);
+    };
+  }, [cancelPendingCoverageRequests]);
 
   const runCoverageScan = useCallback(async () => {
     coverageCancelRef.current?.();
@@ -60,7 +74,7 @@ export function ComponentCoveragePanel() {
           done = true;
           coveragePendingRef.current.delete(cid);
           coverageCancelRef.current = null;
-          parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
+          postPluginMessage({ type: 'cancel-scan' });
           reject(new Error('Scan timed out'));
         }, 30000);
         coveragePendingRef.current.set(cid, finish);
@@ -70,27 +84,32 @@ export function ComponentCoveragePanel() {
           clearTimeout(timeout);
           coveragePendingRef.current.delete(cid);
           coverageCancelRef.current = null;
-          parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
+          postPluginMessage({ type: 'cancel-scan' });
           reject(new Error('Cancelled'));
         };
-        parent.postMessage({ pluginMessage: { type: 'scan-component-coverage', correlationId: cid } }, '*');
+        postPluginMessage({ type: 'scan-component-coverage', correlationId: cid });
       });
       const r = result as Record<string, unknown>;
       if (r?.__error) {
+        if (!mountedRef.current) return;
         setCoverageError(`Scan failed: ${r.__error}`);
       } else {
+        if (!mountedRef.current) return;
         setCoverageResult(result as CoverageResult);
         setShowUntokenized(true);
       }
     } catch (err) {
       if (err instanceof Error && err.message === 'Cancelled') return;
+      if (!mountedRef.current) return;
       setCoverageError(
         err instanceof Error && err.message === 'Scan timed out'
           ? 'Scan timed out. Try fewer components.'
           : 'Scan failed. Ensure the plugin is active.'
       );
     } finally {
-      setCoverageLoading(false);
+      if (mountedRef.current) {
+        setCoverageLoading(false);
+      }
     }
   }, []);
 
@@ -160,7 +179,7 @@ export function ComponentCoveragePanel() {
                   {coverageResult.untokenized.map(comp => (
                     <button
                       key={comp.id}
-                      onClick={() => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId: comp.id } }, '*')}
+                      onClick={() => postPluginMessage({ type: 'select-node', nodeId: comp.id })}
                       className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                     >
                       <span className="text-[10px] text-[var(--color-figma-text)] truncate flex-1">{comp.name}</span>

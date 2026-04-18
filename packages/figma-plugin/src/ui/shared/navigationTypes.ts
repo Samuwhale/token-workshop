@@ -15,7 +15,6 @@ type SyncSubTab = "publish" | "export" | "history" | "health";
 export type SubTab = TokensSubTab | InspectSubTab | SyncSubTab;
 export type SecondarySurfaceId =
   | "import"
-  | "collection-manager"
   | "notifications"
   | "shortcuts"
   | "settings";
@@ -39,6 +38,7 @@ export type SurfaceCloseBehavior =
   | "dismiss-in-place";
 export type TokensLibraryContextualSurface =
   | "compare"
+  | "collection-details"
   | "token-editor"
   | "recipe-editor"
   | "token-preview";
@@ -57,6 +57,7 @@ export type TokensLibraryRecipeEditorTarget =
       sourceTokenName?: string;
       sourceTokenType?: string;
       sourceTokenValue?: unknown;
+      intentPreset?: "semantic-aliases";
       initialDraft?: RecipeDialogInitialDraft;
       template?: RecipeTemplate;
     };
@@ -85,10 +86,10 @@ export const TOP_TABS: {
   },
   {
     id: "inspect",
-    label: "Inspect",
+    label: "Canvas",
     subTabs: [
-      { id: "inspect", label: "Selection" },
-      { id: "canvas-analysis", label: "Canvas" },
+      { id: "inspect", label: "Canvas" },
+      { id: "canvas-analysis", label: "Canvas analysis" },
     ],
   },
   {
@@ -128,7 +129,6 @@ export type UtilityActionId =
   | "window-size";
 export type SecondarySurfaceAccess =
   | "shell-shortcut"
-  | "collection-switcher"
   | "shell-menu"
   | "settings-help";
 
@@ -266,6 +266,16 @@ const workspaceTransition = (usage: string): SurfaceTransition => ({
   usage,
 });
 
+const contextualSubScreenTransition = (
+  presentation: Extract<SurfacePresentation, "route" | "full-height-body">,
+  usage: string,
+): SurfaceTransition => ({
+  kind: "contextual-sub-screen",
+  presentation,
+  closeBehavior: "restore-underlying-surface",
+  usage,
+});
+
 const secondaryTakeoverTransition = (usage: string): SurfaceTransition => ({
   kind: "secondary-takeover",
   presentation: "full-height-body",
@@ -341,6 +351,10 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         label: "Compare",
         usage: "Compare tokens or mode options.",
       },
+      "collection-details": {
+        label: "Collection setup",
+        usage: "Review collection structure, metadata, and modes.",
+      },
       "token-editor": {
         label: "Token editor",
         usage: "Edit or create a token.",
@@ -411,28 +425,12 @@ export interface SidebarGroup {
 
 export const SIDEBAR_GROUPS: SidebarGroup[] = [
   {
-    id: "design",
-    label: "Design",
+    id: "primary",
+    label: "Primary",
     items: [
       { id: "tokens", label: "Tokens", railCode: "To", topTab: "tokens", subTab: "tokens", workspaceId: "tokens" },
-    ],
-  },
-  {
-    id: "inspect",
-    label: "Inspect",
-    items: [
-      { id: "selection", label: "Selection", railCode: "Se", topTab: "inspect", subTab: "inspect", workspaceId: "inspect" },
-      { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "inspect", subTab: "canvas-analysis", workspaceId: "inspect" },
-    ],
-  },
-  {
-    id: "distribute",
-    label: "Distribute",
-    items: [
+      { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "inspect", subTab: "inspect", workspaceId: "inspect" },
       { id: "publish", label: "Publish", railCode: "Pu", topTab: "sync", subTab: "publish", workspaceId: "sync" },
-      { id: "export", label: "Export", railCode: "Ex", topTab: "sync", subTab: "export", workspaceId: "sync" },
-      { id: "history", label: "History", railCode: "Hi", topTab: "sync", subTab: "history", workspaceId: "sync" },
-      { id: "health", label: "Health", railCode: "He", topTab: "sync", subTab: "health", workspaceId: "sync" },
     ],
   },
 ];
@@ -448,11 +446,13 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
   {
     id: "inspect",
-    label: "Inspect",
-    summaryTitle: "Inspect",
+    label: "Canvas",
+    summaryTitle: "Canvas",
     topTab: "inspect",
     subTab: "inspect",
-    transition: workspaceTransition("Apply tokens to your canvas."),
+    transition: workspaceTransition(
+      "Inspect the current selection and analyze token usage on the canvas.",
+    ),
     matchRoutes: [route("inspect", "inspect"), route("inspect", "canvas-analysis")],
   },
   {
@@ -462,6 +462,48 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "sync",
     subTab: "publish",
     transition: workspaceTransition("Sync, export, and review."),
+    sections: [
+      {
+        id: "publish",
+        label: "Publish",
+        topTab: "sync",
+        subTab: "publish",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Publish tokens and configure sync targets.",
+        ),
+      },
+      {
+        id: "export",
+        label: "Export",
+        topTab: "sync",
+        subTab: "export",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Export the current token system.",
+        ),
+      },
+      {
+        id: "history",
+        label: "History",
+        topTab: "sync",
+        subTab: "history",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Review recent operations.",
+        ),
+      },
+      {
+        id: "health",
+        label: "Health",
+        topTab: "sync",
+        subTab: "health",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Audit issues, dependencies, and publish readiness.",
+        ),
+      },
+    ],
     matchRoutes: [
       route("sync", "publish"),
       route("sync", "export"),
@@ -479,13 +521,6 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
     summaryTitle: "Import",
     access: "shell-shortcut",
     transition: secondaryTakeoverTransition("Import external tokens."),
-  },
-  {
-    id: "collection-manager",
-    label: "Manage collections",
-    summaryTitle: "Manage collections",
-    access: "collection-switcher",
-    transition: secondaryTakeoverTransition("Manage collections."),
   },
   {
     id: "notifications",
@@ -662,7 +697,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "tokens",
         "tokens",
-        "Multiple collections imported — review modes in Manage collections.",
+        "Multiple collections imported — review the new collections in Tokens.",
       ),
     );
   }

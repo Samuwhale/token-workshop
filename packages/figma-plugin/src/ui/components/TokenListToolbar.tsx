@@ -4,10 +4,10 @@ import React, {
   useEffect,
   useCallback,
   type RefObject,
+  type ReactNode,
 } from "react";
 import {
   ViewMenu,
-  FilterMenu,
   type TokenListOverflowMenuProps,
 } from "./TokenListOverflowMenu";
 import { replaceQueryToken } from "./tokenListUtils";
@@ -61,8 +61,8 @@ export interface TokenListToolbarProps {
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
-  onOpenCollectionSwitcher?: () => void;
   onOpenCreateCollection?: () => void;
+  scenarioControl?: ReactNode;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
   modeLensEnabled: boolean;
@@ -125,8 +125,8 @@ export function TokenListToolbar({
   handleOpenNewGroupDialog,
   onShowPasteModal,
   onOpenImportPanel,
-  onOpenCollectionSwitcher,
   onOpenCreateCollection,
+  scenarioControl,
   multiModeEnabled,
   onToggleMultiMode,
   modeLensEnabled,
@@ -259,20 +259,9 @@ export function TokenListToolbar({
                   </svg>
                 </button>
               )}
-              {onOpenCollectionSwitcher ? (
-                <button
-                  type="button"
-                  onClick={onOpenCollectionSwitcher}
-                  className="min-w-0 rounded px-1.5 py-0.5 text-left text-[12px] font-semibold text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                  title="Switch collection"
-                >
-                  <span className="truncate">{collectionId}</span>
-                </button>
-              ) : (
-                <span className="truncate px-1.5 text-[12px] font-semibold text-[var(--color-figma-text)]">
-                  {collectionId}
-                </span>
-              )}
+              <span className="truncate px-1.5 text-[12px] font-semibold text-[var(--color-figma-text)]">
+                {collectionId}
+              </span>
               {zoomRootPath && (
                 <span
                   className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]"
@@ -285,6 +274,7 @@ export function TokenListToolbar({
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
+            {scenarioControl}
             <div className="relative shrink-0" ref={createToolsMenuContainerRef}>
               <button
                 ref={createToolsMenuButtonRef}
@@ -294,7 +284,7 @@ export function TokenListToolbar({
                 aria-expanded={createToolsMenuOpen}
                 aria-haspopup="menu"
                 className="inline-flex h-[24px] w-[24px] items-center justify-center rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                title="Add, import, or edit"
+                title="Add, automate, or import"
               >
                 <svg
                   width="10"
@@ -317,7 +307,9 @@ export function TokenListToolbar({
                   className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
                   role="menu"
                 >
-                  {/* Create */}
+                  <div className="px-2.5 pb-0.5 pt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                    Create
+                  </div>
                   <button
                     role="menuitem"
                     onClick={() => runCreateToolsAction(() => onCreateNew?.())}
@@ -353,14 +345,20 @@ export function TokenListToolbar({
                     </button>
                   )}
                   {onCreateRecipe && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runCreateToolsAction(onCreateRecipe)}
-                      disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      New recipe
-                    </button>
+                    <>
+                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                      <div className="px-2.5 pb-0.5 pt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        Automation
+                      </div>
+                      <button
+                        role="menuitem"
+                        onClick={() => runCreateToolsAction(onCreateRecipe)}
+                        disabled={!connected}
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Create semantic aliases
+                      </button>
+                    </>
                   )}
                   {(onSelectTokens || onBulkEdit || onFindReplace || onFoundationTemplates) && (
                     <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
@@ -403,6 +401,9 @@ export function TokenListToolbar({
                     </button>
                   )}
                   <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                  <div className="px-2.5 pb-0.5 pt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                    Import
+                  </div>
                   <button
                     role="menuitem"
                     onClick={() =>
@@ -451,10 +452,11 @@ export function TokenListToolbar({
             </div>
 
             {overflowMenuProps && (
-              <>
-                <ViewMenu {...overflowMenuProps} currentLibraryViewMode={currentLibraryViewMode} onActivateViewMode={activateViewMode} />
-                <FilterMenu {...overflowMenuProps} />
-              </>
+              <ViewMenu
+                {...overflowMenuProps}
+                currentLibraryViewMode={currentLibraryViewMode}
+                onActivateViewMode={activateViewMode}
+              />
             )}
           </div>
         </div>

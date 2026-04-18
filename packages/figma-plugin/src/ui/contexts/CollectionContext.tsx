@@ -2,12 +2,11 @@
  * CollectionContext — owns collection-specific UI state that is intentionally
  * separate from the canonical collection authoring state in TokenDataContext.
  *
- *   CollectionUiContext — transient dropdown/open UI state only
  *   ResolverContext     — DTCG resolver config and output previews
  */
 
-import { createContext, useContext, useMemo, useEffect, useRef, useState } from 'react';
-import type { RefObject, ReactNode } from 'react';
+import { createContext, useContext, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { useConnectionContext } from './ConnectionContext';
 import { useResolvers } from '../hooks/useResolvers';
 import type {
@@ -39,26 +38,11 @@ export interface ResolverState {
   setPushUndo: (fn: ((slot: UndoSlot) => void) | undefined) => void;
 }
 
-export interface CollectionUiContextValue {
-  openCollectionDropdown: string | null;
-  setOpenCollectionDropdown: React.Dispatch<React.SetStateAction<string | null>>;
-  collectionBarExpanded: boolean;
-  setCollectionBarExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  collectionDropdownRef: RefObject<HTMLDivElement>;
-}
-
 const ResolverContext = createContext<ResolverState | null>(null);
-const CollectionUiContext = createContext<CollectionUiContextValue | null>(null);
 
 export function useResolverContext(): ResolverState {
   const context = useContext(ResolverContext);
   if (!context) throw new Error('useResolverContext must be used inside CollectionProvider');
-  return context;
-}
-
-export function useCollectionUiContext(): CollectionUiContextValue {
-  const context = useContext(CollectionUiContext);
-  if (!context) throw new Error('useCollectionUiContext must be used inside CollectionProvider');
   return context;
 }
 
@@ -121,54 +105,12 @@ function ResolverProvider({
   );
 }
 
-function CollectionUiProvider({ children }: { children: ReactNode }) {
-  const [openCollectionDropdown, setOpenCollectionDropdown] = useState<string | null>(null);
-  const [collectionBarExpanded, setCollectionBarExpanded] = useState(false);
-  const collectionDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!openCollectionDropdown) return;
-    const handleDocumentMouseDown = (event: MouseEvent) => {
-      if (collectionDropdownRef.current && !collectionDropdownRef.current.contains(event.target as Node)) {
-        setOpenCollectionDropdown(null);
-      }
-    };
-    document.addEventListener('mousedown', handleDocumentMouseDown);
-    return () => document.removeEventListener('mousedown', handleDocumentMouseDown);
-  }, [openCollectionDropdown]);
-
-  const value = useMemo<CollectionUiContextValue>(
-    () => ({
-      openCollectionDropdown,
-      setOpenCollectionDropdown,
-      collectionBarExpanded,
-      setCollectionBarExpanded,
-      collectionDropdownRef,
-    }),
-    [
-      openCollectionDropdown,
-      setOpenCollectionDropdown,
-      collectionBarExpanded,
-      setCollectionBarExpanded,
-      collectionDropdownRef,
-    ],
-  );
-
-  return (
-    <CollectionUiContext.Provider value={value}>
-      {children}
-    </CollectionUiContext.Provider>
-  );
-}
-
 export function CollectionProvider({ children }: { children: ReactNode }) {
   const { serverUrl, connected } = useConnectionContext();
 
   return (
     <ResolverProvider serverUrl={serverUrl} connected={connected}>
-      <CollectionUiProvider>
-        {children}
-      </CollectionUiProvider>
+      {children}
     </ResolverProvider>
   );
 }

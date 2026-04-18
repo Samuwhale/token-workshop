@@ -29,6 +29,12 @@ interface UseCollectionMergeSplitParams {
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
   pushUndo: (slot: UndoSlot) => void;
+  onMergeComplete?: (sourceCollectionId: string, targetCollectionId: string) => void;
+  onSplitComplete?: (result: {
+    sourceCollectionId: string;
+    createdCollectionIds: string[];
+    deleteOriginal: boolean;
+  }) => void;
 }
 
 function areMergeConflictsEqual(
@@ -75,6 +81,8 @@ export function useCollectionMergeSplit({
   setSuccessToast,
   setErrorToast,
   pushUndo,
+  onMergeComplete,
+  onSplitComplete,
 }: UseCollectionMergeSplitParams) {
   // Merge state
   const [mergingCollectionId, setMergingCollectionId] = useState<string | null>(null);
@@ -204,6 +212,7 @@ export function useCollectionMergeSplit({
       setMergingCollectionId(null);
       setMergeChecked(false);
       setCurrentCollectionId(targetName);
+      onMergeComplete?.(srcName, targetName);
       refreshTokens();
       setSuccessToast(`Merged collection "${srcName}" into "${targetName}"`);
       const opId = result.operationId;
@@ -293,6 +302,11 @@ export function useCollectionMergeSplit({
         const remaining = collectionIds.filter((collectionId) => collectionId !== name);
         setCurrentCollectionId(createdNames[0] ?? remaining[0] ?? "");
       }
+      onSplitComplete?.({
+        sourceCollectionId: name,
+        createdCollectionIds: createdNames,
+        deleteOriginal: result.deleteOriginal,
+      });
       refreshTokens();
       setSuccessToast(`Split collection "${name}" into ${count} collections`);
       const url = serverUrl;

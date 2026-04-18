@@ -13,6 +13,7 @@ interface UseCollectionRenameParams {
   setSuccessToast: (msg: string) => void;
   markDisconnected: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
+  onRenameComplete?: (oldName: string, newName: string) => void;
 }
 
 export function useCollectionRename({
@@ -20,6 +21,7 @@ export function useCollectionRename({
   currentCollectionId, setCurrentCollectionId, renameCollectionInState,
   setSuccessToast, markDisconnected,
   onPushUndo,
+  onRenameComplete,
 }: UseCollectionRenameParams) {
   const [renamingCollectionId, setRenamingCollectionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -63,6 +65,7 @@ export function useCollectionRename({
       const oldName = renamingCollectionId;
       renameCollectionInState(oldName, newName);
       if (currentCollectionId === renamingCollectionId) setCurrentCollectionId(newName);
+      onRenameComplete?.(oldName, newName);
       cancelRename();
       setSuccessToast(`Renamed collection "${oldName}" → "${newName}"`);
       onPushUndo?.({
@@ -97,7 +100,6 @@ export function useCollectionRename({
     renameValue,
     setRenameValue,
     renameError,
-    setRenameError,
     renameInputRef,
     startRename,
     cancelRename,

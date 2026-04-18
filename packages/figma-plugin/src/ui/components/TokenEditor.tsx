@@ -80,7 +80,7 @@ interface TokenEditorProps {
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   onNavigateToRecipe?: (recipeId: string) => void;
   onOpenRecipeEditor?: (target: TokensLibraryRecipeEditorTarget) => void;
-  onOpenManageCollections?: () => void;
+  onOpenCollectionSetup?: () => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
 
@@ -109,11 +109,15 @@ export function TokenEditor({
   onNavigateToToken,
   onNavigateToRecipe,
   onOpenRecipeEditor,
-  onOpenManageCollections,
+  onOpenCollectionSetup,
   pushUndo,
 }: TokenEditorProps) {
-  const collectionSwitcher = useCollectionStateContext();
+  const collectionState = useCollectionStateContext();
   const effectivePathToCollectionId = pathToCollectionId;
+  const collectionsWithModes = useMemo(
+    () => collections.filter((collection) => collection.modes.length > 0),
+    [collections],
+  );
   const ownerCollectionId = useMemo(
     () =>
       explicitCollectionId ??
@@ -888,12 +892,12 @@ export function TokenEditor({
 
   const afterHeader = (
     <>
-      {collections.length > 0 && !isCreateMode && (
+      {collectionsWithModes.length > 0 && !isCreateMode && (
         <div className="flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30">
           <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">Mode</span>
-          {collections.map((collection) => {
+          {collectionsWithModes.map((collection) => {
             const activeOption =
-              collectionSwitcher.selectedModes[collection.id] ||
+              collectionState.selectedModes[collection.id] ||
               collection.modes[0]?.name ||
               "";
             return (
@@ -907,8 +911,8 @@ export function TokenEditor({
                   const nextIdx = (idx + 1) % collection.modes.length;
                   const nextOption = collection.modes[nextIdx]?.name;
                   if (nextOption) {
-                    collectionSwitcher.setSelectedModes({
-                      ...collectionSwitcher.selectedModes,
+                    collectionState.setSelectedModes({
+                      ...collectionState.selectedModes,
                       [collection.id]: nextOption,
                     });
                   }
@@ -916,7 +920,7 @@ export function TokenEditor({
                 className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-figma-text)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-accent)] transition-colors"
                 title={`${collection.id}: ${activeOption} (click to cycle)`}
               >
-                {collections.length > 1 ? `${collection.id}: ` : ""}
+                {collectionsWithModes.length > 1 ? `${collection.id}: ` : ""}
                 {activeOption}
               </button>
             );
@@ -1255,7 +1259,7 @@ export function TokenEditor({
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       <EditorShell
         surface="authoring"
         onBack={requestClose}
@@ -1548,10 +1552,8 @@ export function TokenEditor({
           value={value}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={effectivePathToCollectionId}
-          onOpenManageCollections={onOpenManageCollections}
-          selectedModes={collectionSwitcher.selectedModes}
-          serverUrl={serverUrl}
-          onCollectionModeCreated={collectionSwitcher.refreshCollections}
+          onOpenCollectionSetup={onOpenCollectionSetup}
+          selectedModes={collectionState.selectedModes}
         />
 
         {!aliasMode && referenceSection}
@@ -1587,7 +1589,7 @@ export function TokenEditor({
                     }}
                     className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
                   >
-                    Edit recipe
+                    Edit automation
                   </button>
                 )}
                 <button

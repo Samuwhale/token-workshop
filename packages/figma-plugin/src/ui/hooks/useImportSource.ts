@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { getErrorMessage } from '../shared/utils';
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 import {
   parseCSSCustomProperties,
   parseTailwindConfigFile,
@@ -187,7 +188,13 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   // Listen for messages from sandbox
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      const msg = event.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{
+        type?: string;
+        correlationId?: string;
+        error?: string;
+        collections?: CollectionData[];
+        tokens?: ImportToken[];
+      }>(event);
       if (!msg) return;
 
       if (msg.type === 'variables-read-error' && pendingSourceRef.current === 'variables' && msg.correlationId === correlationIdRef.current) {
@@ -263,7 +270,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setTokens([]);
     setError(null);
     startReadTimeout('variables');
-    parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
+    postPluginMessage({ type: 'read-variables', correlationId: cid });
   }, [clearFileImportValidation, startReadTimeout]);
 
   const handleReadStyles = useCallback(() => {
@@ -277,7 +284,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setTokens([]);
     setError(null);
     startReadTimeout('styles');
-    parent.postMessage({ pluginMessage: { type: 'read-styles', correlationId: cid } }, '*');
+    postPluginMessage({ type: 'read-styles', correlationId: cid });
   }, [clearFileImportValidation, startReadTimeout]);
 
   const processTokensStudioContent = useCallback((

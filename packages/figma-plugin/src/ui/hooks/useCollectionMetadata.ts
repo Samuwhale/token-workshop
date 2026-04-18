@@ -27,10 +27,6 @@ export function useCollectionMetadata({
     setMetadataDescription(collectionDescriptions[collectionId] || "");
   };
 
-  const closeCollectionMetadata = () => {
-    setEditingMetadataCollectionId(null);
-  };
-
   const handleSaveMetadata = async () => {
     if (!editingMetadataCollectionId || !connected) {
       setEditingMetadataCollectionId(null);
@@ -62,7 +58,6 @@ export function useCollectionMetadata({
     editingMetadataCollectionId,
     metadataDescription,
     setMetadataDescription,
-    closeCollectionMetadata,
     openCollectionMetadata,
     handleSaveMetadata,
   };

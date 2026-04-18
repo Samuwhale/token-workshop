@@ -884,6 +884,18 @@ export function ImportPanelProvider({
       tokens: Record<string, unknown>[],
       strategy: ImportStrategy,
     ) => {
+      try {
+        await apiFetch(`${serverUrl}/api/collections`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: collectionId }),
+        });
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 409)) {
+          throw err;
+        }
+      }
+
       return await apiFetch<{
         imported: number;
         skipped: number;

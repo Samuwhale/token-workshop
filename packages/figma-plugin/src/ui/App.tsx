@@ -14,7 +14,6 @@ import {
 } from "./components/WelcomePrompt";
 import { ColorScaleRecipe } from "./components/ColorScaleRecipe";
 import { AppCommandPalette } from "./components/AppCommandPalette";
-import { CollectionSwitcher } from "./components/CollectionSwitcher";
 import { CollectionCreateDialog } from "./components/CollectionCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -31,7 +30,6 @@ import { useWindowExpand } from "./hooks/useWindowExpand";
 import { useWindowResize } from "./hooks/useWindowResize";
 import type {
   SecondarySurfaceId,
-  WorkspaceId,
 } from "./shared/navigationTypes";
 import {
   getContextualPanelMinWidth,
@@ -51,7 +49,6 @@ import {
   useRecipeContext,
 } from "./contexts/TokenDataContext";
 import {
-  useCollectionUiContext,
   useResolverContext,
 } from "./contexts/CollectionContext";
 import {
@@ -68,7 +65,6 @@ import { useCollectionDuplicate } from "./hooks/useCollectionDuplicate";
 import { useCollectionMergeSplit } from "./hooks/useCollectionMergeSplit";
 import { useCollectionMetadata } from "./hooks/useCollectionMetadata";
 import { useModalVisibility } from "./hooks/useModalVisibility";
-import { useCollectionTabs } from "./hooks/useCollectionTabs";
 import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
@@ -83,9 +79,9 @@ import {
 import type { TokenMapEntry } from "../shared/types";
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { tokenPathToUrlSegment } from "./shared/utils";
-import { SHORTCUT_KEYS, matchesShortcut } from "./shared/shortcutRegistry";
-import { apiFetch, ApiError } from "./shared/apiFetch";
-import { STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson } from "./shared/storage";
+import { matchesShortcut } from "./shared/shortcutRegistry";
+import { apiFetch } from "./shared/apiFetch";
+import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 
 function formatCount(
@@ -116,6 +112,7 @@ export function App() {
     setEditingRecipe,
     previewingToken,
     setPreviewingToken,
+    inspectingCollection,
     setHighlightedToken,
     createFromEmpty,
     setPendingHighlight,
@@ -136,23 +133,19 @@ export function App() {
     handleSplitDragStart,
     handleSplitKeyDown,
   } = usePreviewSplit();
-  const [menuOpen, setMenuOpen] = useState(false);
   const {
     connected,
     checking,
     serverUrl,
     getDisconnectSignal,
     markDisconnected,
-    updateServerUrlAndConnect,
     retryConnection,
   } = useConnectionContext();
   const {
     collections,
-    setCollections: setCollectionsState,
     currentCollectionId,
     setCurrentCollectionId,
     currentCollectionTokens: tokens,
-    collectionTokenCounts,
     collectionDescriptions,
     refreshCollections: refreshTokens,
     syncCollectionSummariesToState,
@@ -161,37 +154,17 @@ export function App() {
     renameCollectionInState,
     updateCollectionMetadataInState,
     fetchTokensForCollection,
-    selectedModes,
-    setSelectedModes,
-    hoverPreviewModes,
-    setHoverPreviewModes,
-    collectionsError,
   } = useCollectionStateContext();
   const collectionIds = useMemo(
     () => collections.map((collection) => collection.id),
     [collections],
   );
-  const setCollectionIds = useCallback((nextCollectionIds: string[]) => {
-    setCollectionsState((previousCollections) =>
-      nextCollectionIds.flatMap((collectionId) => {
-        const collection = previousCollections.find(
-          (candidate) => candidate.id === collectionId,
-        );
-        return collection ? [collection] : [];
-      }),
-    );
-  }, [setCollectionsState]);
   const { allTokensFlat, pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
   const {
     recipes,
     refreshRecipes,
     recipesBySource,
   } = useRecipeContext();
-  const {
-    openCollectionDropdown,
-    setOpenCollectionDropdown,
-    collectionDropdownRef,
-  } = useCollectionUiContext();
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
@@ -213,10 +186,9 @@ export function App() {
     setShowCommandPalette,
     showQuickApply,
     setShowQuickApply,
-    showCollectionSwitcher,
-    setShowCollectionSwitcher,
   } = useModalVisibility();
   const [showCollectionCreateDialog, setShowCollectionCreateDialog] = useState(false);
+  const [collectionRailFocusRequestKey, setCollectionRailFocusRequestKey] = useState(0);
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] =
     useState("");
   const recentlyTouched = useRecentlyTouched();
@@ -242,11 +214,80 @@ export function App() {
   const [publishPreflightState, setPublishPreflightState] =
     useState<PublishPreflightState>(DEFAULT_PUBLISH_PREFLIGHT_STATE);
   const dismissEphemeralOverlays = useCallback(() => {
-    setMenuOpen(false);
     setShowCommandPalette(false);
     setShowQuickApply(false);
-    setShowCollectionSwitcher(false);
-  }, [setShowCommandPalette, setShowQuickApply, setShowCollectionSwitcher]);
+  }, [setShowCommandPalette, setShowQuickApply]);
+  const handleInspectedCollectionRename = useCallback(
+    (oldCollectionId: string, newCollectionId: string) => {
+      if (inspectingCollection?.collectionId !== oldCollectionId) {
+        return;
+      }
+      switchContextualSurface({
+        surface: "collection-details",
+        collection: { collectionId: newCollectionId },
+      });
+    },
+    [inspectingCollection, switchContextualSurface],
+  );
+  const handleInspectedCollectionDelete = useCallback(
+    (deletedCollectionId: string, nextCollectionId: string) => {
+      if (inspectingCollection?.collectionId !== deletedCollectionId) {
+        return;
+      }
+      if (nextCollectionId) {
+        switchContextualSurface({
+          surface: "collection-details",
+          collection: { collectionId: nextCollectionId },
+        });
+        return;
+      }
+      switchContextualSurface({ surface: null });
+    },
+    [inspectingCollection, switchContextualSurface],
+  );
+  const handleInspectedCollectionMerge = useCallback(
+    (sourceCollectionId: string, targetCollectionId: string) => {
+      if (
+        inspectingCollection?.collectionId !== sourceCollectionId &&
+        inspectingCollection?.collectionId !== targetCollectionId
+      ) {
+        return;
+      }
+      switchContextualSurface({
+        surface: "collection-details",
+        collection: { collectionId: targetCollectionId },
+      });
+    },
+    [inspectingCollection, switchContextualSurface],
+  );
+  const handleInspectedCollectionSplit = useCallback(
+    ({
+      sourceCollectionId,
+      createdCollectionIds,
+      deleteOriginal,
+    }: {
+      sourceCollectionId: string;
+      createdCollectionIds: string[];
+      deleteOriginal: boolean;
+    }) => {
+      if (
+        !deleteOriginal ||
+        inspectingCollection?.collectionId !== sourceCollectionId
+      ) {
+        return;
+      }
+      const nextCollectionId = createdCollectionIds[0] ?? "";
+      if (nextCollectionId) {
+        switchContextualSurface({
+          surface: "collection-details",
+          collection: { collectionId: nextCollectionId },
+        });
+        return;
+      }
+      switchContextualSurface({ surface: null });
+    },
+    [inspectingCollection, switchContextualSurface],
+  );
   const openStartHere = useCallback(
     (initialBranch: StartHereBranch = "root") => {
       dismissEphemeralOverlays();
@@ -258,16 +299,11 @@ export function App() {
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
     setStartHereState({ open: false, initialBranch: "root" });
   }, []);
-  const openCollectionSwitcher = useCallback(() => {
+  const focusCollectionRail = useCallback(() => {
     dismissEphemeralOverlays();
-    setShowCollectionSwitcher(true);
-  }, [dismissEphemeralOverlays, setShowCollectionSwitcher]);
-  const toggleCollectionSwitcher = useCallback(() => {
-    setMenuOpen(false);
-    setShowCommandPalette(false);
-    setShowQuickApply(false);
-    setShowCollectionSwitcher((visible) => !visible);
-  }, [setShowCommandPalette, setShowQuickApply, setShowCollectionSwitcher]);
+    navigateTo("tokens", "tokens");
+    setCollectionRailFocusRequestKey((current) => current + 1);
+  }, [dismissEphemeralOverlays, navigateTo]);
   const openCollectionCreateDialog = useCallback(() => {
     dismissEphemeralOverlays();
     setShowCollectionCreateDialog(true);
@@ -770,7 +806,7 @@ export function App() {
   }, []);
   const useSidePanel =
     windowWidth >= getContextualPanelMinWidth(sidebarCollapsed) &&
-    !!(editingToken || editingRecipeData || previewingToken) &&
+    !!(editingToken || editingRecipeData || previewingToken || inspectingCollection) &&
     activeSecondarySurface === null &&
     activeTopTab === "tokens" &&
     activeSubTab === "tokens" &&
@@ -783,74 +819,7 @@ export function App() {
     [useSidePanel],
   );
 
-  // Token drag state: populated when a drag from the token tree is in progress
-  const [tokenDragState, setTokenDragState] = useState<{
-    paths: string[];
-    sourceCollectionId: string;
-  } | null>(null);
-
-  // Move tokens to a different collection after a drag-drop on a collection tab
-  const handleTokenDropOnCollection = useCallback(
-    async (targetCollectionId: string) => {
-      if (!tokenDragState) return;
-      const { paths, sourceCollectionId } = tokenDragState;
-      setTokenDragState(null);
-      try {
-        if (paths.length === 1) {
-          await apiFetch(
-            `${serverUrl}/api/tokens/${encodeURIComponent(sourceCollectionId)}/tokens/move`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                tokenPath: paths[0],
-                targetCollectionId: targetCollectionId,
-              }),
-            },
-          );
-        } else {
-          await apiFetch(
-            `${serverUrl}/api/tokens/${encodeURIComponent(sourceCollectionId)}/batch-move`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                paths,
-                targetCollectionId: targetCollectionId,
-              }),
-            },
-          );
-        }
-        refreshTokens();
-        setSuccessToast(
-          paths.length === 1
-            ? `Moved "${paths[0]}" to "${targetCollectionId}"`
-            : `Moved ${paths.length} tokens to "${targetCollectionId}"`,
-        );
-      } catch (err) {
-        setErrorToast(
-          err instanceof ApiError ? err.message : "Move failed: network error",
-        );
-      }
-    },
-    [tokenDragState, serverUrl, refreshTokens, setSuccessToast, setErrorToast],
-  );
-
-  // Lightweight collection switcher bar: overflow handling, token-drop targets, and manager reorder helpers.
-  const {
-    cascadeDiff,
-    handleReorderCollection,
-    handleReorderCollectionFull,
-  } = useCollectionTabs({
-    serverUrl,
-    collectionIds,
-    setCollectionIds,
-    currentCollectionId,
-    refreshTokens,
-    setSuccessToast,
-    tokenDragSourceCollectionId: tokenDragState?.sourceCollectionId ?? null,
-    onTokenDropOnCollection: handleTokenDropOnCollection,
-  });
+  const cascadeDiff = null;
 
   // Group sync + scope state
   const {
@@ -892,12 +861,11 @@ export function App() {
     if (syncGroupError) setErrorToast(syncGroupError);
   }, [syncGroupError, setErrorToast]);
 
-  // Collection management hooks
+  // Collection structure hooks
   const {
     editingMetadataCollectionId,
     metadataDescription,
     setMetadataDescription,
-    closeCollectionMetadata,
     openCollectionMetadata,
     handleSaveMetadata,
   } = useCollectionMetadata({
@@ -922,13 +890,13 @@ export function App() {
       setErrorToast,
       markDisconnected,
       onPushUndo: pushUndo,
+      onDeleteComplete: handleInspectedCollectionDelete,
     });
   const {
     renamingCollectionId,
     renameValue,
     setRenameValue,
     renameError,
-    setRenameError,
     renameInputRef,
     startRename,
     cancelRename,
@@ -943,6 +911,7 @@ export function App() {
     setSuccessToast,
     markDisconnected,
     onPushUndo: pushUndo,
+    onRenameComplete: handleInspectedCollectionRename,
   });
   const { handleDuplicateCollection } = useCollectionDuplicate({
     serverUrl,
@@ -986,9 +955,11 @@ export function App() {
     setSuccessToast,
     setErrorToast,
     pushUndo,
+    onMergeComplete: handleInspectedCollectionMerge,
+    onSplitComplete: handleInspectedCollectionSplit,
   });
 
-  // Create a collection by name — shared by the quick switcher, toolbar, and manager.
+  // Create a collection by name — shared by the collection rail, toolbar, and onboarding.
   const createCollectionByName = useCallback(
     async (name: string) => {
       const result = await apiFetch<{
@@ -1005,112 +976,10 @@ export function App() {
         ]),
       });
       syncCollectionSummariesToState(result.collections);
-      setSuccessToast(`Created collection "${name}"`);
+      setSuccessToast(`Created collection "${result.id}"`);
+      return result.id;
     },
     [serverUrl, getDisconnectSignal, setSuccessToast, syncCollectionSummariesToState],
-  );
-
-  // Bulk delete collections — owned by the collection manager surface.
-  const handleBulkDeleteCollections = useCallback(
-    async (collectionsToDelete: string[]) => {
-      let currentActive = currentCollectionId;
-      const currentCollectionIds = collectionIds;
-      for (const collectionId of collectionsToDelete) {
-        await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(collectionId)}`, {
-          method: "DELETE",
-          signal: AbortSignal.any([
-            AbortSignal.timeout(5000),
-            getDisconnectSignal(),
-          ]),
-        });
-        removeCollectionFromState(collectionId);
-        if (currentActive === collectionId) {
-          const remaining = currentCollectionIds.filter(
-            (s) => !collectionsToDelete.includes(s),
-          );
-          const newActive = remaining[0] ?? "";
-          currentActive = newActive;
-          setCurrentCollectionId(newActive);
-          if (newActive) await fetchTokensForCollection(newActive);
-        }
-      }
-      setSuccessToast(
-        `Deleted ${collectionsToDelete.length} collection${collectionsToDelete.length !== 1 ? "s" : ""}`,
-      );
-    },
-    [
-      serverUrl,
-      collectionIds,
-      currentCollectionId,
-      setCurrentCollectionId,
-      removeCollectionFromState,
-      fetchTokensForCollection,
-      setSuccessToast,
-      getDisconnectSignal,
-    ],
-  );
-
-  // Bulk duplicate collections — owned by the collection manager surface.
-  const handleBulkDuplicateCollections = useCallback(
-    async (collectionsToDuplicate: string[]) => {
-      for (const collectionId of collectionsToDuplicate) {
-        const result = await apiFetch<{
-          ok: true;
-          id: string;
-          originalId: string;
-          collections: CollectionSummary[];
-        }>(`${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/duplicate`, {
-          method: "POST",
-          signal: AbortSignal.any([
-            AbortSignal.timeout(5000),
-            getDisconnectSignal(),
-          ]),
-        });
-        syncCollectionSummariesToState(result.collections);
-      }
-      setSuccessToast(
-        `Duplicated ${collectionsToDuplicate.length} collection${collectionsToDuplicate.length !== 1 ? "s" : ""}`,
-      );
-    },
-    [
-      serverUrl,
-      setSuccessToast,
-      getDisconnectSignal,
-      syncCollectionSummariesToState,
-    ],
-  );
-
-  // Bulk move collections to a folder — owned by the collection manager surface.
-  const handleBulkMoveToFolder = useCallback(
-    async (moves: Array<{ from: string; to: string }>) => {
-      for (const { from, to } of moves) {
-        await apiFetch(
-          `${serverUrl}/api/collections/${encodeURIComponent(from)}/rename`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ newName: to }),
-            signal: AbortSignal.any([
-              AbortSignal.timeout(5000),
-              getDisconnectSignal(),
-            ]),
-          },
-        );
-        renameCollectionInState(from, to);
-        if (currentCollectionId === from) setCurrentCollectionId(to);
-      }
-      setSuccessToast(
-        `Moved ${moves.length} collection${moves.length !== 1 ? "s" : ""} to folder`,
-      );
-    },
-    [
-      serverUrl,
-      currentCollectionId,
-      setCurrentCollectionId,
-      renameCollectionInState,
-      setSuccessToast,
-      getDisconnectSignal,
-    ],
   );
 
   // Catch-all: warn in the console when the plugin sandbox sends a message type that
@@ -1231,12 +1100,18 @@ export function App() {
     }
     if (matchesShortcut(e, "QUICK_SWITCH_COLLECTION")) {
       e.preventDefault();
-      toggleCollectionSwitcher();
+      focusCollectionRail();
     }
     if (matchesShortcut(e, "GO_TO_RESOLVER")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      openSecondarySurface("collection-manager");
+      navigateTo("tokens", "tokens");
+      if (currentCollectionId) {
+        switchContextualSurface({
+          surface: "collection-details",
+          collection: { collectionId: currentCollectionId },
+        });
+      }
     }
     if (matchesShortcut(e, "SHOW_SHORTCUTS")) {
       e.preventDefault();
@@ -1491,17 +1366,18 @@ export function App() {
       openCollectionCreateDialog,
       openColorScaleRecipe: () => setShowColorScaleGen(true),
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
-      toggleCollectionSwitcher,
+      focusCollectionRail,
+      collectionRailFocusRequestKey,
       openStartHere: (branch?: StartHereBranch) => openStartHere(branch),
       restartGuidedSetup: () => {
         closeSecondarySurface();
-        openStartHere("guided-setup");
+        openStartHere("start-new");
       },
       handleClearAllComplete: () => {
         closeSecondarySurface();
         navigateTo("tokens", "tokens");
         refreshTokens();
-        openStartHere("guided-setup");
+        openStartHere("start-new");
       },
       handleImportComplete,
       notificationHistory,
@@ -1545,9 +1421,6 @@ export function App() {
       setFlowPanelInitialPath,
       tokenListCompareRef,
       tokenListSelection,
-      onTokenDragStart: (paths: string[], sourceCollectionId: string) =>
-        setTokenDragState({ paths, sourceCollectionId: sourceCollectionId }),
-      onTokenDragEnd: () => setTokenDragState(null),
       recentlyTouched,
       starredTokens,
       handleOpenCrossCollectionCompare,
@@ -1592,37 +1465,23 @@ export function App() {
       publishPanelHandleRef,
     },
     collectionStructure: {
-      onOpenQuickSwitch: () => {
-        closeSecondarySurface();
-        openCollectionSwitcher();
-      },
+      onCreateCollectionByName: createCollectionByName,
       onRename: startRename,
       onDuplicate: handleDuplicateCollection,
       onDelete: startDelete,
-      onReorder: handleReorderCollection,
-      onReorderFull: handleReorderCollectionFull,
-      onOpenCreateCollection: openCollectionCreateDialog,
-      onEditInfo: (collectionId: string) => {
-        closeSecondarySurface();
-        openCollectionMetadata(collectionId);
-      },
+      onEditInfo: openCollectionMetadata,
       onMerge: collectionIds.length > 1 ? openMergeDialog : undefined,
       onSplit: openSplitDialog,
-      onBulkDelete: handleBulkDeleteCollections,
-      onBulkDuplicate: handleBulkDuplicateCollections,
-      onBulkMoveToFolder: handleBulkMoveToFolder,
       renamingCollectionId: renamingCollectionId,
       renameValue,
       setRenameValue,
       renameError,
-      setRenameError,
       renameInputRef,
       onRenameConfirm: handleRenameConfirm,
       onRenameCancel: cancelRename,
       editingMetadataCollectionId: editingMetadataCollectionId,
       metadataDescription,
       setMetadataDescription,
-      onMetadataClose: closeCollectionMetadata,
       onMetadataSave: handleSaveMetadata,
       deletingCollectionId: deletingCollectionId,
       onDeleteConfirm: handleDeleteCollection,
@@ -1716,13 +1575,10 @@ export function App() {
     activeSubTab,
     activeWorkspace.id,
     activeWorkspaceSection?.id,
-    guardEditorAction,
-    navigateTo,
     refreshValidation,
     pendingPublishCount,
     publishPreflightState.isOutdated,
     publishPreflightState.stage,
-    closeSecondarySurface,
   ]);
 
   const visibleHandoff = useMemo(() => {
@@ -1751,12 +1607,6 @@ export function App() {
   const shellPrimaryAction =
     activeSecondarySurface === null ? workspacePrimaryAction : null;
   const notificationCount = notificationHistory.length;
-
-  const showCollectionModeControls =
-    !collectionsError &&
-    collections.length > 0 &&
-    activeSecondarySurface === null &&
-    (activeTopTab === "tokens" || activeTopTab === "inspect");
 
   const handleSidebarItemClick = useCallback((item: SidebarItem) => {
     guardEditorAction(() => {
@@ -1831,56 +1681,12 @@ export function App() {
               </div>
             </div>
           ))}
-
-          {/* Import */}
-          <div className={sidebarCollapsed ? 'mt-0.5' : 'mt-0.5 border-t border-[var(--color-figma-border)] pt-1'}>
-            {sidebarCollapsed ? (
-              <>
-                <div className="mx-1 mb-1 border-t border-[var(--color-figma-border)]" />
-                <div className="flex flex-col items-center">
-                  <Tooltip label="Import" position="right">
-                    <button
-                      onClick={() => toggleSecondarySurface("import")}
-                      className={`flex h-7 w-7 items-center justify-center rounded-md text-[9px] font-medium outline-none transition-colors ${
-                        activeSecondarySurface === "import"
-                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                          : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                      }`}
-                    >
-                      Im
-                    </button>
-                  </Tooltip>
-                </div>
-              </>
-            ) : (
-              <button
-                onClick={() => toggleSecondarySurface("import")}
-                className={`w-full rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-                  activeSecondarySurface === "import"
-                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                Import
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Bottom utilities */}
         <div className={`flex flex-col gap-px border-t border-[var(--color-figma-border)] ${sidebarCollapsed ? 'px-0.5 py-1.5' : 'px-2 py-2'}`}>
           {!sidebarCollapsed && (
             <>
-              <button
-                onClick={() => toggleSecondarySurface("collection-manager")}
-                className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-                  activeSecondarySurface === "collection-manager"
-                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                Manage collections
-              </button>
               <button
                 onClick={() => toggleSecondarySurface("notifications")}
                 className={`flex items-center justify-between rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
@@ -1965,156 +1771,44 @@ export function App() {
               </button>
             )}
 
-            {/* Current collection context — shown for Tokens workspace */}
-            {activeTopTab === "tokens" && activeSecondarySurface === null && currentCollectionId && (
-              <button
-                onClick={toggleCollectionSwitcher}
-                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                title={`Collection: ${currentCollectionId}`}
-              >
-                <span className="max-w-[120px] truncate">{currentCollectionId}</span>
-                <svg width="6" height="6" viewBox="0 0 8 8" fill="none" aria-hidden="true">
-                  <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            )}
-
-            {/* Collection mode selectors — only in token/inspect contexts */}
-            {showCollectionModeControls && (
-              <div ref={collectionDropdownRef} className="flex items-center gap-1">
-                {collections.map((collection) => {
-                  const activeOption = selectedModes[collection.id];
-                  const previewOption = hoverPreviewModes[collection.id];
-                  const isOpen = openCollectionDropdown === collection.id;
-                  if (collection.modes.length <= 3) {
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="min-w-0">
+                <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                  {activeWorkspace.label}
+                </div>
+                <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {activeWorkspace.transition.usage}
+                </div>
+              </div>
+              {activeSecondarySurface === null && activeWorkspace.sections?.length ? (
+                <div className="flex items-center gap-1 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-0.5">
+                  {activeWorkspace.sections.map((section) => {
+                    const isActive = section.id === activeSubTab;
                     return (
-                      <div
-                        key={collection.id}
-                        className="flex items-center"
-                        title={collection.id}
-                        onMouseLeave={() => {
-                          setHoverPreviewModes((prev) => {
-                            const next = { ...prev };
-                            delete next[collection.id];
-                            return next;
-                          });
-                        }}
-                      >
-                        <div className="flex overflow-hidden rounded border border-[var(--color-figma-border)] divide-x divide-[var(--color-figma-border)]">
-                          {collection.modes.map((opt: { name: string }) => {
-                            const isActive = activeOption === opt.name;
-                            const isPreviewing = previewOption === opt.name && previewOption !== activeOption;
-                            return (
-                              <button
-                                key={opt.name}
-                                onClick={() => {
-                                  if (isActive) {
-                                    const next = { ...selectedModes };
-                                    delete next[collection.id];
-                                    setSelectedModes(next);
-                                  } else {
-                                    setSelectedModes({ ...selectedModes, [collection.id]: opt.name });
-                                  }
-                                  setHoverPreviewModes((prev) => {
-                                    const next = { ...prev };
-                                    delete next[collection.id];
-                                    return next;
-                                  });
-                                }}
-                                onMouseEnter={() => setHoverPreviewModes((prev) => ({ ...prev, [collection.id]: opt.name }))}
-                                title={isActive ? `${collection.id}: ${opt.name} (active — click to deselect)` : `Preview ${collection.id}: ${opt.name}`}
-                                className={`px-1.5 py-0.5 text-[10px] transition-colors ${
-                                  isActive
-                                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                                    : isPreviewing
-                                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] opacity-60"
-                                      : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                                }`}
-                              >
-                                {opt.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={collection.id} className="relative flex items-center" title={collection.id}>
                       <button
-                        onClick={() => setOpenCollectionDropdown(isOpen ? null : collection.id)}
-                        aria-expanded={isOpen}
-                        aria-haspopup="listbox"
-                        aria-label={`${collection.id}: ${activeOption || "None"}`}
-                        className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
-                          activeOption
-                            ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                            : "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                        key={section.id}
+                        type="button"
+                        onClick={() =>
+                          guardEditorAction(() => {
+                            navigateTo(section.topTab, section.subTab);
+                            if (section.id === "canvas-analysis") {
+                              triggerHeatmapScan();
+                            }
+                          })
+                        }
+                        className={`rounded px-2 py-0.5 text-[10px] transition-colors ${
+                          isActive
+                            ? "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)]"
+                            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                         }`}
                       >
-                        {activeOption || collection.id}
-                        <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>
-                          <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        {section.label}
                       </button>
-                      {isOpen && (
-                        <div
-                          className="absolute left-0 top-full z-50 mt-1 min-w-[90px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
-                          onMouseLeave={() => {
-                            setHoverPreviewModes((prev) => {
-                              const next = { ...prev };
-                              delete next[collection.id];
-                              return next;
-                            });
-                          }}
-                        >
-                          <button
-                            onClick={() => {
-                              const next = { ...selectedModes };
-                              delete next[collection.id];
-                              setSelectedModes(next);
-                              setOpenCollectionDropdown(null);
-                            }}
-                            onMouseEnter={() => {
-                              setHoverPreviewModes((prev) => {
-                                const next = { ...prev };
-                                delete next[collection.id];
-                                return next;
-                              });
-                            }}
-                            className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
-                              !activeOption ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
-                            }`}
-                          >
-                            None
-                          </button>
-                          {collection.modes.map((opt: { name: string }) => (
-                            <button
-                              key={opt.name}
-                              onClick={() => {
-                                setSelectedModes({ ...selectedModes, [collection.id]: opt.name });
-                                setOpenCollectionDropdown(null);
-                                setHoverPreviewModes((prev) => {
-                                  const next = { ...prev };
-                                  delete next[collection.id];
-                                  return next;
-                                });
-                              }}
-                              onMouseEnter={() => setHoverPreviewModes((prev) => ({ ...prev, [collection.id]: opt.name }))}
-                              className={`w-full px-2.5 py-0.5 text-left text-[10px] transition-colors hover:bg-[var(--color-figma-bg-hover)] ${
-                                activeOption === opt.name ? "text-[var(--color-figma-accent)] font-medium" : "text-[var(--color-figma-text)]"
-                              }`}
-                            >
-                              {opt.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
 
             <div className="flex shrink-0 items-center gap-1 ml-auto">
               {shellPrimaryAction && (
@@ -2322,27 +2016,6 @@ export function App() {
         </div>
       )}
 
-      {showCollectionSwitcher && (
-        <CollectionSwitcher
-          collectionIds={collectionIds}
-          currentCollectionId={currentCollectionId}
-          onSelect={(collectionId) => {
-            guardEditorAction(() => {
-              setCurrentCollectionId(collectionId);
-              navigateTo("tokens", "tokens");
-            });
-          }}
-          onClose={() => setShowCollectionSwitcher(false)}
-          onManageCollections={() => {
-            guardEditorAction(() => {
-              setShowCollectionSwitcher(false);
-              openSecondaryPanel("collection-manager");
-            });
-          }}
-          onOpenCreateCollection={openCollectionCreateDialog}
-        />
-      )}
-
       <CollectionCreateDialog
         isOpen={showCollectionCreateDialog}
         onClose={closeCollectionCreateDialog}
@@ -2410,9 +2083,6 @@ export function App() {
           onRetryConnection={retryConnection}
           onImportFigma={() => openSecondaryPanel("import")}
           onPasteJSON={() => setShowPasteModal(true)}
-          onCreateToken={() =>
-            setEditingToken({ path: "", currentCollectionId, isCreate: true })
-          }
           onGuidedSetupComplete={() => {
             closeStartHere();
             refreshAll();

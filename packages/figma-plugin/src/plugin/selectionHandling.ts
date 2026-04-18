@@ -1014,10 +1014,10 @@ export async function syncBindings(tokenMap: Record<string, TokenMapEntry>, scop
 }
 
 // Search layers on the current page by name, type, or component name
-export function searchLayers(query: string) {
+export function searchLayers(query: string, correlationId?: string) {
   const q = query.toLowerCase().trim();
   if (!q) {
-    figma.ui.postMessage({ type: 'search-layers-result', results: [] });
+    figma.ui.postMessage({ type: 'search-layers-result', results: [], correlationId });
     return;
   }
 
@@ -1060,7 +1060,7 @@ export function searchLayers(query: string) {
     }
   }
 
-  figma.ui.postMessage({ type: 'search-layers-result', results, totalSearched });
+  figma.ui.postMessage({ type: 'search-layers-result', results, totalSearched, correlationId });
 }
 
 // Check if a node supports a given bindable property

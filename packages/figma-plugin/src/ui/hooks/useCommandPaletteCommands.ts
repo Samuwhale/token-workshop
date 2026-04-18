@@ -120,11 +120,11 @@ export function useCommandPaletteCommands(): {
       },
       {
         id: "switch-collection",
-        label: "Switch collection…",
-        description: `Jump between ${collectionIds.length} collections`,
+        label: "Focus collection rail",
+        description: `Jump to the collection rail for ${collectionIds.length} collections`,
         category: "Collections",
         shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION),
-        handler: shell.toggleCollectionSwitcher,
+        handler: shell.focusCollectionRail,
       },
       {
         id: "paste-tokens",
