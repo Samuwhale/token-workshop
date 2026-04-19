@@ -1037,7 +1037,6 @@ export function TokenList({
   }, [multiModeEnabled, modeLensEnabled, showResolvedValues, viewMode, toggleMultiMode, setModeLensEnabled, setShowResolvedValues, setViewMode]);
 
   const {
-    activeFilterSummary,
     toolbarStateChips,
   } = useToolbarStateChips({
     structuredFilterChips, removeQueryToken, sortOrder, setSortOrder,
@@ -1061,11 +1060,11 @@ export function TokenList({
         detail: trimmedQuery,
       };
     }
-    if (activeFilterSummary.length > 0) {
+    if (toolbarStateChips.length > 0) {
       return {
         source: "current-scope",
         title: "Current filtered tokens",
-        detail: activeFilterSummary.join(" · "),
+        detail: toolbarStateChips.map(c => c.label).join(" · "),
       };
     }
     return {
@@ -1073,7 +1072,7 @@ export function TokenList({
       title: `All tokens in ${collectionId}`,
       detail: "No search or filter constraints",
     };
-  }, [activeFilterSummary, searchQuery, collectionId]);
+  }, [toolbarStateChips, searchQuery, collectionId]);
 
   const insertSearchQualifier = useCallback(
     (qualifier: string) => {

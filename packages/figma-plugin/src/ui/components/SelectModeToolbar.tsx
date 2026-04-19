@@ -29,7 +29,7 @@ export function SelectModeToolbar({
   displayedLeafPaths,
   collectionIds,
   operationLoading,
-  showBatchEditor,
+  showBatchEditor: _showBatchEditor,
   copyFeedback,
   copyCssFeedback,
   copyAliasFeedback,
@@ -68,7 +68,7 @@ export function SelectModeToolbar({
         <>
           <button
             onClick={onToggleBatchEditor}
-            className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? "bg-[var(--color-figma-accent)] text-white" : "bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"}`}
+            className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"
           >
             Batch
           </button>

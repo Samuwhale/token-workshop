@@ -1276,7 +1276,6 @@ export function TokenEditor({
           onShowAutocompleteChange={setShowAutocomplete}
           aliasHasCycle={aliasHasCycle}
           refInputRef={refInputRef}
-          hideHeader
         />
 
         {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (

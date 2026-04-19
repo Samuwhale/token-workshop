@@ -206,76 +206,6 @@ export function ContrastMatrixPanel({
   const canNavigateToToken = (path: string) =>
     Boolean(onNavigateToToken && pathToCollectionId[path]);
 
-  let displayTokens: MatrixToken[];
-  if (contrastSortMode === "failures") {
-    const failureCounts = new Map<string, number>();
-    for (const t of filteredTokens) {
-      let cnt = 0;
-      for (const other of filteredTokens) {
-        if (other.path === t.path) continue;
-        const { ratio } = getCellContrast(t, other);
-        if (ratio !== null && ratio < 4.5) cnt++;
-      }
-      failureCounts.set(t.path, cnt);
-    }
-    displayTokens = [...filteredTokens].sort(
-      (a, b) =>
-        (failureCounts.get(b.path) ?? 0) - (failureCounts.get(a.path) ?? 0),
-    );
-  } else {
-    displayTokens = filteredTokens;
-  }
-
-  /** Find the nearest token (by CIE ΔE) from candidates that would pass AA (≥4.5:1) against bg. */
-  const findNearestPassingFg = (
-    fg: MatrixToken,
-    bg: MatrixToken,
-    candidates: MatrixToken[],
-  ): { path: string; hex: string } | null => {
-    const fgLab = hexToLab(fg.hex);
-    if (!fgLab) return null;
-    let best: { path: string; hex: string; deltaE: number } | null = null;
-    for (const candidate of candidates) {
-      if (candidate.path === fg.path) continue;
-      let passes = false;
-      if (
-        isMultiMode &&
-        candidate.hexByMode &&
-        bg.hexByMode &&
-        perModeResolved
-      ) {
-        // Multi-mode: must pass AA in every active mode.
-        passes = true;
-        for (const modeKey of perModeResolved.keys()) {
-          const cHex = candidate.hexByMode.get(modeKey);
-          const bgHex = bg.hexByMode.get(modeKey);
-          if (!cHex || !bgHex) {
-            passes = false;
-            break;
-          }
-          const r = wcagContrast(cHex, bgHex);
-          if (r === null || r < 4.5) {
-            passes = false;
-            break;
-          }
-        }
-      } else {
-        const r = wcagContrast(candidate.hex, bg.hex);
-        passes = r !== null && r >= 4.5;
-      }
-      if (!passes) continue;
-      const candLab = hexToLab(candidate.hex);
-      if (!candLab) continue;
-      const dL = candLab[0] - fgLab[0],
-        da = candLab[1] - fgLab[1],
-        db = candLab[2] - fgLab[2];
-      const deltaE = Math.sqrt(dL * dL + da * da + db * db);
-      if (best === null || deltaE < best.deltaE)
-        best = { path: candidate.path, hex: candidate.hex, deltaE };
-    }
-    return best ? { path: best.path, hex: best.hex } : null;
-  };
-
   type FailPair = {
     fg: MatrixToken;
     bg: MatrixToken;
@@ -284,32 +214,109 @@ export function ContrastMatrixPanel({
     totalModeCount: number;
     suggestedFix: { path: string; hex: string } | null;
   };
-  const allFailingPairs: FailPair[] = [];
-  for (let i = 0; i < displayTokens.length; i++) {
-    for (let j = 0; j < displayTokens.length; j++) {
-      if (i === j) continue;
-      const { ratio, failingModeCount, totalModeCount } = getCellContrast(
-        displayTokens[i],
-        displayTokens[j],
+
+  const computeExpensiveData = () => {
+    let tokens: MatrixToken[];
+    if (contrastSortMode === "failures") {
+      const failureCounts = new Map<string, number>();
+      for (const t of filteredTokens) {
+        let cnt = 0;
+        for (const other of filteredTokens) {
+          if (other.path === t.path) continue;
+          const { ratio } = getCellContrast(t, other);
+          if (ratio !== null && ratio < 4.5) cnt++;
+        }
+        failureCounts.set(t.path, cnt);
+      }
+      tokens = [...filteredTokens].sort(
+        (a, b) =>
+          (failureCounts.get(b.path) ?? 0) - (failureCounts.get(a.path) ?? 0),
       );
-      if (ratio !== null && ratio < 4.5) {
-        const suggestedFix = findNearestPassingFg(
-          displayTokens[i],
-          displayTokens[j],
-          displayTokens,
+    } else {
+      tokens = filteredTokens;
+    }
+
+    const findNearestPassingFg = (
+      fg: MatrixToken,
+      bg: MatrixToken,
+      candidates: MatrixToken[],
+    ): { path: string; hex: string } | null => {
+      const fgLab = hexToLab(fg.hex);
+      if (!fgLab) return null;
+      let best: { path: string; hex: string; deltaE: number } | null = null;
+      for (const candidate of candidates) {
+        if (candidate.path === fg.path) continue;
+        let passes = false;
+        if (
+          isMultiMode &&
+          candidate.hexByMode &&
+          bg.hexByMode &&
+          perModeResolved
+        ) {
+          passes = true;
+          for (const modeKey of perModeResolved.keys()) {
+            const cHex = candidate.hexByMode.get(modeKey);
+            const bgHex = bg.hexByMode.get(modeKey);
+            if (!cHex || !bgHex) {
+              passes = false;
+              break;
+            }
+            const r = wcagContrast(cHex, bgHex);
+            if (r === null || r < 4.5) {
+              passes = false;
+              break;
+            }
+          }
+        } else {
+          const r = wcagContrast(candidate.hex, bg.hex);
+          passes = r !== null && r >= 4.5;
+        }
+        if (!passes) continue;
+        const candLab = hexToLab(candidate.hex);
+        if (!candLab) continue;
+        const dL = candLab[0] - fgLab[0],
+          da = candLab[1] - fgLab[1],
+          db = candLab[2] - fgLab[2];
+        const deltaE = Math.sqrt(dL * dL + da * da + db * db);
+        if (best === null || deltaE < best.deltaE)
+          best = { path: candidate.path, hex: candidate.hex, deltaE };
+      }
+      return best ? { path: best.path, hex: best.hex } : null;
+    };
+
+    const pairs: FailPair[] = [];
+    for (let i = 0; i < tokens.length; i++) {
+      for (let j = 0; j < tokens.length; j++) {
+        if (i === j) continue;
+        const { ratio, failingModeCount, totalModeCount } = getCellContrast(
+          tokens[i],
+          tokens[j],
         );
-        allFailingPairs.push({
-          fg: displayTokens[i],
-          bg: displayTokens[j],
-          ratio,
-          failingModeCount,
-          totalModeCount,
-          suggestedFix,
-        });
+        if (ratio !== null && ratio < 4.5) {
+          const suggestedFix = findNearestPassingFg(
+            tokens[i],
+            tokens[j],
+            tokens,
+          );
+          pairs.push({
+            fg: tokens[i],
+            bg: tokens[j],
+            ratio,
+            failingModeCount,
+            totalModeCount,
+            suggestedFix,
+          });
+        }
       }
     }
-  }
-  allFailingPairs.sort((a, b) => a.ratio - b.ratio);
+    pairs.sort((a, b) => a.ratio - b.ratio);
+    return { displayTokens: tokens, allFailingPairs: pairs };
+  };
+
+  const { displayTokens, allFailingPairs } = showContrastMatrix
+    ? computeExpensiveData()
+    : { displayTokens: filteredTokens, allFailingPairs: [] as FailPair[] };
+
   const totalPages = Math.ceil(displayTokens.length / CONTRAST_PAGE_SIZE);
   const pageStart = contrastPage * CONTRAST_PAGE_SIZE;
   const pagedTokens = displayTokens.slice(

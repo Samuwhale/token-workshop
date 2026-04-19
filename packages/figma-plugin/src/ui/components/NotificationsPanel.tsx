@@ -7,6 +7,7 @@ import {
   useCollectionStateContext,
 } from "../contexts/TokenDataContext";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
+import { SegmentedControl } from "./SegmentedControl";
 
 type InboxFilter = "all" | "blocker" | "attention" | "success";
 type InboxSeverity = "blocker" | "attention" | "success";
@@ -51,12 +52,12 @@ interface InboxItem {
   action: InboxAction | null;
 }
 
-const FILTER_LABELS: Record<InboxFilter, string> = {
-  all: "All",
-  blocker: "Blockers",
-  attention: "Attention",
-  success: "Resolved",
-};
+const INBOX_FILTER_OPTIONS: { value: InboxFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "blocker", label: "Blockers" },
+  { value: "attention", label: "Attention" },
+  { value: "success", label: "Resolved" },
+];
 
 function formatTime(ts: number): string {
   const date = new Date(ts);
@@ -384,28 +385,13 @@ export function NotificationsPanel({
           )}
         </div>
         {inbox.length > 0 && (
-          <>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {(
-                ["all", "blocker", "attention", "success"] as InboxFilter[]
-              ).map((value) => {
-                const active = filter === value;
-                return (
-                  <button
-                    key={value}
-                    onClick={() => setFilter(value)}
-                    className={`rounded-full border px-2 py-1 text-[10px] font-medium transition-colors ${
-                      active
-                        ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/[0.12] text-[var(--color-figma-accent)]"
-                        : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                    }`}
-                  >
-                    {FILTER_LABELS[value]}
-                  </button>
-                );
-              })}
-            </div>
-          </>
+          <div className="mt-2">
+            <SegmentedControl
+              options={INBOX_FILTER_OPTIONS}
+              value={filter}
+              onChange={setFilter}
+            />
+          </div>
         )}
       </div>
 
@@ -417,7 +403,7 @@ export function NotificationsPanel({
       ) : visibleItems.length === 0 ? (
         <FeedbackPlaceholder
           variant="no-results"
-          title={`No ${FILTER_LABELS[filter].toLowerCase()} notifications`}
+          title={`No ${INBOX_FILTER_OPTIONS.find(o => o.value === filter)?.label.toLowerCase() ?? filter} notifications`}
           description="Try a different filter."
           secondaryAction={{
             label: "View all",

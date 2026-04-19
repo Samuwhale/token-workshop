@@ -59,29 +59,6 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     setSearchResultPresentation,
   } = config;
 
-  const activeFilterSummary = useMemo(() => {
-    const items: string[] = [];
-    if (sortOrder !== "default")
-      items.push(sortOrder === "alpha-asc" ? "Sorted A to Z" : "Sorted by type");
-    if (refFilter !== "all")
-      items.push(refFilter === "aliases" ? "Alias tokens only" : "Direct values only");
-    if (showDuplicates) items.push("Duplicate values");
-    if (showIssuesOnly)
-      items.push(
-        lintViolationsLength > 0
-          ? `Issues only (${lintViolationsLength})`
-          : "Issues only",
-      );
-    if (showRecentlyTouched) items.push("Recently touched");
-    if (typeFilter !== "") items.push(`Type: ${typeFilter}`);
-    if (inspectMode) items.push("Bound to selection");
-    if (crossCollectionSearch) items.push("Search all collections");
-    return items;
-  }, [
-    crossCollectionSearch, inspectMode, lintViolationsLength, refFilter,
-    showDuplicates, showIssuesOnly, showRecentlyTouched, sortOrder, typeFilter,
-  ]);
-
   const toolbarStateChips = useMemo(() => {
     const chips: ToolbarStateChip[] = [];
 
@@ -218,8 +195,5 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     toggleMultiMode, typeFilter,
   ]);
 
-  return {
-    activeFilterSummary,
-    toolbarStateChips,
-  };
+  return { toolbarStateChips };
 }

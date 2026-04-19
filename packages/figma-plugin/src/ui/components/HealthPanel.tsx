@@ -481,7 +481,6 @@ export function HealthPanel({
         : null;
     };
   }, [allTokensUnified]);
-
   // Non-alias color tokens sorted by luminance (for ContrastMatrixPanel)
   const colorTokens = useMemo((): { path: string; hex: string }[] => {
     const colors: { path: string; hex: string }[] = [];
@@ -501,7 +500,6 @@ export function HealthPanel({
       (a, b) => (hexToLuminance(a.hex) ?? 0) - (hexToLuminance(b.hex) ?? 0),
     );
   }, [allTokensUnified]);
-
   // All color tokens with alias resolution (for LightnessInspectorPanel)
   const allColorTokens = useMemo((): {
     path: string;
@@ -522,7 +520,6 @@ export function HealthPanel({
     }
     return colors;
   }, [allTokensUnified, resolveColorHex]);
-
   // Duplicate groups from validation results (for DuplicateDetectionPanel)
   const lintDuplicateGroups = useMemo(() => {
     if (!validationIssuesProp) return [];
@@ -677,7 +674,6 @@ export function HealthPanel({
         steps: steps.sort((a, b) => Number(a.label) - Number(b.label)),
       }));
   }, [allColorTokens]);
-
   // Unused tokens (for UnusedTokensPanel)
   const unusedTokens = useMemo(() => {
     if (
@@ -714,7 +710,6 @@ export function HealthPanel({
       }))
       .sort((a, b) => a.path.localeCompare(b.path));
   }, [tokenUsageCounts, allTokensUnified]);
-
   // ── Validation issue filtering ──────────────────────────────────────────────
 
   const suppressKey = (issue: ValidationIssue) =>

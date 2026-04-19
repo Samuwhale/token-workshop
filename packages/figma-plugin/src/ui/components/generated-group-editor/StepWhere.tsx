@@ -38,7 +38,7 @@ function SettingRow({
   action: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5">
+    <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
           {label}
@@ -119,7 +119,7 @@ export function StepWhere({
               Tokens will be created in this collection.
             </p>
           </div>
-          <span className="rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text)]">
+          <span className="text-[10px] font-mono text-[var(--color-figma-text)]">
             {targetCollection}
           </span>
         </div>
@@ -137,7 +137,7 @@ export function StepWhere({
         </button>
 
         {advancedOpen && (
-          <div className="mt-3 flex flex-col gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 p-3">
+          <div className="mt-3 flex flex-col gap-3">
             <div className={AUTHORING.generatorFieldStack}>
               <label
                 htmlFor="step-where-group-label"

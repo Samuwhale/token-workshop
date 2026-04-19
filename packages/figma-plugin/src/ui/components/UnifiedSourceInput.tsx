@@ -1,13 +1,3 @@
-/**
- * UnifiedSourceInput — Replaces the old split source/inline layout
- * with a single "Base value" section.
- *
- * Two equal modes via segmented control:
- * - "Pick token" — Uses TokenPickerField to browse/search tokens
- * - "Enter value" — Uses the full value editors (ColorEditor, DimensionEditor)
- *
- * No "recommended"/"fallback" language. Both modes are first-class.
- */
 import { useState, useMemo, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TokenPickerField } from './TokenPicker';
@@ -15,35 +5,20 @@ import { ColorEditor } from './ValueEditors';
 import { CompactDimensionInput } from './generators/generatorShared';
 import { swatchBgColor } from '../shared/colorUtils';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { SegmentedControl } from './SegmentedControl';
 
 export type SourceMode = 'token' | 'value';
 
 export interface UnifiedSourceInputProps {
-  /** Which category the generator expects: 'color' | 'dimension' | null. */
   expectedType: 'color' | 'dimension' | null;
-  /** Currently bound source token path (or empty string / undefined). */
   sourceTokenPath: string | undefined;
-  /** Resolved value of the source token (for display). */
   sourceTokenValue: unknown;
-  /** Inline value when no source token is bound. */
   inlineValue: unknown;
-  /** All tokens for the picker. */
   allTokensFlat?: Record<string, TokenMapEntry>;
-  /** Maps token path → set name. */
   pathToCollectionId?: Record<string, string>;
-  /** Called when the user picks or changes the source token path. */
   onSourcePathChange: (path: string) => void;
-  /** Called when the user enters/changes an inline value. */
   onInlineValueChange: (v: unknown) => void;
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function UnifiedSourceInput({
   expectedType,
@@ -55,15 +30,12 @@ export function UnifiedSourceInput({
   onSourcePathChange,
   onInlineValueChange,
 }: UnifiedSourceInputProps) {
-  // Determine initial mode based on current state
   const [mode, setMode] = useState<SourceMode>(() =>
     sourceTokenPath ? 'token' : 'value',
   );
 
-  // Stash the token path when switching to value mode so the user can switch back
   const stashedTokenPathRef = useRef<string>('');
 
-  // Resolve linked token display info
   const linkedEntry = sourceTokenPath && allTokensFlat
     ? allTokensFlat[sourceTokenPath]
     : undefined;
@@ -85,58 +57,33 @@ export function UnifiedSourceInput({
       : undefined;
 
   return (
-    <div className="border border-[var(--color-figma-border)] rounded-lg p-3 bg-[var(--color-figma-bg-secondary)]">
-      {/* Header with segmented control */}
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
-          Base value
-        </span>
+    <div className="flex flex-col gap-2.5">
+      <SegmentedControl
+        options={[
+          { value: 'token' as SourceMode, label: 'Pick token' },
+          { value: 'value' as SourceMode, label: 'Enter value' },
+        ]}
+        value={mode}
+        onChange={(newMode) => {
+          if (newMode === 'token' && mode !== 'token') {
+            if (stashedTokenPathRef.current) {
+              onSourcePathChange(stashedTokenPathRef.current);
+              stashedTokenPathRef.current = '';
+            }
+          } else if (newMode === 'value' && mode !== 'value') {
+            if (sourceTokenPath) {
+              stashedTokenPathRef.current = sourceTokenPath;
+              onSourcePathChange('');
+            }
+            if (inlineValue === undefined || inlineValue === '') {
+              if (expectedType === 'color') onInlineValueChange('#ffffff');
+              else if (expectedType === 'dimension') onInlineValueChange({ value: 16, unit: 'px' });
+            }
+          }
+          setMode(newMode);
+        }}
+      />
 
-        <div className="flex rounded-md border border-[var(--color-figma-border)] overflow-hidden">
-          <button
-            type="button"
-            onClick={() => {
-              if (mode !== 'token' && stashedTokenPathRef.current) {
-                onSourcePathChange(stashedTokenPathRef.current);
-                stashedTokenPathRef.current = '';
-              }
-              setMode('token');
-            }}
-            className={`px-2.5 py-1 text-[10px] font-medium transition-colors ${
-              mode === 'token'
-                ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border-r border-[var(--color-figma-border)]'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border-r border-[var(--color-figma-border)]'
-            }`}
-          >
-            Pick token
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode('value');
-              // Stash the current token path so the user can switch back
-              if (sourceTokenPath) {
-                stashedTokenPathRef.current = sourceTokenPath;
-                onSourcePathChange('');
-              }
-              // Seed a default value so the generator registers a value immediately
-              if (inlineValue === undefined || inlineValue === '') {
-                if (expectedType === 'color') onInlineValueChange('#ffffff');
-                else if (expectedType === 'dimension') onInlineValueChange({ value: 16, unit: 'px' });
-              }
-            }}
-            className={`px-2.5 py-1 text-[10px] font-medium transition-colors ${
-              mode === 'value'
-                ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-            }`}
-          >
-            Enter value
-          </button>
-        </div>
-      </div>
-
-      {/* Token picker mode */}
       {mode === 'token' && allTokensFlat && (
         <div className="flex flex-col gap-2">
           <TokenPickerField
@@ -154,9 +101,8 @@ export function UnifiedSourceInput({
             onSelect={(path) => onSourcePathChange(path)}
             onClear={() => onSourcePathChange('')}
           />
-          {/* Resolved value display */}
           {sourceTokenPath && resolvedDisplay != null && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
+            <div className="flex items-center gap-1.5">
               {linkedEntry?.$type === 'color' && typeof resolvedDisplay === 'string' && (
                 <div
                   className="w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0"
@@ -168,15 +114,11 @@ export function UnifiedSourceInput({
                   ? JSON.stringify(resolvedDisplay)
                   : String(resolvedDisplay)}
               </span>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
-                resolved
-              </span>
             </div>
           )}
         </div>
       )}
 
-      {/* Direct value mode */}
       {mode === 'value' && (
         <div className="flex flex-col gap-2">
           {expectedType === 'color' && (
@@ -219,7 +161,6 @@ export function UnifiedSourceInput({
             </p>
           )}
 
-          {/* Matching token suggestions */}
           {allTokensFlat && inlineValue != null && (
             <MatchingTokenSuggestions
               expectedType={expectedType}
@@ -236,10 +177,6 @@ export function UnifiedSourceInput({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// MatchingTokenSuggestions — Shows tokens with the same value
-// ---------------------------------------------------------------------------
 
 function MatchingTokenSuggestions({
   expectedType,

@@ -100,9 +100,7 @@ export function App() {
     navigateTo,
     openSecondarySurface,
     closeSecondarySurface,
-    activeHandoff,
     clearHandoff,
-    returnFromHandoff,
     notificationsOpen,
     toggleNotifications,
     closeNotifications,
@@ -422,7 +420,7 @@ export function App() {
     [setErrorToast],
   );
   const onResizeHandleMouseDown = useWindowResize();
-  const { isExpanded, toggleExpand } = useWindowExpand();
+  useWindowExpand();
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, currentCollectionId, connected, lintKey);
