@@ -3,7 +3,7 @@
  * deleted outputs, and detached outputs.
  * Used only by StepSave.
  */
-import type { RecipePreviewAnalysis } from '../../hooks/useAutomationPreview';
+import type { RecipePreviewAnalysis } from '../../hooks/useGeneratedGroupPreview';
 import { ValueDiff } from '../ValueDiff';
 import { AUTHORING } from '../../shared/editorClasses';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
@@ -41,14 +41,19 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
   const manualConflictEntries = previewAnalysis.manualEditConflicts ?? [];
   const deletedOutputEntries = previewAnalysis.deletedOutputs ?? [];
   const detachedOutputEntries = previewAnalysis.detachedOutputs ?? [];
+  const manualExceptionEntries = previewAnalysis.manualExceptions ?? [];
   const recreatedDetachedEntries = detachedOutputEntries.filter(entry => entry.state === 'recreated');
   const preservedDetachedEntries = detachedOutputEntries.filter(entry => entry.state === 'preserved');
+  const createdExceptions = manualExceptionEntries.filter((entry) => entry.state === "created");
+  const preservedExceptions = manualExceptionEntries.filter((entry) => entry.state === "preserved");
+  const invalidatedExceptions = manualExceptionEntries.filter((entry) => entry.state === "invalidated");
 
   const hasAny =
     nonRecipeOverwriteEntries.length > 0 ||
     manualConflictEntries.length > 0 ||
     deletedOutputEntries.length > 0 ||
-    detachedOutputEntries.length > 0;
+    detachedOutputEntries.length > 0 ||
+    manualExceptionEntries.length > 0;
 
   if (!hasAny) return null;
 
@@ -57,7 +62,7 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
       {nonRecipeOverwriteEntries.length > 0 && (
         <RiskSection
           title="Overwrite risks"
-          description="These paths already exist outside this recipe and would be overwritten or claimed."
+          description="These paths already exist outside this generated group and would be overwritten or claimed by this generated group."
           toneClassName="text-[var(--color-figma-warning)]"
         >
             {nonRecipeOverwriteEntries.map(entry => (
@@ -70,7 +75,7 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
                   <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
                 ) : (
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Existing value matches the preview, but this path would change ownership.
+                    Existing value matches the preview, but this path would become managed by this generated group.
                   </span>
                 )}
               </div>
@@ -80,8 +85,8 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
 
       {manualConflictEntries.length > 0 && (
         <RiskSection
-          title="Manual-edit conflicts"
-          description="These recipe-owned paths drifted from the last generated output and need deliberate review."
+          title="Existing manual changes"
+          description="These generated tokens drifted from the last generated output and need deliberate review."
           toneClassName="text-[var(--color-figma-error)]"
         >
             {manualConflictEntries.map(entry => (
@@ -90,6 +95,58 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
                   {entry.path}
                 </span>
                 <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+              </div>
+            ))}
+        </RiskSection>
+      )}
+
+      {manualExceptionEntries.length > 0 && (
+        <RiskSection
+          title="Manual exceptions"
+          description="Review manual exceptions that will be created, preserved, or invalidated by this save."
+          toneClassName="text-[var(--color-figma-warning)]"
+        >
+            {createdExceptions.map(entry => (
+              <div key={`${entry.collectionId}:${entry.path}:created`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
+                  {entry.path}
+                </span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Creates a manual exception for this generated token.
+                </span>
+                {entry.newValue !== undefined && (
+                  <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+                )}
+              </div>
+            ))}
+            {preservedExceptions.map(entry => (
+              <div key={`${entry.collectionId}:${entry.path}:preserved`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
+                  {entry.path}
+                </span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Keeps this manual exception in the group.
+                </span>
+                {entry.newValue !== undefined && (
+                  <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+                )}
+              </div>
+            ))}
+            {invalidatedExceptions.map(entry => (
+              <div key={`${entry.collectionId}:${entry.path}:invalidated`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+                <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
+                  {entry.path}
+                </span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Removes this manual exception and restores generated output.
+                </span>
+                {entry.newValue !== undefined ? (
+                  <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
+                ) : (
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    This token no longer appears in the generated output.
+                  </span>
+                )}
               </div>
             ))}
         </RiskSection>
@@ -115,8 +172,8 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
 
       {detachedOutputEntries.length > 0 && (
         <RiskSection
-          title="Detached outputs"
-          description="These paths were detached from recipe ownership and stay manual unless recreated."
+          title="Detached tokens"
+          description="These tokens were detached from this generated group and stay manual unless this save recreates them."
           toneClassName="text-[var(--color-figma-warning)]"
         >
             {recreatedDetachedEntries.map(entry => (

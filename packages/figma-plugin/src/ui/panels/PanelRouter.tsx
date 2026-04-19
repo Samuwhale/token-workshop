@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
-import { AutomationEditorDialog } from "../components/AutomationEditorDialog";
+import { GeneratedGroupEditor } from "../components/GeneratedGroupEditor";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
 import { CollectionRail } from "../components/CollectionRail";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
@@ -33,7 +33,6 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { NotificationsPanel } from "../components/NotificationsPanel";
 import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import type { RecipeDialogInitialDraft } from "../hooks/useAutomationDialog";
 import {
   useConnectionContext,
   useSyncContext,
@@ -60,14 +59,14 @@ import {
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
-import type { RecipeSaveSuccessInfo } from "../hooks/useAutomationSave";
+import type { RecipeSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
 import type {
   ImportNextStepRecommendation,
   TopTab,
   SubTab,
   SecondarySurfaceId,
   TokensLibraryContextualSurface,
-  TokensLibraryAutomationEditorTarget,
+  TokensLibraryGeneratedGroupEditorTarget,
 } from "../shared/navigationTypes";
 import {
   getImportResultNextStepRecommendations,
@@ -140,7 +139,6 @@ export function PanelRouter({
     onShowPasteModal: shell.openPasteModal,
     onShowImportPanel: shell.openImportPanel,
     onOpenCollectionCreateDialog: shell.openCollectionCreateDialog,
-    onShowColorScaleGen: shell.openColorScaleRecipe,
     onOpenStartHere: shell.openStartHere,
     onRestartGuidedSetup: shell.restartGuidedSetup,
     onClearAllComplete: shell.handleClearAllComplete,
@@ -165,8 +163,8 @@ export function PanelRouter({
   const {
     editingToken,
     setEditingToken,
-    editingAutomation,
-    setEditingAutomation,
+    editingGeneratedGroup,
+    setEditingGeneratedGroup,
     previewingToken,
     setPreviewingToken,
     inspectingCollection,
@@ -249,21 +247,21 @@ export function PanelRouter({
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(
     null,
   );
-  const editingAutomationData =
-    editingAutomation?.mode === "edit"
-      ? (recipes.find((recipe) => recipe.id === editingAutomation.id) ??
+  const editingGeneratedGroupData =
+    editingGeneratedGroup?.mode === "edit"
+      ? (recipes.find((recipe) => recipe.id === editingGeneratedGroup.id) ??
         null)
       : null;
 
   useEffect(() => {
     if (
-      !editingAutomation ||
-      editingAutomation.mode !== "edit" ||
-      editingAutomationData
+      !editingGeneratedGroup ||
+      editingGeneratedGroup.mode !== "edit" ||
+      editingGeneratedGroupData
     )
       return;
-    setEditingAutomation(null);
-  }, [editingAutomation, editingAutomationData, setEditingAutomation]);
+    setEditingGeneratedGroup(null);
+  }, [editingGeneratedGroup, editingGeneratedGroupData, setEditingGeneratedGroup]);
 
   useEffect(() => {
     if (!showPreviewSplit) return;
@@ -271,7 +269,7 @@ export function PanelRouter({
       activeTokensContextualSurface === "compare" ||
       activeTokensContextualSurface === "collection-details" ||
       activeTokensContextualSurface === "token-editor" ||
-      activeTokensContextualSurface === "automation-editor"
+      activeTokensContextualSurface === "generated-group-editor"
     ) {
       setShowPreviewSplit(false);
     }
@@ -409,47 +407,38 @@ export function PanelRouter({
     ],
   );
 
-  const openAutomationEditor = useCallback(
-    (target: TokensLibraryAutomationEditorTarget) => {
+  const openGeneratedGroupEditor = useCallback(
+    (target: TokensLibraryGeneratedGroupEditorTarget) => {
       setShowPreviewSplit(false);
       switchContextualSurface({
-        surface: "automation-editor",
-        automation: target,
+        surface: "generated-group-editor",
+        generatedGroup: target,
       });
     },
     [setShowPreviewSplit, switchContextualSurface],
   );
 
-  const openNewAutomation = useCallback(() => {
-    openAutomationEditor({
+  const openNewGeneratedGroup = useCallback(() => {
+    openGeneratedGroupEditor({
       mode: "create",
       initialDraft: {
         targetCollection: currentCollectionId,
       },
     });
-  }, [currentCollectionId, openAutomationEditor]);
+  }, [currentCollectionId, openGeneratedGroupEditor]);
 
-  const openAutomationFromSource = useCallback((source: {
-    path: string;
-    name?: string;
-    type?: string;
-    value?: unknown;
-    initialDraft?: RecipeDialogInitialDraft;
-  }) => {
-    const sourceCollectionId =
-      pathToCollectionId[source.path] ?? currentCollectionId;
-    openAutomationEditor({
-      mode: "create",
-      sourceTokenPath: source.path,
-      sourceTokenName: source.name,
-      sourceTokenType: source.type,
-      sourceTokenValue: source.value,
-      initialDraft: {
-        ...source.initialDraft,
-        targetCollection: sourceCollectionId,
-      },
-    });
-  }, [currentCollectionId, openAutomationEditor, pathToCollectionId]);
+  const openGeneratedGroupFromGroup = useCallback(
+    (groupPath: string) => {
+      openGeneratedGroupEditor({
+        mode: "create",
+        initialDraft: {
+          targetCollection: currentCollectionId,
+          targetGroup: groupPath,
+        },
+      });
+    },
+    [currentCollectionId, openGeneratedGroupEditor],
+  );
 
   const openGeneratedTokens = useCallback(
     (targetGroup: string, targetCollectionId: string) => {
@@ -552,7 +541,7 @@ export function PanelRouter({
     if (
       !createFromEmpty ||
       editingToken ||
-      editingAutomation ||
+      editingGeneratedGroup ||
       previewingToken ||
       showTokensCompare
     )
@@ -561,7 +550,7 @@ export function PanelRouter({
     openCreateLauncher();
   }, [
     createFromEmpty,
-    editingAutomation,
+    editingGeneratedGroup,
     editingToken,
     openCreateLauncher,
     previewingToken,
@@ -612,18 +601,15 @@ export function PanelRouter({
       controller.setGroupScopesSelected([]);
       controller.setGroupScopesError(null);
     },
-    onCreateAutomationFromGroup: (groupPath: string, tokenType: string | null) => {
-      openAutomationFromSource({
-        path: groupPath,
-        type: tokenType ?? undefined,
-      });
+    onCreateGeneratedGroupFromGroup: (groupPath: string, _tokenType: string | null) => {
+      openGeneratedGroupFromGroup(groupPath);
       navigateTo("tokens", "tokens");
     },
-    onNavigateToNewAutomation: () => {
-      openNewAutomation();
+    onNavigateToNewGeneratedGroup: () => {
+      openNewGeneratedGroup();
       navigateTo("tokens", "tokens");
     },
-    onRefreshAutomations: controller.refreshAll,
+    onRefreshGeneratedGroups: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredCollectionCount,
     onNavigateToCollection: controller.handleNavigateToCollection,
@@ -631,18 +617,18 @@ export function PanelRouter({
       setHistoryFilterPath(path);
       navigateTo("sync", "history");
     },
-    onEditAutomation: (recipeId: string) =>
+    onEditGeneratedGroup: (recipeId: string) =>
       controller.guardEditorAction(() => {
-        openAutomationEditor({
+        openGeneratedGroupEditor({
           mode: "edit",
           id: recipeId,
         });
       }),
-    onOpenAutomationEditor: (target: TokensLibraryAutomationEditorTarget) =>
+    onOpenGeneratedGroupEditor: (target: TokensLibraryGeneratedGroupEditorTarget) =>
       controller.guardEditorAction(() => {
-        openAutomationEditor(target);
+        openGeneratedGroupEditor(target);
       }),
-    onNavigateToAutomation: controller.handleNavigateToAutomation,
+    onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
     onShowReferences: (path: string) => {
       controller.setFlowPanelInitialPath(path);
       navigateTo("sync", "health");
@@ -723,8 +709,8 @@ export function PanelRouter({
             fromPath: editingToken.path,
             surface: "token-editor",
           }),
-        onNavigateToAutomation: controller.handleNavigateToAutomation,
-        onOpenAutomationEditor: openAutomationEditor,
+        onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
+        onOpenGeneratedGroupEditor: openGeneratedGroupEditor,
         onOpenCollectionSetup: () =>
           switchContextualSurface({
             surface: "collection-details",
@@ -772,55 +758,63 @@ export function PanelRouter({
     />
   );
 
-  const automationEditorProps =
-    editingAutomation &&
-    (editingAutomation.mode !== "edit" || editingAutomationData)
+  const generatedGroupEditorProps =
+    editingGeneratedGroup &&
+    (editingGeneratedGroup.mode !== "edit" || editingGeneratedGroupData)
       ? {
           serverUrl,
-          currentCollectionId,
+          currentCollectionId:
+            editingGeneratedGroup.mode === "edit"
+              ? (editingGeneratedGroupData?.targetCollection ?? currentCollectionId)
+              : editingGeneratedGroup.initialDraft?.targetCollection ??
+                (editingGeneratedGroup.sourceTokenPath
+                  ? (pathToCollectionId?.[editingGeneratedGroup.sourceTokenPath] ??
+                    currentCollectionId)
+                  : currentCollectionId),
           allTokensFlat,
           sourceValuesFlat: modeResolvedTokensFlat,
+          perCollectionFlat,
           collections,
           selectedModes,
           sourceTokenPath:
-            editingAutomation.mode === "create"
-              ? editingAutomation.sourceTokenPath
+            editingGeneratedGroup.mode === "create"
+              ? editingGeneratedGroup.sourceTokenPath
               : undefined,
           sourceTokenName:
-            editingAutomation.mode === "create"
-              ? editingAutomation.sourceTokenName
+            editingGeneratedGroup.mode === "create"
+              ? editingGeneratedGroup.sourceTokenName
               : undefined,
           sourceTokenType:
-            editingAutomation.mode === "create"
-              ? editingAutomation.sourceTokenType
+            editingGeneratedGroup.mode === "create"
+              ? editingGeneratedGroup.sourceTokenType
               : undefined,
           sourceTokenValue:
-            editingAutomation.mode === "create"
-              ? editingAutomation.sourceTokenValue
+            editingGeneratedGroup.mode === "create"
+              ? editingGeneratedGroup.sourceTokenValue
               : undefined,
           intentPreset:
-            editingAutomation.mode === "create"
-              ? editingAutomation.intentPreset
+            editingGeneratedGroup.mode === "create"
+              ? editingGeneratedGroup.intentPreset
               : undefined,
           existingRecipe:
-            editingAutomation.mode === "edit"
-              ? (editingAutomationData ?? undefined)
+            editingGeneratedGroup.mode === "edit"
+              ? (editingGeneratedGroupData ?? undefined)
               : undefined,
           initialDraft:
-            editingAutomation.mode === "create"
-              ? editingAutomation.initialDraft
+            editingGeneratedGroup.mode === "create"
+              ? editingGeneratedGroup.initialDraft
               : undefined,
           template:
-            editingAutomation.mode === "create"
-              ? editingAutomation.template
+            editingGeneratedGroup.mode === "create"
+              ? editingGeneratedGroup.template
               : undefined,
           pathToCollectionId,
           onClose: () => {
-            setEditingAutomation(null);
+            setEditingGeneratedGroup(null);
             controller.refreshAll();
           },
           onSaved: (info?: RecipeSaveSuccessInfo) => {
-            setEditingAutomation(null);
+            setEditingGeneratedGroup(null);
             controller.refreshAll();
             if (info) {
               openGeneratedTokens(info.targetGroup, info.targetCollection);
@@ -835,6 +829,19 @@ export function PanelRouter({
           },
         }
       : null;
+  const generatedGroupEditorKey =
+    editingGeneratedGroup?.mode === "edit"
+      ? `edit:${editingGeneratedGroup.id}`
+      : editingGeneratedGroup
+        ? `create:${JSON.stringify({
+            sourceTokenPath: editingGeneratedGroup.sourceTokenPath ?? null,
+            sourceTokenType: editingGeneratedGroup.sourceTokenType ?? null,
+            sourceTokenValue: editingGeneratedGroup.sourceTokenValue ?? null,
+            intentPreset: editingGeneratedGroup.intentPreset ?? null,
+            initialDraft: editingGeneratedGroup.initialDraft ?? null,
+            templateId: editingGeneratedGroup.template?.id ?? null,
+          })}`
+        : null;
 
   type TokensContextualSurfaceRenderState = {
     surface: TokensLibraryContextualSurface;
@@ -923,13 +930,18 @@ export function PanelRouter({
       }
 
       if (
-        activeTokensContextualSurface === "automation-editor" &&
-        editingAutomation &&
-        automationEditorProps
+        activeTokensContextualSurface === "generated-group-editor" &&
+        editingGeneratedGroup &&
+        generatedGroupEditorProps
       ) {
         return {
-          surface: "automation-editor",
-          content: <AutomationEditorDialog {...automationEditorProps} />,
+          surface: "generated-group-editor",
+          content: (
+            <GeneratedGroupEditor
+              key={generatedGroupEditorKey ?? "generated-group-editor"}
+              {...generatedGroupEditorProps}
+            />
+          ),
           onDismiss: controller.requestEditorClose,
           height: "72%",
         };
@@ -967,7 +979,7 @@ export function PanelRouter({
                   surface: "token-preview",
                 })
               }
-              onNavigateToAutomation={controller.handleNavigateToAutomation}
+              onNavigateToGeneratedGroup={controller.handleNavigateToGeneratedGroup}
             />
           ),
           onDismiss: controller.handlePreviewClose,
@@ -1479,7 +1491,7 @@ export function PanelRouter({
                   tokenUsageCounts={tokenUsageCounts}
                   recipes={recipes}
                   derivedTokenPaths={derivedTokenPaths}
-                  onNavigateToAutomation={controller.handleNavigateToAutomation}
+                  onNavigateToGeneratedGroup={controller.handleNavigateToGeneratedGroup}
                 />
               </ErrorBoundary>
             </div>
@@ -1612,13 +1624,13 @@ export function PanelRouter({
             navigateTo("tokens", "tokens", { preserveHandoff: true });
             setPendingHighlight(path);
           }}
-          onNavigateToAutomation={(recipeId) => {
+          onNavigateToGeneratedGroup={(recipeId) => {
             beginHandoff({
               reason:
                 "Inspect the generator behind this audit finding, then return to Audit.",
             });
             navigateTo("tokens", "tokens", { preserveHandoff: true });
-            openAutomationEditor({ mode: "edit", id: recipeId });
+            openGeneratedGroupEditor({ mode: "edit", id: recipeId });
           }}
           onTriggerHeatmap={triggerHeatmapScan}
           validationIssues={controller.validationIssues}

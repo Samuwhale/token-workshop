@@ -12,7 +12,6 @@ import {
   WelcomePrompt,
   type StartHereBranch,
 } from "./components/WelcomePrompt";
-import { ColorScaleRecipe } from "./components/ColorScaleRecipe";
 import { AppCommandPalette } from "./components/AppCommandPalette";
 import { CollectionCreateDialog } from "./components/CollectionCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
@@ -109,8 +108,8 @@ export function App() {
   const {
     editingToken,
     setEditingToken,
-    editingAutomation,
-    setEditingAutomation,
+    editingGeneratedGroup,
+    setEditingGeneratedGroup,
     previewingToken,
     setPreviewingToken,
     inspectingCollection,
@@ -160,7 +159,12 @@ export function App() {
     () => collections.map((collection) => collection.id),
     [collections],
   );
-  const { allTokensFlat, pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
+  const {
+    allTokensFlat,
+    pathToCollectionId,
+    perCollectionFlat,
+    modeResolvedTokensFlat,
+  } = useTokenFlatMapContext();
   const {
     recipes,
     refreshRecipes,
@@ -181,8 +185,6 @@ export function App() {
   const {
     showPasteModal,
     setShowPasteModal,
-    showColorScaleGen,
-    setShowColorScaleGen,
     showCommandPalette,
     setShowCommandPalette,
     showQuickApply,
@@ -386,11 +388,11 @@ export function App() {
       setResolverPushUndo(undefined);
     };
   }, [pushUndo, setResolverPushUndo]);
-  const onAutomationError = useCallback(
+  const onGeneratedGroupError = useCallback(
     ({ recipeId, message }: { recipeId?: string; message: string }) => {
       const label = recipeId
-        ? `Generator "${recipeId}" failed`
-        : "Generator failed";
+        ? `Generated group "${recipeId}" failed`
+        : "Generated group failed";
       setErrorToast(`${label}: ${message}`);
     },
     [setErrorToast],
@@ -445,7 +447,7 @@ export function App() {
   useServerEvents(
     serverUrl,
     connected,
-    onAutomationError,
+    onGeneratedGroupError,
     refreshAllExternal,
     onServiceError,
   );
@@ -632,21 +634,21 @@ export function App() {
   const handlePreviewClose = useCallback(() => {
     setPreviewingToken(null);
   }, [setPreviewingToken]);
-  const editingAutomationData =
-    editingAutomation?.mode === "edit"
-      ? (recipes.find((recipe) => recipe.id === editingAutomation.id) ??
+  const editingGeneratedGroupData =
+    editingGeneratedGroup?.mode === "edit"
+      ? (recipes.find((recipe) => recipe.id === editingGeneratedGroup.id) ??
         null)
       : null;
   useEffect(() => {
     if (
-      !editingAutomation ||
-      editingAutomation.mode !== "edit" ||
-      editingAutomationData
+      !editingGeneratedGroup ||
+      editingGeneratedGroup.mode !== "edit" ||
+      editingGeneratedGroupData
     ) {
       return;
     }
-    setEditingAutomation(null);
-  }, [editingAutomation, editingAutomationData, setEditingAutomation]);
+    setEditingGeneratedGroup(null);
+  }, [editingGeneratedGroup, editingGeneratedGroupData, setEditingGeneratedGroup]);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
@@ -655,7 +657,7 @@ export function App() {
   const handleOpenCrossCollectionCompare = useCallback(
     (path: string) => {
       setEditingToken(null);
-      setEditingAutomation(null);
+      setEditingGeneratedGroup(null);
       setPreviewingToken(null);
       setTokensCompareMode("cross-collection");
       setTokensComparePath(path);
@@ -665,7 +667,7 @@ export function App() {
     },
     [
       navigateTo,
-      setEditingAutomation,
+      setEditingGeneratedGroup,
       setEditingToken,
       setPreviewingToken,
       setShowTokensCompare,
@@ -701,16 +703,26 @@ export function App() {
       refreshAll();
       if (affectedGens.length > 0) {
         const n = affectedGens.length;
-        const genIds = affectedGens.map((g) => g.id);
         pushActionToast(
-          `Source token for ${n} ${n === 1 ? "generator" : "generators"} changed`,
+          `Source token for ${n} ${n === 1 ? "generated group" : "generated groups"} changed`,
           {
             label: "Re-run",
             onClick: async () => {
-              for (const id of genIds) {
+              for (const generatedGroup of affectedGens) {
+                const sourceValue =
+                  generatedGroup.sourceToken
+                    ? modeResolvedTokensFlat[generatedGroup.sourceToken]?.$value
+                    : undefined;
                 try {
-                  await apiFetch(`${serverUrl}/api/recipes/${id}/run`, {
+                  await apiFetch(`${serverUrl}/api/recipes/${generatedGroup.id}/run`, {
                     method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body:
+                      sourceValue !== undefined
+                        ? JSON.stringify({ sourceValue })
+                        : undefined,
                   });
                 } catch {
                   /* ignore */
@@ -730,6 +742,7 @@ export function App() {
       pushActionToast,
       serverUrl,
       refreshRecipes,
+      modeResolvedTokensFlat,
     ],
   );
   const handleEditorSaveAndCreateAnother = useCallback(
@@ -760,12 +773,12 @@ export function App() {
     },
     [currentCollectionId, setHighlightedToken, setPendingHighlightForCollection, setCurrentCollectionId],
   );
-  const handleNavigateToAutomation = useCallback(
+  const handleNavigateToGeneratedGroup = useCallback(
     (recipeId: string) => {
       navigateTo("tokens", "tokens");
       switchContextualSurface({
-        surface: "automation-editor",
-        automation: { mode: "edit", id: recipeId },
+        surface: "generated-group-editor",
+        generatedGroup: { mode: "edit", id: recipeId },
       });
     },
     [navigateTo, switchContextualSurface],
@@ -807,7 +820,7 @@ export function App() {
   }, []);
   const useSidePanel =
     windowWidth >= getContextualPanelMinWidth(sidebarCollapsed) &&
-    !!(editingToken || editingAutomationData || previewingToken || inspectingCollection) &&
+    !!(editingToken || editingGeneratedGroupData || previewingToken || inspectingCollection) &&
     activeSecondarySurface === null &&
     activeTopTab === "tokens" &&
     activeSubTab === "tokens" &&
@@ -1365,7 +1378,16 @@ export function App() {
       openPasteModal: () => setShowPasteModal(true),
       openImportPanel: () => openSecondaryPanel("import"),
       openCollectionCreateDialog,
-      openColorScaleRecipe: () => setShowColorScaleGen(true),
+      openGeneratedPalette: () => {
+        navigateTo("tokens", "tokens");
+        switchContextualSurface({
+          surface: "generated-group-editor",
+          generatedGroup: {
+            mode: "create",
+            initialDraft: { selectedType: "colorRamp" },
+          },
+        });
+      },
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
       focusCollectionRail,
       collectionRailFocusRequestKey,
@@ -1417,7 +1439,7 @@ export function App() {
       setErrorToast,
       setSuccessToast,
       handleNavigateToCollection,
-      handleNavigateToAutomation,
+      handleNavigateToGeneratedGroup,
       flowPanelInitialPath,
       setFlowPanelInitialPath,
       tokenListCompareRef,
@@ -2084,21 +2106,6 @@ export function App() {
           onCollectionCreated={(name) => {
             void addCollectionToState(name);
             setCurrentCollectionId(name);
-          }}
-        />
-      )}
-
-      {/* Color Scale Recipe */}
-      {showColorScaleGen && (
-        <ColorScaleRecipe
-          serverUrl={serverUrl}
-          currentCollectionId={currentCollectionId}
-          existingPaths={existingPathsForCurrentCollection}
-          onClose={() => setShowColorScaleGen(false)}
-          onConfirm={(firstPath) => {
-            setShowColorScaleGen(false);
-            refreshAll();
-            if (firstPath) setPendingHighlight(firstPath);
           }}
         />
       )}

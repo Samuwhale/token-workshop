@@ -228,7 +228,7 @@ export function useCommandPaletteCommands(): {
         id: "validate",
         label: "Run audit now",
         description:
-          "Refresh validation across references, duplicates, and recipe output",
+          "Refresh validation across references, duplicates, and generated output",
         category: "Audit",
         handler: () => {
           navigateTo("sync", "health");
@@ -237,12 +237,13 @@ export function useCommandPaletteCommands(): {
       },
       {
         id: "generate-color-scale",
-        label: "Generate Color Scale",
-        description: "Open the fast color ramp tool",
+        label: "Generate palette…",
+        description:
+          "Open the generated-group editor for a palette in the current collection",
         category: "Tokens",
         handler: () => {
           goToTokens();
-          shell.openColorScaleRecipe();
+          shell.openGeneratedPalette();
         },
       },
       {

@@ -11,11 +11,10 @@ import type {
   ZIndexScaleConfig,
   ShadowScaleConfig,
   CustomScaleConfig,
-  AccessibleColorPairConfig,
   DarkModeInversionConfig,
 } from "../../hooks/useRecipes";
 import type { TokenMapEntry } from "../../../shared/types";
-import type { OverwrittenEntry } from "../../hooks/useAutomationPreview";
+import type { OverwrittenEntry } from "../../hooks/useGeneratedGroupPreview";
 import { StepWhere, type StepWhereProps } from "./StepWhere";
 import { ColorRampConfigEditor, ColorSwatchPreview } from "../recipes/ColorRampRecipe";
 import { TypeScaleConfigEditor, TypeScalePreview } from "../recipes/TypeScaleRecipe";
@@ -25,7 +24,6 @@ import { ShadowScaleConfigEditor, ShadowPreview } from "../recipes/ShadowScaleRe
 import { BorderRadiusConfigEditor, BorderRadiusPreview } from "../recipes/BorderRadiusRecipe";
 import { ZIndexConfigEditor } from "../recipes/ZIndexRecipe";
 import { CustomScaleConfigEditor } from "../recipes/CustomScaleRecipe";
-import { AccessiblePairConfigEditor } from "../recipes/AccessiblePairRecipe";
 import { DarkModeInversionConfigEditor } from "../recipes/DarkModeInversionRecipe";
 import { GenericPreview } from "../recipes/recipeShared";
 import { TYPE_LABELS } from "../recipes/recipeUtils";
@@ -136,11 +134,12 @@ export function StepSource({
   collectionModeLabel = null,
 }: StepSourceProps) {
   const [templateDismissed, setTemplateDismissed] = useState(false);
-  const [outputExpanded, setOutputExpanded] = useState(false);
+  const [outputExpanded, setOutputExpanded] = useState(true);
   const overwritePaths = useMemo(
     () => new Set(overwrittenEntries.map((entry) => entry.path)),
     [overwrittenEntries],
   );
+  const shouldNudgeExceptionCleanup = lockedCount >= 3;
 
   const effectiveSourceHex =
     typeof sourceTokenValue === "string"
@@ -171,7 +170,6 @@ export function StepSource({
 
   const typeExpectsColor =
     selectedType === "colorRamp" ||
-    selectedType === "accessibleColorPair" ||
     selectedType === "darkModeInversion";
   const typeExpectsDimension =
     selectedType === "typeScale" ||
@@ -295,6 +293,57 @@ export function StepSource({
         </div>
       )}
 
+      {destination && (
+        <div className={AUTHORING.recipeSectionCard}>
+          {detachedCount > 0 && (
+            <div className="mb-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text)]">
+              {detachedCount} detached token{detachedCount === 1 ? "" : "s"}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setOutputExpanded((value) => !value)}
+            className="flex w-full items-center justify-between gap-2 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 10 10"
+                fill="currentColor"
+                className={`shrink-0 text-[var(--color-figma-text-secondary)] transition-transform ${outputExpanded ? "rotate-90" : ""}`}
+              >
+                <path d="M3 1.5l4 3.5-4 3.5V1.5z" />
+              </svg>
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                Collection and group
+              </span>
+            </div>
+            {!outputExpanded && (
+              <div className="max-w-[65%] text-right text-[10px] text-[var(--color-figma-text-secondary)]">
+                <div className="truncate">
+                  Collection{" "}
+                  <span className="font-mono text-[var(--color-figma-text)]">
+                    {destination.targetCollection}
+                  </span>
+                </div>
+                <div className="truncate">
+                  Group{" "}
+                  <span className="font-mono text-[var(--color-figma-text)]">
+                    {destination.targetGroup || "Choose a group"}
+                  </span>
+                </div>
+              </div>
+            )}
+          </button>
+          {outputExpanded && (
+            <div className="mt-3">
+              <StepWhere {...destination} inline />
+            </div>
+          )}
+        </div>
+      )}
+
       <div className={AUTHORING.recipeSectionCard}>
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
@@ -401,12 +450,6 @@ export function StepSource({
             onChange={(config) => onConfigChange("customScale", config)}
           />
         )}
-        {selectedType === "accessibleColorPair" && (
-          <AccessiblePairConfigEditor
-            config={currentConfig as AccessibleColorPairConfig}
-            onChange={(config) => onConfigChange("accessibleColorPair", config)}
-          />
-        )}
         {selectedType === "darkModeInversion" && (
           <DarkModeInversionConfigEditor
             config={currentConfig as DarkModeInversionConfig}
@@ -455,55 +498,22 @@ export function StepSource({
         )}
 
         {lockedCount > 0 && (
-          <button
-            type="button"
-            onClick={onClearAllOverrides}
-            className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error)]"
-          >
-            Clear {lockedCount} manual exception{lockedCount === 1 ? "" : "s"}
-          </button>
+          <div className="mt-1.5 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={onClearAllOverrides}
+              className="self-start text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error)]"
+            >
+              Clear {lockedCount} manual exception{lockedCount === 1 ? "" : "s"}
+            </button>
+            {shouldNudgeExceptionCleanup && (
+              <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-2 text-[10px] text-[var(--color-figma-text)]">
+                Manual exceptions are starting to pile up in this group. Edit the generator or detach tokens that should stay manual.
+              </div>
+            )}
+          </div>
         )}
       </div>
-
-      {destination && (
-        <div className={AUTHORING.recipeSectionCard}>
-          {detachedCount > 0 && (
-            <div className="mb-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text)]">
-              {detachedCount} detached output{detachedCount === 1 ? "" : "s"}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setOutputExpanded((value) => !value)}
-            className="flex w-full items-center justify-between gap-2 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 10 10"
-                fill="currentColor"
-                className={`shrink-0 text-[var(--color-figma-text-secondary)] transition-transform ${outputExpanded ? "rotate-90" : ""}`}
-              >
-                <path d="M3 1.5l4 3.5-4 3.5V1.5z" />
-              </svg>
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Generated group
-              </span>
-            </div>
-            {!outputExpanded && (
-              <span className="max-w-[60%] truncate text-right font-mono text-[10px] text-[var(--color-figma-text-secondary)]">
-                {destination.targetGroup || "Set group"}
-              </span>
-            )}
-          </button>
-          {outputExpanded && (
-            <div className="mt-3">
-              <StepWhere {...destination} inline />
-            </div>
-          )}
-        </div>
-      )}
     </section>
   );
 }

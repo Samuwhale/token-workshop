@@ -14,7 +14,11 @@ import {
 } from "react";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import { DENSITY_PY_CLASS } from "../tokenListTypes";
-import { createRecipeOwnershipKey } from "@tokenmanager/core";
+import {
+  createRecipeOwnershipKey,
+  getRecipeManagedOutputs,
+  readTokenCollectionModeValues,
+} from "@tokenmanager/core";
 import { countTokensInGroup, nodeParentPath, countLeaves } from "../tokenListUtils";
 import { inferGroupTokenType, highlightMatch } from "../tokenListHelpers";
 import {
@@ -34,20 +38,22 @@ import {
   computePaddingLeft,
   DepthBar,
   EMPTY_LINT_VIOLATIONS,
-  AutomationGlyph,
-  AutomationSummaryRow,
+  GeneratedGlyph,
+  GeneratedGroupSummaryRow,
   getManagedRecipeLeafCount,
   MENU_DANGER_ITEM_CLASS,
   MENU_ITEM_CLASS,
   MENU_SEPARATOR_CLASS,
   MENU_SHORTCUT_CLASS,
   MENU_SURFACE_CLASS,
-  formatAutomationSummaryTitle,
+  formatGeneratedGroupSummaryTitle,
 } from "./tokenTreeNodeShared";
 import type { MenuPosition } from "./tokenTreeNodeShared";
 import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
 import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
+import type { GeneratedTokenResult } from "../../hooks/useRecipes";
+import { getGeneratedGroupKeepUpdatedAvailability } from "../../shared/generatedGroupUtils";
 
 export const TokenGroupNode = memo(
   function TokenGroupNode(props: TokenTreeNodeProps) {
@@ -63,6 +69,7 @@ export const TokenGroupNode = memo(
     const {
       density,
       collectionId,
+      activeCollectionModeLabel,
       selectMode,
       expandedPaths,
       highlightedToken,
@@ -76,7 +83,13 @@ export const TokenGroupNode = memo(
       condensedView = false,
       rovingFocusPath: groupRovingFocusPath,
     } = useTokenTreeGroupState();
-    const { allTokensFlat } = useTokenTreeSharedData();
+    const {
+      allTokensFlat,
+      modeResolvedTokensFlat,
+      perCollectionFlat,
+      pathToCollectionId,
+      collections,
+    } = useTokenTreeSharedData();
 
     const dominantTypeForGroup = useMemo(() => {
       const prefix = `${node.path}.`;
@@ -103,14 +116,17 @@ export const TokenGroupNode = memo(
       onSyncGroup,
       onSyncGroupStyles,
       onSetGroupScopes,
-      onCreateAutomationFromGroup,
+      onCreateGeneratedGroupFromGroup,
       onZoomIntoGroup,
       onDragOverGroup,
       onDropOnGroup,
-      onEditAutomation,
-      onNavigateToAutomation,
-      onRunAutomation,
-      onDetachAutomationGroup,
+      onEditGeneratedGroup,
+      onDuplicateGeneratedGroup,
+      onDeleteGeneratedGroup,
+      onNavigateToGeneratedGroup,
+      onRunGeneratedGroup,
+      onToggleGeneratedGroupEnabled,
+      onDetachGeneratedGroup,
       onNavigateToToken,
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
@@ -137,8 +153,12 @@ export const TokenGroupNode = memo(
     const [groupMetaDescription, setGroupMetaDescription] = useState("");
     const [groupMetaSaving, setGroupMetaSaving] = useState(false);
     const [regenerating, setRegenerating] = useState(false);
+    const [togglingKeepUpdated, setTogglingKeepUpdated] = useState(false);
     const [detachingGroup, setDetachingGroup] = useState(false);
+    const [deletingGeneratedGroup, setDeletingGeneratedGroup] = useState(false);
     const [showDetachGroupConfirm, setShowDetachGroupConfirm] = useState(false);
+    const [showDeleteGeneratedGroupConfirm, setShowDeleteGeneratedGroupConfirm] =
+      useState(false);
 
     useLayoutEffect(() => {
       if (renamingGroup && renameGroupInputRef.current) {
@@ -197,6 +217,73 @@ export const TokenGroupNode = memo(
       if (!targetRecipe) return 0;
       return getManagedRecipeLeafCount(node, targetRecipe);
     }, [node, targetRecipe]);
+    const manualExceptionCount = useMemo(() => {
+      if (!targetRecipe?.overrides) {
+        return 0;
+      }
+      return Object.values(targetRecipe.overrides).filter(
+        (override) => override.locked,
+      ).length;
+    }, [targetRecipe]);
+    const keepUpdatedDisabledReason = useMemo(() => {
+      if (!targetRecipe) {
+        return null;
+      }
+      return getGeneratedGroupKeepUpdatedAvailability({
+        sourceTokenPath: targetRecipe.sourceToken,
+        sourceTokenEntry: targetRecipe.sourceToken
+          ? allTokensFlat[targetRecipe.sourceToken]
+          : undefined,
+        collections,
+        pathToCollectionId,
+        perCollectionFlat,
+      }).reason;
+    }, [
+      allTokensFlat,
+      collections,
+      pathToCollectionId,
+      perCollectionFlat,
+      targetRecipe,
+    ]);
+    const previewTokens = useMemo<GeneratedTokenResult[]>(() => {
+      if (!targetRecipe) {
+        return [];
+      }
+      return getRecipeManagedOutputs(targetRecipe).flatMap((output) => {
+        const collectionEntry = perCollectionFlat?.[collectionId]?.[output.path];
+        const selectedModeValue =
+          collectionEntry && activeCollectionModeLabel
+            ? readTokenCollectionModeValues(collectionEntry)[collectionId]?.[
+                activeCollectionModeLabel
+              ]
+            : undefined;
+        const entry = collectionEntry
+          ? selectedModeValue === undefined
+            ? collectionEntry
+            : {
+                ...collectionEntry,
+                $value: selectedModeValue,
+              }
+          : modeResolvedTokensFlat?.[output.path] ?? allTokensFlat[output.path];
+        if (!entry?.$type) {
+          return [];
+        }
+        return [{
+          stepName: output.stepName,
+          path: output.path,
+          type: entry.$type as GeneratedTokenResult["type"],
+          value: entry.$value,
+          isOverridden: targetRecipe.overrides?.[output.stepName]?.locked,
+        }];
+      });
+    }, [
+      activeCollectionModeLabel,
+      allTokensFlat,
+      collectionId,
+      modeResolvedTokensFlat,
+      perCollectionFlat,
+      targetRecipe,
+    ]);
     const collectionCoverageSummary = collectionCoverage?.get(node.path) ?? null;
     const groupPresentation = readTokenPresentationMetadata(node);
     const groupScopeSummary =
@@ -210,7 +297,7 @@ export const TokenGroupNode = memo(
         : `${managedRecipeLeafCount}/${leafCount} tokens`;
       groupMetadataSegments.push({
         label: `${countLabel} via ${targetRecipe.name}`,
-        title: `${formatAutomationSummaryTitle(targetRecipe)}\n${managedRecipeLeafCount} of ${leafCount} token${leafCount === 1 ? "" : "s"} managed by this generator`,
+        title: `${formatGeneratedGroupSummaryTitle(targetRecipe)}\n${managedRecipeLeafCount} of ${leafCount} token${leafCount === 1 ? "" : "s"} managed by this generated group`,
         tone: targetRecipe.isStale ? "warning" : "accent",
       });
     } else {
@@ -490,9 +577,9 @@ export const TokenGroupNode = memo(
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (targetRecipe.id) onNavigateToAutomation?.(targetRecipe.id);
+                if (targetRecipe.id) onNavigateToGeneratedGroup?.(targetRecipe.id);
               }}
-              disabled={!targetRecipe.id || !onNavigateToAutomation}
+              disabled={!targetRecipe.id || !onNavigateToGeneratedGroup}
               className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${
                 targetRecipe.isStale
                   ? "bg-amber-500/10 text-amber-600"
@@ -500,7 +587,7 @@ export const TokenGroupNode = memo(
               } disabled:cursor-default disabled:opacity-100`}
               title={`${managedRecipeLeafCount} managed token${managedRecipeLeafCount === 1 ? "" : "s"}`}
             >
-              <AutomationGlyph size={6} className="shrink-0" />
+              <GeneratedGlyph size={6} className="shrink-0" />
               <span>Generated</span>
               <span className="text-[var(--color-figma-text-tertiary)]">
                 {managedRecipeLeafCount}
@@ -617,7 +704,7 @@ export const TokenGroupNode = memo(
                     <span className={MENU_SHORTCUT_CLASS}>S</span>
                   </button>
                 )}
-                {targetRecipe?.id && onNavigateToAutomation && (
+                {targetRecipe?.id && onNavigateToGeneratedGroup && (
                   <>
                     <button
                       role="menuitem"
@@ -625,12 +712,12 @@ export const TokenGroupNode = memo(
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         closeGroupMenus();
-                        onNavigateToAutomation(targetRecipe.id!);
+                        onNavigateToGeneratedGroup(targetRecipe.id!);
                       }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <AutomationGlyph size={8} className="shrink-0 opacity-60" />
-                      <span className="flex-1">Open generator</span>
+                      <GeneratedGlyph size={8} className="shrink-0 opacity-60" />
+                      <span className="flex-1">Open generated group</span>
                     </button>
                     <div role="separator" className={MENU_SEPARATOR_CLASS} />
                   </>
@@ -759,7 +846,7 @@ export const TokenGroupNode = memo(
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
                   <span className="flex-1">Copy to collection</span>
                 </button>
-                {onCreateAutomationFromGroup && (
+                {onCreateGeneratedGroupFromGroup && (
                   <button
                     role="menuitem"
                     tabIndex={-1}
@@ -767,7 +854,7 @@ export const TokenGroupNode = memo(
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       closeGroupMenus();
-                      onCreateAutomationFromGroup(node.path, dominantTypeForGroup);
+                      onCreateGeneratedGroupFromGroup(node.path, dominantTypeForGroup);
                     }}
                     className={MENU_ITEM_CLASS}
                   >
@@ -884,20 +971,27 @@ export const TokenGroupNode = memo(
         )}
 
         {!props.skipChildren && isExpanded && targetRecipe && (
-          <AutomationSummaryRow
+          <GeneratedGroupSummaryRow
             depth={depth}
             condensedView={condensedView}
             recipe={targetRecipe}
+            collectionId={collectionId}
+            activeModeLabel={activeCollectionModeLabel}
             managedTokenCount={managedRecipeLeafCount}
+            exceptionCount={manualExceptionCount}
+            previewTokens={previewTokens}
             running={regenerating}
+            keepUpdatedBusy={togglingKeepUpdated}
+            keepUpdatedDisabledReason={keepUpdatedDisabledReason}
             detaching={detachingGroup}
+            deleting={deletingGeneratedGroup}
             onRun={
-              targetRecipe.id && onRunAutomation
+              targetRecipe.id && onRunGeneratedGroup
                 ? async () => {
                     if (regenerating) return;
                     setRegenerating(true);
                     try {
-                      await onRunAutomation(targetRecipe.id);
+                      await onRunGeneratedGroup(targetRecipe.id);
                     } finally {
                       setRegenerating(false);
                     }
@@ -905,12 +999,37 @@ export const TokenGroupNode = memo(
                 : undefined
             }
             onEdit={
-              targetRecipe.id && onEditAutomation
-                ? () => onEditAutomation(targetRecipe.id)
+              targetRecipe.id && onEditGeneratedGroup
+                ? () => onEditGeneratedGroup(targetRecipe.id)
+                : undefined
+            }
+            onDuplicate={
+              targetRecipe.id && onDuplicateGeneratedGroup
+                ? () => onDuplicateGeneratedGroup(targetRecipe.id)
+                : undefined
+            }
+            onToggleKeepUpdated={
+              targetRecipe.id && onToggleGeneratedGroupEnabled
+                ? async (enabled: boolean) => {
+                    if (togglingKeepUpdated) return;
+                    setTogglingKeepUpdated(true);
+                    try {
+                      await onToggleGeneratedGroupEnabled(targetRecipe.id, enabled);
+                    } finally {
+                      setTogglingKeepUpdated(false);
+                    }
+                  }
+                : undefined
+            }
+            onDelete={
+              targetRecipe.id && onDeleteGeneratedGroup
+                ? async () => {
+                    setShowDeleteGeneratedGroupConfirm(true);
+                  }
                 : undefined
             }
             onDetach={
-              targetRecipe.id && onDetachAutomationGroup
+              targetRecipe.id && onDetachGeneratedGroup
                 ? () => {
                     setShowDetachGroupConfirm(true);
                   }
@@ -920,20 +1039,43 @@ export const TokenGroupNode = memo(
           />
         )}
 
+        {showDeleteGeneratedGroupConfirm && targetRecipe && (
+          <ConfirmModal
+            title="Delete generated group?"
+            description={`Delete "${targetRecipe.name}" and remove the generated tokens in "${node.path}" from this collection.`}
+            confirmLabel="Delete generated group"
+            danger
+            onCancel={() => setShowDeleteGeneratedGroupConfirm(false)}
+            onConfirm={async () => {
+              if (!targetRecipe.id || !onDeleteGeneratedGroup) {
+                setShowDeleteGeneratedGroupConfirm(false);
+                return;
+              }
+              setDeletingGeneratedGroup(true);
+              try {
+                await onDeleteGeneratedGroup(targetRecipe.id);
+                setShowDeleteGeneratedGroupConfirm(false);
+              } finally {
+                setDeletingGeneratedGroup(false);
+              }
+            }}
+          />
+        )}
+
         {showDetachGroupConfirm && targetRecipe && (
           <ConfirmModal
-            title="Detach group from generator?"
-            description={`Convert ${managedRecipeLeafCount} generator-managed token${managedRecipeLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetRecipe.name}" will stop updating them.`}
-            confirmLabel="Detach group"
+            title="Detach from generator?"
+            description={`Convert ${managedRecipeLeafCount} generated token${managedRecipeLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetRecipe.name}" will stop updating them.`}
+            confirmLabel="Detach from generator"
             onCancel={() => setShowDetachGroupConfirm(false)}
             onConfirm={async () => {
-              if (!targetRecipe.id || !onDetachAutomationGroup) {
+              if (!targetRecipe.id || !onDetachGeneratedGroup) {
                 setShowDetachGroupConfirm(false);
                 return;
               }
               setDetachingGroup(true);
               try {
-                await onDetachAutomationGroup(targetRecipe.id, node.path);
+                await onDetachGeneratedGroup(targetRecipe.id, node.path);
                 setShowDetachGroupConfirm(false);
               } finally {
                 setDetachingGroup(false);

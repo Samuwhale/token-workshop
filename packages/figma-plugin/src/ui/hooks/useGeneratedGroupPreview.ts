@@ -55,6 +55,15 @@ export interface RecipePreviewDetachedEntry {
   state: 'preserved' | 'recreated';
 }
 
+export interface RecipePreviewManualExceptionEntry {
+  path: string;
+  collectionId: string;
+  type: string;
+  currentValue?: unknown;
+  newValue?: unknown;
+  state: 'created' | 'preserved' | 'invalidated';
+}
+
 export interface RecipePreviewAnalysis {
   fingerprint: string;
   safeCreateCount: number;
@@ -65,25 +74,32 @@ export interface RecipePreviewAnalysis {
   manualEditConflicts: RecipePreviewManualConflictEntry[];
   deletedOutputs: RecipePreviewDeletedEntry[];
   detachedOutputs: RecipePreviewDetachedEntry[];
+  manualExceptions: RecipePreviewManualExceptionEntry[];
   diff: RecipePreviewDiff;
 }
 
 /** True when the analysis contains risks that warrant user review before saving. */
-export function hasPreviewRisks(analysis: RecipePreviewAnalysis | null): boolean {
+export function hasGeneratedGroupPreviewRisks(
+  analysis: RecipePreviewAnalysis | null,
+): boolean {
   if (!analysis) return true;
   return (
     analysis.nonRecipeOverwrites.length > 0 ||
     analysis.manualEditConflicts.length > 0 ||
     analysis.deletedOutputs.length > 0 ||
-    analysis.detachedOutputs.length > 0
+    analysis.detachedOutputs.length > 0 ||
+    analysis.manualExceptions.length > 0
   );
 }
 
-export function requiresPreviewReview(
+export function requiresGeneratedGroupReview(
   analysis: RecipePreviewAnalysis | null,
 ): boolean {
   if (!analysis) return true;
-  return hasPreviewRisks(analysis) || analysis.safeUpdates.length >= 12;
+  return (
+    hasGeneratedGroupPreviewRisks(analysis) ||
+    analysis.safeUpdates.length >= 12
+  );
 }
 
 export interface RecipePreviewResponse {
@@ -107,7 +123,7 @@ export interface RecipePreviewRequest {
   signal?: AbortSignal;
 }
 
-export async function requestRecipePreview({
+export async function requestGeneratedGroupPreview({
   serverUrl,
   selectedType,
   sourceTokenPath,
@@ -183,6 +199,7 @@ const EMPTY_ANALYSIS: RecipePreviewAnalysis = {
   manualEditConflicts: [],
   deletedOutputs: [],
   detachedOutputs: [],
+  manualExceptions: [],
   diff: {
     created: [],
     updated: [],
@@ -191,7 +208,7 @@ const EMPTY_ANALYSIS: RecipePreviewAnalysis = {
   },
 };
 
-export function useRecipePreview({
+export function useGeneratedGroupPreview({
   serverUrl,
   selectedType,
   sourceTokenPath,
@@ -222,7 +239,7 @@ export function useRecipePreview({
       abortRef.current = controller;
       setPreviewError('');
       try {
-        const response = await requestRecipePreview({
+        const response = await requestGeneratedGroupPreview({
           serverUrl,
           selectedType,
           sourceTokenPath,

@@ -5,6 +5,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import type { TokenRecipe } from '../hooks/useRecipes';
 import { useResolverContext } from '../contexts/CollectionContext';
 import { useCollectionStateContext } from '../contexts/TokenDataContext';
+import { getGeneratedGroupTypeLabel } from '../shared/generatedGroupUtils';
 
 interface BoundLayer {
   id: string;
@@ -43,7 +44,7 @@ interface TokenUsagesProps {
   /** Open the dependency graph focused on a token */
   onShowReferences?: (path: string) => void;
   /** Navigate to a recipe's contextual editor */
-  onNavigateToAutomation?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
 }
 
 const NODE_TYPE_ICONS: Record<string, string> = {
@@ -74,17 +75,17 @@ function formatDiffValue(val: any, type: string): string {
   return String(val);
 }
 
-const RECIPE_TYPE_STYLES: Record<string, { label: string; classes: string }> = {
-  colorRamp: { label: 'Color Ramp', classes: 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' },
-  typeScale: { label: 'Type Scale', classes: 'bg-purple-500/15 text-purple-600' },
-  spacingScale: { label: 'Spacing', classes: 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' },
-  opacityScale: { label: 'Opacity', classes: 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]' },
+const RECIPE_TYPE_STYLES: Record<string, { classes: string }> = {
+  colorRamp: { classes: 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' },
+  typeScale: { classes: 'bg-purple-500/15 text-purple-600' },
+  spacingScale: { classes: 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' },
+  opacityScale: { classes: 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]' },
 };
 
 export function TokenUsages({
   dependents, dependentsLoading, collectionId, tokenPath, tokenType, value,
   isDirty, aliasMode, allTokensFlat, colorFlatMap, pathToCollectionId, initialValue,
-  producingRecipe, sourceRecipes, onNavigateToToken, onShowReferences, onNavigateToAutomation,
+  producingRecipe, sourceRecipes, onNavigateToToken, onShowReferences, onNavigateToGeneratedGroup,
 }: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -456,11 +457,11 @@ export function TokenUsages({
             </>
           ) : null}
 
-          {/* Recipe references */}
+          {/* Generated group references */}
           {recipeCount > 0 && (
             <>
               <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                Recipes ({recipeCount})
+                Generated groups ({recipeCount})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
                 {producingRecipe && (
@@ -472,14 +473,14 @@ export function TokenUsages({
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
                       RECIPE_TYPE_STYLES[producingRecipe.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
-                      {RECIPE_TYPE_STYLES[producingRecipe.type]?.label ?? producingRecipe.type}
+                      {getGeneratedGroupTypeLabel(producingRecipe.type)}
                     </span>
-                    {onNavigateToAutomation ? (
+                    {onNavigateToGeneratedGroup ? (
                       <button
                         type="button"
                         className="flex-1 min-w-0 text-left text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline truncate"
-                        title={`Open recipe "${producingRecipe.name}" in Graph panel`}
-                        onClick={() => onNavigateToAutomation(producingRecipe.id)}
+                        title={`Open generated group "${producingRecipe.name}"`}
+                        onClick={() => onNavigateToGeneratedGroup(producingRecipe.id)}
                       >
                         {producingRecipe.name}
                       </button>
@@ -499,7 +500,7 @@ export function TokenUsages({
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
                       RECIPE_TYPE_STYLES[gen.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
-                      {RECIPE_TYPE_STYLES[gen.type]?.label ?? gen.type}
+                      {getGeneratedGroupTypeLabel(gen.type)}
                     </span>
                     <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={gen.targetGroup}>
                       {gen.targetGroup}
@@ -613,7 +614,7 @@ export function TokenUsages({
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No usages found</p>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, recipe, layer, collection mode, or resolver.</p>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, generated group, layer, collection mode, or resolver.</p>
             </div>
           )}
         </div>

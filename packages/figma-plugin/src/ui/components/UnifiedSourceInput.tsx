@@ -203,7 +203,7 @@ export function UnifiedSourceInput({
 
           {expectedType === null && (
             <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              This recipe type does not require a base value.
+              This outcome does not require a base value.
             </p>
           )}
 

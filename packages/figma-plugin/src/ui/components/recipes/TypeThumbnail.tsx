@@ -76,14 +76,6 @@ export function TypeThumbnail({ type, size = 16 }: { type: RecipeType; size?: nu
           <circle cx={14} cy={13} r={1} fill={color} opacity={0.5} />
         </svg>
       );
-    case 'accessibleColorPair':
-      return (
-        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <circle cx={6} cy={8} r={4.5} fill={color} opacity={0.3} />
-          <circle cx={10} cy={8} r={4.5} fill={color} opacity={0.6} />
-          <path d="M6.5 8.5L8 10l3-4" stroke="white" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
     case 'darkModeInversion':
       return (
         <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-hidden="true">

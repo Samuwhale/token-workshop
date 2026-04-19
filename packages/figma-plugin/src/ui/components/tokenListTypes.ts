@@ -9,7 +9,7 @@ import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenRecipe } from "../hooks/useRecipes";
 import type { LintViolation } from "../hooks/useLint";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
-import type { TokensLibraryAutomationEditorTarget } from "../shared/navigationTypes";
+import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigationTypes";
 import type { StartHereBranch } from "./WelcomePrompt";
 import type { TokenCollection } from "@tokenmanager/core";
 
@@ -130,11 +130,11 @@ export interface TokenListActions {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onCreateAutomationFromGroup?: (
+  onCreateGeneratedGroupFromGroup?: (
     groupPath: string,
     tokenType: string | null,
   ) => void;
-  onRefreshAutomations?: () => void;
+  onRefreshGeneratedGroups?: () => void;
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
@@ -144,11 +144,11 @@ export interface TokenListActions {
   starredPaths?: Set<string>;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
-  onEditAutomation?: (recipeId: string) => void;
-  onOpenAutomationEditor?: (target: TokensLibraryAutomationEditorTarget) => void;
-  onNavigateToAutomation?: (recipeId: string) => void;
+  onEditGeneratedGroup?: (recipeId: string) => void;
+  onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
   /** Open the recipe editor to create a new recipe */
-  onNavigateToNewAutomation?: () => void;
+  onNavigateToNewGeneratedGroup?: () => void;
   /** Navigate to Token Flow panel with this token pre-selected */
   onShowReferences?: (path: string) => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
@@ -329,12 +329,17 @@ export interface TableSort {
 
 export interface TokenTreeSharedDataContextType {
   allTokensFlat: Record<string, TokenMapEntry>;
+  modeResolvedTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
+  collections?: TokenCollection[];
 }
 
 export interface TokenTreeGroupStateContextType {
   density: Density;
   collectionId: string;
+  /** Active mode for the current collection in the Tokens view, when that collection has modes. */
+  activeCollectionModeLabel?: string | null;
   selectMode: boolean;
   expandedPaths: Set<string>;
   highlightedToken: string | null;
@@ -370,19 +375,26 @@ export interface TokenTreeGroupActionsContextType {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onCreateAutomationFromGroup?: (
+  onCreateGeneratedGroupFromGroup?: (
     groupPath: string,
     tokenType: string | null,
   ) => void;
   onZoomIntoGroup?: (groupPath: string) => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
-  onEditAutomation?: (recipeId: string) => void;
-  /** Open the recipe editor for the given recipe */
-  onNavigateToAutomation?: (recipeId: string) => void;
-  /** One-click regenerate a specific recipe (by id) — runs POST /api/recipes/:id/run */
-  onRunAutomation?: (recipeId: string) => Promise<void>;
-  onDetachAutomationGroup?: (
+  onEditGeneratedGroup?: (recipeId: string) => void;
+  onDuplicateGeneratedGroup?: (recipeId: string) => void;
+  onDeleteGeneratedGroup?: (recipeId: string) => Promise<void>;
+  /** Open the generated-group editor for the given group */
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
+  /** One-click regenerate a specific generated group (by id) — runs POST /api/recipes/:id/run */
+  onRunGeneratedGroup?: (recipeId: string) => Promise<void>;
+  /** Toggle background upkeep for a generated group. */
+  onToggleGeneratedGroupEnabled?: (
+    recipeId: string,
+    enabled: boolean,
+  ) => Promise<void>;
+  onDetachGeneratedGroup?: (
     recipeId: string,
     groupPath: string,
   ) => Promise<void>;
@@ -494,7 +506,7 @@ export interface TokenTreeLeafActionsContextType {
     previousState?: { type?: string; value: unknown },
     options?: { allowGeneratedEdit?: boolean },
   ) => void;
-  onOpenAutomationEditor?: (target: TokensLibraryAutomationEditorTarget) => void;
+  onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   /** Toggle starred (cross-collection favorites) for the current token */
   onToggleStar?: (path: string) => void;
   /** Clear the pending rename (called by the node once it activates rename mode) */

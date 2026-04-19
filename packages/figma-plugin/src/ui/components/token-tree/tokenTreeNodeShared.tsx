@@ -2,9 +2,21 @@ import type { MouseEvent } from "react";
 import { getRecipeManagedOutputs } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath } from "../../../shared/resolveAlias";
-import type { RecipeType, TokenRecipe } from "../../hooks/useRecipes";
-import { getAutomationTypeLabel } from "../../shared/automationUtils";
-import { detectRecipeType } from "../recipes/recipeUtils";
+import type {
+  GeneratedTokenResult,
+  RecipeType,
+  TokenRecipe,
+} from "../../hooks/useRecipes";
+import { getRecipeDashboardStatus } from "../../hooks/useRecipes";
+import {
+  formatRelativeTimestamp,
+  getGeneratedGroupTypeLabel,
+  getStatusLabel,
+} from "../../shared/generatedGroupUtils";
+import {
+  getSingleObviousRecipeType,
+} from "../recipes/recipeUtils";
+import { formatValue } from "../recipes/recipeShared";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
   CONDENSED_MAX_DEPTH,
@@ -119,7 +131,7 @@ const RECIPE_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
-export function AutomationGlyph({
+export function GeneratedGlyph({
   size = 8,
   strokeWidth = 1.5,
   className,
@@ -155,9 +167,9 @@ function formatRecipeRunAt(lastRunAt?: string): string {
   return RECIPE_RUN_AT_FORMATTER.format(date);
 }
 
-export function formatAutomationSummaryTitle(recipe: TokenRecipe): string {
+export function formatGeneratedGroupSummaryTitle(recipe: TokenRecipe): string {
   return [
-    `Generator: ${recipe.name}`,
+    `Generated group: ${recipe.name}`,
     recipe.sourceToken ? `Source token: ${recipe.sourceToken}` : null,
     recipe.isStale ? "Source changed" : null,
   ]
@@ -184,32 +196,62 @@ function countManagedRecipeLeaves(
   );
 }
 
-export function AutomationSummaryRow({
+export function GeneratedGroupSummaryRow({
   depth,
   condensedView,
   recipe,
+  collectionId,
+  activeModeLabel,
   managedTokenCount,
+  exceptionCount,
+  previewTokens,
   running,
+  keepUpdatedBusy,
+  keepUpdatedDisabledReason,
   detaching,
+  deleting = false,
   onRun,
   onEdit,
+  onToggleKeepUpdated,
+  onDuplicate,
+  onDelete,
   onDetach,
   onNavigateToSourceToken,
 }: {
   depth: number;
   condensedView: boolean;
   recipe: TokenRecipe;
+  collectionId: string;
+  activeModeLabel?: string | null;
   managedTokenCount: number;
+  exceptionCount: number;
+  previewTokens: GeneratedTokenResult[];
   running: boolean;
+  keepUpdatedBusy: boolean;
+  keepUpdatedDisabledReason?: string | null;
   detaching: boolean;
+  deleting?: boolean;
   onRun?: () => Promise<void> | void;
   onEdit?: () => void;
+  onToggleKeepUpdated?: (enabled: boolean) => Promise<void> | void;
+  onDuplicate?: () => void;
+  onDelete?: () => Promise<void> | void;
   onDetach?: () => Promise<void> | void;
   onNavigateToSourceToken?: (path: string) => void;
 }) {
   const sourceLabel = recipe.sourceToken || "Standalone";
-  const typeLabel = getAutomationTypeLabel(recipe.type);
+  const typeLabel = getGeneratedGroupTypeLabel(recipe.type);
+  const keepUpdated = recipe.enabled !== false;
+  const dashboardStatus = getRecipeDashboardStatus(recipe);
+  const statusLabel = getStatusLabel(dashboardStatus, !keepUpdated);
   const lastRunLabel = formatRecipeRunAt(recipe.lastRunAt);
+  const lastRunRelativeLabel = formatRelativeTimestamp(recipe.lastRunAt);
+  const exceptionLabel =
+    exceptionCount > 0
+      ? `${exceptionCount} manual exception${exceptionCount === 1 ? "" : "s"}`
+      : "No manual exceptions";
+  const shouldNudgeExceptionCleanup = exceptionCount >= 3;
+  const compactPreviewTokens = previewTokens.slice(0, 4);
 
   return (
     <div
@@ -223,7 +265,7 @@ export function AutomationSummaryRow({
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span className="inline-flex items-center gap-1 font-medium text-[var(--color-figma-text)]">
-              <AutomationGlyph />
+              <GeneratedGlyph />
               <span>Generated</span>
             </span>
             <span aria-hidden="true" className="text-[var(--color-figma-text-tertiary)]/70">
@@ -239,6 +281,20 @@ export function AutomationSummaryRow({
             )}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span>
+              Collection{" "}
+              <span className="font-mono text-[var(--color-figma-text)]">
+                {collectionId}
+              </span>
+            </span>
+            {activeModeLabel && (
+              <span>
+                Mode{" "}
+                <span className="text-[var(--color-figma-text)]">
+                  {activeModeLabel}
+                </span>
+              </span>
+            )}
             <span>
               Source token{" "}
               {recipe.sourceToken && onNavigateToSourceToken ? (
@@ -259,25 +315,58 @@ export function AutomationSummaryRow({
               )}
             </span>
             <span>
+              Status{" "}
+              <span className="text-[var(--color-figma-text)]">
+                {statusLabel}
+              </span>
+            </span>
+            <span>
               Type{" "}
               <span className="text-[var(--color-figma-text)]">
                 {typeLabel}
               </span>
             </span>
             <span>
+              Keep updated{" "}
+              <span className="text-[var(--color-figma-text)]">
+                {keepUpdated ? "On" : "Off"}
+              </span>
+            </span>
+            <span>
+              {exceptionLabel}
+            </span>
+            <span>
               Last run{" "}
               <span className="text-[var(--color-figma-text)]">
-                {lastRunLabel}
+                {lastRunRelativeLabel ? `${lastRunRelativeLabel} · ${lastRunLabel}` : lastRunLabel}
               </span>
             </span>
           </div>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            This generator owns {managedTokenCount} token
+            This generated group manages {managedTokenCount} token
             {managedTokenCount === 1 ? "" : "s"}. Edit the generator to change
-            them, or detach them first to make manual edits stick.
+            them, keep explicit exceptions when a few steps need to diverge, or
+            detach the group if it should become fully manual.
           </p>
+          {keepUpdatedDisabledReason && (
+            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+              {keepUpdatedDisabledReason}
+            </div>
+          )}
+          {shouldNudgeExceptionCleanup && (
+            <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-text)]">
+              Manual exceptions are starting to pile up in this group. Edit the generator or detach tokens that should stay manual.
+            </div>
+          )}
+          {compactPreviewTokens.length > 0 && (
+            <CompactGeneratedPreview
+              type={recipe.type}
+              tokens={compactPreviewTokens}
+              totalCount={previewTokens.length}
+            />
+          )}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 flex-wrap justify-end gap-1">
           <button
             type="button"
             onClick={() => {
@@ -286,7 +375,7 @@ export function AutomationSummaryRow({
             disabled={running || !onRun}
             className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {running ? "Running…" : "Re-run"}
+            {running ? "Running…" : "Rerun now"}
           </button>
           <button
             type="button"
@@ -294,7 +383,42 @@ export function AutomationSummaryRow({
             disabled={!onEdit}
             className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Edit
+            Edit generator
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void onToggleKeepUpdated?.(!keepUpdated);
+            }}
+            disabled={keepUpdatedBusy || !onToggleKeepUpdated || Boolean(keepUpdatedDisabledReason)}
+            title={keepUpdatedDisabledReason ?? undefined}
+            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {keepUpdatedBusy
+              ? "Updating…"
+              : keepUpdatedDisabledReason
+                ? "Updates unavailable"
+              : keepUpdated
+                ? "Turn off updates"
+                : "Keep updated"}
+          </button>
+          <button
+            type="button"
+            onClick={onDuplicate}
+            disabled={!onDuplicate}
+            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Duplicate
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void onDelete?.();
+            }}
+            disabled={deleting || !onDelete}
+            className="px-2 py-1 rounded border border-[var(--color-figma-error)]/30 text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deleting ? "Deleting…" : "Delete"}
           </button>
           <button
             type="button"
@@ -304,10 +428,66 @@ export function AutomationSummaryRow({
             disabled={detaching || !onDetach}
             className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {detaching ? "Detaching…" : "Detach group"}
+            {detaching ? "Detaching…" : "Detach from generator"}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CompactGeneratedPreview({
+  type,
+  tokens,
+  totalCount,
+}: {
+  type: RecipeType;
+  tokens: GeneratedTokenResult[];
+  totalCount: number;
+}) {
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
+      <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <span>Preview</span>
+        <span>
+          {totalCount} token{totalCount === 1 ? "" : "s"}
+        </span>
+      </div>
+      {type === "colorRamp" ? (
+        <div className="flex items-center gap-1">
+          {tokens.map((token) => {
+            const value = typeof token.value === "string" ? token.value : null;
+            return (
+              <div
+                key={token.path}
+                className="flex min-w-0 flex-1 flex-col gap-1"
+              >
+                <div
+                  className="h-4 rounded border border-[var(--color-figma-border)]"
+                  style={{ background: value ?? "var(--color-figma-bg-secondary)" }}
+                  title={`${token.stepName}: ${formatValue(token.value)}`}
+                />
+                <div className="truncate text-[9px] text-[var(--color-figma-text-secondary)]">
+                  {token.stepName}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {tokens.map((token) => (
+            <div key={token.path} className="flex items-center gap-2 text-[10px]">
+              <span className="min-w-0 flex-1 truncate font-mono text-[var(--color-figma-text)]">
+                {token.path}
+              </span>
+              <span className="truncate text-[var(--color-figma-text-secondary)]">
+                {formatValue(token.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -337,29 +517,16 @@ export function clampMenuPosition(
   };
 }
 
-export function getQuickAutomationTypeForToken(
+export function getQuickGeneratedGroupTypeForToken(
   path: string,
   name: string,
   tokenType: string | undefined,
   tokenValue: unknown,
 ): RecipeType | null {
-  if (!tokenType) return null;
-  if (tokenType === "color") return "colorRamp";
-  if (tokenType === "fontSize") return "typeScale";
-  if (tokenType === "dimension") {
-    const label = `${path}.${name}`.toLowerCase();
-    if (/(font|type|text|heading|body|display|title)/.test(label))
-      return "typeScale";
-    if (/(space|spacing|gap|padding|margin|inset|offset)/.test(label))
-      return "spacingScale";
-  }
-  if (tokenType === "dimension" || tokenType === "number") {
-    return detectRecipeType(tokenType, tokenValue);
-  }
-  return null;
+  return getSingleObviousRecipeType(tokenType, path, name, tokenValue) ?? null;
 }
 
-export function getQuickAutomationActionLabel(type: RecipeType): string {
+export function getQuickGeneratedGroupActionLabel(type: RecipeType): string {
   switch (type) {
     case "colorRamp":
       return "Generate palette…";
@@ -372,7 +539,7 @@ export function getQuickAutomationActionLabel(type: RecipeType): string {
     case "borderRadiusScale":
       return "Generate radius scale…";
     default:
-      return `Generate ${getAutomationTypeLabel(type).toLowerCase()}…`;
+      return `Generate ${getGeneratedGroupTypeLabel(type).toLowerCase()}…`;
   }
 }
 
@@ -436,7 +603,7 @@ export function TokenRowBrowseMetaBadge({
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
       ) : (
-        <AutomationGlyph size={8} className="shrink-0" />
+        <GeneratedGlyph size={8} className="shrink-0" />
       )}
       <span
         className={`truncate ${expanded ? "max-w-[140px]" : "max-w-[88px]"}`}
@@ -582,7 +749,7 @@ export function getBrowseMetaForReference(
   };
 }
 
-export function getBrowseMetaForAutomation(sourceToken: string, expanded: boolean) {
+export function getBrowseMetaForGeneratedGroup(sourceToken: string, expanded: boolean) {
   return {
     kind: "recipe" as const,
     compactLabel: getCompactPathLabel(sourceToken),

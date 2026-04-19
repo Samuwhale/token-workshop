@@ -346,10 +346,10 @@ export function useTokenSearch({
         : recipeNames;
       if (matches.length > 0) {
         return matches.map(name => ({
-          id: `recipe:${name}`,
-          label: `recipe:${name}`,
-          desc: 'Filter by recipe name',
-          replacement: `recipe:${name}`,
+          id: `generated:${name}`,
+          label: `generated:${name}`,
+          desc: 'Filter by generated group name',
+          replacement: `generated:${name}`,
           kind: 'replacement' as const,
         }));
       }
@@ -422,7 +422,7 @@ export function useTokenSearch({
   ) => {
     const normalizedValue = value.trim().toLowerCase();
     if (!normalizedValue) return;
-    const qualifierKey = qualifier === 'recipe' ? 'recipe' : qualifier;
+    const qualifierKey = qualifier === 'recipe' ? 'generated' : qualifier;
     setSearchQuery(
       replaceQueryToken(
         searchQuery,
@@ -449,7 +449,12 @@ export function useTokenSearch({
     for (const value of parsedSearchQuery.descs) chips.push({ token: `desc:${value}`, label: `desc:${value}` });
     for (const value of parsedSearchQuery.paths) chips.push({ token: `path:${value}`, label: `path:${value}` });
     for (const value of parsedSearchQuery.names) chips.push({ token: `name:${value}`, label: `name:${value}` });
-    for (const value of parsedSearchQuery.recipes) chips.push({ token: `recipe:${value}`, label: `recipe:${value}` });
+    for (const value of parsedSearchQuery.recipes) {
+      chips.push({
+        token: `generated:${value}`,
+        label: `generated:${value}`,
+      });
+    }
     return chips;
   }, [parsedSearchQuery, selectedHasQualifiers]);
 

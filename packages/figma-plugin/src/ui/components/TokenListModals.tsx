@@ -220,7 +220,7 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
           {hasRecipeImpacts && (
             <div className="mt-2">
               <div className="mb-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                Affected recipes ({recipeImpacts.length}) — references will not be auto-updated:
+                Affected generated groups ({recipeImpacts.length}) — references will not be auto-updated:
               </div>
               <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                 {recipeImpacts.map((impact, i) => (
@@ -480,7 +480,7 @@ function DeleteImpactDetails({
         )}
         {genCount > 0 && (
           <NoticePill severity="warning">
-            {genCount} recipe{genCount !== 1 ? 's' : ''}
+            {genCount} generated group{genCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
         {modeImpactCount > 0 && (
@@ -533,7 +533,7 @@ function DeleteImpactDetails({
         <CollapsibleSection
           open={gensOpen}
           onToggle={() => setGensOpen(v => !v)}
-          label={`Affected recipes (${genCount})`}
+          label={`Affected generated groups (${genCount})`}
         >
           <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {recipeImpacts!.map((impact, i) => (

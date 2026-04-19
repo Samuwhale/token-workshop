@@ -131,6 +131,10 @@ export async function startServer(config: ServerConfig) {
     recipeService,
     lintConfigStore,
   );
+  await recipeService.disableUnsupportedKeepUpdated(
+    tokenStore,
+    collectionService,
+  );
 
   // Replay any snapshot restore that was interrupted by a previous crash
   await manualSnapshots.recoverPendingRestore(
@@ -166,6 +170,12 @@ export async function startServer(config: ServerConfig) {
       const result = await collectionsStore.reloadFromDisk();
       if (result === "changed" || result === "removed") {
         await tokenLock.withLock(() => collectionService.reloadTokenStorageFromState());
+        const keepUpdatedChanges = await tokenLock.withLock(() =>
+          recipeService.disableUnsupportedKeepUpdated(tokenStore, collectionService),
+        );
+        if (keepUpdatedChanges > 0) {
+          emitWorkspaceFileEvent("workspace-file-changed", "recipes", "$recipes");
+        }
       }
       if (result === "changed") {
         emitWorkspaceFileEvent("workspace-file-changed", "collections", "$collections");
@@ -187,6 +197,10 @@ export async function startServer(config: ServerConfig) {
     try {
       const result = await recipeService.reloadFromDisk();
       if (result === "changed") {
+        await recipeService.disableUnsupportedKeepUpdated(
+          tokenStore,
+          collectionService,
+        );
         emitWorkspaceFileEvent(
           "workspace-file-changed",
           "recipes",
@@ -291,11 +305,37 @@ export async function startServer(config: ServerConfig) {
   // inside an active lock: the promise-chain mutex simply queues this run after
   // the current holder finishes (no re-entrancy / deadlock risk).
   tokenStore.onChange((event) => {
+    if (
+      event.type === "collection-added" ||
+      event.type === "collection-updated" ||
+      event.type === "collection-removed"
+    ) {
+      tokenLock
+        .withLock(() =>
+          recipeService.disableUnsupportedKeepUpdated(tokenStore, collectionService),
+        )
+        .then((changed) => {
+          if (changed > 0) {
+            emitWorkspaceFileEvent("workspace-file-changed", "recipes", "$recipes");
+          }
+        })
+        .catch((err) => {
+          console.warn(
+            "[RecipeService] Failed to normalize keep-updated state after collection change:",
+            err,
+          );
+        });
+      return;
+    }
     if (event.type === "token-updated" && event.tokenPath) {
       const tokenPath = event.tokenPath;
       tokenLock
         .withLock(() =>
-          recipeService.runForSourceToken(tokenPath, tokenStore),
+          recipeService.runForSourceToken(
+            tokenPath,
+            tokenStore,
+            collectionService,
+          ),
         )
         .catch((err) => {
           const message = err instanceof Error ? err.message : String(err);

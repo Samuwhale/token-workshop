@@ -26,11 +26,11 @@ export interface ParsedQuery {
   paths: string[];
   /** name:<substring> — search only the leaf name */
   names: string[];
-  /** recipe:<name> — filter by recipe that produced the token */
+  /** generated:<name> — filter by generated group that produced the token */
   recipes: string[];
 }
 
-const QUALIFIER_RE = /\b(type|has|value|desc|path|name|recipe|gen):(\S+)/gi;
+const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generated|gen):(\S+)/gi;
 const QUERY_TOKEN_RE = /\b([a-z]+):(\S+)/gi;
 
 /** Recognized values for has: qualifier */
@@ -69,7 +69,10 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
       case 'desc': descs.push(v); break;
       case 'path': paths.push(v); break;
       case 'name': names.push(v); break;
-      case 'recipe': case 'gen': recipes.push(v); break;
+      case 'generated':
+      case 'gen':
+        recipes.push(v);
+        break;
     }
     return ''; // remove qualifier from text portion
   }).trim();
@@ -145,6 +148,7 @@ export function getQualifierCompletions(
       candidates = [...HAS_CANONICAL];
       break;
     case 'recipe':
+    case 'generated':
     case 'gen': {
       const gens = new Set<string>();
       for (const t of tokens) if (t.recipeName) gens.add(t.recipeName.toLowerCase());
@@ -203,13 +207,13 @@ export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'has', qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: 'has:duplicate', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'has', qualifier: 'has:description', desc: 'Only tokens with a description', example: 'has:description', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'has', qualifier: 'has:extension', desc: 'Only tokens with extensions', example: 'has:extension', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
-  { key: 'has', qualifier: 'has:generated', desc: 'Only recipe-managed tokens', example: 'has:generated', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:generated', desc: 'Only generated tokens', example: 'has:generated', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'has', qualifier: 'has:unused', desc: 'Tokens with no Figma usage and no alias dependents', example: 'has:unused', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'value', qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000', valueHint: 'Enter a value fragment, for example #ff0000 or 16px.' },
   { key: 'desc', qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary', valueHint: 'Enter words from the token description.' },
   { key: 'path', qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand', valueHint: 'Enter a path segment like colors.brand or spacing.' },
   { key: 'name', qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500', valueHint: 'Enter the token leaf name, such as 500 or primary.' },
-  { key: 'recipe', qualifier: 'recipe:', desc: 'Filter by generator name', example: 'recipe:color-ramp', valueHint: 'Enter the generator name that produced the token.' },
+  { key: 'recipe', qualifier: 'generated:', desc: 'Filter by generated group name', example: 'generated:brand-palette', valueHint: 'Enter the generated group that produced the token.' },
   { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];
 
@@ -234,7 +238,7 @@ const FILTER_DISCOVERY_TEMPLATES: FilterDiscoveryTemplate[] = [
   {
     id: 'has-generated',
     label: 'Generated',
-    description: 'Show recipe-managed tokens.',
+    description: 'Show generated tokens.',
     qualifier: 'has',
     mode: 'toggle-qualifier',
     value: 'generated',
@@ -329,7 +333,7 @@ export function replaceQueryToken(raw: string, activeToken: ActiveQueryToken, re
 }
 
 export function removeQueryQualifierValues(raw: string, qualifier: QueryQualifierDefinition['key']): string {
-  const keys = qualifier === 'recipe' ? ['recipe', 'gen'] : [qualifier];
+  const keys = qualifier === 'recipe' ? ['generated', 'gen'] : [qualifier];
   const pattern = new RegExp(`\\b(?:${keys.join('|')}):\\S+`, 'gi');
   return raw.replace(pattern, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -340,13 +344,16 @@ export function setQueryQualifierValues(
   values: string[],
 ): string {
   const base = removeQueryQualifierValues(raw, qualifier);
-  const prefix = qualifier === 'recipe' ? 'recipe' : qualifier;
+  const prefix = qualifier === 'recipe' ? 'generated' : qualifier;
   const additions = values.map(value => `${prefix}:${value}`);
   return [base, ...additions].filter(Boolean).join(' ').trim();
 }
 
 export function getQueryQualifierValues(raw: string, qualifier: QueryQualifierDefinition['key']): string[] {
-  const keys = qualifier === 'recipe' ? new Set(['recipe', 'gen']) : new Set([qualifier]);
+  const keys =
+    qualifier === 'recipe'
+      ? new Set(['generated', 'gen'])
+      : new Set([qualifier]);
   const values: string[] = [];
   raw.replace(QUERY_TOKEN_RE, (_, key: string, value: string) => {
     if (keys.has(key.toLowerCase())) values.push(value.toLowerCase());
@@ -359,7 +366,9 @@ export function getQualifierDefinitionForToken(token: string): QueryQualifierDef
   const match = token.match(/^([a-z]+):/i);
   if (!match) return null;
   const key = match[1].toLowerCase();
-  if (key === 'gen') return QUERY_QUALIFIERS.find(def => def.key === 'recipe') ?? null;
+  if (key === 'generated' || key === 'gen') {
+    return QUERY_QUALIFIERS.find(def => def.key === 'recipe') ?? null;
+  }
   return QUERY_QUALIFIERS.find(def => def.key === key) ?? null;
 }
 
@@ -563,7 +572,7 @@ function filterTokenNodesStructured(
         if (!parsed.names.some(n => ln.includes(n))) continue;
       }
 
-      // recipe: qualifier — match by recipe name
+      // generated: qualifier — match by generated group name
       if (parsed.recipes.length > 0) {
         const gen = derivedTokenPaths?.get(recipeKey);
         if (!gen) continue;

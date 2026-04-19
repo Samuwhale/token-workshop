@@ -39,7 +39,7 @@ export function getDeleteModalProps(
       );
     if (genImpacts)
       parts.push(
-        `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
+        `affect ${genImpacts.length} generated group${genImpacts.length !== 1 ? "s" : ""}`,
       );
     if (thmImpacts)
       parts.push(
@@ -70,7 +70,7 @@ export function getDeleteModalProps(
       );
     if (genImpacts)
       parts.push(
-        `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
+        `affect ${genImpacts.length} generated group${genImpacts.length !== 1 ? "s" : ""}`,
       );
     if (thmImpacts)
       parts.push(
@@ -95,7 +95,7 @@ export function getDeleteModalProps(
     );
   if (genImpacts)
     parts.push(
-      `affect ${genImpacts.length} recipe${genImpacts.length !== 1 ? "s" : ""}`,
+      `affect ${genImpacts.length} generated group${genImpacts.length !== 1 ? "s" : ""}`,
     );
   if (thmImpacts)
     parts.push(

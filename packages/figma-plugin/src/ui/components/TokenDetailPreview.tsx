@@ -34,7 +34,7 @@ interface TokenDetailPreviewProps {
   onEdit: () => void;
   onClose: () => void;
   onNavigateToAlias?: (path: string) => void;
-  onNavigateToAutomation?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
 }
 
 export function TokenDetailPreview({
@@ -53,7 +53,7 @@ export function TokenDetailPreview({
   onEdit,
   onClose,
   onNavigateToAlias,
-  onNavigateToAutomation,
+  onNavigateToGeneratedGroup,
 }: TokenDetailPreviewProps) {
   const entry = allTokensFlat[tokenPath];
   const name = tokenName ?? tokenPath.split(".").pop() ?? tokenPath;
@@ -311,7 +311,7 @@ export function TokenDetailPreview({
               generatedRecipe={derivedRecipe ?? null}
               usageCount={usageCount}
               onNavigateToPath={onNavigateToAlias}
-              onNavigateToAutomation={onNavigateToAutomation}
+              onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
               onHighlightUsage={
                 usageCount > 0
                   ? () => {

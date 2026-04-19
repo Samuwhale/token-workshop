@@ -12,14 +12,28 @@ import type {
   GeneratedTokenResult,
 } from "./useRecipes";
 import {
-  requestRecipePreview,
-  requiresPreviewReview,
+  requestGeneratedGroupPreview,
+  requiresGeneratedGroupReview,
   type RecipePreviewAnalysis,
-} from "./useAutomationPreview";
+} from "./useGeneratedGroupPreview";
 
 export interface RecipeSaveSuccessInfo {
   targetGroup: string;
   targetCollection: string;
+}
+
+interface RecipeMutationBody {
+  type: RecipeType;
+  name: string;
+  sourceToken?: string;
+  sourceValue?: unknown;
+  inlineValue?: unknown;
+  targetCollection: string;
+  targetGroup: string;
+  enabled: boolean;
+  config: RecipeConfig;
+  semanticLayer: RecipeSemanticLayer | null;
+  overrides?: Record<string, { value: unknown; locked: boolean }>;
 }
 
 interface UseRecipeSaveParams {
@@ -52,6 +66,7 @@ interface UseRecipeSaveParams {
   ) => ToastAction | undefined;
   pushUndo?: (slot: UndoSlot) => void;
   requestPreviewRefresh: () => void;
+  initialKeepUpdated: boolean;
   initialSemanticEnabled: boolean;
   initialSemanticPrefix: string;
   initialSemanticMappings: Array<{ semantic: string; step: string }>;
@@ -66,6 +81,7 @@ export interface UseRecipeSaveReturn {
   overwritePendingPaths: string[];
   overwriteCheckLoading: boolean;
   overwriteCheckError: string;
+  keepUpdated: boolean;
   semanticEnabled: boolean;
   semanticPrefix: string;
   semanticMappings: Array<{ semantic: string; step: string }>;
@@ -74,13 +90,14 @@ export interface UseRecipeSaveReturn {
   handleSave: () => Promise<boolean>;
   handleConfirmSave: () => Promise<boolean>;
   handleCancelConfirmation: () => void;
+  setKeepUpdated: (v: boolean) => void;
   setSemanticEnabled: (v: boolean) => void;
   setSemanticPrefix: (v: string) => void;
   setSemanticMappings: (v: Array<{ semantic: string; step: string }>) => void;
   setSelectedSemanticPatternId: (v: string | null) => void;
 }
 
-export function useRecipeSave({
+export function useGeneratedGroupSave({
   serverUrl,
   isEditing,
   existingRecipe,
@@ -95,14 +112,15 @@ export function useRecipeSave({
   pendingOverrides,
   typeNeedsValue,
   hasValue,
-  previewTokens: _previewTokens,
+  previewTokens,
   previewFingerprint,
   previewAnalysis,
   onSaved,
-  onInterceptSemanticMapping: _onInterceptSemanticMapping,
+  onInterceptSemanticMapping,
   getSuccessToastAction,
   pushUndo,
   requestPreviewRefresh,
+  initialKeepUpdated,
   initialSemanticEnabled,
   initialSemanticPrefix,
   initialSemanticMappings,
@@ -118,6 +136,7 @@ export function useRecipeSave({
   );
   const [overwriteCheckLoading, setOverwriteCheckLoading] = useState(false);
   const [overwriteCheckError, setOverwriteCheckError] = useState("");
+  const [keepUpdated, setKeepUpdated] = useState(initialKeepUpdated);
   const [semanticEnabled, setSemanticEnabled] = useState(initialSemanticEnabled);
   const [semanticPrefix, setSemanticPrefix] = useState(initialSemanticPrefix);
   const [semanticMappings, setSemanticMappings] = useState<
@@ -135,6 +154,74 @@ export function useRecipeSave({
       }),
     [getSuccessToastAction],
   );
+  const buildRecipeMutationBody = useCallback(
+    ({
+      sourceTokenPath,
+      sourceValue,
+      inlineValue,
+      targetGroup,
+      targetCollection,
+      keepUpdated,
+      semanticEnabled,
+      semanticPrefix,
+      semanticMappings,
+      selectedPatternId = selectedSemanticPatternId,
+      skipSemanticLayer = Boolean(onInterceptSemanticMapping),
+    }: {
+      sourceTokenPath?: string;
+      sourceValue?: unknown;
+      inlineValue?: unknown;
+      targetGroup: string;
+      targetCollection: string;
+      keepUpdated: boolean;
+      semanticEnabled: boolean;
+      semanticPrefix: string;
+      semanticMappings: Array<{ semantic: string; step: string }>;
+      selectedPatternId?: string | null;
+      skipSemanticLayer?: boolean;
+    }): RecipeMutationBody => {
+      const semanticLayer =
+        skipSemanticLayer
+          ? null
+          : semanticEnabled &&
+              semanticPrefix.trim() &&
+              semanticMappings.some((mapping) => mapping.semantic.trim())
+            ? ({
+                prefix: semanticPrefix.trim(),
+                mappings: semanticMappings.filter(
+                  (mapping) => mapping.semantic.trim() && mapping.step,
+                ),
+                patternId: selectedPatternId,
+              } satisfies RecipeSemanticLayer)
+            : null;
+
+      return {
+        type: selectedType,
+        name: name.trim(),
+        sourceToken: sourceTokenPath || undefined,
+        sourceValue: sourceTokenPath ? sourceValue : undefined,
+        inlineValue:
+          !sourceTokenPath && inlineValue !== undefined && inlineValue !== ""
+            ? inlineValue
+            : undefined,
+        targetCollection,
+        targetGroup,
+        enabled: keepUpdated,
+        config,
+        semanticLayer,
+        overrides:
+          Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
+      };
+    },
+    [
+      config,
+      name,
+      onInterceptSemanticMapping,
+      pendingOverrides,
+      selectedSemanticPatternId,
+      selectedType,
+    ],
+  );
 
   const validateBeforeSave = useCallback((): boolean => {
     if (!targetGroup.trim()) {
@@ -142,12 +229,12 @@ export function useRecipeSave({
       return false;
     }
     if (!name.trim()) {
-      setSaveError("Generator name is required.");
+      setSaveError("Generated group label is required.");
       return false;
     }
     if (typeNeedsValue && !hasValue) {
       setSaveError(
-        "This generator needs a source token or base value.",
+        "This generated group needs a source token or base value.",
       );
       return false;
     }
@@ -158,6 +245,7 @@ export function useRecipeSave({
   /** Inner save logic — commits the recipe to the server. */
   const commitSave = useCallback(
     async (
+      keepUpdatedAtSave: boolean,
       semanticEnabledAtSave: boolean,
       semanticPrefixAtSave: string,
       semanticMappingsAtSave: Array<{ semantic: string; step: string }>,
@@ -167,34 +255,17 @@ export function useRecipeSave({
       setSaving(true);
       setSaveError("");
       try {
-        const body = {
-          type: selectedType,
-          name: name.trim(),
-          sourceToken: sourceTokenPath || undefined,
-          inlineValue:
-            !sourceTokenPath && inlineValue !== undefined && inlineValue !== ""
-              ? inlineValue
-              : undefined,
-          targetCollection: targetCollectionAtSave,
+        const body = buildRecipeMutationBody({
+          sourceTokenPath,
+          sourceValue,
+          inlineValue,
           targetGroup: targetGroupAtSave,
-          config,
-          semanticLayer:
-            semanticEnabledAtSave &&
-            semanticPrefixAtSave.trim() &&
-            semanticMappingsAtSave.some((mapping) => mapping.semantic.trim())
-              ? ({
-                  prefix: semanticPrefixAtSave.trim(),
-                  mappings: semanticMappingsAtSave.filter(
-                    (mapping) => mapping.semantic.trim() && mapping.step,
-                  ),
-                  patternId: selectedSemanticPatternId,
-                } satisfies RecipeSemanticLayer)
-              : null,
-          overrides:
-            Object.keys(pendingOverrides).length > 0
-              ? pendingOverrides
-              : undefined,
-        };
+          targetCollection: targetCollectionAtSave,
+          keepUpdated: keepUpdatedAtSave,
+          semanticEnabled: semanticEnabledAtSave,
+          semanticPrefix: semanticPrefixAtSave,
+          semanticMappings: semanticMappingsAtSave,
+        });
         const saveUrl =
           isEditing && existingRecipe
             ? `${serverUrl}/api/recipes/${existingRecipe.id}`
@@ -209,19 +280,21 @@ export function useRecipeSave({
         if (pushUndo) {
           if (isEditing && existingRecipe) {
             const prevGen = existingRecipe;
-            const prevBody = {
-              type: prevGen.type,
-              name: prevGen.name,
-              sourceToken: prevGen.sourceToken,
+            const prevBody = buildRecipeMutationBody({
+              sourceTokenPath: prevGen.sourceToken,
+              sourceValue: prevGen.lastRunSourceValue,
               inlineValue: prevGen.inlineValue,
-              targetCollection: prevGen.targetCollection,
               targetGroup: prevGen.targetGroup,
-              config: prevGen.config,
-              semanticLayer: prevGen.semanticLayer ?? null,
-              overrides: prevGen.overrides,
-            };
+              targetCollection: prevGen.targetCollection,
+              keepUpdated: prevGen.enabled !== false,
+              semanticEnabled: Boolean(prevGen.semanticLayer?.mappings.length),
+              semanticPrefix: prevGen.semanticLayer?.prefix ?? "",
+              semanticMappings: prevGen.semanticLayer?.mappings ?? [],
+              selectedPatternId: prevGen.semanticLayer?.patternId ?? null,
+              skipSemanticLayer: false,
+            });
             pushUndo({
-              description: `Edited generator "${prevGen.name}"`,
+              description: `Edited generated group "${prevGen.name}"`,
               restore: async () => {
                 await apiFetch(`${serverUrl}/api/recipes/${prevGen.id}`, {
                   method: "PUT",
@@ -241,7 +314,7 @@ export function useRecipeSave({
             const newId = savedGen.id;
             const genName = name.trim();
             pushUndo({
-              description: `Created generator "${genName}"`,
+              description: `Created generated group "${genName}"`,
               restore: async () => {
                 await apiFetch(
                   `${serverUrl}/api/recipes/${newId}?deleteTokens=true`,
@@ -253,10 +326,16 @@ export function useRecipeSave({
         }
 
         setSaving(false);
+        onInterceptSemanticMapping?.({
+          tokens: previewTokens,
+          targetGroup: targetGroupAtSave,
+          targetCollection: targetCollectionAtSave,
+          recipeType: selectedType,
+        });
         dispatchToast(
           isEditing
-            ? `Generator "${name.trim()}" updated`
-            : `Generator "${name.trim()}" created`,
+            ? `Generated group "${name.trim()}" updated`
+            : `Generated group "${name.trim()}" created`,
           "success",
           getToastAction(targetGroupAtSave, targetCollectionAtSave),
         );
@@ -272,19 +351,15 @@ export function useRecipeSave({
       }
     },
     [
+      buildRecipeMutationBody,
       serverUrl,
       isEditing,
       existingRecipe,
-      selectedType,
-      name,
-      sourceTokenPath,
-      inlineValue,
-      config,
-      pendingOverrides,
       onSaved,
+      onInterceptSemanticMapping,
+      previewTokens,
       getToastAction,
       pushUndo,
-      selectedSemanticPatternId,
     ],
   );
 
@@ -295,7 +370,7 @@ export function useRecipeSave({
     setOverwriteCheckError("");
 
     try {
-      const latestPreview = await requestRecipePreview({
+      const latestPreview = await requestGeneratedGroupPreview({
         serverUrl,
         selectedType,
         sourceTokenPath,
@@ -360,10 +435,11 @@ export function useRecipeSave({
     setReviewedPreviewFingerprint(previewFingerprint);
 
     // No risks — skip confirmation and commit directly
-    if (!requiresPreviewReview(previewAnalysis)) {
+    if (!requiresGeneratedGroupReview(previewAnalysis)) {
       const revalidated = await revalidatePreview();
       if (revalidated) {
         return commitSave(
+          keepUpdated,
           semanticEnabled,
           semanticPrefix,
           semanticMappings,
@@ -392,6 +468,7 @@ export function useRecipeSave({
     semanticEnabled,
     semanticMappings,
     semanticPrefix,
+    keepUpdated,
     targetGroup,
     targetCollection,
     validateBeforeSave,
@@ -400,7 +477,7 @@ export function useRecipeSave({
   const handleQuickSave = useCallback(async () => {
     if (!validateBeforeSave()) return false;
     setReviewedPreviewFingerprint(previewFingerprint);
-    if (requiresPreviewReview(previewAnalysis)) {
+    if (requiresGeneratedGroupReview(previewAnalysis)) {
       setPreviewReviewStale(false);
       setOverwritePendingPaths(
         previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
@@ -412,6 +489,7 @@ export function useRecipeSave({
     const revalidated = await revalidatePreview();
     if (!revalidated) return false;
     return commitSave(
+      keepUpdated,
       semanticEnabled,
       semanticPrefix,
       semanticMappings,
@@ -424,7 +502,7 @@ export function useRecipeSave({
     previewFingerprint,
     previewAnalysis,
     revalidatePreview,
-    requiresPreviewReview,
+    keepUpdated,
     semanticEnabled,
     semanticPrefix,
     semanticMappings,
@@ -449,6 +527,7 @@ export function useRecipeSave({
     const revalidated = await revalidatePreview();
     if (!revalidated) return false;
     return commitSave(
+      keepUpdated,
       semanticEnabled,
       semanticPrefix,
       semanticMappings,
@@ -460,6 +539,7 @@ export function useRecipeSave({
     previewFingerprint,
     previewReviewStale,
     revalidatePreview,
+    keepUpdated,
     semanticEnabled,
     semanticPrefix,
     semanticMappings,
@@ -486,6 +566,7 @@ export function useRecipeSave({
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,
+    keepUpdated,
     semanticEnabled,
     semanticPrefix,
     semanticMappings,
@@ -494,6 +575,7 @@ export function useRecipeSave({
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
+    setKeepUpdated,
     setSemanticEnabled,
     setSemanticPrefix,
     setSemanticMappings,

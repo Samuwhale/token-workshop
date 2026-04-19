@@ -40,7 +40,7 @@ import {
   formatDraftAge,
 } from "../hooks/useTokenEditorUtils";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
-import type { TokensLibraryAutomationEditorTarget } from "../shared/navigationTypes";
+import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigationTypes";
 import { lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
@@ -78,8 +78,8 @@ interface TokenEditorProps {
   derivedTokenPaths?: Map<string, TokenRecipe>;
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  onNavigateToAutomation?: (recipeId: string) => void;
-  onOpenAutomationEditor?: (target: TokensLibraryAutomationEditorTarget) => void;
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
+  onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   onOpenCollectionSetup?: () => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
@@ -107,8 +107,8 @@ export function TokenEditor({
   derivedTokenPaths,
   onShowReferences,
   onNavigateToToken,
-  onNavigateToAutomation,
-  onOpenAutomationEditor,
+  onNavigateToGeneratedGroup,
+  onOpenGeneratedGroupEditor,
   onOpenCollectionSetup,
   pushUndo,
 }: TokenEditorProps) {
@@ -477,9 +477,9 @@ export function TokenEditor({
     lsSet('tm_last_token_type', tokenType);
   }, [isCreateMode, tokenType]);
 
-  const openAutomationEditor = useCallback((target: TokensLibraryAutomationEditorTarget) => {
-    onOpenAutomationEditor?.(target);
-  }, [onOpenAutomationEditor]);
+  const openGeneratedGroupEditor = useCallback((target: TokensLibraryGeneratedGroupEditorTarget) => {
+    onOpenGeneratedGroupEditor?.(target);
+  }, [onOpenGeneratedGroupEditor]);
 
   useEffect(() => {
     setDetachedFromRecipe(false);
@@ -529,7 +529,7 @@ export function TokenEditor({
       );
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to detach token from recipe");
+      setError(err instanceof Error ? err.message : "Failed to detach token from generator");
       return false;
     } finally {
       setDetachingRecipeOwnership(false);
@@ -1736,18 +1736,18 @@ export function TokenEditor({
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {(onOpenAutomationEditor || onNavigateToAutomation) && (
+                {(onOpenGeneratedGroupEditor || onNavigateToGeneratedGroup) && (
                   <button
                     type="button"
                     onClick={() => {
-                      if (onOpenAutomationEditor) {
-                        openAutomationEditor({
+                      if (onOpenGeneratedGroupEditor) {
+                        openGeneratedGroupEditor({
                           mode: "edit",
                           id: activeProducingRecipe.id,
                         });
                         return;
                       }
-                      onNavigateToAutomation?.(activeProducingRecipe.id);
+                      onNavigateToGeneratedGroup?.(activeProducingRecipe.id);
                     }}
                     className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
                   >
@@ -1859,7 +1859,7 @@ export function TokenEditor({
                 tokenType={tokenType}
                 value={value}
                 existingRecipesForToken={existingRecipesForToken}
-                openAutomationEditor={openAutomationEditor}
+                openGeneratedGroupEditor={openGeneratedGroupEditor}
               />
             )}
 
@@ -1908,7 +1908,7 @@ export function TokenEditor({
                 onRefsExpandedChange={setRefsExpanded}
                 onShowReferences={onShowReferences}
                 onNavigateToToken={onNavigateToToken}
-                onNavigateToAutomation={onNavigateToAutomation}
+                onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
               />
             )}
           </div>
@@ -1955,15 +1955,15 @@ export function TokenEditor({
                 onClick={() => {
                   setGeneratedTokenChoiceOpen(false);
                   pendingGeneratedSaveArgsRef.current = null;
-                  if (onOpenAutomationEditor) {
-                    openAutomationEditor({
+                  if (onOpenGeneratedGroupEditor) {
+                    openGeneratedGroupEditor({
                       mode: "edit",
                       id: activeProducingRecipe.id,
                     });
                     requestClose();
                     return;
                   }
-                  onNavigateToAutomation?.(activeProducingRecipe.id);
+                  onNavigateToGeneratedGroup?.(activeProducingRecipe.id);
                 }}
                 className="rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-left text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
               >

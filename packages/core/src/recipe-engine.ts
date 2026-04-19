@@ -11,12 +11,11 @@ import type {
   ZIndexScaleConfig,
   ShadowScaleConfig,
   CustomScaleConfig,
-  AccessibleColorPairConfig,
   DarkModeInversionConfig,
   GeneratedTokenResult,
 } from './recipe-types.js';
 import { validateStepName } from './recipe-types.js';
-import { hexToLab, labToHex, wcagLuminance } from './color-math.js';
+import { hexToLab, labToHex } from './color-math.js';
 import { evalExpr, substituteVars } from './eval-expr.js';
 
 // ---------------------------------------------------------------------------
@@ -441,56 +440,6 @@ export function runCustomScaleRecipe(
   }
 
   return results;
-}
-
-// ---------------------------------------------------------------------------
-// Accessible Color Pair
-// ---------------------------------------------------------------------------
-
-/**
- * Generate a background + foreground color pair where the foreground meets
- * the configured WCAG contrast level against the background.
- *
- * Foreground is chosen from black or white — whichever achieves the higher
- * contrast ratio. Both are always valid for WCAG AA (4.5:1) and AAA (7:1)
- * for the vast majority of background colors.
- */
-export function runAccessibleColorPairRecipe(
-  sourceHex: string,
-  config: AccessibleColorPairConfig,
-  targetGroup: string,
-): GeneratedTokenResult[] {
-  // Validate step names before generating
-  validateStepName(config.backgroundStep);
-  validateStepName(config.foregroundStep);
-
-  const bgLum = wcagLuminance(sourceHex);
-  if (bgLum === null) throw new Error(`Invalid hex color for accessibleColorPair recipe: "${sourceHex}"`);
-
-  // Contrast against white: (1.0 + 0.05) / (bgLum + 0.05)
-  const contrastWithWhite = 1.05 / (bgLum + 0.05);
-  // Contrast against black: (bgLum + 0.05) / (0.0 + 0.05)
-  const contrastWithBlack = (bgLum + 0.05) / 0.05;
-
-  const foreground = contrastWithWhite >= contrastWithBlack ? '#ffffff' : '#000000';
-  const achievedContrast = Math.max(contrastWithWhite, contrastWithBlack);
-  const threshold = config.contrastLevel === 'AAA' ? 7.0 : 4.5;
-
-  return [
-    {
-      stepName: config.backgroundStep,
-      path: `${targetGroup}.${config.backgroundStep}`,
-      type: 'color',
-      value: sourceHex,
-    },
-    {
-      stepName: config.foregroundStep,
-      path: `${targetGroup}.${config.foregroundStep}`,
-      type: 'color',
-      value: foreground,
-      isOverridden: achievedContrast < threshold,
-    },
-  ];
 }
 
 // ---------------------------------------------------------------------------

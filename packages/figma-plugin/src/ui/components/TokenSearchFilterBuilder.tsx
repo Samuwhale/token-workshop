@@ -37,7 +37,7 @@ const FILTER_SECTION_LABELS: Record<FilterBuilderSection, string> = {
   name: 'Name',
   value: 'Value',
   desc: 'Description',
-  recipe: 'Generator',
+  recipe: 'Generated',
 };
 
 const TEXT_SECTION_PLACEHOLDERS: Record<TextFilterSection, string> = {
@@ -45,7 +45,7 @@ const TEXT_SECTION_PLACEHOLDERS: Record<TextFilterSection, string> = {
   name: 'primary',
   value: '#ff0000',
   desc: 'marketing',
-  recipe: 'color-ramp',
+  recipe: 'brand-palette',
 };
 
 const HAS_OPTION_ORDER: HasQualifierValue[] = [

@@ -167,20 +167,6 @@ export function useTokenEditorSave({
           return false;
         }
       }
-      if (initialServerSnapshotRef.current) {
-        try {
-          const initialToken = JSON.parse(initialServerSnapshotRef.current) as {
-            $extensions?: Record<string, unknown>;
-          } | null;
-          const recipeOwnership =
-            initialToken?.$extensions?.['com.tokenmanager.recipe'];
-          if (recipeOwnership !== undefined) {
-            extensions['com.tokenmanager.recipe'] = recipeOwnership;
-          }
-        } catch (err) {
-          console.debug('[TokenEditor] failed to preserve recipe ownership extension:', err);
-        }
-      }
       const body = createTokenValueBody({
         type: tokenType,
         value: reference || value,

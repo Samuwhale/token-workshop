@@ -124,7 +124,11 @@ function inferWorkspaceAction(message: string): InboxAction {
       target: { kind: "surface", surface: "import" },
     };
   }
-  if (lower.includes("recipe") || lower.includes("automation")) {
+  if (
+    lower.includes("recipe") ||
+    lower.includes("generated group") ||
+    lower.includes("generator")
+  ) {
     return {
       label: "Open tokens",
       target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },

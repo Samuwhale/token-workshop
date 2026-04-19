@@ -40,7 +40,7 @@ type HealthStatus = "healthy" | "warning" | "critical";
 
 type PriorityIssueAction =
   | { kind: "lint" }
-  | { kind: "automation"; recipeId: string | null }
+  | { kind: "generated-group"; recipeId: string | null }
   | { kind: "validation-scroll" }
   | { kind: "alias-opportunities-scroll" }
   | { kind: "deprecated-scroll" }
@@ -247,7 +247,7 @@ export interface HealthPanelProps {
   heatmapResult: HeatmapResult | null;
   onNavigateTo: (topTab: "tokens" | "inspect" | "sync", subTab?: string) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
-  onNavigateToAutomation?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
   onTriggerHeatmap: () => void;
   /** Shared validation cache — avoids re-fetching when switching from Analytics tab */
   validationIssues: ValidationIssue[] | null;
@@ -274,7 +274,7 @@ export function HealthPanel({
   heatmapResult,
   onNavigateTo,
   onNavigateToToken,
-  onNavigateToAutomation,
+  onNavigateToGeneratedGroup,
   onTriggerHeatmap,
   validationIssues: validationIssuesProp,
   validationSummary,
@@ -991,11 +991,11 @@ export function HealthPanel({
     if (errorRecipes.length > 0) {
       items.push({
         severity: "critical",
-        category: "Generators",
-        message: `${formatCount(errorRecipes.length, "generator")} failed`,
+        category: "Generated",
+        message: `${formatCount(errorRecipes.length, "generated group")} failed`,
         count: errorRecipes.length,
-        ctaLabel: "Inspect generators",
-        action: { kind: "automation", recipeId: errorRecipes[0]?.id ?? null },
+        ctaLabel: "Inspect generated groups",
+        action: { kind: "generated-group", recipeId: errorRecipes[0]?.id ?? null },
       });
     }
 
@@ -1047,11 +1047,11 @@ export function HealthPanel({
     if (staleRecipes.length > 0) {
       items.push({
         severity: "warning",
-        category: "Generators",
-        message: `${formatCount(staleRecipes.length, "generator")} stale`,
+        category: "Generated",
+        message: `${formatCount(staleRecipes.length, "generated group")} out of date`,
         count: staleRecipes.length,
-        ctaLabel: "Run generators",
-        action: { kind: "automation", recipeId: staleRecipes[0]?.id ?? null },
+        ctaLabel: "Update generated groups",
+        action: { kind: "generated-group", recipeId: staleRecipes[0]?.id ?? null },
       });
     }
 
@@ -1100,10 +1100,10 @@ export function HealthPanel({
     switch (action.kind) {
       case "lint":
         return () => onNavigateTo("tokens", "tokens");
-      case "automation":
+      case "generated-group":
         return () => {
-          if (action.recipeId && onNavigateToAutomation) {
-            onNavigateToAutomation(action.recipeId);
+          if (action.recipeId && onNavigateToGeneratedGroup) {
+            onNavigateToGeneratedGroup(action.recipeId);
             return;
           }
           onNavigateTo("tokens", "tokens");

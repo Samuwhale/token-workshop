@@ -34,7 +34,7 @@ export interface ShellWorkspaceController {
   openPasteModal: () => void;
   openImportPanel: () => void;
   openCollectionCreateDialog: () => void;
-  openColorScaleRecipe: () => void;
+  openGeneratedPalette: () => void;
   toggleQuickApply: () => void;
   focusCollectionRail: () => void;
   collectionRailFocusRequestKey: number;
@@ -91,7 +91,7 @@ export interface TokensWorkspaceController {
   setErrorToast: (message: string) => void;
   setSuccessToast: (message: string) => void;
   handleNavigateToCollection: (collectionId: string, tokenPath: string) => void;
-  handleNavigateToAutomation: (recipeId: string) => void;
+  handleNavigateToGeneratedGroup: (recipeId: string) => void;
   flowPanelInitialPath: string | null;
   setFlowPanelInitialPath: (path: string | null) => void;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;

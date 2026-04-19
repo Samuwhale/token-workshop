@@ -18,22 +18,35 @@ import type { Density } from "../tokenListTypes";
 
 interface SharedDataDeps {
   effectiveAllTokensFlat: Record<string, TokenMapEntry>;
+  modeResolvedTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
+  collections?: TokenCollection[];
 }
 
 export function useTokenTreeSharedData(deps: SharedDataDeps): TokenTreeSharedDataContextType {
   return useMemo(
     () => ({
       allTokensFlat: deps.effectiveAllTokensFlat,
+      modeResolvedTokensFlat: deps.modeResolvedTokensFlat,
       pathToCollectionId: deps.pathToCollectionId,
+      perCollectionFlat: deps.perCollectionFlat,
+      collections: deps.collections,
     }),
-    [deps.effectiveAllTokensFlat, deps.pathToCollectionId],
+    [
+      deps.effectiveAllTokensFlat,
+      deps.modeResolvedTokensFlat,
+      deps.pathToCollectionId,
+      deps.perCollectionFlat,
+      deps.collections,
+    ],
   );
 }
 
 interface GroupStateDeps {
   density: Density;
   collectionId: string;
+  activeCollectionModeLabel?: string | null;
   selectMode: boolean;
   expandedPaths: Set<string>;
   highlightedToken: string | null | undefined;
@@ -55,6 +68,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
     () => ({
       density: deps.density,
       collectionId: deps.collectionId,
+      activeCollectionModeLabel: deps.activeCollectionModeLabel ?? null,
       selectMode: deps.selectMode,
       expandedPaths: deps.expandedPaths,
       highlightedToken: deps.highlightedToken ?? null,
@@ -69,7 +83,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       rovingFocusPath: deps.effectiveRovingPath,
     }),
     [
-      deps.density, deps.collectionId, deps.selectMode, deps.expandedPaths,
+      deps.density, deps.collectionId, deps.activeCollectionModeLabel, deps.selectMode, deps.expandedPaths,
       deps.highlightedToken, deps.searchHighlight, deps.dragOverGroup,
       deps.dragOverGroupIsInvalid, deps.dragSource, deps.recipesByTargetGroup,
       deps.collectionCoverage, deps.condensedView, deps.effectiveRovingPath,
@@ -90,14 +104,20 @@ interface GroupActionsDeps {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onCreateAutomationFromGroup?: (groupPath: string, tokenType: string | null) => void;
+  onCreateGeneratedGroupFromGroup?: (groupPath: string, tokenType: string | null) => void;
   handleZoomIntoGroup: (groupPath: string) => void;
   handleDragOverGroup: (groupPath: string | null, invalid?: boolean) => void;
   handleDropOnGroup: (groupPath: string) => void;
-  onEditAutomation?: (recipeId: string) => void;
-  onNavigateToAutomation?: (recipeId: string) => void;
-  handleRunAutomation: (recipeId: string) => Promise<void>;
-  handleDetachAutomationGroup: (recipeId: string, groupPath: string) => Promise<void>;
+  onEditGeneratedGroup?: (recipeId: string) => void;
+  onDuplicateGeneratedGroup?: (recipeId: string) => void;
+  handleDeleteGeneratedGroup: (recipeId: string) => Promise<void>;
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
+  handleRunGeneratedGroup: (recipeId: string) => Promise<void>;
+  handleToggleGeneratedGroupEnabled: (
+    recipeId: string,
+    enabled: boolean,
+  ) => Promise<void>;
+  handleDetachGeneratedGroup: (recipeId: string, groupPath: string) => Promise<void>;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   setRovingFocusPath: (path: string) => void;
 }
@@ -117,14 +137,17 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       onSyncGroup: deps.onSyncGroup,
       onSyncGroupStyles: deps.onSyncGroupStyles,
       onSetGroupScopes: deps.onSetGroupScopes,
-      onCreateAutomationFromGroup: deps.onCreateAutomationFromGroup,
+      onCreateGeneratedGroupFromGroup: deps.onCreateGeneratedGroupFromGroup,
       onZoomIntoGroup: deps.handleZoomIntoGroup,
       onDragOverGroup: deps.handleDragOverGroup,
       onDropOnGroup: deps.handleDropOnGroup,
-      onEditAutomation: deps.onEditAutomation,
-      onNavigateToAutomation: deps.onNavigateToAutomation,
-      onRunAutomation: deps.handleRunAutomation,
-      onDetachAutomationGroup: deps.handleDetachAutomationGroup,
+      onEditGeneratedGroup: deps.onEditGeneratedGroup,
+      onDuplicateGeneratedGroup: deps.onDuplicateGeneratedGroup,
+      onDeleteGeneratedGroup: deps.handleDeleteGeneratedGroup,
+      onNavigateToGeneratedGroup: deps.onNavigateToGeneratedGroup,
+      onRunGeneratedGroup: deps.handleRunGeneratedGroup,
+      onToggleGeneratedGroupEnabled: deps.handleToggleGeneratedGroupEnabled,
+      onDetachGeneratedGroup: deps.handleDetachGeneratedGroup,
       onNavigateToToken: deps.onNavigateToAlias
         ? (path: string) => deps.onNavigateToAlias!(path)
         : undefined,
@@ -232,7 +255,7 @@ interface LeafActionsDeps {
   handleDropReorder: (path: string, name: string, position: "before" | "after") => void;
   multiModeData: any;
   handleMultiModeInlineSave: any;
-  onOpenAutomationEditor?: any;
+  onOpenGeneratedGroupEditor?: any;
   onToggleStar?: (path: string) => void;
   handleClearPendingRename: () => void;
   handleClearPendingTabEdit: () => void;
@@ -273,7 +296,7 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onMultiModeInlineSave: deps.multiModeData
         ? deps.handleMultiModeInlineSave
         : undefined,
-      onOpenAutomationEditor: deps.onOpenAutomationEditor,
+      onOpenGeneratedGroupEditor: deps.onOpenGeneratedGroupEditor,
       onToggleStar: deps.onToggleStar,
       clearPendingRename: deps.handleClearPendingRename,
       clearPendingTabEdit: deps.handleClearPendingTabEdit,

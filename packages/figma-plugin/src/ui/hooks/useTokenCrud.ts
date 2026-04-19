@@ -21,7 +21,7 @@ export interface UseTokenCrudParams {
   collections?: TokenCollection[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
-  onRefreshAutomations?: () => void;
+  onRefreshGeneratedGroups?: () => void;
   onSetOperationLoading: (msg: string | null) => void;
   onSetLocallyDeletedPaths: (paths: Set<string>) => void;
   onRecordTouch: (path: string) => void;
@@ -34,7 +34,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
   const {
     connected, serverUrl, collectionId, collectionIds, tokens, allTokensFlat, perCollectionFlat,
     recipes, collections,
-    onRefresh, onPushUndo, onRefreshAutomations, onSetOperationLoading,
+    onRefresh, onPushUndo, onRefreshGeneratedGroups, onSetOperationLoading,
     onSetLocallyDeletedPaths, onRecordTouch, onRenamePath, onClearSelection, onError,
   } = params;
 
@@ -49,7 +49,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
 
   const dup = useTokenDuplicate({ connected, serverUrl, collectionId, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
 
-  const save = useTokenSave({ connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, recipes, onRefresh, onPushUndo, onRecordTouch, onRefreshAutomations, onError });
+  const save = useTokenSave({ connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, recipes, onRefresh, onPushUndo, onRecordTouch, onRefreshGeneratedGroups, onError });
 
   return {
     // Rename state + callbacks

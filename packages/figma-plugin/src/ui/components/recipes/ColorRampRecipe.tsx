@@ -263,7 +263,7 @@ function SwatchCell({
 
       {/* Lock badge for overridden swatches */}
       {isOverridden && (
-        <div className="absolute top-1 left-1/2 -translate-x-1/2" title="Locked override">
+        <div className="absolute top-1 left-1/2 -translate-x-1/2" title="Manual exception">
           <svg width="8" height="8" viewBox="0 0 12 12" fill="white" opacity="0.85" aria-hidden="true">
             <path d="M9 5V4a3 3 0 0 0-6 0v1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1ZM4 4a2 2 0 1 1 4 0v1H4V4Z" />
           </svg>
@@ -275,8 +275,8 @@ function SwatchCell({
         <button
           onClick={e => { e.stopPropagation(); onOverrideClear(token.stepName); }}
           className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity bg-[var(--color-figma-overlay)] text-white hover:bg-[var(--color-figma-error)]/80"
-          title="Clear override"
-          aria-label="Clear override"
+          title="Clear manual exception"
+          aria-label="Clear manual exception"
         >
           <svg width="6" height="6" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3l6 6M9 3l-6 6" /></svg>
         </button>

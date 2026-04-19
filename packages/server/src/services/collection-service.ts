@@ -159,7 +159,7 @@ interface CollectionResolverMeta {
 interface CollectionRecipeMeta {
   id: string;
   name: string;
-  targetCollections: string[];
+  targetCollection: string;
   targetGroup: string;
 }
 
@@ -651,7 +651,7 @@ function buildGeneratedOwnershipImpacts(
       const recipe = recipeById.get(recipeId);
       return {
         recipeId,
-        recipeName: recipe?.name ?? "Unknown recipe",
+        recipeName: recipe?.name ?? "Unknown generated group",
         targetGroup: recipe?.targetGroup ?? "",
         tokenCount: ownership.tokenCount,
         samplePaths: ownership.samplePaths.sort((a, b) => a.localeCompare(b)),
@@ -665,7 +665,7 @@ function buildRecipeTargets(
   recipes: CollectionRecipeMeta[],
 ): CollectionRecipeTargetImpact[] {
   return recipes
-    .filter((recipe) => recipe.targetCollections.includes(collectionId))
+    .filter((recipe) => recipe.targetCollection === collectionId)
     .map((recipe) => ({
       recipeId: recipe.id,
       recipeName: recipe.name,
@@ -713,7 +713,7 @@ function buildRecipeTargetBlockers(
     collectionId: collectionImpact.collectionId,
     recipeId: recipe.recipeId,
     recipeName: recipe.recipeName,
-    message: `Recipe "${recipe.recipeName}" still targets "${collectionImpact.collectionId}"${recipe.targetGroup ? ` at ${recipe.targetGroup}` : ""}.`,
+    message: `Generated group "${recipe.recipeName}" still targets "${collectionImpact.collectionId}"${recipe.targetGroup ? ` at ${recipe.targetGroup}` : ""}.`,
   }));
 }
 
@@ -750,7 +750,7 @@ function buildRenameBlockers(
     collectionId: collectionImpact.collectionId,
     recipeId: recipe.recipeId,
     recipeName: recipe.recipeName,
-    message: `Recipe "${recipe.recipeName}" still targets "${collectionImpact.collectionId}" and must be updated before this collection is renamed.`,
+    message: `Generated group "${recipe.recipeName}" still targets "${collectionImpact.collectionId}" and must be updated before this collection is renamed.`,
   }));
 }
 
@@ -783,7 +783,7 @@ function buildPreflightWarnings(params: {
     if (!deleteOriginal) {
       if (source.generatedOwnership.length > 0) {
         warnings.push(
-          `Generated tokens copied into the new split collections become regular tokens there so the original recipe keeps owning only "${source.collectionId}".`,
+          `Generated tokens copied into the new split collections become regular tokens there so the original generated group keeps owning only "${source.collectionId}".`,
         );
       }
     }
@@ -1140,7 +1140,7 @@ export class CollectionService {
         .map((recipe) => ({
           id: recipe.id,
           name: recipe.name,
-          targetCollections: recipe.targetCollections,
+          targetCollection: recipe.targetCollection,
           targetGroup: recipe.targetGroup,
         })),
       allOwnedTokens: this.tokenStore.findTokensByRecipeId("*"),

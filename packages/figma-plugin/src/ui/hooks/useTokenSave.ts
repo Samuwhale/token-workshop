@@ -22,11 +22,11 @@ export interface UseTokenSaveParams {
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRecordTouch: (path: string) => void;
-  onRefreshAutomations?: () => void;
+  onRefreshGeneratedGroups?: () => void;
   onError?: (msg: string) => void;
 }
 
-interface MultiModeSaveOptions {
+export interface MultiModeSaveOptions {
   allowGeneratedEdit?: boolean;
 }
 
@@ -46,7 +46,7 @@ export function useTokenSave({
   onRefresh,
   onPushUndo,
   onRecordTouch,
-  onRefreshAutomations,
+  onRefreshGeneratedGroups,
   onError,
 }: UseTokenSaveParams) {
   const collectionIdRef = useRef(collectionId);
@@ -284,7 +284,7 @@ export function useTokenSave({
     if (!connected) return false;
     const derivedRecipe = findProducingRecipe(path);
     if (!derivedRecipe) {
-      onError?.("Manual exception failed: generator ownership not found");
+      onError?.("Manual exception failed: generated group ownership not found");
       return false;
     }
     const stepName = getOverrideableStepName(derivedRecipe, path);
@@ -316,7 +316,7 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-    onRefreshAutomations?.();
+    onRefreshGeneratedGroups?.();
     return true;
   }, [
     connected,
@@ -325,7 +325,7 @@ export function useTokenSave({
     onError,
     onRecordTouch,
     onRefresh,
-    onRefreshAutomations,
+    onRefreshGeneratedGroups,
     serverUrl,
   ]);
 
@@ -334,7 +334,7 @@ export function useTokenSave({
     try {
       const derivedRecipe = findProducingRecipe(path);
       if (!derivedRecipe) {
-        onError?.("Detach failed: generator ownership not found");
+        onError?.("Detach failed: generated group ownership not found");
         return false;
       }
       await apiFetch(`${serverUrl}/api/recipes/${derivedRecipe.id}/detach`, {
@@ -347,9 +347,9 @@ export function useTokenSave({
       return false;
     }
     onRefresh();
-    onRefreshAutomations?.();
+    onRefreshGeneratedGroups?.();
     return true;
-  }, [connected, findProducingRecipe, onError, onRefresh, onRefreshAutomations, serverUrl]);
+  }, [connected, findProducingRecipe, onError, onRefresh, onRefreshGeneratedGroups, serverUrl]);
 
   return {
     handleInlineSave,

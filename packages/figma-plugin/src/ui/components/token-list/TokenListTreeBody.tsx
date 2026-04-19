@@ -130,6 +130,7 @@ interface TokenListTreeBodyProps {
   // Navigation
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
   onCreateNew?: (initialPath?: string) => void;
+  onCreateGeneratedGroup?: () => void;
 
   // Filters
   clearFilters: () => void;
@@ -193,6 +194,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     handleCollapseBelow,
     onNavigateToCollection,
     onCreateNew,
+    onCreateGeneratedGroup,
     clearFilters,
   } = props;
 
@@ -236,8 +238,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       return (
         <>
           {multiModeHeaders}
-          <div className="py-3">
-            <FeedbackPlaceholder
+        <div className="py-3">
+          <FeedbackPlaceholder
               variant="no-results"
               size="section"
               title="No tokens found across all collections"
@@ -429,8 +431,20 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               </svg>
             }
             title="This collection is empty"
-            description="Use the Create menu to add tokens."
+            description="Create tokens or generate a group directly in this collection."
           />
+          {onCreateGeneratedGroup && (
+            <div className="mt-2 text-center">
+              <button
+                type="button"
+                onClick={onCreateGeneratedGroup}
+                disabled={!connected}
+                className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Generate group…
+              </button>
+            </div>
+          )}
         </div>
       </>
     );

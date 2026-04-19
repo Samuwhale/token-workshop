@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
 import type { GeneratedTokenResult, RecipeType } from '../hooks/useRecipes';
 import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
-import { AutomationEditorDialog } from './AutomationEditorDialog';
+import { GeneratedGroupEditor } from './GeneratedGroupEditor';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { apiFetch } from '../shared/apiFetch';
-import { createRecipeDraftFromTemplate } from '../hooks/useAutomationDialog';
+import { createRecipeDraftFromTemplate } from '../hooks/useGeneratedGroupEditor';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -518,7 +518,7 @@ export function QuickStartWizard({
 
   if (selectedTemplate) {
     return (
-      <AutomationEditorDialog
+      <GeneratedGroupEditor
         serverUrl={serverUrl}
         currentCollectionId={effectiveCollectionId}
         template={selectedTemplate}

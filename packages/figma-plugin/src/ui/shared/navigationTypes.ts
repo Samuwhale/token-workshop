@@ -5,7 +5,7 @@
  */
 
 import { STORAGE_KEYS } from "./storage";
-import type { RecipeDialogInitialDraft } from "../hooks/useAutomationDialog";
+import type { RecipeDialogInitialDraft } from "../hooks/useGeneratedGroupEditor";
 import type { RecipeTemplate } from "../hooks/useRecipes";
 
 export type TopTab = "tokens" | "inspect" | "sync";
@@ -40,13 +40,13 @@ export type TokensLibraryContextualSurface =
   | "compare"
   | "collection-details"
   | "token-editor"
-  | "automation-editor"
+  | "generated-group-editor"
   | "token-preview";
 export type TokensLibrarySurfaceSlot =
   | "library-body"
   | "contextual-panel"
   | "split-preview";
-export type TokensLibraryAutomationEditorTarget =
+export type TokensLibraryGeneratedGroupEditorTarget =
   | {
       mode: "edit";
       id: string;
@@ -359,8 +359,8 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         label: "Token editor",
         usage: "Edit or create a token.",
       },
-      "automation-editor": {
-        label: "Generator editor",
+      "generated-group-editor": {
+        label: "Generated group editor",
         usage: "Configure a generated group.",
       },
       "token-preview": {

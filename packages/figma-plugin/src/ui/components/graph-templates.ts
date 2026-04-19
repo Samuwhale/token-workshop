@@ -1,5 +1,4 @@
 import type {
-  AccessibleColorPairConfig,
   BorderRadiusScaleConfig,
   ColorRampConfig,
   CustomScaleConfig,
@@ -222,8 +221,8 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     label: "Elevation shadows",
     description: "Generate consistent depth tokens for surfaces and overlays.",
     whenToUse:
-      "Use when cards, modals, and menus need repeatable shadow recipes instead of one-off effects.",
-    stages: ["Goal", "Shadow recipe", "Depth scale", "Surface aliases"],
+      "Use when cards, modals, and menus need a repeatable shadow scale instead of one-off effects.",
+    stages: ["Goal", "Shadow scale", "Depth scale", "Surface aliases"],
     starterPresetName: "Elevation starter",
     starterPreset: "Five shadow levels plus component.card, modal, and dropdown starters.",
     sourceRequirement: "No source token required.",
@@ -273,33 +272,6 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
       formula: "base * multiplier",
       roundTo: 2,
     } satisfies CustomScaleConfig,
-  },
-  {
-    id: "accessible-color-pair",
-    label: "Accessible brand surface",
-    description: "Generate a background and foreground pair that meets WCAG contrast.",
-    whenToUse:
-      "Use when buttons, badges, or highlighted surfaces need guaranteed text contrast from a brand color.",
-    stages: ["Goal", "Brand color", "AA-safe pair", "On-brand aliases"],
-    starterPresetName: "Brand surface pair",
-    starterPreset: "AA-safe bg and fg pair plus surface.brand and text.onBrand starters.",
-    sourceRequirement: "Best with a color token or hex value.",
-    sourceTokenTypes: ["color"],
-    defaultPrefix: "accessible",
-    recipeType: "accessibleColorPair",
-    requiresSource: true,
-    config: {
-      contrastLevel: "AA",
-      backgroundStep: "bg",
-      foregroundStep: "fg",
-    } satisfies AccessibleColorPairConfig,
-    semanticStarter: {
-      prefix: "semantic",
-      mappings: [
-        { semantic: "surface.brand", step: "bg" },
-        { semantic: "text.onBrand", step: "fg" },
-      ],
-    },
   },
   {
     id: "dark-mode-palette",

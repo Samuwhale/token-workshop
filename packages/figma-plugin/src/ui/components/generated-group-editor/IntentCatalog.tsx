@@ -7,7 +7,7 @@ import {
   getTemplateSemanticCount,
   getTemplateStepCount,
 } from "../graph-templates";
-import { getAutomationTypeLabel } from "../../shared/automationUtils";
+import { getGeneratedGroupTypeLabel } from "../../shared/generatedGroupUtils";
 
 // ---------------------------------------------------------------------------
 // Pipeline stage visualization
@@ -133,27 +133,6 @@ export function TemplateIcon({ id }: { id: string }) {
               }}
             />
           ))}
-        </div>
-      );
-    case "accessible-color-pair":
-      return (
-        <div className="flex items-center gap-1 h-5">
-          <div
-            className="flex h-full w-5 items-center justify-center rounded-sm"
-            style={{ background: "hsl(240, 55%, 40%)" }}
-          >
-            <span className="text-[8px] font-bold leading-none text-white">
-              Aa
-            </span>
-          </div>
-          <div className="flex h-full flex-col justify-center gap-0.5">
-            <div className="text-[8px] font-medium leading-none text-[var(--color-figma-text-secondary)]">
-              4.5:1
-            </div>
-            <div className="text-[8px] leading-none text-[var(--color-figma-text-tertiary)]">
-              AA
-            </div>
-          </div>
         </div>
       );
     case "dark-mode-palette":
@@ -293,7 +272,7 @@ export function RecipeIntentCard({
               </span>
             )}
             <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-px text-[10px] text-[var(--color-figma-text-secondary)]">
-              {getAutomationTypeLabel(template.recipeType)}
+              {getGeneratedGroupTypeLabel(template.recipeType)}
             </span>
           </div>
           <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">

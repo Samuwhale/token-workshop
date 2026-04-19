@@ -15,7 +15,7 @@ interface PreviewPanelProps {
   onSelectedModesChange?: (selectedModes: Record<string, string>) => void;
   onGoToTokens?: () => void;
   onNavigateToToken?: (path: string) => void;
-  onNavigateToAutomation?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
   /** When set, the panel renders token detail instead of collection templates */
   focusedToken?: { path: string; name?: string; currentCollectionId: string } | null;
   pathToCollectionId?: Record<string, string>;
@@ -231,7 +231,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = {}, onSelectedModesChange, onGoToTokens, onNavigateToToken, onNavigateToAutomation, focusedToken, pathToCollectionId, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = {}, onSelectedModesChange, onGoToTokens, onNavigateToToken, onNavigateToGeneratedGroup, focusedToken, pathToCollectionId, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, recipes, recipesBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = lsGet(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -445,7 +445,7 @@ export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = 
           }
           onClose={onClearFocus ?? (() => {})}
           onNavigateToAlias={(path) => onNavigateToToken?.(path)}
-          onNavigateToAutomation={onNavigateToAutomation}
+          onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
         />
       </div>
     );

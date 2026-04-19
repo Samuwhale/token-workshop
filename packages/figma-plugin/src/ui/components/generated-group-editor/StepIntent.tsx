@@ -1,10 +1,10 @@
 /**
- * Step 1 — Outcome selection: choose the generator outcome before editing details.
+ * Step 1 — Outcome selection: choose the generated group outcome before editing details.
  */
 import type { RecipeType, RecipeConfig } from "../../hooks/useRecipes";
 import type { GraphTemplate } from "../graph-templates";
 import { GRAPH_TEMPLATES } from "../graph-templates";
-import { createRecipeDraftFromTemplate } from "../../hooks/useAutomationDialog";
+import { createRecipeDraftFromTemplate } from "../../hooks/useGeneratedGroupEditor";
 import { AUTHORING } from "../../shared/editorClasses";
 import { RecipeIntentCatalog } from "./IntentCatalog";
 
@@ -31,7 +31,7 @@ export interface StepIntentProps {
 export function StepIntent({
   templates = GRAPH_TEMPLATES,
   title = "What do you want to create?",
-  description = "Start from the outcome you want. You can tune the generator in the next step.",
+  description = "Start from the outcome you want. You can tune the generated group in the next step.",
   selectedType,
   recommendedType,
   connected,

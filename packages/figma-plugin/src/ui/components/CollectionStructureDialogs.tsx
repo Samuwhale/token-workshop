@@ -130,7 +130,7 @@ function CollectionPreflightCard({
       ) : null}
       {!hasDependencies ? (
         <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-          No linked resolver or recipe dependencies detected.
+          No linked resolver or generated group dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
@@ -189,7 +189,7 @@ function CollectionPreflightCard({
           {impact.recipeTargets.length > 0 ? (
             <div className="flex flex-col gap-1">
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Recipe targets ({impact.recipeTargets.length})
+                Generated group targets ({impact.recipeTargets.length})
               </div>
               <div className="flex flex-col gap-1">
                 {impact.recipeTargets.map((recipe) => (

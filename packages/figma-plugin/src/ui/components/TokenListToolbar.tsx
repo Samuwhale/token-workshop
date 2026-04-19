@@ -67,7 +67,7 @@ export interface TokenListToolbarProps {
   onToggleMultiMode: () => void;
   modeLensEnabled: boolean;
   onToggleModeLens: () => void;
-  onCreateAutomation?: () => void;
+  onCreateGeneratedGroup?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
   onFindReplace?: () => void;
@@ -131,7 +131,7 @@ export function TokenListToolbar({
   onToggleMultiMode,
   modeLensEnabled,
   onToggleModeLens,
-  onCreateAutomation,
+  onCreateGeneratedGroup,
   onSelectTokens,
   onBulkEdit,
   onFindReplace,
@@ -284,7 +284,7 @@ export function TokenListToolbar({
                 aria-expanded={createToolsMenuOpen}
                 aria-haspopup="menu"
                 className="inline-flex h-[24px] w-[24px] items-center justify-center rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                title="Add, automate, or import"
+                title="Add, generate, or import"
               >
                 <svg
                   width="10"
@@ -344,12 +344,12 @@ export function TokenListToolbar({
                       New collection
                     </button>
                   )}
-                  {onCreateAutomation && (
+                  {onCreateGeneratedGroup && (
                     <>
                       <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
                       <button
                         role="menuitem"
-                        onClick={() => runCreateToolsAction(onCreateAutomation)}
+                        onClick={() => runCreateToolsAction(onCreateGeneratedGroup)}
                         disabled={!connected}
                         className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                       >

@@ -1,6 +1,7 @@
 import type { TokenRecipe } from "../../hooks/useRecipes";
-import type { TokensLibraryAutomationEditorTarget } from "../../shared/navigationTypes";
+import type { TokensLibraryGeneratedGroupEditorTarget } from "../../shared/navigationTypes";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
+import { getGeneratedGroupTypeLabel } from "../../shared/generatedGroupUtils";
 import { getSingleObviousRecipeType } from "../recipes/recipeUtils";
 
 export interface TokenEditorDerivedGroupsProps {
@@ -9,7 +10,7 @@ export interface TokenEditorDerivedGroupsProps {
   tokenType: string;
   value: any;
   existingRecipesForToken: TokenRecipe[];
-  openAutomationEditor: (target: TokensLibraryAutomationEditorTarget) => void;
+  openGeneratedGroupEditor: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
 }
 
 export function TokenEditorDerivedGroups({
@@ -18,21 +19,14 @@ export function TokenEditorDerivedGroups({
   tokenType,
   value,
   existingRecipesForToken,
-  openAutomationEditor,
+  openGeneratedGroupEditor,
 }: TokenEditorDerivedGroupsProps) {
-  const obviousType = getSingleObviousRecipeType(tokenType);
-  const recipeTypeLabel = (type: TokenRecipe["type"]) => {
-    switch (type) {
-      case "colorRamp":
-        return "Color ramp";
-      case "typeScale":
-        return "Type scale";
-      case "spacingScale":
-        return "Spacing scale";
-      default:
-        return "Opacity scale";
-    }
-  };
+  const obviousType = getSingleObviousRecipeType(
+    tokenType,
+    tokenPath,
+    tokenName,
+    value,
+  );
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
@@ -48,7 +42,7 @@ export function TokenEditorDerivedGroups({
           )}
         </div>
         <p className="mt-0.5 text-[10px] text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">
-          Auto-generate token groups from a formula
+          Build generated groups directly inside this collection.
         </p>
       </div>
       <div className="px-3 py-2 flex flex-col gap-2">
@@ -65,7 +59,7 @@ export function TokenEditorDerivedGroups({
                     {gen.name}
                   </span>
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
-                    {recipeTypeLabel(gen.type)}
+                    {getGeneratedGroupTypeLabel(gen.type)}
                   </span>
                 </div>
                 <span className={`${LONG_TEXT_CLASSES.monoSecondary} block`}>
@@ -76,14 +70,14 @@ export function TokenEditorDerivedGroups({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    openAutomationEditor({
+                    openGeneratedGroupEditor({
                       mode: 'edit',
                       id: gen.id,
                     });
                   }}
                   className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
                 >
-                  Edit
+                  Edit generator
                 </button>
               </div>
             </div>
@@ -96,7 +90,7 @@ export function TokenEditorDerivedGroups({
         )}
         <button
           onClick={() => {
-            openAutomationEditor({
+            openGeneratedGroupEditor({
               mode: 'create',
               sourceTokenPath: tokenPath,
               sourceTokenName: tokenName,
@@ -109,7 +103,9 @@ export function TokenEditorDerivedGroups({
           }}
           className="self-start rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
         >
-          Generate from this token
+          {obviousType
+            ? `Generate ${getGeneratedGroupTypeLabel(obviousType).toLowerCase()}…`
+            : "Generate from this token…"}
         </button>
       </div>
     </div>

@@ -40,12 +40,31 @@ export function detectRecipeType(sourceTokenType: string, sourceTokenValue: any)
 
 export function getSingleObviousRecipeType(
   sourceTokenType: string | undefined,
+  sourceTokenPath?: string,
+  sourceTokenName?: string,
+  sourceTokenValue?: unknown,
 ): RecipeType | undefined {
   switch (sourceTokenType) {
     case 'color':
       return 'colorRamp';
     case 'fontSize':
       return 'typeScale';
+    case 'dimension': {
+      const label = `${sourceTokenPath ?? ''}.${sourceTokenName ?? ''}`.toLowerCase();
+      if (/(font|type|text|heading|body|display|title)/.test(label)) {
+        return 'typeScale';
+      }
+      if (/(space|spacing|gap|padding|margin|inset|offset)/.test(label)) {
+        return 'spacingScale';
+      }
+      return sourceTokenValue === undefined
+        ? undefined
+        : detectRecipeType(sourceTokenType, sourceTokenValue);
+    }
+    case 'number':
+      return sourceTokenValue === undefined
+        ? undefined
+        : detectRecipeType(sourceTokenType, sourceTokenValue);
     default:
       return undefined;
   }
@@ -81,7 +100,6 @@ export function defaultConfigForType(type: RecipeType): RecipeConfig {
     case 'zIndexScale': return { steps: DEFAULT_Z_INDEX_CONFIG.steps.map(s => ({ ...s })) };
     case 'shadowScale': return { ...DEFAULT_SHADOW_SCALE_CONFIG, steps: DEFAULT_SHADOW_SCALE_CONFIG.steps.map(s => ({ ...s })) };
     case 'customScale': return { ...DEFAULT_CUSTOM_CONFIG, steps: DEFAULT_CUSTOM_CONFIG.steps.map(s => ({ ...s })) };
-    case 'accessibleColorPair': return { contrastLevel: 'AA' as const, backgroundStep: 'bg', foregroundStep: 'fg' };
     case 'darkModeInversion': return { stepName: 'inverted', chromaBoost: 0 };
   }
 }
@@ -89,7 +107,6 @@ export function defaultConfigForType(type: RecipeType): RecipeConfig {
 export function defaultInlineValueForType(type: RecipeType): unknown {
   switch (type) {
     case 'colorRamp':
-    case 'accessibleColorPair':
     case 'darkModeInversion':
       return '#ffffff';
     case 'typeScale':
@@ -104,7 +121,6 @@ export function defaultInlineValueForType(type: RecipeType): unknown {
 export function isInlineValueCompatibleWithType(type: RecipeType, value: unknown): boolean {
   switch (type) {
     case 'colorRamp':
-    case 'accessibleColorPair':
     case 'darkModeInversion':
       return typeof value === 'string' && value.trim().length > 0;
     case 'typeScale':
@@ -123,7 +139,7 @@ export function isInlineValueCompatibleWithType(type: RecipeType, value: unknown
 
 // Types that require a source token
 /** Types that need a value (from source token OR inline input) */
-export const VALUE_REQUIRED_TYPES: RecipeType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'accessibleColorPair', 'darkModeInversion'];
+export const VALUE_REQUIRED_TYPES: RecipeType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'darkModeInversion'];
 // Types that work standalone (no value at all)
 export const STANDALONE_TYPES: RecipeType[] = ['opacityScale', 'zIndexScale', 'shadowScale'];
 // Types that work either way
@@ -131,15 +147,14 @@ export const FLEXIBLE_TYPES: RecipeType[] = ['customScale'];
 
 /** Human-readable labels for every recipe type. Canonical source of truth. */
 export const TYPE_LABELS: Record<RecipeType, string> = {
-  colorRamp: 'Color Palette',
-  typeScale: 'Font Size Scale',
+  colorRamp: 'Palette',
+  typeScale: 'Type Scale',
   spacingScale: 'Spacing Scale',
   opacityScale: 'Opacity Scale',
-  borderRadiusScale: 'Border Radius',
-  zIndexScale: 'Z-Index',
+  borderRadiusScale: 'Radius Scale',
+  zIndexScale: 'Layer Order Scale',
   shadowScale: 'Shadow Scale',
-  customScale: 'Custom Formula',
-  accessibleColorPair: 'Contrast-Safe Pair',
+  customScale: 'Custom Scale',
   darkModeInversion: 'Dark Mode Variant',
 };
 
@@ -150,7 +165,7 @@ export const PRIMARY_TYPES: RecipeType[] = [
 ];
 /** Advanced/niche recipe types shown in a collapsible section */
 export const ADVANCED_TYPES: RecipeType[] = [
-  'accessibleColorPair', 'darkModeInversion',
+  'darkModeInversion',
 ];
 
 export const ALL_TYPES: RecipeType[] = [...PRIMARY_TYPES, ...ADVANCED_TYPES];
@@ -169,6 +184,5 @@ export const TYPE_DESCRIPTIONS: Record<RecipeType, string> = {
   zIndexScale: 'Set up stacking order values for layered components',
   shadowScale: 'Create elevation levels with progressive shadow depth',
   customScale: 'Write a custom formula to create any numeric scale',
-  accessibleColorPair: 'Create foreground + background colors that meet WCAG contrast',
   darkModeInversion: 'Create a dark mode version of a color with perceptual accuracy',
 };

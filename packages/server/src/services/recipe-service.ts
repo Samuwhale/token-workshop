@@ -18,13 +18,13 @@ import type {
   ZIndexScaleConfig,
   ShadowScaleConfig,
   CustomScaleConfig,
-  AccessibleColorPairConfig,
   DarkModeInversionConfig,
   DimensionUnit,
 } from "@tokenmanager/core";
 import {
   DIMENSION_UNITS,
   evalExpr,
+  readTokenCollectionModeValues,
   runColorRampRecipe,
   runTypeScaleRecipe,
   runSpacingScaleRecipe,
@@ -33,10 +33,8 @@ import {
   runZIndexScaleRecipe,
   runShadowScaleRecipe,
   runCustomScaleRecipe,
-  runAccessibleColorPairRecipe,
   runDarkModeInversionRecipe,
   applyOverrides,
-  getRecipeOutputCollectionIds,
   getRecipeManagedOutputPaths,
   substituteVars,
   validateStepName,
@@ -61,7 +59,6 @@ const VALID_RECIPE_TYPES = [
   "zIndexScale",
   "shadowScale",
   "customScale",
-  "accessibleColorPair",
   "darkModeInversion",
 ] as const satisfies readonly RecipeType[];
 
@@ -151,6 +148,15 @@ export interface RecipePreviewDetachedEntry {
   state: "preserved" | "recreated";
 }
 
+export interface RecipePreviewManualExceptionEntry {
+  path: string;
+  collectionId: string;
+  type: string;
+  currentValue?: unknown;
+  newValue?: unknown;
+  state: "created" | "preserved" | "invalidated";
+}
+
 export interface RecipePreviewAnalysis {
   fingerprint: string;
   safeCreateCount: number;
@@ -161,6 +167,7 @@ export interface RecipePreviewAnalysis {
   manualEditConflicts: RecipePreviewManualConflictEntry[];
   deletedOutputs: RecipePreviewDeletedEntry[];
   detachedOutputs: RecipePreviewDetachedEntry[];
+  manualExceptions: RecipePreviewManualExceptionEntry[];
   diff: {
     created: Array<{ path: string; value: unknown; type: string }>;
     updated: Array<{
@@ -182,7 +189,7 @@ export interface RecipePreviewResult {
 export interface RecipeCollectionDependencyMeta {
   id: string;
   name: string;
-  targetCollections: string[];
+  targetCollection: string;
   targetGroup: string;
 }
 
@@ -259,7 +266,7 @@ function getRecipeDashboardStatus(
 function getRecipeStatusLabel(status: RecipeDashboardStatus): string {
   switch (status) {
     case "paused":
-      return "Paused";
+      return "Keep updated off";
     case "blocked":
       return "Blocked by upstream";
     case "failed":
@@ -659,9 +666,9 @@ function normalizeRecipeConfig(
         );
       for (let i = 0; i < c.steps.length; i++) {
         const value = (c.steps[i] as Record<string, unknown>).value as number;
-        if (value < 0 || value > 1) {
+        if (value < 0 || value > 100) {
           throw new BadRequestError(
-            `opacityScale config steps[${i}].value must be between 0 and 1`,
+            `opacityScale config steps[${i}].value must be between 0 and 100`,
           );
         }
       }
@@ -846,26 +853,6 @@ function normalizeRecipeConfig(
           : {}),
       } satisfies CustomScaleConfig;
     }
-    case "accessibleColorPair": {
-      if (c.contrastLevel !== "AA" && c.contrastLevel !== "AAA") {
-        throw new BadRequestError(
-          'accessibleColorPair config requires "contrastLevel" as "AA" | "AAA"',
-        );
-      }
-      if (typeof c.backgroundStep !== "string")
-        throw new BadRequestError(
-          'accessibleColorPair config requires "backgroundStep" as string',
-        );
-      if (typeof c.foregroundStep !== "string")
-        throw new BadRequestError(
-          'accessibleColorPair config requires "foregroundStep" as string',
-        );
-      return {
-        contrastLevel: c.contrastLevel as "AA" | "AAA",
-        backgroundStep: c.backgroundStep as string,
-        foregroundStep: c.foregroundStep as string,
-      } satisfies AccessibleColorPairConfig;
-    }
     case "darkModeInversion": {
       if (typeof c.stepName !== "string")
         throw new BadRequestError(
@@ -1048,10 +1035,135 @@ export class RecipeService {
     return Array.from(this.recipes.values());
   }
 
+  private async getCollectionModeCounts(
+    collectionLookup: {
+      getCollectionsOverview(): Promise<{
+        collections: Array<{ id: string; modes: Array<{ name: string }> }>;
+      }>;
+    },
+  ): Promise<Map<string, number>> {
+    const overview = await collectionLookup.getCollectionsOverview();
+    return new Map(
+      overview.collections.map((collection) => [
+        collection.id,
+        collection.modes.length,
+      ]),
+    );
+  }
+
+  private async getKeepUpdatedDisabledReason(
+    sourceToken: string | undefined,
+    tokenStore: Pick<TokenStore, "getTokenDefinitions">,
+    collectionModeCounts: Map<string, number>,
+  ): Promise<string | null> {
+    if (!sourceToken) {
+      return "Keep updated is unavailable because this generated group has no source token.";
+    }
+    const sourceDefinitions = tokenStore.getTokenDefinitions(sourceToken);
+    if (sourceDefinitions.length === 0) {
+      return null;
+    }
+    for (const { collectionId, token } of sourceDefinitions) {
+      const collectionModeCount = collectionModeCounts.get(collectionId) ?? 0;
+      if (collectionModeCount <= 1) {
+        continue;
+      }
+      const sourceTokenModes = readTokenCollectionModeValues(token)[
+        collectionId
+      ];
+      if (!sourceTokenModes) {
+        continue;
+      }
+      const baseValue = stableStringify(token.$value);
+      const hasModeSensitiveSourceValue = Object.values(sourceTokenModes).some(
+        (value) =>
+          value !== undefined &&
+          value !== null &&
+          value !== "" &&
+          stableStringify(value) !== baseValue,
+      );
+      if (hasModeSensitiveSourceValue) {
+        return `Keep updated is unavailable because source token "${sourceToken}" changes across modes. Rerun from the current view so the active mode stays explicit.`;
+      }
+    }
+    return null;
+  }
+
+  async assertKeepUpdatedSupported(
+    recipe: Pick<TokenRecipe, "enabled" | "sourceToken">,
+    tokenStore: Pick<TokenStore, "getTokenDefinitions">,
+    collectionLookup: {
+      getCollectionsOverview(): Promise<{
+        collections: Array<{ id: string; modes: Array<{ name: string }> }>;
+      }>;
+    },
+  ): Promise<void> {
+    if (recipe.enabled === false) {
+      return;
+    }
+    const collectionModeCounts =
+      await this.getCollectionModeCounts(collectionLookup);
+    const disabledReason = await this.getKeepUpdatedDisabledReason(
+      recipe.sourceToken,
+      tokenStore,
+      collectionModeCounts,
+    );
+    if (disabledReason) {
+      throw new BadRequestError(disabledReason);
+    }
+  }
+
+  async disableUnsupportedKeepUpdated(
+    tokenStore: Pick<TokenStore, "getTokenDefinitions">,
+    collectionLookup: {
+      getCollectionsOverview(): Promise<{
+        collections: Array<{ id: string; modes: Array<{ name: string }> }>;
+      }>;
+    },
+  ): Promise<number> {
+    const collectionModeCounts =
+      await this.getCollectionModeCounts(collectionLookup);
+    let changed = 0;
+    for (const recipe of this.recipes.values()) {
+      if (recipe.enabled === false) {
+        continue;
+      }
+      const disabledReason = await this.getKeepUpdatedDisabledReason(
+        recipe.sourceToken,
+        tokenStore,
+        collectionModeCounts,
+      );
+      if (!disabledReason) {
+        continue;
+      }
+      this.recipes.set(recipe.id, {
+        ...recipe,
+        enabled: false,
+        updatedAt: new Date().toISOString(),
+        lastRunError: {
+          message: disabledReason,
+          at: new Date().toISOString(),
+        },
+      });
+      changed += 1;
+    }
+    if (changed > 0) {
+      await this.saveRecipes();
+    }
+    return changed;
+  }
+
   async getDashboardItems(
-    tokenStore: Pick<TokenStore, "resolveToken">,
+    tokenStore: Pick<TokenStore, "resolveToken" | "getTokenDefinitions">,
+    collectionLookup: {
+      getCollectionsOverview(): Promise<{
+        collections: Array<{ id: string; modes: Array<{ name: string }> }>;
+      }>;
+    },
   ): Promise<RecipeDashboardItem[]> {
     const recipes = Array.from(this.recipes.values());
+    const collectionModeCounts =
+      await this.getCollectionModeCounts(collectionLookup);
     const upstreamIdsByRecipe = new Map<string, string[]>();
     const downstreamIdsByRecipe = new Map<string, string[]>();
 
@@ -1078,6 +1190,17 @@ export class RecipeService {
           return { id: recipe.id, isStale: false, staleReason: undefined };
         }
         if (!recipe.lastRunAt) {
+          return { id: recipe.id, isStale: false, staleReason: undefined };
+        }
+        const keepUpdatedDisabledReason =
+          recipe.enabled === false
+            ? await this.getKeepUpdatedDisabledReason(
+                recipe.sourceToken,
+                tokenStore,
+                collectionModeCounts,
+              )
+            : null;
+        if (keepUpdatedDisabledReason) {
           return { id: recipe.id, isStale: false, staleReason: undefined };
         }
 
@@ -1162,7 +1285,7 @@ export class RecipeService {
       const summaryMessage =
         recipe.lastRunError?.message ??
         staleEntry?.staleReason ??
-        (!recipe.lastRunAt ? "Run this recipe to create outputs." : undefined);
+        (!recipe.lastRunAt ? "Run this generated group to create outputs." : undefined);
 
       return {
         ...recipe,
@@ -1185,7 +1308,7 @@ export class RecipeService {
     return Array.from(this.recipes.values()).map((recipe) => ({
       id: recipe.id,
       name: recipe.name,
-      targetCollections: getRecipeOutputCollectionIds(recipe),
+      targetCollection: recipe.targetCollection,
       targetGroup: recipe.targetGroup,
     }));
   }
@@ -1731,11 +1854,17 @@ export class RecipeService {
     const nonRecipeOverwrites: RecipePreviewOverwriteEntry[] = [];
     const manualEditConflicts: RecipePreviewManualConflictEntry[] = [];
     const detachedOutputs: RecipePreviewDetachedEntry[] = [];
+    const manualExceptions: RecipePreviewManualExceptionEntry[] = [];
     const diffCreated: RecipePreviewAnalysis["diff"]["created"] = [];
     const diffUpdated: RecipePreviewAnalysis["diff"]["updated"] = [];
     const diffUnchanged: RecipePreviewAnalysis["diff"]["unchanged"] = [];
     const previewPathSet = new Set(preview.map((result) => result.path));
+    const previewResultMap = new Map(
+      preview.map((result) => [result.path, result] as const),
+    );
     const detachedPathSet = new Set(data.detachedPaths ?? []);
+    const nextOverrides = data.overrides ?? {};
+    const previousOverrides = baseRecipe?.overrides ?? {};
 
     const baselinePreviewMap = baseRecipe
       ? new Map(
@@ -1875,6 +2004,59 @@ export class RecipeService {
       }
     }
 
+    const exceptionStepNames = new Set([
+      ...Object.keys(previousOverrides),
+      ...Object.keys(nextOverrides),
+    ]);
+    for (const stepName of exceptionStepNames) {
+      const path = `${data.targetGroup}.${stepName}`;
+      const nextOverride = nextOverrides[stepName];
+      const previousOverride = previousOverrides[stepName];
+      const existing = targetCollection
+        ? await tokenStore.getToken(targetCollection, path)
+        : undefined;
+      const previewResult = previewResultMap.get(path);
+      const baselineResult = baselinePreviewMap.get(path);
+      const entryType =
+        previewResult?.type ??
+        baselineResult?.type ??
+        existing?.$type ??
+        "unknown";
+
+      if (nextOverride && previousOverride) {
+        manualExceptions.push({
+          path,
+          collectionId: targetCollection,
+          type: entryType,
+          currentValue: existing?.$value ?? previousOverride.value,
+          newValue: previewResult?.value ?? nextOverride.value,
+          state: "preserved",
+        });
+        continue;
+      }
+
+      if (nextOverride) {
+        manualExceptions.push({
+          path,
+          collectionId: targetCollection,
+          type: entryType,
+          currentValue: existing?.$value,
+          newValue: previewResult?.value ?? nextOverride.value,
+          state: "created",
+        });
+        continue;
+      }
+
+      manualExceptions.push({
+        path,
+        collectionId: targetCollection,
+        type: entryType,
+        currentValue: existing?.$value ?? previousOverride?.value,
+        newValue: previewResult?.value,
+        state: "invalidated",
+      });
+    }
+
     const analysisWithoutFingerprint = {
       safeCreateCount: diffCreated.length,
       unchangedCount: diffUnchanged.length,
@@ -1884,6 +2066,7 @@ export class RecipeService {
       manualEditConflicts,
       deletedOutputs,
       detachedOutputs,
+      manualExceptions,
       diff: {
         created: diffCreated,
         updated: diffUpdated,
@@ -1910,149 +2093,15 @@ export class RecipeService {
   async run(
     id: string,
     tokenStore: TokenStore,
+    options: {
+      sourceValueOverride?: unknown;
+    } = {},
   ): Promise<GeneratedTokenResult[]> {
     const recipe = this.recipes.get(id);
     if (!recipe) throw new NotFoundError(`Recipe "${id}" not found`);
     return this.withRecipeLock(id, () =>
-      this.executeRecipe(recipe, tokenStore),
+      this.executeRecipe(recipe, tokenStore, options.sourceValueOverride),
     );
-  }
-
-  /**
-   * Check which existing tokens would be overwritten by a recipe re-run
-   * and whether they have been manually edited (value differs from what the
-   * recipe would produce).
-   */
-  async checkOverwrites(
-    id: string,
-    tokenStore: TokenStore,
-  ): Promise<
-    {
-      path: string;
-      collectionId: string;
-      currentValue: unknown;
-      newValue: unknown;
-    }[]
-  > {
-    const recipe = this.recipes.get(id);
-    if (!recipe) throw new NotFoundError(`Recipe "${id}" not found`);
-    const preview = await this.computeResults(recipe, tokenStore);
-    const effectiveTargetCollection = recipe.targetCollection;
-    const modified: {
-      path: string;
-      collectionId: string;
-      currentValue: unknown;
-      newValue: unknown;
-    }[] = [];
-    for (const result of preview) {
-      const existing = await tokenStore.getToken(
-        effectiveTargetCollection,
-        result.path,
-      );
-      if (
-        existing &&
-        stableStringify(existing.$value) !== stableStringify(result.value)
-      ) {
-        // Only flag tokens that are actually tagged as generated by this recipe
-        const ext = existing.$extensions?.["com.tokenmanager.recipe"];
-        if (ext?.recipeId === id) {
-          modified.push({
-            path: result.path,
-            collectionId: effectiveTargetCollection,
-            currentValue: existing.$value,
-            newValue: result.value,
-          });
-        }
-      }
-    }
-    return modified;
-  }
-
-  /**
-   * Compute a full diff of what a recipe re-run would produce, without
-   * persisting anything.  Returns tokens classified as created / updated /
-   * deleted / unchanged so the UI can show an accurate preview.
-   *
-   * - created:   in preview results but not yet in the token store
-   * - updated:   in preview results AND in store but the value would change
-   * - unchanged: in preview results AND in store with identical value
-   * - deleted:   in the store (tagged with this recipe's id) but NOT in the
-   *              preview results (e.g. a step was removed from the config)
-   */
-  async dryRun(
-    id: string,
-    tokenStore: TokenStore,
-  ): Promise<{
-    created: Array<{ path: string; value: unknown; type: string }>;
-    updated: Array<{
-      path: string;
-      currentValue: unknown;
-      newValue: unknown;
-      type: string;
-    }>;
-    unchanged: Array<{ path: string; value: unknown; type: string }>;
-    deleted: Array<{ path: string; currentValue: unknown }>;
-  }> {
-    const recipe = this.recipes.get(id);
-    if (!recipe) throw new NotFoundError(`Recipe "${id}" not found`);
-
-    const preview = await this.computeResults(recipe, tokenStore);
-    const targetCollection = recipe.targetCollection;
-
-    const created: Array<{ path: string; value: unknown; type: string }> = [];
-    const updated: Array<{
-      path: string;
-      currentValue: unknown;
-      newValue: unknown;
-      type: string;
-    }> = [];
-    const unchanged: Array<{ path: string; value: unknown; type: string }> = [];
-    const previewPaths = new Set<string>();
-
-    for (const result of preview) {
-      previewPaths.add(result.path);
-      const existing = await tokenStore.getToken(targetCollection, result.path);
-      if (!existing) {
-        created.push({
-          path: result.path,
-          value: result.value,
-          type: result.type,
-        });
-      } else if (
-        stableStringify(existing.$value) !== stableStringify(result.value)
-      ) {
-        updated.push({
-          path: result.path,
-          currentValue: existing.$value,
-          newValue: result.value,
-          type: result.type,
-        });
-      } else {
-        unchanged.push({
-          path: result.path,
-          value: result.value,
-          type: result.type,
-        });
-      }
-    }
-
-    // Detect tokens that belong to this recipe but would be removed because
-    // they are no longer in the preview results (e.g. a step was deleted).
-    const flatTokens = await tokenStore.getFlatTokensForCollection(
-      targetCollection,
-    );
-    const prefix = recipe.targetGroup ? recipe.targetGroup + "." : "";
-    const deleted: Array<{ path: string; currentValue: unknown }> = [];
-    for (const [path, token] of Object.entries(flatTokens)) {
-      if (prefix && !path.startsWith(prefix) && path !== recipe.targetGroup)
-        continue;
-      const ext = token.$extensions?.["com.tokenmanager.recipe"];
-      if (ext?.recipeId === id && !previewPaths.has(path)) {
-        deleted.push({ path, currentValue: token.$value });
-      }
-    }
-
-    return { created, updated, unchanged, deleted };
   }
 
   /** Returns true if any recipe is currently executing (has a pending lock chain). */
@@ -2068,13 +2117,52 @@ export class RecipeService {
   async runForSourceToken(
     tokenPath: string,
     tokenStore: TokenStore,
+    collectionLookup: {
+      getCollectionsOverview(): Promise<{
+        collections: Array<{ id: string; modes: Array<{ name: string }> }>;
+      }>;
+    },
   ): Promise<void> {
-    // Find all recipes that directly source this token (skip disabled ones)
-    const directlyAffected = new Set(
-      [...this.recipes.values()]
-        .filter((g) => g.sourceToken === tokenPath && g.enabled !== false)
-        .map((g) => g.id),
-    );
+    const collectionModeCounts =
+      await this.getCollectionModeCounts(collectionLookup);
+    // Find all recipes that directly source this token (skip disabled ones).
+    // Auto-disable unsupported keep-updated states so background execution never
+    // pretends to honor an implicit mode selection.
+    const directlyAffected = new Set<string>();
+    let disabledUnsupported = false;
+    for (const recipe of this.recipes.values()) {
+      if (recipe.sourceToken !== tokenPath || recipe.enabled === false) {
+        continue;
+      }
+      const disabledReason = await this.getKeepUpdatedDisabledReason(
+        recipe.sourceToken,
+        tokenStore,
+        collectionModeCounts,
+      );
+      if (disabledReason) {
+        this.recipes.set(recipe.id, {
+          ...recipe,
+          enabled: false,
+          updatedAt: new Date().toISOString(),
+          lastRunError: {
+            message: disabledReason,
+            at: new Date().toISOString(),
+          },
+        });
+        tokenStore.emitEvent({
+          type: "recipe-error",
+          collectionId: "",
+          recipeId: recipe.id,
+          message: disabledReason,
+        });
+        disabledUnsupported = true;
+        continue;
+      }
+      directlyAffected.add(recipe.id);
+    }
+    if (disabledUnsupported) {
+      await this.saveRecipes();
+    }
     if (directlyAffected.size === 0) return;
 
     // Get topological execution order for all recipes
@@ -2284,11 +2372,13 @@ export class RecipeService {
   private async executeRecipe(
     recipe: TokenRecipe,
     tokenStore: TokenStore,
+    sourceValueOverride?: unknown,
   ): Promise<GeneratedTokenResult[]> {
     const results = await this.executeSingleBrand(
       recipe,
       tokenStore,
       recipe.targetCollection,
+      sourceValueOverride,
     );
 
     // Track when the recipe was last run and what the source token's value was,
@@ -2298,7 +2388,9 @@ export class RecipeService {
     // re-read current AFTER all awaits so concurrent update() calls are not lost.
     const runAt = new Date().toISOString();
     let lastRunSourceValue: unknown;
-    if (recipe.sourceToken) {
+    if (sourceValueOverride !== undefined) {
+      lastRunSourceValue = sourceValueOverride;
+    } else if (recipe.sourceToken) {
       const resolved = await tokenStore.resolveToken(recipe.sourceToken);
       if (resolved) lastRunSourceValue = resolved.$value;
     }
@@ -2717,19 +2809,6 @@ export class RecipeService {
         );
         break;
       }
-      case "accessibleColorPair": {
-        const hex = typeof resolvedValue === "string" ? resolvedValue : null;
-        if (!hex)
-          throw new BadRequestError(
-            `Source value for accessibleColorPair must be a color string`,
-          );
-        results = runAccessibleColorPairRecipe(
-          hex,
-          config as AccessibleColorPairConfig,
-          targetGroup,
-        );
-        break;
-      }
       case "darkModeInversion": {
         const hex = typeof resolvedValue === "string" ? resolvedValue : null;
         if (!hex)
@@ -2794,7 +2873,6 @@ export class RecipeService {
       type === "typeScale" ||
       type === "spacingScale" ||
       type === "borderRadiusScale" ||
-      type === "accessibleColorPair" ||
       type === "darkModeInversion" ||
       (type === "customScale" && (!!sourceToken || inlineValue !== undefined));
 

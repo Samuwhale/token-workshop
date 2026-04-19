@@ -25,12 +25,12 @@ const MAX_DELAY = 30000;
 export function useServerEvents(
   serverUrl: string,
   connected: boolean,
-  onAutomationError: (event: RecipeErrorEvent) => void,
+  onGeneratedGroupError: (event: RecipeErrorEvent) => void,
   onRefresh?: () => void,
   onServiceError?: (event: ServiceErrorEvent) => void,
 ) {
-  const callbackRef = useRef(onAutomationError);
-  callbackRef.current = onAutomationError;
+  const callbackRef = useRef(onGeneratedGroupError);
+  callbackRef.current = onGeneratedGroupError;
 
   const serviceErrorRef = useRef(onServiceError);
   serviceErrorRef.current = onServiceError;

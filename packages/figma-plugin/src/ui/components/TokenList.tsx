@@ -55,6 +55,7 @@ import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
+import { getGeneratedGroupKeepUpdatedAvailability } from "../shared/generatedGroupUtils";
 import { TokenListToolbar } from "./TokenListToolbar";
 import { SelectModeToolbar } from "./SelectModeToolbar";
 import { TableCreateForm } from "./TableCreateForm";
@@ -78,7 +79,7 @@ import type {
 } from "../../shared/types";
 import { useTokenListModalContext } from "./token-list/useTokenListModalContext";
 import { useToolbarStateChips } from "./token-list/useToolbarStateChips";
-import { TokenListStaleAutomationBanner } from "./token-list/TokenListStaleAutomationBanner";
+import { TokenListStaleGeneratedBanner } from "./token-list/TokenListStaleGeneratedBanner";
 import {
   useTokenTreeSharedData,
   useTokenTreeGroupState,
@@ -86,6 +87,7 @@ import {
   useTokenTreeLeafState,
   useTokenTreeLeafActions,
 } from "./token-list/useTokenTreeContextValues";
+import { createGeneratedGroupDuplicateDraft } from "../hooks/useGeneratedGroupEditor";
 
 const EMPTY_PATH_SET = new Set<string>();
 const TOKENS_LIBRARY_BODY_SURFACE = "library-body";
@@ -163,8 +165,8 @@ export function TokenList({
     onSyncGroup,
     onSyncGroupStyles,
     onSetGroupScopes,
-    onCreateAutomationFromGroup,
-    onRefreshAutomations,
+    onCreateGeneratedGroupFromGroup,
+    onRefreshGeneratedGroups,
     onToggleIssuesOnly,
     onFilteredCountChange,
     onNavigateToCollection,
@@ -173,10 +175,10 @@ export function TokenList({
     starredPaths,
     onError,
     onViewTokenHistory,
-    onEditAutomation,
-    onOpenAutomationEditor,
-    onNavigateToAutomation,
-    onNavigateToNewAutomation,
+    onEditGeneratedGroup,
+    onOpenGeneratedGroupEditor,
+    onNavigateToGeneratedGroup,
+    onNavigateToNewGeneratedGroup,
     onShowReferences: _onShowReferences,
     onDisplayedLeafNodesChange,
     onSelectionChange,
@@ -1381,7 +1383,7 @@ export function TokenList({
     collections,
     onRefresh,
     onPushUndo,
-    onRefreshAutomations,
+    onRefreshGeneratedGroups,
     onSetOperationLoading: setOperationLoading,
     onSetLocallyDeletedPaths: setLocallyDeletedPaths,
     onRecordTouch: recentlyTouched.recordTouch,
@@ -1446,21 +1448,131 @@ export function TokenList({
     }
   }, [deleteError, setDeleteError]);
 
-  const handleRunAutomation = useCallback(
+  const handleRunGeneratedGroup = useCallback(
     async (recipeId: string) => {
+      const recipe = recipes?.find((candidate) => candidate.id === recipeId);
+      const sourceValue =
+        recipe?.sourceToken
+          ? allTokensFlat[recipe.sourceToken]?.$value
+          : undefined;
       try {
         await apiFetch(`${serverUrl}/api/recipes/${recipeId}/run`, {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body:
+            sourceValue !== undefined
+              ? JSON.stringify({ sourceValue })
+              : undefined,
         });
         onRefresh();
       } catch {
         onError?.("Failed to regenerate — check server connection");
       }
     },
-    [serverUrl, onRefresh, onError],
+    [allTokensFlat, onRefresh, onError, recipes, serverUrl],
   );
 
-  const handleDetachAutomationGroup = useCallback(
+  const handleToggleGeneratedGroupEnabled = useCallback(
+    async (recipeId: string, enabled: boolean) => {
+      const recipe = recipes?.find((candidate) => candidate.id === recipeId);
+      const keepUpdatedAvailability = getGeneratedGroupKeepUpdatedAvailability({
+        sourceTokenPath: recipe?.sourceToken,
+        sourceTokenEntry:
+          (recipe?.sourceToken &&
+            (unresolvedAllTokensFlat?.[recipe.sourceToken] ??
+              allTokensFlat[recipe.sourceToken])) ||
+          undefined,
+        collections,
+        pathToCollectionId,
+        perCollectionFlat,
+      });
+      if (enabled && !keepUpdatedAvailability.supported) {
+        onError?.(keepUpdatedAvailability.reason ?? "Keep updated is unavailable");
+        return;
+      }
+      try {
+        await apiFetch(`${serverUrl}/api/recipes/${recipeId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ enabled }),
+        });
+        onRefresh();
+        onRefreshGeneratedGroups?.();
+        dispatchToast(
+          enabled ? "Keep updated turned on" : "Keep updated turned off",
+          "success",
+        );
+      } catch {
+        onError?.("Failed to update Keep updated");
+      }
+    },
+    [
+      allTokensFlat,
+      collections,
+      onError,
+      onRefresh,
+      onRefreshGeneratedGroups,
+      perCollectionFlat,
+      pathToCollectionId,
+      recipes,
+      serverUrl,
+      unresolvedAllTokensFlat,
+    ],
+  );
+
+  const handleDuplicateGeneratedGroup = useCallback(
+    (recipeId: string) => {
+      if (!onOpenGeneratedGroupEditor) {
+        onError?.("Cannot duplicate this generated group here");
+        return;
+      }
+      const recipe = recipes?.find((candidate) => candidate.id === recipeId);
+      if (!recipe) {
+        onError?.("Generated group no longer exists");
+        return;
+      }
+      const sourceEntry = recipe.sourceToken
+        ? allTokensFlat[recipe.sourceToken]
+        : undefined;
+      onOpenGeneratedGroupEditor({
+        mode: "create",
+        sourceTokenPath: recipe.sourceToken,
+        sourceTokenName: recipe.sourceToken?.split(".").pop(),
+        sourceTokenType: sourceEntry?.$type,
+        sourceTokenValue: sourceEntry?.$value ?? recipe.inlineValue,
+        initialDraft: createGeneratedGroupDuplicateDraft(recipe),
+      });
+    },
+    [allTokensFlat, onError, onOpenGeneratedGroupEditor, recipes],
+  );
+
+  const handleDeleteGeneratedGroup = useCallback(
+    async (recipeId: string) => {
+      const recipe = recipes?.find((candidate) => candidate.id === recipeId);
+      try {
+        await apiFetch(`${serverUrl}/api/recipes/${recipeId}?deleteTokens=true`, {
+          method: "DELETE",
+        });
+        onRefresh();
+        onRefreshGeneratedGroups?.();
+        dispatchToast(
+          recipe
+            ? `Deleted generated group "${recipe.name}"`
+            : "Deleted generated group",
+          "success",
+        );
+      } catch {
+        onError?.("Failed to delete generated group");
+      }
+    },
+    [onError, onRefresh, onRefreshGeneratedGroups, recipes, serverUrl],
+  );
+
+  const handleDetachGeneratedGroup = useCallback(
     async (recipeId: string, groupPath: string) => {
       try {
         await apiFetch(`${serverUrl}/api/recipes/${recipeId}/detach`, {
@@ -1474,12 +1586,12 @@ export function TokenList({
           }),
         });
         onRefresh();
-        onRefreshAutomations?.();
+        onRefreshGeneratedGroups?.();
       } catch {
-        onError?.("Failed to detach recipe group");
+        onError?.("Failed to detach generated group");
       }
     },
-    [onError, onRefresh, onRefreshAutomations, serverUrl],
+    [onError, onRefresh, onRefreshGeneratedGroups, serverUrl],
   );
 
   const handleDismissStaleRecipeBanner = useCallback(() => {
@@ -1496,9 +1608,22 @@ export function TokenList({
     try {
       for (const recipe of staleRecipesForSet) {
         try {
+          const sourceValue =
+            recipe.sourceToken
+              ? allTokensFlat[recipe.sourceToken]?.$value
+              : undefined;
           const result = await apiFetch<{ count?: number }>(
             `${serverUrl}/api/recipes/${recipe.id}/run`,
-            { method: "POST" },
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body:
+                sourceValue !== undefined
+                  ? JSON.stringify({ sourceValue })
+                  : undefined,
+            },
           );
           successCount += 1;
           totalUpdatedTokens += result.count ?? 0;
@@ -1508,12 +1633,12 @@ export function TokenList({
       }
       if (failedRecipes.length === 0) {
         dispatchToast(
-          `Re-ran ${successCount} stale recipe${successCount !== 1 ? "s" : ""}${totalUpdatedTokens > 0 ? ` — ${totalUpdatedTokens} token${totalUpdatedTokens !== 1 ? "s" : ""} updated` : ""}`,
+          `Re-ran ${successCount} stale generated group${successCount !== 1 ? "s" : ""}${totalUpdatedTokens > 0 ? ` — ${totalUpdatedTokens} token${totalUpdatedTokens !== 1 ? "s" : ""} updated` : ""}`,
           "success",
         );
       } else {
         dispatchToast(
-          `${failedRecipes.length} recipe${failedRecipes.length !== 1 ? "s" : ""} failed: ${failedRecipes.join(", ")}`,
+          `${failedRecipes.length} generated group${failedRecipes.length !== 1 ? "s" : ""} failed: ${failedRecipes.join(", ")}`,
           "error",
         );
       }
@@ -1521,7 +1646,7 @@ export function TokenList({
     } finally {
       setRunningStaleRecipes(false);
     }
-  }, [runningStaleRecipes, staleRecipesForSet, serverUrl, onRefresh]);
+  }, [allTokensFlat, runningStaleRecipes, staleRecipesForSet, serverUrl, onRefresh]);
 
   const tokenPromotion = useTokenPromotion({
     connected,
@@ -2116,11 +2241,24 @@ export function TokenList({
     : unresolvedAllTokensFlat;
 
   const tokenTreeSharedData = useTokenTreeSharedData({
-    effectiveAllTokensFlat, pathToCollectionId,
+    effectiveAllTokensFlat,
+    modeResolvedTokensFlat: allTokensFlat,
+    pathToCollectionId,
+    perCollectionFlat,
+    collections,
   });
+  const activeCollectionModeLabel = useMemo(() => {
+    const collection = activeCollections.find(
+      (candidate) => candidate.id === collectionId,
+    );
+    if (!collection || collection.modes.length === 0) {
+      return null;
+    }
+    return selectedModes[collection.id] ?? collection.modes[0]?.name ?? null;
+  }, [activeCollections, collectionId, selectedModes]);
 
   const tokenTreeGroupState = useTokenTreeGroupState({
-    density, collectionId, selectMode, expandedPaths, highlightedToken,
+    density, collectionId, activeCollectionModeLabel, selectMode, expandedPaths, highlightedToken,
     searchHighlight, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     recipesByTargetGroup, collectionCoverage, condensedView,
     effectiveRovingPath,
@@ -2130,10 +2268,15 @@ export function TokenList({
     handleToggleExpand, requestDeleteGroup, handleOpenCreateSibling,
     setNewGroupDialogParent, handleRenameGroup, handleUpdateGroupMeta,
     handleRequestMoveGroup, handleRequestCopyGroup, handleDuplicateGroup,
-    onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onCreateAutomationFromGroup,
+    onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onCreateGeneratedGroupFromGroup,
     handleZoomIntoGroup, handleDragOverGroup, handleDropOnGroup,
-    onEditAutomation, onNavigateToAutomation, handleRunAutomation,
-    handleDetachAutomationGroup, onNavigateToAlias, setRovingFocusPath,
+    onEditGeneratedGroup,
+    onDuplicateGeneratedGroup: handleDuplicateGeneratedGroup,
+    onNavigateToGeneratedGroup,
+    handleRunGeneratedGroup,
+    handleToggleGeneratedGroupEnabled,
+    handleDeleteGeneratedGroup,
+    handleDetachGeneratedGroup, onNavigateToAlias, setRovingFocusPath,
   });
 
   const tokenTreeLeafState = useTokenTreeLeafState({
@@ -2160,7 +2303,7 @@ export function TokenList({
     handleDragStartNotify: handleDragStart,
     handleDragEndNotify: handleDragEnd,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
-    multiModeData, handleMultiModeInlineSave, onOpenAutomationEditor, onToggleStar,
+    multiModeData, handleMultiModeInlineSave, onOpenGeneratedGroupEditor, onToggleStar,
     handleClearPendingRename, handleClearPendingTabEdit, handleTabToNext,
     setRovingFocusPath,
   });
@@ -2343,7 +2486,7 @@ export function TokenList({
             onOpenImportPanel={onOpenImportPanel}
             onOpenCreateCollection={onOpenCreateCollection}
             scenarioControl={toolbarScenarioControl}
-            onCreateAutomation={onNavigateToNewAutomation}
+            onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
             modeLensEnabled={modeLensEnabled}
@@ -2410,12 +2553,12 @@ export function TokenList({
         {searchQuery ? `${displayedLeafNodes.length} tokens found` : ""}
       </div>
       {showStaleRecipeBanner && (
-        <TokenListStaleAutomationBanner
+        <TokenListStaleGeneratedBanner
           staleRecipesForSet={staleRecipesForSet}
           runningStaleRecipes={runningStaleRecipes}
           onDismiss={handleDismissStaleRecipeBanner}
           onRegenerateAll={handleRegenerateAllStaleRecipes}
-          onNavigateToAutomation={onNavigateToAutomation}
+          onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
         />
       )}
       {/* Token stats bar — compact single row with type breakdown */}
@@ -2516,6 +2659,7 @@ export function TokenList({
             handleCollapseBelow={handleCollapseBelow}
             onNavigateToCollection={onNavigateToCollection}
             onCreateNew={onCreateNew}
+            onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
             clearFilters={clearFilters}
           />
         </TokenTreeProvider>

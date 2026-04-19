@@ -19,7 +19,6 @@ export type RecipeType =
   | 'zIndexScale'
   | 'shadowScale'
   | 'customScale'
-  | 'accessibleColorPair'
   | 'darkModeInversion';
 
 // ---------------------------------------------------------------------------
@@ -212,19 +211,6 @@ export interface CustomScaleConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Accessible Color Pair
-// ---------------------------------------------------------------------------
-
-export interface AccessibleColorPairConfig {
-  /** WCAG contrast level to target. Default: 'AA' (4.5:1 for normal text) */
-  contrastLevel: 'AA' | 'AAA';
-  /** Step name for the background output token. Default: 'background' */
-  backgroundStep: string;
-  /** Step name for the foreground output token. Default: 'foreground' */
-  foregroundStep: string;
-}
-
-// ---------------------------------------------------------------------------
 // Dark Mode Inversion
 // ---------------------------------------------------------------------------
 
@@ -257,7 +243,6 @@ export type RecipeConfig =
   | ZIndexScaleConfig
   | ShadowScaleConfig
   | CustomScaleConfig
-  | AccessibleColorPairConfig
   | DarkModeInversionConfig;
 
 export interface SemanticTokenMapping {
@@ -417,12 +402,6 @@ export function getRecipeStepNames(
   return [];
 }
 
-export function getRecipeOutputCollectionIds(
-  recipe: Pick<TokenRecipe, "targetCollection">,
-): string[] {
-  return [recipe.targetCollection];
-}
-
 export function getRecipeManagedOutputs(
   recipe: Pick<
     TokenRecipe,
@@ -434,22 +413,20 @@ export function getRecipeManagedOutputs(
 ): RecipeManagedOutput[] {
   const detachedPathSet = new Set(recipe.detachedPaths ?? []);
   const stepNames = getRecipeStepNames(recipe.config);
-  return getRecipeOutputCollectionIds(recipe).flatMap((collectionId) =>
-    stepNames.flatMap((stepName) => {
-      const path = `${recipe.targetGroup}.${stepName}`;
-      if (detachedPathSet.has(path)) {
-        return [];
-      }
-      return [
-        {
-          collectionId,
-          path,
-          stepName,
-          key: createRecipeOwnershipKey(collectionId, path),
-        },
-      ];
-    }),
-  );
+  return stepNames.flatMap((stepName) => {
+    const path = `${recipe.targetGroup}.${stepName}`;
+    if (detachedPathSet.has(path)) {
+      return [];
+    }
+    return [
+      {
+        collectionId: recipe.targetCollection,
+        path,
+        stepName,
+        key: createRecipeOwnershipKey(recipe.targetCollection, path),
+      },
+    ];
+  });
 }
 
 export function getRecipeManagedOutputPaths(
@@ -589,12 +566,6 @@ export const DEFAULT_CUSTOM_SCALE_CONFIG: CustomScaleConfig = {
 // ---------------------------------------------------------------------------
 // Quick-start templates (replace ScaffoldingWizard presets)
 // ---------------------------------------------------------------------------
-
-export const DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG: AccessibleColorPairConfig = {
-  contrastLevel: 'AA',
-  backgroundStep: 'background',
-  foregroundStep: 'foreground',
-};
 
 export const DEFAULT_DARK_MODE_INVERSION_CONFIG: DarkModeInversionConfig = {
   stepName: 'dark',

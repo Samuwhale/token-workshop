@@ -15,12 +15,13 @@ import type {
   RecipeUpdateInput,
 } from '../services/recipe-service.js';
 import {
-  getRecipeOutputCollectionIds,
   type GeneratedTokenResult,
   type TokenRecipe,
 } from '@tokenmanager/core';
 
-type CreateBody = RecipeCreateInput;
+type CreateBody = RecipeCreateInput & {
+  sourceValue?: unknown;
+};
 
 type PreviewBody = RecipePreviewInput & {
   sourceValue?: unknown;
@@ -28,6 +29,7 @@ type PreviewBody = RecipePreviewInput & {
 
 interface UpdateBody {
   [key: string]: unknown;
+  sourceValue?: unknown;
 }
 
 interface StepOverrideBody {
@@ -38,6 +40,10 @@ interface StepOverrideBody {
 interface DetachOutputsBody {
   scope?: 'token' | 'group';
   path?: string;
+}
+
+interface RunBody {
+  sourceValue?: unknown;
 }
 
 type SnapshotMap = Record<string, SnapshotEntry>;
@@ -160,7 +166,7 @@ async function validateRecipeTargetCollections(
   recipe: Pick<TokenRecipe, 'targetCollection'>,
   requireCollectionsExist: (collectionIds: Iterable<string>) => Promise<void>,
 ): Promise<void> {
-  await requireCollectionsExist(getRecipeOutputCollectionIds(recipe));
+  await requireCollectionsExist([recipe.targetCollection]);
 }
 
 export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
@@ -197,7 +203,10 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/recipes — list all recipes
   fastify.get('/recipes', async (_request, reply) => {
     try {
-      return await fastify.recipeService.getDashboardItems(fastify.tokenStore);
+      return await fastify.recipeService.getDashboardItems(
+        fastify.tokenStore,
+        fastify.collectionService,
+      );
     } catch (err) {
       return handleRouteError(reply, err);
     }
@@ -219,7 +228,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
       return await withLock(async () => {
         return await executeLoggedRecipeMutation<DeleteOrphanedTokensResult>({
           type: 'recipe-orphaned-tokens-delete',
-          description: (result) => `Delete ${result.deleted} orphaned recipe tokens`,
+          description: (result) => `Delete ${result.deleted} orphaned generated tokens`,
           collectionId: (result) => result.tokens[0]?.collectionId ?? 'orphaned-recipe-tokens',
           captureBefore: async () =>
             snapshotTaggedTokens(
@@ -251,9 +260,17 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           },
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
         );
+        await fastify.recipeService.assertKeepUpdatedSupported(
+          {
+            enabled: request.body?.enabled,
+            sourceToken: sourceToken ?? undefined,
+          },
+          fastify.tokenStore,
+          fastify.collectionService,
+        );
         return reply.status(201).send(await executeLoggedRecipeMutation({
           type: 'recipe-create',
-          description: (recipe) => `Create recipe "${recipe.name}" → ${recipe.targetGroup}`,
+          description: (recipe) => `Create generated group "${recipe.name}" → ${recipe.targetGroup}`,
           collectionId: targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, {
             targetCollection,
@@ -272,7 +289,9 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
               overrides,
               semanticLayer: request.body?.semanticLayer,
             });
-            await fastify.recipeService.run(recipe.id, fastify.tokenStore);
+            await fastify.recipeService.run(recipe.id, fastify.tokenStore, {
+              sourceValueOverride: request.body?.sourceValue,
+            });
             return recipe;
           },
           captureAfter: (recipe) => snapshotRecipeOutputs(fastify.tokenStore, recipe),
@@ -318,7 +337,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { id: string } }>('/recipes/:id', async (request, reply) => {
     try {
       const gen = await fastify.recipeService.getById(request.params.id);
-      if (!gen) return reply.status(404).send({ error: `Recipe "${request.params.id}" not found` });
+      if (!gen) return reply.status(404).send({ error: `Generated group "${request.params.id}" not found` });
       return gen;
     } catch (err) {
       return handleRouteError(reply, err);
@@ -332,7 +351,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const existing = await fastify.recipeService.getById(request.params.id);
         if (!existing) {
-          return reply.status(404).send({ error: `Recipe "${request.params.id}" not found` });
+          return reply.status(404).send({ error: `Generated group "${request.params.id}" not found` });
         }
 
         // Build a sanitized update object with only known fields
@@ -355,10 +374,18 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           },
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
         );
+        await fastify.recipeService.assertKeepUpdatedSupported(
+          {
+            enabled: updates.enabled ?? existing.enabled,
+            sourceToken: updates.sourceToken ?? existing.sourceToken,
+          },
+          fastify.tokenStore,
+          fastify.collectionService,
+        );
 
         return await executeLoggedRecipeMutation<TokenRecipe>({
           type: 'recipe-update',
-          description: (recipe) => `Update recipe "${recipe.name}"`,
+          description: (recipe) => `Update generated group "${recipe.name}"`,
           collectionId: (recipe) => recipe.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, existing),
           mutate: async () => {
@@ -369,7 +396,9 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
             // Skip re-run when only the enabled flag changed — it's a state toggle, not a config change.
             const onlyEnabledChanged = Object.keys(updates).every(k => k === 'enabled');
             if (!onlyEnabledChanged) {
-              await fastify.recipeService.run(recipe.id, fastify.tokenStore);
+              await fastify.recipeService.run(recipe.id, fastify.tokenStore, {
+                sourceValueOverride: body.sourceValue,
+              });
             }
             return recipe;
           },
@@ -407,7 +436,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         if (!recipe) {
           return reply
             .status(404)
-            .send({ error: `Recipe "${request.params.id}" not found` });
+            .send({ error: `Generated group "${request.params.id}" not found` });
         }
 
         const detachedPaths =
@@ -421,7 +450,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.status(400).send({
             error:
               scope === 'group'
-                ? 'Recipe has no managed outputs to detach'
+                ? 'Generated group has no managed outputs to detach'
                 : 'path is required when scope is "token"',
           });
         }
@@ -430,8 +459,8 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           type: scope === 'group' ? 'recipe-detach-group' : 'recipe-detach-token',
           description: (detachResult) =>
             scope === 'group'
-              ? `Detach ${detachResult.detachedCount} outputs from recipe "${detachResult.recipe.name}"`
-              : `Detach "${detachResult.detachedPaths[0]}" from recipe "${detachResult.recipe.name}"`,
+              ? `Detach ${detachResult.detachedCount} outputs from generated group "${detachResult.recipe.name}"`
+              : `Detach "${detachResult.detachedPaths[0]}" from generated group "${detachResult.recipe.name}"`,
           collectionId: () => recipe.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, recipe),
           mutate: () =>
@@ -452,7 +481,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
           recipe: result.recipe,
         };
       } catch (err) {
-        return handleRouteError(reply, err, 'Failed to detach recipe outputs');
+        return handleRouteError(reply, err, 'Failed to detach generated group outputs');
       }
     });
   });
@@ -465,15 +494,15 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         try {
           const gen = await fastify.recipeService.getById(request.params.id);
           if (!gen) {
-            return reply.status(404).send({ error: `Recipe "${request.params.id}" not found` });
+            return reply.status(404).send({ error: `Generated group "${request.params.id}" not found` });
           }
           // Snapshot before delete if tokens will also be removed
           const willDeleteTokens = request.query.deleteTokens === 'true';
           const result = await executeLoggedRecipeMutation<DeleteRecipeResult>({
             type: 'recipe-delete',
             description: ({ tokensDeleted }) => tokensDeleted > 0
-              ? `Delete recipe "${gen.name}" and ${tokensDeleted} tokens`
-              : `Delete recipe "${gen.name}"`,
+              ? `Delete generated group "${gen.name}" and ${tokensDeleted} tokens`
+              : `Delete generated group "${gen.name}"`,
             collectionId: gen.targetCollection,
             captureBefore: () =>
               willDeleteTokens
@@ -482,7 +511,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
             mutate: async () => {
               const deleted = await fastify.recipeService.delete(request.params.id);
               if (!deleted) {
-                throw new Error(`Recipe "${request.params.id}" disappeared during delete`);
+                throw new Error(`Generated group "${request.params.id}" disappeared during delete`);
               }
               let tokensDeleted = 0;
               if (willDeleteTokens) {
@@ -505,45 +534,25 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/recipes/:id/dry-run — diff of what a re-run would produce, without committing
-  fastify.post<{ Params: { id: string } }>('/recipes/:id/dry-run', async (request, reply) => {
-    try {
-      const diff = await fastify.recipeService.dryRun(request.params.id, fastify.tokenStore);
-      return diff;
-    } catch (err) {
-      return handleRouteError(reply, err);
-    }
-  });
-
-  // POST /api/recipes/:id/check-overwrites — preview which tokens would be overwritten
-  fastify.post<{ Params: { id: string } }>('/recipes/:id/check-overwrites', async (request, reply) => {
-    try {
-      const modified = await fastify.recipeService.checkOverwrites(
-        request.params.id,
-        fastify.tokenStore,
-      );
-      return { modified };
-    } catch (err) {
-      return handleRouteError(reply, err);
-    }
-  });
-
   // POST /api/recipes/:id/run — manually re-run a recipe
-  fastify.post<{ Params: { id: string } }>('/recipes/:id/run', async (request, reply) => {
+  fastify.post<{ Params: { id: string }; Body: RunBody }>('/recipes/:id/run', async (request, reply) => {
     return withLock(async () => {
       try {
         const gen = await fastify.recipeService.getById(request.params.id);
-        if (!gen) return reply.status(404).send({ error: `Recipe "${request.params.id}" not found` });
+        if (!gen) return reply.status(404).send({ error: `Generated group "${request.params.id}" not found` });
         await validateRecipeTargetCollections(
           gen,
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
         );
         const results = await executeLoggedRecipeMutation<GeneratedTokenResult[]>({
           type: 'recipe-run',
-          description: `Run recipe "${gen.name}"`,
+          description: `Run generated group "${gen.name}"`,
           collectionId: gen.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, gen),
-          mutate: () => fastify.recipeService.run(request.params.id, fastify.tokenStore),
+          mutate: () =>
+            fastify.recipeService.run(request.params.id, fastify.tokenStore, {
+              sourceValueOverride: request.body?.sourceValue,
+            }),
           captureAfter: () => snapshotRecipeOutputs(fastify.tokenStore, gen),
         });
         return { count: results.length, tokens: results };
@@ -557,7 +566,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { id: string } }>('/recipes/:id/steps', async (request, reply) => {
     try {
       const gen = await fastify.recipeService.getById(request.params.id);
-      if (!gen) return reply.status(404).send({ error: `Recipe "${request.params.id}" not found` });
+      if (!gen) return reply.status(404).send({ error: `Generated group "${request.params.id}" not found` });
       const results = await fastify.recipeService.preview(gen, fastify.tokenStore);
       return { count: results.length, results };
     } catch (err) {
@@ -577,7 +586,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         const gen = await fastify.recipeService.getById(request.params.id);
-        if (!gen) return reply.status(404).send({ error: `Recipe "${request.params.id}" not found` });
+        if (!gen) return reply.status(404).send({ error: `Generated group "${request.params.id}" not found` });
         await validateRecipeTargetCollections(
           gen,
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
@@ -585,7 +594,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         return await executeLoggedRecipeMutation<TokenRecipe>({
           type: 'recipe-step-override-set',
           description: (recipe) =>
-            `Set step override "${request.params.stepName}" on recipe "${recipe.name}"`,
+            `Set manual exception "${request.params.stepName}" on generated group "${recipe.name}"`,
           collectionId: (recipe) => recipe.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, gen),
           mutate: async () => {
@@ -613,7 +622,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         const gen = await fastify.recipeService.getById(request.params.id);
-        if (!gen) return reply.status(404).send({ error: `Recipe "${request.params.id}" not found` });
+        if (!gen) return reply.status(404).send({ error: `Generated group "${request.params.id}" not found` });
         await validateRecipeTargetCollections(
           gen,
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
@@ -621,7 +630,7 @@ export const recipeRoutes: FastifyPluginAsync = async (fastify) => {
         return await executeLoggedRecipeMutation<TokenRecipe>({
           type: 'recipe-step-override-clear',
           description: (recipe) =>
-            `Clear step override "${request.params.stepName}" on recipe "${recipe.name}"`,
+            `Clear manual exception "${request.params.stepName}" on generated group "${recipe.name}"`,
           collectionId: (recipe) => recipe.targetCollection,
           captureBefore: () => snapshotRecipeOutputs(fastify.tokenStore, gen),
           mutate: async () => {

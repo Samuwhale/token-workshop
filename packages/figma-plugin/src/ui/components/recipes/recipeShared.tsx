@@ -136,7 +136,7 @@ export function formatValue(value: unknown): string {
 }
 
 // ---------------------------------------------------------------------------
-// Override row + table
+// Manual exception row + table
 // ---------------------------------------------------------------------------
 
 export function OverrideRow({ token, override, onOverrideChange, onOverrideClear, isOverwrite, children }: {
@@ -175,13 +175,13 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
       {/* Step name */}
       <span className="w-8 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{token.stepName}</span>
 
-      {/* Lock badge for overridden values */}
+      {/* Badge for manual exceptions */}
       {isOverridden && (
-        <span className="shrink-0 flex items-center gap-0.5 px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]" title="Locked override — survives regeneration">
+        <span className="shrink-0 flex items-center gap-0.5 px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]" title="Manual exception — stays when the group updates">
           <svg width="7" height="7" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
             <path d="M9 5V4a3 3 0 0 0-6 0v1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1ZM4 4a2 2 0 1 1 4 0v1H4V4Z" />
           </svg>
-          <span className="text-[8px] font-medium">locked</span>
+          <span className="text-[8px] font-medium">exception</span>
         </span>
       )}
 
@@ -220,8 +220,8 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
           {isOverridden && (
             <button
               onClick={e => { e.stopPropagation(); onOverrideClear(token.stepName); }}
-              title="Clear override"
-              aria-label="Clear override"
+              title="Clear manual exception"
+              aria-label="Clear manual exception"
               className="p-0.5 rounded transition-colors text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
             >
               <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

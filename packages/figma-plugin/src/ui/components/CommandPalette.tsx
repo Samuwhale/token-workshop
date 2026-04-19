@@ -98,7 +98,7 @@ function leafName(path: string): string {
 }
 
 // Matches the last qualifier:partial at the end of the query (no trailing space)
-const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|recipe|gen|group):(\S*)$/i;
+const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|generated|gen|group):(\S*)$/i;
 
 /** If the query ends with a qualifier:partial pattern, return it for autocomplete. */
 function detectActiveQualifier(q: string): { qualifier: string; partial: string } | null {
@@ -137,7 +137,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
       const ln = leafName(t.path).toLowerCase();
       if (!parsed.names.some(n => ln.includes(n))) return false;
     }
-    // recipe: qualifier
+    // generated: qualifier
     if (parsed.recipes.length > 0) {
       if (!t.recipeName) return false;
       const gn = t.recipeName.toLowerCase();
@@ -572,7 +572,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                 { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
                 { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
                 { qual: 'group:colors', desc: 'Navigate directly to a token group', insert: '>group:' },
-                { qual: 'recipe:color-ramp', desc: 'Tokens produced by a specific generator', insert: '>recipe:' },
+                { qual: 'generated:brand-palette', desc: 'Tokens produced by a specific generated group', insert: '>generated:' },
               ].map(({ qual, desc, insert }) => (
                 <button
                   key={qual}

@@ -43,7 +43,7 @@ export interface TokenEditorInfoSectionProps {
   // Navigation
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  onNavigateToAutomation?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (recipeId: string) => void;
 }
 
 export function TokenEditorInfoSection({
@@ -76,7 +76,7 @@ export function TokenEditorInfoSection({
   onRefsExpandedChange,
   onShowReferences,
   onNavigateToToken,
-  onNavigateToAutomation,
+  onNavigateToGeneratedGroup,
 }: TokenEditorInfoSectionProps) {
   return (
     <div className="mt-1 border-t border-[var(--color-figma-border)] pt-2">
@@ -100,7 +100,7 @@ export function TokenEditorInfoSection({
             ? (path) => onNavigateToToken(path, tokenPath)
             : undefined
         }
-        onNavigateToAutomation={onNavigateToAutomation}
+        onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
       />
 
       <div className="flex gap-0.5">
@@ -387,7 +387,7 @@ export function TokenEditorInfoSection({
             sourceRecipes={existingRecipesForToken}
             onNavigateToToken={onNavigateToToken}
             onShowReferences={onShowReferences}
-            onNavigateToAutomation={onNavigateToAutomation}
+            onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
           />
         </div>
       )}

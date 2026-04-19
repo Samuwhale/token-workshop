@@ -165,7 +165,6 @@ export type {
   ShadowScaleConfig,
   CustomScaleStep,
   CustomScaleConfig,
-  AccessibleColorPairConfig,
   DarkModeInversionConfig,
   RecipeConfig,
   RecipeSemanticLayer,
@@ -177,7 +176,6 @@ export {
   createRecipeOwnershipKey,
   getRecipeManagedOutputPaths,
   getRecipeManagedOutputs,
-  getRecipeOutputCollectionIds,
   getRecipeStepNames,
   validateStepName,
 } from './recipe-types.js';
@@ -190,7 +188,6 @@ export {
   DEFAULT_Z_INDEX_SCALE_CONFIG,
   DEFAULT_SHADOW_SCALE_CONFIG,
   DEFAULT_CUSTOM_SCALE_CONFIG,
-  DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG,
   DEFAULT_DARK_MODE_INVERSION_CONFIG,
 } from './recipe-types.js';
 
@@ -204,7 +201,6 @@ export {
   runZIndexScaleRecipe,
   runShadowScaleRecipe,
   runCustomScaleRecipe,
-  runAccessibleColorPairRecipe,
   runDarkModeInversionRecipe,
   applyOverrides,
 } from './recipe-engine.js';

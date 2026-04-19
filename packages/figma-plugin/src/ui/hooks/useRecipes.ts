@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   createRecipeOwnershipKey,
   getRecipeManagedOutputs,
-  getRecipeOutputCollectionIds,
 } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
@@ -20,7 +19,6 @@ export type RecipeType =
   | 'zIndexScale'
   | 'shadowScale'
   | 'customScale'
-  | 'accessibleColorPair'
   | 'darkModeInversion';
 
 export type RecipeDashboardStatus =
@@ -137,12 +135,6 @@ export interface CustomScaleConfig {
   roundTo: number;
 }
 
-export interface AccessibleColorPairConfig {
-  contrastLevel: 'AA' | 'AAA';
-  backgroundStep: string;
-  foregroundStep: string;
-}
-
 export interface DarkModeInversionConfig {
   stepName: string;
   chromaBoost: number;
@@ -160,7 +152,6 @@ export type RecipeConfig =
   | ZIndexScaleConfig
   | ShadowScaleConfig
   | CustomScaleConfig
-  | AccessibleColorPairConfig
   | DarkModeInversionConfig;
 
 export interface StepOverride {
@@ -304,12 +295,12 @@ export function useRecipes(serverUrl: string, connected: boolean): UseRecipesRes
   const recipesByTargetGroup = useMemo(() => {
     const map = new Map<string, TokenRecipe>();
     for (const gen of recipes) {
-      const outputCollectionIds = getRecipeOutputCollectionIds(gen);
       const hasManagedOutputs = getRecipeManagedOutputs(gen).length > 0;
       if (!gen.targetGroup || !hasManagedOutputs) continue;
-      for (const collectionId of outputCollectionIds) {
-        map.set(createRecipeOwnershipKey(collectionId, gen.targetGroup), gen);
-      }
+      map.set(
+        createRecipeOwnershipKey(gen.targetCollection, gen.targetGroup),
+        gen,
+      );
     }
     return map;
   }, [recipes]);

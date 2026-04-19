@@ -17,19 +17,19 @@ import {
   VALUE_REQUIRED_TYPES,
 } from "../components/recipes/recipeUtils";
 import {
-  useRecipePreview,
+  useGeneratedGroupPreview,
   type RecipePreviewAnalysis,
-} from "./useAutomationPreview";
+} from "./useGeneratedGroupPreview";
 import {
-  useRecipeSave,
+  useGeneratedGroupSave,
   type RecipeSaveSuccessInfo,
-} from "./useAutomationSave";
+} from "./useGeneratedGroupSave";
 import type { UndoSlot } from "./useUndo";
 import type { ToastAction } from "../shared/toastBus";
 import { stableStringify } from "../shared/utils";
 
-import type { OverwrittenEntry } from "./useAutomationPreview";
-export type { OverwrittenEntry } from "./useAutomationPreview";
+import type { OverwrittenEntry } from "./useGeneratedGroupPreview";
+export type { OverwrittenEntry } from "./useGeneratedGroupPreview";
 
 interface UseRecipeDialogParams {
   serverUrl: string;
@@ -68,6 +68,7 @@ export interface RecipeDialogInitialDraft {
   inlineValue?: unknown;
   configs?: Partial<Record<RecipeType, RecipeConfig>>;
   pendingOverrides?: Record<string, { value: unknown; locked: boolean }>;
+  keepUpdated?: boolean;
   semanticEnabled?: boolean;
   semanticPrefix?: string;
   semanticMappings?: Array<{ semantic: string; step: string }>;
@@ -97,6 +98,28 @@ interface RecipeDraftTemplateOptions {
   sourceTokenPath?: string;
   sourceTokenName?: string;
   targetGroup?: string;
+}
+
+function appendCopySuffix(value: string, separator: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "copy";
+  }
+
+  const suffixPattern =
+    separator === "-"
+      ? /-copy(?:-(\d+))?$/i
+      : / copy(?: (\d+))?$/i;
+  const match = trimmed.match(suffixPattern);
+  if (!match) {
+    return `${trimmed}${separator}copy`;
+  }
+
+  const nextIndex = Number.parseInt(match[1] ?? "1", 10) + 1;
+  return trimmed.replace(
+    suffixPattern,
+    separator === "-" ? `-copy-${nextIndex}` : ` copy ${nextIndex}`,
+  );
 }
 
 export function createRecipeDraftFromTemplate(
@@ -130,6 +153,28 @@ export function createRecipeDraftFromTemplate(
   };
 }
 
+export function createGeneratedGroupDuplicateDraft(
+  recipe: TokenRecipe,
+): RecipeDialogInitialDraft {
+  return {
+    selectedType: recipe.type,
+    name: appendCopySuffix(recipe.name, " "),
+    targetCollection: recipe.targetCollection,
+    targetGroup: appendCopySuffix(recipe.targetGroup, "-"),
+    inlineValue: cloneOptionalDraftValue(recipe.inlineValue),
+    configs: {
+      [recipe.type]: cloneRecipeDraftValue(recipe.config),
+    },
+    keepUpdated: recipe.enabled !== false,
+    semanticEnabled: Boolean(recipe.semanticLayer?.mappings.length),
+    semanticPrefix: recipe.semanticLayer?.prefix,
+    semanticMappings: recipe.semanticLayer?.mappings
+      ? cloneRecipeDraftValue(recipe.semanticLayer.mappings)
+      : undefined,
+    selectedSemanticPatternId: recipe.semanticLayer?.patternId ?? null,
+  };
+}
+
 interface RecipeDirtySnapshot {
   selectedType: RecipeType;
   name: string;
@@ -139,6 +184,7 @@ interface RecipeDirtySnapshot {
   inlineValue: unknown;
   configs: Partial<Record<RecipeType, RecipeConfig>>;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
+  keepUpdated: boolean;
   semanticEnabled: boolean;
   semanticPrefix: string;
   semanticMappings: Array<{ semantic: string; step: string }>;
@@ -179,6 +225,7 @@ function mergeRecipeDrafts(
       : baseDraft?.pendingOverrides
         ? cloneRecipeDraftValue(baseDraft.pendingOverrides)
         : undefined,
+    keepUpdated: overrideDraft?.keepUpdated ?? baseDraft?.keepUpdated,
     semanticEnabled:
       overrideDraft?.semanticEnabled ?? baseDraft?.semanticEnabled,
     semanticPrefix: overrideDraft?.semanticPrefix ?? baseDraft?.semanticPrefix,
@@ -236,6 +283,7 @@ interface UseRecipeDialogReturn {
   overwritePendingPaths: string[];
   overwriteCheckLoading: boolean;
   overwriteCheckError: string;
+  keepUpdated: boolean;
   semanticEnabled: boolean;
   semanticPrefix: string;
   semanticMappings: Array<{ semantic: string; step: string }>;
@@ -243,7 +291,6 @@ interface UseRecipeDialogReturn {
   // Handlers
   handleTypeChange: (type: RecipeType) => void;
   handleNameChange: (value: string) => void;
-  setTargetCollection: (value: string) => void;
   setTargetGroup: (value: string) => void;
   setEditableSourcePath: (value: string) => void;
   setInlineValue: (value: unknown) => void;
@@ -259,13 +306,14 @@ interface UseRecipeDialogReturn {
   handleSave: () => Promise<boolean>;
   handleConfirmSave: () => Promise<boolean>;
   handleCancelConfirmation: () => void;
+  setKeepUpdated: (v: boolean) => void;
   setSemanticEnabled: (v: boolean) => void;
   setSemanticPrefix: (v: string) => void;
   setSemanticMappings: (v: Array<{ semantic: string; step: string }>) => void;
   setSelectedSemanticPatternId: (v: string | null) => void;
 }
 
-export function useRecipeDialog({
+export function useGeneratedGroupDialog({
   serverUrl,
   sourceTokenPath,
   sourceTokenName,
@@ -359,6 +407,8 @@ export function useRecipeDialog({
     existingRecipe?.overrides ??
     resolvedInitialDraft?.pendingOverrides ??
     {};
+  const initialKeepUpdated =
+    resolvedInitialDraft?.keepUpdated ?? existingRecipe?.enabled !== false;
   const initialSemanticEnabled =
     resolvedInitialDraft?.semanticEnabled ??
     Boolean(existingRecipe?.semanticLayer?.mappings.length);
@@ -377,7 +427,7 @@ export function useRecipeDialog({
 
   const [selectedType, setSelectedType] = useState<RecipeType>(initialType);
   const [name, setName] = useState(initialName);
-  const [targetCollection, setTargetCollection] = useState(initialTargetCollection);
+  const targetCollection = initialTargetCollection;
   const [targetGroup, setTargetGroup] = useState(initialTargetGroup);
   const [inlineValue, setInlineValueRaw] = useState<unknown>(initialInlineValue);
 
@@ -403,6 +453,7 @@ export function useRecipeDialog({
       inlineValue: initialInlineValue,
       configs: initialConfigs,
       pendingOverrides: initialPendingOverrides,
+      keepUpdated: initialKeepUpdated,
       semanticEnabled: initialSemanticEnabled,
       semanticPrefix: initialSemanticPrefix,
       semanticMappings: initialSemanticMappings,
@@ -542,7 +593,7 @@ export function useRecipeDialog({
     existingOverwritePathSet,
     previewFingerprint,
     previewAnalysis,
-  } = useRecipePreview({
+  } = useGeneratedGroupPreview({
     serverUrl,
     selectedType,
     sourceTokenPath: effectiveSourcePath,
@@ -565,6 +616,7 @@ export function useRecipeDialog({
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,
+    keepUpdated,
     semanticEnabled,
     semanticPrefix,
     semanticMappings,
@@ -573,11 +625,12 @@ export function useRecipeDialog({
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
+    setKeepUpdated,
     setSemanticEnabled,
     setSemanticPrefix,
     setSemanticMappings,
     setSelectedSemanticPatternId,
-  } = useRecipeSave({
+  } = useGeneratedGroupSave({
     serverUrl,
     isEditing,
     existingRecipe,
@@ -601,6 +654,7 @@ export function useRecipeDialog({
     pushUndo,
     requestPreviewRefresh: () =>
       setPreviewRefreshNonce((current) => current + 1),
+    initialKeepUpdated,
     initialSemanticEnabled,
     initialSemanticPrefix,
     initialSemanticMappings,
@@ -617,6 +671,7 @@ export function useRecipeDialog({
       inlineValue,
       configs,
       pendingOverrides,
+      keepUpdated,
       semanticEnabled,
       semanticPrefix,
       semanticMappings,
@@ -631,6 +686,7 @@ export function useRecipeDialog({
     inlineValue,
     name,
     pendingOverrides,
+    keepUpdated,
     selectedSemanticPatternId,
     selectedType,
     semanticEnabled,
@@ -694,12 +750,6 @@ export function useRecipeDialog({
     setPendingOverrides({});
   };
 
-  const setTargetCollectionDirty = useCallback(
-    (v: string) => {
-      setTargetCollection(v);
-    },
-    [],
-  );
   const setTargetGroupDirty = useCallback(
     (v: string) => {
       setTargetGroup(v);
@@ -711,6 +761,12 @@ export function useRecipeDialog({
       setInlineValueRaw(v);
     },
     [],
+  );
+  const setKeepUpdatedDirty = useCallback(
+    (value: boolean) => {
+      setKeepUpdated(value);
+    },
+    [setKeepUpdated],
   );
   const setSemanticEnabledDirty = useCallback(
     (value: boolean) => {
@@ -777,6 +833,7 @@ export function useRecipeDialog({
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,
+    keepUpdated,
     semanticEnabled,
     semanticPrefix,
     semanticMappings,
@@ -784,7 +841,6 @@ export function useRecipeDialog({
     // Handlers
     handleTypeChange,
     handleNameChange,
-    setTargetCollection: setTargetCollectionDirty,
     setTargetGroup: setTargetGroupDirty,
     setEditableSourcePath,
     setInlineValue,
@@ -796,6 +852,7 @@ export function useRecipeDialog({
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
+    setKeepUpdated: setKeepUpdatedDirty,
     setSemanticEnabled: setSemanticEnabledDirty,
     setSemanticPrefix: setSemanticPrefixDirty,
     setSemanticMappings: setSemanticMappingsDirty,

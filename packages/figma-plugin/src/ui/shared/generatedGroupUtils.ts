@@ -1,13 +1,89 @@
+import {
+  readTokenCollectionModeValues,
+  type TokenCollection,
+} from "@tokenmanager/core";
+import type { TokenMapEntry } from "../../shared/types";
 import type { TokenRecipe, RecipeType } from "../hooks/useRecipes";
 import { getRecipeDashboardStatus } from "../hooks/useRecipes";
+import { stableStringify } from "./utils";
 
 export type DashboardStatus = ReturnType<typeof getRecipeDashboardStatus>;
 export type SimplifiedStatus = "ready" | "needsRun" | "error";
 
-export function getAutomationTypeLabel(type: RecipeType): string {
+export interface GeneratedGroupKeepUpdatedAvailability {
+  supported: boolean;
+  reason: string | null;
+}
+
+export function getGeneratedGroupKeepUpdatedAvailability(params: {
+  sourceTokenPath?: string;
+  sourceTokenEntry?: TokenMapEntry;
+  collections?: TokenCollection[];
+  pathToCollectionId?: Record<string, string>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
+}): GeneratedGroupKeepUpdatedAvailability {
+  const sourceTokenPath = params.sourceTokenPath?.trim();
+  if (!sourceTokenPath) {
+    return {
+      supported: false,
+      reason:
+        "Keep updated is unavailable because this generated group has no source token.",
+    };
+  }
+  const sourceDefinitions = Object.entries(params.perCollectionFlat ?? {}).flatMap(
+    ([collectionId, collectionTokens]) => {
+      const token = collectionTokens[sourceTokenPath];
+      return token ? [{ collectionId, token }] : [];
+    },
+  );
+  if (
+    sourceDefinitions.length === 0 &&
+    params.sourceTokenEntry &&
+    params.pathToCollectionId?.[sourceTokenPath]
+  ) {
+    sourceDefinitions.push({
+      collectionId: params.pathToCollectionId[sourceTokenPath],
+      token: params.sourceTokenEntry,
+    });
+  }
+
+  for (const sourceDefinition of sourceDefinitions) {
+    const sourceCollection = params.collections?.find(
+      (collection) => collection.id === sourceDefinition.collectionId,
+    );
+    const collectionModeCount = sourceCollection?.modes.length ?? 0;
+    if (collectionModeCount <= 1) {
+      continue;
+    }
+    const sourceTokenModes = readTokenCollectionModeValues(
+      sourceDefinition.token,
+    )[sourceDefinition.collectionId];
+    if (!sourceTokenModes) {
+      continue;
+    }
+    const baseValue = stableStringify(sourceDefinition.token.$value);
+    const hasModeSensitiveSourceValue = Object.values(sourceTokenModes).some(
+      (value) =>
+        value !== undefined &&
+        value !== null &&
+        value !== "" &&
+        stableStringify(value) !== baseValue,
+    );
+    if (hasModeSensitiveSourceValue) {
+      return {
+        supported: false,
+        reason:
+          "Keep updated is unavailable because this source token changes across modes. Rerun from the current view so the active mode stays explicit.",
+      };
+    }
+  }
+  return { supported: true, reason: null };
+}
+
+export function getGeneratedGroupTypeLabel(type: RecipeType): string {
   switch (type) {
     case "colorRamp":
-      return "Color ramp";
+      return "Palette";
     case "spacingScale":
       return "Spacing scale";
     case "typeScale":
@@ -15,17 +91,15 @@ export function getAutomationTypeLabel(type: RecipeType): string {
     case "opacityScale":
       return "Opacity scale";
     case "borderRadiusScale":
-      return "Border radius";
+      return "Radius scale";
     case "zIndexScale":
-      return "Z-index scale";
+      return "Layer order scale";
     case "shadowScale":
       return "Shadow scale";
     case "customScale":
       return "Custom scale";
-    case "accessibleColorPair":
-      return "Accessible color pair";
     case "darkModeInversion":
-      return "Dark mode inversion";
+      return "Dark mode variant";
     default:
       return type;
   }
@@ -44,7 +118,7 @@ export function formatRelativeTimestamp(value?: string): string | null {
   return `${diffDays}d ago`;
 }
 
-export function getAutomationStatusDetail(recipe: TokenRecipe, status: DashboardStatus): string {
+export function getGeneratedGroupStatusDetail(recipe: TokenRecipe, status: DashboardStatus): string {
   if (status === "blocked") {
     const blockedBy = recipe.blockedByRecipes?.filter((dependency) => dependency.name) ?? [];
     if (blockedBy.length > 0) {
@@ -85,7 +159,7 @@ export function getStatusDotClass(simpleStatus: SimplifiedStatus, isPaused: bool
 }
 
 export function getStatusLabel(status: DashboardStatus, isPaused: boolean): string {
-  if (isPaused) return "Paused";
+  if (isPaused) return "Keep updated off";
   switch (status) {
     case "upToDate":
       return "Up to date";
@@ -98,6 +172,6 @@ export function getStatusLabel(status: DashboardStatus, isPaused: boolean): stri
     case "neverRun":
       return "Never run";
     default:
-      return "Generator";
+      return "Generated";
   }
 }
