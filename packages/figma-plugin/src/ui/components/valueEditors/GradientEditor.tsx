@@ -20,7 +20,18 @@ function buildGradientCss(gradientType: string, stops: GradientStop[]): string {
     .sort((a, b) => a.position - b.position)
     .map(s => `${gradientStopColor(s)} ${Math.round(s.position * 100)}%`)
     .join(', ');
-  return `${gradientType}-gradient(to right, ${parts})`;
+  switch (gradientType) {
+    case 'radial':
+      return `radial-gradient(circle at center, ${parts})`;
+    case 'angular':
+      return `conic-gradient(from 0deg, ${parts})`;
+    case 'diamond':
+      // CSS has no diamond-gradient primitive. Use the closest supported preview.
+      return `radial-gradient(circle at center, ${parts})`;
+    case 'linear':
+    default:
+      return `linear-gradient(90deg, ${parts})`;
+  }
 }
 
 function GradientStopMarker({ position, color, isSelected, onSelect, onMove, getBarPos }: {

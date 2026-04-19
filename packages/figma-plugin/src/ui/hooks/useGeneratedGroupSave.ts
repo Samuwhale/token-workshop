@@ -352,6 +352,8 @@ export function useGeneratedGroupSave({
     },
     [
       buildRecipeMutationBody,
+      inlineValue,
+      name,
       serverUrl,
       isEditing,
       existingRecipe,
@@ -360,6 +362,9 @@ export function useGeneratedGroupSave({
       previewTokens,
       getToastAction,
       pushUndo,
+      selectedType,
+      sourceTokenPath,
+      sourceValue,
     ],
   );
 

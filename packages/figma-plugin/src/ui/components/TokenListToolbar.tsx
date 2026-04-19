@@ -1,7 +1,4 @@
 import React, {
-  useState,
-  useRef,
-  useEffect,
   useCallback,
   type RefObject,
   type ReactNode,
@@ -11,7 +8,7 @@ import {
   type TokenListOverflowMenuProps,
 } from "./TokenListOverflowMenu";
 import { replaceQueryToken } from "./tokenListUtils";
-import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
+import { useDropdownMenu } from "../hooks/useDropdownMenu";
 
 export interface ToolbarStateChip {
   key: string;
@@ -142,47 +139,18 @@ export function TokenListToolbar({
   tokensExist,
   overflowMenuProps,
 }: TokenListToolbarProps) {
-  const [createToolsMenuOpen, setCreateToolsMenuOpen] = useState(false);
-  const createToolsMenuContainerRef = useRef<HTMLDivElement>(null);
-  const createToolsMenuButtonRef = useRef<HTMLButtonElement>(null);
-  const createToolsMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!createToolsMenuOpen) return;
-    const onMouseDown = (event: MouseEvent) => {
-      if (createToolsMenuContainerRef.current?.contains(event.target as Node)) {
-        return;
-      }
-      setCreateToolsMenuOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setCreateToolsMenuOpen(false);
-        createToolsMenuButtonRef.current?.focus();
-        return;
-      }
-      if (createToolsMenuRef.current) {
-        handleMenuArrowKeys(event, createToolsMenuRef.current);
-      }
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKeyDown);
-    window.requestAnimationFrame(() => {
-      if (createToolsMenuRef.current) {
-        getMenuItems(createToolsMenuRef.current)[0]?.focus();
-      }
-    });
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [createToolsMenuOpen]);
+  const {
+    open: createToolsMenuOpen,
+    menuRef: createToolsMenuRef,
+    triggerRef: createToolsMenuButtonRef,
+    toggle: toggleCreateToolsMenu,
+    close: closeCreateToolsMenu,
+  } = useDropdownMenu();
 
   const runCreateToolsAction = useCallback((action: () => void) => {
-    setCreateToolsMenuOpen(false);
     action();
-  }, []);
+    closeCreateToolsMenu({ restoreFocus: false });
+  }, [closeCreateToolsMenu]);
 
   const currentLibraryViewMode = getCurrentLibraryViewMode({
     viewMode,
@@ -275,11 +243,11 @@ export function TokenListToolbar({
 
           <div className="flex shrink-0 items-center gap-1">
             {scenarioControl}
-            <div className="relative shrink-0" ref={createToolsMenuContainerRef}>
+            <div className="relative shrink-0">
               <button
                 ref={createToolsMenuButtonRef}
                 type="button"
-                onClick={() => setCreateToolsMenuOpen((open) => !open)}
+                onClick={toggleCreateToolsMenu}
                 disabled={!connected}
                 aria-expanded={createToolsMenuOpen}
                 aria-haspopup="menu"

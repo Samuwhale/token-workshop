@@ -1,4 +1,4 @@
-import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type BindableProperty, type ScanScope, type ResolvedTokenValue } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, type BindableProperty, type ScanScope, type ResolvedTokenValue } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToNodes } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
@@ -157,13 +157,6 @@ function collectBoundBindableProperties(node: SceneNode): Set<BindableProperty> 
     const tokenPath = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, property);
     if (tokenPath && tokenPath.trim()) {
       bound.add(property);
-    }
-  }
-
-  for (const [legacyKey, bindable] of Object.entries(LEGACY_KEY_MAP)) {
-    const tokenPath = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
-    if (tokenPath && tokenPath.trim()) {
-      bound.add(bindable);
     }
   }
 
@@ -421,12 +414,6 @@ export async function scanTokenUsage(tokenPath: string, signal?: { aborted: bool
       for (const prop of ALL_BINDABLE_PROPERTIES) {
         if (current.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop) === tokenPath) {
           boundProps.push(prop);
-        }
-      }
-      for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
-        if (current.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey) === tokenPath) {
-          const mapped = (LEGACY_KEY_MAP as Record<string, string>)[legacyKey];
-          if (!boundProps.includes(mapped)) boundProps.push(mapped);
         }
       }
 

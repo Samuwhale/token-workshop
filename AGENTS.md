@@ -29,7 +29,7 @@ Keep one canonical authoring model aligned to the Figma mental model: collection
 ## UI Guidance
 
 - Optimize UX and information architecture for how Figma designers already think about their work
-- Generated groups must stay inside the normal token-authoring model: they are token groups within a collection, not a separate automation workspace or scheduler-style surface. Favor quick, inline, outcome-first generation with immediate preview, visible generated state in the library, and explicit interruption for manual drift (`Edit generator`, `Make manual exception`, `Detach from generator`).
+- Keep generation inside the normal token-authoring model: a generated group is just a token group inside one collection, not a separate automation workspace or scheduler. Favor quiet, outcome-first flows with immediate preview, inline generated state in the library, and explicit interruption for manual drift (`Edit generator`, `Make manual exception`, `Detach from generator`).
 - Prefer mental models, naming, grouping, and flows that feel native to Figma and design-system workflows
 - Make primary concepts, actions, and consequences obvious without requiring users to translate from developer-centric terminology
 - Keep interaction patterns predictable and easy to learn so designers can build confidence quickly

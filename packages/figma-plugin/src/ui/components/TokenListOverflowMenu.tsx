@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import type { SortOrder } from "./tokenListTypes";
 import type { Density } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
-import { getMenuItems, handleMenuArrowKeys } from "../hooks/useMenuKeyboard";
+import { useDropdownMenu } from "../hooks/useDropdownMenu";
 
 export type LibraryViewMode = "library" | "mode-options" | "active-mode" | "json";
 
@@ -146,73 +146,28 @@ function MenuLabel({ children }: { children: string }) {
   );
 }
 
-function useDropdownMenu() {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const close = useCallback(() => setOpen(false), []);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setOpen(false);
-        buttonRef.current?.focus();
-        return;
-      }
-      if (menuRef.current) {
-        handleMenuArrowKeys(e, menuRef.current);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    window.requestAnimationFrame(() => {
-      if (menuRef.current) getMenuItems(menuRef.current)[0]?.focus();
-    });
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
-
-  const runAndClose = useCallback(
-    (fn: () => void) => {
-      fn();
-      close();
-    },
-    [close],
-  );
-
-  return { open, setOpen, containerRef, buttonRef, menuRef, runAndClose };
-}
-
 export function ViewMenu(
   props: TokenListOverflowMenuProps & {
     currentLibraryViewMode: LibraryViewMode;
     onActivateViewMode: (mode: LibraryViewMode) => void;
   },
 ) {
-  const { open, setOpen, containerRef, buttonRef, menuRef, runAndClose } =
-    useDropdownMenu();
+  const { open, menuRef, triggerRef, toggle, close } = useDropdownMenu();
+  const runAndClose = useCallback(
+    (fn: () => void) => {
+      fn();
+      close({ restoreFocus: false });
+    },
+    [close],
+  );
   const [groupsExpanded, setGroupsExpanded] = useState(true);
 
   return (
-    <div className="relative shrink-0" ref={containerRef}>
+    <div className="relative shrink-0">
       <button
-        ref={buttonRef}
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="View options"
@@ -465,15 +420,21 @@ export function ViewMenu(
 }
 
 export function FilterMenu(props: FilterMenuProps) {
-  const { open, setOpen, containerRef, buttonRef, menuRef, runAndClose } =
-    useDropdownMenu();
+  const { open, menuRef, triggerRef, toggle, close } = useDropdownMenu();
+  const runAndClose = useCallback(
+    (fn: () => void) => {
+      fn();
+      close({ restoreFocus: false });
+    },
+    [close],
+  );
 
   return (
-    <div className="relative shrink-0" ref={containerRef}>
+    <div className="relative shrink-0">
       <button
-        ref={buttonRef}
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Filter options"

@@ -5,16 +5,23 @@ interface UseDropdownMenuOptions {
   onClose?: () => void;
 }
 
+interface CloseMenuOptions {
+  restoreFocus?: boolean;
+}
+
 export function useDropdownMenu(options?: UseDropdownMenuOptions) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const onClose = options?.onClose;
 
-  const close = useCallback(() => {
+  const close = useCallback((closeOptions?: CloseMenuOptions) => {
+    const shouldRestoreFocus = closeOptions?.restoreFocus ?? true;
     setOpen(false);
     onClose?.();
-    triggerRef.current?.focus();
+    if (shouldRestoreFocus) {
+      triggerRef.current?.focus();
+    }
   }, [onClose]);
 
   const toggle = useCallback(() => setOpen((prev) => !prev), []);

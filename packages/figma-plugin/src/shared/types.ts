@@ -100,15 +100,6 @@ export const PROPERTY_GROUPS: { label: string; properties: BindableProperty[]; c
   { label: 'Other', properties: ['visible'] },
 ];
 
-// Legacy key mapping for backward compat
-export const LEGACY_KEY_MAP: Record<string, BindableProperty> = {
-  color: 'fill',
-  typography: 'typography',
-  dimension: 'width',
-  shadow: 'shadow',
-  border: 'stroke',
-};
-
 export interface NodeCapabilities {
   hasFills: boolean;
   hasStrokes: boolean;

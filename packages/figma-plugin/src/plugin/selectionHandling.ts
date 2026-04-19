@@ -1,4 +1,4 @@
-import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES } from '../shared/types.js';
 import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo, TokenMapEntry, ResolvedTokenValue, TypographyValue, DimensionValue, BorderValue, ShadowTokenValue } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
@@ -9,41 +9,20 @@ import { walkNodes } from './walkNodes.js';
 
 let selectionDeepInspectEnabled = false;
 
-const LEGACY_KEYS_BY_PROPERTY = Object.entries(LEGACY_KEY_MAP).reduce<Record<string, string[]>>((acc, [legacyKey, property]) => {
-  if (!acc[property]) acc[property] = [];
-  acc[property].push(legacyKey);
-  return acc;
-}, {});
-
 export function setSelectionDeepInspectEnabled(enabled: boolean): void {
   selectionDeepInspectEnabled = enabled;
 }
 
-function getLegacyKeysForProperty(property: string): string[] {
-  return LEGACY_KEYS_BY_PROPERTY[property] ?? [];
-}
-
 function hasStoredBinding(node: SceneNode, property: string): boolean {
-  if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, property)) {
-    return true;
-  }
-  return getLegacyKeysForProperty(property).some((legacyKey) =>
-    Boolean(node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey)),
-  );
+  return Boolean(node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, property));
 }
 
 function clearStoredBinding(node: SceneNode, property: string): void {
   node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
-  for (const legacyKey of getLegacyKeysForProperty(property)) {
-    node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
-  }
 }
 
 function setStoredBinding(node: SceneNode, property: string, tokenPath: string): void {
   node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, tokenPath);
-  for (const legacyKey of getLegacyKeysForProperty(property)) {
-    node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
-  }
 }
 
 function parseRequiredDimensionValue(
@@ -289,10 +268,7 @@ export async function clearAllBindings() {
   const selection = figma.currentPage.selection;
   const errors: string[] = [];
   for (const node of selection) {
-    for (const prop of new Set<string>([
-      ...ALL_BINDABLE_PROPERTIES,
-      ...Object.keys(LEGACY_KEY_MAP),
-    ])) {
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
       try {
         node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, prop, '');
       } catch (err) {
@@ -357,12 +333,6 @@ function readNodeBindings(node: SceneNode): Record<string, string> {
   for (const prop of ALL_BINDABLE_PROPERTIES) {
     const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
     if (val) bindings[prop] = val;
-  }
-  for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
-    if (!bindings[newKey]) {
-      const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
-      if (val) bindings[newKey] = val;
-    }
   }
   return bindings;
 }
@@ -645,9 +615,6 @@ export async function highlightLayersByToken(tokenPath: string) {
     for (const prop of ALL_BINDABLE_PROPERTIES) {
       if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop) === tokenPath) return true;
     }
-    for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
-      if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey) === tokenPath) return true;
-    }
     return false;
   });
   if (nodes.length > 0) {
@@ -849,13 +816,6 @@ export async function scanTokenUsageMap(signal?: { aborted: boolean }) {
         usageMap[tokenPath] = (usageMap[tokenPath] || 0) + 1;
       }
     }
-    for (const [legacyKey] of Object.entries(LEGACY_KEY_MAP)) {
-      const tokenPath = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
-      if (tokenPath && !seen.has(tokenPath)) {
-        seen.add(tokenPath);
-        usageMap[tokenPath] = (usageMap[tokenPath] || 0) + 1;
-      }
-    }
   }
   if (signal?.aborted) {
     figma.ui.postMessage({ type: 'token-usage-map-cancelled' });
@@ -869,9 +829,6 @@ export async function syncBindings(tokenMap: Record<string, TokenMapEntry>, scop
   const nodes = collectNodesForScope(scope, node => {
     for (const prop of ALL_BINDABLE_PROPERTIES) {
       if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop)) return true;
-    }
-    for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
-      if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey)) return true;
     }
     return false;
   });
@@ -890,21 +847,11 @@ export async function syncBindings(tokenMap: Record<string, TokenMapEntry>, scop
       const batch = nodes.slice(i, i + BATCH_SIZE);
 
       for (const node of batch) {
-        // Collect bindings, including legacy remapping
+        // Collect the current stored bindings for this node.
         const bindings: Record<string, string> = {};
         for (const prop of ALL_BINDABLE_PROPERTIES) {
           const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
           if (val) bindings[prop] = val;
-        }
-        for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
-          if (!bindings[newKey]) {
-            const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
-            if (val) {
-              bindings[newKey] = val;
-              // Migrate legacy key to new key
-              setStoredBinding(node, newKey, val);
-            }
-          }
         }
 
         // Snapshot current property values before any mutations on this node
