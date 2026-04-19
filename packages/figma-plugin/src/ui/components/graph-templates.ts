@@ -298,24 +298,6 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
   },
 ];
 
-export function getTemplateStepCount(template: GraphTemplate): number {
-  const cfg = template.config as unknown as Record<string, unknown>;
-  const steps = cfg.steps;
-  if (Array.isArray(steps)) return steps.length;
-  if (
-    typeof cfg.backgroundStep === "string" &&
-    typeof cfg.foregroundStep === "string"
-  ) {
-    return 2;
-  }
-  if (typeof cfg.stepName === "string") return 1;
-  return 0;
-}
-
-export function getTemplateSemanticCount(template: GraphTemplate): number {
-  return template.semanticStarter?.mappings.length ?? 0;
-}
-
 export function getStarterTemplateForGeneratorType(
   generatorType: GeneratorType,
 ): GraphTemplate | undefined {

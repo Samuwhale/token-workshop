@@ -3,42 +3,6 @@
  */
 import type { GeneratorType } from "../../hooks/useGenerators";
 import type { GraphTemplate } from "../graph-templates";
-import {
-  getTemplateSemanticCount,
-  getTemplateStepCount,
-} from "../graph-templates";
-import { getGeneratedGroupTypeLabel } from "../../shared/generatedGroupUtils";
-
-// ---------------------------------------------------------------------------
-// Pipeline stage visualization
-// ---------------------------------------------------------------------------
-
-function PipelineStages({ stages }: { stages: string[] }) {
-  return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {stages.map((stage, index) => (
-        <div key={stage} className="flex items-center gap-1">
-          <span className="whitespace-nowrap rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
-            {stage}
-          </span>
-          {index < stages.length - 1 && (
-            <svg
-              width="8"
-              height="8"
-              viewBox="0 0 8 8"
-              fill="currentColor"
-              className="shrink-0 text-[var(--color-figma-text-tertiary)]"
-              aria-hidden="true"
-            >
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Template icons
 // ---------------------------------------------------------------------------
@@ -242,8 +206,6 @@ export function GeneratorIntentCard({
   compact?: boolean;
   isSuggested?: boolean;
 }) {
-  const stepCount = getTemplateStepCount(template);
-  const semanticCount = getTemplateSemanticCount(template);
   const densityClass = compact ? "p-2.5" : "p-3";
 
   return (
@@ -271,32 +233,10 @@ export function GeneratorIntentCard({
                 Suggested
               </span>
             )}
-            <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-px text-[10px] text-[var(--color-figma-text-secondary)]">
-              {getGeneratedGroupTypeLabel(template.generatorType)}
-            </span>
           </div>
           <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
             {template.description}
           </p>
-          {!compact && (
-            <div className="mt-2">
-              <PipelineStages stages={template.stages} />
-            </div>
-          )}
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            <span>
-              {stepCount} starter step{stepCount === 1 ? "" : "s"}
-            </span>
-            {semanticCount > 0 && (
-              <>
-                <span aria-hidden="true">&bull;</span>
-                <span>
-                  {semanticCount} semantic starter
-                  {semanticCount === 1 ? "" : "s"}
-                </span>
-              </>
-            )}
-          </div>
         </div>
       </div>
     </button>

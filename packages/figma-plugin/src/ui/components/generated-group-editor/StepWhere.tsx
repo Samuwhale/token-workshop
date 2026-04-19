@@ -116,7 +116,7 @@ export function StepWhere({
               Collection
             </p>
             <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-              This group stays in the current collection.
+              Tokens will be created in this collection.
             </p>
           </div>
           <span className="rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text)]">

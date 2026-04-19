@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
 import { getGeneratorManagedOutputs } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
@@ -9,7 +10,6 @@ import type {
 } from "../../hooks/useGenerators";
 import { getGeneratorDashboardStatus } from "../../hooks/useGenerators";
 import {
-  formatRelativeTimestamp,
   getGeneratedGroupTypeLabel,
   getStatusLabel,
 } from "../../shared/generatedGroupUtils";
@@ -124,13 +124,6 @@ export function CondensedAncestorBreadcrumb({
   );
 }
 
-const GENERATOR_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
-
 export function GeneratedGlyph({
   size = 8,
   strokeWidth = 1.5,
@@ -158,13 +151,6 @@ export function GeneratedGlyph({
       <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
     </svg>
   );
-}
-
-function formatGeneratorRunAt(lastRunAt?: string): string {
-  if (!lastRunAt) return "Never run";
-  const date = new Date(lastRunAt);
-  if (Number.isNaN(date.getTime())) return "Unknown";
-  return GENERATOR_RUN_AT_FORMATTER.format(date);
 }
 
 export function formatGeneratedGroupSummaryTitle(generator: TokenGenerator): string {
@@ -200,9 +186,6 @@ export function GeneratedGroupSummaryRow({
   depth,
   condensedView,
   generator,
-  collectionId,
-  activeModeLabel,
-  managedTokenCount,
   exceptionCount,
   previewTokens,
   running,
@@ -221,9 +204,6 @@ export function GeneratedGroupSummaryRow({
   depth: number;
   condensedView: boolean;
   generator: TokenGenerator;
-  collectionId: string;
-  activeModeLabel?: string | null;
-  managedTokenCount: number;
   exceptionCount: number;
   previewTokens: GeneratedTokenResult[];
   running: boolean;
@@ -244,12 +224,10 @@ export function GeneratedGroupSummaryRow({
   const keepUpdated = generator.enabled !== false;
   const dashboardStatus = getGeneratorDashboardStatus(generator);
   const statusLabel = getStatusLabel(dashboardStatus, !keepUpdated);
-  const lastRunLabel = formatGeneratorRunAt(generator.lastRunAt);
-  const lastRunRelativeLabel = formatRelativeTimestamp(generator.lastRunAt);
   const exceptionLabel =
     exceptionCount > 0
       ? `${exceptionCount} manual exception${exceptionCount === 1 ? "" : "s"}`
-      : "No manual exceptions";
+      : null;
   const shouldNudgeExceptionCleanup = exceptionCount >= 3;
   const compactPreviewTokens = previewTokens.slice(0, 4);
 
@@ -282,21 +260,7 @@ export function GeneratedGroupSummaryRow({
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             <span>
-              Collection{" "}
-              <span className="font-mono text-[var(--color-figma-text)]">
-                {collectionId}
-              </span>
-            </span>
-            {activeModeLabel && (
-              <span>
-                Mode{" "}
-                <span className="text-[var(--color-figma-text)]">
-                  {activeModeLabel}
-                </span>
-              </span>
-            )}
-            <span>
-              Source token{" "}
+              Source{" "}
               {generator.sourceToken && onNavigateToSourceToken ? (
                 <button
                   type="button"
@@ -314,40 +278,18 @@ export function GeneratedGroupSummaryRow({
                 </span>
               )}
             </span>
-            <span>
-              Status{" "}
-              <span className="text-[var(--color-figma-text)]">
-                {statusLabel}
+            {statusLabel !== "Up to date" && (
+              <span>
+                Status{" "}
+                <span className="text-[var(--color-figma-text)]">
+                  {statusLabel}
+                </span>
               </span>
-            </span>
-            <span>
-              Type{" "}
-              <span className="text-[var(--color-figma-text)]">
-                {typeLabel}
-              </span>
-            </span>
-            <span>
-              Keep updated{" "}
-              <span className="text-[var(--color-figma-text)]">
-                {keepUpdated ? "On" : "Off"}
-              </span>
-            </span>
-            <span>
-              {exceptionLabel}
-            </span>
-            <span>
-              Last run{" "}
-              <span className="text-[var(--color-figma-text)]">
-                {lastRunRelativeLabel ? `${lastRunRelativeLabel} · ${lastRunLabel}` : lastRunLabel}
-              </span>
-            </span>
+            )}
+            {exceptionCount > 0 && (
+              <span>{exceptionLabel}</span>
+            )}
           </div>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            This generated group manages {managedTokenCount} token
-            {managedTokenCount === 1 ? "" : "s"}. Edit the generator to change
-            them, keep explicit exceptions when a few steps need to diverge, or
-            detach the group if it should become fully manual.
-          </p>
           {keepUpdatedDisabledReason && (
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
               {keepUpdatedDisabledReason}
@@ -366,72 +308,130 @@ export function GeneratedGroupSummaryRow({
             />
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap justify-end gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              void onRun?.();
-            }}
-            disabled={running || !onRun}
-            className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {running ? "Running…" : "Rerun now"}
-          </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {generator.isStale && (
+            <button
+              type="button"
+              onClick={() => { void onRun?.(); }}
+              disabled={running || !onRun}
+              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {running ? "Running\u2026" : "Rerun"}
+            </button>
+          )}
           <button
             type="button"
             onClick={onEdit}
             disabled={!onEdit}
             className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Edit generator
+            Edit {typeLabel.toLowerCase()}
           </button>
+          <SummaryOverflowMenu
+            typeLabel={typeLabel}
+            keepUpdated={keepUpdated}
+            keepUpdatedBusy={keepUpdatedBusy}
+            keepUpdatedDisabledReason={keepUpdatedDisabledReason}
+            onToggleKeepUpdated={onToggleKeepUpdated}
+            onDuplicate={onDuplicate}
+            onDetach={onDetach}
+            detaching={detaching}
+            onDelete={onDelete}
+            deleting={deleting}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryOverflowMenu({
+  typeLabel,
+  keepUpdated,
+  keepUpdatedBusy,
+  keepUpdatedDisabledReason,
+  onToggleKeepUpdated,
+  onDuplicate,
+  onDetach,
+  detaching,
+  onDelete,
+  deleting,
+}: {
+  typeLabel: string;
+  keepUpdated: boolean;
+  keepUpdatedBusy: boolean;
+  keepUpdatedDisabledReason?: string | null;
+  onToggleKeepUpdated?: (enabled: boolean) => Promise<void> | void;
+  onDuplicate?: () => void;
+  onDetach?: () => Promise<void> | void;
+  detaching: boolean;
+  onDelete?: () => Promise<void> | void;
+  deleting: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e: globalThis.MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-[24px] w-[24px] items-center justify-center rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        aria-label="More actions"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+          <circle cx="2" cy="5" r="1" />
+          <circle cx="5" cy="5" r="1" />
+          <circle cx="8" cy="5" r="1" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg">
           <button
             type="button"
-            onClick={() => {
-              void onToggleKeepUpdated?.(!keepUpdated);
-            }}
+            onClick={() => { void onToggleKeepUpdated?.(!keepUpdated); setOpen(false); }}
             disabled={keepUpdatedBusy || !onToggleKeepUpdated || Boolean(keepUpdatedDisabledReason)}
             title={keepUpdatedDisabledReason ?? undefined}
-            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {keepUpdatedBusy
-              ? "Updating…"
-              : keepUpdatedDisabledReason
-                ? "Updates unavailable"
-              : keepUpdated
-                ? "Turn off updates"
-                : "Keep updated"}
+            {keepUpdatedBusy ? "Updating\u2026" : keepUpdated ? "Turn off updates" : "Keep updated"}
           </button>
           <button
             type="button"
-            onClick={onDuplicate}
+            onClick={() => { onDuplicate?.(); setOpen(false); }}
             disabled={!onDuplicate}
-            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Duplicate
           </button>
           <button
             type="button"
-            onClick={() => {
-              void onDelete?.();
-            }}
-            disabled={deleting || !onDelete}
-            className="px-2 py-1 rounded border border-[var(--color-figma-error)]/30 text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => { void onDetach?.(); setOpen(false); }}
+            disabled={detaching || !onDetach}
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {deleting ? "Deleting…" : "Delete"}
+            {detaching ? "Detaching\u2026" : "Detach"}
           </button>
+          <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
           <button
             type="button"
-            onClick={() => {
-              void onDetach?.();
-            }}
-            disabled={detaching || !onDetach}
-            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => { void onDelete?.(); setOpen(false); }}
+            disabled={deleting || !onDelete}
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {detaching ? "Detaching…" : "Detach from generator"}
+            {deleting ? "Deleting\u2026" : `Delete ${typeLabel.toLowerCase()}`}
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

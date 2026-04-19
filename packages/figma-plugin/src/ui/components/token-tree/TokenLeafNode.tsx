@@ -781,6 +781,7 @@ export const TokenLeafNode = memo(
         title: formatGeneratedGroupSummaryTitle(producingGenerator),
         tone: producingGenerator.isStale ? "warning" : "default",
         hoverOnly: !producingGenerator.isStale,
+        priority: "identity" as const,
         onClick: onOpenGeneratedGroupEditor
           ? () =>
               onOpenGeneratedGroupEditor({
@@ -796,6 +797,7 @@ export const TokenLeafNode = memo(
           ? `Broken alias reference: ${resolveResult?.error ?? "Unknown error"}`
           : `Alias reference to ${aliasTargetPath}\nClick to navigate`,
         tone: isBrokenAlias ? "danger" : "accent",
+        priority: "identity" as const,
         onClick:
           !isBrokenAlias && onNavigateToAlias
             ? () => onNavigateToAlias(aliasTargetPath, node.path)
@@ -805,6 +807,7 @@ export const TokenLeafNode = memo(
       leafMetadataSegments.push({
         label: `Extends ${compactTokenPath(presentationMetadata.extendsPath)}`,
         title: `Base token for this value: ${presentationMetadata.extendsPath}`,
+        priority: "identity" as const,
         onClick: onNavigateToAlias
           ? () => onNavigateToAlias(presentationMetadata.extendsPath!, node.path)
           : undefined,
@@ -814,6 +817,7 @@ export const TokenLeafNode = memo(
       leafMetadataSegments.push({
         label: `Scopes: ${scopeSummary}`,
         title: `Figma variable scopes: ${presentationMetadata.scopes.join(", ")}`,
+        priority: "detail" as const,
       });
     }
     if (incomingRefs.length > 0) {
@@ -823,6 +827,7 @@ export const TokenLeafNode = memo(
             ? "Referenced by 1 token"
             : `Referenced by ${incomingRefs.length} tokens`,
         title: incomingRefs.join("\n"),
+        priority: "detail" as const,
         onClick: openRefsPopover,
       });
     }
@@ -831,6 +836,7 @@ export const TokenLeafNode = memo(
         label: `Origin: ${provenanceLabel}`,
         title: provenanceLabel,
         hoverOnly: true,
+        priority: "detail" as const,
       });
     }
     const missingModeCount = tokenModeMissing?.get(node.path);
@@ -839,12 +845,14 @@ export const TokenLeafNode = memo(
         label: `${missingModeCount} missing`,
         title: `${missingModeCount} mode value${missingModeCount === 1 ? "" : "s"} still need authoring`,
         tone: "warning",
+        priority: "status" as const,
       });
     } else if (modeVariantPaths?.has(node.path) && !multiModeValues) {
       leafMetadataSegments.push({
         label: "Mode overrides",
         title: "Has per-collection mode overrides",
         tone: "accent",
+        priority: "detail" as const,
       });
     }
     if (lifecycleLabel) {
@@ -852,6 +860,7 @@ export const TokenLeafNode = memo(
         label: lifecycleLabel,
         tone:
           presentationMetadata.lifecycle === "draft" ? "warning" : "default",
+        priority: "status" as const,
       });
     }
 

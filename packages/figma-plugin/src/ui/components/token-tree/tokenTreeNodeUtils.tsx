@@ -9,6 +9,8 @@ export type RowMetadataSegment = {
   onClick?: () => void;
   /** When true the segment is invisible at rest and fades in on row hover. */
   hoverOnly?: boolean;
+  /** Controls resting visibility: identity (1st slot), status (2nd slot), detail (hover-only). */
+  priority?: "identity" | "status" | "detail";
 };
 
 function getRowMetadataToneClass(
@@ -27,10 +29,32 @@ function getRowMetadataToneClass(
 }
 
 export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
-  return segments.map((segment, index) => {
-    const hoverClass = segment.hoverOnly
-      ? "opacity-0 group-hover:opacity-100 transition-opacity"
-      : "";
+  const hasPriorities = segments.some((s) => s.priority);
+
+  let allOrdered: RowMetadataSegment[];
+  let identitySegment: RowMetadataSegment | undefined;
+  let statusSegment: RowMetadataSegment | undefined;
+  const restingSet = new Set<RowMetadataSegment>();
+
+  if (hasPriorities) {
+    identitySegment = segments.find((s) => s.priority === "identity" && !s.hoverOnly);
+    statusSegment = segments.find((s) => s.priority === "status" && !s.hoverOnly);
+    const restingSegments: RowMetadataSegment[] = [];
+    if (identitySegment) { restingSegments.push(identitySegment); restingSet.add(identitySegment); }
+    if (statusSegment) { restingSegments.push(statusSegment); restingSet.add(statusSegment); }
+    const hoverSegments = segments.filter((s) => !restingSet.has(s));
+    allOrdered = [...restingSegments, ...hoverSegments];
+  } else {
+    allOrdered = segments;
+  }
+
+  return allOrdered.map((segment, index) => {
+    const isResting = hasPriorities ? restingSet.has(segment) : !segment.hoverOnly;
+    const isStatus = segment === statusSegment;
+    const hoverClass = isResting
+      ? ""
+      : "opacity-0 group-hover:opacity-100 transition-opacity";
+
     return (
       <span
         key={`${segment.label}-${index}`}
@@ -45,8 +69,10 @@ export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
           </span>
         )}
         <span
-          className={`truncate ${getRowMetadataToneClass(segment.tone)} ${
-            segment.onClick ? "cursor-pointer hover:underline" : ""
+          className={`truncate ${
+            isStatus
+              ? `text-[var(--color-figma-text-tertiary)] ${segment.onClick ? "cursor-pointer hover:underline hover:text-[var(--color-figma-text-secondary)]" : ""}`
+              : `${getRowMetadataToneClass(segment.tone)} ${segment.onClick ? "cursor-pointer hover:underline" : ""}`
           }`}
           title={segment.title ?? segment.label}
           onClick={

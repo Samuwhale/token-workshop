@@ -71,10 +71,10 @@ function getDialogTitle(params: {
   outcomeChooserVisible: boolean;
 }) {
   if (params.isEditing) {
-    return "Edit generated group";
+    return `Edit ${getGeneratedGroupTypeLabel(params.selectedType).toLowerCase()}`;
   }
   if (params.outcomeChooserVisible) {
-    return "New generated group";
+    return "Generate\u2026";
   }
   return `Generate ${getGeneratedGroupTypeLabel(params.selectedType).toLowerCase()}`;
 }

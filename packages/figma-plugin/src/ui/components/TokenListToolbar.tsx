@@ -73,6 +73,7 @@ export interface TokenListToolbarProps {
   onApplyStyles?: () => void;
   applyingOrLoading?: boolean;
   tokensExist?: boolean;
+  generatedTokenCount?: number;
   overflowMenuProps: TokenListOverflowMenuProps | null;
 }
 
@@ -137,6 +138,7 @@ export function TokenListToolbar({
   onApplyStyles,
   applyingOrLoading,
   tokensExist,
+  generatedTokenCount,
   overflowMenuProps,
 }: TokenListToolbarProps) {
   const {
@@ -275,6 +277,7 @@ export function TokenListToolbar({
                   className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
                   role="menu"
                 >
+                  {/* Group 1: Create */}
                   <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                     Create
                   </div>
@@ -294,14 +297,6 @@ export function TokenListToolbar({
                   >
                     New group
                   </button>
-                  <button
-                    role="menuitem"
-                    onClick={() => runCreateToolsAction(openTableCreate)}
-                    disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Token table
-                  </button>
                   {onOpenCreateCollection && (
                     <button
                       role="menuitem"
@@ -312,22 +307,49 @@ export function TokenListToolbar({
                       New collection
                     </button>
                   )}
-                  {onCreateGeneratedGroup && (
+
+                  {/* Group 2: Generate */}
+                  {(onCreateGeneratedGroup || onFoundationTemplates) && (
                     <>
                       <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                      <button
-                        role="menuitem"
-                        onClick={() => runCreateToolsAction(onCreateGeneratedGroup)}
-                        disabled={!connected}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        Generate group…
-                      </button>
+                      <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        Generate
+                      </div>
+                      {onCreateGeneratedGroup && (
+                        <button
+                          role="menuitem"
+                          onClick={() => runCreateToolsAction(onCreateGeneratedGroup)}
+                          disabled={!connected}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Generate group…
+                        </button>
+                      )}
+                      {onFoundationTemplates && (
+                        <button
+                          role="menuitem"
+                          onClick={() => runCreateToolsAction(onFoundationTemplates)}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                        >
+                          Templates
+                        </button>
+                      )}
                     </>
                   )}
-                  {(onSelectTokens || onBulkEdit || onFindReplace || onFoundationTemplates) && (
-                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  )}
+
+                  {/* Group 3: Edit */}
+                  <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                  <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                    Edit
+                  </div>
+                  <button
+                    role="menuitem"
+                    onClick={() => runCreateToolsAction(openTableCreate)}
+                    disabled={!connected}
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Token table
+                  </button>
                   {onSelectTokens && (
                     <button
                       role="menuitem"
@@ -356,15 +378,8 @@ export function TokenListToolbar({
                       Find and replace
                     </button>
                   )}
-                  {onFoundationTemplates && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runCreateToolsAction(onFoundationTemplates)}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                    >
-                      Templates
-                    </button>
-                  )}
+
+                  {/* Group 4: Import */}
                   <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
                   <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
                     Import
@@ -389,28 +404,35 @@ export function TokenListToolbar({
                   >
                     Import tokens
                   </button>
+
+                  {/* Group 5: Sync */}
                   {(onApplyVariables || onApplyStyles) && (
-                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  )}
-                  {onApplyVariables && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runCreateToolsAction(onApplyVariables)}
-                      disabled={applyingOrLoading || !tokensExist}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Push variables
-                    </button>
-                  )}
-                  {onApplyStyles && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runCreateToolsAction(onApplyStyles)}
-                      disabled={applyingOrLoading || !tokensExist}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Push styles
-                    </button>
+                    <>
+                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                      <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+                        Sync
+                      </div>
+                      {onApplyVariables && (
+                        <button
+                          role="menuitem"
+                          onClick={() => runCreateToolsAction(onApplyVariables)}
+                          disabled={applyingOrLoading || !tokensExist}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Push variables
+                        </button>
+                      )}
+                      {onApplyStyles && (
+                        <button
+                          role="menuitem"
+                          onClick={() => runCreateToolsAction(onApplyStyles)}
+                          disabled={applyingOrLoading || !tokensExist}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Push styles
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -602,6 +624,22 @@ export function TokenListToolbar({
                 )}
             </div>
 
+            {(generatedTokenCount ?? 0) > 0 && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("has:generated")}
+                className="shrink-0 inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                title="Show generated tokens"
+              >
+                <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="5" cy="2" r="1.5" />
+                  <circle cx="2" cy="8" r="1.5" />
+                  <circle cx="8" cy="8" r="1.5" />
+                  <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5" />
+                </svg>
+                {generatedTokenCount}
+              </button>
+            )}
           </div>
         )}
 

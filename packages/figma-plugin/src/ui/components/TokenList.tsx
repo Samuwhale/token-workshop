@@ -55,7 +55,7 @@ import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
-import { getGeneratedGroupKeepUpdatedAvailability } from "../shared/generatedGroupUtils";
+import { getGeneratedGroupKeepUpdatedAvailability, getGeneratedGroupTypeLabel } from "../shared/generatedGroupUtils";
 import { TokenListToolbar } from "./TokenListToolbar";
 import { SelectModeToolbar } from "./SelectModeToolbar";
 import { TableCreateForm } from "./TableCreateForm";
@@ -1561,7 +1561,7 @@ export function TokenList({
         onRefreshGeneratedGroups?.();
         dispatchToast(
           generator
-            ? `Deleted generated group "${generator.name}"`
+            ? `Deleted ${getGeneratedGroupTypeLabel(generator.type).toLowerCase()} "${generator.name}"`
             : "Deleted generated group",
           "success",
         );
@@ -2494,6 +2494,7 @@ export function TokenList({
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
+            generatedTokenCount={derivedTokenPaths?.size ?? 0}
             onApplyVariables={handleApplyVariables}
             onApplyStyles={handleApplyStyles}
             applyingOrLoading={applying || varDiffLoading}

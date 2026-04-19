@@ -105,19 +105,6 @@ export function getGeneratedGroupTypeLabel(type: GeneratorType): string {
   }
 }
 
-export function formatRelativeTimestamp(value?: string): string | null {
-  if (!value) return null;
-  const time = new Date(value).getTime();
-  if (!Number.isFinite(time)) return null;
-  const diffMinutes = Math.max(0, Math.round((Date.now() - time) / 60000));
-  if (diffMinutes < 1) return "just now";
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.round(diffHours / 24);
-  return `${diffDays}d ago`;
-}
-
 export function getGeneratedGroupStatusDetail(generator: TokenGenerator, status: DashboardStatus): string {
   if (status === "blocked") {
     const blockedBy = generator.blockedByGenerators?.filter((dependency) => dependency.name) ?? [];
