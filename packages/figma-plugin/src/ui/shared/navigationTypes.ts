@@ -15,7 +15,6 @@ type PublishSubTab = "sync" | "export";
 export type SubTab = TokensSubTab | CanvasSubTab | PublishSubTab;
 export type SecondarySurfaceId =
   | "import"
-  | "notifications"
   | "shortcuts"
   | "settings";
 export type SurfaceKind =
@@ -468,6 +467,28 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     transition: workspaceTransition(
       "Inspect the current selection and analyze token usage on the canvas.",
     ),
+    sections: [
+      {
+        id: "inspect",
+        label: "Selection",
+        topTab: "canvas",
+        subTab: "inspect",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Inspect current selection.",
+        ),
+      },
+      {
+        id: "canvas-analysis",
+        label: "Analysis",
+        topTab: "canvas",
+        subTab: "canvas-analysis",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Analyze token usage on canvas.",
+        ),
+      },
+    ],
     matchRoutes: [route("canvas", "inspect"), route("canvas", "canvas-analysis")],
   },
   {
@@ -514,13 +535,6 @@ export const SECONDARY_SURFACES: SecondarySurface[] = [
     summaryTitle: "Import",
     access: "shell-shortcut",
     transition: secondaryTakeoverTransition("Import external tokens."),
-  },
-  {
-    id: "notifications",
-    label: "Notifications",
-    summaryTitle: "Notifications",
-    access: "shell-menu",
-    transition: secondaryTakeoverTransition("View notifications."),
   },
   {
     id: "shortcuts",

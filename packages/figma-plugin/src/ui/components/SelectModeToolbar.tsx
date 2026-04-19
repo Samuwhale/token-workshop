@@ -21,6 +21,7 @@ export interface SelectModeToolbarProps {
   onCopyToCollection: () => void;
   onCompare?: () => void;
   onLinkToTokens: () => void;
+  searchQuery?: string;
 }
 
 export function SelectModeToolbar({
@@ -44,6 +45,7 @@ export function SelectModeToolbar({
   onCopyToCollection,
   onCompare,
   onLinkToTokens,
+  searchQuery,
 }: SelectModeToolbarProps) {
   return (
     <div className="flex items-center gap-1 px-1 py-px border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -60,6 +62,7 @@ export function SelectModeToolbar({
       />
       <span id="select-mode-count" className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
         {selectedPaths.size}/{displayedLeafPaths.size}
+        {searchQuery ? ` matching "${searchQuery}"` : ""}
       </span>
       {selectedPaths.size > 0 && (
         <>

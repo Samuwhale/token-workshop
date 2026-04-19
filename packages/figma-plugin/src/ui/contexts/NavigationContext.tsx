@@ -51,6 +51,10 @@ export interface NavigationContextValue {
   beginHandoff: (options: BeginHandoffOptions) => void;
   clearHandoff: () => void;
   returnFromHandoff: () => void;
+  notificationsOpen: boolean;
+  openNotifications: () => void;
+  closeNotifications: () => void;
+  toggleNotifications: () => void;
 }
 
 export interface NavigationHandoff {
@@ -157,6 +161,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     useState<SecondarySurfaceId | null>(null);
   const [activeHandoff, setActiveHandoff] =
     useState<NavigationHandoff | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const [activeTopTab, setActiveTopTabState] = useState<TopTab>(() => {
     const stored = lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB);
@@ -227,6 +232,18 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setActiveSecondarySurface(null);
   }, []);
 
+  const openNotifications = useCallback(() => {
+    setNotificationsOpen(true);
+  }, []);
+
+  const closeNotifications = useCallback(() => {
+    setNotificationsOpen(false);
+  }, []);
+
+  const toggleNotifications = useCallback(() => {
+    setNotificationsOpen((prev) => !prev);
+  }, []);
+
   const clearHandoff = useCallback(() => {
     setActiveHandoff(null);
   }, []);
@@ -291,6 +308,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       beginHandoff,
       clearHandoff,
       returnFromHandoff,
+      notificationsOpen,
+      openNotifications,
+      closeNotifications,
+      toggleNotifications,
     }),
     [
       activeTopTab,
@@ -299,11 +320,15 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       activeHandoff,
       beginHandoff,
       clearHandoff,
+      closeNotifications,
       closeSecondarySurface,
       navigateTo,
+      notificationsOpen,
+      openNotifications,
       openSecondarySurface,
       returnFromHandoff,
       setSubTab,
+      toggleNotifications,
     ],
   );
 

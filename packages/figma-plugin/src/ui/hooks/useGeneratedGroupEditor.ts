@@ -10,6 +10,7 @@ import {
   detectGeneratorType,
   suggestTargetGroup,
   autoName,
+  autoNameFromGroup,
   defaultConfigForType,
   defaultInlineValueForType,
   isInlineValueCompatibleWithType,
@@ -701,7 +702,11 @@ export function useGeneratedGroupDialog({
   const handleTypeChange = (type: GeneratorType) => {
     pushConfigSnapshot();
     setSelectedType(type);
-    if (nameWasAutoRef.current) setName(autoName(effectiveSourcePath, type));
+    if (nameWasAutoRef.current) {
+      setName(effectiveSourcePath
+        ? autoName(effectiveSourcePath, type)
+        : autoNameFromGroup(targetGroup, type));
+    }
     if (editableSourcePath.trim()) return;
     setInlineValueRaw((currentValue: unknown) => {
       if (isInlineValueCompatibleWithType(type, currentValue)) {
@@ -714,10 +719,13 @@ export function useGeneratedGroupDialog({
   const setEditableSourcePath = useCallback(
     (v: string) => {
       setEditableSourcePathRaw(v);
-      if (nameWasAutoRef.current)
-        setName(autoName(v.trim() || undefined, selectedType));
+      if (nameWasAutoRef.current) {
+        setName(v.trim()
+          ? autoName(v.trim(), selectedType)
+          : autoNameFromGroup(targetGroup, selectedType));
+      }
     },
-    [selectedType],
+    [selectedType, targetGroup],
   );
 
   const handleNameChange = (value: string) => {
@@ -753,8 +761,11 @@ export function useGeneratedGroupDialog({
   const setTargetGroupDirty = useCallback(
     (v: string) => {
       setTargetGroup(v);
+      if (nameWasAutoRef.current && !effectiveSourcePath) {
+        setName(autoNameFromGroup(v, selectedType));
+      }
     },
-    [],
+    [effectiveSourcePath, selectedType],
   );
   const setInlineValue = useCallback(
     (v: unknown) => {

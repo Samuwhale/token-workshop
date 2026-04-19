@@ -26,6 +26,7 @@ import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import type {
   SurfaceTransition,
 } from "../shared/navigationTypes";
+import type { PublishPreflightState } from "../shared/syncWorkflow";
 
 export interface ShellWorkspaceController {
   showPreviewSplit: boolean;
@@ -142,6 +143,8 @@ export interface SyncWorkspaceController {
   setGroupScopesError: (error: string | null) => void;
   tokenChangeKey: number;
   publishPanelHandleRef: MutableRefObject<PublishPanelHandle | null>;
+  publishPreflightState: PublishPreflightState;
+  pendingPublishCount: number;
 }
 
 export interface CollectionStructureWorkspaceController {

@@ -236,7 +236,6 @@ export function GeneratedGroupEditor({
 
   const canSave =
     dialog.targetGroup.trim().length > 0 &&
-    dialog.name.trim().length > 0 &&
     (!dialog.typeNeedsValue || dialog.hasValue);
 
   const handleSave = async () => {
@@ -291,7 +290,6 @@ export function GeneratedGroupEditor({
 
     const missingFields: string[] = [];
     if (!dialog.targetGroup.trim()) missingFields.push("group");
-    if (!dialog.name.trim()) missingFields.push("group label");
 
     return (
       <div className={AUTHORING_SURFACE_CLASSES.footer}>

@@ -8,7 +8,7 @@
  *
  * No "recommended"/"fallback" language. Both modes are first-class.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TokenPickerField } from './TokenPicker';
 import { ColorEditor } from './ValueEditors';
@@ -60,6 +60,9 @@ export function UnifiedSourceInput({
     sourceTokenPath ? 'token' : 'value',
   );
 
+  // Stash the token path when switching to value mode so the user can switch back
+  const stashedTokenPathRef = useRef<string>('');
+
   // Resolve linked token display info
   const linkedEntry = sourceTokenPath && allTokensFlat
     ? allTokensFlat[sourceTokenPath]
@@ -92,7 +95,13 @@ export function UnifiedSourceInput({
         <div className="flex rounded-md border border-[var(--color-figma-border)] overflow-hidden">
           <button
             type="button"
-            onClick={() => setMode('token')}
+            onClick={() => {
+              if (mode !== 'token' && stashedTokenPathRef.current) {
+                onSourcePathChange(stashedTokenPathRef.current);
+                stashedTokenPathRef.current = '';
+              }
+              setMode('token');
+            }}
             className={`px-2.5 py-1 text-[10px] font-medium transition-colors ${
               mode === 'token'
                 ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border-r border-[var(--color-figma-border)]'
@@ -105,8 +114,11 @@ export function UnifiedSourceInput({
             type="button"
             onClick={() => {
               setMode('value');
-              // Clear the source token binding so inline value drives the preview
-              if (sourceTokenPath) onSourcePathChange('');
+              // Stash the current token path so the user can switch back
+              if (sourceTokenPath) {
+                stashedTokenPathRef.current = sourceTokenPath;
+                onSourcePathChange('');
+              }
               // Seed a default value so the generator registers a value immediately
               if (inlineValue === undefined || inlineValue === '') {
                 if (expectedType === 'color') onInlineValueChange('#ffffff');

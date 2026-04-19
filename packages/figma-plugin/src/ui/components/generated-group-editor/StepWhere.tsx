@@ -151,11 +151,7 @@ export function StepWhere({
                 value={name}
                 onChange={(event) => onNameChange(event.target.value)}
                 placeholder="Brand palette"
-                className={`${AUTHORING.generatorControl} ${
-                  !name.trim()
-                    ? "border-[var(--color-figma-error)]/50"
-                    : "border-[var(--color-figma-border)]"
-                }`}
+                className={`${AUTHORING.generatorControl} border-[var(--color-figma-border)]`}
               />
             </div>
 

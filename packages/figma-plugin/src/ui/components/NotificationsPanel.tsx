@@ -278,7 +278,7 @@ export function NotificationsPanel({
   onClear,
 }: NotificationsPanelProps) {
   const [filter, setFilter] = useState<InboxFilter>("all");
-  const { navigateTo, openSecondarySurface, beginHandoff } =
+  const { navigateTo, openSecondarySurface, beginHandoff, openNotifications } =
     useNavigationContext();
   const {
     currentCollectionId,
@@ -329,11 +329,17 @@ export function NotificationsPanel({
   const openAction = (action: InboxAction | null) => {
     if (!action) return;
     const actionName = action.label.replace(/^Open\s+/i, "").toLowerCase();
+    const handoffOpts = {
+      returnLabel: "Back to Notifications",
+      returnSecondarySurfaceId: null as null,
+      onReturn: openNotifications,
+    };
     if (action.target.kind === "token") {
       const targetCollectionId = pathToCollectionId[action.target.tokenPath] ?? currentCollectionId;
       beginHandoff({
         reason:
           "Inspect the token referenced by this notification, then return to Notifications.",
+        ...handoffOpts,
       });
       navigateTo("tokens", "tokens", { preserveHandoff: true });
       if (targetCollectionId === currentCollectionId) {
@@ -347,12 +353,14 @@ export function NotificationsPanel({
     if (action.target.kind === "surface") {
       beginHandoff({
         reason: `Open ${actionName} from this notification, then return to Notifications.`,
+        ...handoffOpts,
       });
       openSecondarySurface(action.target.surface);
       return;
     }
     beginHandoff({
       reason: `Open ${actionName} from this notification, then return to Notifications.`,
+      ...handoffOpts,
     });
     navigateTo(action.target.topTab, action.target.subTab, {
       preserveHandoff: true,

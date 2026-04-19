@@ -18,7 +18,6 @@ import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Tooltip } from "./shared/Tooltip";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
-import { SegmentedControl } from "./components/SegmentedControl";
 import { PanelRouter } from "./panels/PanelRouter";
 import { useServerEvents } from "./hooks/useServerEvents";
 import type { CollectionSummary, TokenNode } from "./hooks/useTokens";
@@ -34,9 +33,10 @@ import type {
 import {
   CONTEXTUAL_PANEL_TRANSITIONS,
   SIDEBAR_GROUPS,
+  WORKSPACE_TABS,
   resolveWorkspaceSummary,
 } from "./shared/navigationTypes";
-import type { SidebarItem } from "./shared/navigationTypes";
+import type { SidebarItem, WorkspaceSection } from "./shared/navigationTypes";
 import {
   DEFAULT_PUBLISH_PREFLIGHT_STATE,
   type PublishPreflightState,
@@ -103,6 +103,9 @@ export function App() {
     activeHandoff,
     clearHandoff,
     returnFromHandoff,
+    notificationsOpen,
+    toggleNotifications,
+    closeNotifications,
   } = useNavigationContext();
   const {
     editingToken,
@@ -440,7 +443,6 @@ export function App() {
     [activeTopTab, activeSubTab],
   );
   const activeWorkspace = activeWorkspaceSummary.workspace;
-  const activeWorkspaceSection = activeWorkspaceSummary.section;
   const existingPathsForCurrentCollection = useMemo(
     () =>
       new Set(
@@ -1023,10 +1025,11 @@ export function App() {
   const openSecondaryPanel = useCallback(
     (panel: SecondarySurfaceId) => {
       dismissEphemeralOverlays();
+      closeNotifications();
       clearHandoff();
       openSecondarySurface(panel);
     },
-    [clearHandoff, dismissEphemeralOverlays, openSecondarySurface],
+    [clearHandoff, closeNotifications, dismissEphemeralOverlays, openSecondarySurface],
   );
   const toggleSecondarySurface = useCallback(
     (panel: SecondarySurfaceId) => {
@@ -1480,6 +1483,8 @@ export function App() {
       setGroupScopesError,
       tokenChangeKey,
       publishPanelHandleRef,
+      publishPreflightState,
+      pendingPublishCount,
     },
     collectionStructure: {
       onCreateCollectionByName: createCollectionByName,
@@ -1524,224 +1529,206 @@ export function App() {
     },
   };
 
-  const workspacePrimaryAction = useMemo(() => {
-    if (
-      activeSecondarySurface === null &&
-      activeWorkspace.id === "canvas" &&
-      activeWorkspaceSection?.id === "inspect"
-    ) {
-      return null;
-    }
-
-    if (
-      activeSecondarySurface === null &&
-      activeWorkspace.id === "publish" &&
-      activeWorkspaceSection?.id === "sync"
-    ) {
-      if (publishPreflightState.stage === "running") {
-        return {
-          label: "Running preflight…",
-          onClick: () => {},
-          disabled: true,
-        };
-      }
-
-      if (
-        publishPreflightState.isOutdated ||
-        publishPreflightState.stage === "idle"
-      ) {
-        return {
-          label: "Run preflight",
-          onClick: () => publishPanelHandleRef.current?.runReadinessChecks(),
-        };
-      }
-
-      if (publishPreflightState.stage === "blocked") {
-        return {
-          label: "Review blockers",
-          onClick: () => publishPanelHandleRef.current?.focusStage("preflight"),
-        };
-      }
-
-      if (pendingPublishCount > 0) {
-        return {
-          label: "Review differences",
-          onClick: () => publishPanelHandleRef.current?.focusStage("compare"),
-        };
-      }
-
-      return {
-        label: "Compare Figma",
-        onClick: () => publishPanelHandleRef.current?.runCompareAll(),
-      };
-    }
-
-    if (
-      activeSecondarySurface === null &&
-      activeWorkspace.id === "tokens" &&
-      activeSubTab === "health"
-    ) {
-      return {
-        label: "Refresh audit",
-        onClick: refreshValidation,
-      };
-    }
-
-    return null;
-  }, [
-    activeSecondarySurface,
-    activeSubTab,
-    activeWorkspace.id,
-    activeWorkspaceSection?.id,
-    refreshValidation,
-    pendingPublishCount,
-    publishPreflightState.isOutdated,
-    publishPreflightState.stage,
-  ]);
-
-  const visibleHandoff = useMemo(() => {
-    if (!activeHandoff) {
-      return null;
-    }
-
-    if (
-      activeHandoff.returnTarget.secondarySurfaceId !== null &&
-      activeSecondarySurface === activeHandoff.returnTarget.secondarySurfaceId
-    ) {
-      return null;
-    }
-
-    if (
-      activeHandoff.returnTarget.secondarySurfaceId === null &&
-      activeSecondarySurface === null &&
-      activeTopTab === activeHandoff.returnTarget.topTab &&
-      activeSubTab === activeHandoff.returnTarget.subTab
-    ) {
-      return null;
-    }
-
-    return activeHandoff;
-  }, [activeHandoff, activeSecondarySurface, activeSubTab, activeTopTab]);
-  const shellPrimaryAction =
-    activeSecondarySurface === null ? workspacePrimaryAction : null;
   const notificationCount = notificationHistory.length;
 
   const handleSidebarItemClick = useCallback((item: SidebarItem) => {
     guardEditorAction(() => {
       navigateTo(item.topTab, item.subTab);
       closeSecondarySurface();
+      closeNotifications();
       clearHandoff();
       if (item.subTab === "canvas-analysis") {
         triggerHeatmapScan();
       }
     });
-  }, [guardEditorAction, navigateTo, closeSecondarySurface, clearHandoff, triggerHeatmapScan]);
+  }, [guardEditorAction, navigateTo, closeSecondarySurface, closeNotifications, clearHandoff, triggerHeatmapScan]);
 
-  const isSidebarItemActive = useCallback((item: SidebarItem) => {
-    if (activeSecondarySurface !== null) return false;
-    return item.workspaceId === activeWorkspace.id;
-  }, [activeSecondarySurface, activeWorkspace.id]);
+  const handleSubTabClick = useCallback((section: WorkspaceSection) => {
+    guardEditorAction(() => {
+      navigateTo(section.topTab, section.subTab);
+      if (section.id === "canvas-analysis") {
+        triggerHeatmapScan();
+      }
+    });
+  }, [guardEditorAction, navigateTo, triggerHeatmapScan]);
 
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">
       <h1 className="sr-only">TokenManager</h1>
       {/* Sidebar */}
       <nav
-        className={`flex ${sidebarCollapsed ? 'w-9' : 'w-[150px]'} shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]`}
+        className={`flex ${sidebarCollapsed ? 'w-10' : 'w-[120px]'} shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]`}
         aria-label="Workspaces"
       >
-        {/* Navigation */}
-        <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-0.5 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
-          {SIDEBAR_GROUPS.map((group, groupIndex) => (
-            <div key={group.id} className={sidebarCollapsed ? 'mb-1' : 'mb-1.5'}>
-              {sidebarCollapsed && groupIndex > 0 && (
-                <div className="mx-1 mb-1 border-t border-[var(--color-figma-border)]" />
-              )}
-              <div className={`flex flex-col ${sidebarCollapsed ? 'items-center gap-0.5' : 'gap-px pt-0.5'}`}>
-                {group.items.map((item) => {
-                  const isActive = isSidebarItemActive(item);
-                  if (sidebarCollapsed) {
-                    return (
-                      <Tooltip key={item.id} label={item.label} position="right">
-                        <button
-                          onClick={() => handleSidebarItemClick(item)}
-                          className={`flex h-7 w-7 items-center justify-center rounded-md outline-none transition-colors ${
-                            isActive
-                              ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                              : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
-                          }`}
-                        >
-                          {item.id === "tokens" && (
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M8 1.5L14 5v6l-6 3.5L2 11V5z" />
-                            </svg>
-                          )}
-                          {item.id === "canvas" && (
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M2 5V2h3" /><path d="M14 5V2h-3" /><path d="M2 11v3h3" /><path d="M14 11v3h-3" />
-                            </svg>
-                          )}
-                          {item.id === "publish" && (
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M8 10V2" /><path d="M4.5 5.5L8 2l3.5 3.5" /><path d="M3 10v3h10v-3" />
-                            </svg>
-                          )}
-                        </button>
-                      </Tooltip>
-                    );
-                  }
+        {/* Accordion navigation */}
+        <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-1 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
+          {SIDEBAR_GROUPS.map((group) => (
+            <div key={group.id} className="flex flex-col gap-px">
+              {group.items.map((item) => {
+                const isWorkspaceActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
+                const workspace = WORKSPACE_TABS.find((w) => w.id === item.workspaceId);
+                const sections = workspace?.sections ?? [];
+
+                if (sidebarCollapsed) {
                   return (
+                    <Tooltip key={item.id} label={item.label} position="right">
+                      <button
+                        onClick={() => handleSidebarItemClick(item)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
+                          isWorkspaceActive
+                            ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+                        }`}
+                      >
+                        {item.id === "tokens" && (
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M8 1.5L14 5v6l-6 3.5L2 11V5z" />
+                          </svg>
+                        )}
+                        {item.id === "canvas" && (
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M2 5V2h3" /><path d="M14 5V2h-3" /><path d="M2 11v3h3" /><path d="M14 11v3h-3" />
+                          </svg>
+                        )}
+                        {item.id === "publish" && (
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M8 10V2" /><path d="M4.5 5.5L8 2l3.5 3.5" /><path d="M3 10v3h10v-3" />
+                          </svg>
+                        )}
+                      </button>
+                    </Tooltip>
+                  );
+                }
+
+                return (
+                  <div key={item.id} className="mb-0.5">
                     <button
-                      key={item.id}
                       onClick={() => handleSidebarItemClick(item)}
                       className={`w-full rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-                        isActive
-                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                        isWorkspaceActive
+                          ? "text-[var(--color-figma-text)] font-medium"
                           : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
                       }`}
                     >
                       {item.label}
                     </button>
-                  );
-                })}
-              </div>
+                    {isWorkspaceActive && sections.length > 0 && (
+                      <div className="ml-2 flex flex-col gap-px">
+                        {sections.map((section) => (
+                          <button
+                            key={section.id}
+                            onClick={() => handleSubTabClick(section)}
+                            className={`w-full rounded-md px-2 py-0.5 text-left text-[11px] outline-none transition-colors ${
+                              activeSubTab === section.subTab
+                                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                            }`}
+                          >
+                            {section.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
 
         {/* Bottom utilities */}
-        <div className={`flex flex-col gap-px border-t border-[var(--color-figma-border)] ${sidebarCollapsed ? 'px-0.5 py-1.5' : 'px-2 py-2'}`}>
-          {!sidebarCollapsed && (
+        <div className={`flex flex-col gap-px border-t border-[var(--color-figma-border)] ${sidebarCollapsed ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
+          {sidebarCollapsed ? (
             <>
-              <button
-                onClick={() => toggleSecondarySurface("notifications")}
-                className={`flex items-center justify-between rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-                  activeSecondarySurface === "notifications"
-                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                <span>Notifications</span>
-                {notificationCount > 0 && (
-                  <span className="text-[10px] tabular-nums text-[var(--color-figma-text-tertiary)]">{notificationCount}</span>
-                )}
-              </button>
-              <button
-                onClick={() => toggleSecondarySurface("settings")}
-                className={`rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
-                  activeSecondarySurface === "settings"
-                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                Settings
-              </button>
-              <button
-                onClick={toggleExpand}
-                className="rounded-md px-2.5 py-1 text-left text-[11px] text-[var(--color-figma-text-secondary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-              >
-                {isExpanded ? "Compact" : "Wide"}
-              </button>
+              <div className="flex flex-col items-center gap-0.5">
+                <Tooltip label={`Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`} position="right">
+                  <button
+                    onClick={toggleNotifications}
+                    className={`relative flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
+                      notificationsOpen
+                        ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    }`}
+                    aria-label="Notifications"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 5.5a4 4 0 0 1 8 0c0 2 1 3.5 1.5 4.5H2.5c.5-1 1.5-2.5 1.5-4.5z" /><path d="M6 10v.5a2 2 0 0 0 4 0V10" />
+                    </svg>
+                    {notificationCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[8px] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
+                    )}
+                  </button>
+                </Tooltip>
+                <Tooltip label="Settings" position="right">
+                  <button
+                    onClick={() => toggleSecondarySurface("settings")}
+                    className={`flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
+                      activeSecondarySurface === "settings"
+                        ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    }`}
+                    aria-label="Settings"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="8" cy="8" r="2" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.9 2.9l1.4 1.4M11.7 11.7l1.4 1.4M13.1 2.9l-1.4 1.4M4.3 11.7l-1.4 1.4" />
+                    </svg>
+                  </button>
+                </Tooltip>
+              </div>
+              <div className="my-1 w-5 border-t border-[var(--color-figma-border)]" />
+              <div className="flex flex-col items-center gap-0.5">
+                <Tooltip label={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"} position="right">
+                  <button onClick={executeUndo} disabled={!canUndo} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
+                  </button>
+                </Tooltip>
+                <Tooltip label={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"} position="right">
+                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
+                  </button>
+                </Tooltip>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={toggleNotifications}
+                  className={`relative flex h-6 w-6 items-center justify-center rounded-md outline-none transition-colors ${
+                    notificationsOpen
+                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  }`}
+                  aria-label="Notifications"
+                >
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 5.5a4 4 0 0 1 8 0c0 2 1 3.5 1.5 4.5H2.5c.5-1 1.5-2.5 1.5-4.5z" /><path d="M6 10v.5a2 2 0 0 0 4 0V10" />
+                  </svg>
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[7px] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => toggleSecondarySurface("settings")}
+                  className={`flex h-6 w-6 items-center justify-center rounded-md outline-none transition-colors ${
+                    activeSecondarySurface === "settings"
+                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  }`}
+                  aria-label="Settings"
+                >
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="8" cy="8" r="2" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.9 2.9l1.4 1.4M11.7 11.7l1.4 1.4M13.1 2.9l-1.4 1.4M4.3 11.7l-1.4 1.4" />
+                  </svg>
+                </button>
+                <div className="mx-0.5 h-3.5 w-px bg-[var(--color-figma-border)]" />
+                <button onClick={executeUndo} disabled={!canUndo} className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
+                </button>
+                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
+                </button>
+              </div>
             </>
           )}
           {!connected && !sidebarCollapsed && (
@@ -1782,66 +1769,8 @@ export function App() {
         </div>
       </nav>
 
-      {/* Content area */}
+      {/* Content area — no top bar */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Simplified top bar */}
-        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-          <div className="flex items-center gap-1.5 px-3 py-1.5">
-            {visibleHandoff && returnFromHandoff && (
-              <button
-                onClick={returnFromHandoff}
-                aria-label={visibleHandoff.returnLabel}
-                className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                &larr; {visibleHandoff.returnLabel}
-              </button>
-            )}
-
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="min-w-0">
-                <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                  {activeWorkspace.label}
-                </div>
-              </div>
-              {activeSecondarySurface === null && activeWorkspace.sections?.length ? (
-                <SegmentedControl
-                  options={activeWorkspace.sections.map((s) => ({ value: s.id, label: s.label }))}
-                  value={activeSubTab}
-                  onChange={(id) => {
-                    const section = activeWorkspace.sections!.find((s) => s.id === id);
-                    if (section) {
-                      guardEditorAction(() => {
-                        navigateTo(section.topTab, section.subTab);
-                        if (section.id === "canvas-analysis") {
-                          triggerHeatmapScan();
-                        }
-                      });
-                    }
-                  }}
-                />
-              ) : null}
-            </div>
-
-            <div className="flex shrink-0 items-center gap-1 ml-auto">
-              {shellPrimaryAction && (
-                <button
-                  onClick={shellPrimaryAction.onClick}
-                  disabled={shellPrimaryAction.disabled}
-                  className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-[background-color,transform,opacity,box-shadow] duration-150 ease-out outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {shellPrimaryAction.label}
-                </button>
-              )}
-              <button onClick={executeUndo} disabled={!canUndo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
-              </button>
-              <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="h-5 w-5 inline-flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
         <WorkspaceControllerProvider value={workspaceControllers}>
           <ErrorBoundary>
             <div className="min-h-0 flex-1 overflow-hidden">

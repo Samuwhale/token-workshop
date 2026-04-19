@@ -11,6 +11,7 @@ import type {
   GeneratorSemanticLayer,
   GeneratedTokenResult,
 } from "./useGenerators";
+import { autoNameFromGroup } from "../components/generators/generatorUtils";
 import {
   requestGeneratedGroupPreview,
   requiresGeneratedGroupReview,
@@ -195,9 +196,11 @@ export function useGeneratedGroupSave({
               } satisfies GeneratorSemanticLayer)
             : null;
 
+      const effectiveName = name.trim() || autoNameFromGroup(targetGroup, selectedType);
+
       return {
         type: selectedType,
-        name: name.trim(),
+        name: effectiveName,
         sourceToken: sourceTokenPath || undefined,
         sourceValue: sourceTokenPath ? sourceValue : undefined,
         inlineValue:
@@ -228,10 +231,6 @@ export function useGeneratedGroupSave({
       setSaveError("Group name is required.");
       return false;
     }
-    if (!name.trim()) {
-      setSaveError("Generated group label is required.");
-      return false;
-    }
     if (typeNeedsValue && !hasValue) {
       setSaveError(
         "This generated group needs a source token or base value.",
@@ -240,7 +239,7 @@ export function useGeneratedGroupSave({
     }
     setSaveError("");
     return true;
-  }, [targetGroup, name, typeNeedsValue, hasValue]);
+  }, [targetGroup, typeNeedsValue, hasValue]);
 
   /** Inner save logic — commits the generator to the server. */
   const commitSave = useCallback(
@@ -312,7 +311,7 @@ export function useGeneratedGroupSave({
             });
           } else {
             const newId = savedGen.id;
-            const genName = name.trim();
+            const genName = name.trim() || autoNameFromGroup(targetGroupAtSave, selectedType);
             pushUndo({
               description: `Created generated group "${genName}"`,
               restore: async () => {
@@ -332,10 +331,11 @@ export function useGeneratedGroupSave({
           targetCollection: targetCollectionAtSave,
           generatorType: selectedType,
         });
+        const displayName = name.trim() || autoNameFromGroup(targetGroupAtSave, selectedType);
         dispatchToast(
           isEditing
-            ? `Generated group "${name.trim()}" updated`
-            : `Generated group "${name.trim()}" created`,
+            ? `Generated group "${displayName}" updated`
+            : `Generated group "${displayName}" created`,
           "success",
           getToastAction(targetGroupAtSave, targetCollectionAtSave),
         );

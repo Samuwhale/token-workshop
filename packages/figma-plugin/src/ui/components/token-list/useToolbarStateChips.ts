@@ -175,7 +175,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     if (modeLensEnabled) {
       chips.push({
         key: "view:mode-values",
-        label: "Resolved",
+        label: "Active mode",
         tone: "view",
         onRemove: onResetViewMode ?? (() => setModeLensEnabled(false)),
       });

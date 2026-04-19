@@ -33,6 +33,7 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { NotificationsPanel } from "../components/NotificationsPanel";
 import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { PanelContentHeader } from "../components/PanelContentHeader";
 import {
   useConnectionContext,
   useSyncContext,
@@ -169,6 +170,8 @@ export function PanelRouter({
     navigateTo,
     beginHandoff,
     closeSecondarySurface,
+    notificationsOpen,
+    closeNotifications,
   } = useNavigationContext();
   const {
     editingToken,
@@ -251,9 +254,6 @@ export function PanelRouter({
     cancelHeatmapScan: _cancelHeatmapScan,
   } = useHeatmapContext();
   const { tokenUsageCounts } = useUsageContext();
-  const canvasSelectionRef = useRef<HTMLDivElement>(null);
-  const canvasAnalysisRef = useRef<HTMLDivElement>(null);
-
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(
     null,
   );
@@ -282,18 +282,6 @@ export function PanelRouter({
       setShowPreviewSplit(false);
     }
   }, [activeTokensContextualSurface, setShowPreviewSplit, showPreviewSplit]);
-
-  useEffect(() => {
-    if (activeTopTab !== "canvas") {
-      return;
-    }
-
-    const target =
-      activeSubTab === "canvas-analysis"
-        ? canvasAnalysisRef.current
-        : canvasSelectionRef.current;
-    target?.scrollIntoView({ block: "start" });
-  }, [activeSubTab, activeTopTab]);
 
   useEffect(() => {
     if (
@@ -1162,12 +1150,6 @@ export function PanelRouter({
         </div>
       </ErrorBoundary>
     ),
-    notifications: () => (
-      <NotificationsPanel
-        history={controller.notificationHistory}
-        onClear={controller.clearNotificationHistory}
-      />
-    ),
     shortcuts: () => <KeyboardShortcutsPanel />,
     settings: () => (
       <SettingsPanel
@@ -1187,86 +1169,86 @@ export function PanelRouter({
     return secondaryRenderer ? secondaryRenderer() : null;
   }
 
-  function renderCanvasWorkspace(): ReactNode {
+  function renderCanvasInspect(): ReactNode {
     return (
-      <div className="flex h-full min-h-0 flex-col min-[1080px]:flex-row">
-        <div
-          ref={canvasSelectionRef}
-          className="min-h-[360px] min-w-0 flex-1 border-b border-[var(--color-figma-border)] min-[1080px]:border-b-0 min-[1080px]:border-r"
+      <div className="h-full min-h-0 overflow-hidden">
+        <ErrorBoundary
+          panelName="Canvas selection"
+          onReset={() => navigateTo("tokens", "tokens")}
         >
-          <ErrorBoundary
-            panelName="Canvas selection"
-            onReset={() => navigateTo("tokens", "tokens")}
-          >
-            <SelectionInspector
-              selectedNodes={selectedNodes}
-              selectionLoading={selectionLoading}
-              tokenMap={allTokensFlat}
-              onSync={sync}
-              syncing={syncing}
-              syncProgress={syncProgress}
-              syncResult={syncResult}
-              syncError={syncError}
-              connected={connected}
-              currentCollectionId={currentCollectionId}
-              serverUrl={serverUrl}
-              onTokenCreated={refreshTokens}
-              onNavigateToToken={(path) => {
-                setHighlightedToken(path);
-                navigateTo("tokens", "tokens");
-              }}
-              onPushUndo={controller.pushUndo}
-              onToast={controller.setSuccessToast}
-              onGoToTokens={() => navigateTo("tokens", "tokens")}
-              triggerCreateToken={controller.triggerCreateToken}
-            />
-          </ErrorBoundary>
-        </div>
-        <div ref={canvasAnalysisRef} className="min-h-[320px] min-w-0 flex-1">
-          <ErrorBoundary
-            panelName="Canvas analysis"
-            onReset={() => navigateTo("canvas", "inspect")}
-          >
-            <CanvasAnalysisPanel
-              availableTokens={allTokensFlat}
-              heatmapResult={heatmapResult}
-              heatmapLoading={heatmapLoading}
-              heatmapProgress={heatmapProgress}
-              heatmapError={heatmapError}
-              onSelectNodes={(ids) =>
-                parent.postMessage(
-                  {
-                    pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
+          <SelectionInspector
+            selectedNodes={selectedNodes}
+            selectionLoading={selectionLoading}
+            tokenMap={allTokensFlat}
+            onSync={sync}
+            syncing={syncing}
+            syncProgress={syncProgress}
+            syncResult={syncResult}
+            syncError={syncError}
+            connected={connected}
+            currentCollectionId={currentCollectionId}
+            serverUrl={serverUrl}
+            onTokenCreated={refreshTokens}
+            onNavigateToToken={(path) => {
+              setHighlightedToken(path);
+              navigateTo("tokens", "tokens");
+            }}
+            onPushUndo={controller.pushUndo}
+            onToast={controller.setSuccessToast}
+            onGoToTokens={() => navigateTo("tokens", "tokens")}
+            triggerCreateToken={controller.triggerCreateToken}
+          />
+        </ErrorBoundary>
+      </div>
+    );
+  }
+
+  function renderCanvasAnalysis(): ReactNode {
+    return (
+      <div className="h-full min-h-0 overflow-hidden">
+        <ErrorBoundary
+          panelName="Canvas analysis"
+          onReset={() => navigateTo("canvas", "inspect")}
+        >
+          <CanvasAnalysisPanel
+            availableTokens={allTokensFlat}
+            heatmapResult={heatmapResult}
+            heatmapLoading={heatmapLoading}
+            heatmapProgress={heatmapProgress}
+            heatmapError={heatmapError}
+            onSelectNodes={(ids) =>
+              parent.postMessage(
+                {
+                  pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
+                },
+                "*",
+              )
+            }
+            onBatchBind={(nodeIds, tokenPath, property) => {
+              const entry = allTokensFlat[tokenPath];
+              if (!entry) return;
+              parent.postMessage(
+                {
+                  pluginMessage: {
+                    type: "batch-bind-heatmap-nodes",
+                    nodeIds,
+                    tokenPath,
+                    tokenType: entry.$type,
+                    targetProperty: property,
+                    resolvedValue: entry.$value,
                   },
-                  "*",
-                )
-              }
-              onBatchBind={(nodeIds, tokenPath, property) => {
-                const entry = allTokensFlat[tokenPath];
-                if (!entry) return;
-                parent.postMessage(
-                  {
-                    pluginMessage: {
-                      type: "batch-bind-heatmap-nodes",
-                      nodeIds,
-                      tokenPath,
-                      tokenType: entry.$type,
-                      targetProperty: property,
-                      resolvedValue: entry.$value,
-                    },
-                  },
-                  "*",
-                );
-              }}
-              onSelectNode={(nodeId) =>
-                parent.postMessage(
-                  { pluginMessage: { type: "select-node", nodeId } },
-                  "*",
-                )
-              }
-            />
-          </ErrorBoundary>
-        </div>
+                },
+                "*",
+              );
+            }}
+            onSelectNode={(nodeId) =>
+              parent.postMessage(
+                { pluginMessage: { type: "select-node", nodeId } },
+                "*",
+              )
+            }
+          />
+        </ErrorBoundary>
       </div>
     );
   }
@@ -1284,8 +1266,8 @@ export function PanelRouter({
       history: renderTokensHistory,
     },
     canvas: {
-      inspect: renderCanvasWorkspace,
-      "canvas-analysis": renderCanvasWorkspace,
+      inspect: renderCanvasInspect,
+      "canvas-analysis": renderCanvasAnalysis,
     },
     publish: {
       sync: renderSyncPublish,
@@ -1293,9 +1275,28 @@ export function PanelRouter({
     },
   };
 
-  // Sub-tab switching is now driven by the sidebar — no in-panel segment controls
   const renderer = PANEL_MAP[activeTopTab]?.[activeSubTab];
-  return renderer ? renderer() : null;
+  const panelContent = renderer ? renderer() : null;
+
+  return (
+    <div className="relative flex h-full min-h-0 overflow-hidden">
+      <div className="min-w-0 flex-1 overflow-hidden">{panelContent}</div>
+      {notificationsOpen && (
+        <>
+          <div
+            className="absolute inset-0 z-10 bg-black/10"
+            onClick={closeNotifications}
+          />
+          <div className="absolute right-0 top-0 bottom-0 z-20 w-[320px] border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg panel-slide-in">
+            <NotificationsPanel
+              history={controller.notificationHistory}
+              onClear={controller.clearNotificationHistory}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   // ---------------------------------------------------------------------------
   // Panel render functions — each closes over context + props
@@ -1522,23 +1523,42 @@ export function PanelRouter({
     );
   }
   function renderSyncPublish(): ReactNode {
+    const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;
+    let publishAction: { label: string; onClick: () => void; disabled?: boolean } | null = null;
+    if (publishPreflightState.stage === "running") {
+      publishAction = { label: "Running preflight…", onClick: () => {}, disabled: true };
+    } else if (publishPreflightState.isOutdated || publishPreflightState.stage === "idle") {
+      publishAction = { label: "Run preflight", onClick: () => publishPanelHandleRef.current?.runReadinessChecks() };
+    } else if (publishPreflightState.stage === "blocked") {
+      publishAction = { label: "Review blockers", onClick: () => publishPanelHandleRef.current?.focusStage("preflight") };
+    } else if (pendingPublishCount > 0) {
+      publishAction = { label: "Review differences", onClick: () => publishPanelHandleRef.current?.focusStage("compare") };
+    } else {
+      publishAction = { label: "Compare Figma", onClick: () => publishPanelHandleRef.current?.runCompareAll() };
+    }
+
     return (
-      <ErrorBoundary
-        panelName="Figma Sync"
-        onReset={() => navigateTo("publish", "sync")}
-      >
-        <PublishPanel
-          serverUrl={serverUrl}
-          connected={connected}
-          currentCollectionId={currentCollectionId}
-          collectionMap={collectionMap}
-          modeMap={modeMap}
-          savePublishRouting={savePublishRouting}
-          refreshValidation={controller.refreshValidation}
-          tokenChangeKey={controller.tokenChangeKey}
-          publishPanelHandle={controller.publishPanelHandleRef}
-        />
-      </ErrorBoundary>
+      <div className="flex h-full flex-col overflow-hidden">
+        <PanelContentHeader primaryAction={publishAction} />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ErrorBoundary
+            panelName="Figma Sync"
+            onReset={() => navigateTo("publish", "sync")}
+          >
+            <PublishPanel
+              serverUrl={serverUrl}
+              connected={connected}
+              currentCollectionId={currentCollectionId}
+              collectionMap={collectionMap}
+              modeMap={modeMap}
+              savePublishRouting={savePublishRouting}
+              refreshValidation={controller.refreshValidation}
+              tokenChangeKey={controller.tokenChangeKey}
+              publishPanelHandle={controller.publishPanelHandleRef}
+            />
+          </ErrorBoundary>
+        </div>
+      </div>
     );
   }
 
@@ -1583,6 +1603,14 @@ export function PanelRouter({
 
   function renderTokensHealth(): ReactNode {
     return (
+      <div className="flex h-full flex-col overflow-hidden">
+        <PanelContentHeader
+          primaryAction={{
+            label: "Refresh audit",
+            onClick: controller.refreshValidation,
+          }}
+        />
+        <div className="min-h-0 flex-1 overflow-hidden">
       <ErrorBoundary
         panelName="Audit"
         onReset={() => navigateTo("tokens", "health")}
@@ -1630,6 +1658,8 @@ export function PanelRouter({
           onError={controller.setErrorToast}
         />
       </ErrorBoundary>
+        </div>
+      </div>
     );
   }
 }

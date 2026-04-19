@@ -181,7 +181,7 @@ export function ViewMenu(
           {props.currentLibraryViewMode === "library"
             ? "View"
             : props.currentLibraryViewMode === "active-mode"
-              ? "View: Resolved"
+              ? "View: Active mode"
               : props.currentLibraryViewMode === "mode-options"
                 ? "View: All modes"
                 : "View: JSON"}
@@ -202,7 +202,7 @@ export function ViewMenu(
             />
             {props.hasCollections && (
               <MenuItem
-                label="Resolved"
+                label="Active mode"
                 checked={props.currentLibraryViewMode === "active-mode"}
                 onClick={() => runAndClose(() => props.onActivateViewMode("active-mode"))}
               />

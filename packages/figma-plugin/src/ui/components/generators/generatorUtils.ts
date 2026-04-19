@@ -90,6 +90,14 @@ export function autoName(sourceTokenPath: string | undefined, type: GeneratorTyp
   return TYPE_LABELS[type];
 }
 
+export function autoNameFromGroup(targetGroup: string, type: GeneratorType): string {
+  const trimmed = targetGroup.trim();
+  if (!trimmed) return TYPE_LABELS[type];
+  const parts = trimmed.split('.');
+  const segment = parts[parts.length - 1];
+  return `${segment.charAt(0).toUpperCase() + segment.slice(1)} ${TYPE_LABELS[type]}`;
+}
+
 export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
   switch (type) {
     case 'colorRamp': return { ...DEFAULT_COLOR_RAMP_CONFIG, steps: [...DEFAULT_COLOR_RAMP_CONFIG.steps] };
