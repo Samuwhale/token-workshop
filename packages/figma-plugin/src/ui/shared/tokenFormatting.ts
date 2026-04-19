@@ -3,7 +3,7 @@
  *
  * Single source of truth that replaces the six independent implementations that
  * previously existed in ComparePanel, CrossThemeComparePanel, tokenListUtils,
- * recipeShared, changeHelpers, and selectionInspectorUtils.
+ * generatorShared, changeHelpers, and selectionInspectorUtils.
  */
 
 // ---------------------------------------------------------------------------

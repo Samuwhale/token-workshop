@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import type { DimensionValue } from '@tokenmanager/core';
-import type { GeneratedTokenResult } from '../../hooks/useRecipes';
+import type { GeneratedTokenResult } from '../../hooks/useGenerators';
 import { formatTokenValueForDisplay } from '../../shared/tokenFormatting';
 
 // ---------------------------------------------------------------------------
-// Shared input primitives for recipe config editors
+// Shared input primitives for generator config editors
 // ---------------------------------------------------------------------------
 
 /**
  * A compact hex color input: a native color swatch + a hex text field.
- * Used in recipe config editors that don't need the full ColorEditor
+ * Used in generator config editors that don't need the full ColorEditor
  * (format cycling, wide-gamut detection, etc.).
  */
 export function CompactColorInput({
@@ -46,7 +46,7 @@ export function CompactColorInput({
 
 /**
  * A row of pill buttons for selecting a unit (px, rem, etc.).
- * Renders consistently across all recipe config editors.
+ * Renders consistently across all generator config editors.
  */
 export function UnitToggle<T extends string>({
   units,
@@ -81,7 +81,7 @@ const DIM_UNITS = ['px', 'rem'] as const;
 
 /**
  * A number input combined with a UnitToggle (px / rem by default).
- * Used in recipe config editors for dimension values.
+ * Used in generator config editors for dimension values.
  */
 export function CompactDimensionInput({
   value,

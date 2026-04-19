@@ -1,4 +1,4 @@
-import type { ZIndexScaleConfig } from '../../hooks/useRecipes';
+import type { ZIndexScaleConfig } from '../../hooks/useGenerators';
 
 // ---------------------------------------------------------------------------
 // Default config

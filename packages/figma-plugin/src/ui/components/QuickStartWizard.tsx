@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
-import type { GeneratedTokenResult, RecipeType } from '../hooks/useRecipes';
+import type { GeneratedTokenResult, GeneratorType } from '../hooks/useGenerators';
 import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
 import { GeneratedGroupEditor } from './GeneratedGroupEditor';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { apiFetch } from '../shared/apiFetch';
-import { createRecipeDraftFromTemplate } from '../hooks/useGeneratedGroupEditor';
+import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratedGroupEditor';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,7 +19,7 @@ interface SemanticData {
   tokens: GeneratedTokenResult[];
   targetGroup: string;
   targetCollection: string;
-  recipeType: RecipeType;
+  generatorType: GeneratorType;
 }
 
 interface QuickStartWizardProps {
@@ -522,7 +522,7 @@ export function QuickStartWizard({
         serverUrl={serverUrl}
         currentCollectionId={effectiveCollectionId}
         template={selectedTemplate}
-        initialDraft={createRecipeDraftFromTemplate(selectedTemplate, effectiveCollectionId)}
+        initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveCollectionId)}
         onBack={handleTemplateBack}
         onClose={onClose}
         onInterceptSemanticMapping={handleFoundationsInterceptSemantic}
@@ -536,7 +536,7 @@ export function QuickStartWizard({
       <SemanticMappingDialog
         serverUrl={serverUrl}
         generatedTokens={semanticData.tokens}
-        recipeType={semanticData.recipeType}
+        generatorType={semanticData.generatorType}
         targetGroup={semanticData.targetGroup}
         targetCollection={semanticData.targetCollection}
         onClose={handleSemanticsClose}

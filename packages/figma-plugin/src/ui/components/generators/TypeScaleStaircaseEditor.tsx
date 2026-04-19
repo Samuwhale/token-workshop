@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import type { TypeScaleConfig } from '../../hooks/useRecipes';
+import type { TypeScaleConfig } from '../../hooks/useGenerators';
 
 // ---------------------------------------------------------------------------
 // Named ratio snap points

@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { createRecipeOwnershipKey, getRecipeManagedOutputs } from '@tokenmanager/core';
+import { createGeneratorOwnershipKey, getGeneratorManagedOutputs } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { ApiError } from '../shared/apiFetch';
@@ -10,7 +10,7 @@ import {
   updateToken,
 } from '../shared/tokenMutations';
 import { apiFetch } from '../shared/apiFetch';
-import type { TokenRecipe } from './useRecipes';
+import type { TokenGenerator } from './useGenerators';
 
 export interface UseTokenSaveParams {
   connected: boolean;
@@ -18,7 +18,7 @@ export interface UseTokenSaveParams {
   collectionId: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
-  recipes?: TokenRecipe[];
+  generators?: TokenGenerator[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRecordTouch: (path: string) => void;
@@ -42,7 +42,7 @@ export function useTokenSave({
   collectionId,
   allTokensFlat,
   perCollectionFlat,
-  recipes,
+  generators,
   onRefresh,
   onPushUndo,
   onRecordTouch,
@@ -54,18 +54,18 @@ export function useTokenSave({
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
-  const findProducingRecipe = useCallback((path: string) => {
-    return recipes?.find((recipe) =>
-      getRecipeManagedOutputs(recipe).some(
+  const findProducingGenerator = useCallback((path: string) => {
+    return generators?.find((generator) =>
+      getGeneratorManagedOutputs(generator).some(
         (output) =>
-          output.key === createRecipeOwnershipKey(collectionId, path),
+          output.key === createGeneratorOwnershipKey(collectionId, path),
       ),
     );
-  }, [collectionId, recipes]);
+  }, [collectionId, generators]);
 
   const getOverrideableStepName = useCallback(
-    (recipe: TokenRecipe, path: string): string | null => {
-      const prefix = `${recipe.targetGroup}.`;
+    (generator: TokenGenerator, path: string): string | null => {
+      const prefix = `${generator.targetGroup}.`;
       if (!path.startsWith(prefix)) {
         return null;
       }
@@ -197,7 +197,7 @@ export function useTokenSave({
     options?: MultiModeSaveOptions,
   ) => {
     if (!connected) return;
-    if (!options?.allowGeneratedEdit && findProducingRecipe(path)) {
+    if (!options?.allowGeneratedEdit && findProducingGenerator(path)) {
       onError?.(
         "This generated token must be edited through its generator, saved as a manual exception, or detached first.",
       );
@@ -267,7 +267,7 @@ export function useTokenSave({
     });
   }, [
     connected,
-    findProducingRecipe,
+    findProducingGenerator,
     serverUrl,
     allTokensFlat,
     onRefresh,
@@ -282,12 +282,12 @@ export function useTokenSave({
     newValue: unknown,
   ): Promise<boolean> => {
     if (!connected) return false;
-    const derivedRecipe = findProducingRecipe(path);
-    if (!derivedRecipe) {
+    const derivedGenerator = findProducingGenerator(path);
+    if (!derivedGenerator) {
       onError?.("Manual exception failed: generated group ownership not found");
       return false;
     }
-    const stepName = getOverrideableStepName(derivedRecipe, path);
+    const stepName = getOverrideableStepName(derivedGenerator, path);
     if (!stepName) {
       onError?.(
         "Manual exception failed: this generated token must be detached before it can diverge.",
@@ -296,7 +296,7 @@ export function useTokenSave({
     }
     try {
       await apiFetch(
-        `${serverUrl}/api/recipes/${derivedRecipe.id}/steps/${encodeURIComponent(stepName)}/override`,
+        `${serverUrl}/api/generators/${derivedGenerator.id}/steps/${encodeURIComponent(stepName)}/override`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -320,7 +320,7 @@ export function useTokenSave({
     return true;
   }, [
     connected,
-    findProducingRecipe,
+    findProducingGenerator,
     getOverrideableStepName,
     onError,
     onRecordTouch,
@@ -329,15 +329,15 @@ export function useTokenSave({
     serverUrl,
   ]);
 
-  const handleDetachFromRecipe = useCallback(async (path: string): Promise<boolean> => {
+  const handleDetachFromGenerator = useCallback(async (path: string): Promise<boolean> => {
     if (!connected) return false;
     try {
-      const derivedRecipe = findProducingRecipe(path);
-      if (!derivedRecipe) {
+      const derivedGenerator = findProducingGenerator(path);
+      if (!derivedGenerator) {
         onError?.("Detach failed: generated group ownership not found");
         return false;
       }
-      await apiFetch(`${serverUrl}/api/recipes/${derivedRecipe.id}/detach`, {
+      await apiFetch(`${serverUrl}/api/generators/${derivedGenerator.id}/detach`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope: 'token', path }),
@@ -349,13 +349,13 @@ export function useTokenSave({
     onRefresh();
     onRefreshGeneratedGroups?.();
     return true;
-  }, [connected, findProducingRecipe, onError, onRefresh, onRefreshGeneratedGroups, serverUrl]);
+  }, [connected, findProducingGenerator, onError, onRefresh, onRefreshGeneratedGroups, serverUrl]);
 
   return {
     handleInlineSave,
     handleDescriptionSave,
     handleMultiModeInlineSave,
     handleSaveGeneratedException,
-    handleDetachFromRecipe,
+    handleDetachFromGenerator,
   };
 }

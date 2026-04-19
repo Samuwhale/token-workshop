@@ -125,7 +125,7 @@ function inferWorkspaceAction(message: string): InboxAction {
     };
   }
   if (
-    lower.includes("recipe") ||
+    lower.includes("generator") ||
     lower.includes("generated group") ||
     lower.includes("generator")
   ) {

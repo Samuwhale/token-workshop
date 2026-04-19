@@ -91,7 +91,7 @@ export interface TokensWorkspaceController {
   setErrorToast: (message: string) => void;
   setSuccessToast: (message: string) => void;
   handleNavigateToCollection: (collectionId: string, tokenPath: string) => void;
-  handleNavigateToGeneratedGroup: (recipeId: string) => void;
+  handleNavigateToGeneratedGroup: (generatorId: string) => void;
   flowPanelInitialPath: string | null;
   setFlowPanelInitialPath: (path: string | null) => void;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;

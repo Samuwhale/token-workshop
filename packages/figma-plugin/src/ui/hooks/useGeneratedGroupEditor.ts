@@ -1,13 +1,13 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import type {
-  TokenRecipe,
-  RecipeType,
-  RecipeConfig,
+  TokenGenerator,
+  GeneratorType,
+  GeneratorConfig,
   GeneratedTokenResult,
-  RecipeTemplate,
-} from "./useRecipes";
+  GeneratorTemplate,
+} from "./useGenerators";
 import {
-  detectRecipeType,
+  detectGeneratorType,
   suggestTargetGroup,
   autoName,
   defaultConfigForType,
@@ -15,14 +15,14 @@ import {
   isInlineValueCompatibleWithType,
   ALL_TYPES,
   VALUE_REQUIRED_TYPES,
-} from "../components/recipes/recipeUtils";
+} from "../components/generators/generatorUtils";
 import {
   useGeneratedGroupPreview,
-  type RecipePreviewAnalysis,
+  type GeneratorPreviewAnalysis,
 } from "./useGeneratedGroupPreview";
 import {
   useGeneratedGroupSave,
-  type RecipeSaveSuccessInfo,
+  type GeneratorSaveSuccessInfo,
 } from "./useGeneratedGroupSave";
 import type { UndoSlot } from "./useUndo";
 import type { ToastAction } from "../shared/toastBus";
@@ -31,42 +31,42 @@ import { stableStringify } from "../shared/utils";
 import type { OverwrittenEntry } from "./useGeneratedGroupPreview";
 export type { OverwrittenEntry } from "./useGeneratedGroupPreview";
 
-interface UseRecipeDialogParams {
+interface UseGeneratorDialogParams {
   serverUrl: string;
   sourceTokenPath?: string;
   sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
   currentCollectionId: string;
-  existingRecipe?: TokenRecipe;
-  template?: RecipeTemplate;
-  initialDraft?: RecipeDialogInitialDraft;
+  existingGenerator?: TokenGenerator;
+  template?: GeneratorTemplate;
+  initialDraft?: GeneratorDialogInitialDraft;
   /** Flat token map for source path lookups (used by recommendedType). */
   allTokensFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
   /** Mode-resolved token map for previewing source values in the currently selected mode. */
   sourceValuesFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
-  onSaved: (info?: RecipeSaveSuccessInfo) => void;
+  onSaved: (info?: GeneratorSaveSuccessInfo) => void;
   /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog internally */
   onInterceptSemanticMapping?: (data: {
     tokens: GeneratedTokenResult[];
     targetGroup: string;
     targetCollection: string;
-    recipeType: RecipeType;
+    generatorType: GeneratorType;
   }) => void;
   getSuccessToastAction?: (
-    info: RecipeSaveSuccessInfo,
+    info: GeneratorSaveSuccessInfo,
   ) => ToastAction | undefined;
   pushUndo?: (slot: UndoSlot) => void;
 }
 
-export interface RecipeDialogInitialDraft {
-  selectedType?: RecipeType;
+export interface GeneratorDialogInitialDraft {
+  selectedType?: GeneratorType;
   name?: string;
   nameIsAuto?: boolean;
   targetCollection?: string;
   targetGroup?: string;
   inlineValue?: unknown;
-  configs?: Partial<Record<RecipeType, RecipeConfig>>;
+  configs?: Partial<Record<GeneratorType, GeneratorConfig>>;
   pendingOverrides?: Record<string, { value: unknown; locked: boolean }>;
   keepUpdated?: boolean;
   semanticEnabled?: boolean;
@@ -75,7 +75,7 @@ export interface RecipeDialogInitialDraft {
   selectedSemanticPatternId?: string | null;
 }
 
-function cloneRecipeDraftValue<T>(value: T): T {
+function cloneGeneratorDraftValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
@@ -83,10 +83,10 @@ function cloneOptionalDraftValue<T>(value: T): T {
   if (value === undefined) {
     return value;
   }
-  return cloneRecipeDraftValue(value);
+  return cloneGeneratorDraftValue(value);
 }
 
-type RecipeTemplateDraftSource = RecipeTemplate & {
+type GeneratorTemplateDraftSource = GeneratorTemplate & {
   semanticStarter?: {
     prefix: string;
     mappings: Array<{ semantic: string; step: string }>;
@@ -94,7 +94,7 @@ type RecipeTemplateDraftSource = RecipeTemplate & {
   };
 };
 
-interface RecipeDraftTemplateOptions {
+interface GeneratorDraftTemplateOptions {
   sourceTokenPath?: string;
   sourceTokenName?: string;
   targetGroup?: string;
@@ -122,11 +122,11 @@ function appendCopySuffix(value: string, separator: string): string {
   );
 }
 
-export function createRecipeDraftFromTemplate(
-  template: RecipeTemplateDraftSource,
+export function createGeneratorDraftFromTemplate(
+  template: GeneratorTemplateDraftSource,
   currentCollectionId: string,
-  options: RecipeDraftTemplateOptions = {},
-): RecipeDialogInitialDraft {
+  options: GeneratorDraftTemplateOptions = {},
+): GeneratorDialogInitialDraft {
   const targetGroup =
     options.targetGroup ??
     (options.sourceTokenPath
@@ -134,55 +134,55 @@ export function createRecipeDraftFromTemplate(
       : template.defaultPrefix);
   const semanticStarter = template.semanticStarter;
   return {
-    selectedType: template.recipeType,
+    selectedType: template.generatorType,
     name: options.sourceTokenPath
-      ? autoName(options.sourceTokenPath, template.recipeType)
+      ? autoName(options.sourceTokenPath, template.generatorType)
       : template.label,
     nameIsAuto: Boolean(options.sourceTokenPath),
     targetCollection: currentCollectionId,
     targetGroup,
     configs: {
-      [template.recipeType]: cloneRecipeDraftValue(template.config),
+      [template.generatorType]: cloneGeneratorDraftValue(template.config),
     },
     semanticEnabled: Boolean(semanticStarter?.mappings.length),
     semanticPrefix: semanticStarter?.prefix,
     semanticMappings: semanticStarter?.mappings
-      ? cloneRecipeDraftValue(semanticStarter.mappings)
+      ? cloneGeneratorDraftValue(semanticStarter.mappings)
       : undefined,
     selectedSemanticPatternId: semanticStarter?.patternId ?? null,
   };
 }
 
 export function createGeneratedGroupDuplicateDraft(
-  recipe: TokenRecipe,
-): RecipeDialogInitialDraft {
+  generator: TokenGenerator,
+): GeneratorDialogInitialDraft {
   return {
-    selectedType: recipe.type,
-    name: appendCopySuffix(recipe.name, " "),
-    targetCollection: recipe.targetCollection,
-    targetGroup: appendCopySuffix(recipe.targetGroup, "-"),
-    inlineValue: cloneOptionalDraftValue(recipe.inlineValue),
+    selectedType: generator.type,
+    name: appendCopySuffix(generator.name, " "),
+    targetCollection: generator.targetCollection,
+    targetGroup: appendCopySuffix(generator.targetGroup, "-"),
+    inlineValue: cloneOptionalDraftValue(generator.inlineValue),
     configs: {
-      [recipe.type]: cloneRecipeDraftValue(recipe.config),
+      [generator.type]: cloneGeneratorDraftValue(generator.config),
     },
-    keepUpdated: recipe.enabled !== false,
-    semanticEnabled: Boolean(recipe.semanticLayer?.mappings.length),
-    semanticPrefix: recipe.semanticLayer?.prefix,
-    semanticMappings: recipe.semanticLayer?.mappings
-      ? cloneRecipeDraftValue(recipe.semanticLayer.mappings)
+    keepUpdated: generator.enabled !== false,
+    semanticEnabled: Boolean(generator.semanticLayer?.mappings.length),
+    semanticPrefix: generator.semanticLayer?.prefix,
+    semanticMappings: generator.semanticLayer?.mappings
+      ? cloneGeneratorDraftValue(generator.semanticLayer.mappings)
       : undefined,
-    selectedSemanticPatternId: recipe.semanticLayer?.patternId ?? null,
+    selectedSemanticPatternId: generator.semanticLayer?.patternId ?? null,
   };
 }
 
-interface RecipeDirtySnapshot {
-  selectedType: RecipeType;
+interface GeneratorDirtySnapshot {
+  selectedType: GeneratorType;
   name: string;
   targetCollection: string;
   targetGroup: string;
   editableSourcePath: string;
   inlineValue: unknown;
-  configs: Partial<Record<RecipeType, RecipeConfig>>;
+  configs: Partial<Record<GeneratorType, GeneratorConfig>>;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   keepUpdated: boolean;
   semanticEnabled: boolean;
@@ -191,22 +191,22 @@ interface RecipeDirtySnapshot {
   selectedSemanticPatternId: string | null;
 }
 
-function createRecipeDirtySnapshot(
-  snapshot: RecipeDirtySnapshot,
-): RecipeDirtySnapshot {
+function createGeneratorDirtySnapshot(
+  snapshot: GeneratorDirtySnapshot,
+): GeneratorDirtySnapshot {
   return {
     ...snapshot,
     inlineValue: cloneOptionalDraftValue(snapshot.inlineValue),
-    configs: cloneRecipeDraftValue(snapshot.configs),
-    pendingOverrides: cloneRecipeDraftValue(snapshot.pendingOverrides),
-    semanticMappings: cloneRecipeDraftValue(snapshot.semanticMappings),
+    configs: cloneGeneratorDraftValue(snapshot.configs),
+    pendingOverrides: cloneGeneratorDraftValue(snapshot.pendingOverrides),
+    semanticMappings: cloneGeneratorDraftValue(snapshot.semanticMappings),
   };
 }
 
-function mergeRecipeDrafts(
-  baseDraft: RecipeDialogInitialDraft | undefined,
-  overrideDraft: RecipeDialogInitialDraft | undefined,
-): RecipeDialogInitialDraft | undefined {
+function mergeGeneratorDrafts(
+  baseDraft: GeneratorDialogInitialDraft | undefined,
+  overrideDraft: GeneratorDialogInitialDraft | undefined,
+): GeneratorDialogInitialDraft | undefined {
   if (!baseDraft && !overrideDraft) return undefined;
 
   return {
@@ -214,25 +214,25 @@ function mergeRecipeDrafts(
     ...overrideDraft,
     configs: {
       ...(baseDraft?.configs
-        ? cloneRecipeDraftValue(baseDraft.configs)
+        ? cloneGeneratorDraftValue(baseDraft.configs)
         : {}),
       ...(overrideDraft?.configs
-        ? cloneRecipeDraftValue(overrideDraft.configs)
+        ? cloneGeneratorDraftValue(overrideDraft.configs)
         : {}),
     },
     pendingOverrides: overrideDraft?.pendingOverrides
-      ? cloneRecipeDraftValue(overrideDraft.pendingOverrides)
+      ? cloneGeneratorDraftValue(overrideDraft.pendingOverrides)
       : baseDraft?.pendingOverrides
-        ? cloneRecipeDraftValue(baseDraft.pendingOverrides)
+        ? cloneGeneratorDraftValue(baseDraft.pendingOverrides)
         : undefined,
     keepUpdated: overrideDraft?.keepUpdated ?? baseDraft?.keepUpdated,
     semanticEnabled:
       overrideDraft?.semanticEnabled ?? baseDraft?.semanticEnabled,
     semanticPrefix: overrideDraft?.semanticPrefix ?? baseDraft?.semanticPrefix,
     semanticMappings: overrideDraft?.semanticMappings
-      ? cloneRecipeDraftValue(overrideDraft.semanticMappings)
+      ? cloneGeneratorDraftValue(overrideDraft.semanticMappings)
       : baseDraft?.semanticMappings
-        ? cloneRecipeDraftValue(baseDraft.semanticMappings)
+        ? cloneGeneratorDraftValue(baseDraft.semanticMappings)
         : undefined,
     selectedSemanticPatternId:
       overrideDraft?.selectedSemanticPatternId ??
@@ -240,15 +240,15 @@ function mergeRecipeDrafts(
   };
 }
 
-interface UseRecipeDialogReturn {
+interface UseGeneratorDialogReturn {
   // Derived
   isEditing: boolean;
   typeNeedsValue: boolean;
   hasSource: boolean;
   hasValue: boolean;
-  availableTypes: RecipeType[];
-  recommendedType: RecipeType | undefined;
-  currentConfig: RecipeConfig;
+  availableTypes: GeneratorType[];
+  recommendedType: GeneratorType | undefined;
+  currentConfig: GeneratorConfig;
   lockedCount: number;
   isDirty: boolean;
   // Config undo
@@ -261,7 +261,7 @@ interface UseRecipeDialogReturn {
    *  gets its own undo entry. */
   handleConfigInteractionStart: () => void;
   // State
-  selectedType: RecipeType;
+  selectedType: GeneratorType;
   name: string;
   targetCollection: string;
   targetGroup: string;
@@ -272,7 +272,7 @@ interface UseRecipeDialogReturn {
   previewLoading: boolean;
   previewError: string;
   previewFingerprint: string;
-  previewAnalysis: RecipePreviewAnalysis | null;
+  previewAnalysis: GeneratorPreviewAnalysis | null;
   overwrittenEntries: OverwrittenEntry[];
   existingOverwritePathSet: Set<string>;
   existingTokensError: string;
@@ -289,12 +289,12 @@ interface UseRecipeDialogReturn {
   semanticMappings: Array<{ semantic: string; step: string }>;
   selectedSemanticPatternId: string | null;
   // Handlers
-  handleTypeChange: (type: RecipeType) => void;
+  handleTypeChange: (type: GeneratorType) => void;
   handleNameChange: (value: string) => void;
   setTargetGroup: (value: string) => void;
   setEditableSourcePath: (value: string) => void;
   setInlineValue: (value: unknown) => void;
-  handleConfigChange: (type: RecipeType, cfg: RecipeConfig) => void;
+  handleConfigChange: (type: GeneratorType, cfg: GeneratorConfig) => void;
   handleOverrideChange: (
     stepName: string,
     value: string,
@@ -320,7 +320,7 @@ export function useGeneratedGroupDialog({
   sourceTokenType = "",
   sourceTokenValue,
   currentCollectionId,
-  existingRecipe,
+  existingGenerator,
   template,
   initialDraft,
   allTokensFlat,
@@ -329,74 +329,74 @@ export function useGeneratedGroupDialog({
   onInterceptSemanticMapping,
   getSuccessToastAction,
   pushUndo,
-}: UseRecipeDialogParams): UseRecipeDialogReturn {
-  const isEditing = Boolean(existingRecipe);
+}: UseGeneratorDialogParams): UseGeneratorDialogReturn {
+  const isEditing = Boolean(existingGenerator);
   const initialTemplateDraft = template
-    ? createRecipeDraftFromTemplate(template, currentCollectionId)
+    ? createGeneratorDraftFromTemplate(template, currentCollectionId)
     : undefined;
-  const resolvedInitialDraft = mergeRecipeDrafts(
+  const resolvedInitialDraft = mergeGeneratorDrafts(
     initialTemplateDraft,
     initialDraft,
   );
 
-  // Editable source token path — initialized from existingRecipe.sourceToken when editing,
+  // Editable source token path — initialized from existingGenerator.sourceToken when editing,
   // or from the sourceTokenPath prop (clicked token) when creating.
   const [editableSourcePath, setEditableSourcePathRaw] = useState(
-    existingRecipe?.sourceToken ?? sourceTokenPath ?? "",
+    existingGenerator?.sourceToken ?? sourceTokenPath ?? "",
   );
 
   const recommendedType = useMemo(() => {
     // Use the current editable source path so the recommendation reacts to
     // user changes, falling back to the initial props.
-    const effectivePath = editableSourcePath || existingRecipe?.sourceToken || sourceTokenPath;
+    const effectivePath = editableSourcePath || existingGenerator?.sourceToken || sourceTokenPath;
     if (!effectivePath) return undefined;
     // Look up the live token entry so we react to path edits in the dialog.
     const liveEntry = allTokensFlat?.[effectivePath];
     const effectiveType = liveEntry?.$type ?? sourceTokenType;
     const effectiveValue = liveEntry?.$value ?? sourceTokenValue;
     if (effectiveType) {
-      return detectRecipeType(effectiveType, effectiveValue);
+      return detectGeneratorType(effectiveType, effectiveValue);
     }
     return undefined;
   }, [
     editableSourcePath,
-    existingRecipe?.sourceToken,
+    existingGenerator?.sourceToken,
     sourceTokenPath,
     sourceTokenType,
     sourceTokenValue,
     allTokensFlat,
   ]);
 
-  const initialType: RecipeType =
-    existingRecipe?.type ??
+  const initialType: GeneratorType =
+    existingGenerator?.type ??
     resolvedInitialDraft?.selectedType ??
     recommendedType ??
     "colorRamp";
   const initialName =
-    existingRecipe?.name ??
+    existingGenerator?.name ??
     resolvedInitialDraft?.name ??
     autoName(sourceTokenPath, initialType);
   const initialTargetCollection =
-    existingRecipe?.targetCollection ??
+    existingGenerator?.targetCollection ??
     resolvedInitialDraft?.targetCollection ??
     currentCollectionId;
   const initialTargetGroup =
-    existingRecipe?.targetGroup ??
+    existingGenerator?.targetGroup ??
     resolvedInitialDraft?.targetGroup ??
     (sourceTokenPath
       ? suggestTargetGroup(sourceTokenPath, sourceTokenName)
       : "");
-  const initialSourcePath = existingRecipe?.sourceToken ?? sourceTokenPath ?? "";
+  const initialSourcePath = existingGenerator?.sourceToken ?? sourceTokenPath ?? "";
   const initialInlineValue =
-    existingRecipe?.inlineValue ??
+    existingGenerator?.inlineValue ??
     resolvedInitialDraft?.inlineValue ??
     (initialSourcePath ? undefined : defaultInlineValueForType(initialType));
-  const initialConfigs: Partial<Record<RecipeType, RecipeConfig>> = {};
+  const initialConfigs: Partial<Record<GeneratorType, GeneratorConfig>> = {};
   for (const type of ALL_TYPES) {
-    if (existingRecipe?.type === type) {
-      initialConfigs[type] = cloneRecipeDraftValue(existingRecipe.config);
+    if (existingGenerator?.type === type) {
+      initialConfigs[type] = cloneGeneratorDraftValue(existingGenerator.config);
     } else if (resolvedInitialDraft?.configs?.[type]) {
-      initialConfigs[type] = cloneRecipeDraftValue(
+      initialConfigs[type] = cloneGeneratorDraftValue(
         resolvedInitialDraft.configs[type]!,
       );
     } else {
@@ -404,52 +404,52 @@ export function useGeneratedGroupDialog({
     }
   }
   const initialPendingOverrides =
-    existingRecipe?.overrides ??
+    existingGenerator?.overrides ??
     resolvedInitialDraft?.pendingOverrides ??
     {};
   const initialKeepUpdated =
-    resolvedInitialDraft?.keepUpdated ?? existingRecipe?.enabled !== false;
+    resolvedInitialDraft?.keepUpdated ?? existingGenerator?.enabled !== false;
   const initialSemanticEnabled =
     resolvedInitialDraft?.semanticEnabled ??
-    Boolean(existingRecipe?.semanticLayer?.mappings.length);
+    Boolean(existingGenerator?.semanticLayer?.mappings.length);
   const initialSemanticPrefix =
     resolvedInitialDraft?.semanticPrefix ??
-    existingRecipe?.semanticLayer?.prefix ??
+    existingGenerator?.semanticLayer?.prefix ??
     "semantic";
   const initialSemanticMappings =
     resolvedInitialDraft?.semanticMappings ??
-    existingRecipe?.semanticLayer?.mappings ??
+    existingGenerator?.semanticLayer?.mappings ??
     [];
   const initialSelectedSemanticPatternId =
     resolvedInitialDraft?.selectedSemanticPatternId ??
-    existingRecipe?.semanticLayer?.patternId ??
+    existingGenerator?.semanticLayer?.patternId ??
     null;
 
-  const [selectedType, setSelectedType] = useState<RecipeType>(initialType);
+  const [selectedType, setSelectedType] = useState<GeneratorType>(initialType);
   const [name, setName] = useState(initialName);
   const targetCollection = initialTargetCollection;
   const [targetGroup, setTargetGroup] = useState(initialTargetGroup);
   const [inlineValue, setInlineValueRaw] = useState<unknown>(initialInlineValue);
 
   const [configs, setConfigs] = useState<
-    Partial<Record<RecipeType, RecipeConfig>>
-  >(() => cloneRecipeDraftValue(initialConfigs));
+    Partial<Record<GeneratorType, GeneratorConfig>>
+  >(() => cloneGeneratorDraftValue(initialConfigs));
 
   const [pendingOverrides, setPendingOverrides] = useState<
     Record<string, { value: unknown; locked: boolean }>
-  >(() => cloneRecipeDraftValue(initialPendingOverrides));
+  >(() => cloneGeneratorDraftValue(initialPendingOverrides));
 
   const nameWasAutoRef = useRef(
     resolvedInitialDraft?.nameIsAuto ??
-      (!existingRecipe && !resolvedInitialDraft?.name),
+      (!existingGenerator && !resolvedInitialDraft?.name),
   );
-  const initialDirtySnapshotRef = useRef<RecipeDirtySnapshot>(
-    createRecipeDirtySnapshot({
+  const initialDirtySnapshotRef = useRef<GeneratorDirtySnapshot>(
+    createGeneratorDirtySnapshot({
       selectedType: initialType,
       name: initialName,
       targetCollection: initialTargetCollection,
       targetGroup: initialTargetGroup,
-      editableSourcePath: existingRecipe?.sourceToken ?? sourceTokenPath ?? "",
+      editableSourcePath: existingGenerator?.sourceToken ?? sourceTokenPath ?? "",
       inlineValue: initialInlineValue,
       configs: initialConfigs,
       pendingOverrides: initialPendingOverrides,
@@ -466,15 +466,15 @@ export function useGeneratedGroupDialog({
   // Type changes and preset selections push immediately.
   const MAX_UNDO = 20;
   const [configUndoStack, setConfigUndoStack] = useState<
-    Array<{ type: RecipeType; config: RecipeConfig }>
+    Array<{ type: GeneratorType; config: GeneratorConfig }>
   >([]);
   const [configRedoStack, setConfigRedoStack] = useState<
-    Array<{ type: RecipeType; config: RecipeConfig }>
+    Array<{ type: GeneratorType; config: GeneratorConfig }>
   >([]);
   const undoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSnapshotRef = useRef<{
-    type: RecipeType;
-    config: RecipeConfig;
+    type: GeneratorType;
+    config: GeneratorConfig;
   } | null>(null);
 
   const flushSnapshot = useCallback(() => {
@@ -603,8 +603,8 @@ export function useGeneratedGroupDialog({
     targetCollection,
     config: currentConfig,
     pendingOverrides,
-    existingRecipeId: existingRecipe?.id,
-    detachedPaths: existingRecipe?.detachedPaths,
+    existingGeneratorId: existingGenerator?.id,
+    detachedPaths: existingGenerator?.detachedPaths,
     refreshNonce: previewRefreshNonce,
   });
 
@@ -633,7 +633,7 @@ export function useGeneratedGroupDialog({
   } = useGeneratedGroupSave({
     serverUrl,
     isEditing,
-    existingRecipe,
+    existingGenerator,
     selectedType,
     name,
     sourceTokenPath: effectiveSourcePath,
@@ -662,7 +662,7 @@ export function useGeneratedGroupDialog({
   });
   const isDirty = useMemo(() => {
     const initialSnapshot = initialDirtySnapshotRef.current;
-    const currentSnapshot = createRecipeDirtySnapshot({
+    const currentSnapshot = createGeneratorDirtySnapshot({
       selectedType,
       name,
       targetCollection,
@@ -698,7 +698,7 @@ export function useGeneratedGroupDialog({
 
   // --- Config handlers ---
 
-  const handleTypeChange = (type: RecipeType) => {
+  const handleTypeChange = (type: GeneratorType) => {
     pushConfigSnapshot();
     setSelectedType(type);
     if (nameWasAutoRef.current) setName(autoName(effectiveSourcePath, type));
@@ -725,7 +725,7 @@ export function useGeneratedGroupDialog({
     setName(value);
   };
 
-  const handleConfigChange = (type: RecipeType, cfg: RecipeConfig) => {
+  const handleConfigChange = (type: GeneratorType, cfg: GeneratorConfig) => {
     pushConfigSnapshotDebounced();
     setConfigs((prev) => ({ ...prev, [type]: cfg }));
   };

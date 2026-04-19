@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  createRecipeOwnershipKey,
-  getRecipeManagedOutputs,
+  createGeneratorOwnershipKey,
+  getGeneratorManagedOutputs,
 } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
@@ -10,7 +10,7 @@ import { isAbortError } from '../shared/utils';
 // Types (defined inline — do not import from @tokenmanager/core in the plugin)
 // ---------------------------------------------------------------------------
 
-export type RecipeType =
+export type GeneratorType =
   | 'colorRamp'
   | 'typeScale'
   | 'spacingScale'
@@ -21,7 +21,7 @@ export type RecipeType =
   | 'customScale'
   | 'darkModeInversion';
 
-export type RecipeDashboardStatus =
+export type GeneratorDashboardStatus =
   | 'upToDate'
   | 'stale'
   | 'failed'
@@ -29,16 +29,16 @@ export type RecipeDashboardStatus =
   | 'neverRun'
   | 'paused';
 
-export interface RecipeDependency {
+export interface GeneratorDependency {
   id: string;
   name: string;
   targetCollection: string;
   targetGroup: string;
-  status: RecipeDashboardStatus;
+  status: GeneratorDashboardStatus;
 }
 
-export interface RecipeLastRunSummary {
-  status: RecipeDashboardStatus;
+export interface GeneratorLastRunSummary {
+  status: GeneratorDashboardStatus;
   label: string;
   at?: string;
   message?: string;
@@ -143,7 +143,7 @@ export interface DarkModeInversionConfig {
   };
 }
 
-export type RecipeConfig =
+export type GeneratorConfig =
   | ColorRampConfig
   | TypeScaleConfig
   | SpacingScaleConfig
@@ -164,51 +164,51 @@ export interface SemanticTokenMapping {
   step: string;
 }
 
-export interface RecipeSemanticLayer {
+export interface GeneratorSemanticLayer {
   prefix: string;
   mappings: SemanticTokenMapping[];
   patternId?: string | null;
 }
 
-export interface TokenRecipe {
+export interface TokenGenerator {
   id: string;
-  type: RecipeType;
+  type: GeneratorType;
   name: string;
   sourceToken?: string;
   inlineValue?: unknown;
   targetCollection: string;
   targetGroup: string;
-  config: RecipeConfig;
-  semanticLayer?: RecipeSemanticLayer;
+  config: GeneratorConfig;
+  semanticLayer?: GeneratorSemanticLayer;
   detachedPaths?: string[];
   overrides?: Record<string, StepOverride>;
-  /** When false, the recipe is disabled and skipped during auto-run. Defaults to true. */
+  /** When false, the generator is disabled and skipped during auto-run. Defaults to true. */
   enabled?: boolean;
   createdAt: string;
   updatedAt: string;
-  /** ISO timestamp of the last successful run. Absent if the recipe has never been run. */
+  /** ISO timestamp of the last successful run. Absent if the generator has never been run. */
   lastRunAt?: string;
   /** Value of the source token at the time of the last successful run. */
   lastRunSourceValue?: unknown;
   /**
    * Computed by the server on each list request.
    * True when the source token's current value differs from `lastRunSourceValue`.
-   * Only present for recipes that have been run at least once and have a sourceToken.
+   * Only present for generators that have been run at least once and have a sourceToken.
    */
   isStale?: boolean;
   /** Set when the last auto-run (triggered by a source token update) failed. Cleared on success. */
   lastRunError?: {
     message: string;
     at: string;
-    /** Present when the recipe was blocked by an upstream failure, not a direct failure itself.
-     *  Contains the name of the upstream recipe whose failure caused this skip. */
+    /** Present when the generator was blocked by an upstream failure, not a direct failure itself.
+     *  Contains the name of the upstream generator whose failure caused this skip. */
     blockedBy?: string;
   };
-  upstreamRecipes?: RecipeDependency[];
-  downstreamRecipes?: RecipeDependency[];
-  blockedByRecipes?: RecipeDependency[];
+  upstreamGenerators?: GeneratorDependency[];
+  downstreamGenerators?: GeneratorDependency[];
+  blockedByGenerators?: GeneratorDependency[];
   staleReason?: string;
-  lastRunSummary?: RecipeLastRunSummary;
+  lastRunSummary?: GeneratorLastRunSummary;
 }
 
 export interface GeneratedTokenResult {
@@ -220,107 +220,107 @@ export interface GeneratedTokenResult {
   warning?: string;
 }
 
-export interface RecipeTemplate {
+export interface GeneratorTemplate {
   id: string;
   label: string;
   description: string;
   defaultPrefix: string;
-  recipeType: RecipeType;
-  config: RecipeConfig;
+  generatorType: GeneratorType;
+  config: GeneratorConfig;
   requiresSource: boolean;
 }
 
-interface UseRecipesResult {
-  recipes: TokenRecipe[];
+interface UseGeneratorsResult {
+  generators: TokenGenerator[];
   loading: boolean;
-  refreshRecipes: () => void;
-  recipesBySource: Map<string, TokenRecipe[]>;
-  recipesByTargetGroup: Map<string, TokenRecipe>;
-  derivedTokenPaths: Map<string, TokenRecipe>;
+  refreshGenerators: () => void;
+  generatorsBySource: Map<string, TokenGenerator[]>;
+  generatorsByTargetGroup: Map<string, TokenGenerator>;
+  derivedTokenPaths: Map<string, TokenGenerator>;
 }
 
-export function getRecipeDashboardStatus(
-  recipe: TokenRecipe,
-): RecipeDashboardStatus {
-  if (recipe.lastRunSummary?.status) return recipe.lastRunSummary.status;
-  if (recipe.enabled === false) return 'paused';
-  if (recipe.lastRunError?.blockedBy) return 'blocked';
-  if (recipe.lastRunError) return 'failed';
-  if (recipe.isStale) return 'stale';
-  if (!recipe.lastRunAt) return 'neverRun';
+export function getGeneratorDashboardStatus(
+  generator: TokenGenerator,
+): GeneratorDashboardStatus {
+  if (generator.lastRunSummary?.status) return generator.lastRunSummary.status;
+  if (generator.enabled === false) return 'paused';
+  if (generator.lastRunError?.blockedBy) return 'blocked';
+  if (generator.lastRunError) return 'failed';
+  if (generator.isStale) return 'stale';
+  if (!generator.lastRunAt) return 'neverRun';
   return 'upToDate';
 }
 
-export function useRecipes(serverUrl: string, connected: boolean): UseRecipesResult {
-  const [recipes, setRecipes] = useState<TokenRecipe[]>([]);
+export function useGenerators(serverUrl: string, connected: boolean): UseGeneratorsResult {
+  const [generators, setGenerators] = useState<TokenGenerator[]>([]);
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchRecipes = useCallback(async () => {
+  const fetchGenerators = useCallback(async () => {
     if (!connected) return;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
     try {
-      const data = await apiFetch<TokenRecipe[]>(`${serverUrl}/api/recipes`, {
+      const data = await apiFetch<TokenGenerator[]>(`${serverUrl}/api/generators`, {
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
       });
       if (controller.signal.aborted) return;
-      setRecipes(data);
+      setGenerators(data);
     } catch (err) {
       if (isAbortError(err)) return;
-      console.error('Failed to fetch recipes:', err);
+      console.error('Failed to fetch generators:', err);
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
   }, [serverUrl, connected]);
 
   useEffect(() => {
-    fetchRecipes();
+    fetchGenerators();
     return () => { abortRef.current?.abort(); };
-  }, [fetchRecipes]);
+  }, [fetchGenerators]);
 
-  const recipesBySource = useMemo(() => {
-    const map = new Map<string, TokenRecipe[]>();
-    for (const gen of recipes) {
+  const generatorsBySource = useMemo(() => {
+    const map = new Map<string, TokenGenerator[]>();
+    for (const gen of generators) {
       if (!gen.sourceToken) continue;
       const key = gen.sourceToken;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(gen);
     }
     return map;
-  }, [recipes]);
+  }, [generators]);
 
-  const recipesByTargetGroup = useMemo(() => {
-    const map = new Map<string, TokenRecipe>();
-    for (const gen of recipes) {
-      const hasManagedOutputs = getRecipeManagedOutputs(gen).length > 0;
+  const generatorsByTargetGroup = useMemo(() => {
+    const map = new Map<string, TokenGenerator>();
+    for (const gen of generators) {
+      const hasManagedOutputs = getGeneratorManagedOutputs(gen).length > 0;
       if (!gen.targetGroup || !hasManagedOutputs) continue;
       map.set(
-        createRecipeOwnershipKey(gen.targetCollection, gen.targetGroup),
+        createGeneratorOwnershipKey(gen.targetCollection, gen.targetGroup),
         gen,
       );
     }
     return map;
-  }, [recipes]);
+  }, [generators]);
 
   const derivedTokenPaths = useMemo(() => {
-    const map = new Map<string, TokenRecipe>();
-    for (const gen of recipes) {
-      for (const output of getRecipeManagedOutputs(gen)) {
+    const map = new Map<string, TokenGenerator>();
+    for (const gen of generators) {
+      for (const output of getGeneratorManagedOutputs(gen)) {
         map.set(output.key, gen);
       }
     }
     return map;
-  }, [recipes]);
+  }, [generators]);
 
   return {
-    recipes,
+    generators,
     loading,
-    refreshRecipes: fetchRecipes,
-    recipesBySource,
-    recipesByTargetGroup,
+    refreshGenerators: fetchGenerators,
+    generatorsBySource,
+    generatorsByTargetGroup,
     derivedTokenPaths,
   };
 }

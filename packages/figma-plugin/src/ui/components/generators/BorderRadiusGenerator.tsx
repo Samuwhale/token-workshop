@@ -1,5 +1,5 @@
-import type { BorderRadiusScaleConfig, BorderRadiusStep, GeneratedTokenResult } from '../../hooks/useRecipes';
-import { OverrideRow, formatValue, isDimensionLike } from './recipeShared';
+import type { BorderRadiusScaleConfig, BorderRadiusStep, GeneratedTokenResult } from '../../hooks/useGenerators';
+import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 
 // ---------------------------------------------------------------------------
 // Default config

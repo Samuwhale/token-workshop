@@ -571,7 +571,7 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
               state: { collections: [], views: [] },
               tokensByCollection: {},
             });
-            await fastify.recipeService.reset();
+            await fastify.generatorService.reset();
             await fastify.resolverStore.reset();
             await fastify.lintConfigStore.reset();
             await fastify.operationLog.reset();

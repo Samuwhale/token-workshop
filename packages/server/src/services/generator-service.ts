@@ -2,10 +2,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import type {
-  RecipeType,
-  RecipeConfig,
-  TokenRecipe,
-  RecipeSemanticLayer,
+  GeneratorType,
+  GeneratorConfig,
+  TokenGenerator,
+  GeneratorSemanticLayer,
   SemanticTokenMapping,
   GeneratedTokenResult,
   TokenType,
@@ -25,17 +25,17 @@ import {
   DIMENSION_UNITS,
   evalExpr,
   readTokenCollectionModeValues,
-  runColorRampRecipe,
-  runTypeScaleRecipe,
-  runSpacingScaleRecipe,
-  runOpacityScaleRecipe,
-  runBorderRadiusScaleRecipe,
-  runZIndexScaleRecipe,
-  runShadowScaleRecipe,
-  runCustomScaleRecipe,
-  runDarkModeInversionRecipe,
+  runColorRampGenerator,
+  runTypeScaleGenerator,
+  runSpacingScaleGenerator,
+  runOpacityScaleGenerator,
+  runBorderRadiusScaleGenerator,
+  runZIndexScaleGenerator,
+  runShadowScaleGenerator,
+  runCustomScaleGenerator,
+  runDarkModeInversionGenerator,
   applyOverrides,
-  getRecipeManagedOutputPaths,
+  getGeneratorManagedOutputPaths,
   substituteVars,
   validateStepName,
 } from "@tokenmanager/core";
@@ -46,11 +46,11 @@ import { NotFoundError, BadRequestError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { validateTokenPath } from "./token-tree-utils.js";
 
-interface RecipesFile {
-  $recipes: TokenRecipe[];
+interface GeneratorsFile {
+  $generators: TokenGenerator[];
 }
 
-const VALID_RECIPE_TYPES = [
+const VALID_GENERATOR_TYPES = [
   "colorRamp",
   "typeScale",
   "spacingScale",
@@ -60,12 +60,12 @@ const VALID_RECIPE_TYPES = [
   "shadowScale",
   "customScale",
   "darkModeInversion",
-] as const satisfies readonly RecipeType[];
+] as const satisfies readonly GeneratorType[];
 
-const VALID_RECIPE_TYPE_SET = new Set<RecipeType>(VALID_RECIPE_TYPES);
+const VALID_GENERATOR_TYPE_SET = new Set<GeneratorType>(VALID_GENERATOR_TYPES);
 
-export type RecipeCreateInput = Omit<
-  TokenRecipe,
+export type GeneratorCreateInput = Omit<
+  TokenGenerator,
   | "id"
   | "createdAt"
   | "updatedAt"
@@ -80,9 +80,9 @@ export type RecipeCreateInput = Omit<
   semanticLayer?: unknown;
 };
 
-export type RecipeUpdateInput = Partial<
+export type GeneratorUpdateInput = Partial<
   Omit<
-    TokenRecipe,
+    TokenGenerator,
     | "id"
     | "createdAt"
     | "type"
@@ -97,8 +97,8 @@ export type RecipeUpdateInput = Partial<
   semanticLayer?: unknown;
 };
 
-export type RecipePreviewInput = Pick<
-  TokenRecipe,
+export type GeneratorPreviewInput = Pick<
+  TokenGenerator,
   | "sourceToken"
   | "inlineValue"
   | "targetGroup"
@@ -108,11 +108,11 @@ export type RecipePreviewInput = Pick<
   type: unknown;
   config?: unknown;
   overrides?: unknown;
-  baseRecipeId?: unknown;
+  baseGeneratorId?: unknown;
   detachedPaths?: unknown;
 };
 
-export interface RecipePreviewChangeEntry {
+export interface GeneratorPreviewChangeEntry {
   path: string;
   collectionId: string;
   type: string;
@@ -121,25 +121,25 @@ export interface RecipePreviewChangeEntry {
   changesValue: boolean;
 }
 
-export interface RecipePreviewOverwriteEntry
-  extends RecipePreviewChangeEntry {
-  owner: "manual" | "recipe";
-  recipeId?: string;
+export interface GeneratorPreviewOverwriteEntry
+  extends GeneratorPreviewChangeEntry {
+  owner: "manual" | "generator";
+  generatorId?: string;
 }
 
-export interface RecipePreviewManualConflictEntry
-  extends RecipePreviewChangeEntry {
+export interface GeneratorPreviewManualConflictEntry
+  extends GeneratorPreviewChangeEntry {
   baselineValue: unknown;
 }
 
-export interface RecipePreviewDeletedEntry {
+export interface GeneratorPreviewDeletedEntry {
   path: string;
   collectionId: string;
   type: string;
   currentValue: unknown;
 }
 
-export interface RecipePreviewDetachedEntry {
+export interface GeneratorPreviewDetachedEntry {
   path: string;
   collectionId: string;
   type: string;
@@ -148,7 +148,7 @@ export interface RecipePreviewDetachedEntry {
   state: "preserved" | "recreated";
 }
 
-export interface RecipePreviewManualExceptionEntry {
+export interface GeneratorPreviewManualExceptionEntry {
   path: string;
   collectionId: string;
   type: string;
@@ -157,17 +157,17 @@ export interface RecipePreviewManualExceptionEntry {
   state: "created" | "preserved" | "invalidated";
 }
 
-export interface RecipePreviewAnalysis {
+export interface GeneratorPreviewAnalysis {
   fingerprint: string;
   safeCreateCount: number;
   unchangedCount: number;
   existingPathSet: string[];
-  safeUpdates: RecipePreviewChangeEntry[];
-  nonRecipeOverwrites: RecipePreviewOverwriteEntry[];
-  manualEditConflicts: RecipePreviewManualConflictEntry[];
-  deletedOutputs: RecipePreviewDeletedEntry[];
-  detachedOutputs: RecipePreviewDetachedEntry[];
-  manualExceptions: RecipePreviewManualExceptionEntry[];
+  safeUpdates: GeneratorPreviewChangeEntry[];
+  nonGeneratorOverwrites: GeneratorPreviewOverwriteEntry[];
+  manualEditConflicts: GeneratorPreviewManualConflictEntry[];
+  deletedOutputs: GeneratorPreviewDeletedEntry[];
+  detachedOutputs: GeneratorPreviewDetachedEntry[];
+  manualExceptions: GeneratorPreviewManualExceptionEntry[];
   diff: {
     created: Array<{ path: string; value: unknown; type: string }>;
     updated: Array<{
@@ -181,31 +181,31 @@ export interface RecipePreviewAnalysis {
   };
 }
 
-export interface RecipePreviewResult {
+export interface GeneratorPreviewResult {
   tokens: GeneratedTokenResult[];
-  analysis: RecipePreviewAnalysis;
+  analysis: GeneratorPreviewAnalysis;
 }
 
-export interface RecipeCollectionDependencyMeta {
+export interface GeneratorCollectionDependencyMeta {
   id: string;
   name: string;
   targetCollection: string;
   targetGroup: string;
 }
 
-export interface OrphanedRecipeToken {
+export interface OrphanedGeneratorToken {
   collectionId: string;
   path: string;
-  recipeId: string;
+  generatorId: string;
 }
 
-export interface DetachedRecipeResult {
-  recipe: TokenRecipe;
+export interface DetachedGeneratorResult {
+  generator: TokenGenerator;
   detachedPaths: string[];
   detachedCount: number;
 }
 
-export type RecipeDashboardStatus =
+export type GeneratorDashboardStatus =
   | "upToDate"
   | "stale"
   | "failed"
@@ -213,57 +213,57 @@ export type RecipeDashboardStatus =
   | "neverRun"
   | "paused";
 
-export interface RecipeDashboardDependency {
+export interface GeneratorDashboardDependency {
   id: string;
   name: string;
   targetCollection: string;
   targetGroup: string;
-  status: RecipeDashboardStatus;
+  status: GeneratorDashboardStatus;
 }
 
-export interface RecipeLastRunSummary {
-  status: RecipeDashboardStatus;
+export interface GeneratorLastRunSummary {
+  status: GeneratorDashboardStatus;
   label: string;
   at?: string;
   message?: string;
 }
 
-export interface RecipeDashboardItem extends TokenRecipe {
+export interface GeneratorDashboardItem extends TokenGenerator {
   isStale?: boolean;
   staleReason?: string;
-  upstreamRecipes: RecipeDashboardDependency[];
-  downstreamRecipes: RecipeDashboardDependency[];
-  blockedByRecipes: RecipeDashboardDependency[];
-  lastRunSummary: RecipeLastRunSummary;
+  upstreamGenerators: GeneratorDashboardDependency[];
+  downstreamGenerators: GeneratorDashboardDependency[];
+  blockedByGenerators: GeneratorDashboardDependency[];
+  lastRunSummary: GeneratorLastRunSummary;
 }
 
-export type RecipePathRenameUpdate =
+export type GeneratorPathRenameUpdate =
   | ({ scope: "token" } & TokenPathRename)
   | ({ scope: "group" } & TokenPathRename);
 
-type RecipeExecutionInput = {
-  type: TokenRecipe["type"];
-  sourceToken?: TokenRecipe["sourceToken"];
-  inlineValue?: TokenRecipe["inlineValue"];
-  targetGroup: TokenRecipe["targetGroup"];
-  config: TokenRecipe["config"];
-  overrides?: TokenRecipe["overrides"];
-  detachedPaths?: TokenRecipe["detachedPaths"];
+type GeneratorExecutionInput = {
+  type: TokenGenerator["type"];
+  sourceToken?: TokenGenerator["sourceToken"];
+  inlineValue?: TokenGenerator["inlineValue"];
+  targetGroup: TokenGenerator["targetGroup"];
+  config: TokenGenerator["config"];
+  overrides?: TokenGenerator["overrides"];
+  detachedPaths?: TokenGenerator["detachedPaths"];
 };
 
-function getRecipeDashboardStatus(
-  recipe: TokenRecipe,
+function getGeneratorDashboardStatus(
+  generator: TokenGenerator,
   isStale: boolean,
-): RecipeDashboardStatus {
-  if (recipe.enabled === false) return "paused";
-  if (recipe.lastRunError?.blockedBy) return "blocked";
-  if (recipe.lastRunError) return "failed";
+): GeneratorDashboardStatus {
+  if (generator.enabled === false) return "paused";
+  if (generator.lastRunError?.blockedBy) return "blocked";
+  if (generator.lastRunError) return "failed";
   if (isStale) return "stale";
-  if (!recipe.lastRunAt) return "neverRun";
+  if (!generator.lastRunAt) return "neverRun";
   return "upToDate";
 }
 
-function getRecipeStatusLabel(status: RecipeDashboardStatus): string {
+function getGeneratorStatusLabel(status: GeneratorDashboardStatus): string {
   switch (status) {
     case "paused":
       return "Keep updated off";
@@ -281,15 +281,15 @@ function getRecipeStatusLabel(status: RecipeDashboardStatus): string {
   }
 }
 
-function buildRecipeDependency(
-  recipe: TokenRecipe,
-  status: RecipeDashboardStatus,
-): RecipeDashboardDependency {
+function buildGeneratorDependency(
+  generator: TokenGenerator,
+  status: GeneratorDashboardStatus,
+): GeneratorDashboardDependency {
   return {
-    id: recipe.id,
-    name: recipe.name,
-    targetCollection: recipe.targetCollection,
-    targetGroup: recipe.targetGroup,
+    id: generator.id,
+    name: generator.name,
+    targetCollection: generator.targetCollection,
+    targetGroup: generator.targetGroup,
     status,
   };
 }
@@ -344,23 +344,23 @@ function validateFormulaSyntax(formula: string): string | undefined {
   }
 }
 
-function normalizeRecipeType(rawType: unknown): RecipeType {
+function normalizeGeneratorType(rawType: unknown): GeneratorType {
   if (
     typeof rawType !== "string" ||
-    !VALID_RECIPE_TYPE_SET.has(rawType as RecipeType)
+    !VALID_GENERATOR_TYPE_SET.has(rawType as GeneratorType)
   ) {
     throw new BadRequestError(
-      `Unknown recipe type "${String(rawType)}". Valid types: ${VALID_RECIPE_TYPES.join(", ")}`,
+      `Unknown generator type "${String(rawType)}". Valid types: ${VALID_GENERATOR_TYPES.join(", ")}`,
     );
   }
-  return rawType as RecipeType;
+  return rawType as GeneratorType;
 }
 
 function normalizeOverrides(
   raw: unknown,
-): TokenRecipe["overrides"] | undefined {
+): TokenGenerator["overrides"] | undefined {
   if (!isObj(raw)) return undefined;
-  const overrides: NonNullable<TokenRecipe["overrides"]> = {};
+  const overrides: NonNullable<TokenGenerator["overrides"]> = {};
   for (const [key, value] of Object.entries(raw)) {
     if (isObj(value) && typeof value.locked === "boolean") {
       overrides[key] = { value: value.value, locked: value.locked };
@@ -389,7 +389,7 @@ function normalizeSemanticTokenMapping(raw: unknown): SemanticTokenMapping {
   };
 }
 
-function normalizeSemanticLayer(raw: unknown): RecipeSemanticLayer | undefined {
+function normalizeSemanticLayer(raw: unknown): GeneratorSemanticLayer | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (!isObj(raw)) {
     throw new BadRequestError("semanticLayer must be an object");
@@ -413,7 +413,7 @@ function normalizeSemanticLayer(raw: unknown): RecipeSemanticLayer | undefined {
 
 function normalizeLastRunError(
   raw: unknown,
-): TokenRecipe["lastRunError"] | undefined {
+): TokenGenerator["lastRunError"] | undefined {
   if (raw === undefined) return undefined;
   if (
     !isObj(raw) ||
@@ -451,10 +451,10 @@ function normalizeDetachedPaths(raw: unknown): string[] | undefined {
   return detachedPaths.length > 0 ? detachedPaths : undefined;
 }
 
-function normalizeRecipeConfig(
-  type: RecipeType,
+function normalizeGeneratorConfig(
+  type: GeneratorType,
   config: unknown,
-): RecipeConfig {
+): GeneratorConfig {
   if (config !== undefined && !isObj(config)) {
     throw new BadRequestError('"config" must be an object');
   }
@@ -876,7 +876,7 @@ function normalizeRecipeConfig(
   }
 }
 
-function normalizeStoredRecipe(raw: unknown): TokenRecipe {
+function normalizeStoredGenerator(raw: unknown): TokenGenerator {
   if (!isObj(raw)) throw new BadRequestError("entry is not an object");
   if (typeof raw.id !== "string" || raw.id === "")
     throw new BadRequestError('missing or invalid "id"');
@@ -900,7 +900,7 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
     throw new BadRequestError("lastRunAt must be a string when provided");
   }
 
-  const type = normalizeRecipeType(raw.type);
+  const type = normalizeGeneratorType(raw.type);
   const overrides = normalizeOverrides(raw.overrides);
   const semanticLayer = normalizeSemanticLayer(raw.semanticLayer);
   const detachedPaths = normalizeDetachedPaths(raw.detachedPaths);
@@ -913,7 +913,7 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
     ...(raw.inlineValue !== undefined && { inlineValue: raw.inlineValue }),
     targetCollection: raw.targetCollection,
     targetGroup: raw.targetGroup,
-    config: normalizeRecipeConfig(type, raw.config),
+    config: normalizeGeneratorConfig(type, raw.config),
     ...(semanticLayer && { semanticLayer }),
     ...(detachedPaths && { detachedPaths }),
     ...(overrides && { overrides }),
@@ -928,12 +928,12 @@ function normalizeStoredRecipe(raw: unknown): TokenRecipe {
   };
 }
 
-export class RecipeService {
+export class GeneratorService {
   private dir: string;
-  private recipes: Map<string, TokenRecipe> = new Map();
-  /** Per-recipe promise chain — serializes concurrent executions instead of skipping them. */
-  private recipeLocks = new Map<string, Promise<void>>();
-  /** Promise-chain mutex — serializes all saveRecipes() calls to prevent file-rename races. */
+  private generators: Map<string, TokenGenerator> = new Map();
+  /** Per-generator promise chain — serializes concurrent executions instead of skipping them. */
+  private generatorLocks = new Map<string, Promise<void>>();
+  /** Promise-chain mutex — serializes all saveGenerators() calls to prevent file-rename races. */
   private saveLock = new PromiseChainLock();
   private writingFiles = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -943,48 +943,48 @@ export class RecipeService {
 
   async initialize(): Promise<void> {
     await fs.mkdir(this.dir, { recursive: true });
-    await this.loadRecipes();
+    await this.loadGenerators();
   }
 
   private get filePath(): string {
-    return path.join(this.dir, "$recipes.json");
+    return path.join(this.dir, "$generators.json");
   }
 
-  private async loadRecipes(): Promise<void> {
+  private async loadGenerators(): Promise<void> {
     try {
-      this.recipes = await this.readRecipesFromDisk();
-      this.pruneRecipeLocks();
+      this.generators = await this.readGeneratorsFromDisk();
+      this.pruneGeneratorLocks();
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
         console.warn(
-          `[RecipeService] Failed to load recipes from disk: ${
+          `[GeneratorService] Failed to load generators from disk: ${
             err instanceof Error ? err.message : String(err)
           }`,
         );
       }
       // File doesn't exist yet — perfectly normal on first run
-      this.recipes.clear();
+      this.generators.clear();
     }
   }
 
   async reloadFromDisk(): Promise<"changed" | "removed" | "unchanged"> {
     try {
-      const nextRecipes = await this.readRecipesFromDisk();
+      const nextGenerators = await this.readGeneratorsFromDisk();
       const prevSerialized = JSON.stringify(
-        Array.from(this.recipes.values()),
+        Array.from(this.generators.values()),
       );
       const nextSerialized = JSON.stringify(
-        Array.from(nextRecipes.values()),
+        Array.from(nextGenerators.values()),
       );
-      this.recipes = nextRecipes;
-      this.pruneRecipeLocks();
+      this.generators = nextGenerators;
+      this.pruneGeneratorLocks();
       return prevSerialized === nextSerialized ? "unchanged" : "changed";
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        const hadRecipes = this.recipes.size > 0;
-        this.recipes.clear();
-        this.recipeLocks.clear();
-        return hadRecipes ? "removed" : "unchanged";
+        const hadGenerators = this.generators.size > 0;
+        this.generators.clear();
+        this.generatorLocks.clear();
+        return hadGenerators ? "removed" : "unchanged";
       }
       throw err;
     }
@@ -1011,13 +1011,13 @@ export class RecipeService {
     return true;
   }
 
-  private saveRecipes(): Promise<void> {
+  private saveGenerators(): Promise<void> {
     return this.saveLock.withLock(() => this._doSave());
   }
 
   private async _doSave(): Promise<void> {
-    const data: RecipesFile = {
-      $recipes: Array.from(this.recipes.values()),
+    const data: GeneratorsFile = {
+      $generators: Array.from(this.generators.values()),
     };
     const tmp = `${this.filePath}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2));
@@ -1031,8 +1031,8 @@ export class RecipeService {
     }
   }
 
-  async getAll(): Promise<TokenRecipe[]> {
-    return Array.from(this.recipes.values());
+  async getAll(): Promise<TokenGenerator[]> {
+    return Array.from(this.generators.values());
   }
 
   private async getCollectionModeCounts(
@@ -1090,7 +1090,7 @@ export class RecipeService {
   }
 
   async assertKeepUpdatedSupported(
-    recipe: Pick<TokenRecipe, "enabled" | "sourceToken">,
+    generator: Pick<TokenGenerator, "enabled" | "sourceToken">,
     tokenStore: Pick<TokenStore, "getTokenDefinitions">,
     collectionLookup: {
       getCollectionsOverview(): Promise<{
@@ -1098,13 +1098,13 @@ export class RecipeService {
       }>;
     },
   ): Promise<void> {
-    if (recipe.enabled === false) {
+    if (generator.enabled === false) {
       return;
     }
     const collectionModeCounts =
       await this.getCollectionModeCounts(collectionLookup);
     const disabledReason = await this.getKeepUpdatedDisabledReason(
-      recipe.sourceToken,
+      generator.sourceToken,
       tokenStore,
       collectionModeCounts,
     );
@@ -1124,20 +1124,20 @@ export class RecipeService {
     const collectionModeCounts =
       await this.getCollectionModeCounts(collectionLookup);
     let changed = 0;
-    for (const recipe of this.recipes.values()) {
-      if (recipe.enabled === false) {
+    for (const generator of this.generators.values()) {
+      if (generator.enabled === false) {
         continue;
       }
       const disabledReason = await this.getKeepUpdatedDisabledReason(
-        recipe.sourceToken,
+        generator.sourceToken,
         tokenStore,
         collectionModeCounts,
       );
       if (!disabledReason) {
         continue;
       }
-      this.recipes.set(recipe.id, {
-        ...recipe,
+      this.generators.set(generator.id, {
+        ...generator,
         enabled: false,
         updatedAt: new Date().toISOString(),
         lastRunError: {
@@ -1148,7 +1148,7 @@ export class RecipeService {
       changed += 1;
     }
     if (changed > 0) {
-      await this.saveRecipes();
+      await this.saveGenerators();
     }
     return changed;
   }
@@ -1160,69 +1160,69 @@ export class RecipeService {
         collections: Array<{ id: string; modes: Array<{ name: string }> }>;
       }>;
     },
-  ): Promise<RecipeDashboardItem[]> {
-    const recipes = Array.from(this.recipes.values());
+  ): Promise<GeneratorDashboardItem[]> {
+    const generators = Array.from(this.generators.values());
     const collectionModeCounts =
       await this.getCollectionModeCounts(collectionLookup);
-    const upstreamIdsByRecipe = new Map<string, string[]>();
-    const downstreamIdsByRecipe = new Map<string, string[]>();
+    const upstreamIdsByGenerator = new Map<string, string[]>();
+    const downstreamIdsByGenerator = new Map<string, string[]>();
 
-    for (const recipe of recipes) {
-      upstreamIdsByRecipe.set(recipe.id, []);
-      downstreamIdsByRecipe.set(recipe.id, []);
+    for (const generator of generators) {
+      upstreamIdsByGenerator.set(generator.id, []);
+      downstreamIdsByGenerator.set(generator.id, []);
     }
 
-    for (const downstream of recipes) {
+    for (const downstream of generators) {
       if (!downstream.sourceToken) continue;
-      for (const upstream of recipes) {
+      for (const upstream of generators) {
         if (upstream.id === downstream.id) continue;
         if (!downstream.sourceToken.startsWith(`${upstream.targetGroup}.`)) {
           continue;
         }
-        upstreamIdsByRecipe.get(downstream.id)?.push(upstream.id);
-        downstreamIdsByRecipe.get(upstream.id)?.push(downstream.id);
+        upstreamIdsByGenerator.get(downstream.id)?.push(upstream.id);
+        downstreamIdsByGenerator.get(upstream.id)?.push(downstream.id);
       }
     }
 
     const staleEntries = await Promise.all(
-      recipes.map(async (recipe) => {
-        if (!recipe.sourceToken) {
-          return { id: recipe.id, isStale: false, staleReason: undefined };
+      generators.map(async (generator) => {
+        if (!generator.sourceToken) {
+          return { id: generator.id, isStale: false, staleReason: undefined };
         }
-        if (!recipe.lastRunAt) {
-          return { id: recipe.id, isStale: false, staleReason: undefined };
+        if (!generator.lastRunAt) {
+          return { id: generator.id, isStale: false, staleReason: undefined };
         }
         const keepUpdatedDisabledReason =
-          recipe.enabled === false
+          generator.enabled === false
             ? await this.getKeepUpdatedDisabledReason(
-                recipe.sourceToken,
+                generator.sourceToken,
                 tokenStore,
                 collectionModeCounts,
               )
             : null;
         if (keepUpdatedDisabledReason) {
-          return { id: recipe.id, isStale: false, staleReason: undefined };
+          return { id: generator.id, isStale: false, staleReason: undefined };
         }
 
-        const resolved = await tokenStore.resolveToken(recipe.sourceToken).catch(
+        const resolved = await tokenStore.resolveToken(generator.sourceToken).catch(
           () => undefined,
         );
         if (!resolved) {
           return {
-            id: recipe.id,
+            id: generator.id,
             isStale: true,
-            staleReason: `Source token "${recipe.sourceToken}" no longer resolves.`,
+            staleReason: `Source token "${generator.sourceToken}" no longer resolves.`,
           };
         }
 
         const isStale =
           stableStringify(resolved.$value) !==
-          stableStringify(recipe.lastRunSourceValue);
+          stableStringify(generator.lastRunSourceValue);
         return {
-          id: recipe.id,
+          id: generator.id,
           isStale,
           staleReason: isStale
-            ? `Source token "${recipe.sourceToken}" changed since the last successful run.`
+            ? `Source token "${generator.sourceToken}" changed since the last successful run.`
             : undefined,
         };
       }),
@@ -1231,51 +1231,51 @@ export class RecipeService {
     const staleById = new Map(
       staleEntries.map((entry) => [entry.id, entry] as const),
     );
-    const statusById = new Map<string, RecipeDashboardStatus>();
+    const statusById = new Map<string, GeneratorDashboardStatus>();
 
-    for (const recipe of recipes) {
-      const staleEntry = staleById.get(recipe.id);
+    for (const generator of generators) {
+      const staleEntry = staleById.get(generator.id);
       statusById.set(
-        recipe.id,
-        getRecipeDashboardStatus(recipe, staleEntry?.isStale ?? false),
+        generator.id,
+        getGeneratorDashboardStatus(generator, staleEntry?.isStale ?? false),
       );
     }
 
-    const dependencyById = new Map<string, RecipeDashboardDependency>();
-    for (const recipe of recipes) {
+    const dependencyById = new Map<string, GeneratorDashboardDependency>();
+    for (const generator of generators) {
       dependencyById.set(
-        recipe.id,
-        buildRecipeDependency(
-          recipe,
-          statusById.get(recipe.id) ?? "upToDate",
+        generator.id,
+        buildGeneratorDependency(
+          generator,
+          statusById.get(generator.id) ?? "upToDate",
         ),
       );
     }
 
-    return recipes.map((recipe) => {
-      const staleEntry = staleById.get(recipe.id);
-      const status = statusById.get(recipe.id) ?? "upToDate";
-      const upstreamRecipes = (upstreamIdsByRecipe.get(recipe.id) ?? [])
+    return generators.map((generator) => {
+      const staleEntry = staleById.get(generator.id);
+      const status = statusById.get(generator.id) ?? "upToDate";
+      const upstreamGenerators = (upstreamIdsByGenerator.get(generator.id) ?? [])
         .map((id) => dependencyById.get(id))
         .filter(
           (
             dependency,
-          ): dependency is RecipeDashboardDependency => dependency !== undefined,
+          ): dependency is GeneratorDashboardDependency => dependency !== undefined,
         );
-      const downstreamRecipes = (
-        downstreamIdsByRecipe.get(recipe.id) ?? []
+      const downstreamGenerators = (
+        downstreamIdsByGenerator.get(generator.id) ?? []
       )
         .map((id) => dependencyById.get(id))
         .filter(
           (
             dependency,
-          ): dependency is RecipeDashboardDependency => dependency !== undefined,
+          ): dependency is GeneratorDashboardDependency => dependency !== undefined,
         );
 
-      const blockedByName = recipe.lastRunError?.blockedBy?.trim();
-      const blockedByRecipes =
+      const blockedByName = generator.lastRunError?.blockedBy?.trim();
+      const blockedByGenerators =
         status === "blocked"
-          ? upstreamRecipes.filter((dependency) =>
+          ? upstreamGenerators.filter((dependency) =>
               blockedByName
                 ? dependency.name === blockedByName
                 : dependency.status === "failed" || dependency.status === "blocked",
@@ -1283,41 +1283,41 @@ export class RecipeService {
           : [];
 
       const summaryMessage =
-        recipe.lastRunError?.message ??
+        generator.lastRunError?.message ??
         staleEntry?.staleReason ??
-        (!recipe.lastRunAt ? "Run this generated group to create outputs." : undefined);
+        (!generator.lastRunAt ? "Run this generated group to create outputs." : undefined);
 
       return {
-        ...recipe,
+        ...generator,
         isStale: staleEntry?.isStale,
         staleReason: staleEntry?.staleReason,
-        upstreamRecipes,
-        downstreamRecipes,
-        blockedByRecipes,
+        upstreamGenerators,
+        downstreamGenerators,
+        blockedByGenerators,
         lastRunSummary: {
           status,
-          label: getRecipeStatusLabel(status),
-          at: recipe.lastRunError?.at ?? recipe.lastRunAt,
+          label: getGeneratorStatusLabel(status),
+          at: generator.lastRunError?.at ?? generator.lastRunAt,
           message: summaryMessage,
         },
       };
     });
   }
 
-  listCollectionDependencyMeta(): RecipeCollectionDependencyMeta[] {
-    return Array.from(this.recipes.values()).map((recipe) => ({
-      id: recipe.id,
-      name: recipe.name,
-      targetCollection: recipe.targetCollection,
-      targetGroup: recipe.targetGroup,
+  listCollectionDependencyMeta(): GeneratorCollectionDependencyMeta[] {
+    return Array.from(this.generators.values()).map((generator) => ({
+      id: generator.id,
+      name: generator.name,
+      targetCollection: generator.targetCollection,
+      targetGroup: generator.targetGroup,
     }));
   }
 
-  async getAllById(): Promise<Record<string, TokenRecipe>> {
+  async getAllById(): Promise<Record<string, TokenGenerator>> {
     return Object.fromEntries(
-      Array.from(this.recipes.values()).map((recipe) => [
-        recipe.id,
-        structuredClone(recipe),
+      Array.from(this.generators.values()).map((generator) => [
+        generator.id,
+        structuredClone(generator),
       ]),
     );
   }
@@ -1326,70 +1326,70 @@ export class RecipeService {
     await this.saveLock.withLock(async () => {
       this.startWriteGuard(this.filePath);
       await fs.rm(this.filePath, { force: true });
-      this.recipes.clear();
-      this.recipeLocks.clear();
+      this.generators.clear();
+      this.generatorLocks.clear();
     });
   }
 
-  private async readRecipesFromDisk(): Promise<Map<string, TokenRecipe>> {
+  private async readGeneratorsFromDisk(): Promise<Map<string, TokenGenerator>> {
     const content = await fs.readFile(this.filePath, "utf-8");
-    const data = JSON.parse(content) as Partial<RecipesFile>;
-    if (!Array.isArray(data.$recipes)) {
+    const data = JSON.parse(content) as Partial<GeneratorsFile>;
+    if (!Array.isArray(data.$generators)) {
       throw new Error(
-        'Invalid recipes file: expected { "$recipes": [] }',
+        'Invalid generators file: expected { "$generators": [] }',
       );
     }
 
-    const nextRecipes = new Map<string, TokenRecipe>();
-    for (const rawRecipe of data.$recipes) {
-      const normalized = normalizeStoredRecipe(rawRecipe);
-      nextRecipes.set(normalized.id, normalized);
+    const nextGenerators = new Map<string, TokenGenerator>();
+    for (const rawGenerator of data.$generators) {
+      const normalized = normalizeStoredGenerator(rawGenerator);
+      nextGenerators.set(normalized.id, normalized);
     }
-    return nextRecipes;
+    return nextGenerators;
   }
 
-  private pruneRecipeLocks(): void {
-    for (const recipeId of this.recipeLocks.keys()) {
-      if (!this.recipes.has(recipeId)) {
-        this.recipeLocks.delete(recipeId);
+  private pruneGeneratorLocks(): void {
+    for (const generatorId of this.generatorLocks.keys()) {
+      if (!this.generators.has(generatorId)) {
+        this.generatorLocks.delete(generatorId);
       }
     }
   }
 
-  async getById(id: string): Promise<TokenRecipe | undefined> {
-    return this.recipes.get(id);
+  async getById(id: string): Promise<TokenGenerator | undefined> {
+    return this.generators.get(id);
   }
 
   findOrphanedTokens(
-    tokenStore: Pick<TokenStore, "findTokensByRecipeId">,
-  ): OrphanedRecipeToken[] {
-    const activeIds = new Set(this.recipes.keys());
+    tokenStore: Pick<TokenStore, "findTokensByGeneratorId">,
+  ): OrphanedGeneratorToken[] {
+    const activeIds = new Set(this.generators.keys());
     return tokenStore
-      .findTokensByRecipeId("*")
-      .filter((token) => !activeIds.has(token.recipeId));
+      .findTokensByGeneratorId("*")
+      .filter((token) => !activeIds.has(token.generatorId));
   }
 
   async deleteOrphanedTokens(
-    tokenStore: Pick<TokenStore, "findTokensByRecipeId" | "deleteTokensByRecipeId">,
-  ): Promise<{ deleted: number; tokens: OrphanedRecipeToken[] }> {
+    tokenStore: Pick<TokenStore, "findTokensByGeneratorId" | "deleteTokensByGeneratorId">,
+  ): Promise<{ deleted: number; tokens: OrphanedGeneratorToken[] }> {
     const tokens = this.findOrphanedTokens(tokenStore);
-    const orphanIds = new Set(tokens.map((token) => token.recipeId));
+    const orphanIds = new Set(tokens.map((token) => token.generatorId));
     let deleted = 0;
-    for (const recipeId of orphanIds) {
-      deleted += await tokenStore.deleteTokensByRecipeId(recipeId);
+    for (const generatorId of orphanIds) {
+      deleted += await tokenStore.deleteTokensByGeneratorId(generatorId);
     }
     return { deleted, tokens };
   }
 
-  getScaleOutputPaths(recipe: TokenRecipe): string[] {
-    return getRecipeManagedOutputPaths(recipe);
+  getScaleOutputPaths(generator: TokenGenerator): string[] {
+    return getGeneratorManagedOutputPaths(generator);
   }
 
   private filterDetachedResults(
-    recipe: TokenRecipe,
+    generator: TokenGenerator,
     results: GeneratedTokenResult[],
   ): GeneratedTokenResult[] {
-    const managedPathSet = new Set(getRecipeManagedOutputPaths(recipe));
+    const managedPathSet = new Set(getGeneratorManagedOutputPaths(generator));
     return results.filter((result) => managedPathSet.has(result.path));
   }
 
@@ -1397,12 +1397,12 @@ export class RecipeService {
     id: string,
     tokenStore: Pick<
       TokenStore,
-      "findTokensByRecipeId" | "getToken" | "updateToken"
+      "findTokensByGeneratorId" | "getToken" | "updateToken"
     >,
     paths: string[],
-  ): Promise<DetachedRecipeResult> {
-    const existing = this.recipes.get(id);
-    if (!existing) throw new NotFoundError(`Recipe "${id}" not found`);
+  ): Promise<DetachedGeneratorResult> {
+    const existing = this.generators.get(id);
+    if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
     if (paths.length === 0) {
       throw new BadRequestError("At least one token path is required");
     }
@@ -1419,7 +1419,7 @@ export class RecipeService {
         validateTokenPath(path);
         if (!allowedPathSet.has(path)) {
           throw new BadRequestError(
-            `"${path}" is not an output managed by recipe "${existing.name}"`,
+            `"${path}" is not an output managed by generator "${existing.name}"`,
           );
         }
         return path;
@@ -1431,14 +1431,14 @@ export class RecipeService {
       ...new Set([...currentDetachedPaths, ...detachedPaths]),
     ].sort();
 
-    const recipeBeforeDetach = structuredClone(existing);
+    const generatorBeforeDetach = structuredClone(existing);
     try {
       if (nextDetachedPaths.length !== currentDetachedPaths.length) {
         await this.update(id, { detachedPaths: nextDetachedPaths });
       }
-      const recipe = this.recipes.get(id)!;
+      const generator = this.generators.get(id)!;
 
-      const ownedTokens = tokenStore.findTokensByRecipeId(id);
+      const ownedTokens = tokenStore.findTokensByGeneratorId(id);
       for (const tokenRef of ownedTokens) {
         if (!detachedPaths.includes(tokenRef.path)) continue;
         const token = await tokenStore.getToken(tokenRef.collectionId, tokenRef.path);
@@ -1446,156 +1446,156 @@ export class RecipeService {
         const extensions = {
           ...(token.$extensions ?? {}),
         } as Record<string, unknown>;
-        delete extensions["com.tokenmanager.recipe"];
+        delete extensions["com.tokenmanager.generator"];
         await tokenStore.updateToken(tokenRef.collectionId, tokenRef.path, {
           $extensions: Object.keys(extensions).length > 0 ? extensions : {},
         });
       }
 
       return {
-        recipe,
+        generator,
         detachedPaths,
         detachedCount: detachedPaths.length,
       };
     } catch (err) {
       if (nextDetachedPaths.length !== currentDetachedPaths.length) {
-        await this.restore(recipeBeforeDetach);
+        await this.restore(generatorBeforeDetach);
       }
       throw err;
     }
   }
 
-  async create(data: RecipeCreateInput): Promise<TokenRecipe> {
+  async create(data: GeneratorCreateInput): Promise<TokenGenerator> {
     const now = new Date().toISOString();
-    const recipe = normalizeStoredRecipe({
+    const generator = normalizeStoredGenerator({
       ...data,
       id: randomUUID(),
       createdAt: now,
       updatedAt: now,
     });
-    this.recipes.set(recipe.id, recipe);
+    this.generators.set(generator.id, generator);
     try {
       this.buildDependencyOrder();
     } catch {
-      this.recipes.delete(recipe.id);
+      this.generators.delete(generator.id);
       throw new BadRequestError(
-        `Creating recipe "${recipe.name}" would introduce a circular dependency. ` +
-          "Ensure no recipe sources from its own output group.",
+        `Creating generator "${generator.name}" would introduce a circular dependency. ` +
+          "Ensure no generator sources from its own output group.",
       );
     }
     try {
-      await this.saveRecipes();
+      await this.saveGenerators();
     } catch (err) {
-      this.recipes.delete(recipe.id);
+      this.generators.delete(generator.id);
       throw err;
     }
-    return recipe;
+    return generator;
   }
 
   async update(
     id: string,
-    updates: RecipeUpdateInput,
-  ): Promise<TokenRecipe> {
-    const existing = this.recipes.get(id);
-    if (!existing) throw new NotFoundError(`Recipe "${id}" not found`);
-    const updated = normalizeStoredRecipe({
+    updates: GeneratorUpdateInput,
+  ): Promise<TokenGenerator> {
+    const existing = this.generators.get(id);
+    if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
+    const updated = normalizeStoredGenerator({
       ...existing,
       ...updates,
       id,
       createdAt: existing.createdAt,
       updatedAt: new Date().toISOString(),
     });
-    this.recipes.set(id, updated);
+    this.generators.set(id, updated);
     try {
       this.buildDependencyOrder();
     } catch {
-      this.recipes.set(id, existing);
+      this.generators.set(id, existing);
       throw new BadRequestError(
-        `Updating recipe "${updated.name}" would introduce a circular dependency. ` +
-          "Ensure no recipe sources from its own output group.",
+        `Updating generator "${updated.name}" would introduce a circular dependency. ` +
+          "Ensure no generator sources from its own output group.",
       );
     }
     try {
-      await this.saveRecipes();
+      await this.saveGenerators();
     } catch (err) {
-      this.recipes.set(id, existing);
+      this.generators.set(id, existing);
       throw err;
     }
     return updated;
   }
 
   async delete(id: string): Promise<boolean> {
-    const existing = this.recipes.get(id);
+    const existing = this.generators.get(id);
     if (!existing) return false;
-    this.recipes.delete(id);
+    this.generators.delete(id);
     try {
-      await this.saveRecipes();
+      await this.saveGenerators();
     } catch (err) {
-      this.recipes.set(id, existing);
+      this.generators.set(id, existing);
       throw err;
     }
     return true;
   }
 
   /**
-   * Restore (upsert) a recipe from a full snapshot object.
-   * Used by rollback to re-create or revert a recipe to a prior state.
+   * Restore (upsert) a generator from a full snapshot object.
+   * Used by rollback to re-create or revert a generator to a prior state.
    */
-  async restore(recipe: TokenRecipe): Promise<void> {
-    const existing = this.recipes.get(recipe.id);
-    const normalized = normalizeStoredRecipe(recipe);
-    this.recipes.set(normalized.id, normalized);
+  async restore(generator: TokenGenerator): Promise<void> {
+    const existing = this.generators.get(generator.id);
+    const normalized = normalizeStoredGenerator(generator);
+    this.generators.set(normalized.id, normalized);
     try {
       this.buildDependencyOrder();
-      await this.saveRecipes();
+      await this.saveGenerators();
     } catch (err) {
       if (existing) {
-        this.recipes.set(existing.id, existing);
+        this.generators.set(existing.id, existing);
       } else {
-        this.recipes.delete(normalized.id);
+        this.generators.delete(normalized.id);
       }
       throw err;
     }
   }
 
   /**
-   * Update recipe references when a collection id is renamed.
-   * Updates targetCollection for any recipe pointing at the old collection id.
-   * Returns the count of recipes updated.
+   * Update generator references when a collection id is renamed.
+   * Updates targetCollection for any generator pointing at the old collection id.
+   * Returns the count of generators updated.
    */
   async renameCollectionId(
     oldCollectionId: string,
     newCollectionId: string,
   ): Promise<number> {
     let count = 0;
-    for (const [id, gen] of this.recipes) {
+    for (const [id, gen] of this.generators) {
       if (gen.targetCollection === oldCollectionId) {
-        this.recipes.set(id, {
+        this.generators.set(id, {
           ...gen,
           targetCollection: newCollectionId,
         });
         count++;
       }
     }
-    if (count > 0) await this.saveRecipes();
+    if (count > 0) await this.saveGenerators();
     return count;
   }
 
   /**
-   * Apply structural token/group path renames to recipe references.
+   * Apply structural token/group path renames to generator references.
    * Token renames update exact sourceToken matches.
    * Group renames update exact/prefix matches for sourceToken and targetGroup.
-   * Returns the count of recipes updated.
+   * Returns the count of generators updated.
    */
   async applyPathRenames(
-    renames: RecipePathRenameUpdate[],
+    renames: GeneratorPathRenameUpdate[],
   ): Promise<number> {
     if (renames.length === 0) {
       return 0;
     }
 
     let count = 0;
-    for (const [id, gen] of this.recipes) {
+    for (const [id, gen] of this.generators) {
       let nextSourceToken = gen.sourceToken;
       let nextTargetGroup = gen.targetGroup;
       let nextDetachedPaths = gen.detachedPaths
@@ -1647,7 +1647,7 @@ export class RecipeService {
         stableStringify(nextDetachedPaths ?? []) !==
           stableStringify(gen.detachedPaths ?? [])
       ) {
-        this.recipes.set(id, {
+        this.generators.set(id, {
           ...gen,
           ...(nextSourceToken !== undefined ? { sourceToken: nextSourceToken } : {}),
           targetGroup: nextTargetGroup,
@@ -1658,12 +1658,12 @@ export class RecipeService {
         count++;
       }
     }
-    if (count > 0) await this.saveRecipes();
+    if (count > 0) await this.saveGenerators();
     return count;
   }
 
   /**
-   * Update recipe references when a single token path changes.
+   * Update generator references when a single token path changes.
    */
   async updateTokenPaths(pathMap: Map<string, string>): Promise<number> {
     return this.applyPathRenames(
@@ -1676,7 +1676,7 @@ export class RecipeService {
   }
 
   /**
-   * Update recipe references when a token group is renamed.
+   * Update generator references when a token group is renamed.
    */
   async updateGroupPath(
     oldGroupPath: string,
@@ -1688,9 +1688,9 @@ export class RecipeService {
   }
 
   /**
-   * Update recipe references after a bulk find/replace rename operation.
+   * Update generator references after a bulk find/replace rename operation.
    * Applies the same string transformation to sourceToken and targetGroup.
-   * Returns the count of recipes updated.
+   * Returns the count of generators updated.
    */
   async updateBulkTokenPaths(
     find: string,
@@ -1711,8 +1711,8 @@ export class RecipeService {
       pattern ? s.replace(pattern!, replace) : s.split(find).join(replace);
 
     let count = 0;
-    for (const [id, gen] of this.recipes) {
-      const updates: Partial<TokenRecipe> = {};
+    for (const [id, gen] of this.generators) {
+      const updates: Partial<TokenGenerator> = {};
       if (gen.sourceToken) {
         const next = apply(gen.sourceToken);
         if (next !== gen.sourceToken) updates.sourceToken = next;
@@ -1720,27 +1720,27 @@ export class RecipeService {
       const nextGroup = apply(gen.targetGroup);
       if (nextGroup !== gen.targetGroup) updates.targetGroup = nextGroup;
       if (Object.keys(updates).length > 0) {
-        this.recipes.set(id, { ...gen, ...updates });
+        this.generators.set(id, { ...gen, ...updates });
         count++;
       }
     }
-    if (count > 0) await this.saveRecipes();
+    if (count > 0) await this.saveGenerators();
     return count;
   }
 
   /**
-   * Set or clear a per-step override on a recipe.
+   * Set or clear a per-step override on a generator.
    * Pass null to remove the override for that step.
    */
   async setStepOverride(
     id: string,
     stepName: string,
     override: { value: unknown; locked: boolean } | null,
-  ): Promise<TokenRecipe> {
+  ): Promise<TokenGenerator> {
     validateStepName(stepName);
 
-    const existing = this.recipes.get(id);
-    if (!existing) throw new NotFoundError(`Recipe "${id}" not found`);
+    const existing = this.generators.get(id);
+    if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
 
     const overrides = { ...(existing.overrides ?? {}) };
     if (override === null) {
@@ -1756,7 +1756,7 @@ export class RecipeService {
 
   /** Compute what would be generated without persisting anything. */
   async preview(
-    data: RecipePreviewInput,
+    data: GeneratorPreviewInput,
     tokenStore: TokenStore,
     sourceValue?: unknown,
   ): Promise<GeneratedTokenResult[]> {
@@ -1765,35 +1765,35 @@ export class RecipeService {
   }
 
   async previewWithAnalysis(
-    data: RecipePreviewInput,
+    data: GeneratorPreviewInput,
     tokenStore: TokenStore,
     sourceValue?: unknown,
-  ): Promise<RecipePreviewResult> {
-    const type = normalizeRecipeType(data.type);
-    const baseRecipeId =
-      typeof data.baseRecipeId === "string" && data.baseRecipeId.trim()
-        ? data.baseRecipeId.trim()
+  ): Promise<GeneratorPreviewResult> {
+    const type = normalizeGeneratorType(data.type);
+    const baseGeneratorId =
+      typeof data.baseGeneratorId === "string" && data.baseGeneratorId.trim()
+        ? data.baseGeneratorId.trim()
         : undefined;
-    const baseRecipe = baseRecipeId
-      ? this.recipes.get(baseRecipeId)
+    const baseGenerator = baseGeneratorId
+      ? this.generators.get(baseGeneratorId)
       : undefined;
     const detachedPaths =
-      normalizeDetachedPaths(data.detachedPaths) ?? baseRecipe?.detachedPaths;
+      normalizeDetachedPaths(data.detachedPaths) ?? baseGenerator?.detachedPaths;
     const semanticLayer = normalizeSemanticLayer(data.semanticLayer);
-    const normalizedData: RecipePreviewInput & {
-      type: RecipeType;
-      config: RecipeConfig;
+    const normalizedData: GeneratorPreviewInput & {
+      type: GeneratorType;
+      config: GeneratorConfig;
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
-      semanticLayer?: RecipeSemanticLayer;
+      semanticLayer?: GeneratorSemanticLayer;
     } = {
       sourceToken: data.sourceToken,
       inlineValue: data.inlineValue,
       targetGroup: data.targetGroup,
       targetCollection: data.targetCollection,
-      baseRecipeId: data.baseRecipeId,
+      baseGeneratorId: data.baseGeneratorId,
       type,
-      config: normalizeRecipeConfig(type, data.config),
+      config: normalizeGeneratorConfig(type, data.config),
       overrides: normalizeOverrides(data.overrides),
       ...(semanticLayer && { semanticLayer }),
       ...(detachedPaths && { detachedPaths }),
@@ -1827,7 +1827,7 @@ export class RecipeService {
       analysisData,
       tokens,
       tokenStore,
-      baseRecipe,
+      baseGenerator,
     );
     return { tokens, analysis };
   }
@@ -1837,38 +1837,38 @@ export class RecipeService {
   }
 
   private async analyzePreviewResults(
-    data: RecipePreviewInput & {
-      type: RecipeType;
-      config: RecipeConfig;
+    data: GeneratorPreviewInput & {
+      type: GeneratorType;
+      config: GeneratorConfig;
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
-      semanticLayer?: RecipeSemanticLayer;
+      semanticLayer?: GeneratorSemanticLayer;
     },
     preview: GeneratedTokenResult[],
     tokenStore: TokenStore,
-    baseRecipe?: TokenRecipe,
-  ): Promise<RecipePreviewAnalysis> {
+    baseGenerator?: TokenGenerator,
+  ): Promise<GeneratorPreviewAnalysis> {
     const targetCollection = data.targetCollection;
     const existingPathSet = new Set<string>();
-    const safeUpdates: RecipePreviewChangeEntry[] = [];
-    const nonRecipeOverwrites: RecipePreviewOverwriteEntry[] = [];
-    const manualEditConflicts: RecipePreviewManualConflictEntry[] = [];
-    const detachedOutputs: RecipePreviewDetachedEntry[] = [];
-    const manualExceptions: RecipePreviewManualExceptionEntry[] = [];
-    const diffCreated: RecipePreviewAnalysis["diff"]["created"] = [];
-    const diffUpdated: RecipePreviewAnalysis["diff"]["updated"] = [];
-    const diffUnchanged: RecipePreviewAnalysis["diff"]["unchanged"] = [];
+    const safeUpdates: GeneratorPreviewChangeEntry[] = [];
+    const nonGeneratorOverwrites: GeneratorPreviewOverwriteEntry[] = [];
+    const manualEditConflicts: GeneratorPreviewManualConflictEntry[] = [];
+    const detachedOutputs: GeneratorPreviewDetachedEntry[] = [];
+    const manualExceptions: GeneratorPreviewManualExceptionEntry[] = [];
+    const diffCreated: GeneratorPreviewAnalysis["diff"]["created"] = [];
+    const diffUpdated: GeneratorPreviewAnalysis["diff"]["updated"] = [];
+    const diffUnchanged: GeneratorPreviewAnalysis["diff"]["unchanged"] = [];
     const previewPathSet = new Set(preview.map((result) => result.path));
     const previewResultMap = new Map(
       preview.map((result) => [result.path, result] as const),
     );
     const detachedPathSet = new Set(data.detachedPaths ?? []);
     const nextOverrides = data.overrides ?? {};
-    const previousOverrides = baseRecipe?.overrides ?? {};
+    const previousOverrides = baseGenerator?.overrides ?? {};
 
-    const baselinePreviewMap = baseRecipe
+    const baselinePreviewMap = baseGenerator
       ? new Map(
-          (await this.computeResults(baseRecipe, tokenStore)).map((result) => [
+          (await this.computeResults(baseGenerator, tokenStore)).map((result) => [
             result.path,
             result,
           ]),
@@ -1891,7 +1891,7 @@ export class RecipeService {
       existingPathSet.add(result.path);
       const changesValue =
         stableStringify(existing.$value) !== stableStringify(result.value);
-      const ext = existing.$extensions?.["com.tokenmanager.recipe"];
+      const ext = existing.$extensions?.["com.tokenmanager.generator"];
 
       if (detachedPathSet.has(result.path)) {
         detachedOutputs.push({
@@ -1902,7 +1902,7 @@ export class RecipeService {
           newValue: result.value,
           state: "recreated",
         });
-      } else if (baseRecipe && ext?.recipeId === baseRecipe.id) {
+      } else if (baseGenerator && ext?.generatorId === baseGenerator.id) {
         const baseline = baselinePreviewMap.get(result.path);
         const manualEditDetected =
           baseline !== undefined &&
@@ -1929,15 +1929,15 @@ export class RecipeService {
           });
         }
       } else {
-        nonRecipeOverwrites.push({
+        nonGeneratorOverwrites.push({
           path: result.path,
           collectionId: targetCollection,
           type: result.type,
           currentValue: existing.$value,
           newValue: result.value,
           changesValue,
-          owner: ext?.recipeId ? "recipe" : "manual",
-          recipeId: ext?.recipeId,
+          owner: ext?.generatorId ? "generator" : "manual",
+          generatorId: ext?.generatorId,
         });
       }
 
@@ -1957,21 +1957,21 @@ export class RecipeService {
       }
     }
 
-    const deletedOutputs: RecipePreviewDeletedEntry[] = [];
-    if (baseRecipe) {
+    const deletedOutputs: GeneratorPreviewDeletedEntry[] = [];
+    if (baseGenerator) {
       const desiredOutputKeys = new Set(
         (
           await this.collectDesiredPreviewOutputs(
             data,
             preview,
-            baseRecipe,
+            baseGenerator,
           )
         ).map((output) => `${output.collectionId}::${output.path}`),
       );
-      const ownedTokens = tokenStore.findTokensByRecipeId(baseRecipe.id);
+      const ownedTokens = tokenStore.findTokensByGeneratorId(baseGenerator.id);
       for (const owned of ownedTokens) {
         const token = await tokenStore.getToken(owned.collectionId, owned.path);
-        const ext = token?.$extensions?.["com.tokenmanager.recipe"];
+        const ext = token?.$extensions?.["com.tokenmanager.generator"];
         if (
           !token ||
           (ext?.outputKind !== "scale" && ext?.outputKind !== "semantic")
@@ -2062,7 +2062,7 @@ export class RecipeService {
       unchangedCount: diffUnchanged.length,
       existingPathSet: [...existingPathSet],
       safeUpdates,
-      nonRecipeOverwrites,
+      nonGeneratorOverwrites,
       manualEditConflicts,
       deletedOutputs,
       detachedOutputs,
@@ -2077,7 +2077,7 @@ export class RecipeService {
           type: entry.type,
         })),
       },
-    } satisfies Omit<RecipePreviewAnalysis, "fingerprint">;
+    } satisfies Omit<GeneratorPreviewAnalysis, "fingerprint">;
 
     return {
       ...analysisWithoutFingerprint,
@@ -2089,7 +2089,7 @@ export class RecipeService {
     };
   }
 
-  /** Run a saved recipe and persist the derived tokens. */
+  /** Run a saved generator and persist the derived tokens. */
   async run(
     id: string,
     tokenStore: TokenStore,
@@ -2097,21 +2097,21 @@ export class RecipeService {
       sourceValueOverride?: unknown;
     } = {},
   ): Promise<GeneratedTokenResult[]> {
-    const recipe = this.recipes.get(id);
-    if (!recipe) throw new NotFoundError(`Recipe "${id}" not found`);
-    return this.withRecipeLock(id, () =>
-      this.executeRecipe(recipe, tokenStore, options.sourceValueOverride),
+    const generator = this.generators.get(id);
+    if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
+    return this.withGeneratorLock(id, () =>
+      this.executeGenerator(generator, tokenStore, options.sourceValueOverride),
     );
   }
 
-  /** Returns true if any recipe is currently executing (has a pending lock chain). */
+  /** Returns true if any generator is currently executing (has a pending lock chain). */
   isAnyRunning(): boolean {
-    return this.recipeLocks.size > 0;
+    return this.generatorLocks.size > 0;
   }
 
   /**
-   * Run all recipes affected by the given token path, in topological order.
-   * Handles chained recipes (Recipe B sourcing from Recipe A's output).
+   * Run all generators affected by the given token path, in topological order.
+   * Handles chained generators (Generator B sourcing from Generator A's output).
    * Safe to call from a token-update event listener.
    */
   async runForSourceToken(
@@ -2125,23 +2125,23 @@ export class RecipeService {
   ): Promise<void> {
     const collectionModeCounts =
       await this.getCollectionModeCounts(collectionLookup);
-    // Find all recipes that directly source this token (skip disabled ones).
+    // Find all generators that directly source this token (skip disabled ones).
     // Auto-disable unsupported keep-updated states so background execution never
     // pretends to honor an implicit mode selection.
     const directlyAffected = new Set<string>();
     let disabledUnsupported = false;
-    for (const recipe of this.recipes.values()) {
-      if (recipe.sourceToken !== tokenPath || recipe.enabled === false) {
+    for (const generator of this.generators.values()) {
+      if (generator.sourceToken !== tokenPath || generator.enabled === false) {
         continue;
       }
       const disabledReason = await this.getKeepUpdatedDisabledReason(
-        recipe.sourceToken,
+        generator.sourceToken,
         tokenStore,
         collectionModeCounts,
       );
       if (disabledReason) {
-        this.recipes.set(recipe.id, {
-          ...recipe,
+        this.generators.set(generator.id, {
+          ...generator,
           enabled: false,
           updatedAt: new Date().toISOString(),
           lastRunError: {
@@ -2150,45 +2150,45 @@ export class RecipeService {
           },
         });
         tokenStore.emitEvent({
-          type: "recipe-error",
+          type: "generator-error",
           collectionId: "",
-          recipeId: recipe.id,
+          generatorId: generator.id,
           message: disabledReason,
         });
         disabledUnsupported = true;
         continue;
       }
-      directlyAffected.add(recipe.id);
+      directlyAffected.add(generator.id);
     }
     if (disabledUnsupported) {
-      await this.saveRecipes();
+      await this.saveGenerators();
     }
     if (directlyAffected.size === 0) return;
 
-    // Get topological execution order for all recipes
+    // Get topological execution order for all generators
     let order: string[];
     try {
       order = this.buildDependencyOrder();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.warn("[RecipeService] Dependency graph error:", err);
+      console.warn("[GeneratorService] Dependency graph error:", err);
       tokenStore.emitEvent({
-        type: "recipe-error",
+        type: "generator-error",
         collectionId: "",
         message: `Dependency graph error: ${message}`,
       });
       return;
     }
 
-    // Expand the affected recipe group to include transitive dependents (skip disabled ones)
+    // Expand the affected generator group to include transitive dependents (skip disabled ones)
     const affected = new Set(directlyAffected);
     for (const genId of order) {
       if (affected.has(genId)) continue;
-      const gen = this.recipes.get(genId);
+      const gen = this.generators.get(genId);
       if (!gen?.sourceToken) continue;
       if (gen.enabled === false) continue;
       for (const affectedId of affected) {
-        const affectedGen = this.recipes.get(affectedId);
+        const affectedGen = this.generators.get(affectedId);
         if (
           affectedGen &&
           gen.sourceToken.startsWith(affectedGen.targetGroup + ".")
@@ -2199,19 +2199,19 @@ export class RecipeService {
       }
     }
 
-    // Execute in topological order, serialized per-recipe via promise-chain locks.
-    // Track failed recipe IDs so downstream dependents can be skipped — running
-    // a downstream recipe after its upstream failed would process stale output.
+    // Execute in topological order, serialized per-generator via promise-chain locks.
+    // Track failed generator IDs so downstream dependents can be skipped — running
+    // a downstream generator after its upstream failed would process stale output.
     const failedIds = new Set<string>();
     for (const genId of order) {
       if (!affected.has(genId)) continue;
-      const gen = this.recipes.get(genId);
+      const gen = this.generators.get(genId);
       if (!gen) continue;
 
-      // Skip if any upstream recipe (whose output this one sources from) failed.
+      // Skip if any upstream generator (whose output this one sources from) failed.
       const blockingGen = gen.sourceToken
         ? [...failedIds]
-            .map((failedId) => this.recipes.get(failedId))
+            .map((failedId) => this.generators.get(failedId))
             .find(
               (failedGen) =>
                 failedGen &&
@@ -2219,10 +2219,10 @@ export class RecipeService {
             )
         : undefined;
       if (blockingGen) {
-        const message = `Blocked: upstream recipe "${blockingGen.name}" failed`;
-        const current = this.recipes.get(genId);
+        const message = `Blocked: upstream generator "${blockingGen.name}" failed`;
+        const current = this.generators.get(genId);
         if (current) {
-          this.recipes.set(genId, {
+          this.generators.set(genId, {
             ...current,
             lastRunError: {
               message,
@@ -2230,41 +2230,41 @@ export class RecipeService {
               blockedBy: blockingGen.name,
             },
           });
-          await this.saveRecipes();
+          await this.saveGenerators();
         }
         console.warn(
-          `[RecipeService] Recipe "${gen.name}" blocked because upstream "${blockingGen.name}" failed`,
+          `[GeneratorService] Generator "${gen.name}" blocked because upstream "${blockingGen.name}" failed`,
         );
         tokenStore.emitEvent({
-          type: "recipe-error",
+          type: "generator-error",
           collectionId: "",
-          recipeId: genId,
+          generatorId: genId,
           message,
         });
         failedIds.add(genId);
         continue;
       }
 
-      await this.withRecipeLock(genId, () =>
-        this.executeRecipe(gen, tokenStore),
+      await this.withGeneratorLock(genId, () =>
+        this.executeGenerator(gen, tokenStore),
       ).catch(async (err) => {
         const message = err instanceof Error ? err.message : String(err);
-        const current = this.recipes.get(genId);
+        const current = this.generators.get(genId);
         if (current) {
-          this.recipes.set(genId, {
+          this.generators.set(genId, {
             ...current,
             lastRunError: { message, at: new Date().toISOString() },
           });
-          await this.saveRecipes();
+          await this.saveGenerators();
         }
         console.warn(
-          `[RecipeService] Recipe "${genId}" failed after token update:`,
+          `[GeneratorService] Generator "${genId}" failed after token update:`,
           err,
         );
         tokenStore.emitEvent({
-          type: "recipe-error",
+          type: "generator-error",
           collectionId: "",
-          recipeId: genId,
+          generatorId: genId,
           message,
         });
         failedIds.add(genId);
@@ -2273,14 +2273,14 @@ export class RecipeService {
   }
 
   /**
-   * Build a topologically-sorted list of all recipe IDs.
-   * Recipes that depend on another recipe's output come after it.
+   * Build a topologically-sorted list of all generator IDs.
+   * Generators that depend on another generator's output come after it.
    * Throws if a dependency cycle is detected.
    */
   private buildDependencyOrder(): string[] {
-    // Map targetGroup -> set of recipeIds for producer lookup
+    // Map targetGroup -> set of generatorIds for producer lookup
     const producerByGroup = new Map<string, Set<string>>();
-    for (const [id, gen] of this.recipes) {
+    for (const [id, gen] of this.generators) {
       let producers = producerByGroup.get(gen.targetGroup);
       if (!producers) {
         producers = new Set();
@@ -2293,12 +2293,12 @@ export class RecipeService {
     const inDegree = new Map<string, number>();
     const edges = new Map<string, Set<string>>(); // id -> set of ids that depend on it
 
-    for (const [id] of this.recipes) {
+    for (const [id] of this.generators) {
       inDegree.set(id, 0);
       edges.set(id, new Set());
     }
 
-    for (const [id, gen] of this.recipes) {
+    for (const [id, gen] of this.generators) {
       if (!gen.sourceToken) continue;
       for (const [prefix, producerIds] of producerByGroup) {
         if (gen.sourceToken.startsWith(prefix + ".")) {
@@ -2330,10 +2330,10 @@ export class RecipeService {
       }
     }
 
-    if (result.length !== this.recipes.size) {
+    if (result.length !== this.generators.size) {
       throw new Error(
-        "[RecipeService] Cycle detected in recipe dependencies. " +
-          "Check that no recipe sources from its own output.",
+        "[GeneratorService] Cycle detected in generator dependencies. " +
+          "Check that no generator sources from its own output.",
       );
     }
 
@@ -2341,15 +2341,15 @@ export class RecipeService {
   }
 
   /**
-   * Promise-chain mutex per recipe. Concurrent calls for the same recipe
+   * Promise-chain mutex per generator. Concurrent calls for the same generator
    * are serialized — the second waits for the first to finish instead of being
    * silently skipped or running in parallel.
    */
-  private withRecipeLock<T>(
-    recipeId: string,
+  private withGeneratorLock<T>(
+    generatorId: string,
     fn: () => Promise<T>,
   ): Promise<T> {
-    const prev = this.recipeLocks.get(recipeId) ?? Promise.resolve();
+    const prev = this.generatorLocks.get(generatorId) ?? Promise.resolve();
     const next = prev.then(
       () => fn(),
       () => fn(),
@@ -2359,29 +2359,29 @@ export class RecipeService {
       () => {},
       () => {},
     );
-    this.recipeLocks.set(recipeId, voidChain);
+    this.generatorLocks.set(generatorId, voidChain);
     // Clean up when the chain settles and no new work was appended
     voidChain.then(() => {
-      if (this.recipeLocks.get(recipeId) === voidChain) {
-        this.recipeLocks.delete(recipeId);
+      if (this.generatorLocks.get(generatorId) === voidChain) {
+        this.generatorLocks.delete(generatorId);
       }
     });
     return next;
   }
 
-  private async executeRecipe(
-    recipe: TokenRecipe,
+  private async executeGenerator(
+    generator: TokenGenerator,
     tokenStore: TokenStore,
     sourceValueOverride?: unknown,
   ): Promise<GeneratedTokenResult[]> {
     const results = await this.executeSingleBrand(
-      recipe,
+      generator,
       tokenStore,
-      recipe.targetCollection,
+      generator.targetCollection,
       sourceValueOverride,
     );
 
-    // Track when the recipe was last run and what the source token's value was,
+    // Track when the generator was last run and what the source token's value was,
     // so the UI can detect whether re-running is needed after a source token edit.
     // We update the in-memory record directly (preserving updatedAt) and persist.
     // Important: resolve the source token value BEFORE the final re-read, then
@@ -2390,15 +2390,15 @@ export class RecipeService {
     let lastRunSourceValue: unknown;
     if (sourceValueOverride !== undefined) {
       lastRunSourceValue = sourceValueOverride;
-    } else if (recipe.sourceToken) {
-      const resolved = await tokenStore.resolveToken(recipe.sourceToken);
+    } else if (generator.sourceToken) {
+      const resolved = await tokenStore.resolveToken(generator.sourceToken);
       if (resolved) lastRunSourceValue = resolved.$value;
     }
     // Re-read after all awaits — prevents overwriting concurrent update() mutations.
     // Also clears any prior lastRunError since all async operations succeeded.
-    const current = this.recipes.get(recipe.id);
+    const current = this.generators.get(generator.id);
     if (current) {
-      this.recipes.set(recipe.id, {
+      this.generators.set(generator.id, {
         ...current,
         lastRunAt: runAt,
         lastRunSourceValue:
@@ -2407,17 +2407,17 @@ export class RecipeService {
             : current.lastRunSourceValue,
         lastRunError: undefined,
       });
-      await this.saveRecipes();
+      await this.saveGenerators();
     }
 
     return results;
   }
 
-  /** Removes non-locked overrides from a recipe after execution. */
+  /** Removes non-locked overrides from a generator after execution. */
   private async clearNonLockedOverrides(
-    recipe: TokenRecipe,
+    generator: TokenGenerator,
   ): Promise<void> {
-    const overrides = recipe.overrides;
+    const overrides = generator.overrides;
     if (!overrides) return;
     const cleaned: Record<string, { value: unknown; locked: boolean }> = {};
     for (const [key, val] of Object.entries(
@@ -2427,34 +2427,34 @@ export class RecipeService {
     }
     if (Object.keys(cleaned).length !== Object.keys(overrides).length) {
       const hasRemaining = Object.keys(cleaned).length > 0;
-      await this.update(recipe.id, {
+      await this.update(generator.id, {
         overrides: hasRemaining ? cleaned : undefined,
       });
     }
   }
 
-  private buildRecipeExtensions(
-    recipe: TokenRecipe,
+  private buildGeneratorExtensions(
+    generator: TokenGenerator,
     outputKind: "scale" | "semantic",
   ): Token["$extensions"] {
     return {
-      "com.tokenmanager.recipe": {
-        recipeId: recipe.id,
-        sourceToken: recipe.sourceToken ?? "",
+      "com.tokenmanager.generator": {
+        generatorId: generator.id,
+        sourceToken: generator.sourceToken ?? "",
         outputKind,
       },
     };
   }
 
   private buildSemanticAliasResults(
-    recipe: Pick<TokenRecipe, "targetGroup" | "semanticLayer">,
+    generator: Pick<TokenGenerator, "targetGroup" | "semanticLayer">,
     results: GeneratedTokenResult[],
   ): Array<
     GeneratedTokenResult & {
       sourceStep: string;
     }
   > {
-    const semanticLayer = recipe.semanticLayer;
+    const semanticLayer = generator.semanticLayer;
     if (!semanticLayer || semanticLayer.mappings.length === 0) {
       return [];
     }
@@ -2470,7 +2470,7 @@ export class RecipeService {
           stepName: mapping.semantic,
           path: `${semanticLayer.prefix}.${mapping.semantic}`,
           type: source.type,
-          value: `{${recipe.targetGroup}.${mapping.step}}`,
+          value: `{${generator.targetGroup}.${mapping.step}}`,
           sourceStep: mapping.step,
         },
       ];
@@ -2479,7 +2479,7 @@ export class RecipeService {
   }
 
   private buildDesiredGeneratedOutputs(
-    recipe: Pick<TokenRecipe, "targetGroup" | "semanticLayer">,
+    generator: Pick<TokenGenerator, "targetGroup" | "semanticLayer">,
     effectiveTargetCollection: string,
     results: GeneratedTokenResult[],
   ): Array<{ collectionId: string; path: string }> {
@@ -2488,7 +2488,7 @@ export class RecipeService {
         collectionId: effectiveTargetCollection,
         path: result.path,
       })),
-      ...this.buildSemanticAliasResults(recipe, results).map((result) => ({
+      ...this.buildSemanticAliasResults(generator, results).map((result) => ({
         collectionId: effectiveTargetCollection,
         path: result.path,
       })),
@@ -2496,42 +2496,42 @@ export class RecipeService {
   }
 
   private async collectDesiredPreviewOutputs(
-    data: RecipePreviewInput & {
-      type: RecipeType;
-      config: RecipeConfig;
+    data: GeneratorPreviewInput & {
+      type: GeneratorType;
+      config: GeneratorConfig;
       overrides?: Record<string, { value: unknown; locked: boolean }>;
       detachedPaths?: string[];
-      semanticLayer?: RecipeSemanticLayer;
+      semanticLayer?: GeneratorSemanticLayer;
     },
     preview: GeneratedTokenResult[],
-    baseRecipe?: TokenRecipe,
+    baseGenerator?: TokenGenerator,
   ): Promise<Array<{ collectionId: string; path: string }>> {
-    const recipeShape = {
+    const generatorShape = {
       targetGroup: data.targetGroup,
-      semanticLayer: data.semanticLayer ?? baseRecipe?.semanticLayer,
+      semanticLayer: data.semanticLayer ?? baseGenerator?.semanticLayer,
     };
 
     return this.buildDesiredGeneratedOutputs(
-      recipeShape,
+      generatorShape,
       data.targetCollection,
       preview,
     );
   }
 
   private async syncSemanticLayer(
-    recipe: TokenRecipe,
+    generator: TokenGenerator,
     tokenStore: TokenStore,
     effectiveTargetCollection: string,
     results: GeneratedTokenResult[],
   ): Promise<void> {
-    const semanticResults = this.buildSemanticAliasResults(recipe, results);
-    const extensions = this.buildRecipeExtensions(recipe, "semantic");
+    const semanticResults = this.buildSemanticAliasResults(generator, results);
+    const extensions = this.buildGeneratorExtensions(generator, "semantic");
 
     for (const result of semanticResults) {
       const token: Token = {
         $type: result.type as TokenType,
         $value: result.value as Token["$value"],
-        $description: `Semantic reference for ${recipe.targetGroup}.${result.sourceStep}`,
+        $description: `Semantic reference for ${generator.targetGroup}.${result.sourceStep}`,
         $extensions: extensions,
       };
       const existing = await tokenStore.getToken(effectiveTargetCollection, result.path);
@@ -2544,10 +2544,10 @@ export class RecipeService {
   }
 
   private async cleanupStaleGeneratedOutputs(
-    recipe: TokenRecipe,
+    generator: TokenGenerator,
     tokenStore: Pick<
       TokenStore,
-      "deleteTokens" | "findTokensByRecipeId" | "getToken"
+      "deleteTokens" | "findTokensByGeneratorId" | "getToken"
     >,
     desiredOutputs: Array<{ collectionId: string; path: string }>,
   ): Promise<void> {
@@ -2555,12 +2555,12 @@ export class RecipeService {
       desiredOutputs.map((output) => `${output.collectionId}::${output.path}`),
     );
     const tokensToDeleteByCollection = new Map<string, string[]>();
-    const ownedTokens = tokenStore.findTokensByRecipeId(recipe.id);
+    const ownedTokens = tokenStore.findTokensByGeneratorId(generator.id);
 
     for (const owned of ownedTokens) {
       if (desiredKeys.has(`${owned.collectionId}::${owned.path}`)) continue;
       const token = await tokenStore.getToken(owned.collectionId, owned.path);
-      const ext = token?.$extensions?.["com.tokenmanager.recipe"];
+      const ext = token?.$extensions?.["com.tokenmanager.generator"];
       if (
         !token ||
         (ext?.outputKind !== "scale" && ext?.outputKind !== "semantic")
@@ -2583,20 +2583,20 @@ export class RecipeService {
 
   /** Original single-brand execution path. Writes to `effectiveTargetCollection`. */
   private async executeSingleBrand(
-    recipe: TokenRecipe,
+    generator: TokenGenerator,
     tokenStore: TokenStore,
     effectiveTargetCollection: string,
     sourceValueOverride?: unknown,
   ): Promise<GeneratedTokenResult[]> {
     const results =
       sourceValueOverride !== undefined
-        ? await this.computeResultsWithValue(recipe, sourceValueOverride)
-        : await this.computeResults(recipe, tokenStore);
+        ? await this.computeResultsWithValue(generator, sourceValueOverride)
+        : await this.computeResults(generator, tokenStore);
 
-    await this.clearNonLockedOverrides(recipe);
+    await this.clearNonLockedOverrides(generator);
 
     const snapshotCollectionIds = new Set([effectiveTargetCollection]);
-    for (const owned of tokenStore.findTokensByRecipeId(recipe.id)) {
+    for (const owned of tokenStore.findTokensByGeneratorId(generator.id)) {
       snapshotCollectionIds.add(owned.collectionId);
     }
 
@@ -2610,11 +2610,11 @@ export class RecipeService {
       );
     }
 
-    const extensions = this.buildRecipeExtensions(recipe, "scale");
+    const extensions = this.buildGeneratorExtensions(generator, "scale");
     let runError: unknown = undefined;
     try {
       const desiredOutputs = this.buildDesiredGeneratedOutputs(
-        recipe,
+        generator,
         effectiveTargetCollection,
         results,
       );
@@ -2640,13 +2640,13 @@ export class RecipeService {
         tokenStore.endBatch();
       }
       await this.syncSemanticLayer(
-        recipe,
+        generator,
         tokenStore,
         effectiveTargetCollection,
         results,
       );
       await this.cleanupStaleGeneratedOutputs(
-        recipe,
+        generator,
         tokenStore,
         desiredOutputs,
       );
@@ -2692,7 +2692,7 @@ export class RecipeService {
           })
           .join("; ");
         throw new Error(
-          `Recipe run failed and rollback also failed (${rollbackSummary}). Token state may be inconsistent.`,
+          `Generator run failed and rollback also failed (${rollbackSummary}). Token state may be inconsistent.`,
         );
       }
       throw runError;
@@ -2702,14 +2702,14 @@ export class RecipeService {
   }
 
   /**
-   * Core dispatch: given a pre-resolved source value (or undefined for source-free recipes),
-   * run the appropriate recipe and apply overrides.
+   * Core dispatch: given a pre-resolved source value (or undefined for source-free generators),
+   * run the appropriate generator and apply overrides.
    */
   private async computeResultsWithValue(
-    recipe: RecipeExecutionInput,
+    generator: GeneratorExecutionInput,
     resolvedValue: unknown,
   ): Promise<GeneratedTokenResult[]> {
-    const { type, targetGroup, config } = recipe;
+    const { type, targetGroup, config } = generator;
     let results: GeneratedTokenResult[];
 
     switch (type) {
@@ -2719,7 +2719,7 @@ export class RecipeService {
           throw new BadRequestError(
             `Source value for colorRamp must be a color string`,
           );
-        results = runColorRampRecipe(
+        results = runColorRampGenerator(
           hex,
           config as ColorRampConfig,
           targetGroup,
@@ -2733,7 +2733,7 @@ export class RecipeService {
             `Source value for typeScale must be a dimension value`,
           );
         }
-        results = runTypeScaleRecipe(
+        results = runTypeScaleGenerator(
           dim,
           config as TypeScaleConfig,
           targetGroup,
@@ -2747,7 +2747,7 @@ export class RecipeService {
             `Source value for spacingScale must be a dimension value`,
           );
         }
-        results = runSpacingScaleRecipe(
+        results = runSpacingScaleGenerator(
           dim,
           config as SpacingScaleConfig,
           targetGroup,
@@ -2755,7 +2755,7 @@ export class RecipeService {
         break;
       }
       case "opacityScale": {
-        results = runOpacityScaleRecipe(
+        results = runOpacityScaleGenerator(
           config as OpacityScaleConfig,
           targetGroup,
         );
@@ -2768,7 +2768,7 @@ export class RecipeService {
             `Source value for borderRadiusScale must be a dimension value`,
           );
         }
-        results = runBorderRadiusScaleRecipe(
+        results = runBorderRadiusScaleGenerator(
           dim,
           config as BorderRadiusScaleConfig,
           targetGroup,
@@ -2776,14 +2776,14 @@ export class RecipeService {
         break;
       }
       case "zIndexScale": {
-        results = runZIndexScaleRecipe(
+        results = runZIndexScaleGenerator(
           config as ZIndexScaleConfig,
           targetGroup,
         );
         break;
       }
       case "shadowScale": {
-        results = runShadowScaleRecipe(
+        results = runShadowScaleGenerator(
           config as ShadowScaleConfig,
           targetGroup,
         );
@@ -2802,7 +2802,7 @@ export class RecipeService {
             base = (resolvedValue as { value: number }).value;
           }
         }
-        results = runCustomScaleRecipe(
+        results = runCustomScaleGenerator(
           base,
           config as CustomScaleConfig,
           targetGroup,
@@ -2815,7 +2815,7 @@ export class RecipeService {
           throw new BadRequestError(
             `Source value for darkModeInversion must be a color string`,
           );
-        results = runDarkModeInversionRecipe(
+        results = runDarkModeInversionGenerator(
           hex,
           config as DarkModeInversionConfig,
           targetGroup,
@@ -2823,25 +2823,25 @@ export class RecipeService {
         break;
       }
       default:
-        throw new BadRequestError(`Unknown recipe type: ${type}`);
+        throw new BadRequestError(`Unknown generator type: ${type}`);
     }
 
     return this.filterDetachedResults(
-      recipe as TokenRecipe,
-      applyOverrides(results, recipe.overrides),
+      generator as TokenGenerator,
+      applyOverrides(results, generator.overrides),
     );
   }
 
   /**
-   * Resolves any $tokenRefs in a recipe config by looking up each referenced
+   * Resolves any $tokenRefs in a generator config by looking up each referenced
    * token in the token store and replacing the config field with the resolved value.
    * Returns a copy of the config with tokenRef fields overridden, or the original
    * config if there are no tokenRefs or all resolutions fail gracefully.
    */
   private async resolveConfigTokenRefs(
-    config: TokenRecipe["config"],
+    config: TokenGenerator["config"],
     tokenStore: TokenStore,
-  ): Promise<TokenRecipe["config"]> {
+  ): Promise<TokenGenerator["config"]> {
     const c = config as unknown as Record<string, unknown>;
     const refs = c.$tokenRefs;
     if (!refs || typeof refs !== "object" || Array.isArray(refs)) return config;
@@ -2859,14 +2859,14 @@ export class RecipeService {
 
     if (Object.keys(overrides).length === 0) return config;
     // Merge overrides into a new config, preserving $tokenRefs so it's stored intact
-    return { ...config, ...overrides } as TokenRecipe["config"];
+    return { ...config, ...overrides } as TokenGenerator["config"];
   }
 
   private async computeResults(
-    recipe: RecipeExecutionInput,
+    generator: GeneratorExecutionInput,
     tokenStore: TokenStore,
   ): Promise<GeneratedTokenResult[]> {
-    const { type, sourceToken, inlineValue } = recipe;
+    const { type, sourceToken, inlineValue } = generator;
 
     const needsSource =
       type === "colorRamp" ||
@@ -2890,18 +2890,18 @@ export class RecipeService {
         resolvedValue = inlineValue;
       } else {
         throw new BadRequestError(
-          `Recipe type "${type}" requires a source token or inline value`,
+          `Generator type "${type}" requires a source token or inline value`,
         );
       }
     }
 
     // Resolve any $tokenRefs in the config before executing
     const resolvedConfig = await this.resolveConfigTokenRefs(
-      recipe.config,
+      generator.config,
       tokenStore,
     );
     return this.computeResultsWithValue(
-      { ...recipe, config: resolvedConfig },
+      { ...generator, config: resolvedConfig },
       resolvedValue,
     );
   }

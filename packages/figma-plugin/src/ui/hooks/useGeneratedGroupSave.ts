@@ -5,25 +5,25 @@ import { dispatchToast } from "../shared/toastBus";
 import type { ToastAction } from "../shared/toastBus";
 import type { UndoSlot } from "./useUndo";
 import type {
-  TokenRecipe,
-  RecipeType,
-  RecipeConfig,
-  RecipeSemanticLayer,
+  TokenGenerator,
+  GeneratorType,
+  GeneratorConfig,
+  GeneratorSemanticLayer,
   GeneratedTokenResult,
-} from "./useRecipes";
+} from "./useGenerators";
 import {
   requestGeneratedGroupPreview,
   requiresGeneratedGroupReview,
-  type RecipePreviewAnalysis,
+  type GeneratorPreviewAnalysis,
 } from "./useGeneratedGroupPreview";
 
-export interface RecipeSaveSuccessInfo {
+export interface GeneratorSaveSuccessInfo {
   targetGroup: string;
   targetCollection: string;
 }
 
-interface RecipeMutationBody {
-  type: RecipeType;
+interface GeneratorMutationBody {
+  type: GeneratorType;
   name: string;
   sourceToken?: string;
   sourceValue?: unknown;
@@ -31,38 +31,38 @@ interface RecipeMutationBody {
   targetCollection: string;
   targetGroup: string;
   enabled: boolean;
-  config: RecipeConfig;
-  semanticLayer: RecipeSemanticLayer | null;
+  config: GeneratorConfig;
+  semanticLayer: GeneratorSemanticLayer | null;
   overrides?: Record<string, { value: unknown; locked: boolean }>;
 }
 
-interface UseRecipeSaveParams {
+interface UseGeneratorSaveParams {
   serverUrl: string;
   isEditing: boolean;
-  existingRecipe?: TokenRecipe;
-  selectedType: RecipeType;
+  existingGenerator?: TokenGenerator;
+  selectedType: GeneratorType;
   name: string;
   sourceTokenPath?: string;
   inlineValue?: unknown;
   sourceValue?: unknown;
   targetCollection: string;
   targetGroup: string;
-  config: RecipeConfig;
+  config: GeneratorConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   typeNeedsValue: boolean;
   hasValue: boolean;
   previewTokens: GeneratedTokenResult[];
   previewFingerprint: string;
-  previewAnalysis: RecipePreviewAnalysis | null;
-  onSaved: (info?: RecipeSaveSuccessInfo) => void;
+  previewAnalysis: GeneratorPreviewAnalysis | null;
+  onSaved: (info?: GeneratorSaveSuccessInfo) => void;
   onInterceptSemanticMapping?: (data: {
     tokens: GeneratedTokenResult[];
     targetGroup: string;
     targetCollection: string;
-    recipeType: RecipeType;
+    generatorType: GeneratorType;
   }) => void;
   getSuccessToastAction?: (
-    info: RecipeSaveSuccessInfo,
+    info: GeneratorSaveSuccessInfo,
   ) => ToastAction | undefined;
   pushUndo?: (slot: UndoSlot) => void;
   requestPreviewRefresh: () => void;
@@ -73,7 +73,7 @@ interface UseRecipeSaveParams {
   initialSelectedSemanticPatternId: string | null;
 }
 
-export interface UseRecipeSaveReturn {
+export interface UseGeneratorSaveReturn {
   saving: boolean;
   saveError: string;
   showConfirmation: boolean;
@@ -100,7 +100,7 @@ export interface UseRecipeSaveReturn {
 export function useGeneratedGroupSave({
   serverUrl,
   isEditing,
-  existingRecipe,
+  existingGenerator,
   selectedType,
   name,
   sourceTokenPath,
@@ -125,7 +125,7 @@ export function useGeneratedGroupSave({
   initialSemanticPrefix,
   initialSemanticMappings,
   initialSelectedSemanticPatternId,
-}: UseRecipeSaveParams): UseRecipeSaveReturn {
+}: UseGeneratorSaveParams): UseGeneratorSaveReturn {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -154,7 +154,7 @@ export function useGeneratedGroupSave({
       }),
     [getSuccessToastAction],
   );
-  const buildRecipeMutationBody = useCallback(
+  const buildGeneratorMutationBody = useCallback(
     ({
       sourceTokenPath,
       sourceValue,
@@ -179,7 +179,7 @@ export function useGeneratedGroupSave({
       semanticMappings: Array<{ semantic: string; step: string }>;
       selectedPatternId?: string | null;
       skipSemanticLayer?: boolean;
-    }): RecipeMutationBody => {
+    }): GeneratorMutationBody => {
       const semanticLayer =
         skipSemanticLayer
           ? null
@@ -192,7 +192,7 @@ export function useGeneratedGroupSave({
                   (mapping) => mapping.semantic.trim() && mapping.step,
                 ),
                 patternId: selectedPatternId,
-              } satisfies RecipeSemanticLayer)
+              } satisfies GeneratorSemanticLayer)
             : null;
 
       return {
@@ -242,7 +242,7 @@ export function useGeneratedGroupSave({
     return true;
   }, [targetGroup, name, typeNeedsValue, hasValue]);
 
-  /** Inner save logic — commits the recipe to the server. */
+  /** Inner save logic — commits the generator to the server. */
   const commitSave = useCallback(
     async (
       keepUpdatedAtSave: boolean,
@@ -255,7 +255,7 @@ export function useGeneratedGroupSave({
       setSaving(true);
       setSaveError("");
       try {
-        const body = buildRecipeMutationBody({
+        const body = buildGeneratorMutationBody({
           sourceTokenPath,
           sourceValue,
           inlineValue,
@@ -267,20 +267,20 @@ export function useGeneratedGroupSave({
           semanticMappings: semanticMappingsAtSave,
         });
         const saveUrl =
-          isEditing && existingRecipe
-            ? `${serverUrl}/api/recipes/${existingRecipe.id}`
-            : `${serverUrl}/api/recipes`;
+          isEditing && existingGenerator
+            ? `${serverUrl}/api/generators/${existingGenerator.id}`
+            : `${serverUrl}/api/generators`;
         const savedGen = await apiFetch<{ id: string }>(saveUrl, {
-          method: isEditing && existingRecipe ? "PUT" : "POST",
+          method: isEditing && existingGenerator ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
         setShowConfirmation(false);
 
         if (pushUndo) {
-          if (isEditing && existingRecipe) {
-            const prevGen = existingRecipe;
-            const prevBody = buildRecipeMutationBody({
+          if (isEditing && existingGenerator) {
+            const prevGen = existingGenerator;
+            const prevBody = buildGeneratorMutationBody({
               sourceTokenPath: prevGen.sourceToken,
               sourceValue: prevGen.lastRunSourceValue,
               inlineValue: prevGen.inlineValue,
@@ -296,14 +296,14 @@ export function useGeneratedGroupSave({
             pushUndo({
               description: `Edited generated group "${prevGen.name}"`,
               restore: async () => {
-                await apiFetch(`${serverUrl}/api/recipes/${prevGen.id}`, {
+                await apiFetch(`${serverUrl}/api/generators/${prevGen.id}`, {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(prevBody),
                 });
               },
               redo: async () => {
-                await apiFetch(`${serverUrl}/api/recipes/${prevGen.id}`, {
+                await apiFetch(`${serverUrl}/api/generators/${prevGen.id}`, {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(body),
@@ -317,7 +317,7 @@ export function useGeneratedGroupSave({
               description: `Created generated group "${genName}"`,
               restore: async () => {
                 await apiFetch(
-                  `${serverUrl}/api/recipes/${newId}?deleteTokens=true`,
+                  `${serverUrl}/api/generators/${newId}?deleteTokens=true`,
                   { method: "DELETE" },
                 );
               },
@@ -330,7 +330,7 @@ export function useGeneratedGroupSave({
           tokens: previewTokens,
           targetGroup: targetGroupAtSave,
           targetCollection: targetCollectionAtSave,
-          recipeType: selectedType,
+          generatorType: selectedType,
         });
         dispatchToast(
           isEditing
@@ -351,12 +351,12 @@ export function useGeneratedGroupSave({
       }
     },
     [
-      buildRecipeMutationBody,
+      buildGeneratorMutationBody,
       inlineValue,
       name,
       serverUrl,
       isEditing,
-      existingRecipe,
+      existingGenerator,
       onSaved,
       onInterceptSemanticMapping,
       previewTokens,
@@ -385,8 +385,8 @@ export function useGeneratedGroupSave({
         targetCollection,
         config,
         pendingOverrides,
-        baseRecipeId: existingRecipe?.id,
-        detachedPaths: existingRecipe?.detachedPaths,
+        baseGeneratorId: existingGenerator?.id,
+        detachedPaths: existingGenerator?.detachedPaths,
       });
       if (overwriteCheckRequestIdRef.current !== requestId) return false;
       setOverwritePendingPaths(
@@ -417,7 +417,7 @@ export function useGeneratedGroupSave({
     }
   }, [
     config,
-    existingRecipe,
+    existingGenerator,
     inlineValue,
     pendingOverrides,
     requestPreviewRefresh,
@@ -516,7 +516,7 @@ export function useGeneratedGroupSave({
   ]);
 
   /** Step 2: Commit the save. Overwrites are already known (shown in review view).
-   *  The server applies semantic aliases together with the recipe run.
+   *  The server applies semantic aliases together with the generator run.
    */
   const handleConfirmSave = useCallback(async () => {
     if (previewReviewStale) {

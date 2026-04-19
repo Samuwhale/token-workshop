@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import type {
   GeneratedTokenResult,
-  RecipeSemanticLayer,
+  GeneratorSemanticLayer,
   SemanticTokenMapping,
-} from "../hooks/useRecipes";
+} from "../hooks/useGenerators";
 import { getErrorMessage } from "../shared/utils";
 import { ApiError } from "../shared/apiFetch";
 import { SEMANTIC_PATTERNS } from "../shared/semanticPatterns";
@@ -14,7 +14,7 @@ import { buildSemanticMappings, createEmptySemanticMapping } from "./semanticPla
 export interface SemanticMappingDialogProps {
   serverUrl: string;
   generatedTokens: GeneratedTokenResult[];
-  recipeType: string;
+  generatorType: string;
   targetGroup: string;
   targetCollection: string;
   onClose: () => void;
@@ -22,7 +22,7 @@ export interface SemanticMappingDialogProps {
   initialPrefix?: string;
   initialMappings?: SemanticTokenMapping[];
   initialPatternId?: string | null;
-  onSaveLayer?: (layer: RecipeSemanticLayer | null) => Promise<void> | void;
+  onSaveLayer?: (layer: GeneratorSemanticLayer | null) => Promise<void> | void;
   /** When "panel", renders without the modal backdrop/chrome so a parent can host it inline. */
   presentation?: "modal" | "panel";
 }
@@ -30,7 +30,7 @@ export interface SemanticMappingDialogProps {
 export function SemanticMappingDialog({
   serverUrl,
   generatedTokens,
-  recipeType,
+  generatorType,
   targetGroup,
   targetCollection,
   onClose,
@@ -44,7 +44,7 @@ export function SemanticMappingDialog({
   const isPanel = presentation === "panel";
   const availableSteps = generatedTokens.map((token) => String(token.stepName));
   const suggestedPatterns = SEMANTIC_PATTERNS.filter((pattern) =>
-    pattern.applicableTo.includes(recipeType),
+    pattern.applicableTo.includes(generatorType),
   );
   const defaultPattern =
     (initialPatternId

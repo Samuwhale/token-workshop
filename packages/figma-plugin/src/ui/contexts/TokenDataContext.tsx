@@ -7,7 +7,7 @@
  *                            and transient hover preview state
  *   TokenFlatMapContext    — flat token maps derived from the fetch cycle
  *                            plus mode-resolved token views
- *   RecipeContext          — recipe list and ownership indexes
+ *   GeneratorContext          — generator list and ownership indexes
  *
  * `TokenDataProvider` stacks the three providers. Consumers should read the
  * narrowest hook they need.
@@ -21,8 +21,8 @@ import { useCollectionState } from '../hooks/useTokens';
 import type { TokenNode } from '../hooks/useTokens';
 import type { CollectionSummary } from '../hooks/useTokens';
 import { useTokenDataLoading } from '../hooks/useTokenDataLoading';
-import { useRecipes } from '../hooks/useRecipes';
-import type { TokenRecipe } from '../hooks/useRecipes';
+import { useGenerators } from '../hooks/useGenerators';
+import type { TokenGenerator } from '../hooks/useGenerators';
 import type { TokenMapEntry } from '../../shared/types';
 
 export interface CollectionStateContextValue {
@@ -60,18 +60,18 @@ export interface TokenFlatMapContextValue {
   modeResolvedTokensFlat: Record<string, TokenMapEntry>;
 }
 
-export interface RecipeContextValue {
-  recipes: TokenRecipe[];
-  recipesLoading: boolean;
-  refreshRecipes: () => void;
-  recipesBySource: Map<string, TokenRecipe[]>;
-  recipesByTargetGroup: Map<string, TokenRecipe>;
-  derivedTokenPaths: Map<string, TokenRecipe>;
+export interface GeneratorContextValue {
+  generators: TokenGenerator[];
+  generatorsLoading: boolean;
+  refreshGenerators: () => void;
+  generatorsBySource: Map<string, TokenGenerator[]>;
+  generatorsByTargetGroup: Map<string, TokenGenerator>;
+  derivedTokenPaths: Map<string, TokenGenerator>;
 }
 
 const CollectionStateContext = createContext<CollectionStateContextValue | null>(null);
 const TokenFlatMapContext = createContext<TokenFlatMapContextValue | null>(null);
-const RecipeContext = createContext<RecipeContextValue | null>(null);
+const GeneratorContext = createContext<GeneratorContextValue | null>(null);
 
 export function useCollectionStateContext(): CollectionStateContextValue {
   const context = useContext(CollectionStateContext);
@@ -85,9 +85,9 @@ export function useTokenFlatMapContext(): TokenFlatMapContextValue {
   return context;
 }
 
-export function useRecipeContext(): RecipeContextValue {
-  const context = useContext(RecipeContext);
-  if (!context) throw new Error('useRecipeContext must be used inside TokenDataProvider');
+export function useGeneratorContext(): GeneratorContextValue {
+  const context = useContext(GeneratorContext);
+  if (!context) throw new Error('useGeneratorContext must be used inside TokenDataProvider');
   return context;
 }
 
@@ -225,7 +225,7 @@ function TokenFlatMapProvider({
   );
 }
 
-function RecipeProvider({
+function GeneratorProvider({
   children,
   serverUrl,
   connected,
@@ -234,20 +234,20 @@ function RecipeProvider({
   serverUrl: string;
   connected: boolean;
 }) {
-  const { recipes, loading: recipesLoading, refreshRecipes, recipesBySource, recipesByTargetGroup, derivedTokenPaths } = useRecipes(
+  const { generators, loading: generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths } = useGenerators(
     serverUrl,
     connected,
   );
 
-  const value = useMemo<RecipeContextValue>(
-    () => ({ recipes, recipesLoading, refreshRecipes, recipesBySource, recipesByTargetGroup, derivedTokenPaths }),
-    [recipes, recipesLoading, refreshRecipes, recipesBySource, recipesByTargetGroup, derivedTokenPaths],
+  const value = useMemo<GeneratorContextValue>(
+    () => ({ generators, generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths }),
+    [generators, generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths],
   );
 
   return (
-    <RecipeContext.Provider value={value}>
+    <GeneratorContext.Provider value={value}>
       {children}
-    </RecipeContext.Provider>
+    </GeneratorContext.Provider>
   );
 }
 
@@ -266,9 +266,9 @@ export function TokenDataProvider({ children }: { children: ReactNode }) {
         connected={connected}
         markDisconnected={markDisconnected}
       >
-        <RecipeProvider serverUrl={serverUrl} connected={connected}>
+        <GeneratorProvider serverUrl={serverUrl} connected={connected}>
           {children}
-        </RecipeProvider>
+        </GeneratorProvider>
       </TokenFlatMapProvider>
     </CollectionStateProvider>
   );

@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect, useMemo } from "react";
-import { createRecipeOwnershipKey } from "@tokenmanager/core";
+import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import type { Command, TokenEntry } from "../components/CommandPalette";
 import { inferTypeFromValue } from "../components/tokenListHelpers";
 import { isAlias } from "../../shared/resolveAlias";
@@ -16,7 +16,7 @@ import { dispatchToast } from "../shared/toastBus";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
-  useRecipeContext,
+  useGeneratorContext,
 } from "../contexts/TokenDataContext";
 import { useSelectionContext } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
@@ -49,7 +49,7 @@ export function useCommandPaletteCommands(): {
   } = useCollectionStateContext();
   const collectionIds = collections.map((collection) => collection.id);
   const { allTokensFlat, pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
-  const { derivedTokenPaths } = useRecipeContext();
+  const { derivedTokenPaths } = useGeneratorContext();
   const { navigateTo, closeSecondarySurface } = useNavigationContext();
   const { selectedNodes } = useSelectionContext();
   const {
@@ -580,8 +580,8 @@ export function useCommandPaletteCommands(): {
           : JSON.stringify(entry.$value),
       collectionId: currentCollectionId,
       isAlias: isAlias(entry.$value),
-      recipeName:
-        derivedTokenPaths.get(createRecipeOwnershipKey(currentCollectionId, path))
+      generatorName:
+        derivedTokenPaths.get(createGeneratorOwnershipKey(currentCollectionId, path))
           ?.name,
     }));
   }, [currentCollectionId, derivedTokenPaths, perCollectionFlat]);

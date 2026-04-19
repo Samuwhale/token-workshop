@@ -45,7 +45,7 @@ export interface TokenEntry {
   set?: string;
   isAlias?: boolean;
   description?: string;
-  recipeName?: string;
+  generatorName?: string;
 }
 
 export interface GroupEntry {
@@ -120,7 +120,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
       if ((h === 'alias' || h === 'ref') && !t.isAlias) return false;
       if (h === 'direct' && t.isAlias) return false;
       if ((h === 'description' || h === 'desc') && !t.description) return false;
-      if ((h === 'generated' || h === 'gen') && !t.recipeName) return false;
+      if ((h === 'generated' || h === 'gen') && !t.generatorName) return false;
     }
     // value: qualifier
     if (parsed.values.length > 0) {
@@ -138,10 +138,10 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
       if (!parsed.names.some(n => ln.includes(n))) return false;
     }
     // generated: qualifier
-    if (parsed.recipes.length > 0) {
-      if (!t.recipeName) return false;
-      const gn = t.recipeName.toLowerCase();
-      if (!parsed.recipes.some(g => gn === g || gn.includes(g))) return false;
+    if (parsed.generators.length > 0) {
+      if (!t.generatorName) return false;
+      const gn = t.generatorName.toLowerCase();
+      if (!parsed.generators.some(g => gn === g || gn.includes(g))) return false;
     }
     return true;
   });
@@ -222,7 +222,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
   const hasQualifiers = parsedTokenQuery.types.length > 0 || parsedTokenQuery.has.length > 0
     || parsedTokenQuery.values.length > 0 || parsedTokenQuery.paths.length > 0
     || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0
-    || parsedTokenQuery.recipes.length > 0;
+    || parsedTokenQuery.generators.length > 0;
 
   // Qualifier value autocomplete — detect qualifier:partial at end of query
   const activeQualifier = useMemo(() => (isTokenMode ? detectActiveQualifier(query) : null), [isTokenMode, query]);

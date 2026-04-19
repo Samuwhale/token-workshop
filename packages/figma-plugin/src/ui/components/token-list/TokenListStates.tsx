@@ -262,7 +262,7 @@ export function TokenListFilteredEmptyState({
               name: "Leaf name",
               value: "Value",
               desc: "Description",
-              recipe: "Generated",
+              generator: "Generated",
             };
             const matchingSections = new Map<FilterBuilderSection, string>();
             for (const qualifier of QUERY_QUALIFIERS) {

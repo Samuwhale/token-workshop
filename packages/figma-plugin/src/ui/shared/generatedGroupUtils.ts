@@ -3,11 +3,11 @@ import {
   type TokenCollection,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
-import type { TokenRecipe, RecipeType } from "../hooks/useRecipes";
-import { getRecipeDashboardStatus } from "../hooks/useRecipes";
+import type { TokenGenerator, GeneratorType } from "../hooks/useGenerators";
+import { getGeneratorDashboardStatus } from "../hooks/useGenerators";
 import { stableStringify } from "./utils";
 
-export type DashboardStatus = ReturnType<typeof getRecipeDashboardStatus>;
+export type DashboardStatus = ReturnType<typeof getGeneratorDashboardStatus>;
 export type SimplifiedStatus = "ready" | "needsRun" | "error";
 
 export interface GeneratedGroupKeepUpdatedAvailability {
@@ -80,7 +80,7 @@ export function getGeneratedGroupKeepUpdatedAvailability(params: {
   return { supported: true, reason: null };
 }
 
-export function getGeneratedGroupTypeLabel(type: RecipeType): string {
+export function getGeneratedGroupTypeLabel(type: GeneratorType): string {
   switch (type) {
     case "colorRamp":
       return "Palette";
@@ -118,16 +118,16 @@ export function formatRelativeTimestamp(value?: string): string | null {
   return `${diffDays}d ago`;
 }
 
-export function getGeneratedGroupStatusDetail(recipe: TokenRecipe, status: DashboardStatus): string {
+export function getGeneratedGroupStatusDetail(generator: TokenGenerator, status: DashboardStatus): string {
   if (status === "blocked") {
-    const blockedBy = recipe.blockedByRecipes?.filter((dependency) => dependency.name) ?? [];
+    const blockedBy = generator.blockedByGenerators?.filter((dependency) => dependency.name) ?? [];
     if (blockedBy.length > 0) {
       return `${blockedBy.length} blocked`;
     }
   }
-  if (recipe.lastRunError?.message) return recipe.lastRunError.message;
-  if (recipe.lastRunSummary?.message) return recipe.lastRunSummary.message;
-  if (recipe.staleReason) return recipe.staleReason;
+  if (generator.lastRunError?.message) return generator.lastRunError.message;
+  if (generator.lastRunSummary?.message) return generator.lastRunSummary.message;
+  if (generator.staleReason) return generator.staleReason;
   return "";
 }
 

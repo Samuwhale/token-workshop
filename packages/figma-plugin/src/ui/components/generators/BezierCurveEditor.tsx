@@ -168,7 +168,7 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
     return y;
   });
 
-  // Compute live color swatches client-side (mirrors runColorRampRecipe logic)
+  // Compute live color swatches client-side (mirrors runColorRampGenerator logic)
   const sourceLab = sourceHex ? hexToLab(sourceHex) : null;
   const liveSwatches: string[] | null = sourceLab
     ? stepDots.map((dot, i) => {

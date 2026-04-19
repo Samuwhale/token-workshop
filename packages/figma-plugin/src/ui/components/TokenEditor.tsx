@@ -6,14 +6,14 @@ import { AUTHORING } from "../shared/editorClasses";
 import { apiFetch } from "../shared/apiFetch";
 import { createTokenValueBody } from "../shared/tokenMutations";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { createRecipeOwnershipKey, resolveRefValue } from "@tokenmanager/core";
+import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { TokenCollection } from "@tokenmanager/core";
 import { useCollectionStateContext } from "../contexts/TokenDataContext";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
-import type { TokenRecipe } from "../hooks/useRecipes";
+import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { AliasPicker } from "./AliasPicker";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
@@ -33,7 +33,7 @@ import { useTokenAliasEditor } from "../hooks/useTokenAliasEditor";
 import { useTokenTypeParsing } from "../hooks/useTokenTypeParsing";
 import { useTokenEditorUIState } from "../hooks/useTokenEditorUIState";
 import { useTokenEditorSave } from "../hooks/useTokenEditorSave";
-import { useTokenEditorRecipes } from "../hooks/useTokenEditorRecipes";
+import { useTokenEditorGenerators } from "../hooks/useTokenEditorGenerators";
 import {
   clearEditorDraft,
   saveEditorDraft,
@@ -60,7 +60,7 @@ interface TokenEditorProps {
   onBack: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
-  recipes?: TokenRecipe[];
+  generators?: TokenGenerator[];
   isCreateMode?: boolean;
   initialType?: string;
   /** When alias-shaped (e.g. "{color.primary}"), alias mode activates automatically. */
@@ -75,10 +75,10 @@ interface TokenEditorProps {
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
-  derivedTokenPaths?: Map<string, TokenRecipe>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  onNavigateToGeneratedGroup?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (generatorId: string) => void;
   onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   onOpenCollectionSetup?: () => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
@@ -93,7 +93,7 @@ export function TokenEditor({
   onBack,
   allTokensFlat = {},
   pathToCollectionId = {},
-  recipes = [],
+  generators = [],
   isCreateMode = false,
   initialType,
   initialValue,
@@ -288,23 +288,23 @@ export function TokenEditor({
     handleTypeChange,
     focusBlockedField,
   } = typeParsing;
-  const recipes$ = useTokenEditorRecipes({
+  const generators$ = useTokenEditorGenerators({
     tokenPath,
     tokenType,
-    recipes,
+    generators,
   });
   const {
-    existingRecipesForToken,
-    canBeRecipeSource,
-  } = recipes$;
-  const producingRecipe =
-    derivedTokenPaths?.get(createRecipeOwnershipKey(ownerCollectionId, tokenPath)) ??
+    existingGeneratorsForToken,
+    canBeGeneratorSource,
+  } = generators$;
+  const producingGenerator =
+    derivedTokenPaths?.get(createGeneratorOwnershipKey(ownerCollectionId, tokenPath)) ??
     null;
-  const [detachedFromRecipe, setDetachedFromRecipe] = useState(false);
-  const [detachingRecipeOwnership, setDetachingRecipeOwnership] =
+  const [detachedFromGenerator, setDetachedFromGenerator] = useState(false);
+  const [detachingGeneratorOwnership, setDetachingGeneratorOwnership] =
     useState(false);
-  const activeProducingRecipe =
-    detachedFromRecipe ? null : producingRecipe;
+  const activeProducingGenerator =
+    detachedFromGenerator ? null : producingGenerator;
   const [generatedTokenChoiceOpen, setGeneratedTokenChoiceOpen] =
     useState(false);
   const [generatedTokenChoiceBusy, setGeneratedTokenChoiceBusy] =
@@ -356,7 +356,7 @@ export function TokenEditor({
     async (forceOverwrite: boolean, createAnother: boolean) => {
       if (
         isCreateMode ||
-        !activeProducingRecipe ||
+        !activeProducingGenerator ||
         generatedSaveBypassRef.current
       ) {
         if (generatedSaveBypassRef.current) {
@@ -368,7 +368,7 @@ export function TokenEditor({
       setGeneratedTokenChoiceOpen(true);
       return false;
     },
-    [activeProducingRecipe, isCreateMode],
+    [activeProducingGenerator, isCreateMode],
   );
 
   const saveHook = useTokenEditorSave({
@@ -482,18 +482,18 @@ export function TokenEditor({
   }, [onOpenGeneratedGroupEditor]);
 
   useEffect(() => {
-    setDetachedFromRecipe(false);
+    setDetachedFromGenerator(false);
     setGeneratedTokenChoiceOpen(false);
     pendingGeneratedSaveArgsRef.current = null;
     generatedSaveBypassRef.current = false;
-  }, [tokenPath, producingRecipe?.id]);
+  }, [tokenPath, producingGenerator?.id]);
 
-  const handleDetachRecipeOwnership = useCallback(async (): Promise<boolean> => {
-    if (!producingRecipe) return false;
-    setDetachingRecipeOwnership(true);
+  const handleDetachGeneratorOwnership = useCallback(async (): Promise<boolean> => {
+    if (!producingGenerator) return false;
+    setDetachingGeneratorOwnership(true);
     try {
       setError(null);
-      await apiFetch(`${serverUrl}/api/recipes/${producingRecipe.id}/detach`, {
+      await apiFetch(`${serverUrl}/api/generators/${producingGenerator.id}/detach`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -510,7 +510,7 @@ export function TokenEditor({
           } | null;
           if (snapshot?.$extensions) {
             const nextExtensions = { ...snapshot.$extensions };
-            delete nextExtensions["com.tokenmanager.recipe"];
+            delete nextExtensions["com.tokenmanager.generator"];
             initialServerSnapshotRef.current = JSON.stringify({
               ...snapshot,
               $extensions:
@@ -518,13 +518,13 @@ export function TokenEditor({
             });
           }
         } catch (err) {
-          console.debug("[TokenEditor] failed to update detached recipe snapshot:", err);
+          console.debug("[TokenEditor] failed to update detached generator snapshot:", err);
         }
       }
-      setDetachedFromRecipe(true);
+      setDetachedFromGenerator(true);
       onRefresh?.();
       dispatchToast(
-        `Detached "${tokenPath}" from "${producingRecipe.name}"`,
+        `Detached "${tokenPath}" from "${producingGenerator.name}"`,
         "success",
       );
       return true;
@@ -532,15 +532,15 @@ export function TokenEditor({
       setError(err instanceof Error ? err.message : "Failed to detach token from generator");
       return false;
     } finally {
-      setDetachingRecipeOwnership(false);
+      setDetachingGeneratorOwnership(false);
     }
-  }, [initialServerSnapshotRef, onRefresh, producingRecipe, serverUrl, tokenPath]);
+  }, [initialServerSnapshotRef, onRefresh, producingGenerator, serverUrl, tokenPath]);
 
-  const getProducingRecipeStepName = useCallback(() => {
-    if (!activeProducingRecipe) {
+  const getProducingGeneratorStepName = useCallback(() => {
+    if (!activeProducingGenerator) {
       return null;
     }
-    const prefix = `${activeProducingRecipe.targetGroup}.`;
+    const prefix = `${activeProducingGenerator.targetGroup}.`;
     if (!tokenPath.startsWith(prefix)) {
       return null;
     }
@@ -549,7 +549,7 @@ export function TokenEditor({
       return null;
     }
     return stepName;
-  }, [activeProducingRecipe, tokenPath]);
+  }, [activeProducingGenerator, tokenPath]);
 
   const handleSaveManualException = useCallback(async () => {
     if (!canCreateManualException) {
@@ -558,8 +558,8 @@ export function TokenEditor({
       );
       return;
     }
-    const stepName = getProducingRecipeStepName();
-    if (!activeProducingRecipe || !stepName) {
+    const stepName = getProducingGeneratorStepName();
+    if (!activeProducingGenerator || !stepName) {
       setError("This token cannot store a manual exception. Edit the generator or detach it instead.");
       return;
     }
@@ -568,7 +568,7 @@ export function TokenEditor({
     try {
       setError(null);
       await apiFetch(
-        `${serverUrl}/api/recipes/${activeProducingRecipe.id}/steps/${encodeURIComponent(stepName)}/override`,
+        `${serverUrl}/api/generators/${activeProducingGenerator.id}/steps/${encodeURIComponent(stepName)}/override`,
         {
           method: "PUT",
           headers: {
@@ -600,9 +600,9 @@ export function TokenEditor({
       setGeneratedTokenChoiceBusy(null);
     }
   }, [
-    activeProducingRecipe,
+    activeProducingGenerator,
     canCreateManualException,
-    getProducingRecipeStepName,
+    getProducingGeneratorStepName,
     onBack,
     onRefresh,
     onSaved,
@@ -617,7 +617,7 @@ export function TokenEditor({
     const saveArgs = pendingGeneratedSaveArgsRef.current ?? [false, false];
     setGeneratedTokenChoiceBusy("detach");
     try {
-      const detached = await handleDetachRecipeOwnership();
+      const detached = await handleDetachGeneratorOwnership();
       if (!detached) {
         return;
       }
@@ -628,7 +628,7 @@ export function TokenEditor({
     } finally {
       setGeneratedTokenChoiceBusy(null);
     }
-  }, [handleDetachRecipeOwnership, handleSaveRef]);
+  }, [handleDetachGeneratorOwnership, handleSaveRef]);
 
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
@@ -1720,7 +1720,7 @@ export function TokenEditor({
 
         {!aliasMode && referenceSection}
 
-        {activeProducingRecipe && !isCreateMode && (
+        {activeProducingGenerator && !isCreateMode && (
           <div className="rounded-md border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-3 py-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -1730,7 +1730,7 @@ export function TokenEditor({
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   Managed by{" "}
                   <span className="font-medium text-[var(--color-figma-text)]">
-                    {activeProducingRecipe.name}
+                    {activeProducingGenerator.name}
                   </span>
                   . Saving here will ask whether to edit the generator, keep a manual exception, or detach this token.
                 </p>
@@ -1743,11 +1743,11 @@ export function TokenEditor({
                       if (onOpenGeneratedGroupEditor) {
                         openGeneratedGroupEditor({
                           mode: "edit",
-                          id: activeProducingRecipe.id,
+                          id: activeProducingGenerator.id,
                         });
                         return;
                       }
-                      onNavigateToGeneratedGroup?.(activeProducingRecipe.id);
+                      onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
                     }}
                     className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
                   >
@@ -1757,12 +1757,12 @@ export function TokenEditor({
                 <button
                   type="button"
                   onClick={() => {
-                    void handleDetachRecipeOwnership();
+                    void handleDetachGeneratorOwnership();
                   }}
-                  disabled={detachingRecipeOwnership}
+                  disabled={detachingGeneratorOwnership}
                   className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
                 >
-                  {detachingRecipeOwnership ? "Detaching…" : "Detach from generator"}
+                  {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
                 </button>
               </div>
             </div>
@@ -1852,13 +1852,13 @@ export function TokenEditor({
               isCreateMode={isCreateMode}
             />
 
-            {canBeRecipeSource && !aliasMode && (
+            {canBeGeneratorSource && !aliasMode && (
               <TokenEditorDerivedGroups
                 tokenPath={tokenPath}
                 tokenName={tokenName}
                 tokenType={tokenType}
                 value={value}
-                existingRecipesForToken={existingRecipesForToken}
+                existingGeneratorsForToken={existingGeneratorsForToken}
                 openGeneratedGroupEditor={openGeneratedGroupEditor}
               />
             )}
@@ -1900,8 +1900,8 @@ export function TokenEditor({
                 allTokensFlat={allTokensFlat}
                 pathToCollectionId={pathToCollectionId}
                 initialValue={initialRef.current?.value}
-                activeProducingRecipe={activeProducingRecipe}
-                existingRecipesForToken={existingRecipesForToken}
+                activeProducingGenerator={activeProducingGenerator}
+                existingGeneratorsForToken={existingGeneratorsForToken}
                 infoTab={infoTab}
                 onInfoTabChange={handleInfoTab}
                 refsExpanded={refsExpanded}
@@ -1927,7 +1927,7 @@ export function TokenEditor({
         />
       )}
 
-      {generatedTokenChoiceOpen && activeProducingRecipe && (
+      {generatedTokenChoiceOpen && activeProducingGenerator && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
           onMouseDown={(event) => {
@@ -1943,7 +1943,7 @@ export function TokenEditor({
               </h3>
               <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
                 <span className="font-medium text-[var(--color-figma-text)]">
-                  {activeProducingRecipe.name}
+                  {activeProducingGenerator.name}
                 </span>{" "}
                 owns <span className="font-mono text-[var(--color-figma-text)]">{tokenPath}</span>.
                 Choose how this edit should behave before saving.
@@ -1958,12 +1958,12 @@ export function TokenEditor({
                   if (onOpenGeneratedGroupEditor) {
                     openGeneratedGroupEditor({
                       mode: "edit",
-                      id: activeProducingRecipe.id,
+                      id: activeProducingGenerator.id,
                     });
                     requestClose();
                     return;
                   }
-                  onNavigateToGeneratedGroup?.(activeProducingRecipe.id);
+                  onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
                 }}
                 className="rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-left text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
               >

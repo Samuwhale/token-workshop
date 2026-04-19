@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
-import { isDimensionLike } from './recipes/recipeShared';
+import { isDimensionLike } from './generators/generatorShared';
 import {
   getMergedCapabilities,
   shouldShowGroup,

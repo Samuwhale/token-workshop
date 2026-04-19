@@ -3,15 +3,15 @@ import type {
   ColorRampConfig,
   CustomScaleConfig,
   DarkModeInversionConfig,
-  RecipeConfig,
-  RecipeTemplate,
-  RecipeType,
+  GeneratorConfig,
+  GeneratorTemplate,
+  GeneratorType,
   OpacityScaleConfig,
   ShadowScaleConfig,
   SpacingScaleConfig,
   TypeScaleConfig,
   ZIndexScaleConfig,
-} from "../hooks/useRecipes";
+} from "../hooks/useGenerators";
 
 export interface SemanticStarter {
   prefix: string;
@@ -19,7 +19,7 @@ export interface SemanticStarter {
   patternId?: string | null;
 }
 
-export interface GraphTemplate extends RecipeTemplate {
+export interface GraphTemplate extends GeneratorTemplate {
   whenToUse: string;
   stages: string[];
   starterPresetName: string;
@@ -42,7 +42,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a color token or hex value.",
     sourceTokenTypes: ["color"],
     defaultPrefix: "brand",
-    recipeType: "colorRamp",
+    generatorType: "colorRamp",
     requiresSource: true,
     config: {
       steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
@@ -73,7 +73,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a dimension token such as 4px or 8px.",
     sourceTokenTypes: ["dimension"],
     defaultPrefix: "spacing",
-    recipeType: "spacingScale",
+    generatorType: "spacingScale",
     requiresSource: true,
     config: {
       steps: [
@@ -115,7 +115,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a font-size or dimension token such as 16px or 1rem.",
     sourceTokenTypes: ["fontSize", "dimension"],
     defaultPrefix: "fontSize",
-    recipeType: "typeScale",
+    generatorType: "typeScale",
     requiresSource: true,
     config: {
       steps: [
@@ -145,7 +145,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a dimension token such as 4px or 8px.",
     sourceTokenTypes: ["dimension"],
     defaultPrefix: "borderRadius",
-    recipeType: "borderRadiusScale",
+    generatorType: "borderRadiusScale",
     requiresSource: true,
     config: {
       steps: [
@@ -171,7 +171,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     starterPreset: "0 to 100 opacity levels with common intermediate stops.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "opacity",
-    recipeType: "opacityScale",
+    generatorType: "opacityScale",
     requiresSource: false,
     config: {
       steps: [
@@ -201,7 +201,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     starterPreset: "below, base, raised, dropdown, sticky, overlay, modal, and toast layers.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "zIndex",
-    recipeType: "zIndexScale",
+    generatorType: "zIndexScale",
     requiresSource: false,
     config: {
       steps: [
@@ -227,7 +227,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     starterPreset: "Five shadow levels plus component.card, modal, and dropdown starters.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "shadow",
-    recipeType: "shadowScale",
+    generatorType: "shadowScale",
     requiresSource: false,
     config: {
       color: "#000000",
@@ -260,7 +260,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Works standalone, or you can point it at any compatible base token later.",
     sourceTokenTypes: ["number", "dimension"],
     defaultPrefix: "scale",
-    recipeType: "customScale",
+    generatorType: "customScale",
     requiresSource: false,
     config: {
       outputType: "number",
@@ -285,7 +285,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a light-mode color token or hex value.",
     sourceTokenTypes: ["color"],
     defaultPrefix: "dark",
-    recipeType: "darkModeInversion",
+    generatorType: "darkModeInversion",
     requiresSource: true,
     config: {
       stepName: "inverted",
@@ -316,18 +316,18 @@ export function getTemplateSemanticCount(template: GraphTemplate): number {
   return template.semanticStarter?.mappings.length ?? 0;
 }
 
-export function getStarterTemplateForRecipeType(
-  recipeType: RecipeType,
+export function getStarterTemplateForGeneratorType(
+  generatorType: GeneratorType,
 ): GraphTemplate | undefined {
-  return GRAPH_TEMPLATES.find((template) => template.recipeType === recipeType);
+  return GRAPH_TEMPLATES.find((template) => template.generatorType === generatorType);
 }
 
-export function cloneStarterConfigForRecipeType(
-  recipeType: RecipeType,
-): RecipeConfig | undefined {
-  const template = getStarterTemplateForRecipeType(recipeType);
+export function cloneStarterConfigForGeneratorType(
+  generatorType: GeneratorType,
+): GeneratorConfig | undefined {
+  const template = getStarterTemplateForGeneratorType(generatorType);
   if (!template) return undefined;
-  return JSON.parse(JSON.stringify(template.config)) as RecipeConfig;
+  return JSON.parse(JSON.stringify(template.config)) as GeneratorConfig;
 }
 
 /** Map a DTCG token $type to the best-fit intent id. */

@@ -3,14 +3,14 @@
  * deleted outputs, and detached outputs.
  * Used only by StepSave.
  */
-import type { RecipePreviewAnalysis } from '../../hooks/useGeneratedGroupPreview';
+import type { GeneratorPreviewAnalysis } from '../../hooks/useGeneratedGroupPreview';
 import { ValueDiff } from '../ValueDiff';
 import { AUTHORING } from '../../shared/editorClasses';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import type { ReactNode } from 'react';
 
 export interface RiskDetailSectionsProps {
-  previewAnalysis: RecipePreviewAnalysis;
+  previewAnalysis: GeneratorPreviewAnalysis;
   targetCollection: string;
 }
 
@@ -26,18 +26,18 @@ function RiskSection({
   children: ReactNode;
 }) {
   return (
-    <section className={AUTHORING.recipeSectionCard}>
-      <div className={AUTHORING.recipeTitleBlock}>
-        <h4 className={`${AUTHORING.recipeTitle} ${toneClassName}`}>{title}</h4>
-        <p className={AUTHORING.recipeDescription}>{description}</p>
+    <section className={AUTHORING.generatorSectionCard}>
+      <div className={AUTHORING.generatorTitleBlock}>
+        <h4 className={`${AUTHORING.generatorTitle} ${toneClassName}`}>{title}</h4>
+        <p className={AUTHORING.generatorDescription}>{description}</p>
       </div>
-      <div className={AUTHORING.recipeCardList}>{children}</div>
+      <div className={AUTHORING.generatorCardList}>{children}</div>
     </section>
   );
 }
 
 export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDetailSectionsProps) {
-  const nonRecipeOverwriteEntries = previewAnalysis.nonRecipeOverwrites ?? [];
+  const nonGeneratorOverwriteEntries = previewAnalysis.nonGeneratorOverwrites ?? [];
   const manualConflictEntries = previewAnalysis.manualEditConflicts ?? [];
   const deletedOutputEntries = previewAnalysis.deletedOutputs ?? [];
   const detachedOutputEntries = previewAnalysis.detachedOutputs ?? [];
@@ -49,7 +49,7 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
   const invalidatedExceptions = manualExceptionEntries.filter((entry) => entry.state === "invalidated");
 
   const hasAny =
-    nonRecipeOverwriteEntries.length > 0 ||
+    nonGeneratorOverwriteEntries.length > 0 ||
     manualConflictEntries.length > 0 ||
     deletedOutputEntries.length > 0 ||
     detachedOutputEntries.length > 0 ||
@@ -59,13 +59,13 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
 
   return (
     <>
-      {nonRecipeOverwriteEntries.length > 0 && (
+      {nonGeneratorOverwriteEntries.length > 0 && (
         <RiskSection
           title="Overwrite risks"
           description="These paths already exist outside this generated group and would be overwritten or claimed by this generated group."
           toneClassName="text-[var(--color-figma-warning)]"
         >
-            {nonRecipeOverwriteEntries.map(entry => (
+            {nonGeneratorOverwriteEntries.map(entry => (
               <div key={`${entry.collectionId}:${entry.path}`} className="flex flex-col gap-0.5 border-t border-[var(--color-figma-border)] py-2 first:border-t-0 first:pt-0 last:pb-0">
                 <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}

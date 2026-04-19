@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { TokenNode } from "../../hooks/useTokens";
-import type { TokenRecipe } from "../../hooks/useRecipes";
+import type { TokenGenerator } from "../../hooks/useGenerators";
 import type {
   NodeCapabilities,
   TokenMapEntry,
@@ -54,7 +54,7 @@ interface GroupStateDeps {
   dragOverGroup?: string | null;
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
-  recipesByTargetGroup?: Map<string, TokenRecipe>;
+  generatorsByTargetGroup?: Map<string, TokenGenerator>;
   collectionCoverage?: Map<
     string,
     { configured: number; total: number; totalMissing: number }
@@ -77,7 +77,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       dragOverGroup: deps.dragOverGroup,
       dragOverGroupIsInvalid: deps.dragOverGroupIsInvalid,
       dragSource: deps.dragSource,
-      recipesByTargetGroup: deps.recipesByTargetGroup,
+      generatorsByTargetGroup: deps.generatorsByTargetGroup,
       collectionCoverage: deps.collectionCoverage,
       condensedView: deps.condensedView,
       rovingFocusPath: deps.effectiveRovingPath,
@@ -85,7 +85,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
     [
       deps.density, deps.collectionId, deps.activeCollectionModeLabel, deps.selectMode, deps.expandedPaths,
       deps.highlightedToken, deps.searchHighlight, deps.dragOverGroup,
-      deps.dragOverGroupIsInvalid, deps.dragSource, deps.recipesByTargetGroup,
+      deps.dragOverGroupIsInvalid, deps.dragSource, deps.generatorsByTargetGroup,
       deps.collectionCoverage, deps.condensedView, deps.effectiveRovingPath,
     ],
   );
@@ -108,16 +108,16 @@ interface GroupActionsDeps {
   handleZoomIntoGroup: (groupPath: string) => void;
   handleDragOverGroup: (groupPath: string | null, invalid?: boolean) => void;
   handleDropOnGroup: (groupPath: string) => void;
-  onEditGeneratedGroup?: (recipeId: string) => void;
-  onDuplicateGeneratedGroup?: (recipeId: string) => void;
-  handleDeleteGeneratedGroup: (recipeId: string) => Promise<void>;
-  onNavigateToGeneratedGroup?: (recipeId: string) => void;
-  handleRunGeneratedGroup: (recipeId: string) => Promise<void>;
+  onEditGeneratedGroup?: (generatorId: string) => void;
+  onDuplicateGeneratedGroup?: (generatorId: string) => void;
+  handleDeleteGeneratedGroup: (generatorId: string) => Promise<void>;
+  onNavigateToGeneratedGroup?: (generatorId: string) => void;
+  handleRunGeneratedGroup: (generatorId: string) => Promise<void>;
   handleToggleGeneratedGroupEnabled: (
-    recipeId: string,
+    generatorId: string,
     enabled: boolean,
   ) => Promise<void>;
-  handleDetachGeneratedGroup: (recipeId: string, groupPath: string) => Promise<void>;
+  handleDetachGeneratedGroup: (generatorId: string, groupPath: string) => Promise<void>;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   setRovingFocusPath: (path: string) => void;
 }
@@ -168,7 +168,7 @@ interface LeafStateDeps {
   highlightedToken: string | null | undefined;
   inspectMode: boolean;
   syncSnapshot?: Record<string, string>;
-  derivedTokenPaths?: Map<string, TokenRecipe>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   selectedNodes: SelectionNodeInfo[];
   dragOverReorder?: { path: string; position: "before" | "after" } | null;
@@ -235,7 +235,7 @@ interface LeafActionsDeps {
   handleRequestMoveTokenReview: (path: string) => void;
   handleRequestCopyTokenReview: (path: string) => void;
   handleDuplicateToken: (path: string) => void;
-  handleDetachFromRecipe: (path: string) => Promise<boolean>;
+  handleDetachFromGenerator: (path: string) => Promise<boolean>;
   handleSaveGeneratedException: (
     path: string,
     newValue: unknown,
@@ -276,7 +276,7 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onRequestMoveToken: deps.handleRequestMoveTokenReview,
       onRequestCopyToken: deps.handleRequestCopyTokenReview,
       onDuplicateToken: deps.handleDuplicateToken,
-      onDetachFromRecipe: deps.handleDetachFromRecipe,
+      onDetachFromGenerator: deps.handleDetachFromGenerator,
       onSaveGeneratedException: deps.handleSaveGeneratedException,
       onExtractToAlias: deps.handleOpenExtractToAlias,
       onHoverToken: deps.handleHoverToken,

@@ -27,7 +27,7 @@ Capability hints:
 - task-proposal
 
 ## Review Priorities
-- Focus on token creation, editing, tree navigation, recipes, import/export, compare/publish, and theme authoring flows.
+- Focus on token creation, editing, tree navigation, generators, import/export, compare/publish, and theme authoring flows.
 - Prefer backlog items that remove workflow dead-ends, repeated steps, or unclear ownership boundaries between hooks, screens, and shared state.
 - Avoid generic refactor tasks unless they materially simplify a user-facing workflow.
 

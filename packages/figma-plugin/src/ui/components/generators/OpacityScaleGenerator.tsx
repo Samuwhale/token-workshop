@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { OpacityScaleConfig, GeneratedTokenResult } from '../../hooks/useRecipes';
-import { OverrideRow } from './recipeShared';
+import type { OpacityScaleConfig, GeneratedTokenResult } from '../../hooks/useGenerators';
+import { OverrideRow } from './generatorShared';
 
 // ---------------------------------------------------------------------------
 // Default config

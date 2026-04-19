@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import type { LintViolation } from "../hooks/useLint";
-import type { TokenRecipe } from "../hooks/useRecipes";
+import type { TokenGenerator } from "../hooks/useGenerators";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { HeatmapResult } from "./HeatmapPanel";
 import type { TokenMapEntry } from "../../shared/types";
@@ -40,7 +40,7 @@ type HealthStatus = "healthy" | "warning" | "critical";
 
 type PriorityIssueAction =
   | { kind: "lint" }
-  | { kind: "generated-group"; recipeId: string | null }
+  | { kind: "generated-group"; generatorId: string | null }
   | { kind: "validation-scroll" }
   | { kind: "alias-opportunities-scroll" }
   | { kind: "deprecated-scroll" }
@@ -237,7 +237,7 @@ export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
   currentCollectionId: string;
-  recipes: TokenRecipe[];
+  generators: TokenGenerator[];
   lintViolations: LintViolation[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
@@ -247,7 +247,7 @@ export interface HealthPanelProps {
   heatmapResult: HeatmapResult | null;
   onNavigateTo: (topTab: "tokens" | "inspect" | "sync", subTab?: string) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
-  onNavigateToGeneratedGroup?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (generatorId: string) => void;
   onTriggerHeatmap: () => void;
   /** Shared validation cache — avoids re-fetching when switching from Analytics tab */
   validationIssues: ValidationIssue[] | null;
@@ -265,7 +265,7 @@ export function HealthPanel({
   serverUrl,
   connected,
   currentCollectionId,
-  recipes,
+  generators,
   lintViolations,
   allTokensFlat,
   pathToCollectionId,
@@ -923,8 +923,8 @@ export function HealthPanel({
   const validationErrors = validationSummary?.errors ?? 0;
   const validationWarnings = validationSummary?.warnings ?? 0;
 
-  const staleRecipes = recipes.filter((g) => g.isStale);
-  const errorRecipes = recipes.filter(
+  const staleGenerators = generators.filter((g) => g.isStale);
+  const errorGenerators = generators.filter(
     (g) => g.lastRunError && !g.lastRunError.blockedBy,
   );
   const hasUsageData = Object.keys(tokenUsageCounts).length > 0;
@@ -939,11 +939,11 @@ export function HealthPanel({
   );
 
   const overallStatus: HealthStatus =
-    lintErrors > 0 || validationErrors > 0 || errorRecipes.length > 0
+    lintErrors > 0 || validationErrors > 0 || errorGenerators.length > 0
       ? "critical"
       : lintWarnings > 0 ||
           validationWarnings > 0 ||
-          staleRecipes.length > 0 ||
+          staleGenerators.length > 0 ||
           totalDuplicateAliases > 0 ||
           (heatmapResult?.red ?? 0) > 0
         ? "warning"
@@ -988,14 +988,14 @@ export function HealthPanel({
       }
     }
 
-    if (errorRecipes.length > 0) {
+    if (errorGenerators.length > 0) {
       items.push({
         severity: "critical",
         category: "Generated",
-        message: `${formatCount(errorRecipes.length, "generated group")} failed`,
-        count: errorRecipes.length,
+        message: `${formatCount(errorGenerators.length, "generated group")} failed`,
+        count: errorGenerators.length,
         ctaLabel: "Inspect generated groups",
-        action: { kind: "generated-group", recipeId: errorRecipes[0]?.id ?? null },
+        action: { kind: "generated-group", generatorId: errorGenerators[0]?.id ?? null },
       });
     }
 
@@ -1044,14 +1044,14 @@ export function HealthPanel({
       });
     }
 
-    if (staleRecipes.length > 0) {
+    if (staleGenerators.length > 0) {
       items.push({
         severity: "warning",
         category: "Generated",
-        message: `${formatCount(staleRecipes.length, "generated group")} out of date`,
-        count: staleRecipes.length,
+        message: `${formatCount(staleGenerators.length, "generated group")} out of date`,
+        count: staleGenerators.length,
         ctaLabel: "Update generated groups",
-        action: { kind: "generated-group", recipeId: staleRecipes[0]?.id ?? null },
+        action: { kind: "generated-group", generatorId: staleGenerators[0]?.id ?? null },
       });
     }
 
@@ -1102,8 +1102,8 @@ export function HealthPanel({
         return () => onNavigateTo("tokens", "tokens");
       case "generated-group":
         return () => {
-          if (action.recipeId && onNavigateToGeneratedGroup) {
-            onNavigateToGeneratedGroup(action.recipeId);
+          if (action.generatorId && onNavigateToGeneratedGroup) {
+            onNavigateToGeneratedGroup(action.generatorId);
             return;
           }
           onNavigateTo("tokens", "tokens");
@@ -2026,7 +2026,7 @@ export function HealthPanel({
 /** Computes a single health issue count for use in status badges outside the panel. */
 export function computeHealthIssueCount(
   lintViolations: LintViolation[],
-  recipes: TokenRecipe[],
+  generators: TokenGenerator[],
   validationSummary?: ValidationSummary | null,
 ): number {
   const lintCount = lintViolations.filter(
@@ -2035,7 +2035,7 @@ export function computeHealthIssueCount(
   const validationCount = validationSummary
     ? validationSummary.errors + validationSummary.warnings
     : 0;
-  const genIssues = recipes.filter(
+  const genIssues = generators.filter(
     (g) => g.isStale || g.lastRunError,
   ).length;
   return lintCount + validationCount + genIssues;

@@ -6,7 +6,7 @@ import type {
   TokenCollection,
   ViewPreset,
   Token,
-  TokenRecipe,
+  TokenGenerator,
 } from "@tokenmanager/core";
 import type {
   CollectionMetadataState,
@@ -203,8 +203,8 @@ export type RollbackStep =
   | { action: "restore-lint-config"; config: LintConfig }
   | { action: "write-resolver"; name: string; file: ResolverFile }
   | { action: "delete-resolver"; name: string }
-  | { action: "create-recipe"; recipe: TokenRecipe }
-  | { action: "delete-recipe"; id: string };
+  | { action: "create-generator"; generator: TokenGenerator }
+  | { action: "delete-generator"; id: string };
 
 /**
 /** Context required for rollback — provides access to all services that may need restoration. */
@@ -224,13 +224,13 @@ export interface RollbackContext {
       newName: string,
     ): Promise<string[]>;
   };
-  recipeService?: {
+  generatorService?: {
     renameCollectionId(
       oldName: string,
       newName: string,
     ): Promise<number | void>;
-    getById(id: string): Promise<TokenRecipe | undefined>;
-    restore(recipe: TokenRecipe): Promise<void>;
+    getById(id: string): Promise<TokenGenerator | undefined>;
+    restore(generator: TokenGenerator): Promise<void>;
     delete(id: string): Promise<boolean>;
   };
   lintConfigStore?: {
@@ -630,21 +630,21 @@ export class OperationLog {
           }
           break;
         }
-        case "create-recipe":
-          // inverse: delete the recipe that was just created
+        case "create-generator":
+          // inverse: delete the generator that was just created
           inverse.push({
-            action: "delete-recipe",
-            id: step.recipe.id,
+            action: "delete-generator",
+            id: step.generator.id,
           });
           break;
-        case "delete-recipe": {
-          // inverse: re-create the recipe — look up current state before it's deleted
-          if (ctx.recipeService) {
-            const current = await ctx.recipeService.getById(step.id);
+        case "delete-generator": {
+          // inverse: re-create the generator — look up current state before it's deleted
+          if (ctx.generatorService) {
+            const current = await ctx.generatorService.getById(step.id);
             if (current) {
               inverse.push({
-                action: "create-recipe",
-                recipe: structuredClone(current),
+                action: "create-generator",
+                generator: structuredClone(current),
               });
             }
           }
@@ -762,21 +762,21 @@ export class OperationLog {
             }
           }
           break;
-        case "create-recipe":
-          if (!ctx.recipeService) {
+        case "create-generator":
+          if (!ctx.generatorService) {
             throw new Error(
-              `Cannot execute rollback step "create-recipe": recipeService not available in RollbackContext`,
+              `Cannot execute rollback step "create-generator": generatorService not available in RollbackContext`,
             );
           }
-          await ctx.recipeService.restore(step.recipe);
+          await ctx.generatorService.restore(step.generator);
           break;
-        case "delete-recipe":
-          if (!ctx.recipeService) {
+        case "delete-generator":
+          if (!ctx.generatorService) {
             throw new Error(
-              `Cannot execute rollback step "delete-recipe": recipeService not available in RollbackContext`,
+              `Cannot execute rollback step "delete-generator": generatorService not available in RollbackContext`,
             );
           }
-          await ctx.recipeService.delete(step.id);
+          await ctx.generatorService.delete(step.id);
           break;
       }
     }

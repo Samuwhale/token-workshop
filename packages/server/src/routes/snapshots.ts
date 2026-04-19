@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { handleRouteError } from '../errors.js';
 import { snapshotCollection, type SnapshotEntry } from '../services/operation-log.js';
-import type { ResolverFile, TokenRecipe } from '@tokenmanager/core';
+import type { ResolverFile, TokenGenerator } from '@tokenmanager/core';
 
 type SnapshotRouteContext = {
   resolverLock: {
@@ -10,8 +10,8 @@ type SnapshotRouteContext = {
   resolverStore: {
     getAllFiles(): Record<string, ResolverFile>;
   };
-  recipeService: {
-    getAllById(): Promise<Record<string, TokenRecipe>>;
+  generatorService: {
+    getAllById(): Promise<Record<string, TokenGenerator>>;
   };
 };
 
@@ -21,10 +21,10 @@ async function captureCurrentResolvers(
   return fastify.resolverLock.withLock(async () => fastify.resolverStore.getAllFiles());
 }
 
-async function captureCurrentRecipes(
+async function captureCurrentGenerators(
   fastify: SnapshotRouteContext,
-): Promise<Record<string, TokenRecipe>> {
-  return fastify.recipeService.getAllById();
+): Promise<Record<string, TokenGenerator>> {
+  return fastify.generatorService.getAllById();
 }
 
 export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
@@ -47,7 +47,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           fastify.tokenStore,
           fastify.collectionService,
           fastify.resolverStore,
-          fastify.recipeService,
+          fastify.generatorService,
           fastify.lintConfigStore,
         );
         return reply.status(201).send({
@@ -101,7 +101,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.tokenStore,
         fastify.collectionService,
         fastify.resolverStore,
-        fastify.recipeService,
+        fastify.generatorService,
         fastify.lintConfigStore,
       );
       return comparison;
@@ -137,9 +137,9 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        const [beforeResolvers, beforeRecipes] = await Promise.all([
+        const [beforeResolvers, beforeGenerators] = await Promise.all([
           captureCurrentResolvers(fastify),
-          captureCurrentRecipes(fastify),
+          captureCurrentGenerators(fastify),
         ]);
         const beforeLintConfig = await fastify.lintConfigStore.get();
 
@@ -149,14 +149,14 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           fastify.tokenStore,
           fastify.collectionService,
           fastify.resolverStore,
-          fastify.recipeService,
+          fastify.generatorService,
           fastify.lintConfigStore,
           {
             collectionIds: currentCollections,
             collections: beforeCollectionState.collections,
             views: beforeCollectionState.views,
             resolvers: beforeResolvers,
-            recipes: beforeRecipes,
+            generators: beforeGenerators,
             lintConfig: beforeLintConfig,
           },
         );

@@ -6,7 +6,7 @@ import type {
   SelectedModes,
   TokenCollection,
   TokenGroup,
-  TokenRecipe,
+  TokenGenerator,
   ViewPreset,
 } from "@tokenmanager/core";
 import {
@@ -26,7 +26,7 @@ import type {
 } from "./collection-store.js";
 import { requireCollection } from "./collection-store.js";
 import type { LintConfig, LintConfigStore } from "./lint.js";
-import type { RecipeService } from "./recipe-service.js";
+import type { GeneratorService } from "./generator-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import type { TokenStore } from "./token-store.js";
 import type { SnapshotEntry } from "./operation-log.js";
@@ -79,17 +79,17 @@ export interface CollectionResolverImpact {
   name: string;
 }
 
-export interface CollectionRecipeOwnershipImpact {
-  recipeId: string;
-  recipeName: string;
+export interface CollectionGeneratorOwnershipImpact {
+  generatorId: string;
+  generatorName: string;
   targetGroup: string;
   tokenCount: number;
   samplePaths: string[];
 }
 
-export interface CollectionRecipeTargetImpact {
-  recipeId: string;
-  recipeName: string;
+export interface CollectionGeneratorTargetImpact {
+  generatorId: string;
+  generatorName: string;
   targetGroup: string;
 }
 
@@ -100,8 +100,8 @@ export interface CollectionPreflightImpact {
     description?: string;
   };
   resolverRefs: CollectionResolverImpact[];
-  generatedOwnership: CollectionRecipeOwnershipImpact[];
-  recipeTargets: CollectionRecipeTargetImpact[];
+  generatedOwnership: CollectionGeneratorOwnershipImpact[];
+  generatorTargets: CollectionGeneratorTargetImpact[];
 }
 
 export interface CollectionSummary extends TokenCollection {
@@ -115,7 +115,7 @@ export interface CollectionsOverview {
 
 export type CollectionPreflightBlockerCode =
   | "generated-token-ownership"
-  | "recipe-target-collection"
+  | "generator-target-collection"
   | "resolver-collection-ref";
 
 export interface CollectionPreflightBlocker {
@@ -123,8 +123,8 @@ export interface CollectionPreflightBlocker {
   code: CollectionPreflightBlockerCode;
   collectionId: string;
   message: string;
-  recipeId?: string;
-  recipeName?: string;
+  generatorId?: string;
+  generatorName?: string;
 }
 
 export interface CollectionMergeConflict {
@@ -156,7 +156,7 @@ interface CollectionResolverMeta {
   referencedCollections: string[];
 }
 
-interface CollectionRecipeMeta {
+interface CollectionGeneratorMeta {
   id: string;
   name: string;
   targetCollection: string;
@@ -171,11 +171,11 @@ interface LoadedCollectionDependencyData {
 
 export interface CollectionDependencySnapshot {
   resolvers: CollectionResolverMeta[];
-  recipes: CollectionRecipeMeta[];
+  generators: CollectionGeneratorMeta[];
   allOwnedTokens: Array<{
     collectionId: string;
     path: string;
-    recipeId: string;
+    generatorId: string;
   }>;
   collectionsById: Map<string, LoadedCollectionDependencyData>;
   impactsByCollection: Map<string, CollectionPreflightImpact>;
@@ -263,7 +263,7 @@ export interface CollectionRenameMutationResult {
 
 interface CollectionDependencyStateSnapshot {
   resolvers: Record<string, ResolverFile>;
-  recipes: Record<string, TokenRecipe>;
+  generators: Record<string, TokenGenerator>;
   lintConfig: LintConfig;
 }
 
@@ -630,13 +630,13 @@ function buildCollectionSplitPreview(
 
 function buildGeneratedOwnershipImpacts(
   collectionId: string,
-  allOwnedTokens: Array<{ collectionId: string; path: string; recipeId: string }>,
-  recipeById: Map<string, CollectionRecipeMeta>,
-): CollectionRecipeOwnershipImpact[] {
+  allOwnedTokens: Array<{ collectionId: string; path: string; generatorId: string }>,
+  generatorById: Map<string, CollectionGeneratorMeta>,
+): CollectionGeneratorOwnershipImpact[] {
   const grouped = new Map<string, { tokenCount: number; samplePaths: string[] }>();
   for (const token of allOwnedTokens) {
     if (token.collectionId !== collectionId) continue;
-    const entry = grouped.get(token.recipeId) ?? {
+    const entry = grouped.get(token.generatorId) ?? {
       tokenCount: 0,
       samplePaths: [],
     };
@@ -644,34 +644,34 @@ function buildGeneratedOwnershipImpacts(
     if (entry.samplePaths.length < 5) {
       entry.samplePaths.push(token.path);
     }
-    grouped.set(token.recipeId, entry);
+    grouped.set(token.generatorId, entry);
   }
   return [...grouped.entries()]
-    .map(([recipeId, ownership]) => {
-      const recipe = recipeById.get(recipeId);
+    .map(([generatorId, ownership]) => {
+      const generator = generatorById.get(generatorId);
       return {
-        recipeId,
-        recipeName: recipe?.name ?? "Unknown generated group",
-        targetGroup: recipe?.targetGroup ?? "",
+        generatorId,
+        generatorName: generator?.name ?? "Unknown generated group",
+        targetGroup: generator?.targetGroup ?? "",
         tokenCount: ownership.tokenCount,
         samplePaths: ownership.samplePaths.sort((a, b) => a.localeCompare(b)),
       };
     })
-    .sort((a, b) => a.recipeName.localeCompare(b.recipeName));
+    .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
 }
 
-function buildRecipeTargets(
+function buildGeneratorTargets(
   collectionId: string,
-  recipes: CollectionRecipeMeta[],
-): CollectionRecipeTargetImpact[] {
-  return recipes
-    .filter((recipe) => recipe.targetCollection === collectionId)
-    .map((recipe) => ({
-      recipeId: recipe.id,
-      recipeName: recipe.name,
-      targetGroup: recipe.targetGroup,
+  generators: CollectionGeneratorMeta[],
+): CollectionGeneratorTargetImpact[] {
+  return generators
+    .filter((generator) => generator.targetCollection === collectionId)
+    .map((generator) => ({
+      generatorId: generator.id,
+      generatorName: generator.name,
+      targetGroup: generator.targetGroup,
     }))
-    .sort((a, b) => a.recipeName.localeCompare(b.recipeName));
+    .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
 }
 
 function buildCollectionImpact(params: {
@@ -679,12 +679,12 @@ function buildCollectionImpact(params: {
   tokens: TokenGroup;
   metadata: CollectionMetadataState;
   resolvers: CollectionResolverMeta[];
-  recipes: CollectionRecipeMeta[];
-  allOwnedTokens: Array<{ collectionId: string; path: string; recipeId: string }>;
+  generators: CollectionGeneratorMeta[];
+  allOwnedTokens: Array<{ collectionId: string; path: string; generatorId: string }>;
 }): CollectionPreflightImpact {
-  const { collectionId, tokens, metadata, resolvers, recipes, allOwnedTokens } =
+  const { collectionId, tokens, metadata, resolvers, generators, allOwnedTokens } =
     params;
-  const recipeById = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+  const generatorById = new Map(generators.map((generator) => [generator.id, generator]));
   return {
     collectionId,
     tokenCount: flattenTokenGroup(tokens).size,
@@ -698,22 +698,22 @@ function buildCollectionImpact(params: {
     generatedOwnership: buildGeneratedOwnershipImpacts(
       collectionId,
       allOwnedTokens,
-      recipeById,
+      generatorById,
     ),
-    recipeTargets: buildRecipeTargets(collectionId, recipes),
+    generatorTargets: buildGeneratorTargets(collectionId, generators),
   };
 }
 
-function buildRecipeTargetBlockers(
+function buildGeneratorTargetBlockers(
   collectionImpact: CollectionPreflightImpact,
 ): CollectionPreflightBlocker[] {
-  return collectionImpact.recipeTargets.map((recipe) => ({
-    id: `recipe-target:${recipe.recipeId}:${collectionImpact.collectionId}`,
-    code: "recipe-target-collection",
+  return collectionImpact.generatorTargets.map((generator) => ({
+    id: `generator-target:${generator.generatorId}:${collectionImpact.collectionId}`,
+    code: "generator-target-collection",
     collectionId: collectionImpact.collectionId,
-    recipeId: recipe.recipeId,
-    recipeName: recipe.recipeName,
-    message: `Generated group "${recipe.recipeName}" still targets "${collectionImpact.collectionId}"${recipe.targetGroup ? ` at ${recipe.targetGroup}` : ""}.`,
+    generatorId: generator.generatorId,
+    generatorName: generator.generatorName,
+    message: `Generated group "${generator.generatorName}" still targets "${collectionImpact.collectionId}"${generator.targetGroup ? ` at ${generator.targetGroup}` : ""}.`,
   }));
 }
 
@@ -732,25 +732,25 @@ function buildGeneratedOwnershipBlockers(
   collectionImpact: CollectionPreflightImpact,
 ): CollectionPreflightBlocker[] {
   return collectionImpact.generatedOwnership.map((ownership) => ({
-    id: `generated-ownership:${ownership.recipeId}:${collectionImpact.collectionId}`,
+    id: `generated-ownership:${ownership.generatorId}:${collectionImpact.collectionId}`,
     code: "generated-token-ownership",
     collectionId: collectionImpact.collectionId,
-    recipeId: ownership.recipeId,
-    recipeName: ownership.recipeName,
-    message: `Generated tokens in "${collectionImpact.collectionId}" are still tagged as output from "${ownership.recipeName}"${ownership.targetGroup ? ` at ${ownership.targetGroup}` : ""}.`,
+    generatorId: ownership.generatorId,
+    generatorName: ownership.generatorName,
+    message: `Generated tokens in "${collectionImpact.collectionId}" are still tagged as output from "${ownership.generatorName}"${ownership.targetGroup ? ` at ${ownership.targetGroup}` : ""}.`,
   }));
 }
 
 function buildRenameBlockers(
   collectionImpact: CollectionPreflightImpact,
 ): CollectionPreflightBlocker[] {
-  return collectionImpact.recipeTargets.map((recipe) => ({
-    id: `recipe-target:${recipe.recipeId}:${collectionImpact.collectionId}`,
-    code: "recipe-target-collection",
+  return collectionImpact.generatorTargets.map((generator) => ({
+    id: `generator-target:${generator.generatorId}:${collectionImpact.collectionId}`,
+    code: "generator-target-collection",
     collectionId: collectionImpact.collectionId,
-    recipeId: recipe.recipeId,
-    recipeName: recipe.recipeName,
-    message: `Generated group "${recipe.recipeName}" still targets "${collectionImpact.collectionId}" and must be updated before this collection is renamed.`,
+    generatorId: generator.generatorId,
+    generatorName: generator.generatorName,
+    message: `Generated group "${generator.generatorName}" still targets "${collectionImpact.collectionId}" and must be updated before this collection is renamed.`,
   }));
 }
 
@@ -760,7 +760,7 @@ function buildRemovalBlockers(
   return [
     ...buildResolverReferenceBlockers(collectionImpact),
     ...buildGeneratedOwnershipBlockers(collectionImpact),
-    ...buildRecipeTargetBlockers(collectionImpact),
+    ...buildGeneratorTargetBlockers(collectionImpact),
   ];
 }
 
@@ -800,7 +800,7 @@ export class CollectionService {
     private readonly collectionStore: CollectionStore,
     private readonly resolverStore: ResolverStore,
     private readonly resolverLock: PromiseChainLock,
-    private readonly recipeService: RecipeService,
+    private readonly generatorService: GeneratorService,
     private readonly lintConfigStore: LintConfigStore,
   ) {}
 
@@ -846,15 +846,15 @@ export class CollectionService {
   }
 
   private async captureDependencyState(): Promise<CollectionDependencyStateSnapshot> {
-    const [lintConfig, recipes, resolvers] = await Promise.all([
+    const [lintConfig, generators, resolvers] = await Promise.all([
       this.loadLintConfig(),
-      this.recipeService.getAllById(),
+      this.generatorService.getAllById(),
       this.resolverLock.withLock(async () => this.resolverStore.getAllFiles()),
     ]);
 
     return {
       lintConfig,
-      recipes,
+      generators,
       resolvers,
     };
   }
@@ -883,15 +883,15 @@ export class CollectionService {
       }
     });
 
-    const currentRecipes = await this.recipeService.getAllById();
-    const desiredRecipeIds = new Set(Object.keys(snapshot.recipes));
-    for (const recipeId of Object.keys(currentRecipes)) {
-      if (!desiredRecipeIds.has(recipeId)) {
-        await this.recipeService.delete(recipeId);
+    const currentGenerators = await this.generatorService.getAllById();
+    const desiredGeneratorIds = new Set(Object.keys(snapshot.generators));
+    for (const generatorId of Object.keys(currentGenerators)) {
+      if (!desiredGeneratorIds.has(generatorId)) {
+        await this.generatorService.delete(generatorId);
       }
     }
-    for (const recipe of Object.values(snapshot.recipes)) {
-      await this.recipeService.restore(recipe);
+    for (const generator of Object.values(snapshot.generators)) {
+      await this.generatorService.restore(generator);
     }
 
     await this.restoreLintConfig(snapshot.lintConfig);
@@ -1135,15 +1135,15 @@ export class CollectionService {
           name: resolver.name,
           referencedCollections: resolver.referencedCollections,
         })),
-      recipes: this.recipeService
+      generators: this.generatorService
         .listCollectionDependencyMeta()
-        .map((recipe) => ({
-          id: recipe.id,
-          name: recipe.name,
-          targetCollection: recipe.targetCollection,
-          targetGroup: recipe.targetGroup,
+        .map((generator) => ({
+          id: generator.id,
+          name: generator.name,
+          targetCollection: generator.targetCollection,
+          targetGroup: generator.targetGroup,
         })),
-      allOwnedTokens: this.tokenStore.findTokensByRecipeId("*"),
+      allOwnedTokens: this.tokenStore.findTokensByGeneratorId("*"),
       collectionsById: new Map(),
       impactsByCollection: new Map(),
     };
@@ -1160,7 +1160,7 @@ export class CollectionService {
           tokens: loadedCollection.tokens,
           metadata: loadedCollection.metadata,
           resolvers: snapshot.resolvers,
-          recipes: snapshot.recipes,
+          generators: snapshot.generators,
           allOwnedTokens: snapshot.allOwnedTokens,
         }),
       );
@@ -1350,7 +1350,7 @@ export class CollectionService {
           newCollectionId,
         ),
       );
-      await this.recipeService.renameCollectionId(
+      await this.generatorService.renameCollectionId(
         oldCollectionId,
         newCollectionId,
       );
@@ -1683,7 +1683,7 @@ export class CollectionService {
         throw Object.assign(
           new ConflictError(
             blockers[0]?.message ??
-              `Cannot rename collection "${collectionId}" because recipe targets still derive this collection identity.`,
+              `Cannot rename collection "${collectionId}" because generator targets still derive this collection identity.`,
           ),
           { blockers },
         );
@@ -2025,7 +2025,7 @@ export class CollectionService {
         throw Object.assign(
           new ConflictError(
             blockers[0]?.message ??
-              `Cannot rename folder "${fromFolder}" because recipe targets still derive one or more collection ids in it.`,
+              `Cannot rename folder "${fromFolder}" because generator targets still derive one or more collection ids in it.`,
           ),
           { blockers },
         );
@@ -2117,7 +2117,7 @@ export class CollectionService {
         throw Object.assign(
           new ConflictError(
             blockers[0]?.message ??
-              `Cannot merge folder "${sourceFolder}" because recipe targets still derive one or more collection ids in it.`,
+              `Cannot merge folder "${sourceFolder}" because generator targets still derive one or more collection ids in it.`,
           ),
           { blockers },
         );

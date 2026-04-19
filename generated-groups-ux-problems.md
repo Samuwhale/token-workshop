@@ -1,6 +1,6 @@
 # Generated Groups UX Review
 
-This document reframes the open UX problems around generated groups based on the current implementation and the product direction in [automation-ux-redesign-spec.md](/Users/samuel/Documents/Projects/TokenManager/automation-ux-redesign-spec.md).
+This document reframes the open UX problems around generated groups based on the current implementation and product direction.
 
 The key conclusion is:
 
@@ -49,61 +49,67 @@ The current implementation is not starting from a broken baseline. Several impor
 - generated-token edit handling is appropriately interruptive and protective
 - conditional review gating is correct and keeps safe changes lightweight
 - the create menu is more scannable than a flat list because actions are grouped, even though the grouping still needs to be more intent-shaped
+- the quick generation path from token context (right-click, Generate palette...) with automatic type detection is directionally correct
 
-The remaining work is mostly about reducing noise and tightening hierarchy, not changing the core model.
+The remaining work is mostly about reducing noise, tightening hierarchy, and improving discoverability — not changing the core model.
 
 ---
 
 ## Updated Assessment
 
-## P1: Generated work is still hard to discover before first use
+## P1: Generated work is hard to discover before first use and hard to filter after
 
-**Status: Valid**
+**Status: Valid — strongest remaining problem**
 
 This is the strongest remaining generated-group UX problem.
 
-The issue is not that generated groups are impossible to find once they exist. Inline summaries and badges already provide persistent signals in the token tree. The issue is that there is no obvious collection-level affordance that says:
+The issue is not that generated groups are impossible to find once they exist. Inline summaries and badges already provide persistent signals in the token tree. The issue is twofold:
 
-- this collection contains generated work
-- show me the generated groups
-- let me focus on them now
+1. There is no collection-level affordance that says "this collection contains generated work — show me those groups"
+2. The search and filter system has no `Generated` filter at all — no qualifier, no toggle, no preset
 
-The existing search/filter plumbing is not enough. A designer who has not already learned the `Generated` filter has no reason to look for it.
+The filter menu supports issues-only, recently-touched, pinned-only, reference type, and duplicates — but not generated status. The structured query system supports `type:`, `has:`, `value:`, `path:`, and other qualifiers but has no `generated:` or `generator:` qualifier. A designer who has not already learned to visually scan for generated badges has no way to scope the view to generated work.
 
 ### Why this matters
 
-Without a collection-level shortcut, generated groups feel like a feature you discover accidentally rather than a first-class authoring capability.
+Without a collection-level shortcut or filter, generated groups feel like a feature you discover accidentally rather than a first-class authoring capability. This is especially problematic because the generation feature is one of the product's strongest differentiators.
 
 ### Recommended fix
 
-Add lightweight collection-level discovery inside the library:
+Add generated-work discovery inside the library at two levels:
 
-- a clickable generated-count chip in the token toolbar when count > 0
-- a one-click `Generated` filter shortcut for the current collection
-- optional empty-state and collection-header prompts when no generated groups exist yet
+**Filtering:**
+
+- add a `Generated` toggle to the filter menu alongside the existing issues/recent/pinned toggles
+- add a `generated:` qualifier to the structured query system
+- add a one-click generated-count chip in the token toolbar when count > 0 (acts as a filter shortcut)
+
+**Collection-level signals:**
+
+- optional collection-header prompt when no generated groups exist yet ("This collection has no generated groups — generate a palette, type scale, or spacing scale to get started")
 
 This should be a filtering affordance, not a dashboard.
 
 ---
 
-## P2: Generated tokens do not need a stronger “automation” identity, but they do need calmer, clearer provenance
+## P2: Generated tokens need calmer, clearer provenance — not stronger automation identity
 
 **Status: Partially valid**
 
 The original criticism that generated tokens are indistinguishable from manual tokens is overstated. The implementation already shows persistent generated markers and inline generated-group summaries.
 
-What is still true is that provenance is not yet as effortless to scan as it should be. The current signals are present, but the surrounding row density makes them easier to miss than necessary.
+What is still true is that provenance is not yet as effortless to scan as it should be. The metadata segment system uses middle-dot separated badges with multiple tones (accent, warning, danger, default), each independently clickable and with hover behavior. Even with a segment count cap, the visual grammar is dense because each segment competes for attention at the same level.
 
 ### Why this matters
 
-Designers need to understand, at a glance:
+Designers need to understand at a glance:
 
 - what is manual
 - what is generated
 - what is stale
 - what has exceptions
 
-If that provenance is technically present but visually buried, the user still experiences uncertainty.
+If provenance is technically present but visually busy, the user still experiences uncertainty.
 
 ### Recommended fix
 
@@ -114,10 +120,10 @@ Do not add more chrome. Instead:
 - cap resting metadata to two segments total
 - use the first segment for identity: `Generated by`, `Alias of`, or `Extends`
 - use the second segment for the most actionable status: stale state, missing-mode count, or lifecycle state
+- make the second segment visually quieter than the first — secondary text weight, no interactive styling at rest
 - move scopes, reference counts, origin, and mode-override indicators to hover, popover, or detail surfaces
-- only add any row-level visual treatment if it remains extremely quiet
 
-The goal is not louder status UI. The goal is calmer rows with clearer hierarchy.
+The goal is not just fewer segments — it is a clear visual hierarchy between the segments that remain.
 
 ---
 
@@ -125,7 +131,7 @@ The goal is not louder status UI. The goal is calmer rows with clearer hierarchy
 
 **Status: Partially valid**
 
-The current critique that creation is a “five-screen journey” no longer matches the actual implementation.
+The current critique that creation is a "five-screen journey" no longer matches the actual implementation.
 
 For the common case:
 
@@ -135,22 +141,26 @@ For the common case:
 
 That is already directionally correct.
 
-What still needs improvement is density inside the editor, not step count. The flow is conceptually right, but it still asks the user to parse more surface area and more settings than necessary for the most common foundational outcomes.
+What still needs improvement is density inside the editor, not step count. Two specific areas:
+
+1. The editor panel itself asks the user to parse more surface area and more settings than necessary for common outcomes
+2. The destination settings (group path, collection, label, keep-updated toggle, alias layer editor) require configuration even when sensible defaults could be inferred from the source token and selected outcome
 
 ### Why this matters
 
-Even when the flow is technically short, visual density can make it feel heavier than it is.
+Even when the flow is technically short, visual density and required decisions can make it feel heavier than it is. A designer generating a palette from a brand color should not need to configure a group path or understand alias layers.
 
 ### Recommended fix
 
 Keep the current structure, but simplify the panel:
 
 - emphasize source, destination collection, preview, and a few type-specific controls
-- keep advanced settings collapsed
+- auto-fill destination group path from the source token's group context when possible
+- keep advanced settings (alias layer, keep-updated, custom group path) collapsed by default
 - reduce explanatory chrome that restates nearby content
 - make foundational flows feel even more immediate
 
-The solution is not a new wizard. It is a quieter editor.
+The solution is not a new wizard. It is a quieter editor with smarter defaults.
 
 ---
 
@@ -197,7 +207,7 @@ If the chooser still feels hard to scan after simplification, then add light gro
 
 The product is in a better place than before, but the copy is still mixed.
 
-There are places where generic “generated group” language is correct:
+There are places where generic "generated group" language is correct:
 
 - mixed summaries
 - pre-selection states
@@ -233,31 +243,32 @@ Keep `generated group` only for genuinely mixed or pre-selection contexts.
 
 ---
 
-## P6: Quick token-origin generation already exists and should be preserved
+## P6: Quick token-origin generation is mostly addressed but under-discoverable
 
-**Status: Already addressed**
+**Status: Mostly addressed — one gap remains**
 
-The quick token-origin path is already present and aligned with the redesign direction.
+The quick token-origin path is already present and aligned with the redesign direction:
 
-That path should remain a core strength:
+- token context menu with type-specific label ("Generate palette...") and keyboard shortcut (G)
+- automatic type detection via the source token
+- live preview and fast create
 
-- token row or token detail
-- obvious outcome when available
-- live preview
-- fast create
+This is a core strength and should remain.
+
+The remaining gap is that this path is only accessible via the right-click context menu. There is no visual affordance on the token row itself. Context menus are native to Figma and designers are generally comfortable right-clicking, so this is not a critical gap — but the generation capability is invisible to users who haven't been told it exists.
 
 ### Recommended fix
 
-No structural change needed.
+No structural change needed. The context menu path is correct.
 
-The only follow-up work here is polish:
+Two small improvements:
 
-- make the quick action more discoverable
-- keep the common path quiet and fast
+- ensure onboarding or empty-state guidance mentions the right-click generation path
+- consider a subtle hover-revealed generation icon on tokens whose type maps to an obvious generator outcome — but only if it can be done without adding row clutter (this may not be worth the tradeoff)
 
 ---
 
-## Broader Token Library UX Problems
+## Broader Token Library UX
 
 The bigger issue is not only generated groups. The whole token library is carrying too many product modes at once.
 
@@ -279,9 +290,9 @@ This creates a UI that is powerful, but often denser than the target user needs 
 - token rows carry too much information and too many interaction states
 - the metadata line is the biggest offender because too many low-priority facts compete at the same visual level
 - the create menu mixes different mental models
-- the search/filter system is powerful but too expert-shaped
-- generated summaries are useful but slightly too verbose
-- mode context is present, but not yet ambient enough across the whole library
+- the search/filter system is powerful but has no approachable entry points for its most useful filters (especially the missing Generated filter)
+- generated-group summaries are useful but too verbose and too action-heavy — the summary row currently shows generator name, type, status, source token, keep-updated toggle, last run time, manual exception count, a compact token preview, and 5+ action buttons
+- mode context is present but not yet ambient enough across the whole library
 
 ---
 
@@ -301,17 +312,16 @@ Generated work should feel like authored library structure, not job management.
 
 ---
 
-## 2. Split the library into clearer operating lenses
+## 2. Strengthen filtering as the primary focus-switching mechanism
 
-Not separate pages. Clearer lenses inside the same workspace:
+Do not add separate lenses, tabs, or view modes for generated work and issues. Mutually exclusive lenses introduce mode-switching that fragments the collection view and creates the same "separate workspace" problem described in the opening position. Composable filters are strictly more flexible and align with how the library already works.
 
-- `Browse`
-- `Generated`
-- `Issues`
+Instead, make the existing filter system more approachable:
 
-The user should be able to switch mental focus without leaving the collection context.
+- add the missing `Generated` filter to the filter menu
+- surface the most useful filters as one-click toolbar affordances (generated-count chip, issues-count chip) rather than requiring users to open the filter menu or learn structured query syntax
 
-This would reduce the feeling that every row needs to explain everything at once.
+The user should be able to switch mental focus without leaving the collection context — through filtering, not through modes.
 
 ---
 
@@ -333,10 +343,11 @@ In practice, the metadata line should be limited at rest:
 
 - slot one is identity: `Generated by`, `Alias of`, or `Extends`
 - slot two is the most actionable status: stale, missing values, or lifecycle state
+- slot one should carry normal visual weight; slot two should be visually quieter (secondary text, non-interactive at rest)
 
 Everything else should move behind hover, popover, or detail preview.
 
-The right fix is not adding more markers. It is reducing row competition.
+The right fix is not adding more markers. It is reducing row competition and creating clear hierarchy between the information that remains.
 
 ---
 
@@ -373,11 +384,13 @@ This matters especially when:
 
 ---
 
-## 6. Reduce maintenance verbosity on generated-group summaries
+## 6. Reduce generated-group summary verbosity and action density
 
-Generated-group summaries currently carry useful information, but they read slightly too much like system status objects.
+Generated-group summaries currently carry useful information, but they serve two roles at once: status display and action surface. The summary row shows generator name, type, status, source token, keep-updated toggle, last run time, manual exception count, a compact token preview, and 5+ action buttons (Rerun, Edit, Toggle Keep Updated, Duplicate, Delete, Detach).
 
-They should prioritize:
+This is too much for an inline summary embedded in the token tree.
+
+The summary should prioritize:
 
 - what this generates
 - where it belongs
@@ -385,7 +398,10 @@ They should prioritize:
 - whether it is healthy
 - how many exceptions it has
 
-Then actions.
+Actions should be restructured:
+
+- promote only Edit and Rerun (when stale) as visible buttons
+- collapse Toggle Keep Updated, Duplicate, Delete, and Detach into a single overflow menu
 
 That will feel more native to design authoring and less operational.
 
@@ -397,8 +413,9 @@ That will feel more native to design authoring and less operational.
 
 Improve generated-work discovery inside the collection view:
 
-- add a generated-count toolbar chip
-- add a one-click generated filter
+- add a `Generated` toggle to the filter menu
+- add a `generated:` qualifier to the structured query system
+- add a generated-count toolbar chip as a one-click filter shortcut
 - strengthen collection-level empty-state guidance
 
 ## Priority 2
@@ -417,10 +434,11 @@ Apply type-specific language consistently where the outcome is known.
 
 Refine the token library as a calmer browse surface:
 
-- quieter rows with only two metadata segments visible at rest
-- clearer lenses
-- cleaner create menu
+- quieter rows with only two metadata segments visible at rest, with clear visual hierarchy between them
+- stronger filtering as the focus-switching mechanism (not lenses or tabs)
+- cleaner create menu structured around intent
 - more ambient mode context
+- generated-group summary rows with promoted actions (Edit, Rerun) and overflow for the rest
 
 ---
 

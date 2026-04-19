@@ -27,7 +27,7 @@ Capability hints:
 - task-proposal
 
 ## Review Priorities
-- Focus on routes and services that materially affect the plugin: sync, tokens, recipes, export, lint, snapshots, operations, and resolver flows.
+- Focus on routes and services that materially affect the plugin: sync, tokens, generators, export, lint, snapshots, operations, and resolver flows.
 - Prefer candidates that tighten contracts, reduce feature sprawl, or clarify service ownership and API behavior.
 - Avoid infrastructure-only tasks unless they directly unblock plugin-facing behavior.
 

@@ -1,28 +1,28 @@
 /**
- * Pure helper functions and constants for the token recipe system.
+ * Pure helper functions and constants for the token generator system.
  *
- * Extracted from TokenRecipeDialog to break a circular dependency:
- *   useRecipeDialog → TokenRecipeDialog → useRecipeDialog
+ * Extracted from TokenGeneratorDialog to break a circular dependency:
+ *   useGeneratorDialog → TokenGeneratorDialog → useGeneratorDialog
  */
 import type {
-  RecipeType,
-  RecipeConfig,
-} from '../../hooks/useRecipes';
+  GeneratorType,
+  GeneratorConfig,
+} from '../../hooks/useGenerators';
 
-import { DEFAULT_COLOR_RAMP_CONFIG } from './ColorRampRecipe';
-import { DEFAULT_TYPE_SCALE_CONFIG } from './TypeScaleRecipe';
-import { DEFAULT_SPACING_SCALE_CONFIG } from './SpacingScaleRecipe';
-import { DEFAULT_OPACITY_SCALE_CONFIG } from './OpacityScaleRecipe';
-import { DEFAULT_BORDER_RADIUS_CONFIG } from './BorderRadiusRecipe';
-import { DEFAULT_Z_INDEX_CONFIG } from './ZIndexRecipe';
-import { DEFAULT_CUSTOM_CONFIG } from './CustomScaleRecipe';
-import { DEFAULT_SHADOW_SCALE_CONFIG } from './ShadowScaleRecipe';
+import { DEFAULT_COLOR_RAMP_CONFIG } from './ColorRampGenerator';
+import { DEFAULT_TYPE_SCALE_CONFIG } from './TypeScaleGenerator';
+import { DEFAULT_SPACING_SCALE_CONFIG } from './SpacingScaleGenerator';
+import { DEFAULT_OPACITY_SCALE_CONFIG } from './OpacityScaleGenerator';
+import { DEFAULT_BORDER_RADIUS_CONFIG } from './BorderRadiusGenerator';
+import { DEFAULT_Z_INDEX_CONFIG } from './ZIndexGenerator';
+import { DEFAULT_CUSTOM_CONFIG } from './CustomScaleGenerator';
+import { DEFAULT_SHADOW_SCALE_CONFIG } from './ShadowScaleGenerator';
 
 // ---------------------------------------------------------------------------
 // Auto-detect helper
 // ---------------------------------------------------------------------------
 
-export function detectRecipeType(sourceTokenType: string, sourceTokenValue: any): RecipeType {
+export function detectGeneratorType(sourceTokenType: string, sourceTokenValue: any): GeneratorType {
   if (sourceTokenType === 'color') return 'colorRamp';
   if (sourceTokenType === 'number') return 'opacityScale';
   if (sourceTokenType === 'dimension' || sourceTokenType === 'fontSize') {
@@ -38,12 +38,12 @@ export function detectRecipeType(sourceTokenType: string, sourceTokenValue: any)
   return 'colorRamp';
 }
 
-export function getSingleObviousRecipeType(
+export function getSingleObviousGeneratorType(
   sourceTokenType: string | undefined,
   sourceTokenPath?: string,
   sourceTokenName?: string,
   sourceTokenValue?: unknown,
-): RecipeType | undefined {
+): GeneratorType | undefined {
   switch (sourceTokenType) {
     case 'color':
       return 'colorRamp';
@@ -59,12 +59,12 @@ export function getSingleObviousRecipeType(
       }
       return sourceTokenValue === undefined
         ? undefined
-        : detectRecipeType(sourceTokenType, sourceTokenValue);
+        : detectGeneratorType(sourceTokenType, sourceTokenValue);
     }
     case 'number':
       return sourceTokenValue === undefined
         ? undefined
-        : detectRecipeType(sourceTokenType, sourceTokenValue);
+        : detectGeneratorType(sourceTokenType, sourceTokenValue);
     default:
       return undefined;
   }
@@ -80,7 +80,7 @@ export function suggestTargetGroup(sourceTokenPath: string, sourceTokenName?: st
   return parts.slice(0, -1).join('.');
 }
 
-export function autoName(sourceTokenPath: string | undefined, type: RecipeType): string {
+export function autoName(sourceTokenPath: string | undefined, type: GeneratorType): string {
   // Use just the type label — the target group provides the context
   if (sourceTokenPath) {
     const parts = sourceTokenPath.split('.');
@@ -90,7 +90,7 @@ export function autoName(sourceTokenPath: string | undefined, type: RecipeType):
   return TYPE_LABELS[type];
 }
 
-export function defaultConfigForType(type: RecipeType): RecipeConfig {
+export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
   switch (type) {
     case 'colorRamp': return { ...DEFAULT_COLOR_RAMP_CONFIG, steps: [...DEFAULT_COLOR_RAMP_CONFIG.steps] };
     case 'typeScale': return { ...DEFAULT_TYPE_SCALE_CONFIG, steps: DEFAULT_TYPE_SCALE_CONFIG.steps.map(s => ({ ...s })) };
@@ -104,7 +104,7 @@ export function defaultConfigForType(type: RecipeType): RecipeConfig {
   }
 }
 
-export function defaultInlineValueForType(type: RecipeType): unknown {
+export function defaultInlineValueForType(type: GeneratorType): unknown {
   switch (type) {
     case 'colorRamp':
     case 'darkModeInversion':
@@ -118,7 +118,7 @@ export function defaultInlineValueForType(type: RecipeType): unknown {
   }
 }
 
-export function isInlineValueCompatibleWithType(type: RecipeType, value: unknown): boolean {
+export function isInlineValueCompatibleWithType(type: GeneratorType, value: unknown): boolean {
   switch (type) {
     case 'colorRamp':
     case 'darkModeInversion':
@@ -139,14 +139,14 @@ export function isInlineValueCompatibleWithType(type: RecipeType, value: unknown
 
 // Types that require a source token
 /** Types that need a value (from source token OR inline input) */
-export const VALUE_REQUIRED_TYPES: RecipeType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'darkModeInversion'];
+export const VALUE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'darkModeInversion'];
 // Types that work standalone (no value at all)
-export const STANDALONE_TYPES: RecipeType[] = ['opacityScale', 'zIndexScale', 'shadowScale'];
+export const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'shadowScale'];
 // Types that work either way
-export const FLEXIBLE_TYPES: RecipeType[] = ['customScale'];
+export const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
 
-/** Human-readable labels for every recipe type. Canonical source of truth. */
-export const TYPE_LABELS: Record<RecipeType, string> = {
+/** Human-readable labels for every generator type. Canonical source of truth. */
+export const TYPE_LABELS: Record<GeneratorType, string> = {
   colorRamp: 'Palette',
   typeScale: 'Type Scale',
   spacingScale: 'Spacing Scale',
@@ -158,24 +158,24 @@ export const TYPE_LABELS: Record<RecipeType, string> = {
   darkModeInversion: 'Dark Mode Variant',
 };
 
-/** Primary recipe types shown by default */
-export const PRIMARY_TYPES: RecipeType[] = [
+/** Primary generator types shown by default */
+export const PRIMARY_TYPES: GeneratorType[] = [
   'colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale',
   'opacityScale', 'zIndexScale', 'shadowScale', 'customScale',
 ];
-/** Advanced/niche recipe types shown in a collapsible section */
-export const ADVANCED_TYPES: RecipeType[] = [
+/** Advanced/niche generator types shown in a collapsible section */
+export const ADVANCED_TYPES: GeneratorType[] = [
   'darkModeInversion',
 ];
 
-export const ALL_TYPES: RecipeType[] = [...PRIMARY_TYPES, ...ADVANCED_TYPES];
+export const ALL_TYPES: GeneratorType[] = [...PRIMARY_TYPES, ...ADVANCED_TYPES];
 
 // ---------------------------------------------------------------------------
 // Designer-friendly descriptions (Phase 1B: intent-based type selector)
 // ---------------------------------------------------------------------------
 
-/** One-line descriptions for each recipe type, written for designers. */
-export const TYPE_DESCRIPTIONS: Record<RecipeType, string> = {
+/** One-line descriptions for each generator type, written for designers. */
+export const TYPE_DESCRIPTIONS: Record<GeneratorType, string> = {
   colorRamp: 'Create a full color palette from a single base color',
   typeScale: 'Create a harmonious font size progression using a ratio',
   spacingScale: 'Build consistent spacing values from a base unit',

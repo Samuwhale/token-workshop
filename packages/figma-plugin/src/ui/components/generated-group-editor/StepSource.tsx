@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type {
-  RecipeType,
-  RecipeConfig,
+  GeneratorType,
+  GeneratorConfig,
   GeneratedTokenResult,
   ColorRampConfig,
   TypeScaleConfig,
@@ -12,25 +12,25 @@ import type {
   ShadowScaleConfig,
   CustomScaleConfig,
   DarkModeInversionConfig,
-} from "../../hooks/useRecipes";
+} from "../../hooks/useGenerators";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { OverwrittenEntry } from "../../hooks/useGeneratedGroupPreview";
 import { StepWhere, type StepWhereProps } from "./StepWhere";
-import { ColorRampConfigEditor, ColorSwatchPreview } from "../recipes/ColorRampRecipe";
-import { TypeScaleConfigEditor, TypeScalePreview } from "../recipes/TypeScaleRecipe";
-import { SpacingScaleConfigEditor, SpacingPreview } from "../recipes/SpacingScaleRecipe";
-import { OpacityScaleConfigEditor, OpacityPreview } from "../recipes/OpacityScaleRecipe";
-import { ShadowScaleConfigEditor, ShadowPreview } from "../recipes/ShadowScaleRecipe";
-import { BorderRadiusConfigEditor, BorderRadiusPreview } from "../recipes/BorderRadiusRecipe";
-import { ZIndexConfigEditor } from "../recipes/ZIndexRecipe";
-import { CustomScaleConfigEditor } from "../recipes/CustomScaleRecipe";
-import { DarkModeInversionConfigEditor } from "../recipes/DarkModeInversionRecipe";
-import { GenericPreview } from "../recipes/recipeShared";
-import { TYPE_LABELS } from "../recipes/recipeUtils";
+import { ColorRampConfigEditor, ColorSwatchPreview } from "../generators/ColorRampGenerator";
+import { TypeScaleConfigEditor, TypeScalePreview } from "../generators/TypeScaleGenerator";
+import { SpacingScaleConfigEditor, SpacingPreview } from "../generators/SpacingScaleGenerator";
+import { OpacityScaleConfigEditor, OpacityPreview } from "../generators/OpacityScaleGenerator";
+import { ShadowScaleConfigEditor, ShadowPreview } from "../generators/ShadowScaleGenerator";
+import { BorderRadiusConfigEditor, BorderRadiusPreview } from "../generators/BorderRadiusGenerator";
+import { ZIndexConfigEditor } from "../generators/ZIndexGenerator";
+import { CustomScaleConfigEditor } from "../generators/CustomScaleGenerator";
+import { DarkModeInversionConfigEditor } from "../generators/DarkModeInversionGenerator";
+import { GenericPreview } from "../generators/generatorShared";
+import { TYPE_LABELS } from "../generators/generatorUtils";
 import { UnifiedSourceInput } from "../UnifiedSourceInput";
 import { Spinner } from "../Spinner";
 import { AUTHORING } from "../../shared/editorClasses";
-import { cloneStarterConfigForRecipeType, GRAPH_TEMPLATES, type GraphTemplate } from "../graph-templates";
+import { cloneStarterConfigForGeneratorType, GRAPH_TEMPLATES, type GraphTemplate } from "../graph-templates";
 
 function TemplateSuggestion({
   template,
@@ -66,8 +66,8 @@ function TemplateSuggestion({
 
 export interface StepSourceProps {
   isEditing: boolean;
-  selectedType: RecipeType;
-  currentConfig: RecipeConfig;
+  selectedType: GeneratorType;
+  currentConfig: GeneratorConfig;
   typeNeedsValue: boolean;
   hasValue: boolean;
   sourceTokenPath?: string;
@@ -86,7 +86,7 @@ export interface StepSourceProps {
   onUndo: () => void;
   onRedo: () => void;
   onConfigInteractionStart: () => void;
-  onConfigChange: (type: RecipeType, cfg: RecipeConfig) => void;
+  onConfigChange: (type: GeneratorType, cfg: GeneratorConfig) => void;
   onSourcePathChange: (value: string) => void;
   onInlineValueChange: (value: unknown) => void;
   onOverrideChange: (
@@ -177,7 +177,7 @@ export function StepSource({
     selectedType === "borderRadiusScale";
   const matchingTemplate =
     !isEditing && !templateDismissed
-      ? GRAPH_TEMPLATES.find((template) => template.recipeType === selectedType)
+      ? GRAPH_TEMPLATES.find((template) => template.generatorType === selectedType)
       : undefined;
 
   const renderPreview = () => {
@@ -260,12 +260,12 @@ export function StepSource({
   };
 
   return (
-    <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
+    <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
       {matchingTemplate && (
         <TemplateSuggestion
           template={matchingTemplate}
           onApply={() => {
-            const starterConfig = cloneStarterConfigForRecipeType(selectedType);
+            const starterConfig = cloneStarterConfigForGeneratorType(selectedType);
             if (starterConfig) {
               onConfigInteractionStart();
               onConfigChange(selectedType, starterConfig);
@@ -277,7 +277,7 @@ export function StepSource({
       )}
 
       {typeNeedsValue && (
-        <div className={AUTHORING.recipeSectionCard}>
+        <div className={AUTHORING.generatorSectionCard}>
           <UnifiedSourceInput
             expectedType={
               typeExpectsColor ? "color" : typeExpectsDimension ? "dimension" : null
@@ -294,7 +294,7 @@ export function StepSource({
       )}
 
       {destination && (
-        <div className={AUTHORING.recipeSectionCard}>
+        <div className={AUTHORING.generatorSectionCard}>
           {detachedCount > 0 && (
             <div className="mb-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text)]">
               {detachedCount} detached token{detachedCount === 1 ? "" : "s"}
@@ -344,7 +344,7 @@ export function StepSource({
         </div>
       )}
 
-      <div className={AUTHORING.recipeSectionCard}>
+      <div className={AUTHORING.generatorSectionCard}>
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
             {TYPE_LABELS[selectedType]}
@@ -353,7 +353,7 @@ export function StepSource({
             <button
               type="button"
               onClick={() => {
-                const starterConfig = cloneStarterConfigForRecipeType(selectedType);
+                const starterConfig = cloneStarterConfigForGeneratorType(selectedType);
                 if (starterConfig) {
                   onConfigInteractionStart();
                   onConfigChange(selectedType, starterConfig);
@@ -460,7 +460,7 @@ export function StepSource({
         )}
       </div>
 
-      <div className={AUTHORING.recipeSectionCard}>
+      <div className={AUTHORING.generatorSectionCard}>
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
             Preview

@@ -3,7 +3,7 @@ import { NoticeInlineAlert } from '../shared/noticeSystem';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
-import { isDimensionLike } from './recipes/recipeShared';
+import { isDimensionLike } from './generators/generatorShared';
 import { nodeParentPath } from './tokenListUtils';
 import { getErrorMessage } from '../shared/utils';
 import { getRecentTokens, addRecentToken } from '../shared/recentTokens';

@@ -46,7 +46,7 @@ import { useConnectionContext } from "./contexts/ConnectionContext";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
-  useRecipeContext,
+  useGeneratorContext,
 } from "./contexts/TokenDataContext";
 import {
   useResolverContext,
@@ -166,10 +166,10 @@ export function App() {
     modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
   const {
-    recipes,
-    refreshRecipes,
-    recipesBySource,
-  } = useRecipeContext();
+    generators,
+    refreshGenerators,
+    generatorsBySource,
+  } = useGeneratorContext();
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
@@ -389,9 +389,9 @@ export function App() {
     };
   }, [pushUndo, setResolverPushUndo]);
   const onGeneratedGroupError = useCallback(
-    ({ recipeId, message }: { recipeId?: string; message: string }) => {
-      const label = recipeId
-        ? `Generated group "${recipeId}" failed`
+    ({ generatorId, message }: { generatorId?: string; message: string }) => {
+      const label = generatorId
+        ? `Generated group "${generatorId}" failed`
         : "Generated group failed";
       setErrorToast(`${label}: ${message}`);
     },
@@ -418,9 +418,9 @@ export function App() {
   const refreshAll = useCallback(() => {
     refreshTokens();
     setLintKey((k) => k + 1);
-    refreshRecipes();
+    refreshGenerators();
     setTokenChangeKey((k) => k + 1);
-  }, [refreshTokens, refreshRecipes]);
+  }, [refreshTokens, refreshGenerators]);
   const activeWorkspaceSummary = useMemo(
     () => resolveWorkspaceSummary(activeTopTab, activeSubTab),
     [activeTopTab, activeSubTab],
@@ -636,7 +636,7 @@ export function App() {
   }, [setPreviewingToken]);
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"
-      ? (recipes.find((recipe) => recipe.id === editingGeneratedGroup.id) ??
+      ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
         null)
       : null;
   useEffect(() => {
@@ -699,7 +699,7 @@ export function App() {
     (savedPath: string) => {
       setHighlightedToken(savedPath);
       setEditingToken(null);
-      const affectedGens = recipesBySource.get(savedPath) ?? [];
+      const affectedGens = generatorsBySource.get(savedPath) ?? [];
       refreshAll();
       if (affectedGens.length > 0) {
         const n = affectedGens.length;
@@ -714,7 +714,7 @@ export function App() {
                     ? modeResolvedTokensFlat[generatedGroup.sourceToken]?.$value
                     : undefined;
                 try {
-                  await apiFetch(`${serverUrl}/api/recipes/${generatedGroup.id}/run`, {
+                  await apiFetch(`${serverUrl}/api/generators/${generatedGroup.id}/run`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
@@ -728,7 +728,7 @@ export function App() {
                   /* ignore */
                 }
               }
-              refreshRecipes();
+              refreshGenerators();
             },
           },
         );
@@ -738,10 +738,10 @@ export function App() {
       refreshAll,
       setHighlightedToken,
       setEditingToken,
-      recipesBySource,
+      generatorsBySource,
       pushActionToast,
       serverUrl,
-      refreshRecipes,
+      refreshGenerators,
       modeResolvedTokensFlat,
     ],
   );
@@ -774,11 +774,11 @@ export function App() {
     [currentCollectionId, setHighlightedToken, setPendingHighlightForCollection, setCurrentCollectionId],
   );
   const handleNavigateToGeneratedGroup = useCallback(
-    (recipeId: string) => {
+    (generatorId: string) => {
       navigateTo("tokens", "tokens");
       switchContextualSurface({
         surface: "generated-group-editor",
-        generatedGroup: { mode: "edit", id: recipeId },
+        generatedGroup: { mode: "edit", id: generatorId },
       });
     },
     [navigateTo, switchContextualSurface],

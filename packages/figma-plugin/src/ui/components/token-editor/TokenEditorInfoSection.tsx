@@ -4,7 +4,7 @@ import type {
   TokenDependencyNode,
   TokenDependencySnapshot,
 } from "../TokenFlowPanel";
-import type { TokenRecipe } from "../../hooks/useRecipes";
+import type { TokenGenerator } from "../../hooks/useGenerators";
 import { TokenUsages } from "../TokenUsages";
 import { TokenHistorySection } from "../TokenHistorySection";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
@@ -33,8 +33,8 @@ export interface TokenEditorInfoSectionProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   initialValue: any | undefined;
-  activeProducingRecipe: TokenRecipe | null;
-  existingRecipesForToken: TokenRecipe[];
+  activeProducingGenerator: TokenGenerator | null;
+  existingGeneratorsForToken: TokenGenerator[];
   // UI state
   infoTab: 'dependencies' | 'usage' | 'history' | null;
   onInfoTabChange: (tab: 'dependencies' | 'usage' | 'history') => void;
@@ -43,7 +43,7 @@ export interface TokenEditorInfoSectionProps {
   // Navigation
   onShowReferences?: (path: string) => void;
   onNavigateToToken?: (path: string, fromPath?: string) => void;
-  onNavigateToGeneratedGroup?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (generatorId: string) => void;
 }
 
 export function TokenEditorInfoSection({
@@ -68,8 +68,8 @@ export function TokenEditorInfoSection({
   allTokensFlat,
   pathToCollectionId,
   initialValue,
-  activeProducingRecipe,
-  existingRecipesForToken,
+  activeProducingGenerator,
+  existingGeneratorsForToken,
   infoTab,
   onInfoTabChange,
   refsExpanded,
@@ -93,8 +93,8 @@ export function TokenEditorInfoSection({
         extendsCollectionId={
           extendsPath ? (pathToCollectionId[extendsPath] ?? null) : null
         }
-        sourceRecipes={existingRecipesForToken}
-        generatedRecipe={activeProducingRecipe}
+        sourceGenerators={existingGeneratorsForToken}
+        generatedGenerator={activeProducingGenerator}
         onNavigateToPath={
           onNavigateToToken
             ? (path) => onNavigateToToken(path, tokenPath)
@@ -383,8 +383,8 @@ export function TokenEditorInfoSection({
             colorFlatMap={colorFlatMap}
             pathToCollectionId={pathToCollectionId}
             initialValue={initialValue}
-            producingRecipe={activeProducingRecipe}
-            sourceRecipes={existingRecipesForToken}
+            producingGenerator={activeProducingGenerator}
+            sourceGenerators={existingGeneratorsForToken}
             onNavigateToToken={onNavigateToToken}
             onShowReferences={onShowReferences}
             onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}

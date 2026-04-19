@@ -23,7 +23,7 @@ export interface SnapshotSummary {
   collectionStorageCount: number;
   collectionCount: number;
   resolverCount: number;
-  recipeCount: number;
+  generatorCount: number;
 }
 
 export interface SnapshotDiff {
@@ -36,7 +36,7 @@ export interface SnapshotDiff {
 }
 
 export interface WorkspaceDiff {
-  kind: 'collections' | 'resolver' | 'recipe';
+  kind: 'collections' | 'resolver' | 'generator';
   id: string;
   label: string;
   status: ChangeStatus;

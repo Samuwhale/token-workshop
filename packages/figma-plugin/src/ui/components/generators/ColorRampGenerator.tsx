@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { labToHex } from '@tokenmanager/core';
-import type { ColorRampConfig, GeneratedTokenResult } from '../../hooks/useRecipes';
+import type { ColorRampConfig, GeneratedTokenResult } from '../../hooks/useGenerators';
 import type { TokenMapEntry } from '../../../shared/types';
-import { OverrideTable } from './recipeShared';
+import { OverrideTable } from './generatorShared';
 import { BezierCurveEditor } from './BezierCurveEditor';
 import { wcagContrast } from '../../shared/colorUtils';
 import { TokenRefInput } from '../TokenRefInput';

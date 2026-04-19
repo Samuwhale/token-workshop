@@ -5,8 +5,8 @@
  */
 
 import { STORAGE_KEYS } from "./storage";
-import type { RecipeDialogInitialDraft } from "../hooks/useGeneratedGroupEditor";
-import type { RecipeTemplate } from "../hooks/useRecipes";
+import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratedGroupEditor";
+import type { GeneratorTemplate } from "../hooks/useGenerators";
 
 export type TopTab = "tokens" | "inspect" | "sync";
 type TokensSubTab = "tokens";
@@ -58,8 +58,8 @@ export type TokensLibraryGeneratedGroupEditorTarget =
       sourceTokenType?: string;
       sourceTokenValue?: unknown;
       intentPreset?: "semantic-aliases";
-      initialDraft?: RecipeDialogInitialDraft;
-      template?: RecipeTemplate;
+      initialDraft?: GeneratorDialogInitialDraft;
+      template?: GeneratorTemplate;
     };
 
 export interface SurfaceTransition {

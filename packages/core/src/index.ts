@@ -21,7 +21,7 @@ export type { DimensionUnit, StrokeStyleKeyword } from './constants.js';
 // Types
 export type {
   TokenManagerExtensions,
-  TokenManagerRecipeExtension,
+  TokenManagerGeneratorExtension,
   TokenExtensions,
   ColorModifierOp,
   ColorValue,
@@ -148,10 +148,10 @@ export type { ExternalFileLoader, ResolverDiagnostic, ResolverResult } from './d
 export { TokenValidator } from './validator.js';
 export type { ValidationResult } from './validator.js';
 
-// Recipe types & engine
+// Generator types & engine
 export type {
-  RecipeType,
-  RecipeManagedOutput,
+  GeneratorType,
+  GeneratorManagedOutput,
   ColorRampConfig,
   TypeScaleStep,
   TypeScaleConfig,
@@ -166,19 +166,19 @@ export type {
   CustomScaleStep,
   CustomScaleConfig,
   DarkModeInversionConfig,
-  RecipeConfig,
-  RecipeSemanticLayer,
+  GeneratorConfig,
+  GeneratorSemanticLayer,
   SemanticTokenMapping,
-  TokenRecipe,
+  TokenGenerator,
   GeneratedTokenResult,
-} from './recipe-types.js';
+} from './generator-types.js';
 export {
-  createRecipeOwnershipKey,
-  getRecipeManagedOutputPaths,
-  getRecipeManagedOutputs,
-  getRecipeStepNames,
+  createGeneratorOwnershipKey,
+  getGeneratorManagedOutputPaths,
+  getGeneratorManagedOutputs,
+  getGeneratorStepNames,
   validateStepName,
-} from './recipe-types.js';
+} from './generator-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
@@ -189,18 +189,18 @@ export {
   DEFAULT_SHADOW_SCALE_CONFIG,
   DEFAULT_CUSTOM_SCALE_CONFIG,
   DEFAULT_DARK_MODE_INVERSION_CONFIG,
-} from './recipe-types.js';
+} from './generator-types.js';
 
-// Recipe engine
+// Generator engine
 export {
-  runColorRampRecipe,
-  runTypeScaleRecipe,
-  runSpacingScaleRecipe,
-  runOpacityScaleRecipe,
-  runBorderRadiusScaleRecipe,
-  runZIndexScaleRecipe,
-  runShadowScaleRecipe,
-  runCustomScaleRecipe,
-  runDarkModeInversionRecipe,
+  runColorRampGenerator,
+  runTypeScaleGenerator,
+  runSpacingScaleGenerator,
+  runOpacityScaleGenerator,
+  runBorderRadiusScaleGenerator,
+  runZIndexScaleGenerator,
+  runShadowScaleGenerator,
+  runCustomScaleGenerator,
+  runDarkModeInversionGenerator,
   applyOverrides,
-} from './recipe-engine.js';
+} from './generator-engine.js';

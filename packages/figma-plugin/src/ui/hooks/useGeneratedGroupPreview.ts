@@ -2,10 +2,10 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import type {
-  RecipeType,
-  RecipeConfig,
+  GeneratorType,
+  GeneratorConfig,
   GeneratedTokenResult,
-} from './useRecipes';
+} from './useGenerators';
 
 export interface OverwrittenEntry {
   path: string;
@@ -14,14 +14,14 @@ export interface OverwrittenEntry {
   newValue: unknown;
 }
 
-export interface RecipePreviewDiff {
+export interface GeneratorPreviewDiff {
   created: Array<{ path: string; value: unknown; type: string }>;
   updated: Array<{ path: string; currentValue: unknown; newValue: unknown; type: string }>;
   deleted: Array<{ path: string; currentValue: unknown; type: string }>;
   unchanged: Array<{ path: string; value: unknown; type: string }>;
 }
 
-export interface RecipePreviewChangeEntry {
+export interface GeneratorPreviewChangeEntry {
   path: string;
   collectionId: string;
   type: string;
@@ -30,23 +30,23 @@ export interface RecipePreviewChangeEntry {
   changesValue: boolean;
 }
 
-export interface RecipePreviewOverwriteEntry extends RecipePreviewChangeEntry {
-  owner: 'manual' | 'recipe';
-  recipeId?: string;
+export interface GeneratorPreviewOverwriteEntry extends GeneratorPreviewChangeEntry {
+  owner: 'manual' | 'generator';
+  generatorId?: string;
 }
 
-export interface RecipePreviewManualConflictEntry extends RecipePreviewChangeEntry {
+export interface GeneratorPreviewManualConflictEntry extends GeneratorPreviewChangeEntry {
   baselineValue: unknown;
 }
 
-export interface RecipePreviewDeletedEntry {
+export interface GeneratorPreviewDeletedEntry {
   path: string;
   collectionId: string;
   type: string;
   currentValue: unknown;
 }
 
-export interface RecipePreviewDetachedEntry {
+export interface GeneratorPreviewDetachedEntry {
   path: string;
   collectionId: string;
   type: string;
@@ -55,7 +55,7 @@ export interface RecipePreviewDetachedEntry {
   state: 'preserved' | 'recreated';
 }
 
-export interface RecipePreviewManualExceptionEntry {
+export interface GeneratorPreviewManualExceptionEntry {
   path: string;
   collectionId: string;
   type: string;
@@ -64,27 +64,27 @@ export interface RecipePreviewManualExceptionEntry {
   state: 'created' | 'preserved' | 'invalidated';
 }
 
-export interface RecipePreviewAnalysis {
+export interface GeneratorPreviewAnalysis {
   fingerprint: string;
   safeCreateCount: number;
   unchangedCount: number;
   existingPathSet: string[];
-  safeUpdates: RecipePreviewChangeEntry[];
-  nonRecipeOverwrites: RecipePreviewOverwriteEntry[];
-  manualEditConflicts: RecipePreviewManualConflictEntry[];
-  deletedOutputs: RecipePreviewDeletedEntry[];
-  detachedOutputs: RecipePreviewDetachedEntry[];
-  manualExceptions: RecipePreviewManualExceptionEntry[];
-  diff: RecipePreviewDiff;
+  safeUpdates: GeneratorPreviewChangeEntry[];
+  nonGeneratorOverwrites: GeneratorPreviewOverwriteEntry[];
+  manualEditConflicts: GeneratorPreviewManualConflictEntry[];
+  deletedOutputs: GeneratorPreviewDeletedEntry[];
+  detachedOutputs: GeneratorPreviewDetachedEntry[];
+  manualExceptions: GeneratorPreviewManualExceptionEntry[];
+  diff: GeneratorPreviewDiff;
 }
 
 /** True when the analysis contains risks that warrant user review before saving. */
 export function hasGeneratedGroupPreviewRisks(
-  analysis: RecipePreviewAnalysis | null,
+  analysis: GeneratorPreviewAnalysis | null,
 ): boolean {
   if (!analysis) return true;
   return (
-    analysis.nonRecipeOverwrites.length > 0 ||
+    analysis.nonGeneratorOverwrites.length > 0 ||
     analysis.manualEditConflicts.length > 0 ||
     analysis.deletedOutputs.length > 0 ||
     analysis.detachedOutputs.length > 0 ||
@@ -93,7 +93,7 @@ export function hasGeneratedGroupPreviewRisks(
 }
 
 export function requiresGeneratedGroupReview(
-  analysis: RecipePreviewAnalysis | null,
+  analysis: GeneratorPreviewAnalysis | null,
 ): boolean {
   if (!analysis) return true;
   return (
@@ -102,23 +102,23 @@ export function requiresGeneratedGroupReview(
   );
 }
 
-export interface RecipePreviewResponse {
+export interface GeneratorPreviewResponse {
   count: number;
   tokens: GeneratedTokenResult[];
-  analysis: RecipePreviewAnalysis;
+  analysis: GeneratorPreviewAnalysis;
 }
 
-export interface RecipePreviewRequest {
+export interface GeneratorPreviewRequest {
   serverUrl: string;
-  selectedType: RecipeType;
+  selectedType: GeneratorType;
   sourceTokenPath?: string;
   inlineValue?: unknown;
   targetGroup: string;
   targetCollection: string;
-  config: RecipeConfig;
+  config: GeneratorConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   sourceValue?: unknown;
-  baseRecipeId?: string;
+  baseGeneratorId?: string;
   detachedPaths?: string[];
   signal?: AbortSignal;
 }
@@ -133,10 +133,10 @@ export async function requestGeneratedGroupPreview({
   config,
   pendingOverrides,
   sourceValue,
-  baseRecipeId,
+  baseGeneratorId,
   detachedPaths,
   signal,
-}: RecipePreviewRequest): Promise<RecipePreviewResponse> {
+}: GeneratorPreviewRequest): Promise<GeneratorPreviewResponse> {
   const body: Record<string, unknown> = {
     type: selectedType,
     targetGroup,
@@ -144,7 +144,7 @@ export async function requestGeneratedGroupPreview({
     config,
     overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
     sourceValue,
-    baseRecipeId,
+    baseGeneratorId,
     detachedPaths,
   };
 
@@ -154,7 +154,7 @@ export async function requestGeneratedGroupPreview({
     body.inlineValue = inlineValue;
   }
 
-  return apiFetch<RecipePreviewResponse>(`${serverUrl}/api/recipes/preview`, {
+  return apiFetch<GeneratorPreviewResponse>(`${serverUrl}/api/generators/preview`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -162,40 +162,40 @@ export async function requestGeneratedGroupPreview({
   });
 }
 
-interface UseRecipePreviewParams {
+interface UseGeneratorPreviewParams {
   serverUrl: string;
-  selectedType: RecipeType;
+  selectedType: GeneratorType;
   sourceTokenPath?: string;
   inlineValue?: unknown;
   sourceValue?: unknown;
   targetGroup: string;
   targetCollection: string;
-  config: RecipeConfig;
+  config: GeneratorConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
-  existingRecipeId?: string;
+  existingGeneratorId?: string;
   detachedPaths?: string[];
   refreshNonce?: number;
 }
 
-export interface UseRecipePreviewReturn {
+export interface UseGeneratorPreviewReturn {
   previewTokens: GeneratedTokenResult[];
   previewLoading: boolean;
   previewError: string;
   existingTokensError: string;
   overwrittenEntries: OverwrittenEntry[];
   existingOverwritePathSet: Set<string>;
-  previewDiff: RecipePreviewDiff | null;
+  previewDiff: GeneratorPreviewDiff | null;
   previewFingerprint: string;
-  previewAnalysis: RecipePreviewAnalysis | null;
+  previewAnalysis: GeneratorPreviewAnalysis | null;
 }
 
-const EMPTY_ANALYSIS: RecipePreviewAnalysis = {
+const EMPTY_ANALYSIS: GeneratorPreviewAnalysis = {
   fingerprint: '',
   safeCreateCount: 0,
   unchangedCount: 0,
   existingPathSet: [],
   safeUpdates: [],
-  nonRecipeOverwrites: [],
+  nonGeneratorOverwrites: [],
   manualEditConflicts: [],
   deletedOutputs: [],
   detachedOutputs: [],
@@ -218,14 +218,14 @@ export function useGeneratedGroupPreview({
   targetCollection,
   config,
   pendingOverrides,
-  existingRecipeId,
+  existingGeneratorId,
   detachedPaths,
   refreshNonce = 0,
-}: UseRecipePreviewParams): UseRecipePreviewReturn {
+}: UseGeneratorPreviewParams): UseGeneratorPreviewReturn {
   const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
-  const [previewAnalysis, setPreviewAnalysis] = useState<RecipePreviewAnalysis | null>(null);
+  const [previewAnalysis, setPreviewAnalysis] = useState<GeneratorPreviewAnalysis | null>(null);
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -249,7 +249,7 @@ export function useGeneratedGroupPreview({
           targetCollection,
           config,
           pendingOverrides,
-          baseRecipeId: existingRecipeId,
+          baseGeneratorId: existingGeneratorId,
           detachedPaths,
           signal: controller.signal,
         });
@@ -269,7 +269,7 @@ export function useGeneratedGroupPreview({
   }, [
     config,
     detachedPaths,
-    existingRecipeId,
+    existingGeneratorId,
     inlineValue,
     pendingOverrides,
     selectedType,
@@ -299,7 +299,7 @@ export function useGeneratedGroupPreview({
     if (!analysis) return [];
     return [
       ...analysis.safeUpdates,
-      ...analysis.nonRecipeOverwrites.filter((entry) => entry.changesValue),
+      ...analysis.nonGeneratorOverwrites.filter((entry) => entry.changesValue),
       ...analysis.manualEditConflicts,
       ...analysis.detachedOutputs
         .filter((entry) => entry.state === 'recreated' && entry.newValue !== undefined && stableValueChanged(entry.currentValue, entry.newValue))

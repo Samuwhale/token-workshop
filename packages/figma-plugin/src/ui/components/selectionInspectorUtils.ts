@@ -1,7 +1,7 @@
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, PROPERTY_LABELS, SCOPE_TO_PROPERTIES, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
-import { isDimensionLike } from './recipes/recipeShared';
+import { isDimensionLike } from './generators/generatorShared';
 import type { UndoSlot } from '../hooks/useUndo';
 
 export function shouldShowGroup(condition: string | undefined, caps: NodeCapabilities): boolean {

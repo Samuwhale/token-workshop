@@ -3,7 +3,7 @@
  * Helps designers see how their tokens look in context.
  */
 import { useState } from 'react';
-import type { RecipeType, GeneratedTokenResult } from '../../hooks/useRecipes';
+import type { GeneratorType, GeneratedTokenResult } from '../../hooks/useGenerators';
 
 // ---------------------------------------------------------------------------
 // Color Ramp Applied Preview
@@ -135,7 +135,7 @@ function SpacingApplied({ tokens }: { tokens: GeneratedTokenResult[] }) {
 // Main AppliedPreview
 // ---------------------------------------------------------------------------
 
-export function AppliedPreview({ type, tokens }: { type: RecipeType; tokens: GeneratedTokenResult[] }) {
+export function AppliedPreview({ type, tokens }: { type: GeneratorType; tokens: GeneratedTokenResult[] }) {
   const [expanded, setExpanded] = useState(false);
 
   if (tokens.length === 0) return null;

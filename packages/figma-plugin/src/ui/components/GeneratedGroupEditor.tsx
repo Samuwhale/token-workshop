@@ -2,15 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
-import type { TokenRecipe, RecipeTemplate } from "../hooks/useRecipes";
+import type { TokenGenerator, GeneratorTemplate } from "../hooks/useGenerators";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import type { SelectedModes, TokenCollection } from "@tokenmanager/core";
 import type { SemanticStarter } from "./graph-templates";
 import {
   useGeneratedGroupDialog,
-  type RecipeDialogInitialDraft,
+  type GeneratorDialogInitialDraft,
 } from "../hooks/useGeneratedGroupEditor";
-import type { RecipeSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
+import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
 import { requiresGeneratedGroupReview } from "../hooks/useGeneratedGroupPreview";
 import { StepIntent } from "./generated-group-editor/StepIntent";
 import { StepSource } from "./generated-group-editor/StepSource";
@@ -19,7 +19,7 @@ import { StepSave } from "./generated-group-editor/StepSave";
 import { Spinner } from "./Spinner";
 import type { ToastAction } from "../shared/toastBus";
 import { GRAPH_TEMPLATES } from "./graph-templates";
-import { getSingleObviousRecipeType } from "./recipes/recipeUtils";
+import { getSingleObviousGeneratorType } from "./generators/generatorUtils";
 import {
   getGeneratedGroupKeepUpdatedAvailability,
   getGeneratedGroupTypeLabel,
@@ -41,20 +41,20 @@ export interface GeneratedGroupEditorProps {
   >;
   collections?: TokenCollection[];
   selectedModes?: SelectedModes;
-  existingRecipe?: TokenRecipe;
-  initialDraft?: RecipeDialogInitialDraft;
-  template?: RecipeTemplate & { semanticStarter?: SemanticStarter };
+  existingGenerator?: TokenGenerator;
+  initialDraft?: GeneratorDialogInitialDraft;
+  template?: GeneratorTemplate & { semanticStarter?: SemanticStarter };
   onBack?: () => void;
   onClose: () => void;
-  onSaved: (info?: RecipeSaveSuccessInfo) => void;
+  onSaved: (info?: GeneratorSaveSuccessInfo) => void;
   onInterceptSemanticMapping?: (data: {
-    tokens: import("../hooks/useRecipes").GeneratedTokenResult[];
+    tokens: import("../hooks/useGenerators").GeneratedTokenResult[];
     targetGroup: string;
     targetCollection: string;
-    recipeType: import("../hooks/useRecipes").RecipeType;
+    generatorType: import("../hooks/useGenerators").GeneratorType;
   }) => void;
   getSuccessToastAction?: (
-    info: RecipeSaveSuccessInfo,
+    info: GeneratorSaveSuccessInfo,
   ) => ToastAction | undefined;
   pathToCollectionId?: Record<string, string>;
   onPushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
@@ -67,7 +67,7 @@ export interface GeneratedGroupEditorProps {
 
 function getDialogTitle(params: {
   isEditing: boolean;
-  selectedType: import("../hooks/useRecipes").RecipeType;
+  selectedType: import("../hooks/useGenerators").GeneratorType;
   outcomeChooserVisible: boolean;
 }) {
   if (params.isEditing) {
@@ -92,7 +92,7 @@ export function GeneratedGroupEditor({
   perCollectionFlat,
   collections = [],
   selectedModes = {},
-  existingRecipe,
+  existingGenerator,
   initialDraft,
   template,
   onBack,
@@ -112,7 +112,7 @@ export function GeneratedGroupEditor({
     sourceTokenType,
     sourceTokenValue,
     currentCollectionId,
-    existingRecipe,
+    existingGenerator,
     template,
     initialDraft,
     allTokensFlat,
@@ -171,7 +171,7 @@ export function GeneratedGroupEditor({
   const hasExplicitOutcome = Boolean(template || initialDraft?.selectedType);
   const hasSingleObviousOutcome = Boolean(
     hasPrefilledSource &&
-      getSingleObviousRecipeType(
+      getSingleObviousGeneratorType(
         sourceTokenType,
         sourceTokenPath,
         sourceTokenName,
@@ -179,14 +179,14 @@ export function GeneratedGroupEditor({
       ),
   );
   const [outcomeChooserVisible, setOutcomeChooserVisible] = useState(
-    !existingRecipe && !hasExplicitOutcome && !hasSingleObviousOutcome,
+    !existingGenerator && !hasExplicitOutcome && !hasSingleObviousOutcome,
   );
 
   useEffect(() => {
     setOutcomeChooserVisible(
-      !existingRecipe && !hasExplicitOutcome && !hasSingleObviousOutcome,
+      !existingGenerator && !hasExplicitOutcome && !hasSingleObviousOutcome,
     );
-  }, [existingRecipe, hasExplicitOutcome, hasSingleObviousOutcome]);
+  }, [existingGenerator, hasExplicitOutcome, hasSingleObviousOutcome]);
 
   const intentTemplates =
     intentPreset === "semantic-aliases"
@@ -435,8 +435,8 @@ export function GeneratedGroupEditor({
           footer={footerContent}
           bodyClassName={AUTHORING_SURFACE_CLASSES.bodyStack}
         >
-          <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
-            <div className={AUTHORING.recipeSectionCard}>
+          <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
+            <div className={AUTHORING.generatorSectionCard}>
               <div className="flex flex-wrap items-start gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
                 <span>
                   Collection{" "}
@@ -520,8 +520,8 @@ export function GeneratedGroupEditor({
                     onConfigChange={dialog.handleConfigChange}
                   />
                 ) : (
-                  <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
-                    <div className={AUTHORING.recipeSectionCard}>
+                  <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
+                    <div className={AUTHORING.generatorSectionCard}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
@@ -575,7 +575,7 @@ export function GeneratedGroupEditor({
                 onOverrideClear={dialog.handleOverrideClear}
                 onClearAllOverrides={dialog.clearAllOverrides}
                 destination={destinationProps}
-                detachedCount={existingRecipe?.detachedPaths?.length ?? 0}
+                detachedCount={existingGenerator?.detachedPaths?.length ?? 0}
                 collectionModeLabel={activeModeLabel}
               />
             </>

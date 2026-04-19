@@ -211,9 +211,9 @@ export interface TokenManagerExtensions {
   resolverPublish?: ResolverFigmaPublishConfig;
 }
 
-/** Recipe provenance stored under `$extensions['com.tokenmanager.recipe']`. */
-export interface TokenManagerRecipeExtension {
-  recipeId: string;
+/** Generator provenance stored under `$extensions['com.tokenmanager.generator']`. */
+export interface TokenManagerGeneratorExtension {
+  generatorId: string;
   sourceToken: string;
   brand?: string;
   outputKind?: "scale" | "semantic";
@@ -233,7 +233,7 @@ export interface ResolverFigmaPublishConfig {
 export interface TokenExtensions {
   tokenmanager?: TokenManagerExtensions;
   'com.figma.scopes'?: string[];
-  'com.tokenmanager.recipe'?: TokenManagerRecipeExtension;
+  'com.tokenmanager.generator'?: TokenManagerGeneratorExtension;
   [key: string]: unknown;
 }
 

@@ -24,9 +24,9 @@ import { lintRoutes } from "./routes/lint.js";
 import { docsRoutes } from "./routes/docs.js";
 import { TokenStore } from "./services/token-store.js";
 import { GitSync } from "./services/git-sync.js";
-import { RecipeService } from "./services/recipe-service.js";
+import { GeneratorService } from "./services/generator-service.js";
 import { OperationLog } from "./services/operation-log.js";
-import { recipeRoutes } from "./routes/recipes.js";
+import { generatorRoutes } from "./routes/generators.js";
 import { operationRoutes } from "./routes/operations.js";
 import { resolverRoutes } from "./routes/resolvers.js";
 import { ResolverStore } from "./services/resolver-store.js";
@@ -109,8 +109,8 @@ export async function startServer(config: ServerConfig) {
 
   const gitSync = new GitSync(config.tokenDir);
 
-  const recipeService = new RecipeService(config.tokenDir);
-  await recipeService.initialize();
+  const generatorService = new GeneratorService(config.tokenDir);
+  await generatorService.initialize();
 
   const operationLog = new OperationLog(config.tokenDir);
 
@@ -128,10 +128,10 @@ export async function startServer(config: ServerConfig) {
     collectionsStore,
     resolverStore,
     resolverStore.lock,
-    recipeService,
+    generatorService,
     lintConfigStore,
   );
-  await recipeService.disableUnsupportedKeepUpdated(
+  await generatorService.disableUnsupportedKeepUpdated(
     tokenStore,
     collectionService,
   );
@@ -140,7 +140,7 @@ export async function startServer(config: ServerConfig) {
   await manualSnapshots.recoverPendingRestore(
     collectionService,
     resolverStore,
-    recipeService,
+    generatorService,
     lintConfigStore,
   );
 
@@ -150,15 +150,15 @@ export async function startServer(config: ServerConfig) {
 
   const emitWorkspaceFileEvent = (
     type: "workspace-file-changed" | "workspace-file-removed",
-    resourceType: "collections" | "recipes" | "resolver",
+    resourceType: "collections" | "generators" | "resolver",
     collectionId: string,
   ) => {
     eventBus.push({ type, resourceType, collectionId });
   };
 
-  const recipesFilePath = path.join(config.tokenDir, "$recipes.json");
+  const generatorsFilePath = path.join(config.tokenDir, "$generators.json");
   const workspaceWatcher = watch(
-    [collectionsStore.filePath, recipesFilePath],
+    [collectionsStore.filePath, generatorsFilePath],
     {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200 },
@@ -171,10 +171,10 @@ export async function startServer(config: ServerConfig) {
       if (result === "changed" || result === "removed") {
         await tokenLock.withLock(() => collectionService.reloadTokenStorageFromState());
         const keepUpdatedChanges = await tokenLock.withLock(() =>
-          recipeService.disableUnsupportedKeepUpdated(tokenStore, collectionService),
+          generatorService.disableUnsupportedKeepUpdated(tokenStore, collectionService),
         );
         if (keepUpdatedChanges > 0) {
-          emitWorkspaceFileEvent("workspace-file-changed", "recipes", "$recipes");
+          emitWorkspaceFileEvent("workspace-file-changed", "generators", "$generators");
         }
       }
       if (result === "changed") {
@@ -193,35 +193,35 @@ export async function startServer(config: ServerConfig) {
     }
   };
 
-  const reloadRecipesFromDisk = async () => {
+  const reloadGeneratorsFromDisk = async () => {
     try {
-      const result = await recipeService.reloadFromDisk();
+      const result = await generatorService.reloadFromDisk();
       if (result === "changed") {
-        await recipeService.disableUnsupportedKeepUpdated(
+        await generatorService.disableUnsupportedKeepUpdated(
           tokenStore,
           collectionService,
         );
         emitWorkspaceFileEvent(
           "workspace-file-changed",
-          "recipes",
-          "$recipes",
+          "generators",
+          "$generators",
         );
       } else if (result === "removed") {
         emitWorkspaceFileEvent(
           "workspace-file-removed",
-          "recipes",
-          "$recipes",
+          "generators",
+          "$generators",
         );
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.warn(
-        "[RecipeService] Failed to reload recipes from disk:",
+        "[GeneratorService] Failed to reload generators from disk:",
         err,
       );
       tokenStore.emitEvent({
         type: "file-load-error",
-        collectionId: "$recipes",
+        collectionId: "$generators",
         message,
       });
     }
@@ -233,9 +233,9 @@ export async function startServer(config: ServerConfig) {
       void reloadCollectionsFromDisk();
       return;
     }
-    if (filePath === recipesFilePath) {
-      if (recipeService.consumeWriteGuard(filePath)) return;
-      void tokenLock.withLock(() => reloadRecipesFromDisk());
+    if (filePath === generatorsFilePath) {
+      if (generatorService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
     }
   });
 
@@ -245,9 +245,9 @@ export async function startServer(config: ServerConfig) {
       void reloadCollectionsFromDisk();
       return;
     }
-    if (filePath === recipesFilePath) {
-      if (recipeService.consumeWriteGuard(filePath)) return;
-      void tokenLock.withLock(() => reloadRecipesFromDisk());
+    if (filePath === generatorsFilePath) {
+      if (generatorService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
     }
   });
 
@@ -257,9 +257,9 @@ export async function startServer(config: ServerConfig) {
       void reloadCollectionsFromDisk();
       return;
     }
-    if (filePath === recipesFilePath) {
-      if (recipeService.consumeWriteGuard(filePath)) return;
-      void tokenLock.withLock(() => reloadRecipesFromDisk());
+    if (filePath === generatorsFilePath) {
+      if (generatorService.consumeWriteGuard(filePath)) return;
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
     }
   });
 
@@ -273,7 +273,7 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate("resolverLock", resolverStore.lock);
   fastify.decorate("collectionsStore", collectionsStore);
   fastify.decorate("gitSync", gitSync);
-  fastify.decorate("recipeService", recipeService);
+  fastify.decorate("generatorService", generatorService);
   fastify.decorate("operationLog", operationLog);
   fastify.decorate("resolverStore", resolverStore);
   fastify.decorate("manualSnapshots", manualSnapshots);
@@ -297,9 +297,9 @@ export async function startServer(config: ServerConfig) {
     );
   });
 
-  // Auto-run recipes when a source token is updated.
-  // Wrapped in tokenLock.withLock() so recipe writes are serialized against
-  // route-handler mutations — without it, concurrent route writes and recipe
+  // Auto-run generators when a source token is updated.
+  // Wrapped in tokenLock.withLock() so generator writes are serialized against
+  // route-handler mutations — without it, concurrent route writes and generator
   // writes race on tokenStore state and operation-log snapshots.
   // Safe to call withLock() from inside a synchronous emit that itself fires
   // inside an active lock: the promise-chain mutex simply queues this run after
@@ -312,16 +312,16 @@ export async function startServer(config: ServerConfig) {
     ) {
       tokenLock
         .withLock(() =>
-          recipeService.disableUnsupportedKeepUpdated(tokenStore, collectionService),
+          generatorService.disableUnsupportedKeepUpdated(tokenStore, collectionService),
         )
         .then((changed) => {
           if (changed > 0) {
-            emitWorkspaceFileEvent("workspace-file-changed", "recipes", "$recipes");
+            emitWorkspaceFileEvent("workspace-file-changed", "generators", "$generators");
           }
         })
         .catch((err) => {
           console.warn(
-            "[RecipeService] Failed to normalize keep-updated state after collection change:",
+            "[GeneratorService] Failed to normalize keep-updated state after collection change:",
             err,
           );
         });
@@ -331,7 +331,7 @@ export async function startServer(config: ServerConfig) {
       const tokenPath = event.tokenPath;
       tokenLock
         .withLock(() =>
-          recipeService.runForSourceToken(
+          generatorService.runForSourceToken(
             tokenPath,
             tokenStore,
             collectionService,
@@ -339,17 +339,17 @@ export async function startServer(config: ServerConfig) {
         )
         .catch((err) => {
           const message = err instanceof Error ? err.message : String(err);
-          console.warn("[Recipe] Auto-run failed:", err);
+          console.warn("[Generator] Auto-run failed:", err);
           tokenStore.emitEvent({
-            type: "recipe-error",
+            type: "generator-error",
             collectionId: "",
             message,
           });
           // Record the failure persistently so clients connecting later can see it
           operationLog
             .record({
-              type: "recipe-auto-run-error",
-              description: `Recipe auto-run failed for "${tokenPath}": ${message}`,
+              type: "generator-auto-run-error",
+              description: `Generator auto-run failed for "${tokenPath}": ${message}`,
               resourceId: "",
               affectedPaths: [tokenPath],
               beforeSnapshot: {},
@@ -357,7 +357,7 @@ export async function startServer(config: ServerConfig) {
             })
             .catch((logErr) => {
               console.error(
-                "[OperationLog] Failed to record recipe error:",
+                "[OperationLog] Failed to record generator error:",
                 logErr,
               );
             });
@@ -390,7 +390,7 @@ export async function startServer(config: ServerConfig) {
     prefix: "/api",
     tokenDir: config.tokenDir,
   });
-  await fastify.register(recipeRoutes, { prefix: "/api" });
+  await fastify.register(generatorRoutes, { prefix: "/api" });
   await fastify.register(operationRoutes, { prefix: "/api" });
   await fastify.register(resolverRoutes, { prefix: "/api" });
   await fastify.register(snapshotRoutes, { prefix: "/api" });
@@ -417,7 +417,7 @@ declare module "fastify" {
     tokenLock: PromiseChainLock;
     resolverLock: PromiseChainLock;
     gitSync: GitSync;
-    recipeService: RecipeService;
+    generatorService: GeneratorService;
     operationLog: OperationLog;
     resolverStore: ResolverStore;
     manualSnapshots: ManualSnapshotStore;

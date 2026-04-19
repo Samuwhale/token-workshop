@@ -1,17 +1,17 @@
 import { useState, useCallback, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
-import type { TokenRecipe } from './useRecipes';
+import type { TokenGenerator } from './useGenerators';
 import type { TokenCollection } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
-import { computeRecipeImpacts, computeModeImpacts } from '../shared/tokenImpact';
-import type { RecipeImpact, ModeImpact } from '../components/tokenListTypes';
+import { computeGeneratorImpacts, computeModeImpacts } from '../shared/tokenImpact';
+import type { GeneratorImpact, ModeImpact } from '../components/tokenListTypes';
 
 export interface UseTokenRenameParams {
   connected: boolean;
   serverUrl: string;
   collectionId: string;
-  recipes?: TokenRecipe[];
+  generators?: TokenGenerator[];
   collections?: TokenCollection[];
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   allTokensFlat?: Record<string, TokenMapEntry>;
@@ -26,7 +26,7 @@ export function useTokenRename({
   connected,
   serverUrl,
   collectionId,
-  recipes,
+  generators,
   collections,
   perCollectionFlat,
   allTokensFlat,
@@ -41,7 +41,7 @@ export function useTokenRename({
     newPath: string;
     depCount: number;
     deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>;
-    recipeImpacts: RecipeImpact[];
+    generatorImpacts: GeneratorImpact[];
     modeImpacts: ModeImpact[];
   } | null>(null);
   const [pendingRenameToken, setPendingRenameToken] = useState<string | null>(null);
@@ -128,21 +128,21 @@ export function useTokenRename({
     }
     const targetPaths = new Set([oldPath]);
     const source = perCollectionFlat ?? (allTokensFlat ? { '': allTokensFlat } : {});
-    const recipeImpacts = computeRecipeImpacts(targetPaths, recipes ?? []);
+    const generatorImpacts = computeGeneratorImpacts(targetPaths, generators ?? []);
     const modeImpacts = computeModeImpacts(targetPaths, collections ?? [], source);
-    if (data.count > 0 || recipeImpacts.length > 0 || modeImpacts.length > 0) {
+    if (data.count > 0 || generatorImpacts.length > 0 || modeImpacts.length > 0) {
       setRenameTokenConfirm({
         oldPath,
         newPath,
         depCount: data.count,
         deps: data.changes.map(c => ({ path: c.tokenPath, collectionId: c.collectionId, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })),
-        recipeImpacts,
+        generatorImpacts,
         modeImpacts,
       });
     } else {
       await executeTokenRename(oldPath, newPath);
     }
-  }, [connected, serverUrl, collectionId, recipes, collections, perCollectionFlat, allTokensFlat, executeTokenRename, onError]);
+  }, [connected, serverUrl, collectionId, generators, collections, perCollectionFlat, allTokensFlat, executeTokenRename, onError]);
 
   return {
     renameTokenConfirm,

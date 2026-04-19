@@ -104,7 +104,7 @@ function CollectionPreflightCard({
   const hasDependencies =
     impact.resolverRefs.length > 0 ||
     impact.generatedOwnership.length > 0 ||
-    impact.recipeTargets.length > 0;
+    impact.generatorTargets.length > 0;
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
@@ -159,12 +159,12 @@ function CollectionPreflightCard({
               <div className="flex flex-col gap-1.5">
                 {impact.generatedOwnership.map((ownership) => (
                   <div
-                    key={ownership.recipeId}
+                    key={ownership.generatorId}
                     className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-[var(--color-figma-text)]">
-                        {ownership.recipeName}
+                        {ownership.generatorName}
                       </span>
                       <span>
                         {ownership.tokenCount} token
@@ -186,20 +186,20 @@ function CollectionPreflightCard({
               </div>
             </div>
           ) : null}
-          {impact.recipeTargets.length > 0 ? (
+          {impact.generatorTargets.length > 0 ? (
             <div className="flex flex-col gap-1">
               <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-                Generated group targets ({impact.recipeTargets.length})
+                Generated group targets ({impact.generatorTargets.length})
               </div>
               <div className="flex flex-col gap-1">
-                {impact.recipeTargets.map((recipe) => (
+                {impact.generatorTargets.map((generator) => (
                   <div
-                    key={recipe.recipeId}
+                    key={generator.generatorId}
                     className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]"
                   >
-                    <span className="truncate">{recipe.recipeName}</span>
+                    <span className="truncate">{generator.generatorName}</span>
                     <span className="truncate font-mono text-[10px]">
-                      {recipe.targetGroup}
+                      {generator.targetGroup}
                     </span>
                   </div>
                 ))}

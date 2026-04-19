@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
-export interface RecipeErrorEvent {
-  recipeId?: string;
+export interface GeneratorErrorEvent {
+  generatorId?: string;
   message: string;
 }
 
@@ -25,7 +25,7 @@ const MAX_DELAY = 30000;
 export function useServerEvents(
   serverUrl: string,
   connected: boolean,
-  onGeneratedGroupError: (event: RecipeErrorEvent) => void,
+  onGeneratedGroupError: (event: GeneratorErrorEvent) => void,
   onRefresh?: () => void,
   onServiceError?: (event: ServiceErrorEvent) => void,
 ) {
@@ -102,11 +102,11 @@ export function useServerEvents(
           return;
         }
 
-        if (data.type === "recipe-error") {
+        if (data.type === "generator-error") {
           callbackRef.current({
-            recipeId:
-              typeof data.recipeId === "string"
-                ? data.recipeId
+            generatorId:
+              typeof data.generatorId === "string"
+                ? data.generatorId
                 : undefined,
             message:
               typeof data.message === "string" ? data.message : "Unknown error",

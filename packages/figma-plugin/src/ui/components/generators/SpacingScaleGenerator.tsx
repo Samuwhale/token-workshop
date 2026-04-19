@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { SpacingScaleConfig, SpacingStep, GeneratedTokenResult } from '../../hooks/useRecipes';
-import { OverrideRow, formatValue, isDimensionLike } from './recipeShared';
+import type { SpacingScaleConfig, SpacingStep, GeneratedTokenResult } from '../../hooks/useGenerators';
+import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 
 // ---------------------------------------------------------------------------
 // Default config

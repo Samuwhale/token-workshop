@@ -4,14 +4,14 @@
  */
 import type {
   GeneratedTokenResult,
-  RecipeType,
-} from '../../hooks/useRecipes';
-import type { RecipePreviewAnalysis } from '../../hooks/useGeneratedGroupPreview';
+  GeneratorType,
+} from '../../hooks/useGenerators';
+import type { GeneratorPreviewAnalysis } from '../../hooks/useGeneratedGroupPreview';
 import { Spinner } from '../Spinner';
 import { AUTHORING } from '../../shared/editorClasses';
 import { RiskDetailSections } from './RiskDetailSections';
-import { formatValue } from '../recipes/recipeShared';
-import { AppliedPreview } from '../recipes/AppliedPreview';
+import { formatValue } from '../generators/generatorShared';
+import { AppliedPreview } from '../generators/AppliedPreview';
 import { getGeneratedGroupTypeLabel } from '../../shared/generatedGroupUtils';
 
 // ---------------------------------------------------------------------------
@@ -23,10 +23,10 @@ export interface StepSaveProps {
   targetGroup: string;
   targetCollection: string;
   collectionModeLabel?: string | null;
-  selectedType: RecipeType;
+  selectedType: GeneratorType;
   isEditing: boolean;
   previewTokens: GeneratedTokenResult[];
-  previewAnalysis: RecipePreviewAnalysis | null;
+  previewAnalysis: GeneratorPreviewAnalysis | null;
   existingOverwritePathSet: Set<string>;
   overwritePendingPaths: string[];
   overwriteCheckLoading: boolean;
@@ -39,10 +39,10 @@ export interface StepSaveProps {
 // Condensed impact line
 // ---------------------------------------------------------------------------
 
-function ImpactSummaryLine({ previewAnalysis }: { previewAnalysis: RecipePreviewAnalysis }) {
+function ImpactSummaryLine({ previewAnalysis }: { previewAnalysis: GeneratorPreviewAnalysis }) {
   const safeCreates = previewAnalysis.safeCreateCount;
   const safeUpdates = (previewAnalysis.safeUpdates ?? []).length;
-  const overwrites = (previewAnalysis.nonRecipeOverwrites ?? []).length;
+  const overwrites = (previewAnalysis.nonGeneratorOverwrites ?? []).length;
   const conflicts = (previewAnalysis.manualEditConflicts ?? []).length;
   const deleted = (previewAnalysis.deletedOutputs ?? []).length;
   const manualExceptions = (previewAnalysis.manualExceptions ?? []).length;
@@ -100,19 +100,19 @@ export function StepSave({
   const previewRows = previewTokens.slice(0, 12);
 
   return (
-    <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
+    <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
       {previewReviewStale && (
         <div className="rounded-md border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 px-2.5 py-2 text-[10px] text-[var(--color-figma-warning)]">
           Token store changed. Refresh to confirm.
         </div>
       )}
 
-      <section className={AUTHORING.recipeSectionCard}>
-        <div className={AUTHORING.recipeTitleBlock}>
-          <h4 className={AUTHORING.recipeTitle}>
+      <section className={AUTHORING.generatorSectionCard}>
+        <div className={AUTHORING.generatorTitleBlock}>
+          <h4 className={AUTHORING.generatorTitle}>
             Review changes
           </h4>
-          <p className={AUTHORING.recipeDescription}>
+          <p className={AUTHORING.generatorDescription}>
             Confirm the collection, preview mode, output changes, and manual exceptions before you save.
           </p>
         </div>
@@ -168,10 +168,10 @@ export function StepSave({
       )}
 
       {previewTokens.length > 0 && (
-        <section className={AUTHORING.recipeSectionCard}>
-          <div className={AUTHORING.recipeTitleBlock}>
-            <h4 className={AUTHORING.recipeTitle}>Output preview</h4>
-            <p className={AUTHORING.recipeDescription}>
+        <section className={AUTHORING.generatorSectionCard}>
+          <div className={AUTHORING.generatorTitleBlock}>
+            <h4 className={AUTHORING.generatorTitle}>Output preview</h4>
+            <p className={AUTHORING.generatorDescription}>
               Review the generated tokens that will exist in this group after save.
             </p>
           </div>

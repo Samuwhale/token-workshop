@@ -1,10 +1,10 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type {
   GeneratedTokenResult,
-  RecipeSemanticLayer,
-  RecipeType,
+  GeneratorSemanticLayer,
+  GeneratorType,
   SemanticTokenMapping,
-} from "../../hooks/useRecipes";
+} from "../../hooks/useGenerators";
 import { AUTHORING } from "../../shared/editorClasses";
 import { SemanticMappingDialog } from "../SemanticMappingDialog";
 
@@ -20,11 +20,11 @@ export interface StepWhereProps {
   semanticMappings: SemanticTokenMapping[];
   selectedSemanticPatternId: string | null;
   previewTokens: GeneratedTokenResult[];
-  selectedType: RecipeType;
+  selectedType: GeneratorType;
   onNameChange: (value: string) => void;
   onTargetGroupChange: (value: string) => void;
   onKeepUpdatedChange: (value: boolean) => void;
-  onSemanticLayerChange: (layer: RecipeSemanticLayer | null) => void;
+  onSemanticLayerChange: (layer: GeneratorSemanticLayer | null) => void;
   inline?: boolean;
 }
 
@@ -85,8 +85,8 @@ export function StepWhere({
 
   const fields = (
     <div className="flex flex-col gap-3">
-      <div className={`${inline ? "" : AUTHORING.recipeSectionCard} ${AUTHORING.recipeFieldGrid}`}>
-        <div className={AUTHORING.recipeFieldStack}>
+      <div className={`${inline ? "" : AUTHORING.generatorSectionCard} ${AUTHORING.generatorFieldGrid}`}>
+        <div className={AUTHORING.generatorFieldStack}>
           <label
             htmlFor="step-where-target-group"
             className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]"
@@ -100,7 +100,7 @@ export function StepWhere({
             onChange={(event) => onTargetGroupChange(event.target.value)}
             placeholder="color.brand"
             autoFocus={!inline}
-            className={`${AUTHORING.recipeControlMono} ${
+            className={`${AUTHORING.generatorControlMono} ${
               !targetGroup.trim()
                 ? "border-[var(--color-figma-error)]/50"
                 : "border-[var(--color-figma-border)]"
@@ -109,7 +109,7 @@ export function StepWhere({
         </div>
       </div>
 
-      <div className={inline ? "" : AUTHORING.recipeSectionCard}>
+      <div className={inline ? "" : AUTHORING.generatorSectionCard}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
@@ -138,7 +138,7 @@ export function StepWhere({
 
         {advancedOpen && (
           <div className="mt-3 flex flex-col gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 p-3">
-            <div className={AUTHORING.recipeFieldStack}>
+            <div className={AUTHORING.generatorFieldStack}>
               <label
                 htmlFor="step-where-group-label"
                 className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]"
@@ -151,7 +151,7 @@ export function StepWhere({
                 value={name}
                 onChange={(event) => onNameChange(event.target.value)}
                 placeholder="Brand palette"
-                className={`${AUTHORING.recipeControl} ${
+                className={`${AUTHORING.generatorControl} ${
                   !name.trim()
                     ? "border-[var(--color-figma-error)]/50"
                     : "border-[var(--color-figma-border)]"
@@ -205,7 +205,7 @@ export function StepWhere({
                 <SemanticMappingDialog
                   serverUrl=""
                   generatedTokens={previewTokens}
-                  recipeType={selectedType}
+                  generatorType={selectedType}
                   targetGroup={targetGroup}
                   targetCollection={targetCollection}
                   initialPrefix={semanticPrefix}
@@ -230,7 +230,7 @@ export function StepWhere({
   }
 
   return (
-    <section className={`${AUTHORING.recipeRoot} ${AUTHORING.recipeSection}`}>
+    <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
       {fields}
     </section>
   );

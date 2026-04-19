@@ -1,7 +1,7 @@
 /**
- * Reusable template intent cards and catalog for recipe creation.
+ * Reusable template intent cards and catalog for generator creation.
  */
-import type { RecipeType } from "../../hooks/useRecipes";
+import type { GeneratorType } from "../../hooks/useGenerators";
 import type { GraphTemplate } from "../graph-templates";
 import {
   getTemplateSemanticCount,
@@ -195,10 +195,10 @@ export function TemplateIcon({ id }: { id: string }) {
 function getRelevanceScore(
   template: GraphTemplate,
   sourceTokenType?: string,
-  recommendedType?: RecipeType,
+  recommendedType?: GeneratorType,
 ): number {
   let score = 0;
-  if (recommendedType && template.recipeType === recommendedType) score += 2;
+  if (recommendedType && template.generatorType === recommendedType) score += 2;
   if (sourceTokenType && template.sourceTokenTypes?.includes(sourceTokenType)) {
     score += 3;
   }
@@ -209,7 +209,7 @@ function getRelevanceScore(
 export function sortTemplatesForIntentPicker(
   templates: GraphTemplate[],
   sourceTokenType?: string,
-  recommendedType?: RecipeType,
+  recommendedType?: GeneratorType,
   suggestedTemplateId?: string | null,
 ): GraphTemplate[] {
   return [...templates].sort((left, right) => {
@@ -229,7 +229,7 @@ export function sortTemplatesForIntentPicker(
 // Intent card
 // ---------------------------------------------------------------------------
 
-export function RecipeIntentCard({
+export function GeneratorIntentCard({
   template,
   onSelect,
   disabled,
@@ -272,7 +272,7 @@ export function RecipeIntentCard({
               </span>
             )}
             <span className="rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-px text-[10px] text-[var(--color-figma-text-secondary)]">
-              {getGeneratedGroupTypeLabel(template.recipeType)}
+              {getGeneratedGroupTypeLabel(template.generatorType)}
             </span>
           </div>
           <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
@@ -307,7 +307,7 @@ export function RecipeIntentCard({
 // Intent catalog (list of cards)
 // ---------------------------------------------------------------------------
 
-export function RecipeIntentCatalog({
+export function GeneratorIntentCatalog({
   templates,
   connected,
   onSelectTemplate,
@@ -322,7 +322,7 @@ export function RecipeIntentCatalog({
   connected: boolean;
   onSelectTemplate: (template: GraphTemplate) => void;
   sourceTokenType?: string;
-  recommendedType?: RecipeType;
+  recommendedType?: GeneratorType;
   suggestedTemplateId?: string | null;
   compact?: boolean;
   emptyStateTitle?: string;
@@ -339,7 +339,7 @@ export function RecipeIntentCatalog({
     <div className="flex flex-col gap-2">
       {sortedTemplates.length > 0 ? (
         sortedTemplates.map((template) => (
-          <RecipeIntentCard
+          <GeneratorIntentCard
             key={template.id}
             template={template}
             onSelect={() => onSelectTemplate(template)}

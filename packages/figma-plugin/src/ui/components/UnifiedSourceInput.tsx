@@ -12,7 +12,7 @@ import { useState, useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TokenPickerField } from './TokenPicker';
 import { ColorEditor } from './ValueEditors';
-import { CompactDimensionInput } from './recipes/recipeShared';
+import { CompactDimensionInput } from './generators/generatorShared';
 import { swatchBgColor } from '../shared/colorUtils';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 
@@ -23,7 +23,7 @@ import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 export type SourceMode = 'token' | 'value';
 
 export interface UnifiedSourceInputProps {
-  /** Which category the recipe expects: 'color' | 'dimension' | null. */
+  /** Which category the generator expects: 'color' | 'dimension' | null. */
   expectedType: 'color' | 'dimension' | null;
   /** Currently bound source token path (or empty string / undefined). */
   sourceTokenPath: string | undefined;
@@ -107,7 +107,7 @@ export function UnifiedSourceInput({
               setMode('value');
               // Clear the source token binding so inline value drives the preview
               if (sourceTokenPath) onSourcePathChange('');
-              // Seed a default value so the recipe registers a value immediately
+              // Seed a default value so the generator registers a value immediately
               if (inlineValue === undefined || inlineValue === '') {
                 if (expectedType === 'color') onInlineValueChange('#ffffff');
                 else if (expectedType === 'dimension') onInlineValueChange({ value: 16, unit: 'px' });

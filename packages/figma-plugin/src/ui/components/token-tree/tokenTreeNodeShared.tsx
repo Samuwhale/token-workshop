@@ -1,22 +1,22 @@
 import type { MouseEvent } from "react";
-import { getRecipeManagedOutputs } from "@tokenmanager/core";
+import { getGeneratorManagedOutputs } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath } from "../../../shared/resolveAlias";
 import type {
   GeneratedTokenResult,
-  RecipeType,
-  TokenRecipe,
-} from "../../hooks/useRecipes";
-import { getRecipeDashboardStatus } from "../../hooks/useRecipes";
+  GeneratorType,
+  TokenGenerator,
+} from "../../hooks/useGenerators";
+import { getGeneratorDashboardStatus } from "../../hooks/useGenerators";
 import {
   formatRelativeTimestamp,
   getGeneratedGroupTypeLabel,
   getStatusLabel,
 } from "../../shared/generatedGroupUtils";
 import {
-  getSingleObviousRecipeType,
-} from "../recipes/recipeUtils";
-import { formatValue } from "../recipes/recipeShared";
+  getSingleObviousGeneratorType,
+} from "../generators/generatorUtils";
+import { formatValue } from "../generators/generatorShared";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
   CONDENSED_MAX_DEPTH,
@@ -124,7 +124,7 @@ export function CondensedAncestorBreadcrumb({
   );
 }
 
-const RECIPE_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
+const GENERATOR_RUN_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
   hour: "numeric",
@@ -160,30 +160,30 @@ export function GeneratedGlyph({
   );
 }
 
-function formatRecipeRunAt(lastRunAt?: string): string {
+function formatGeneratorRunAt(lastRunAt?: string): string {
   if (!lastRunAt) return "Never run";
   const date = new Date(lastRunAt);
   if (Number.isNaN(date.getTime())) return "Unknown";
-  return RECIPE_RUN_AT_FORMATTER.format(date);
+  return GENERATOR_RUN_AT_FORMATTER.format(date);
 }
 
-export function formatGeneratedGroupSummaryTitle(recipe: TokenRecipe): string {
+export function formatGeneratedGroupSummaryTitle(generator: TokenGenerator): string {
   return [
-    `Generated group: ${recipe.name}`,
-    recipe.sourceToken ? `Source token: ${recipe.sourceToken}` : null,
-    recipe.isStale ? "Source changed" : null,
+    `Generated group: ${generator.name}`,
+    generator.sourceToken ? `Source token: ${generator.sourceToken}` : null,
+    generator.isStale ? "Source changed" : null,
   ]
     .filter(Boolean)
     .join("\n");
 }
 
-function getRecipeManagedPaths(recipe: TokenRecipe): Set<string> {
+function getGeneratorManagedPaths(generator: TokenGenerator): Set<string> {
   return new Set(
-    getRecipeManagedOutputs(recipe).map((output) => output.path),
+    getGeneratorManagedOutputs(generator).map((output) => output.path),
   );
 }
 
-function countManagedRecipeLeaves(
+function countManagedGeneratorLeaves(
   node: TokenTreeNodeProps["node"],
   managedPaths: Set<string>,
 ): number {
@@ -191,7 +191,7 @@ function countManagedRecipeLeaves(
     return managedPaths.has(node.path) ? 1 : 0;
   }
   return node.children.reduce(
-    (count, child) => count + countManagedRecipeLeaves(child, managedPaths),
+    (count, child) => count + countManagedGeneratorLeaves(child, managedPaths),
     0,
   );
 }
@@ -199,7 +199,7 @@ function countManagedRecipeLeaves(
 export function GeneratedGroupSummaryRow({
   depth,
   condensedView,
-  recipe,
+  generator,
   collectionId,
   activeModeLabel,
   managedTokenCount,
@@ -220,7 +220,7 @@ export function GeneratedGroupSummaryRow({
 }: {
   depth: number;
   condensedView: boolean;
-  recipe: TokenRecipe;
+  generator: TokenGenerator;
   collectionId: string;
   activeModeLabel?: string | null;
   managedTokenCount: number;
@@ -239,13 +239,13 @@ export function GeneratedGroupSummaryRow({
   onDetach?: () => Promise<void> | void;
   onNavigateToSourceToken?: (path: string) => void;
 }) {
-  const sourceLabel = recipe.sourceToken || "Standalone";
-  const typeLabel = getGeneratedGroupTypeLabel(recipe.type);
-  const keepUpdated = recipe.enabled !== false;
-  const dashboardStatus = getRecipeDashboardStatus(recipe);
+  const sourceLabel = generator.sourceToken || "Standalone";
+  const typeLabel = getGeneratedGroupTypeLabel(generator.type);
+  const keepUpdated = generator.enabled !== false;
+  const dashboardStatus = getGeneratorDashboardStatus(generator);
   const statusLabel = getStatusLabel(dashboardStatus, !keepUpdated);
-  const lastRunLabel = formatRecipeRunAt(recipe.lastRunAt);
-  const lastRunRelativeLabel = formatRelativeTimestamp(recipe.lastRunAt);
+  const lastRunLabel = formatGeneratorRunAt(generator.lastRunAt);
+  const lastRunRelativeLabel = formatRelativeTimestamp(generator.lastRunAt);
   const exceptionLabel =
     exceptionCount > 0
       ? `${exceptionCount} manual exception${exceptionCount === 1 ? "" : "s"}`
@@ -271,10 +271,10 @@ export function GeneratedGroupSummaryRow({
             <span aria-hidden="true" className="text-[var(--color-figma-text-tertiary)]/70">
               ·
             </span>
-            <span className="truncate font-medium text-[var(--color-figma-text)]" title={recipe.name}>
-              {recipe.name}
+            <span className="truncate font-medium text-[var(--color-figma-text)]" title={generator.name}>
+              {generator.name}
             </span>
-            {recipe.isStale && (
+            {generator.isStale && (
               <span className="font-medium text-[var(--color-figma-warning)]">
                 Source changed
               </span>
@@ -297,14 +297,14 @@ export function GeneratedGroupSummaryRow({
             )}
             <span>
               Source token{" "}
-              {recipe.sourceToken && onNavigateToSourceToken ? (
+              {generator.sourceToken && onNavigateToSourceToken ? (
                 <button
                   type="button"
                   onClick={() =>
-                    onNavigateToSourceToken(recipe.sourceToken!)
+                    onNavigateToSourceToken(generator.sourceToken!)
                   }
                   className="font-mono text-[var(--color-figma-accent)] hover:underline"
-                  title={`Navigate to ${recipe.sourceToken}`}
+                  title={`Navigate to ${generator.sourceToken}`}
                 >
                   {sourceLabel}
                 </button>
@@ -360,7 +360,7 @@ export function GeneratedGroupSummaryRow({
           )}
           {compactPreviewTokens.length > 0 && (
             <CompactGeneratedPreview
-              type={recipe.type}
+              type={generator.type}
               tokens={compactPreviewTokens}
               totalCount={previewTokens.length}
             />
@@ -441,7 +441,7 @@ function CompactGeneratedPreview({
   tokens,
   totalCount,
 }: {
-  type: RecipeType;
+  type: GeneratorType;
   tokens: GeneratedTokenResult[];
   totalCount: number;
 }) {
@@ -522,11 +522,11 @@ export function getQuickGeneratedGroupTypeForToken(
   name: string,
   tokenType: string | undefined,
   tokenValue: unknown,
-): RecipeType | null {
-  return getSingleObviousRecipeType(tokenType, path, name, tokenValue) ?? null;
+): GeneratorType | null {
+  return getSingleObviousGeneratorType(tokenType, path, name, tokenValue) ?? null;
 }
 
-export function getQuickGeneratedGroupActionLabel(type: RecipeType): string {
+export function getQuickGeneratedGroupActionLabel(type: GeneratorType): string {
   switch (type) {
     case "colorRamp":
       return "Generate palette…";
@@ -561,7 +561,7 @@ export type TokenRowBrowseMeta =
       onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
     }
   | {
-      kind: "recipe";
+      kind: "generator";
       compactLabel: string;
       expandedLabel: string;
       title: string;
@@ -643,7 +643,7 @@ export function TokenRowBrowseMetaBadge({
     );
   }
 
-  if (meta.kind === "recipe" && meta.interactive && meta.onClick) {
+  if (meta.kind === "generator" && meta.interactive && meta.onClick) {
     return (
       <button
         type="button"
@@ -751,7 +751,7 @@ export function getBrowseMetaForReference(
 
 export function getBrowseMetaForGeneratedGroup(sourceToken: string, expanded: boolean) {
   return {
-    kind: "recipe" as const,
+    kind: "generator" as const,
     compactLabel: getCompactPathLabel(sourceToken),
     expandedLabel: sourceToken,
     title: `Generated from ${sourceToken}`,
@@ -761,9 +761,9 @@ export function getBrowseMetaForGeneratedGroup(sourceToken: string, expanded: bo
   };
 }
 
-export function getManagedRecipeLeafCount(
+export function getManagedGeneratorLeafCount(
   node: TokenTreeNodeProps["node"],
-  recipe: TokenRecipe,
+  generator: TokenGenerator,
 ) {
-  return countManagedRecipeLeaves(node, getRecipeManagedPaths(recipe));
+  return countManagedGeneratorLeaves(node, getGeneratorManagedPaths(generator));
 }

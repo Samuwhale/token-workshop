@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { QUERY_QUALIFIERS } from './tokenListUtils';
 import type { HasQualifierValue, ParsedQuery } from './tokenListUtils';
 
-export type FilterBuilderSection = 'type' | 'has' | 'path' | 'name' | 'value' | 'desc' | 'recipe';
+export type FilterBuilderSection = 'type' | 'has' | 'path' | 'name' | 'value' | 'desc' | 'generator';
 
 export interface TokenSearchDiscoveryAction {
   id: string;
@@ -21,14 +21,14 @@ interface TokenSearchFilterChipsProps {
   selectedTypeQualifiers: string[];
   selectedHasQualifiers: HasQualifierValue[];
   qualifierTypeOptions: string[];
-  recipeNames: string[];
+  generatorNames: string[];
   onToggleQualifierValue: (qualifier: 'type' | 'has', value: string) => void;
-  onAddQualifierValue: (qualifier: 'path' | 'name' | 'value' | 'desc' | 'recipe', value: string) => void;
+  onAddQualifierValue: (qualifier: 'path' | 'name' | 'value' | 'desc' | 'generator', value: string) => void;
   onRemoveQualifierValue: (qualifier: FilterBuilderSection, value: string) => void;
   onClearQualifier: (qualifier: FilterBuilderSection) => void;
 }
 
-type TextFilterSection = Extract<FilterBuilderSection, 'path' | 'name' | 'value' | 'desc' | 'recipe'>;
+type TextFilterSection = Extract<FilterBuilderSection, 'path' | 'name' | 'value' | 'desc' | 'generator'>;
 
 const FILTER_SECTION_LABELS: Record<FilterBuilderSection, string> = {
   type: 'Type',
@@ -37,7 +37,7 @@ const FILTER_SECTION_LABELS: Record<FilterBuilderSection, string> = {
   name: 'Name',
   value: 'Value',
   desc: 'Description',
-  recipe: 'Generated',
+  generator: 'Generated',
 };
 
 const TEXT_SECTION_PLACEHOLDERS: Record<TextFilterSection, string> = {
@@ -45,7 +45,7 @@ const TEXT_SECTION_PLACEHOLDERS: Record<TextFilterSection, string> = {
   name: 'primary',
   value: '#ff0000',
   desc: 'marketing',
-  recipe: 'brand-palette',
+  generator: 'brand-palette',
 };
 
 const HAS_OPTION_ORDER: HasQualifierValue[] = [
@@ -76,11 +76,11 @@ function buildChips(parsedSearchQuery: ParsedQuery, selectedHasQualifiers: HasQu
   for (const value of parsedSearchQuery.names) chips.push({ qualifier: 'name', value, label: `${value}` });
   for (const value of parsedSearchQuery.values) chips.push({ qualifier: 'value', value, label: `${value}` });
   for (const value of parsedSearchQuery.descs) chips.push({ qualifier: 'desc', value, label: `${value}` });
-  for (const value of parsedSearchQuery.recipes) chips.push({ qualifier: 'recipe', value, label: `${value}` });
+  for (const value of parsedSearchQuery.generators) chips.push({ qualifier: 'generator', value, label: `${value}` });
   return chips;
 }
 
-const ADD_FILTER_SECTIONS: FilterBuilderSection[] = ['type', 'has', 'path', 'name', 'value', 'desc', 'recipe'];
+const ADD_FILTER_SECTIONS: FilterBuilderSection[] = ['type', 'has', 'path', 'name', 'value', 'desc', 'generator'];
 
 export function TokenSearchDiscovery({
   title = 'Suggested filters',
@@ -138,7 +138,7 @@ export function TokenSearchFilterChips({
   selectedTypeQualifiers,
   selectedHasQualifiers,
   qualifierTypeOptions,
-  recipeNames,
+  generatorNames,
   onToggleQualifierValue,
   onAddQualifierValue,
   onRemoveQualifierValue,
@@ -221,7 +221,7 @@ export function TokenSearchFilterChips({
       case 'name': return parsedSearchQuery.names;
       case 'value': return parsedSearchQuery.values;
       case 'desc': return parsedSearchQuery.descs;
-      case 'recipe': return parsedSearchQuery.recipes;
+      case 'generator': return parsedSearchQuery.generators;
       default: return [];
     }
   })();
@@ -403,7 +403,7 @@ export function TokenSearchFilterChips({
                 >
                   <input
                     ref={textInputRef}
-                    list={editingSection === 'recipe' && recipeNames.length > 0 ? 'filter-chip-recipe-options' : undefined}
+                    list={editingSection === 'generator' && generatorNames.length > 0 ? 'filter-chip-generator-options' : undefined}
                     value={textDraft}
                     onChange={e => setTextDraft(e.target.value)}
                     placeholder={TEXT_SECTION_PLACEHOLDERS[editingSection as TextFilterSection]}
@@ -425,9 +425,9 @@ export function TokenSearchFilterChips({
                   </button>
                 </form>
 
-                {editingSection === 'recipe' && recipeNames.length > 0 && (
-                  <datalist id="filter-chip-recipe-options">
-                    {recipeNames.map(name => (
+                {editingSection === 'generator' && generatorNames.length > 0 && (
+                  <datalist id="filter-chip-generator-options">
+                    {generatorNames.map(name => (
                       <option key={name} value={name} />
                     ))}
                   </datalist>

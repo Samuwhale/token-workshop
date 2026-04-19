@@ -4,17 +4,17 @@ export interface CollectionResolverImpact {
   name: string;
 }
 
-export interface CollectionRecipeOwnershipImpact {
-  recipeId: string;
-  recipeName: string;
+export interface CollectionGeneratorOwnershipImpact {
+  generatorId: string;
+  generatorName: string;
   targetGroup: string;
   tokenCount: number;
   samplePaths: string[];
 }
 
-export interface CollectionRecipeTargetImpact {
-  recipeId: string;
-  recipeName: string;
+export interface CollectionGeneratorTargetImpact {
+  generatorId: string;
+  generatorName: string;
   targetGroup: string;
 }
 
@@ -25,17 +25,17 @@ export interface CollectionPreflightImpact {
     description?: string;
   };
   resolverRefs: CollectionResolverImpact[];
-  generatedOwnership: CollectionRecipeOwnershipImpact[];
-  recipeTargets: CollectionRecipeTargetImpact[];
+  generatedOwnership: CollectionGeneratorOwnershipImpact[];
+  generatorTargets: CollectionGeneratorTargetImpact[];
 }
 
 export interface CollectionPreflightBlocker {
   id: string;
-  code: "generated-token-ownership" | "recipe-target-collection" | "resolver-collection-ref";
+  code: "generated-token-ownership" | "generator-target-collection" | "resolver-collection-ref";
   collectionId: string;
   message: string;
-  recipeId?: string;
-  recipeName?: string;
+  generatorId?: string;
+  generatorName?: string;
 }
 
 export interface CollectionMergeConflict {

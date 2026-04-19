@@ -1,7 +1,7 @@
 export interface SemanticPattern {
   id: string;
   label: string;
-  applicableTo: string[]; // recipe types
+  applicableTo: string[]; // generator types
   mappings: Array<{ semantic: string; step: string }>;
 }
 

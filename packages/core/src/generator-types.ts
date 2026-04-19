@@ -1,16 +1,16 @@
 /**
- * Token Recipe types — definitions for live token group recipes.
+ * Token Generator types — definitions for live token group generators.
  *
- * A TokenRecipe describes a relationship between an optional source token
+ * A TokenGenerator describes a relationship between an optional source token
  * and a group of derived tokens that are automatically regenerated whenever
- * the source token changes. Standalone recipes (zIndexScale, opacityScale,
+ * the source token changes. Standalone generators (zIndexScale, opacityScale,
  * customScale without a base) have no source token.
  */
 
 import type { TokenType } from './types.js';
 import type { DimensionUnit } from './constants.js';
 
-export type RecipeType =
+export type GeneratorType =
   | 'colorRamp'
   | 'typeScale'
   | 'spacingScale'
@@ -53,7 +53,7 @@ export interface ColorRampConfig {
   /**
    * Maps config field names to token paths for runtime resolution.
    * When a field has a tokenRef, the server resolves the token value and uses it
-   * instead of the stored literal value when the recipe runs.
+   * instead of the stored literal value when the generator runs.
    */
   $tokenRefs?: {
     lightEnd?: string;
@@ -234,7 +234,7 @@ export interface DarkModeInversionConfig {
 // Union
 // ---------------------------------------------------------------------------
 
-export type RecipeConfig =
+export type GeneratorConfig =
   | ColorRampConfig
   | TypeScaleConfig
   | SpacingScaleConfig
@@ -250,30 +250,30 @@ export interface SemanticTokenMapping {
   step: string;
 }
 
-export interface RecipeSemanticLayer {
+export interface GeneratorSemanticLayer {
   prefix: string;
   mappings: SemanticTokenMapping[];
   patternId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
-// Recipe definition
+// Generator definition
 // ---------------------------------------------------------------------------
 
-export interface TokenRecipe {
+export interface TokenGenerator {
   id: string;
-  type: RecipeType;
+  type: GeneratorType;
   /** Human-readable label, e.g. "Brand Color Ramp" */
   name: string;
   /**
    * Dot-delimited path of the source token, e.g. "colors.brand.primary".
-   * Optional for standalone recipes (zIndexScale, opacityScale, customScale).
+   * Optional for standalone generators (zIndexScale, opacityScale, customScale).
    */
   sourceToken?: string;
   /**
    * Inline base value used when no sourceToken is bound.
-   * For color recipes: a hex string (e.g. "#6366F1").
-   * For dimension recipes: a { value, unit } object (e.g. { value: 16, unit: "px" }).
+   * For color generators: a hex string (e.g. "#6366F1").
+   * For dimension generators: a { value, unit } object (e.g. { value: 16, unit: "px" }).
    */
   inlineValue?: unknown;
   /** Name of the collection where derived tokens will be written */
@@ -283,10 +283,10 @@ export interface TokenRecipe {
    * e.g. "colors.brand" → tokens become "colors.brand.50", "colors.brand.100", …
    */
   targetGroup: string;
-  config: RecipeConfig;
-  semanticLayer?: RecipeSemanticLayer;
+  config: GeneratorConfig;
+  semanticLayer?: GeneratorSemanticLayer;
   /**
-   * Absolute token paths that were explicitly detached from this recipe.
+   * Absolute token paths that were explicitly detached from this generator.
    * Detached outputs stay manual and are skipped on future runs.
    */
   detachedPaths?: string[];
@@ -297,24 +297,24 @@ export interface TokenRecipe {
    */
   overrides?: Record<string, { value: unknown; locked: boolean }>;
   /**
-   * When false, the recipe is disabled and will be skipped during auto-run cascades
+   * When false, the generator is disabled and will be skipped during auto-run cascades
    * triggered by source token changes. Manual re-runs still work.
    * Defaults to true (enabled) when absent.
    */
   enabled?: boolean;
   createdAt: string;
   updatedAt: string;
-  /** ISO timestamp of the last successful run. Absent if the recipe has never been run. */
+  /** ISO timestamp of the last successful run. Absent if the generator has never been run. */
   lastRunAt?: string;
   /**
    * Value of the source token at the time of the last successful run.
    * Compared against the current source token value to detect staleness.
-   * Absent if the recipe has never been run or has no source token.
+   * Absent if the generator has never been run or has no source token.
    */
   lastRunSourceValue?: unknown;
   /**
    * Error from the most recent auto-run attempt.
-   * Set when the recipe failed or was blocked by an upstream failure.
+   * Set when the generator failed or was blocked by an upstream failure.
    * Cleared on the next successful run. Persisted to disk so a server restart
    * does not reset error state and show stale "healthy" status in the UI.
    */
@@ -322,13 +322,13 @@ export interface TokenRecipe {
     message: string;
     /** ISO timestamp of when the error occurred. */
     at: string;
-    /** Present when the recipe was blocked by an upstream failure, not a direct failure.
-     *  Contains the name of the upstream recipe whose failure caused this skip. */
+    /** Present when the generator was blocked by an upstream failure, not a direct failure.
+     *  Contains the name of the upstream generator whose failure caused this skip. */
     blockedBy?: string;
   };
 }
 
-export interface RecipeManagedOutput {
+export interface GeneratorManagedOutput {
   collectionId: string;
   path: string;
   stepName: string;
@@ -372,15 +372,15 @@ export function validateStepName(stepName: string): void {
   }
 }
 
-export function createRecipeOwnershipKey(
+export function createGeneratorOwnershipKey(
   collectionId: string,
   path: string,
 ): string {
   return `${collectionId}\u0000${path}`;
 }
 
-export function getRecipeStepNames(
-  config: RecipeConfig | Record<string, unknown>,
+export function getGeneratorStepNames(
+  config: GeneratorConfig | Record<string, unknown>,
 ): string[] {
   const configRecord = config as Record<string, unknown>;
   if (Array.isArray(configRecord.steps)) {
@@ -402,43 +402,43 @@ export function getRecipeStepNames(
   return [];
 }
 
-export function getRecipeManagedOutputs(
-  recipe: Pick<
-    TokenRecipe,
+export function getGeneratorManagedOutputs(
+  generator: Pick<
+    TokenGenerator,
     | "config"
     | "detachedPaths"
     | "targetGroup"
     | "targetCollection"
   >,
-): RecipeManagedOutput[] {
-  const detachedPathSet = new Set(recipe.detachedPaths ?? []);
-  const stepNames = getRecipeStepNames(recipe.config);
+): GeneratorManagedOutput[] {
+  const detachedPathSet = new Set(generator.detachedPaths ?? []);
+  const stepNames = getGeneratorStepNames(generator.config);
   return stepNames.flatMap((stepName) => {
-    const path = `${recipe.targetGroup}.${stepName}`;
+    const path = `${generator.targetGroup}.${stepName}`;
     if (detachedPathSet.has(path)) {
       return [];
     }
     return [
       {
-        collectionId: recipe.targetCollection,
+        collectionId: generator.targetCollection,
         path,
         stepName,
-        key: createRecipeOwnershipKey(recipe.targetCollection, path),
+        key: createGeneratorOwnershipKey(generator.targetCollection, path),
       },
     ];
   });
 }
 
-export function getRecipeManagedOutputPaths(
-  recipe: Pick<
-    TokenRecipe,
+export function getGeneratorManagedOutputPaths(
+  generator: Pick<
+    TokenGenerator,
     | "config"
     | "detachedPaths"
     | "targetGroup"
     | "targetCollection"
   >,
 ): string[] {
-  return [...new Set(getRecipeManagedOutputs(recipe).map((output) => output.path))];
+  return [...new Set(getGeneratorManagedOutputs(generator).map((output) => output.path))];
 }
 
 // ---------------------------------------------------------------------------

@@ -40,7 +40,7 @@ import {
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
-  useRecipeContext,
+  useGeneratorContext,
 } from "../contexts/TokenDataContext";
 import {
   useSelectionContext,
@@ -59,7 +59,7 @@ import {
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
-import type { RecipeSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
+import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
 import type {
   ImportNextStepRecommendation,
   TopTab,
@@ -225,10 +225,10 @@ export function PanelRouter({
     modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
   const {
-    recipes,
-    recipesByTargetGroup,
+    generators,
+    generatorsByTargetGroup,
     derivedTokenPaths,
-  } = useRecipeContext();
+  } = useGeneratorContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
     heatmapResult,
@@ -249,7 +249,7 @@ export function PanelRouter({
   );
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"
-      ? (recipes.find((recipe) => recipe.id === editingGeneratedGroup.id) ??
+      ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
         null)
       : null;
 
@@ -461,7 +461,7 @@ export function PanelRouter({
   );
 
   const getViewTokensToastAction = useCallback(
-    (info: RecipeSaveSuccessInfo): ToastAction => ({
+    (info: GeneratorSaveSuccessInfo): ToastAction => ({
       label: "View tokens",
       onClick: () => openGeneratedTokens(info.targetGroup, info.targetCollection),
     }),
@@ -617,11 +617,11 @@ export function PanelRouter({
       setHistoryFilterPath(path);
       navigateTo("sync", "history");
     },
-    onEditGeneratedGroup: (recipeId: string) =>
+    onEditGeneratedGroup: (generatorId: string) =>
       controller.guardEditorAction(() => {
         openGeneratedGroupEditor({
           mode: "edit",
-          id: recipeId,
+          id: generatorId,
         });
       }),
     onOpenGeneratedGroupEditor: (target: TokensLibraryGeneratedGroupEditorTarget) =>
@@ -684,7 +684,7 @@ export function PanelRouter({
         onBack: handleTokenEditorBack,
         allTokensFlat,
         pathToCollectionId,
-        recipes,
+        generators,
         isCreateMode: editingToken.isCreate,
         initialType: editingToken.initialType,
         initialValue: editingToken.initialValue,
@@ -796,7 +796,7 @@ export function PanelRouter({
             editingGeneratedGroup.mode === "create"
               ? editingGeneratedGroup.intentPreset
               : undefined,
-          existingRecipe:
+          existingGenerator:
             editingGeneratedGroup.mode === "edit"
               ? (editingGeneratedGroupData ?? undefined)
               : undefined,
@@ -813,7 +813,7 @@ export function PanelRouter({
             setEditingGeneratedGroup(null);
             controller.refreshAll();
           },
-          onSaved: (info?: RecipeSaveSuccessInfo) => {
+          onSaved: (info?: GeneratorSaveSuccessInfo) => {
             setEditingGeneratedGroup(null);
             controller.refreshAll();
             if (info) {
@@ -961,7 +961,7 @@ export function PanelRouter({
               allTokensFlat={allTokensFlat}
               pathToCollectionId={pathToCollectionId}
               tokenUsageCounts={tokenUsageCounts}
-              recipes={recipes}
+              generators={generators}
               derivedTokenPaths={derivedTokenPaths}
               lintViolations={controller.lintViolations.filter(
                 (violation) => violation.path === previewingToken.path,
@@ -1012,8 +1012,8 @@ export function PanelRouter({
           lintViolations: controller.lintViolations,
           syncSnapshot:
             Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
-          recipes,
-          recipesByTargetGroup,
+          generators,
+          generatorsByTargetGroup,
           derivedTokenPaths,
           tokenUsageCounts,
           cascadeDiff: controller.cascadeDiff ?? undefined,
@@ -1489,7 +1489,7 @@ export function PanelRouter({
                   }}
                   serverUrl={serverUrl}
                   tokenUsageCounts={tokenUsageCounts}
-                  recipes={recipes}
+                  generators={generators}
                   derivedTokenPaths={derivedTokenPaths}
                   onNavigateToGeneratedGroup={controller.handleNavigateToGeneratedGroup}
                 />
@@ -1605,7 +1605,7 @@ export function PanelRouter({
           serverUrl={serverUrl}
           connected={connected}
           currentCollectionId={currentCollectionId}
-          recipes={recipes}
+          generators={generators}
           lintViolations={controller.lintViolations}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={pathToCollectionId}
@@ -1624,13 +1624,13 @@ export function PanelRouter({
             navigateTo("tokens", "tokens", { preserveHandoff: true });
             setPendingHighlight(path);
           }}
-          onNavigateToGeneratedGroup={(recipeId) => {
+          onNavigateToGeneratedGroup={(generatorId) => {
             beginHandoff({
               reason:
                 "Inspect the generator behind this audit finding, then return to Audit.",
             });
             navigateTo("tokens", "tokens", { preserveHandoff: true });
-            openGeneratedGroupEditor({ mode: "edit", id: recipeId });
+            openGeneratedGroupEditor({ mode: "edit", id: generatorId });
           }}
           onTriggerHeatmap={triggerHeatmapScan}
           validationIssues={controller.validationIssues}

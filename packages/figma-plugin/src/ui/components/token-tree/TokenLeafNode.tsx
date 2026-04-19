@@ -20,7 +20,7 @@ import {
   PROPERTY_LABELS,
 } from "../../../shared/types";
 import type { BindableProperty } from "../../../shared/types";
-import { createRecipeOwnershipKey } from "@tokenmanager/core";
+import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import {
   isAlias,
   resolveTokenValue,
@@ -139,7 +139,7 @@ export const TokenLeafNode = memo(
       onRequestMoveToken,
       onRequestCopyToken,
       onDuplicateToken,
-      onDetachFromRecipe,
+      onDetachFromGenerator,
       onSaveGeneratedException,
       onExtractToAlias,
       onHoverToken,
@@ -231,7 +231,7 @@ export const TokenLeafNode = memo(
     const renameTokenInputRef = useRef<HTMLInputElement>(null);
     const tokenMenuRef = useRef<HTMLDivElement>(null);
     const booleanInlineEditRef = useRef<HTMLDivElement>(null);
-    const quickRecipeType = useMemo(
+    const quickGeneratorType = useMemo(
       () =>
         getQuickGeneratedGroupTypeForToken(
           node.path,
@@ -289,7 +289,7 @@ export const TokenLeafNode = memo(
       setTokenMenuAdvanced(false);
     }, []);
 
-    const openQuickRecipe = useCallback(() => {
+    const openQuickGenerator = useCallback(() => {
       if (!onOpenGeneratedGroupEditor) return;
       closeTokenMenus();
       onOpenGeneratedGroupEditor({
@@ -298,15 +298,15 @@ export const TokenLeafNode = memo(
         sourceTokenName: node.name,
         sourceTokenType: node.$type,
         sourceTokenValue: node.$value,
-        ...(quickRecipeType
+        ...(quickGeneratorType
           ? {
               initialDraft: {
-                selectedType: quickRecipeType,
+                selectedType: quickGeneratorType,
               },
             }
           : {}),
       });
-    }, [closeTokenMenus, node.$type, node.$value, node.name, node.path, onOpenGeneratedGroupEditor, quickRecipeType]);
+    }, [closeTokenMenus, node.$type, node.$value, node.name, node.path, onOpenGeneratedGroupEditor, quickGeneratorType]);
 
     // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
     useEffect(() => {
@@ -414,15 +414,15 @@ export const TokenLeafNode = memo(
       ? String(node.$value).slice(1, -1)
       : null;
     const isFavorite = starredPaths?.has(node.path) ?? false;
-    const producingRecipe =
-      derivedTokenPaths?.get(createRecipeOwnershipKey(collectionId, node.path)) ??
+    const producingGenerator =
+      derivedTokenPaths?.get(createGeneratorOwnershipKey(collectionId, node.path)) ??
       null;
 
     useEffect(() => {
       setGeneratedTokenChoiceOpen(false);
       setGeneratedTokenChoiceBusy(null);
       setPendingGeneratedSave(null);
-    }, [node.path, producingRecipe?.id]);
+    }, [node.path, producingGenerator?.id]);
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
     const isModeLensVariant = modeLensEnabled && modeVariantPaths?.has(node.path);
@@ -471,10 +471,10 @@ export const TokenLeafNode = memo(
     );
 
     const getOverrideableGeneratedStepName = useCallback(() => {
-      if (!producingRecipe) {
+      if (!producingGenerator) {
         return null;
       }
-      const prefix = `${producingRecipe.targetGroup}.`;
+      const prefix = `${producingGenerator.targetGroup}.`;
       if (!node.path.startsWith(prefix)) {
         return null;
       }
@@ -483,7 +483,7 @@ export const TokenLeafNode = memo(
         return null;
       }
       return stepName;
-    }, [node.path, producingRecipe]);
+    }, [node.path, producingGenerator]);
 
     const requestInlineValueSave = useCallback(
       (
@@ -491,7 +491,7 @@ export const TokenLeafNode = memo(
         previousState?: { type?: string; value: unknown },
         afterSave?: () => void,
       ) => {
-        if (!producingRecipe) {
+        if (!producingGenerator) {
           commitInlineValueChange(nextValue, previousState, afterSave);
           return;
         }
@@ -505,7 +505,7 @@ export const TokenLeafNode = memo(
         });
         setGeneratedTokenChoiceOpen(true);
       },
-      [commitInlineValueChange, producingRecipe],
+      [commitInlineValueChange, producingGenerator],
     );
 
     const handleSaveGeneratedExceptionChoice = useCallback(async () => {
@@ -535,12 +535,12 @@ export const TokenLeafNode = memo(
     }, [node.path, onSaveGeneratedException, pendingGeneratedSave]);
 
     const handleDetachAndSaveGeneratedToken = useCallback(async () => {
-      if (!pendingGeneratedSave || !onDetachFromRecipe) {
+      if (!pendingGeneratedSave || !onDetachFromGenerator) {
         return;
       }
       setGeneratedTokenChoiceBusy("detach");
       try {
-        const detached = await onDetachFromRecipe(node.path);
+        const detached = await onDetachFromGenerator(node.path);
         if (!detached) {
           return;
         }
@@ -551,7 +551,7 @@ export const TokenLeafNode = memo(
       } finally {
         setGeneratedTokenChoiceBusy(null);
       }
-    }, [node.path, onDetachFromRecipe, pendingGeneratedSave]);
+    }, [node.path, onDetachFromGenerator, pendingGeneratedSave]);
 
     const handleMultiModeGeneratedSaveRequest = useCallback(
       (
@@ -564,7 +564,7 @@ export const TokenLeafNode = memo(
         if (!node.$type || !onMultiModeInlineSave) {
           return;
         }
-        if (!producingRecipe) {
+        if (!producingGenerator) {
           onMultiModeInlineSave(
             node.path,
             node.$type,
@@ -596,7 +596,7 @@ export const TokenLeafNode = memo(
         });
         setGeneratedTokenChoiceOpen(true);
       },
-      [node.$type, node.path, onMultiModeInlineSave, producingRecipe],
+      [node.$type, node.path, onMultiModeInlineSave, producingGenerator],
     );
 
     // Inline quick-edit eligibility
@@ -775,17 +775,17 @@ export const TokenLeafNode = memo(
       });
     }, [incomingRefs]);
     const leafMetadataSegments: RowMetadataSegment[] = [];
-    if (producingRecipe) {
+    if (producingGenerator) {
       leafMetadataSegments.push({
-        label: `Generated by ${producingRecipe.name}`,
-        title: formatGeneratedGroupSummaryTitle(producingRecipe),
-        tone: producingRecipe.isStale ? "warning" : "default",
-        hoverOnly: !producingRecipe.isStale,
+        label: `Generated by ${producingGenerator.name}`,
+        title: formatGeneratedGroupSummaryTitle(producingGenerator),
+        tone: producingGenerator.isStale ? "warning" : "default",
+        hoverOnly: !producingGenerator.isStale,
         onClick: onOpenGeneratedGroupEditor
           ? () =>
               onOpenGeneratedGroupEditor({
                 mode: "edit",
-                id: producingRecipe.id,
+                id: producingGenerator.id,
               })
           : undefined,
       });
@@ -1979,19 +1979,19 @@ export const TokenLeafNode = memo(
                       tabIndex={-1}
                       data-accel="g"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={openQuickRecipe}
+                      onClick={openQuickGenerator}
                       className={MENU_ITEM_CLASS}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
                       <span className="flex-1">
-                        {quickRecipeType
-                          ? getQuickGeneratedGroupActionLabel(quickRecipeType)
+                        {quickGeneratorType
+                          ? getQuickGeneratedGroupActionLabel(quickGeneratorType)
                           : "Generate from this token…"}
                       </span>
                       <span className={MENU_SHORTCUT_CLASS}>G</span>
                     </button>
                   )}
-                  {producingRecipe && onDetachFromRecipe && (
+                  {producingGenerator && onDetachFromGenerator && (
                     <button
                       role="menuitem"
                       tabIndex={-1}
@@ -2190,7 +2190,7 @@ export const TokenLeafNode = memo(
             </div>
           )}
 
-          {generatedTokenChoiceOpen && producingRecipe && pendingGeneratedSave && (
+          {generatedTokenChoiceOpen && producingGenerator && pendingGeneratedSave && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
               onMouseDown={(event) => {
@@ -2207,7 +2207,7 @@ export const TokenLeafNode = memo(
                   </h3>
                   <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
                     <span className="font-medium text-[var(--color-figma-text)]">
-                      {producingRecipe.name}
+                      {producingGenerator.name}
                     </span>{" "}
                     owns <span className="font-mono text-[var(--color-figma-text)]">{node.path}</span>.
                     Choose how this edit should behave before saving.
@@ -2225,7 +2225,7 @@ export const TokenLeafNode = memo(
                       closeTokenMenus();
                       onOpenGeneratedGroupEditor({
                         mode: "edit",
-                        id: producingRecipe.id,
+                        id: producingGenerator.id,
                       });
                     }}
                     disabled={!onOpenGeneratedGroupEditor || generatedTokenChoiceBusy !== null}
@@ -2263,7 +2263,7 @@ export const TokenLeafNode = memo(
                     onClick={() => {
                       void handleDetachAndSaveGeneratedToken();
                     }}
-                    disabled={!onDetachFromRecipe || generatedTokenChoiceBusy !== null}
+                    disabled={!onDetachFromGenerator || generatedTokenChoiceBusy !== null}
                     className="rounded-md border border-[var(--color-figma-border)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
                   >
                     {generatedTokenChoiceBusy === "detach"
@@ -2286,14 +2286,14 @@ export const TokenLeafNode = memo(
             </div>
           )}
 
-          {showDetachTokenConfirm && producingRecipe && onDetachFromRecipe && (
+          {showDetachTokenConfirm && producingGenerator && onDetachFromGenerator && (
             <ConfirmModal
               title="Detach Token?"
-              description={`Convert "${node.path}" to manual. "${producingRecipe.name}" will stop updating it.`}
+              description={`Convert "${node.path}" to manual. "${producingGenerator.name}" will stop updating it.`}
               confirmLabel="Detach token"
               onCancel={() => setShowDetachTokenConfirm(false)}
               onConfirm={async () => {
-                await onDetachFromRecipe(node.path);
+                await onDetachFromGenerator(node.path);
                 setShowDetachTokenConfirm(false);
               }}
             />

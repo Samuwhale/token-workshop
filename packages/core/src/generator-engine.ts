@@ -1,5 +1,5 @@
 /**
- * Recipe engine — pure computation functions for each recipe type.
+ * Generator engine — pure computation functions for each generator type.
  */
 
 import type {
@@ -13,8 +13,8 @@ import type {
   CustomScaleConfig,
   DarkModeInversionConfig,
   GeneratedTokenResult,
-} from './recipe-types.js';
-import { validateStepName } from './recipe-types.js';
+} from './generator-types.js';
+import { validateStepName } from './generator-types.js';
 import { hexToLab, labToHex } from './color-math.js';
 import { evalExpr, substituteVars } from './eval-expr.js';
 
@@ -94,7 +94,7 @@ function sanitizeNumber(
  * lightness (L*) sweeps from `lightEnd` to `darkEnd`. A bell-shaped chroma
  * factor keeps colors vivid in the mid-tones and desaturated at the extremes.
  */
-export function runColorRampRecipe(
+export function runColorRampGenerator(
   sourceHex: string,
   config: ColorRampConfig,
   targetGroup: string,
@@ -105,7 +105,7 @@ export function runColorRampRecipe(
   }
 
   const lab = hexToLab(sourceHex);
-  if (!lab) throw new Error(`Invalid hex color for colorRamp recipe: "${sourceHex}"`);
+  if (!lab) throw new Error(`Invalid hex color for colorRamp generator: "${sourceHex}"`);
   const [, bA, bB] = lab;
 
   const { steps, lightEnd, darkEnd, chromaBoost, includeSource, sourceStep } = config;
@@ -144,7 +144,7 @@ export function runColorRampRecipe(
  *
  * Each step is computed as: `sourceValue × ratio^(step.exponent - baseExponent)`
  */
-export function runTypeScaleRecipe(
+export function runTypeScaleGenerator(
   sourceValue: { value: number; unit: string },
   config: TypeScaleConfig,
   targetGroup: string,
@@ -159,7 +159,7 @@ export function runTypeScaleRecipe(
   const baseStepDef = steps.find(s => s.name === baseStep);
   if (!baseStepDef) {
     throw new Error(
-      `Type scale recipe: baseStep "${baseStep}" does not match any step name. ` +
+      `Type scale generator: baseStep "${baseStep}" does not match any step name. ` +
         `Available steps: ${steps.map(s => s.name).join(', ')}.`,
     );
   }
@@ -190,7 +190,7 @@ export function runTypeScaleRecipe(
  *
  * Each step value = `sourceValue × step.multiplier`.
  */
-export function runSpacingScaleRecipe(
+export function runSpacingScaleGenerator(
   sourceValue: { value: number; unit: string },
   config: SpacingScaleConfig,
   targetGroup: string,
@@ -225,7 +225,7 @@ export function runSpacingScaleRecipe(
  * Generate an opacity scale (independent of source token value).
  * Values are stored as fractions (0–1) per the DTCG `number` type.
  */
-export function runOpacityScaleRecipe(
+export function runOpacityScaleGenerator(
   config: OpacityScaleConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
@@ -255,7 +255,7 @@ export function runOpacityScaleRecipe(
  * Steps with `exactValue` use that fixed pixel value directly.
  * Other steps compute `sourceValue × step.multiplier`.
  */
-export function runBorderRadiusScaleRecipe(
+export function runBorderRadiusScaleGenerator(
   sourceValue: { value: number; unit: string },
   config: BorderRadiusScaleConfig,
   targetGroup: string,
@@ -293,7 +293,7 @@ export function runBorderRadiusScaleRecipe(
  * Generate a z-index scale (standalone, no source token).
  * Values are stored as DTCG `number` type.
  */
-export function runZIndexScaleRecipe(
+export function runZIndexScaleGenerator(
   config: ZIndexScaleConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
@@ -320,7 +320,7 @@ export function runZIndexScaleRecipe(
  * Each step produces a DTCG `shadow` token. The shadow color is the
  * configured base color with the step's opacity applied as alpha.
  */
-export function runShadowScaleRecipe(
+export function runShadowScaleGenerator(
   config: ShadowScaleConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
@@ -382,7 +382,7 @@ export function runShadowScaleRecipe(
  * - `multiplier` — per-step multiplier (defaults to 1 if not set)
  * - `prev`       — value computed for the previous step (same as base for first step)
  */
-export function runCustomScaleRecipe(
+export function runCustomScaleGenerator(
   sourceValue: number | undefined,
   config: CustomScaleConfig,
   targetGroup: string,
@@ -454,7 +454,7 @@ export function runCustomScaleRecipe(
  * source: a light background becomes a dark background, a vibrant accent
  * remains vibrant, etc.
  */
-export function runDarkModeInversionRecipe(
+export function runDarkModeInversionGenerator(
   sourceHex: string,
   config: DarkModeInversionConfig,
   targetGroup: string,
@@ -463,7 +463,7 @@ export function runDarkModeInversionRecipe(
   validateStepName(config.stepName);
 
   const lab = hexToLab(sourceHex);
-  if (!lab) throw new Error(`Invalid hex color for darkModeInversion recipe: "${sourceHex}"`);
+  if (!lab) throw new Error(`Invalid hex color for darkModeInversion generator: "${sourceHex}"`);
   const [L, a, b] = lab;
 
   const invertedL = 100 - L;
@@ -482,7 +482,7 @@ export function runDarkModeInversionRecipe(
 // ---------------------------------------------------------------------------
 
 /**
- * Apply recipe-level overrides to computed results.
+ * Apply generator-level overrides to computed results.
  * Steps with `locked: true` have their value replaced with the override.
  * Steps with `locked: false` have the override applied once, then cleared
  * (caller is responsible for removing the override after use).

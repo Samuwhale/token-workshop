@@ -1014,33 +1014,33 @@ export class TokenStore {
   }
 
   /**
-   * Find tokens tagged with a recipeId.
-   * Pass '*' to find ALL tokens that have any recipeId.
+   * Find tokens tagged with a generatorId.
+   * Pass '*' to find ALL tokens that have any generatorId.
    */
-  findTokensByRecipeId(
-    recipeId: string,
-  ): Array<{ collectionId: string; path: string; recipeId: string }> {
-    const matchAll = recipeId === "*";
+  findTokensByGeneratorId(
+    generatorId: string,
+  ): Array<{ collectionId: string; path: string; generatorId: string }> {
+    const matchAll = generatorId === "*";
     const results: Array<{
       collectionId: string;
       path: string;
-      recipeId: string;
+      generatorId: string;
     }> = [];
     for (const [tokenPath, entries] of this.flatTokens) {
       for (const { token, collectionId } of entries) {
-        const ext = token.$extensions?.["com.tokenmanager.recipe"];
-        const gid = ext?.recipeId;
-        if (typeof gid === "string" && (matchAll || gid === recipeId)) {
-          results.push({ collectionId: collectionId, path: tokenPath, recipeId: gid });
+        const ext = token.$extensions?.["com.tokenmanager.generator"];
+        const gid = ext?.generatorId;
+        if (typeof gid === "string" && (matchAll || gid === generatorId)) {
+          results.push({ collectionId: collectionId, path: tokenPath, generatorId: gid });
         }
       }
     }
     return results;
   }
 
-  /** Delete all tokens tagged with a given recipeId. Returns count of deleted tokens. */
-  async deleteTokensByRecipeId(recipeId: string): Promise<number> {
-    const tokens = this.findTokensByRecipeId(recipeId);
+  /** Delete all tokens tagged with a given generatorId. Returns count of deleted tokens. */
+  async deleteTokensByGeneratorId(generatorId: string): Promise<number> {
+    const tokens = this.findTokensByGeneratorId(generatorId);
     if (tokens.length === 0) return 0;
 
     const collectionsToSave = new Set<string>();
@@ -2229,7 +2229,7 @@ export class TokenStore {
     }
   }
 
-  /** Emit an arbitrary event to all SSE listeners (e.g. recipe-error). */
+  /** Emit an arbitrary event to all SSE listeners (e.g. generator-error). */
   emitEvent(event: ChangeEvent): void {
     this.emit(event);
   }
@@ -2250,13 +2250,13 @@ export interface ChangeEvent {
     | "collection-updated"
     | "collection-removed"
     | "token-updated"
-    | "recipe-error"
+    | "generator-error"
     | "file-load-error"
     | "workspace-file-changed"
     | "workspace-file-removed";
   collectionId: string;
   tokenPath?: string;
-  recipeId?: string;
+  generatorId?: string;
   message?: string;
-  resourceType?: "collections" | "recipes" | "resolver";
+  resourceType?: "collections" | "generators" | "resolver";
 }

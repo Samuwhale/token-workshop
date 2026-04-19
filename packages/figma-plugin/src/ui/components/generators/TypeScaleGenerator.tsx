@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import type { TypeScaleConfig, TypeScaleStep, GeneratedTokenResult } from '../../hooks/useRecipes';
+import type { TypeScaleConfig, TypeScaleStep, GeneratedTokenResult } from '../../hooks/useGenerators';
 import type { TokenMapEntry } from '../../../shared/types';
-import { OverrideRow, formatValue, isDimensionLike } from './recipeShared';
+import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 import { TypeScaleStaircaseEditor } from './TypeScaleStaircaseEditor';
 import { TokenRefInput } from '../TokenRefInput';
 

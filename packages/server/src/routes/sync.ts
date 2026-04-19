@@ -736,7 +736,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           collectionsStore: fastify.collectionsStore,
           reloadCollectionsWorkspace: () =>
             fastify.collectionService.reloadTokenStorageFromState(),
-          recipeService: fastify.recipeService,
+          generatorService: fastify.generatorService,
           resolverStore: fastify.resolverStore,
         });
         const hasFailures =

@@ -121,7 +121,7 @@ export function useTokenEditorLoad({
         const knownExtKeys = new Set([
           'com.figma.scopes',
           'tokenmanager',
-          'com.tokenmanager.recipe',
+          'com.tokenmanager.generator',
         ]);
         const otherExt: Record<string, any> = {};
         for (const [k, v] of Object.entries(ext)) {

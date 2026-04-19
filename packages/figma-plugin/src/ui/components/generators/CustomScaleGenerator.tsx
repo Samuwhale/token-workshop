@@ -1,5 +1,5 @@
 import type { TokenType } from '@tokenmanager/core';
-import type { CustomScaleConfig, CustomScaleStep } from '../../hooks/useRecipes';
+import type { CustomScaleConfig, CustomScaleStep } from '../../hooks/useGenerators';
 
 // ---------------------------------------------------------------------------
 // Default config

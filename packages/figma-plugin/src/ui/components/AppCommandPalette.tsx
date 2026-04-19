@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { createRecipeOwnershipKey } from "@tokenmanager/core";
+import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import { CommandPalette, type TokenEntry } from "./CommandPalette";
 import { useCommandPaletteCommands } from "../hooks/useCommandPaletteCommands";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
-  useRecipeContext,
+  useGeneratorContext,
 } from "../contexts/TokenDataContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
@@ -25,7 +25,7 @@ export function AppCommandPalette({
     setCurrentCollectionId,
   } = useCollectionStateContext();
   const { allTokensFlat, pathToCollectionId } = useTokenFlatMapContext();
-  const { derivedTokenPaths } = useRecipeContext();
+  const { derivedTokenPaths } = useGeneratorContext();
   const { navigateTo } = useNavigationContext();
   const { setEditingToken, setHighlightedToken, setPendingHighlight } =
     useEditorContext();
@@ -43,8 +43,8 @@ export function AppCommandPalette({
           ? entry.$value
           : JSON.stringify(entry.$value),
       isAlias: isAlias(entry.$value),
-      recipeName: derivedTokenPaths.get(
-        createRecipeOwnershipKey(pathToCollectionId[path] ?? "", path),
+      generatorName: derivedTokenPaths.get(
+        createGeneratorOwnershipKey(pathToCollectionId[path] ?? "", path),
       )?.name,
     }));
   }, [allTokensFlat, derivedTokenPaths, pathToCollectionId]);

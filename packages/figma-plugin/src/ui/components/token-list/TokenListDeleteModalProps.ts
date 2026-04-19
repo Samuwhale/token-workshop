@@ -1,6 +1,6 @@
 import type {
   AffectedRef,
-  RecipeImpact,
+  GeneratorImpact,
   ModeImpact,
   DeleteConfirm,
 } from "../tokenListTypes";
@@ -11,7 +11,7 @@ export interface DeleteModalProps {
   confirmLabel: string;
   pathList?: string[];
   affectedRefs?: AffectedRef[];
-  recipeImpacts?: RecipeImpact[];
+  generatorImpacts?: GeneratorImpact[];
   modeImpacts?: ModeImpact[];
 }
 
@@ -20,8 +20,8 @@ export function getDeleteModalProps(
 ): DeleteModalProps | null {
   if (!deleteConfirm) return null;
   const genImpacts =
-    deleteConfirm.recipeImpacts.length > 0
-      ? deleteConfirm.recipeImpacts
+    deleteConfirm.generatorImpacts.length > 0
+      ? deleteConfirm.generatorImpacts
       : undefined;
   const thmImpacts =
     deleteConfirm.modeImpacts.length > 0
@@ -53,7 +53,7 @@ export function getDeleteModalProps(
           : `Token path: ${deleteConfirm.path}`,
       confirmLabel: "Delete",
       affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-      recipeImpacts: genImpacts,
+      generatorImpacts: genImpacts,
       modeImpacts: thmImpacts,
     };
   }
@@ -81,7 +81,7 @@ export function getDeleteModalProps(
       description: `This will ${parts.join(", ")}.`,
       confirmLabel: `Delete group (${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? "s" : ""})`,
       affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-      recipeImpacts: genImpacts,
+      generatorImpacts: genImpacts,
       modeImpacts: thmImpacts,
     };
   }
@@ -108,7 +108,7 @@ export function getDeleteModalProps(
     confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? "s" : ""}`,
     pathList: paths,
     affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-    recipeImpacts: genImpacts,
+    generatorImpacts: genImpacts,
     modeImpacts: thmImpacts,
   };
 }

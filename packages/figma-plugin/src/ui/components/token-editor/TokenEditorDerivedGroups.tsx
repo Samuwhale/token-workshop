@@ -1,15 +1,15 @@
-import type { TokenRecipe } from "../../hooks/useRecipes";
+import type { TokenGenerator } from "../../hooks/useGenerators";
 import type { TokensLibraryGeneratedGroupEditorTarget } from "../../shared/navigationTypes";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
 import { getGeneratedGroupTypeLabel } from "../../shared/generatedGroupUtils";
-import { getSingleObviousRecipeType } from "../recipes/recipeUtils";
+import { getSingleObviousGeneratorType } from "../generators/generatorUtils";
 
 export interface TokenEditorDerivedGroupsProps {
   tokenPath: string;
   tokenName?: string;
   tokenType: string;
   value: any;
-  existingRecipesForToken: TokenRecipe[];
+  existingGeneratorsForToken: TokenGenerator[];
   openGeneratedGroupEditor: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
 }
 
@@ -18,10 +18,10 @@ export function TokenEditorDerivedGroups({
   tokenName,
   tokenType,
   value,
-  existingRecipesForToken,
+  existingGeneratorsForToken,
   openGeneratedGroupEditor,
 }: TokenEditorDerivedGroupsProps) {
-  const obviousType = getSingleObviousRecipeType(
+  const obviousType = getSingleObviousGeneratorType(
     tokenType,
     tokenPath,
     tokenName,
@@ -35,9 +35,9 @@ export function TokenEditorDerivedGroups({
           <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
             Generated groups
           </span>
-          {existingRecipesForToken.length > 0 && (
+          {existingGeneratorsForToken.length > 0 && (
             <span className="text-[10px] tabular-nums text-[var(--color-figma-text-secondary)]">
-              {existingRecipesForToken.length}
+              {existingGeneratorsForToken.length}
             </span>
           )}
         </div>
@@ -46,9 +46,9 @@ export function TokenEditorDerivedGroups({
         </p>
       </div>
       <div className="px-3 py-2 flex flex-col gap-2">
-        {existingRecipesForToken.length > 0 ? (
+        {existingGeneratorsForToken.length > 0 ? (
           <div className="flex flex-col gap-1.5">
-          {existingRecipesForToken.map((gen) => (
+          {existingGeneratorsForToken.map((gen) => (
             <div
               key={gen.id}
               className="flex items-center justify-between gap-3"

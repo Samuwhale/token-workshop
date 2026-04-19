@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Spinner } from './Spinner';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenRecipe } from '../hooks/useRecipes';
+import type { TokenGenerator } from '../hooks/useGenerators';
 import { useResolverContext } from '../contexts/CollectionContext';
 import { useCollectionStateContext } from '../contexts/TokenDataContext';
 import { getGeneratedGroupTypeLabel } from '../shared/generatedGroupUtils';
@@ -35,16 +35,16 @@ interface TokenUsagesProps {
   /** Maps each token path to its owning set name. */
   pathToCollectionId: Record<string, string>;
   initialValue: any;
-  /** Recipe that produces this token (if any). */
-  producingRecipe: TokenRecipe | null;
-  /** Recipes that use this token as their source. */
-  sourceRecipes: TokenRecipe[];
+  /** Generator that produces this token (if any). */
+  producingGenerator: TokenGenerator | null;
+  /** Generators that use this token as their source. */
+  sourceGenerators: TokenGenerator[];
   /** Navigate to a token by path in the token list */
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   /** Open the dependency graph focused on a token */
   onShowReferences?: (path: string) => void;
-  /** Navigate to a recipe's contextual editor */
-  onNavigateToGeneratedGroup?: (recipeId: string) => void;
+  /** Navigate to a generator's contextual editor */
+  onNavigateToGeneratedGroup?: (generatorId: string) => void;
 }
 
 const NODE_TYPE_ICONS: Record<string, string> = {
@@ -75,7 +75,7 @@ function formatDiffValue(val: any, type: string): string {
   return String(val);
 }
 
-const RECIPE_TYPE_STYLES: Record<string, { classes: string }> = {
+const GENERATOR_TYPE_STYLES: Record<string, { classes: string }> = {
   colorRamp: { classes: 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' },
   typeScale: { classes: 'bg-purple-500/15 text-purple-600' },
   spacingScale: { classes: 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' },
@@ -85,7 +85,7 @@ const RECIPE_TYPE_STYLES: Record<string, { classes: string }> = {
 export function TokenUsages({
   dependents, dependentsLoading, collectionId, tokenPath, tokenType, value,
   isDirty, aliasMode, allTokensFlat, colorFlatMap, pathToCollectionId, initialValue,
-  producingRecipe, sourceRecipes, onNavigateToToken, onShowReferences, onNavigateToGeneratedGroup,
+  producingGenerator, sourceGenerators, onNavigateToToken, onShowReferences, onNavigateToGeneratedGroup,
 }: TokenUsagesProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -228,10 +228,10 @@ export function TokenUsages({
   }, [tokenPath]);
 
   // Count
-  const recipeCount = (producingRecipe ? 1 : 0) + sourceRecipes.length;
+  const generatorCount = (producingGenerator ? 1 : 0) + sourceGenerators.length;
   const variableCount = variablesScanned ? variables.length : 0;
   const layerCount = layersScanned ? layersTotal : 0;
-  const knownTotal = dependents.length + variableCount + layerCount + recipeCount +
+  const knownTotal = dependents.length + variableCount + layerCount + generatorCount +
     collectionAssignments.length + resolverAssignments.length;
   const hasUnscannedSections = !layersScanned || !variablesScanned;
 
@@ -250,7 +250,7 @@ export function TokenUsages({
   const oldColorHex = tokenType === 'color' && typeof initialValue === 'string' ? initialValue.slice(0, 7) : null;
   const newColorHex = tokenType === 'color' && typeof value === 'string' ? value.slice(0, 7) : null;
 
-  const hasAnyContent = dependents.length > 0 || recipeCount > 0 || collectionAssignments.length > 0 ||
+  const hasAnyContent = dependents.length > 0 || generatorCount > 0 || collectionAssignments.length > 0 ||
     resolverAssignments.length > 0 || (variablesScanned && variables.length > 0) || (layersScanned && layers.length > 0);
   const nothingFound = !dependentsLoading && !layersLoading && !variablesLoading &&
     layersScanned && variablesScanned && !hasAnyContent;
@@ -458,47 +458,47 @@ export function TokenUsages({
           ) : null}
 
           {/* Generated group references */}
-          {recipeCount > 0 && (
+          {generatorCount > 0 && (
             <>
               <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                Generated groups ({recipeCount})
+                Generated groups ({generatorCount})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
-                {producingRecipe && (
+                {producingGenerator && (
                   <div className="px-3 py-1.5 flex items-center gap-2">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Managed by</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
-                      RECIPE_TYPE_STYLES[producingRecipe.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
+                      GENERATOR_TYPE_STYLES[producingGenerator.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
-                      {getGeneratedGroupTypeLabel(producingRecipe.type)}
+                      {getGeneratedGroupTypeLabel(producingGenerator.type)}
                     </span>
                     {onNavigateToGeneratedGroup ? (
                       <button
                         type="button"
                         className="flex-1 min-w-0 text-left text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline truncate"
-                        title={`Open generated group "${producingRecipe.name}"`}
-                        onClick={() => onNavigateToGeneratedGroup(producingRecipe.id)}
+                        title={`Open generated group "${producingGenerator.name}"`}
+                        onClick={() => onNavigateToGeneratedGroup(producingGenerator.id)}
                       >
-                        {producingRecipe.name}
+                        {producingGenerator.name}
                       </button>
                     ) : (
-                      <span className="flex-1 text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={producingRecipe.name}>
-                        {producingRecipe.name}
+                      <span className="flex-1 text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={producingGenerator.name}>
+                        {producingGenerator.name}
                       </span>
                     )}
                   </div>
                 )}
-                {sourceRecipes.map(gen => (
+                {sourceGenerators.map(gen => (
                   <div key={gen.id} className="px-3 py-1.5 flex items-center gap-2">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Source for</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
-                      RECIPE_TYPE_STYLES[gen.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
+                      GENERATOR_TYPE_STYLES[gen.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
                       {getGeneratedGroupTypeLabel(gen.type)}
                     </span>

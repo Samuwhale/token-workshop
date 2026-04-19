@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import { createRecipeOwnershipKey } from "@tokenmanager/core";
-import type { TokenRecipe } from "../hooks/useRecipes";
+import { createGeneratorOwnershipKey } from "@tokenmanager/core";
+import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
 import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import { ValuePreview } from "./ValuePreview";
@@ -24,9 +24,9 @@ interface TokenDetailPreviewProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
   tokenUsageCounts?: Record<string, number>;
-  recipes?: TokenRecipe[];
-  recipesBySource?: Map<string, TokenRecipe[]>;
-  derivedTokenPaths?: Map<string, TokenRecipe>;
+  generators?: TokenGenerator[];
+  generatorsBySource?: Map<string, TokenGenerator[]>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
   /** Server URL for fetching token value history. When omitted, history section is hidden. */
@@ -34,7 +34,7 @@ interface TokenDetailPreviewProps {
   onEdit: () => void;
   onClose: () => void;
   onNavigateToAlias?: (path: string) => void;
-  onNavigateToGeneratedGroup?: (recipeId: string) => void;
+  onNavigateToGeneratedGroup?: (generatorId: string) => void;
 }
 
 export function TokenDetailPreview({
@@ -44,8 +44,8 @@ export function TokenDetailPreview({
   allTokensFlat,
   pathToCollectionId,
   tokenUsageCounts,
-  recipes,
-  recipesBySource,
+  generators,
+  generatorsBySource,
   derivedTokenPaths,
   lintViolations = [],
   syncSnapshot,
@@ -104,14 +104,14 @@ export function TokenDetailPreview({
     typeof rawValue === "string" && isAlias(rawValue)
       ? rawValue.slice(1, -1)
       : null;
-  const sourceRecipes = useMemo(() => {
-    if (recipesBySource) return recipesBySource.get(tokenPath) ?? [];
-    return (recipes ?? []).filter(
-      (recipe) => recipe.sourceToken === tokenPath,
+  const sourceGenerators = useMemo(() => {
+    if (generatorsBySource) return generatorsBySource.get(tokenPath) ?? [];
+    return (generators ?? []).filter(
+      (generator) => generator.sourceToken === tokenPath,
     );
-  }, [recipesBySource, recipes, tokenPath]);
-  const derivedRecipe = derivedTokenPaths?.get(
-    createRecipeOwnershipKey(
+  }, [generatorsBySource, generators, tokenPath]);
+  const derivedGenerator = derivedTokenPaths?.get(
+    createGeneratorOwnershipKey(
       pathToCollectionId?.[tokenPath] ?? storageCollectionId,
       tokenPath,
     ),
@@ -307,8 +307,8 @@ export function TokenDetailPreview({
                   ? (pathToCollectionId?.[presentation.extendsPath] ?? null)
                   : null
               }
-              sourceRecipes={sourceRecipes}
-              generatedRecipe={derivedRecipe ?? null}
+              sourceGenerators={sourceGenerators}
+              generatedGenerator={derivedGenerator ?? null}
               usageCount={usageCount}
               onNavigateToPath={onNavigateToAlias}
               onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
