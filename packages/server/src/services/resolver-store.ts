@@ -23,6 +23,7 @@ import {
 import type { TokenStore } from "./token-store.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
+import { parseJsonFile } from "../utils/json-file.js";
 
 // ---------------------------------------------------------------------------
 // Name validation
@@ -605,8 +606,11 @@ export class ResolverStore {
     ) {
       return false;
     }
-    const data = JSON.parse(content);
-    const errors = validateResolverFile(data);
+    const data = parseJsonFile(content, {
+      filePath,
+      relativeTo: this.dir,
+    });
+    const errors = validateResolverFile(data as ResolverFile);
     if (errors.length > 0) {
       const message = errors.join("; ");
       console.warn(

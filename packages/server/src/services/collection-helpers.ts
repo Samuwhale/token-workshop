@@ -1,5 +1,7 @@
 import {
+  COLLECTION_NAME_RE as CORE_COLLECTION_NAME_RE,
   flattenTokenGroup,
+  isValidCollectionName as isCoreValidCollectionName,
   isDTCGToken,
   readTokenCollectionModeValues,
   writeTokenCollectionModeValues,
@@ -14,7 +16,7 @@ import {
 } from "./operation-log.js";
 import { setTokenAtPath } from "./token-tree-utils.js";
 
-export const COLLECTION_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+export const COLLECTION_NAME_RE = CORE_COLLECTION_NAME_RE;
 export const FOLDER_ITEM_SUFFIX = "/";
 export const GENERATOR_EXTENSION_KEY = "com.tokenmanager.generator";
 
@@ -24,7 +26,7 @@ export interface FolderCollectionRename {
 }
 
 export function isValidCollectionName(name: string): boolean {
-  return COLLECTION_NAME_RE.test(name);
+  return isCoreValidCollectionName(name);
 }
 
 export function isFolderItemKey(item: string): boolean {
@@ -90,14 +92,6 @@ export function getFolderCollectionIds(
   return allCollectionIds.filter((collectionId) =>
     collectionId.startsWith(prefix),
   );
-}
-
-export function replaceFolderPrefix(
-  collectionId: string,
-  fromFolder: string,
-  toFolder: string,
-): string {
-  return `${toFolder}${collectionId.slice(fromFolder.length)}`;
 }
 
 export function sortFolderRenamePairsForApply(
@@ -177,7 +171,6 @@ export function copyCollectionModeKey(
     ...modes,
     [targetCollectionId]: structuredClone(modes[sourceCollectionId]),
   };
-  delete nextModes[sourceCollectionId];
   return nextModes;
 }
 

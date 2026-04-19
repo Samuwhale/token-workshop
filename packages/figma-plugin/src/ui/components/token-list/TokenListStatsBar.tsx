@@ -48,7 +48,7 @@ export function TokenListStatsBar({
         </div>
         <button
           onClick={onClose}
-          className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="p-1 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           aria-label="Hide token statistics"
           title="Hide token statistics"
         >

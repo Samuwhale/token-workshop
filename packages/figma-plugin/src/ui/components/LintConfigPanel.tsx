@@ -365,7 +365,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                     }}
                     disabled={saving || !ruleConfig.enabled}
                     aria-label="Rule severity"
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] outline-none disabled:opacity-40"
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] disabled:opacity-40"
                     style={{ color: ruleConfig.enabled ? SEVERITY_COLORS[ruleConfig.severity ?? 'warning'] : undefined }}
                   >
                     {SEVERITIES.map(severity => (

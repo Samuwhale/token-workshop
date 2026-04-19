@@ -33,7 +33,7 @@
     <span style="flex:1"></span>
     <span style="font-size:11px;color:#888" id="msg-count">0 messages</span>
   </div>
-  <iframe id="plugin-frame" src="../dist/ui.html" sandbox="allow-scripts"></iframe>
+  <iframe id="plugin-frame" src="/dist/ui.html" sandbox="allow-scripts"></iframe>
   <div id="resize-bar">⋯</div>
   <div id="log"></div>
 
@@ -41,7 +41,7 @@
     const frame = document.getElementById('plugin-frame');
     const serverUrl = new URLSearchParams(window.location.search).get('serverUrl');
     if (serverUrl) {
-      frame.src = `../dist/ui.html?serverUrl=${encodeURIComponent(serverUrl)}`;
+      frame.src = `/dist/ui.html?serverUrl=${encodeURIComponent(serverUrl)}`;
     }
     const logEl = document.getElementById('log');
     const statusEl = document.getElementById('status');

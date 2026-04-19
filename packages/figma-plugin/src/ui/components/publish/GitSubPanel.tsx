@@ -186,7 +186,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 <select
                   value={git.gitStatus.branch || ''}
                   onChange={e => git.doAction('checkout', { branch: e.target.value })}
-                  className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
+                  className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus-visible:border-[var(--color-figma-accent)]"
                 >
                   {git.branches.map(b => (
                     <option key={b} value={b}>{b}</option>
@@ -525,7 +525,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                             <select
                               value={choice}
                               onChange={e => git.setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
-                              className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
+                              className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5"
                             >
                               <option value="push">{'\u2191'} Push</option>
                               <option value="pull">{'\u2193'} Pull</option>

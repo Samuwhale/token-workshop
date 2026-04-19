@@ -1,34 +1,35 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import type { StarredToken } from '../shared/starredTokens';
 import {
   getStarredTokens,
+  moveStarredToken,
   toggleStarredToken,
-  removeStarredToken,
+  removeStarredTokens,
   renameStarredToken,
   removeStarredTokensForCollection,
   renameStarredTokensForCollection,
-  isTokenStarred,
 } from '../shared/starredTokens';
 
 export interface StarredTokensState {
   /** All starred tokens */
   tokens: StarredToken[];
-  /** Number of starred tokens */
-  count: number;
   /** Toggle star on a token; returns new starred state */
   toggleStar: (path: string, collectionId: string) => boolean;
-  /** Check if a token is starred */
-  isStarred: (path: string, collectionId: string) => boolean;
-  /** Remove a starred token (on delete) */
-  remove: (path: string, collectionId: string) => void;
+  /** Remove multiple starred tokens from one collection. */
+  removeMany: (paths: string[], collectionId: string) => void;
   /** Rename a starred token (on rename) */
   rename: (oldPath: string, newPath: string, collectionId: string) => void;
+  /** Move a starred token across collections without changing its star state. */
+  move: (
+    oldPath: string,
+    newPath: string,
+    oldCollectionId: string,
+    newCollectionId: string,
+  ) => void;
   /** Remove all starred tokens for a deleted collection. */
   removeForCollection: (collectionId: string) => void;
   /** Update collection id for a renamed collection. */
   renameCollection: (oldName: string, newName: string) => void;
-  /** Clear all starred tokens */
-  clear: () => void;
 }
 
 export function useStarredTokens(): StarredTokensState {
@@ -40,17 +41,23 @@ export function useStarredTokens(): StarredTokensState {
     return result;
   }, []);
 
-  const isStarred = useCallback((path: string, collectionId: string): boolean => {
-    return isTokenStarred(path, collectionId);
-  }, []);
-
-  const remove = useCallback((path: string, collectionId: string) => {
-    removeStarredToken(path, collectionId);
+  const removeMany = useCallback((paths: string[], collectionId: string) => {
+    removeStarredTokens(paths, collectionId);
     setTokens(getStarredTokens());
   }, []);
 
   const rename = useCallback((oldPath: string, newPath: string, collectionId: string) => {
     renameStarredToken(oldPath, newPath, collectionId);
+    setTokens(getStarredTokens());
+  }, []);
+
+  const move = useCallback((
+    oldPath: string,
+    newPath: string,
+    oldCollectionId: string,
+    newCollectionId: string,
+  ) => {
+    moveStarredToken(oldPath, newPath, oldCollectionId, newCollectionId);
     setTokens(getStarredTokens());
   }, []);
 
@@ -64,21 +71,13 @@ export function useStarredTokens(): StarredTokensState {
     setTokens(getStarredTokens());
   }, []);
 
-  const clear = useCallback(() => {
-    setTokens([]);
-  }, []);
-
-  const count = useMemo(() => tokens.length, [tokens]);
-
   return {
     tokens,
-    count,
     toggleStar,
-    isStarred,
-    remove,
+    removeMany,
     rename,
+    move,
     removeForCollection,
     renameCollection,
-    clear,
   };
 }

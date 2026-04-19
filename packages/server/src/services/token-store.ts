@@ -16,6 +16,7 @@ import {
 import { NotFoundError, ConflictError, BadRequestError } from "../errors.js";
 import type { TokenPathRename } from "./operation-log.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
+import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
 import {
   validateTokenPath,
   pathExistsAt,
@@ -49,7 +50,8 @@ interface PlannedTokenRename {
 }
 
 interface PlannedTokenTransfer {
-  path: string;
+  sourcePath: string;
+  targetPath: string;
   token: Token;
 }
 
@@ -126,10 +128,20 @@ export class TokenStore {
     }
     let tokens: TokenGroup;
     try {
-      tokens = JSON.parse(content) as TokenGroup;
-    } catch {
+      tokens = expectJsonObject(
+        parseJsonFile(content, { filePath, relativeTo: this.dir }),
+        {
+          filePath,
+          relativeTo: this.dir,
+          expectation: "contain a top-level token-group object",
+        },
+      ) as TokenGroup;
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        throw err;
+      }
       throw new ConflictError(
-        `Collection "${collectionId}" contains malformed JSON at "${path.relative(this.dir, filePath)}"`,
+        `Collection "${collectionId}" could not be loaded from "${path.relative(this.dir, filePath)}".`,
       );
     }
     return { tokens, missing: false, filePath };
@@ -1444,7 +1456,7 @@ export class TokenStore {
 
   private planTokenTransfers(
     fromCollection: string,
-    paths: string[],
+    transfers: Array<{ sourcePath: string; targetPath?: string }>,
     toCollection: string,
     options: { overwriteExisting: boolean },
   ): {
@@ -1459,23 +1471,31 @@ export class TokenStore {
     const source = this.getCollectionOrThrow(fromCollection);
     const target = this.getCollectionOrThrow(toCollection);
     const plannedTransfers: PlannedTokenTransfer[] = [];
+    const targetPaths = new Set<string>();
 
-    for (const tokenPath of paths) {
-      const token = getTokenAtPath(source.tokens, tokenPath);
+    for (const { sourcePath, targetPath: requestedTargetPath } of transfers) {
+      const targetPath = requestedTargetPath ?? sourcePath;
+      validateTokenPath(targetPath);
+
+      const token = getTokenAtPath(source.tokens, sourcePath);
       if (!token) {
         throw new NotFoundError(
-          `Token "${tokenPath}" not found in collection "${fromCollection}"`,
+          `Token "${sourcePath}" not found in collection "${fromCollection}"`,
         );
       }
       if (
         !options.overwriteExisting &&
-        pathExistsAt(target.tokens, tokenPath)
+        pathExistsAt(target.tokens, targetPath)
       ) {
         throw new ConflictError(
-          `Path "${tokenPath}" already exists in target collection "${toCollection}"`,
+          `Path "${targetPath}" already exists in target collection "${toCollection}"`,
         );
       }
-      plannedTransfers.push({ path: tokenPath, token });
+      if (targetPaths.has(targetPath)) {
+        throw new ConflictError(`Duplicate target path "${targetPath}" in transfer batch`);
+      }
+      targetPaths.add(targetPath);
+      plannedTransfers.push({ sourcePath, targetPath, token });
     }
 
     return { source, target, plannedTransfers };
@@ -1735,14 +1755,23 @@ export class TokenStore {
     fromCollection: string,
     tokenPath: string,
     toCollection: string,
+    options?: {
+      targetPath?: string;
+      overwriteExisting?: boolean;
+    },
   ): Promise<void> {
-    const plan = this.planTokenTransfers(fromCollection, [tokenPath], toCollection, {
-      overwriteExisting: false,
-    });
+    const plan = this.planTokenTransfers(
+      fromCollection,
+      [{ sourcePath: tokenPath, targetPath: options?.targetPath }],
+      toCollection,
+      {
+        overwriteExisting: options?.overwriteExisting ?? false,
+      },
+    );
     await this.runStructuralMutation([fromCollection, toCollection], async () => {
-      for (const { path, token } of plan.plannedTransfers) {
-        setTokenAtPath(plan.target.tokens, path, token);
-        deleteTokenAtPath(plan.source.tokens, path);
+      for (const { sourcePath, targetPath, token } of plan.plannedTransfers) {
+        setTokenAtPath(plan.target.tokens, targetPath, token);
+        deleteTokenAtPath(plan.source.tokens, sourcePath);
       }
       await this.saveCollections([fromCollection, toCollection]);
     });
@@ -1752,13 +1781,22 @@ export class TokenStore {
     fromCollection: string,
     tokenPath: string,
     toCollection: string,
+    options?: {
+      targetPath?: string;
+      overwriteExisting?: boolean;
+    },
   ): Promise<void> {
-    const plan = this.planTokenTransfers(fromCollection, [tokenPath], toCollection, {
-      overwriteExisting: false,
-    });
+    const plan = this.planTokenTransfers(
+      fromCollection,
+      [{ sourcePath: tokenPath, targetPath: options?.targetPath }],
+      toCollection,
+      {
+        overwriteExisting: options?.overwriteExisting ?? false,
+      },
+    );
     await this.runStructuralMutation([toCollection], async () => {
-      for (const { path, token } of plan.plannedTransfers) {
-        setTokenAtPath(plan.target.tokens, path, structuredClone(token));
+      for (const { targetPath, token } of plan.plannedTransfers) {
+        setTokenAtPath(plan.target.tokens, targetPath, structuredClone(token));
       }
       await this.saveCollection(toCollection);
     });
@@ -1877,13 +1915,18 @@ export class TokenStore {
     paths: string[],
     toCollection: string,
   ): Promise<{ moved: number }> {
-    const plan = this.planTokenTransfers(fromCollection, paths, toCollection, {
-      overwriteExisting: false,
-    });
+    const plan = this.planTokenTransfers(
+      fromCollection,
+      paths.map((sourcePath) => ({ sourcePath })),
+      toCollection,
+      {
+        overwriteExisting: false,
+      },
+    );
     return this.runStructuralMutation([fromCollection, toCollection], async () => {
-      for (const { path, token } of plan.plannedTransfers) {
-        setTokenAtPath(plan.target.tokens, path, token);
-        deleteTokenAtPath(plan.source.tokens, path);
+      for (const { sourcePath, targetPath, token } of plan.plannedTransfers) {
+        setTokenAtPath(plan.target.tokens, targetPath, token);
+        deleteTokenAtPath(plan.source.tokens, sourcePath);
       }
       await this.saveCollections([fromCollection, toCollection]);
       return { moved: plan.plannedTransfers.length };
@@ -1899,12 +1942,17 @@ export class TokenStore {
     paths: string[],
     toCollection: string,
   ): Promise<{ copied: number }> {
-    const plan = this.planTokenTransfers(fromCollection, paths, toCollection, {
-      overwriteExisting: true,
-    });
+    const plan = this.planTokenTransfers(
+      fromCollection,
+      paths.map((sourcePath) => ({ sourcePath })),
+      toCollection,
+      {
+        overwriteExisting: true,
+      },
+    );
     return this.runStructuralMutation([toCollection], async () => {
-      for (const { path, token } of plan.plannedTransfers) {
-        setTokenAtPath(plan.target.tokens, path, structuredClone(token));
+      for (const { targetPath, token } of plan.plannedTransfers) {
+        setTokenAtPath(plan.target.tokens, targetPath, structuredClone(token));
       }
       await this.saveCollection(toCollection);
       return { copied: plan.plannedTransfers.length };

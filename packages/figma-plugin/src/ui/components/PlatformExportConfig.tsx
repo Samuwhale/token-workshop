@@ -693,7 +693,7 @@ export function PlatformExportConfig({
                   value={zipFilename}
                   onChange={(e) => setZipFilename(e.target.value)}
                   placeholder="tokens"
-                  className="flex-1 min-w-0 px-2 py-1 bg-transparent text-[10px] text-[var(--color-figma-text)] font-mono outline-none"
+                  className="flex-1 min-w-0 px-2 py-1 bg-transparent text-[10px] text-[var(--color-figma-text)] font-mono outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
                 />
                 <span className="text-[10px] text-[var(--color-figma-text-tertiary)] pr-2 shrink-0">.zip</span>
               </div>

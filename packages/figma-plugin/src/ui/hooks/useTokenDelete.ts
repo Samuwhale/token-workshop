@@ -24,6 +24,7 @@ export interface UseTokenDeleteParams {
   onPushUndo?: (slot: UndoSlot) => void;
   onSetOperationLoading: (msg: string | null) => void;
   onSetLocallyDeletedPaths: (paths: Set<string>) => void;
+  onDeletePaths?: (paths: string[], collectionId: string) => void;
   onClearSelection: () => void;
   onError?: (msg: string) => void;
 }
@@ -41,6 +42,7 @@ export function useTokenDelete({
   onPushUndo,
   onSetOperationLoading,
   onSetLocallyDeletedPaths,
+  onDeletePaths,
   onClearSelection,
   onError,
 }: UseTokenDeleteParams) {
@@ -147,6 +149,12 @@ export function useTokenDelete({
     const deletedType = deleteConfirm.type;
     const deletedPath = deleteConfirm.type !== 'bulk' ? deleteConfirm.path : '';
     const deletedPaths = deleteConfirm.type === 'bulk' ? deleteConfirm.paths : [];
+    const deletedLeafPaths =
+      deletedType === 'group'
+        ? undoTokens.map(({ path }) => path)
+        : deletedType === 'bulk'
+          ? deletedPaths
+          : [deletedPath];
 
     setDeleteConfirm(null);
     setDeleteError(null);
@@ -163,11 +171,8 @@ export function useTokenDelete({
         onClearSelection();
       }
 
-      if (deletedType === 'token' || deletedType === 'group') {
-        onSetLocallyDeletedPaths(new Set([deletedPath]));
-      } else {
-        onSetLocallyDeletedPaths(new Set(deletedPaths));
-      }
+      onSetLocallyDeletedPaths(new Set(deletedLeafPaths));
+      onDeletePaths?.(deletedLeafPaths, collectionId);
 
       if (onPushUndo && undoTokens.length > 0) {
         const captured = undoTokens;
@@ -202,7 +207,7 @@ export function useTokenDelete({
     } finally {
       onSetOperationLoading(null);
     }
-  }, [deleteConfirm, tokens, serverUrl, collectionId, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError]);
+  }, [deleteConfirm, tokens, serverUrl, collectionId, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onDeletePaths, onClearSelection, onError]);
 
   return {
     deleteConfirm,

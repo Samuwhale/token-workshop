@@ -25,7 +25,6 @@ export interface ModeValuesEditorProps {
   value: unknown;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
-  onOpenCollectionSetup?: () => void;
   selectedModes?: Record<string, string>;
 }
 
@@ -75,7 +74,6 @@ export function ModeValuesEditor({
   value,
   allTokensFlat = {},
   pathToCollectionId = {},
-  onOpenCollectionSetup,
   selectedModes = {},
 }: ModeValuesEditorProps) {
   const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(

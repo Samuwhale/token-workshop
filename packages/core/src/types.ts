@@ -245,6 +245,19 @@ export function getTokenManagerExt(token: { $extensions?: TokenExtensions | Reco
   return (token.$extensions as TokenExtensions | undefined)?.tokenmanager;
 }
 
+/**
+ * Read the normalized lifecycle for a token or token-like object.
+ * Defaults to `published` when the lifecycle metadata is absent or invalid.
+ */
+export function getTokenLifecycle(
+  token: { $extensions?: TokenExtensions | Record<string, unknown> },
+): TokenLifecycle {
+  const lifecycle = getTokenManagerExt(token)?.lifecycle;
+  return lifecycle === 'draft' || lifecycle === 'deprecated' || lifecycle === 'published'
+    ? lifecycle
+    : 'published';
+}
+
 // ---------------------------------------------------------------------------
 // Resolved Token (post-alias resolution)
 // ---------------------------------------------------------------------------

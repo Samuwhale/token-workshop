@@ -1,3 +1,4 @@
+import { getTokenLifecycle } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 
 export const FIGMA_SCOPE_OPTIONS: Record<
@@ -124,7 +125,6 @@ type TokenPresentationEntry = {
 };
 
 type TokenManagerMetadata = {
-  lifecycle?: "draft" | "published" | "deprecated";
   source?: string;
   extends?: string;
 };
@@ -138,12 +138,6 @@ function readTokenManagerMetadata(
   }
   const metadata = raw as Record<string, unknown>;
   return {
-    lifecycle:
-      metadata.lifecycle === "draft" || metadata.lifecycle === "deprecated"
-        ? metadata.lifecycle
-        : metadata.lifecycle === "published"
-          ? "published"
-          : undefined,
     source: typeof metadata.source === "string" ? metadata.source : undefined,
     extends:
       typeof metadata.extends === "string" ? metadata.extends : undefined,
@@ -172,7 +166,7 @@ export function readTokenPresentationMetadata(
 
   return {
     scopes,
-    lifecycle: metadataEntry?.$lifecycle ?? metadata.lifecycle ?? "published",
+    lifecycle: metadataEntry?.$lifecycle ?? getTokenLifecycle(metadataEntry ?? {}),
     provenance: metadata.source ?? null,
     extendsPath: metadata.extends ?? null,
   };

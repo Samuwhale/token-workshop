@@ -20,6 +20,7 @@ import { NotFoundError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { setTokenAtPath } from "./token-tree-utils.js";
 import type { RollbackStep } from "./operation-log.js";
+import { expectJsonArray, expectJsonObject, parseJsonFile } from "../utils/json-file.js";
 
 export interface ManualSnapshotToken {
   $value: unknown;
@@ -566,17 +567,29 @@ export class ManualSnapshotStore {
 
   private ensureLoaded(): Promise<void> {
     if (!this.loadPromise) {
-      this.loadPromise = fs
-        .readFile(this.filePath, "utf-8")
-        .then((raw) =>
-          JSON.parse(raw).map((entry: unknown) => normalizeSnapshotEntry(entry)),
-        )
-        .then((entries) => {
-          this.snapshots = entries;
-        })
-        .catch(() => {
-          this.snapshots = [];
-        });
+      this.loadPromise = (async () => {
+        try {
+          const raw = await fs.readFile(this.filePath, "utf-8");
+          const entries = expectJsonArray(
+            parseJsonFile(raw, {
+              filePath: this.filePath,
+              relativeTo: path.dirname(this.filePath),
+            }),
+            {
+              filePath: this.filePath,
+              relativeTo: path.dirname(this.filePath),
+              expectation: "contain a top-level snapshot array",
+            },
+          );
+          this.snapshots = entries.map((entry) => normalizeSnapshotEntry(entry));
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+            this.snapshots = [];
+            return;
+          }
+          throw err;
+        }
+      })();
     }
     return this.loadPromise;
   }
@@ -1228,9 +1241,24 @@ export class ManualSnapshotStore {
     let journal: RestoreJournal;
     try {
       const raw = await fs.readFile(this.journalPath, "utf-8");
-      journal = normalizeRestoreJournal(JSON.parse(raw));
-    } catch {
-      return;
+      journal = normalizeRestoreJournal(
+        expectJsonObject(
+          parseJsonFile(raw, {
+            filePath: this.journalPath,
+            relativeTo: path.dirname(this.journalPath),
+          }),
+          {
+            filePath: this.journalPath,
+            relativeTo: path.dirname(this.journalPath),
+            expectation: "contain a restore journal object",
+          },
+        ),
+      );
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        return;
+      }
+      throw err;
     }
 
     const plan = this.buildRestorePlanFromJournal(journal);

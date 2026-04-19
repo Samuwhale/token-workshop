@@ -69,11 +69,14 @@ export function AppCommandPalette({
 
   const recentPaletteTokens = useMemo<TokenEntry[]>(() => {
     const maxRecent = 10;
-    return Array.from(tokens.recentlyTouched.timestamps.entries())
-      .filter(([path]) => allTokensFlat[path])
-      .sort(([, left], [, right]) => right - left)
+    return tokens.recentlyTouched
+      .listEntries()
+      .filter(
+        ({ path, collectionId }) =>
+          allTokensFlat[path] && pathToCollectionId[path] === collectionId,
+      )
       .slice(0, maxRecent)
-      .map(([path]) => {
+      .map(({ path }) => {
         const entry = allTokensFlat[path];
         return {
           path,
@@ -86,7 +89,7 @@ export function AppCommandPalette({
           isAlias: isAlias(entry.$value),
         };
       });
-  }, [allTokensFlat, pathToCollectionId, tokens.recentlyTouched.timestamps]);
+  }, [allTokensFlat, pathToCollectionId, tokens.recentlyTouched]);
 
   return (
     <CommandPalette

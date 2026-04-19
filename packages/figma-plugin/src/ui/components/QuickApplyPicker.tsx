@@ -19,7 +19,7 @@ import {
   type SuggestionConfidence,
 } from './selectionInspectorUtils';
 import { swatchBgColor } from '../shared/colorUtils';
-import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
+import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 
 // ---------------------------------------------------------------------------
 // Fuzzy match (same algorithm as CommandPalette)
@@ -49,6 +49,7 @@ function fuzzyScore(query: string, target: string): number {
 interface QuickApplyPickerProps {
   selectedNodes: SelectionNodeInfo[];
   tokenMap: Record<string, TokenMapEntry>;
+  currentCollectionId: string;
   onApply: (tokenPath: string, tokenType: string, targetProperty: BindableProperty, resolvedValue: any) => void;
   onUnbind: (targetProperty: BindableProperty) => void;
   onClose: () => void;
@@ -99,7 +100,7 @@ const MAX_CANDIDATES = 15;
 // Component
 // ---------------------------------------------------------------------------
 
-export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, onClose }: QuickApplyPickerProps) {
+export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId, onApply, onUnbind, onClose }: QuickApplyPickerProps) {
   const rootNodes = useMemo(() => selectedNodes.filter(n => n.depth === 0), [selectedNodes]);
   const eligibleProps = useMemo(() => getEligibleProperties(rootNodes), [rootNodes]);
   const [activeProp, setActiveProp] = useState<BindableProperty>(() => inferPrimaryProperty(eligibleProps, rootNodes) ?? 'fill');
@@ -143,7 +144,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
   // Recently-used tokens: filter global recents to those present in the current candidate list
   const { recentCandidates, mainCandidates } = useMemo(() => {
     if (query) return { recentCandidates: [], mainCandidates: candidates };
-    const recentPaths = getRecentTokens();
+    const recentPaths = getRecentTokenPaths({ collectionId: currentCollectionId });
     const candidateByPath = new Map(candidates.map(c => [c.path, c]));
     const recent = recentPaths
       .map(p => candidateByPath.get(p))
@@ -152,7 +153,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
     const recentSet = new Set(recent.map(c => c.path));
     const main = candidates.filter(c => !recentSet.has(c.path));
     return { recentCandidates: recent, mainCandidates: main };
-  }, [candidates, query]);
+  }, [candidates, currentCollectionId, query]);
 
   // No longer using simple suggested/all divider — confidence groups handle this
 
@@ -160,7 +161,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
   const currentBinding = getBindingForProperty(rootNodes, activeProp);
 
   const handleSelect = (candidate: typeof candidates[0]) => {
-    addRecentToken(candidate.path);
+    addRecentToken(candidate.path, currentCollectionId);
     onApply(candidate.path, candidate.entry.$type, activeProp, candidate.resolved);
   };
 
@@ -280,7 +281,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, onApply, onUnbind, o
             placeholder={`Search ${getTokenTypeForProperty(activeProp)} tokens…`}
             aria-label={`Search tokens for ${PROPERTY_LABELS[activeProp]}`}
             aria-autocomplete="list"
-            className="flex-1 bg-transparent outline-none text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+            className="flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {currentBinding && currentBinding !== 'mixed' && (
             <span className="text-[10px] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>

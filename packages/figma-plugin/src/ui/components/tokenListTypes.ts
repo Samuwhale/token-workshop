@@ -142,6 +142,21 @@ export interface TokenListActions {
   onToggleStar?: (path: string) => void;
   /** Pre-filtered starred token paths for the current collection */
   starredPaths?: Set<string>;
+  /** Remove multiple starred tokens after a delete action. */
+  onRemoveStarredTokens?: (paths: string[], collectionId: string) => void;
+  /** Keep starred token paths in sync after a rename action. */
+  onRenameStarredToken?: (
+    oldPath: string,
+    newPath: string,
+    collectionId: string,
+  ) => void;
+  /** Keep starred token paths in sync after a cross-collection move action. */
+  onMoveStarredToken?: (
+    oldPath: string,
+    newPath: string,
+    sourceCollectionId: string,
+    targetCollectionId: string,
+  ) => void;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
   onEditGeneratedGroup?: (generatorId: string) => void;

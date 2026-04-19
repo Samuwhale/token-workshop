@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenCollection, TokenValue } from '@tokenmanager/core';
@@ -25,12 +25,28 @@ function ColorSwatch({ value }: { value: string }) {
 
 function useCopyFeedback(onError?: () => void): [boolean, (text: string) => Promise<void>] {
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current !== null) {
+        window.clearTimeout(copiedTimerRef.current);
+      }
+    };
+  }, []);
+
   const triggerCopy = useCallback(async (text: string) => {
     await copyToClipboard(
       text,
       () => {
         setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        if (copiedTimerRef.current !== null) {
+          window.clearTimeout(copiedTimerRef.current);
+        }
+        copiedTimerRef.current = window.setTimeout(() => {
+          setCopied(false);
+          copiedTimerRef.current = null;
+        }, 1500);
       },
       onError,
     );
@@ -768,7 +784,7 @@ function ModePairsMode({
             value={optionKeyA}
             onChange={e => setOptionKeyA(e.target.value)}
             aria-label="Compare option A"
-            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
+            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
             <option value="">Select an option…</option>
             {flatOptions.map(o => (
@@ -782,7 +798,7 @@ function ModePairsMode({
             value={optionKeyB}
             onChange={e => setOptionKeyB(e.target.value)}
             aria-label="Compare option B"
-            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
+            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
             <option value="">Select an option…</option>
             {flatOptions.map(o => (
@@ -817,7 +833,7 @@ function ModePairsMode({
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Filter by token path…"
               aria-label="Filter by token path"
-              className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none"
+              className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none focus-visible:border-[var(--color-figma-accent)]"
             />
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -1132,7 +1148,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
           <select
             value={collectionA}
             onChange={e => setCollectionA(e.target.value)}
-            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
+            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
             <option value="">Select a collection…</option>
             {collectionIds.map((collectionId) => (
@@ -1146,7 +1162,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
           <select
             value={collectionB}
             onChange={e => setCollectionB(e.target.value)}
-            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
+            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
             <option value="">Select a collection…</option>
             {collectionIds.map((collectionId) => (
@@ -1186,7 +1202,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Filter by token path…"
               aria-label="Filter by token path"
-              className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none"
+              className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none focus-visible:border-[var(--color-figma-accent)]"
             />
             <div className="flex items-center gap-1 flex-wrap">
               {/* Status filter pills */}

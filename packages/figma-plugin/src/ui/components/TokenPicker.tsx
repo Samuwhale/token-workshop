@@ -14,7 +14,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
+import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 import { swatchBgColor } from '../shared/colorUtils';
 
 // ---------------------------------------------------------------------------
@@ -115,13 +115,16 @@ export function TokenPickerDropdown({
 
   const handleSelect = useCallback(
     (path: string) => {
-      addRecentToken(path);
+      const collectionId = pathToCollectionId[path];
+      if (collectionId) {
+        addRecentToken(path, collectionId);
+      }
       const entry = allTokensFlat[path];
       if (!entry) return;
       const resolved = resolveEntry(entry, allTokensFlat);
       onSelect(path, resolved.$value, entry);
     },
-    [allTokensFlat, onSelect],
+    [allTokensFlat, onSelect, pathToCollectionId],
   );
 
   const excludeSet = useMemo(
@@ -139,7 +142,7 @@ export function TokenPickerDropdown({
 
     if (!q) {
       // Show recent tokens first, then all tokens
-      const recent = getRecentTokens();
+      const recent = getRecentTokenPaths({ pathToCollectionId });
       const recentEntries: Entry[] = [];
       for (const p of recent) {
         if (excludeSet.has(p)) continue;
@@ -175,7 +178,7 @@ export function TokenPickerDropdown({
       totalCount: scored.length,
       hasRecent: false,
     };
-  }, [allTokensFlat, query, filterType, excludeSet]);
+  }, [allTokensFlat, query, filterType, excludeSet, pathToCollectionId]);
 
   useEffect(() => { setActiveIdx(0); }, [query]);
 
@@ -423,7 +426,7 @@ export function TokenPickerField({
             onClick={() => setOpen(o => !o)}
             title="Change linked token"
             aria-label="Change linked token"
-            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+            className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0 opacity-0 group-hover:opacity-100"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
@@ -436,7 +439,7 @@ export function TokenPickerField({
             onClick={onClear}
             title="Unlink token"
             aria-label="Unlink token"
-            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+            className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />

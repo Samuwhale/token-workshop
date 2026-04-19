@@ -3,6 +3,7 @@ import { dispatchToast } from '../shared/toastBus';
 import type { DTCGToken } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError, createFetchSignal } from '../shared/apiFetch';
+import { getPluginMessageFromEvent } from '../../shared/utils';
 import {
   getDiffRowId,
   loadSyncSnapshot,
@@ -132,7 +133,6 @@ export function useTokenSyncBase<
   const [error, setError] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [progress, setProgress] = useState<SyncProgress | null>(null);
-  const progressRef = useRef<SyncProgress | null>(null);
 
   // AbortController reset on every mount; aborted on unmount to cancel in-flight pull fetches
   const abortRef = useRef(new AbortController());
@@ -157,10 +157,9 @@ export function useTokenSyncBase<
   // Listen for incremental progress messages from the plugin sandbox
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{ type?: string; current?: number; total?: number }>(ev);
       if (msg?.type === configRef.current.progressEventType) {
         const p = { current: msg.current as number, total: msg.total as number };
-        progressRef.current = p;
         setProgress(p);
       }
     };
@@ -175,18 +174,19 @@ export function useTokenSyncBase<
     setError(null);
     setChecked(false);
     try {
+      const signal = createFetchSignal(abortRef.current.signal);
       const snapshot = cfg.loadSnapshot
         ? await cfg.loadSnapshot({
           serverUrl,
           currentCollectionId,
-          signal: createFetchSignal(),
+          signal,
           readFigmaTokens: cfg.readFigmaTokens,
         })
         : await loadSyncSnapshot({
           serverUrl,
           currentCollectionId,
           readFigmaTokens: cfg.readFigmaTokens,
-          signal: createFetchSignal(),
+          signal,
           buildFigmaMap: cfg.buildFigmaMap,
           buildLocalMap: cfg.buildLocalMap,
           buildLocalOnlyRow: cfg.buildLocalOnlyRow,
@@ -222,7 +222,6 @@ export function useTokenSyncBase<
     setSyncing(true);
     setError(null);
     setProgress(null);
-    progressRef.current = null;
     try {
       const totalOps = pushRows.length + pullRows.length;
 
@@ -297,7 +296,6 @@ export function useTokenSyncBase<
       if (!signal.aborted) {
         setSyncing(false);
         setProgress(null);
-        progressRef.current = null;
       }
     }
   }, [serverUrl, currentCollectionId]);

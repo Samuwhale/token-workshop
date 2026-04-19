@@ -248,12 +248,20 @@ export async function moveTokenCommand(
     sourceCollectionId: string;
     tokenPath: string;
     targetCollectionId: string;
+    targetPath?: string;
+    overwriteExisting?: boolean;
   },
 ) {
-  const { sourceCollectionId, tokenPath, targetCollectionId } = input;
+  const {
+    sourceCollectionId,
+    tokenPath,
+    targetCollectionId,
+    targetPath = tokenPath,
+    overwriteExisting = false,
+  } = input;
   return executeLoggedMutation(services, {
     type: "token-move",
-    description: `Move token "${tokenPath}" from ${sourceCollectionId} to ${targetCollectionId}`,
+    description: `Move token "${tokenPath}" from ${sourceCollectionId} to ${targetCollectionId}${targetPath === tokenPath ? "" : ` as "${targetPath}"`}`,
     collectionId: sourceCollectionId,
     captureBefore: async () =>
       mergeSnapshots(
@@ -261,7 +269,7 @@ export async function moveTokenCommand(
         await captureQualifiedPathsSnapshot(
           services.tokenStore,
           targetCollectionId,
-          [tokenPath],
+          [targetPath],
         ),
       ),
     mutate: () =>
@@ -269,6 +277,10 @@ export async function moveTokenCommand(
         sourceCollectionId,
         tokenPath,
         targetCollectionId,
+        {
+          targetPath,
+          overwriteExisting,
+        },
       ),
     captureAfter: async () =>
       mergeSnapshots(
@@ -276,7 +288,7 @@ export async function moveTokenCommand(
         await captureQualifiedPathsSnapshot(
           services.tokenStore,
           targetCollectionId,
-          [tokenPath],
+          [targetPath],
         ),
       ),
   });
@@ -288,30 +300,42 @@ export async function copyTokenCommand(
     sourceCollectionId: string;
     tokenPath: string;
     targetCollectionId: string;
+    targetPath?: string;
+    overwriteExisting?: boolean;
   },
 ) {
-  const { sourceCollectionId, tokenPath, targetCollectionId } = input;
+  const {
+    sourceCollectionId,
+    tokenPath,
+    targetCollectionId,
+    targetPath = tokenPath,
+    overwriteExisting = false,
+  } = input;
   return executeLoggedMutation(services, {
     type: "token-copy",
-    description: `Copy token "${tokenPath}" from ${sourceCollectionId} to ${targetCollectionId}`,
+    description: `Copy token "${tokenPath}" from ${sourceCollectionId} to ${targetCollectionId}${targetPath === tokenPath ? "" : ` as "${targetPath}"`}`,
     collectionId: targetCollectionId,
     captureBefore: () =>
       captureQualifiedPathsSnapshot(
         services.tokenStore,
         targetCollectionId,
-        [tokenPath],
+        [targetPath],
       ),
     mutate: () =>
       services.tokenStore.copyToken(
         sourceCollectionId,
         tokenPath,
         targetCollectionId,
+        {
+          targetPath,
+          overwriteExisting,
+        },
       ),
     captureAfter: () =>
       captureQualifiedPathsSnapshot(
         services.tokenStore,
         targetCollectionId,
-        [tokenPath],
+        [targetPath],
       ),
   });
 }

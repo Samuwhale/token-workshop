@@ -12,6 +12,12 @@ export interface UseTokenRelocateParams {
   collectionIds: string[];
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   onRefresh: () => void;
+  onMovePath?: (
+    oldPath: string,
+    newPath: string,
+    sourceCollectionId: string,
+    targetCollectionId: string,
+  ) => void;
   onSetOperationLoading?: (msg: string | null) => void;
   onError?: (msg: string) => void;
 }
@@ -40,6 +46,7 @@ export function useTokenRelocate({
   collectionIds,
   perCollectionFlat,
   onRefresh,
+  onMovePath,
   onSetOperationLoading,
   onError,
 }: UseTokenRelocateParams): UseTokenRelocateReturn {
@@ -72,7 +79,8 @@ export function useTokenRelocate({
   const handleChangeTargetCollection = useCallback((collectionId: string) => {
     setTargetCollectionId(collectionId);
     setConflictAction('overwrite');
-  }, []);
+    setConflictNewPath(relocatingToken ?? '');
+  }, [relocatingToken]);
 
   const handleConfirm = useCallback(async () => {
     if (!relocatingToken || !targetCollectionId || !connected) {
@@ -83,6 +91,12 @@ export function useTokenRelocate({
       setRelocatingToken(null);
       return;
     }
+    const trimmedTargetPath = conflictNewPath.trim();
+    if (conflictAction === 'rename' && (!trimmedTargetPath || trimmedTargetPath === relocatingToken)) {
+      onError?.('Choose a different target path.');
+      return;
+    }
+    const targetPath = conflictAction === 'rename' ? trimmedTargetPath : relocatingToken;
     if (mode === 'move') onSetOperationLoading?.('Moving token…');
     try {
       await apiFetch(`${serverUrlRef.current}/api/tokens/${encodeURIComponent(sourceCollectionId)}/tokens/${mode}`, {
@@ -91,26 +105,23 @@ export function useTokenRelocate({
         body: JSON.stringify({
           tokenPath: relocatingToken,
           targetCollectionId: targetCollectionId,
+          targetPath,
+          overwriteExisting: conflictAction === 'overwrite',
         }),
       });
-      // After relocation, rename in the target collection if the user chose a new path.
-      if (conflictAction === 'rename' && conflictNewPath && conflictNewPath !== relocatingToken) {
-        await apiFetch(`${serverUrlRef.current}/api/tokens/${encodeURIComponent(targetCollectionId)}/tokens/rename`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ oldPath: relocatingToken, newPath: conflictNewPath, updateAliases: false }),
-        });
-      }
     } catch (err) {
       const verb = mode === 'move' ? 'Move' : 'Copy';
       onError?.(err instanceof ApiError ? err.message : `${verb} failed: network error`);
       if (mode === 'move') onSetOperationLoading?.(null);
       return;
     }
+    if (mode === 'move') {
+      onMovePath?.(relocatingToken, targetPath, sourceCollectionId, targetCollectionId);
+    }
     setRelocatingToken(null);
     onRefresh();
     if (mode === 'move') onSetOperationLoading?.(null);
-  }, [mode, relocatingToken, targetCollectionId, sourceCollectionId, conflictAction, conflictNewPath, connected, onRefresh, onSetOperationLoading, onError]);
+  }, [mode, relocatingToken, targetCollectionId, sourceCollectionId, conflictAction, conflictNewPath, connected, onRefresh, onMovePath, onSetOperationLoading, onError]);
 
   return {
     relocatingToken,

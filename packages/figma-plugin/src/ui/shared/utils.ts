@@ -1,5 +1,7 @@
+import { COLLECTION_NAME_RE as CORE_COLLECTION_NAME_RE } from '@tokenmanager/core';
+
 /** Validates collection ids: letters, numbers, - and _ with / for folder hierarchy. */
-export const COLLECTION_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+export const COLLECTION_NAME_RE = CORE_COLLECTION_NAME_RE;
 
 /** Detect Mac platform for keyboard shortcut labels. */
 export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
@@ -33,14 +35,6 @@ export function describeError(err: unknown, operation?: string): string {
     : getErrorMessage(err, String(err));
 }
 
-/** Log a caught error with a context label. Returns the formatted message string. */
-export function logCatch(context: string, err: unknown, level: 'debug' | 'warn' = 'warn'): string {
-  const msg = describeError(err, context);
-  if (level === 'debug') console.debug(msg);
-  else console.warn(msg);
-  return msg;
-}
-
 /** JSON.stringify with keys sorted recursively, so key-insertion-order differences never produce different strings. */
 export function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') {
@@ -60,25 +54,4 @@ export function stableStringify(value: unknown): string {
  * e.g. `color.brand.primary` → `color/brand/primary`. */
 export function tokenPathToUrlSegment(path: string): string {
   return path.split('.').map(encodeURIComponent).join('/');
-}
-
-/** Count leaf token nodes in a nested DTCG token group, with breakdown by $type. */
-export function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {
-  let total = 0;
-  const byType: Record<string, number> = {};
-  for (const [key, value] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    if (value && typeof value === 'object' && '$value' in value) {
-      total++;
-      const t = value.$type || 'unknown';
-      byType[t] = (byType[t] || 0) + 1;
-    } else if (value && typeof value === 'object') {
-      const sub = countLeafNodes(value);
-      total += sub.total;
-      for (const [t, c] of Object.entries(sub.byType)) {
-        byType[t] = (byType[t] || 0) + c;
-      }
-    }
-  }
-  return { total, byType };
 }

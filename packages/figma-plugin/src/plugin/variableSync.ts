@@ -30,6 +30,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
   // Tokens whose Figma variable type is unsupported, or whose value could not be converted
   const skipped: Array<{ path: string; $type: string }> = [];
   const failures: Array<{ path: string; error: string }> = [];
+  let successCount = 0;
 
   try {
     // Get or create collection by name, with caching
@@ -133,6 +134,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       const figmaName = token.path.replace(/\./g, '/');
       const existing = findVariableInList(localVariables, collection.id, figmaName);
       let variable: Variable;
+      let tokenSkipped = false;
 
       if (existing) {
         // Snapshot all mutable state before modifying so we can roll back on error
@@ -153,6 +155,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         if (figmaValue === null) {
           // Value not convertible — skip setting it but still update scopes and pluginData
           skipped.push({ path: token.path, $type: token.$type });
+          tokenSkipped = true;
         }
       } else {
         if (figmaValue === null) {
@@ -188,6 +191,9 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         // Store mapping in shared plugin data
         variable.setPluginData('tokenPath', token.path);
         variable.setPluginData('tokenCollection', token.collectionId || '');
+        if (!tokenSkipped) {
+          successCount++;
+        }
       } catch (tokenError) {
         console.error(`Failed to apply variable for ${token.path}:`, tokenError);
         failures.push({ path: token.path, error: getErrorMessage(tokenError) });
@@ -211,7 +217,8 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
     figma.ui.postMessage({
       type: 'variables-applied',
-      count: tokens.length - failures.length,
+      count: successCount,
+      total: tokens.length,
       created: createdVariableIds.length,
       overwritten: variableSnapshots.size,
       skipped,

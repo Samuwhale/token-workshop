@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { DTCGToken } from '@tokenmanager/core';
+import { getTokenLifecycle } from '@tokenmanager/core';
 import type { OrphanVariableDeleteTarget } from '../../shared/types';
 import { describeError } from '../shared/utils';
 import { lsGet, lsSet } from '../shared/storage';
@@ -23,11 +23,6 @@ export const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
 const READINESS_TIMEOUT_MS = 15_000;
 const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
 const DEFAULT_VARIABLE_COLLECTION_NAME = 'TokenManager';
-
-function getTokenLifecycle(token: DTCGToken): 'draft' | 'published' | 'deprecated' {
-  const rawLifecycle = (token.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
-  return rawLifecycle === 'draft' || rawLifecycle === 'deprecated' ? rawLifecycle : 'published';
-}
 
 function formatCount(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;

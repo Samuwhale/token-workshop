@@ -40,7 +40,7 @@ export function PanelHelpHint({ panelKey, title, description }: PanelHelpHintPro
       {/* Toggle button — always visible in the header area */}
       <button
         onClick={toggle}
-        className={`p-0.5 rounded transition-colors ${
+        className={`p-1 rounded transition-colors ${
           expanded
             ? 'text-[var(--color-figma-accent)]'
             : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
@@ -66,7 +66,7 @@ export function PanelHelpHint({ panelKey, title, description }: PanelHelpHintPro
           </div>
           <button
             onClick={dismiss}
-            className="shrink-0 mt-0.5 p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+            className="shrink-0 mt-0.5 p-1 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
             title="Dismiss hint"
             aria-label="Dismiss hint"
           >
@@ -90,7 +90,7 @@ export function PanelHelpIcon({ panelKey: _panelKey, title, expanded, onToggle }
   return (
     <button
       onClick={onToggle}
-      className={`p-0.5 rounded transition-colors ${
+      className={`p-1 rounded transition-colors ${
         expanded
           ? 'text-[var(--color-figma-accent)]'
           : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
@@ -122,7 +122,7 @@ export function PanelHelpBanner({ title, description, onDismiss }: {
       </div>
       <button
         onClick={onDismiss}
-        className="shrink-0 mt-0.5 p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+        className="shrink-0 mt-0.5 p-1 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
         title="Dismiss hint"
         aria-label="Dismiss hint"
       >

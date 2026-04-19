@@ -8,15 +8,9 @@ import {
   FilterMenu,
   type TokenListOverflowMenuProps,
 } from "./TokenListOverflowMenu";
+import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
 import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
-
-export interface ToolbarStateChip {
-  key: string;
-  label: string;
-  tone: "filter" | "view";
-  onRemove?: () => void;
-}
 
 interface QualifierHint {
   id: string;
@@ -46,7 +40,6 @@ export interface TokenListToolbarProps {
   qualifierHintsRef: RefObject<HTMLDivElement | null>;
   structuredFilterChips: Array<{ token: string; label: string }>;
   toolbarStateChips: ToolbarStateChip[];
-  contextSummary?: string | null;
   hasStructuredFilters: boolean;
   clearFilters: () => void;
   clearViewModes: () => void;
@@ -65,7 +58,6 @@ export interface TokenListToolbarProps {
   onToggleMultiMode: () => void;
   modeLensEnabled: boolean;
   onToggleModeLens: () => void;
-  showResolvedValues: boolean;
   setShowResolvedValues: (v: boolean) => void;
   onCreateGeneratedGroup?: () => void;
   onSelectTokens?: () => void;
@@ -113,7 +105,6 @@ export function TokenListToolbar({
   qualifierHintsRef,
   structuredFilterChips,
   toolbarStateChips,
-  contextSummary: _contextSummary,
   hasStructuredFilters,
   clearFilters,
   clearViewModes,
@@ -132,7 +123,6 @@ export function TokenListToolbar({
   onToggleMultiMode,
   modeLensEnabled,
   onToggleModeLens,
-  showResolvedValues,
   setShowResolvedValues,
   onCreateGeneratedGroup,
   onSelectTokens,
@@ -218,7 +208,6 @@ export function TokenListToolbar({
       onToggleModeLens,
       setViewMode,
       setShowResolvedValues,
-      showResolvedValues,
       modeLensEnabled,
       viewMode,
     ],

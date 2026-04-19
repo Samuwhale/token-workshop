@@ -3,6 +3,7 @@ import {
   TOKEN_TYPE_VALUES,
   TokenValidator,
   flattenTokenGroup,
+  getTokenLifecycle,
   isReference,
   parseReference,
   readTokenCollectionModeValues,
@@ -137,11 +138,6 @@ function mergeCollectionSnapshot(
   snapshot: Record<string, SnapshotEntry>,
 ): void {
   Object.assign(target, qualifySnapshotEntries(collectionId, snapshot));
-}
-
-function getTokenLifecycle(token: Token): 'draft' | 'published' | 'deprecated' {
-  const rawLifecycle = (token.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
-  return rawLifecycle === 'draft' || rawLifecycle === 'deprecated' ? rawLifecycle : 'published';
 }
 
 function groupSnapshotEntriesByCollection(
@@ -1342,16 +1338,30 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // POST /api/tokens/:collectionId/tokens/move — move a single token to a different collection
-  fastify.post<{ Params: { collectionId: string }; Body: { tokenPath: string; targetCollectionId: string } }>(
+  fastify.post<{
+    Params: { collectionId: string };
+    Body: {
+      tokenPath: string;
+      targetCollectionId: string;
+      targetPath?: string;
+      overwriteExisting?: boolean;
+    };
+  }>(
     '/tokens/:collectionId/tokens/move',
     async (request, reply) => {
       const { collectionId } = request.params;
-      const { tokenPath, targetCollectionId } = request.body ?? {};
+      const { tokenPath, targetCollectionId, targetPath, overwriteExisting } = request.body ?? {};
       if (!isValidTokenPath(tokenPath)) {
         return reply.status(400).send({ error: 'tokenPath must be a valid non-empty path with no leading/trailing dots' });
       }
       if (!isValidCollectionId(targetCollectionId)) {
         return reply.status(400).send({ error: 'targetCollectionId must be a valid non-empty collection id' });
+      }
+      if (targetPath !== undefined && !isValidTokenPath(targetPath)) {
+        return reply.status(400).send({ error: 'targetPath must be a valid non-empty path with no leading/trailing dots' });
+      }
+      if (overwriteExisting !== undefined && typeof overwriteExisting !== 'boolean') {
+        return reply.status(400).send({ error: 'overwriteExisting must be a boolean when provided' });
       }
       const collectionError = await ensureCollectionsExist(
         reply,
@@ -1373,6 +1383,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               sourceCollectionId: collectionId,
               tokenPath,
               targetCollectionId,
+              targetPath,
+              overwriteExisting,
             },
           );
           return { ok: true };
@@ -1384,16 +1396,30 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // POST /api/tokens/:collectionId/tokens/copy — copy a single token to a different collection
-  fastify.post<{ Params: { collectionId: string }; Body: { tokenPath: string; targetCollectionId: string } }>(
+  fastify.post<{
+    Params: { collectionId: string };
+    Body: {
+      tokenPath: string;
+      targetCollectionId: string;
+      targetPath?: string;
+      overwriteExisting?: boolean;
+    };
+  }>(
     '/tokens/:collectionId/tokens/copy',
     async (request, reply) => {
       const { collectionId } = request.params;
-      const { tokenPath, targetCollectionId } = request.body ?? {};
+      const { tokenPath, targetCollectionId, targetPath, overwriteExisting } = request.body ?? {};
       if (!isValidTokenPath(tokenPath)) {
         return reply.status(400).send({ error: 'tokenPath must be a valid non-empty path with no leading/trailing dots' });
       }
       if (!isValidCollectionId(targetCollectionId)) {
         return reply.status(400).send({ error: 'targetCollectionId must be a valid non-empty collection id' });
+      }
+      if (targetPath !== undefined && !isValidTokenPath(targetPath)) {
+        return reply.status(400).send({ error: 'targetPath must be a valid non-empty path with no leading/trailing dots' });
+      }
+      if (overwriteExisting !== undefined && typeof overwriteExisting !== 'boolean') {
+        return reply.status(400).send({ error: 'overwriteExisting must be a boolean when provided' });
       }
       const collectionError = await ensureCollectionsExist(
         reply,
@@ -1415,6 +1441,8 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               sourceCollectionId: collectionId,
               tokenPath,
               targetCollectionId,
+              targetPath,
+              overwriteExisting,
             },
           );
           return { ok: true };

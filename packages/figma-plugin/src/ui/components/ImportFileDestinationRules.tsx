@@ -62,7 +62,7 @@ export function ImportFileDestinationRules() {
               }}
               placeholder="New collection name…"
               aria-invalid={newCollectionError ? true : undefined}
-              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none ${newCollectionError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
+              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
             />
             <button
               onClick={commitNewCollection}
@@ -107,7 +107,7 @@ export function ImportFileDestinationRules() {
                   setTargetCollectionIdAndPersist(e.target.value);
                 }
               }}
-              className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none"
+              className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
             >
               {collectionIds.map((collectionId) => (
                 <option key={collectionId} value={collectionId}>

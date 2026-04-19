@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { isDTCGToken } from '@tokenmanager/core';
+import { getTokenLifecycle, isDTCGToken } from '@tokenmanager/core';
 import type {
   DTCGGroup,
   TokenValue,
@@ -57,8 +57,8 @@ function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): A
       const $type = value.$type ?? inheritedType ?? 'unknown';
       const rawScopes = value.$extensions?.['com.figma.scopes'];
       const $scopes = Array.isArray(rawScopes) ? rawScopes as string[] : undefined;
-      const rawLifecycle = (value.$extensions?.['tokenmanager'] as Record<string, unknown> | undefined)?.['lifecycle'];
-      const $lifecycle = (rawLifecycle === 'draft' || rawLifecycle === 'deprecated') ? rawLifecycle : undefined;
+      const lifecycle = getTokenLifecycle(value);
+      const $lifecycle = lifecycle === 'published' ? undefined : lifecycle;
       out.push([path, {
         $value: value.$value as TokenValue | TokenReference,
         $type,

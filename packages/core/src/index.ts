@@ -63,8 +63,10 @@ export type {
   ResolverFigmaModeMapping,
   ResolverFigmaPublishConfig,
 } from './types.js';
-export { getTokenManagerExt } from './types.js';
+export { getTokenManagerExt, getTokenLifecycle } from './types.js';
 export {
+  COLLECTION_NAME_RE,
+  isValidCollectionName,
   findCollectionById,
   readTokenCollectionModeValues,
   buildTokenExtensionsWithCollectionModes,

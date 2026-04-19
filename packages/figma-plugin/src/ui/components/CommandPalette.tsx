@@ -461,7 +461,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
               : 'Search expert actions… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
-            className="flex-1 bg-transparent outline-none text-[13px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+            className="flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-[13px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {isTokenMode && (
             <span className="text-[10px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
@@ -762,7 +762,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Copy path: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); copyWithFeedback('Path', () => onCopyTokenPath(token.path)); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
@@ -774,7 +774,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Copy DTCG alias: {${token.path}}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); copyWithFeedback('{ref}', () => onCopyTokenRef(token.path)); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
@@ -786,7 +786,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Copy raw value: ${token.value}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); copyWithFeedback('Val', () => onCopyTokenValue(token.value!)); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
@@ -798,7 +798,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Copy CSS var: ${tokenCssVar(token.path)}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); copyWithFeedback('CSS', () => onCopyTokenCssVar(token.path)); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
@@ -810,7 +810,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Duplicate token: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onDuplicateToken(token.path); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
@@ -822,7 +822,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Rename token: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onRenameToken(token.path); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
@@ -834,7 +834,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Move to collection: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onMoveToken(token.path); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
@@ -846,7 +846,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Delete token: ${token.path}`}
-                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] focus:text-[var(--color-figma-error)] focus:outline-none' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] focus:text-[var(--color-figma-error)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]'}`}
                       onClick={(e) => { e.stopPropagation(); onDeleteToken(token.path); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}

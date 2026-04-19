@@ -62,6 +62,20 @@ function buildTypographyPreviewStyle(value: Record<string, unknown>): React.CSSP
   return style;
 }
 
+function getTypographyPreviewValue(
+  value: TokenEditorValue,
+): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const previewValue = value as Record<string, unknown>;
+  const hasPreviewContent =
+    typeof previewValue.fontFamily === "string" || previewValue.fontSize != null;
+
+  return hasPreviewContent ? previewValue : null;
+}
+
 export interface TokenEditorValueSectionProps {
   tokenPath: string;
   tokenType: string;
@@ -118,6 +132,8 @@ export function TokenEditorValueSection({
   const baseValue: TokenMapEntry["$value"] | undefined = extendsPath
     ? allTokensFlat[extendsPath]?.$value
     : undefined;
+  const typographyPreviewValue =
+    tokenType === "typography" ? getTypographyPreviewValue(value) : null;
 
   return (
     <div
@@ -307,15 +323,14 @@ export function TokenEditorValueSection({
       {tokenType === "asset" && (
         <AssetEditor value={value} onChange={setValue} />
       )}
-      {tokenType === "typography" && value && typeof value === "object" && !Array.isArray(value) &&
-        (typeof (value as Record<string, unknown>).fontFamily === "string" || (value as Record<string, unknown>).fontSize != null) && (
+      {typographyPreviewValue && (
         <div
           className="overflow-hidden rounded border border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)]/25 px-3 py-2"
           aria-label="Typography preview"
         >
           <span
             className="block text-[var(--color-figma-text)] leading-normal"
-            style={buildTypographyPreviewStyle(value as Record<string, unknown>)}
+            style={buildTypographyPreviewStyle(typographyPreviewValue)}
           >
             Aa Bb Cc 123
           </span>

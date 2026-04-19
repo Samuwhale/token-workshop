@@ -79,3 +79,14 @@ export const TOKEN_TYPE_CATEGORIES: TokenTypeCategory[] = [
 export const ALL_TOKEN_TYPES: string[] = TOKEN_TYPE_CATEGORIES.flatMap(c =>
   c.options.map(o => o.value),
 );
+
+export function isSupportedTokenType(value: string): boolean {
+  return ALL_TOKEN_TYPES.includes(value);
+}
+
+export function normalizeTokenType(
+  value: string | null | undefined,
+  fallback = 'color',
+): string {
+  return value && isSupportedTokenType(value) ? value : fallback;
+}

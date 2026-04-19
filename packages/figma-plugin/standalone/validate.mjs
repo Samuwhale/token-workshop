@@ -17,26 +17,23 @@
  *   1 — Console errors detected or UI failed to load
  */
 
-import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { startHarnessServer } from './harness-server.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const HOST = '127.0.0.1';
-const PORT = 3201; // Use different port from dev harness
 const TIMEOUT_MS = 15_000;
+
+function existingPaths(paths) {
+  return paths.filter((candidate) => candidate && fs.existsSync(candidate));
+}
 
 // --- Detect a usable Chromium binary ---
 function findChromium() {
-  // 1. Playwright-managed browsers (if `npx playwright install chromium` was run)
-  try {
-    execSync('npx playwright-core install --dry-run chromium 2>/dev/null', { encoding: 'utf-8' });
-    // The output includes the install path when already installed
-  } catch { /* ignore */ }
+  const playwrightBrowserPaths = findPlaywrightChromePath();
 
-  // 2. Well-known system Chrome paths
+  // Well-known system Chrome paths plus the Playwright cache if installed.
   const candidates = [
     // macOS
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -47,8 +44,11 @@ function findChromium() {
     '/usr/bin/google-chrome-stable',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
-    // Playwright cache (common default path)
-    ...findPlaywrightChromePath(),
+    ...existingPaths([
+      process.env.CHROMIUM_PATH,
+      process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+    ]),
+    ...playwrightBrowserPaths,
   ];
 
   for (const p of candidates) {
@@ -58,51 +58,44 @@ function findChromium() {
 }
 
 function findPlaywrightChromePath() {
-  // Playwright stores browsers in ~/.cache/ms-playwright/ by default
-  const cacheDir = path.join(process.env.HOME || '', '.cache', 'ms-playwright');
-  if (!fs.existsSync(cacheDir)) return [];
-  try {
-    const entries = fs.readdirSync(cacheDir).filter(e => e.startsWith('chromium'));
-    for (const entry of entries.sort().reverse()) { // newest first
-      const macPath = path.join(cacheDir, entry, 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium');
-      const linuxPath = path.join(cacheDir, entry, 'chrome-linux', 'chrome');
-      if (fs.existsSync(macPath)) return [macPath];
-      if (fs.existsSync(linuxPath)) return [linuxPath];
+  const configuredCacheRoot = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  const cacheDirs = configuredCacheRoot
+    ? configuredCacheRoot === '0'
+      ? [
+          path.resolve(__dirname, '..', '..', '..', 'node_modules', 'playwright-core', '.local-browsers'),
+          path.resolve(__dirname, '..', 'node_modules', 'playwright-core', '.local-browsers'),
+        ]
+      : [configuredCacheRoot]
+    : [
+        path.join(process.env.HOME || '', '.cache', 'ms-playwright'),
+        path.join(process.env.HOME || '', 'Library', 'Caches', 'ms-playwright'),
+      ];
+
+  for (const cacheDir of cacheDirs) {
+    if (!fs.existsSync(cacheDir)) {
+      continue;
     }
-  } catch { /* ignore */ }
-  return [];
-}
 
-// --- Start the harness server inline ---
-const pluginRoot = path.resolve(__dirname, '..');
-const MIME = {
-  '.html': 'text/html', '.js': 'application/javascript',
-  '.css': 'text/css', '.json': 'application/json',
-};
-
-function startServer() {
-  return new Promise((resolve, reject) => {
-    const server = http.createServer((req, res) => {
-      const url = new URL(req.url, `http://${HOST}:${PORT}`);
-      let filePath;
-      if (url.pathname === '/favicon.ico') {
-        res.writeHead(204); res.end(); return;
-      } else if (url.pathname === '/' || url.pathname === '/harness') {
-        filePath = path.join(__dirname, 'harness.html');
-      } else if (url.pathname.startsWith('/dist/')) {
-        filePath = path.join(pluginRoot, url.pathname);
-      } else {
-        filePath = path.join(__dirname, url.pathname);
-        if (!fs.existsSync(filePath)) filePath = path.join(pluginRoot, url.pathname);
+    try {
+      const entries = fs.readdirSync(cacheDir).filter((entry) => entry.startsWith('chromium'));
+      for (const entry of entries.sort().reverse()) {
+        const basePath = path.join(cacheDir, entry);
+        const candidates = [
+          path.join(basePath, 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium'),
+          path.join(basePath, 'chrome-linux', 'chrome'),
+          path.join(basePath, 'chrome-win', 'chrome.exe'),
+        ];
+        const resolved = existingPaths(candidates);
+        if (resolved.length > 0) {
+          return resolved;
+        }
       }
-      if (!fs.existsSync(filePath)) { res.writeHead(404); res.end('Not found'); return; }
-      const ext = path.extname(filePath);
-      res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-      fs.createReadStream(filePath).pipe(res);
-    });
-    server.on('error', reject);
-    server.listen(PORT, HOST, () => resolve(server));
-  });
+    } catch {
+      // Ignore cache read failures and fall back to the next location.
+    }
+  }
+
+  return [];
 }
 
 async function run() {
@@ -124,19 +117,26 @@ async function run() {
   }
 
   let server;
+  let origin;
   try {
-    server = await startServer();
+    ({ server, origin } = await startHarnessServer());
   } catch (err) {
-    if (err.code === 'EADDRINUSE' || err.code === 'EPERM') {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      (err.code === 'EADDRINUSE' || err.code === 'EPERM')
+    ) {
       console.log(
         err.code === 'EADDRINUSE'
-          ? `Port ${PORT} already in use — skipping headless UI validation.`
-          : `Unable to bind ${HOST}:${PORT} in this environment — skipping headless UI validation.`
+          ? 'Unable to reserve a local harness port — skipping headless UI validation.'
+          : 'Unable to bind a local harness port in this environment — skipping headless UI validation.'
       );
       process.exit(0);
     }
     throw err;
   }
+
   const errors = [];
   let browser;
 
@@ -162,7 +162,7 @@ async function run() {
     // Navigate and wait for the page to load. We use 'load' rather than
     // 'networkidle' because the plugin UI polls the TokenManager server
     // (which isn't running here), so networkidle is never reached.
-    await page.goto(`http://${HOST}:${PORT}/`, {
+    await page.goto(`${origin}/`, {
       waitUntil: 'load',
       timeout: TIMEOUT_MS,
     });
@@ -204,7 +204,8 @@ async function run() {
       console.log(`\n  UI validation PASSED (${errors.length} benign network errors filtered)\n`);
     }
   } catch (err) {
-    console.error(`\n  UI validation FAILED — ${err.message}\n`);
+    const message = err instanceof Error ? err.message : 'unknown error';
+    console.error(`\n  UI validation FAILED — ${message}\n`);
     process.exitCode = 1;
   } finally {
     if (browser) await browser.close();

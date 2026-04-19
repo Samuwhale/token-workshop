@@ -12,7 +12,7 @@ export interface UseTokenVirtualScrollParams {
   rowHeight: number;
   allTokensFlat: Record<string, TokenMapEntry>;
   viewMode: string;
-  recentlyTouched: { paths: Set<string>; timestamps: Map<string, number> };
+  recentlyTouchedPaths: Set<string>;
   highlightedToken?: string | null;
   virtualListRef: React.MutableRefObject<HTMLDivElement | null>;
   virtualScrollTopRef: React.MutableRefObject<number>;
@@ -30,7 +30,7 @@ export function useTokenVirtualScroll({
   rowHeight,
   allTokensFlat,
   viewMode,
-  recentlyTouched,
+  recentlyTouchedPaths,
   highlightedToken,
   virtualListRef,
   virtualScrollTopRef: _virtualScrollTopRef,
@@ -49,12 +49,12 @@ export function useTokenVirtualScroll({
   // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
   const flatItems = useMemo(() => {
     if (viewMode !== 'tree') return [];
-    if (recentlyTouched.paths.size > 0 && (displayedTokens as TokenNode[]).length === 0) return [];
+    if (recentlyTouchedPaths.size > 0 && (displayedTokens as TokenNode[]).length === 0) return [];
     if (flatItemsOverride) return flatItemsOverride;
     // Check if we're in "recently touched" mode by checking the recentlyTouched special rendering path
     // This is controlled outside, so we just flatten normally
     return flattenVisible(displayedTokens, expandedPaths);
-  }, [displayedTokens, expandedPaths, flatItemsOverride, viewMode, recentlyTouched.paths]);
+  }, [displayedTokens, expandedPaths, flatItemsOverride, viewMode, recentlyTouchedPaths]);
 
   const CHAIN_STEP_HEIGHT = 18;
   // Cumulative row offsets for variable-height virtual scroll.

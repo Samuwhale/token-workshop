@@ -168,7 +168,7 @@ export function TokenRefInput({
             onKeyDown={e => { if (e.key === 'Escape') setShowPicker(false); }}
             placeholder="Search tokens…"
             aria-label="Search tokens to link"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
           />
           <AliasAutocomplete
             query={query}

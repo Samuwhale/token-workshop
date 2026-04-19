@@ -285,7 +285,7 @@ export function MultiModeCell({
           onClick={(e) => e.stopPropagation()}
           aria-label="Edit token value"
           autoFocus
-          className="text-[10px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none"
+          className="text-[10px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
         />
       ) : isAliasValue ? (
         <>

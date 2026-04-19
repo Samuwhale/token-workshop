@@ -42,7 +42,8 @@ import {
 import type { TokenStore } from "./token-store.js";
 import type { TokenPathRename } from "./operation-log.js";
 import { stableStringify } from "./stable-stringify.js";
-import { NotFoundError, BadRequestError } from "../errors.js";
+import { NotFoundError, BadRequestError, ConflictError } from "../errors.js";
+import { expectJsonObject, formatJsonFilePath, parseJsonFile } from "../utils/json-file.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { validateTokenPath } from "./token-tree-utils.js";
 
@@ -955,15 +956,12 @@ export class GeneratorService {
       this.generators = await this.readGeneratorsFromDisk();
       this.pruneGeneratorLocks();
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-        console.warn(
-          `[GeneratorService] Failed to load generators from disk: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        // File doesn't exist yet — perfectly normal on first run
+        this.generators.clear();
+        return;
       }
-      // File doesn't exist yet — perfectly normal on first run
-      this.generators.clear();
+      throw err;
     }
   }
 
@@ -1333,15 +1331,30 @@ export class GeneratorService {
 
   private async readGeneratorsFromDisk(): Promise<Map<string, TokenGenerator>> {
     const content = await fs.readFile(this.filePath, "utf-8");
-    const data = JSON.parse(content) as Partial<GeneratorsFile>;
+    const data = expectJsonObject(
+      parseJsonFile(content, { filePath: this.filePath, relativeTo: this.dir }),
+      { filePath: this.filePath, relativeTo: this.dir },
+    );
     if (!Array.isArray(data.$generators)) {
-      throw new Error(
-        'Invalid generators file: expected { "$generators": [] }',
+      const label = formatJsonFilePath(this.filePath, this.dir);
+      throw new ConflictError(
+        `File "${label}" must contain a "$generators" array.`,
+      );
+    }
+    const rawGenerators = data.$generators;
+    if (
+      rawGenerators.some(
+        (entry) => !entry || typeof entry !== "object" || Array.isArray(entry),
+      )
+    ) {
+      const label = formatJsonFilePath(this.filePath, this.dir);
+      throw new ConflictError(
+        `File "${label}" must store generator entries as objects.`,
       );
     }
 
     const nextGenerators = new Map<string, TokenGenerator>();
-    for (const rawGenerator of data.$generators) {
+    for (const rawGenerator of rawGenerators) {
       const normalized = normalizeStoredGenerator(rawGenerator);
       nextGenerators.set(normalized.id, normalized);
     }

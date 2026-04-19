@@ -173,6 +173,9 @@ export function TokenList({
     onTokenTouched,
     onToggleStar,
     starredPaths,
+    onRemoveStarredTokens,
+    onRenameStarredToken,
+    onMoveStarredToken,
     onError,
     onViewTokenHistory,
     onEditGeneratedGroup,
@@ -283,6 +286,10 @@ export function TokenList({
     useState<PendingBulkPresetLaunch | null>(null);
   const [pendingBatchEditorFocus, setPendingBatchEditorFocus] =
     useState<BatchEditorFocusTarget | null>(null);
+  const recentlyTouchedPaths = useMemo(
+    () => recentlyTouched.getPathsForCollection(collectionId),
+    [collectionId, recentlyTouched],
+  );
   const sendStyleApply = useFigmaMessage<{
     count: number;
     total: number;
@@ -302,11 +309,11 @@ export function TokenList({
   const prevHighlightRef = useRef<string | null>(null);
   useEffect(() => {
     if (highlightedToken && highlightedToken !== prevHighlightRef.current) {
-      recentlyTouched.recordTouch(highlightedToken);
+      recentlyTouched.recordTouch(highlightedToken, collectionId);
       onTokenTouched?.(highlightedToken);
     }
     prevHighlightRef.current = highlightedToken ?? null;
-  }, [highlightedToken, recentlyTouched, onTokenTouched]);
+  }, [collectionId, highlightedToken, recentlyTouched, onTokenTouched]);
 
   const staleGeneratorsForSet = useMemo(
     () =>
@@ -729,7 +736,7 @@ export function TokenList({
     onRefresh,
     onPushUndo,
     onTokenCreated,
-    onRecordTouch: recentlyTouched.recordTouch,
+    onRecordTouch: (path) => recentlyTouched.recordTouch(path, collectionId),
   });
   const {
     showTableCreate,
@@ -800,7 +807,8 @@ export function TokenList({
     onPushUndo,
     onError,
     onRenamePath: (oldPath, newPath) => {
-      recentlyTouched.renamePath(oldPath, newPath);
+      recentlyTouched.renamePath(oldPath, newPath, collectionId);
+      onRenameStarredToken?.(oldPath, newPath, collectionId);
     },
   });
   const {
@@ -933,7 +941,7 @@ export function TokenList({
     expandedPaths,
     pinnedPaths: EMPTY_PATH_SET,
     sortedTokens,
-    recentlyTouched,
+    recentlyTouchedPaths,
     showIssuesOnly,
     showRecentlyTouched,
     showPinnedOnly: false,
@@ -1029,7 +1037,6 @@ export function TokenList({
   }, [multiModeEnabled, modeLensEnabled, showResolvedValues, viewMode, toggleMultiMode, setModeLensEnabled, setShowResolvedValues, setViewMode]);
 
   const {
-    viewOptionsActiveCount,
     activeFilterSummary,
     toolbarStateChips,
   } = useToolbarStateChips({
@@ -1042,73 +1049,8 @@ export function TokenList({
     modeLensEnabled, setModeLensEnabled, onResetViewMode: resetToAuthoredView,
     condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
-    setSearchResultPresentation, activeFilterCount,
+    setSearchResultPresentation,
   });
-
-  const contextSummary = useMemo(() => {
-    if (viewMode === "json") {
-      return `Location: ${collectionId}. View: raw token JSON.`;
-    }
-
-    const locationLabel = crossCollectionSearch
-      ? "all collections"
-      : zoomRootPath
-        ? `${collectionId} / ${zoomRootPath}`
-        : collectionId;
-    const viewLabels: string[] = [];
-    if (crossCollectionSearch) {
-      viewLabels.push("cross-collection search results");
-    } else if (zoomRootPath) {
-      viewLabels.push("focused group");
-    }
-    if (!crossCollectionSearch && !zoomRootPath && !showFlatSearchResults) {
-      viewLabels.push("full group tree");
-    }
-    if (showFlatSearchResults) {
-      viewLabels.push("flat search results");
-    }
-    if (multiModeEnabled) {
-      viewLabels.push(
-        multiModeDimensionName
-          ? `mode columns for ${multiModeDimensionName}`
-          : "mode columns",
-      );
-    } else if (modeLensEnabled) {
-      viewLabels.push("mode-resolved values");
-    }
-    if (inspectMode) {
-      viewLabels.push("selection-related tokens");
-    }
-
-    const summaryParts = [
-      `Location: ${locationLabel}.`,
-      `View: ${viewLabels.join(" + ")}.`,
-    ];
-
-    if (searchQuery.trim()) {
-      summaryParts.push(`Search: “${searchQuery.trim()}”.`);
-    }
-
-    const count =
-      crossCollectionResults !== null ? crossCollectionResults.length : displayedLeafNodes.length;
-    summaryParts.push(
-      `${count} token${count === 1 ? "" : "s"} visible.`,
-    );
-    return summaryParts.join(" ");
-  }, [
-    crossCollectionResults,
-    crossCollectionSearch,
-    displayedLeafNodes.length,
-    inspectMode,
-    multiModeDimensionName,
-    multiModeEnabled,
-    searchQuery,
-    collectionId,
-    showFlatSearchResults,
-    modeLensEnabled,
-    viewMode,
-    zoomRootPath,
-  ]);
 
   const currentBulkEditScope = useMemo<BulkEditScope>(() => {
     const trimmedQuery = searchQuery.trim();
@@ -1208,8 +1150,8 @@ export function TokenList({
       const leaves = flattenLeafNodes(displayedTokens);
       leaves.sort(
         (a, b) =>
-          (recentlyTouched.timestamps.get(b.path) ?? 0) -
-          (recentlyTouched.timestamps.get(a.path) ?? 0),
+          (recentlyTouched.getTimestamp(b.path, collectionId) ?? 0) -
+          (recentlyTouched.getTimestamp(a.path, collectionId) ?? 0),
       );
       return leaves.map((node) => ({ node, depth: 0 }));
     }
@@ -1224,7 +1166,8 @@ export function TokenList({
     viewMode,
     showRecentlyTouched,
     showFlatSearchResults,
-    recentlyTouched.timestamps,
+    collectionId,
+    recentlyTouched,
   ]);
 
   const tokenVirtualScroll = useTokenVirtualScroll({
@@ -1234,7 +1177,7 @@ export function TokenList({
     rowHeight,
     allTokensFlat,
     viewMode,
-    recentlyTouched,
+    recentlyTouchedPaths,
     highlightedToken,
     virtualListRef,
     virtualScrollTopRef,
@@ -1398,9 +1341,30 @@ export function TokenList({
     onRefreshGeneratedGroups,
     onSetOperationLoading: setOperationLoading,
     onSetLocallyDeletedPaths: setLocallyDeletedPaths,
-    onRecordTouch: recentlyTouched.recordTouch,
+    onDeletePaths: (paths, targetCollectionId) => {
+      for (const path of paths) {
+        recentlyTouched.removePath(path, targetCollectionId);
+      }
+      onRemoveStarredTokens?.(paths, targetCollectionId);
+    },
+    onRecordTouch: (path) => recentlyTouched.recordTouch(path, collectionId),
     onRenamePath: (oldPath, newPath) => {
-      recentlyTouched.renamePath(oldPath, newPath);
+      recentlyTouched.renamePath(oldPath, newPath, collectionId);
+      onRenameStarredToken?.(oldPath, newPath, collectionId);
+    },
+    onMovePath: (oldPath, newPath, sourceCollectionId, targetCollectionId) => {
+      recentlyTouched.movePath(
+        oldPath,
+        newPath,
+        sourceCollectionId,
+        targetCollectionId,
+      );
+      onMoveStarredToken?.(
+        oldPath,
+        newPath,
+        sourceCollectionId,
+        targetCollectionId,
+      );
     },
     onClearSelection: clearSelection,
     onError,
@@ -2486,7 +2450,6 @@ export function TokenList({
             qualifierHintsRef={qualifierHintsRef}
             structuredFilterChips={structuredFilterChips}
             toolbarStateChips={toolbarStateChips}
-            contextSummary={contextSummary}
             hasStructuredFilters={hasStructuredFilters}
             clearFilters={clearFilters}
             clearViewModes={clearViewModes}
@@ -2506,7 +2469,6 @@ export function TokenList({
             onToggleMultiMode={toggleMultiMode}
             modeLensEnabled={modeLensEnabled}
             onToggleModeLens={() => setModeLensEnabled((value) => !value)}
-            showResolvedValues={showResolvedValues}
             setShowResolvedValues={setShowResolvedValues}
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}

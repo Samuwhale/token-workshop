@@ -1,8 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { colorDeltaE, isReference, parseReference, type Token } from '@tokenmanager/core';
-import { TokenStore } from './token-store.js';
+import { colorDeltaE, getTokenLifecycle, isReference, parseReference, type Token } from '@tokenmanager/core';
+import { expectJsonObject, parseJsonFile } from '../utils/json-file.js';
 import { isSafeRegex } from './token-tree-utils.js';
+import { TokenStore } from './token-store.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -99,9 +100,19 @@ export class LintConfigStore {
     if (!this.config) {
       try {
         const content = await fs.readFile(this.configPath, 'utf-8');
-        this.config = JSON.parse(content) as LintConfig;
-      } catch {
-        this.config = structuredClone(DEFAULT_LINT_CONFIG);
+        this.config = expectJsonObject(
+          parseJsonFile(content, { filePath: this.configPath }),
+          {
+            filePath: this.configPath,
+            expectation: 'contain a top-level lint config object',
+          },
+        ) as unknown as LintConfig;
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+          this.config = structuredClone(DEFAULT_LINT_CONFIG);
+        } else {
+          throw err;
+        }
       }
     }
     return structuredClone(this.config);
@@ -228,11 +239,6 @@ function resolveAliasTarget(path: string, flatTokens: Record<string, Token>, vis
   if (!isReference(token.$value)) return path;
   visited.add(path);
   return resolveAliasTarget(parseReference(token.$value as string), flatTokens, visited);
-}
-
-function getTokenLifecycle(token: Token): 'draft' | 'published' | 'deprecated' {
-  const rawLifecycle = (token.$extensions?.tokenmanager as Record<string, unknown> | undefined)?.lifecycle;
-  return rawLifecycle === 'draft' || rawLifecycle === 'deprecated' ? rawLifecycle : 'published';
 }
 
 function findDeprecatedAliasTarget(

@@ -2,6 +2,8 @@ import { useState, useRef, useMemo } from 'react';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
+import { getInitialCreateValue } from '../components/token-editor/tokenEditorHelpers';
+import { normalizeTokenType } from '../shared/tokenTypeCategories';
 import { stableStringify } from '../shared/utils';
 import type {
   TokenEditorLifecycle,
@@ -12,30 +14,6 @@ import type {
 
 export interface FieldsSnapshot extends TokenEditorSnapshot {}
 
-function parseInitialValueForType(type: string, raw: string): TokenEditorValue {
-  const v = raw.trim();
-  if (type === 'color') return v;
-  if (type === 'dimension') {
-    const m = v.match(/^(-?\d*\.?\d+)\s*(px|rem|em|%|vw|vh|pt|dp|sp|cm|mm|fr|ch|ex)?$/);
-    if (m) return { value: parseFloat(m[1]), unit: m[2] || 'px' };
-    return v;
-  }
-  if (type === 'duration') {
-    const m = v.match(/^(-?\d*\.?\d+)\s*(ms|s)?$/);
-    if (m) return { value: parseFloat(m[1]), unit: m[2] || 'ms' };
-    const n = parseFloat(v);
-    return isNaN(n) ? 0 : n;
-  }
-  if (type === 'number' || type === 'fontWeight') {
-    const n = parseFloat(v);
-    return isNaN(n) ? v : n;
-  }
-  if (type === 'boolean') {
-    return v.toLowerCase() === 'true';
-  }
-  return v;
-}
-
 export function useTokenEditorFields(params: {
   isCreateMode: boolean;
   initialType?: string;
@@ -45,23 +23,15 @@ export function useTokenEditorFields(params: {
   allTokensFlat: Record<string, TokenMapEntry>;
 }) {
   const { isCreateMode, initialType, initialValue, tokenPath, editPath, allTokensFlat } = params;
+  const normalizedInitialType = normalizeTokenType(initialType);
 
   // initialRef tracks the server-loaded snapshot for dirty checking
   const initialRef = useRef<FieldsSnapshot | null>(null);
 
-  const [tokenType, setTokenType] = useState(initialType || 'color');
+  const [tokenType, setTokenType] = useState(normalizedInitialType);
   const [value, setValue] = useState<TokenEditorValue>(() => {
     if (!isCreateMode) return '';
-    const t = initialType || 'color';
-    if (initialValue && !isAlias(initialValue)) {
-      return parseInitialValueForType(t, initialValue);
-    }
-    if (t === 'color') return '#000000';
-    if (t === 'dimension') return { value: 0, unit: 'px' };
-    if (t === 'number' || t === 'duration') return 0;
-    if (t === 'boolean') return false;
-    if (t === 'shadow') return { x: 0, y: 0, blur: 4, spread: 0, color: '#000000', type: 'dropShadow' };
-    return '';
+    return getInitialCreateValue(normalizedInitialType, initialValue);
   });
   const [description, setDescription] = useState('');
   const [reference, setReference] = useState(() => {

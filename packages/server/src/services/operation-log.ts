@@ -20,6 +20,7 @@ import type {
 import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError, ConflictError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
+import { expectJsonArray, parseJsonFile } from "../utils/json-file.js";
 
 /** A snapshot of a single token path — null means the token did not exist. */
 export interface SnapshotEntry {
@@ -322,19 +323,37 @@ export class OperationLog {
     };
   }
 
+  private async readStoredArray<T>(
+    filePath: string,
+  ): Promise<T[] | null> {
+    let raw: string;
+    try {
+      raw = await fs.readFile(filePath, "utf-8");
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        return null;
+      }
+      throw err;
+    }
+    return expectJsonArray<T>(
+      parseJsonFile(raw, {
+        filePath,
+        relativeTo: path.dirname(filePath),
+      }),
+      {
+        filePath,
+        relativeTo: path.dirname(filePath),
+      },
+    );
+  }
+
   private ensureLoaded(): Promise<void> {
     if (!this.loadPromise) {
       this.loadPromise = Promise.all([
-        fs
-          .readFile(this.filePath, "utf-8")
-          .then((raw) => JSON.parse(raw) as OperationEntry[])
-          .catch(() => []),
-        fs
-          .readFile(this.pathRenameFilePath, "utf-8")
-          .then((raw) => JSON.parse(raw) as PathRenameEntry[])
-          .catch(() => null),
+        this.readStoredArray<OperationEntry>(this.filePath),
+        this.readStoredArray<PathRenameEntry>(this.pathRenameFilePath),
       ]).then(([entries, pathRenameEntries]) => {
-        this.entries = entries;
+        this.entries = entries ?? [];
         this.pathRenameEntries =
           pathRenameEntries ??
           this.entries

@@ -44,6 +44,7 @@ import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigati
 import { lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
+import { normalizeTokenType } from "../shared/tokenTypeCategories";
 
 import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
@@ -80,7 +81,6 @@ interface TokenEditorProps {
   onNavigateToToken?: (path: string, fromPath?: string) => void;
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
   onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
-  onOpenCollectionSetup?: () => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
 
@@ -109,7 +109,6 @@ export function TokenEditor({
   onNavigateToToken,
   onNavigateToGeneratedGroup,
   onOpenGeneratedGroupEditor,
-  onOpenCollectionSetup,
   pushUndo,
 }: TokenEditorProps) {
   const collectionState = useCollectionStateContext();
@@ -419,7 +418,7 @@ export function TokenEditor({
 
   useEffect(() => {
     if (!isCreateMode) return;
-    const resolvedType = initialType || 'color';
+    const resolvedType = normalizeTokenType(initialType);
     const aliasInitialValue = initialValue && isAlias(initialValue) ? initialValue : '';
     const initialCreateValue = getInitialCreateValue(resolvedType, initialValue);
     initialRef.current = {
@@ -474,7 +473,7 @@ export function TokenEditor({
 
   useEffect(() => {
     if (!isCreateMode) return;
-    lsSet('tm_last_token_type', tokenType);
+    lsSet('tm_last_token_type', normalizeTokenType(tokenType));
   }, [isCreateMode, tokenType]);
 
   const openGeneratedGroupEditor = useCallback((target: TokensLibraryGeneratedGroupEditorTarget) => {
@@ -1040,7 +1039,7 @@ export function TokenEditor({
             value={tokenType}
             onChange={(e) => handleTypeChange(e.target.value)}
             title="Change token type"
-            className={`pr-4 pl-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
+            className={`pr-4 pl-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
             style={{ backgroundImage: "none" }}
           >
             {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
@@ -1728,7 +1727,6 @@ export function TokenEditor({
           value={value}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={effectivePathToCollectionId}
-          onOpenCollectionSetup={onOpenCollectionSetup}
           selectedModes={collectionState.selectedModes}
         />
 

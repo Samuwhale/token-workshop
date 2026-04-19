@@ -44,7 +44,6 @@ interface ToolbarStateChipsConfig {
   onTogglePreviewSplit?: () => void;
   showFlatSearchResults: boolean;
   setSearchResultPresentation: (v: "grouped" | "flat") => void;
-  activeFilterCount: number;
 }
 
 export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
@@ -57,25 +56,8 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
     modeLensEnabled, setModeLensEnabled, onResetViewMode, condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
-    setSearchResultPresentation, activeFilterCount,
+    setSearchResultPresentation,
   } = config;
-
-  const viewOptionsActiveCount = useMemo(() => {
-    let count = activeFilterCount;
-    if (sortOrder !== "default") count += 1;
-    if (inspectMode) count += 1;
-    if (crossCollectionSearch) count += 1;
-    if (multiModeEnabled) count += 1;
-    if (modeLensEnabled) count += 1;
-    if (condensedView) count += 1;
-    if (showPreviewSplit) count += 1;
-    if (showFlatSearchResults) count += 1;
-    return count;
-  }, [
-    activeFilterCount, condensedView, crossCollectionSearch, inspectMode,
-    multiModeEnabled, modeLensEnabled, showFlatSearchResults,
-    showPreviewSplit, sortOrder,
-  ]);
 
   const activeFilterSummary = useMemo(() => {
     const items: string[] = [];
@@ -237,7 +219,6 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
   ]);
 
   return {
-    viewOptionsActiveCount,
     activeFilterSummary,
     toolbarStateChips,
   };

@@ -111,7 +111,7 @@ export function AliasPicker({
               }}
               placeholder="{color.primary.500}"
               aria-label="Token reference"
-              className="w-full rounded-md border border-[var(--color-figma-accent)]/45 bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-secondary)]/50"
+              className="w-full rounded-md border border-[var(--color-figma-accent)]/45 bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
             />
             {showAutocomplete && (
               <AliasAutocomplete

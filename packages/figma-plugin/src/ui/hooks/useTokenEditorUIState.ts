@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { TokenEditorValue } from '../shared/tokenEditorTypes';
 
 interface UseTokenEditorUIStateParams {
@@ -15,6 +15,15 @@ export function useTokenEditorUIState({
   const [editPath, setEditPath] = useState(tokenPath);
   const [refsExpanded, setRefsExpanded] = useState(false);
   const pathInputWrapperRef = useRef<HTMLDivElement>(null);
+  const pasteFlashTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pasteFlashTimerRef.current !== null) {
+        window.clearTimeout(pasteFlashTimerRef.current);
+      }
+    };
+  }, []);
 
   const handlePasteInValueEditor = useCallback((
     e: React.ClipboardEvent<HTMLDivElement>,
@@ -46,7 +55,13 @@ export function useTokenEditorUIState({
     e.preventDefault();
     setValue(parsed);
     setPasteFlash(true);
-    setTimeout(() => setPasteFlash(false), 1500);
+    if (pasteFlashTimerRef.current !== null) {
+      window.clearTimeout(pasteFlashTimerRef.current);
+    }
+    pasteFlashTimerRef.current = window.setTimeout(() => {
+      setPasteFlash(false);
+      pasteFlashTimerRef.current = null;
+    }, 1500);
   }, []);
 
   return {

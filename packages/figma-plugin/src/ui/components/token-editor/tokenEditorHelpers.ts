@@ -1,5 +1,6 @@
 import type { TokenMapEntry } from "../../../shared/types";
 import { isAlias, extractAliasPath } from "../../../shared/resolveAlias";
+import type { TokenEditorValue } from "../../shared/tokenEditorTypes";
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
@@ -32,7 +33,10 @@ export function detectAliasCycle(
 }
 
 /** Parse a raw clipboard/initial string value into the shape the editor expects for the given type. */
-export function parseInitialValueForType(type: string, raw: string): any {
+export function parseInitialValueForType(
+  type: string,
+  raw: string,
+): TokenEditorValue {
   const v = raw.trim();
   if (type === "color") return v;
   if (type === "dimension") {
@@ -58,7 +62,10 @@ export function parseInitialValueForType(type: string, raw: string): any {
   return v;
 }
 
-export function getInitialCreateValue(type: string, raw?: string): any {
+export function getInitialCreateValue(
+  type: string,
+  raw?: string,
+): TokenEditorValue {
   if (raw && !isAlias(raw)) {
     return parseInitialValueForType(type, raw);
   }
@@ -84,7 +91,10 @@ export function getInitialCreateValue(type: string, raw?: string): any {
  * Returns the parsed value on success, or null if no valid parse was found.
  * Used by the container-level onPaste handler in TokenEditor.
  */
-export function parsePastedValue(type: string, text: string): any | null {
+export function parsePastedValue(
+  type: string,
+  text: string,
+): TokenEditorValue | null {
   const v = text.trim();
   if (!v) return null;
 

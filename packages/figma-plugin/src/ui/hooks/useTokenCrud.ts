@@ -24,8 +24,15 @@ export interface UseTokenCrudParams {
   onRefreshGeneratedGroups?: () => void;
   onSetOperationLoading: (msg: string | null) => void;
   onSetLocallyDeletedPaths: (paths: Set<string>) => void;
+  onDeletePaths?: (paths: string[], collectionId: string) => void;
   onRecordTouch: (path: string) => void;
   onRenamePath: (oldPath: string, newPath: string) => void;
+  onMovePath?: (
+    oldPath: string,
+    newPath: string,
+    sourceCollectionId: string,
+    targetCollectionId: string,
+  ) => void;
   onClearSelection: () => void;
   onError?: (msg: string) => void;
 }
@@ -35,17 +42,18 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     connected, serverUrl, collectionId, collectionIds, tokens, allTokensFlat, perCollectionFlat,
     generators, collections,
     onRefresh, onPushUndo, onRefreshGeneratedGroups, onSetOperationLoading,
-    onSetLocallyDeletedPaths, onRecordTouch, onRenamePath, onClearSelection, onError,
+    onSetLocallyDeletedPaths, onDeletePaths, onRecordTouch, onRenamePath,
+    onMovePath, onClearSelection, onError,
   } = params;
 
   const relocate = {
-    move: useTokenRelocate({ mode: 'move', connected, serverUrl, collectionId, collectionIds, perCollectionFlat, onRefresh, onSetOperationLoading, onError }),
+    move: useTokenRelocate({ mode: 'move', connected, serverUrl, collectionId, collectionIds, perCollectionFlat, onRefresh, onMovePath, onSetOperationLoading, onError }),
     copy: useTokenRelocate({ mode: 'copy', connected, serverUrl, collectionId, collectionIds, perCollectionFlat, onRefresh, onError }),
   };
 
   const rename = useTokenRename({ connected, serverUrl, collectionId, generators, collections, perCollectionFlat, allTokensFlat, onRefresh, onPushUndo, onRenamePath, onSetOperationLoading, onError });
 
-  const del = useTokenDelete({ connected, serverUrl, collectionId, tokens, allTokensFlat, perCollectionFlat, generators, collections, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onClearSelection, onError });
+  const del = useTokenDelete({ connected, serverUrl, collectionId, tokens, allTokensFlat, perCollectionFlat, generators, collections, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onDeletePaths, onClearSelection, onError });
 
   const dup = useTokenDuplicate({ connected, serverUrl, collectionId, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
 

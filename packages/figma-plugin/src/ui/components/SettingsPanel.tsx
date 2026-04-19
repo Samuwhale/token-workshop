@@ -1036,7 +1036,7 @@ export function SettingsPanel({
                   placeholder="DELETE"
                   autoFocus
                   aria-label="Type DELETE to confirm"
-                  className="w-full rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] outline-none"
+                  className="w-full rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
                 />
                 <div className="flex gap-2">
                   <button

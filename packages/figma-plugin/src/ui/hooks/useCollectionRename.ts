@@ -27,6 +27,8 @@ export function useCollectionRename({
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const currentCollectionIdRef = useRef(currentCollectionId);
+  currentCollectionIdRef.current = currentCollectionId;
 
   useLayoutEffect(() => {
     if (renamingCollectionId && renameInputRef.current) {
@@ -77,7 +79,7 @@ export function useCollectionRename({
             body: JSON.stringify({ newName: oldName }),
           });
           renameCollectionInState(newName, oldName);
-          if (currentCollectionId === newName) setCurrentCollectionId(oldName);
+          if (currentCollectionIdRef.current === newName) setCurrentCollectionId(oldName);
         },
         redo: async () => {
           await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(oldName)}/rename`, {
@@ -86,7 +88,7 @@ export function useCollectionRename({
             body: JSON.stringify({ newName }),
           });
           renameCollectionInState(oldName, newName);
-          if (currentCollectionId === oldName) setCurrentCollectionId(newName);
+          if (currentCollectionIdRef.current === oldName) setCurrentCollectionId(newName);
         },
       });
     } catch (err) {

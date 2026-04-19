@@ -73,17 +73,25 @@ import {
   getMostRelevantImportDestinationCollection,
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
+import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import type { ToastAction } from "../shared/toastBus";
 
 const LAST_CREATE_GROUP_STORAGE_KEY = "tm_last_create_group";
 const LAST_CREATE_TYPE_STORAGE_KEY = "tm_last_token_type";
+const DEFAULT_CREATE_TYPE = "color";
 
 function readLastCreateGroup(): string {
   return lsGet(LAST_CREATE_GROUP_STORAGE_KEY, "");
 }
 
 function readLastCreateType(): string {
-  return lsGet(LAST_CREATE_TYPE_STORAGE_KEY, "color");
+  const savedType = lsGet(LAST_CREATE_TYPE_STORAGE_KEY, DEFAULT_CREATE_TYPE);
+  const normalizedType = normalizeTokenType(savedType, DEFAULT_CREATE_TYPE);
+  if (normalizedType === savedType) {
+    return savedType;
+  }
+  lsSet(LAST_CREATE_TYPE_STORAGE_KEY, normalizedType);
+  return normalizedType;
 }
 
 function persistLastCreateGroup(tokenPath: string): void {
@@ -94,7 +102,10 @@ function persistLastCreateGroup(tokenPath: string): void {
 }
 
 function persistLastCreateType(tokenType: string): void {
-  lsSet(LAST_CREATE_TYPE_STORAGE_KEY, tokenType);
+  lsSet(
+    LAST_CREATE_TYPE_STORAGE_KEY,
+    normalizeTokenType(tokenType, DEFAULT_CREATE_TYPE),
+  );
 }
 
 function resolveCreateLauncherPath(initialPath?: string): string {
@@ -523,12 +534,6 @@ export function PanelRouter({
     ],
   );
 
-  const ownerCollectionIdForEditor = useCallback(
-    (tokenPath: string, fallbackCollectionId: string) =>
-      pathToCollectionId[tokenPath] ?? fallbackCollectionId,
-    [pathToCollectionId],
-  );
-
   useEffect(() => {
     if (
       !createFromEmpty ||
@@ -629,7 +634,10 @@ export function PanelRouter({
       controller.displayedLeafNodesRef.current = nodes;
     },
     onTokenTouched: (path: string) => {
-      controller.recentlyTouched.recordTouch(path);
+      controller.recentlyTouched.recordTouch(
+        path,
+        pathToCollectionId[path] ?? currentCollectionId,
+      );
     },
     onToggleStar: (path: string) =>
       controller.starredTokens.toggleStar(path, currentCollectionId),
@@ -638,6 +646,29 @@ export function PanelRouter({
         .filter((t) => t.collectionId === currentCollectionId)
         .map((t) => t.path),
     ),
+    onRemoveStarredTokens: (paths: string[], collectionId: string) => {
+      controller.starredTokens.removeMany(paths, collectionId);
+    },
+    onRenameStarredToken: (
+      oldPath: string,
+      newPath: string,
+      collectionId: string,
+    ) => {
+      controller.starredTokens.rename(oldPath, newPath, collectionId);
+    },
+    onMoveStarredToken: (
+      oldPath: string,
+      newPath: string,
+      sourceCollectionId: string,
+      targetCollectionId: string,
+    ) => {
+      controller.starredTokens.move(
+        oldPath,
+        newPath,
+        sourceCollectionId,
+        targetCollectionId,
+      );
+    },
     onError: controller.setErrorToast,
     onOpenCompare: (paths: Set<string>) => {
       controller.setShowPreviewSplit(false);
@@ -703,11 +734,6 @@ export function PanelRouter({
           }),
         onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
         onOpenGeneratedGroupEditor: openGeneratedGroupEditor,
-        onOpenCollectionSetup: () =>
-          switchContextualSurface({
-            surface: "collection-details",
-            collection: { collectionId: ownerCollectionIdForEditor(editingToken.path, editingToken.currentCollectionId) },
-          }),
       }
     : null;
 

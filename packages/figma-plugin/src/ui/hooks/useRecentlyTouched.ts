@@ -1,23 +1,47 @@
-import { useState, useCallback, useMemo } from 'react';
-import { addRecentToken, getRecentTokens, removeRecentToken, renameRecentToken } from '../shared/recentTokens';
+import { useState, useCallback } from 'react';
+import {
+  addRecentToken,
+  clearRecentTokens,
+  getRecentTokens,
+  moveRecentToken,
+  removeRecentToken,
+  removeRecentTokensForCollection,
+  renameRecentToken,
+  renameRecentTokensForCollection,
+  type RecentToken,
+  createRecentTokenKey,
+} from '../shared/recentTokens';
 
 const MAX_ENTRIES = 500;
 
 export interface RecentlyTouchedState {
-  /** Map from token path to timestamp (Date.now()) */
+  /** Map from recent-token key (`collectionId\\0path`) to timestamp (Date.now()) */
   timestamps: Map<string, number>;
-  /** Set of paths for fast filtering */
-  paths: Set<string>;
   /** Number of tracked entries */
   count: number;
+  /** Return the current collection-scoped paths for fast filtering. */
+  getPathsForCollection: (collectionId: string) => Set<string>;
+  /** Lookup a timestamp for one token in one collection. */
+  getTimestamp: (path: string, collectionId: string) => number | undefined;
+  /** Return all tracked entries with timestamps, newest first. */
+  listEntries: () => Array<RecentToken & { timestamp: number }>;
   /** Record a single token touch */
-  recordTouch: (path: string) => void;
-  /** Record multiple token touches */
-  recordTouches: (paths: string[]) => void;
+  recordTouch: (path: string, collectionId: string) => void;
   /** Remove a path (on delete) */
-  removePath: (path: string) => void;
+  removePath: (path: string, collectionId: string) => void;
   /** Rename a path (preserves timestamp) */
-  renamePath: (oldPath: string, newPath: string) => void;
+  renamePath: (oldPath: string, newPath: string, collectionId: string) => void;
+  /** Move a path across collections without losing its recency. */
+  movePath: (
+    oldPath: string,
+    newPath: string,
+    oldCollectionId: string,
+    newCollectionId: string,
+  ) => void;
+  /** Remove all touched tokens for a deleted collection. */
+  removeForCollection: (collectionId: string) => void;
+  /** Update recent entries after a collection rename. */
+  renameCollection: (oldCollectionId: string, newCollectionId: string) => void;
   /** Clear all tracking */
   clear: () => void;
 }
@@ -25,21 +49,23 @@ export interface RecentlyTouchedState {
 export function useRecentlyTouched(): RecentlyTouchedState {
   const [timestamps, setTimestamps] = useState<Map<string, number>>(() => {
     // Initialize from persisted localStorage so recents survive plugin reloads.
-    // Paths are ordered most-recent-first; assign synthetic timestamps so the
+    // Entries are ordered most-recent-first; assign synthetic timestamps so the
     // in-memory sort order matches the persisted order.
     const saved = getRecentTokens();
     const map = new Map<string, number>();
     const now = Date.now();
-    saved.forEach((path, idx) => {
-      map.set(path, now - idx * 1000);
+    saved.forEach(({ path, collectionId }, idx) => {
+      map.set(createRecentTokenKey(path, collectionId), now - idx * 1000);
     });
     return map;
   });
 
-  const recordTouch = useCallback((path: string) => {
+  const recordTouch = useCallback((path: string, collectionId: string) => {
+    if (!path || !collectionId) return;
+    const key = createRecentTokenKey(path, collectionId);
     setTimestamps(prev => {
       const next = new Map(prev);
-      next.set(path, Date.now());
+      next.set(key, Date.now());
       // Evict oldest if over limit
       if (next.size > MAX_ENTRIES) {
         let oldestKey = '';
@@ -51,65 +77,155 @@ export function useRecentlyTouched(): RecentlyTouchedState {
       }
       return next;
     });
-    addRecentToken(path);
+    addRecentToken(path, collectionId);
   }, []);
 
-  const recordTouches = useCallback((paths: string[]) => {
-    if (paths.length === 0) return;
+  const moveTimestamp = useCallback((
+    previous: Map<string, number>,
+    oldKey: string,
+    newKey: string,
+  ): Map<string, number> => {
+    const timestamp = previous.get(oldKey);
+    if (timestamp == null) {
+      return previous;
+    }
+
+    const next = new Map(previous);
+    next.delete(oldKey);
+    const existing = next.get(newKey);
+    next.set(newKey, existing == null ? timestamp : Math.max(existing, timestamp));
+    return next;
+  }, []);
+
+  const removePath = useCallback((path: string, collectionId: string) => {
+    if (!path || !collectionId) return;
+    const key = createRecentTokenKey(path, collectionId);
     setTimestamps(prev => {
+      if (!prev.has(key)) return prev;
       const next = new Map(prev);
-      const now = Date.now();
-      for (const p of paths) next.set(p, now);
-      // Evict oldest entries over limit
-      while (next.size > MAX_ENTRIES) {
-        let oldestKey = '';
-        let oldestTime = Infinity;
-        for (const [k, t] of next) {
-          if (t < oldestTime) { oldestTime = t; oldestKey = k; }
+      next.delete(key);
+      return next;
+    });
+    removeRecentToken(path, collectionId);
+  }, []);
+
+  const renamePath = useCallback((
+    oldPath: string,
+    newPath: string,
+    collectionId: string,
+  ) => {
+    if (!oldPath || !newPath || !collectionId) return;
+    const oldKey = createRecentTokenKey(oldPath, collectionId);
+    const newKey = createRecentTokenKey(newPath, collectionId);
+    setTimestamps((prev) => moveTimestamp(prev, oldKey, newKey));
+    renameRecentToken(oldPath, newPath, collectionId);
+  }, [moveTimestamp]);
+
+  const movePath = useCallback((
+    oldPath: string,
+    newPath: string,
+    oldCollectionId: string,
+    newCollectionId: string,
+  ) => {
+    if (!oldPath || !newPath || !oldCollectionId || !newCollectionId) return;
+    const oldKey = createRecentTokenKey(oldPath, oldCollectionId);
+    const newKey = createRecentTokenKey(newPath, newCollectionId);
+    setTimestamps((prev) => moveTimestamp(prev, oldKey, newKey));
+    moveRecentToken(oldPath, newPath, oldCollectionId, newCollectionId);
+  }, [moveTimestamp]);
+
+  const removeForCollection = useCallback((collectionId: string) => {
+    if (!collectionId) return;
+    setTimestamps(prev => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const key of next.keys()) {
+        if (key.startsWith(`${collectionId}\u0000`)) {
+          next.delete(key);
+          changed = true;
         }
-        if (oldestKey) next.delete(oldestKey); else break;
       }
-      return next;
+      return changed ? next : prev;
     });
-    for (const p of paths) addRecentToken(p);
+    removeRecentTokensForCollection(collectionId);
   }, []);
 
-  const removePath = useCallback((path: string) => {
+  const renameCollection = useCallback((oldCollectionId: string, newCollectionId: string) => {
+    if (!oldCollectionId || !newCollectionId || oldCollectionId === newCollectionId) return;
     setTimestamps(prev => {
-      if (!prev.has(path)) return prev;
-      const next = new Map(prev);
-      next.delete(path);
-      return next;
+      let next: Map<string, number> | null = null;
+      let changed = false;
+      for (const [key, timestamp] of prev.entries()) {
+        if (!key.startsWith(`${oldCollectionId}\u0000`)) continue;
+        const path = key.slice(oldCollectionId.length + 1);
+        if (next === null) {
+          next = new Map(prev);
+        }
+        next.delete(key);
+        const remappedKey = createRecentTokenKey(path, newCollectionId);
+        const existing = next.get(remappedKey);
+        next.set(
+          remappedKey,
+          existing == null ? timestamp : Math.max(existing, timestamp),
+        );
+        changed = true;
+      }
+      return changed && next ? next : prev;
     });
-    removeRecentToken(path);
-  }, []);
-
-  const renamePath = useCallback((oldPath: string, newPath: string) => {
-    setTimestamps(prev => {
-      const ts = prev.get(oldPath);
-      if (ts == null) return prev;
-      const next = new Map(prev);
-      next.delete(oldPath);
-      next.set(newPath, ts);
-      return next;
-    });
-    renameRecentToken(oldPath, newPath);
+    renameRecentTokensForCollection(oldCollectionId, newCollectionId);
   }, []);
 
   const clear = useCallback(() => {
     setTimestamps(new Map());
+    clearRecentTokens();
   }, []);
 
-  const paths = useMemo(() => new Set(timestamps.keys()), [timestamps]);
+  const getPathsForCollection = useCallback((collectionId: string) => {
+    const paths = new Set<string>();
+    if (!collectionId) return paths;
+    const prefix = `${collectionId}\u0000`;
+    for (const key of timestamps.keys()) {
+      if (key.startsWith(prefix)) {
+        paths.add(key.slice(prefix.length));
+      }
+    }
+    return paths;
+  }, [timestamps]);
+
+  const getTimestamp = useCallback((path: string, collectionId: string) => {
+    if (!path || !collectionId) return undefined;
+    return timestamps.get(createRecentTokenKey(path, collectionId));
+  }, [timestamps]);
+
+  const listEntries = useCallback(() => {
+    return Array.from(timestamps.entries())
+      .map(([key, timestamp]) => {
+        const separatorIndex = key.indexOf('\u0000');
+        if (separatorIndex <= 0 || separatorIndex >= key.length - 1) {
+          return null;
+        }
+        return {
+          collectionId: key.slice(0, separatorIndex),
+          path: key.slice(separatorIndex + 1),
+          timestamp,
+        };
+      })
+      .filter((entry): entry is RecentToken & { timestamp: number } => entry !== null)
+      .sort((left, right) => right.timestamp - left.timestamp);
+  }, [timestamps]);
 
   return {
     timestamps,
-    paths,
     count: timestamps.size,
+    getPathsForCollection,
+    getTimestamp,
+    listEntries,
     recordTouch,
-    recordTouches,
     removePath,
     renamePath,
+    movePath,
+    removeForCollection,
+    renameCollection,
     clear,
   };
 }

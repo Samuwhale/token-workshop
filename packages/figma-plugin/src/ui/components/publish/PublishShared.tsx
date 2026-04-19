@@ -441,7 +441,7 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
           <select
             value={dir}
             onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
-            className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
+            className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5 shrink-0"
           >
             <option value="push">{'\u2191'} Push to Figma</option>
             <option value="pull">{'\u2193'} Pull to local</option>

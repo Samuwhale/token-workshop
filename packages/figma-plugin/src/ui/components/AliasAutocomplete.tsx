@@ -3,7 +3,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
+import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
@@ -48,9 +48,12 @@ export function AliasAutocomplete({
 
   // Track selections for recent tokens
   const handleSelect = useCallback((path: string) => {
-    addRecentToken(path);
+    const collectionId = pathToCollectionId[path];
+    if (collectionId) {
+      addRecentToken(path, collectionId);
+    }
     onSelect(path);
-  }, [onSelect]);
+  }, [onSelect, pathToCollectionId]);
 
   const { entries, totalCount, hasRecent } = useMemo(() => {
     const q = query.trim();
@@ -65,7 +68,7 @@ export function AliasAutocomplete({
     };
     if (!q) {
       // Show recent tokens first, then all tokens
-      const recent = getRecentTokens();
+      const recent = getRecentTokenPaths({ pathToCollectionId });
       const recentEntries: Entry[] = [];
       for (const p of recent) {
         const entry = allTokensFlat[p];
@@ -96,7 +99,7 @@ export function AliasAutocomplete({
       totalCount: scored.length,
       hasRecent: false,
     };
-  }, [allTokensFlat, query, filterType]);
+  }, [allTokensFlat, query, filterType, pathToCollectionId]);
 
   useEffect(() => {
     setActiveIdx(0);

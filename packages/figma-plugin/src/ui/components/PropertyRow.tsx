@@ -6,7 +6,7 @@ import { resolveTokenValue } from '../../shared/resolveAlias';
 import { isDimensionLike } from './generators/generatorShared';
 import { nodeParentPath } from './tokenListUtils';
 import { getErrorMessage } from '../shared/utils';
-import { getRecentTokens, addRecentToken } from '../shared/recentTokens';
+import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 import {
   applyTokenMutationSuccess,
   createToken,
@@ -203,7 +203,7 @@ export function PropertyRow({
   // Recently-used section: filter global recents to compatible tokens visible in the bind panel
   const recentBindCandidates = (bindingFromProp === prop && !bindQuery)
     ? (() => {
-        const recentPaths = getRecentTokens();
+        const recentPaths = getRecentTokenPaths({ collectionId: currentCollectionId });
         const allPaths = new Set(bindCandidatesAll.map(([p]) => p));
         const allByPath = new Map(bindCandidatesAll.map(([p, e, s]) => [p, [p, e, s] as [string, TokenMapEntry, number]]));
         return recentPaths
@@ -220,7 +220,7 @@ export function PropertyRow({
   const showSuggestedDivider = suggestedCount > 0 && suggestedCount < mainBindCandidates.length && !bindQuery;
 
   const handleBindToken = (p: string) => {
-    addRecentToken(p);
+    addRecentToken(p, currentCollectionId);
     onBindToken(prop, p);
   };
 

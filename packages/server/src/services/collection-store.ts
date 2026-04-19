@@ -10,6 +10,7 @@ import {
   serializeTokenCollections,
 } from "@tokenmanager/core";
 import { ConflictError, NotFoundError } from "../errors.js";
+import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
 export interface CollectionState {
@@ -209,8 +210,23 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
       };
     }
 
-    const content = await fs.readFile(filePath, "utf-8");
-    const data = JSON.parse(content) as unknown;
+    let content: string;
+    try {
+      content = await fs.readFile(filePath, "utf-8");
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        return {
+          state: { collections: [], views: [] },
+          mtimeMs: null,
+          exists: false,
+        };
+      }
+      throw err;
+    }
+    const data = expectJsonObject(
+      parseJsonFile(content, { filePath, relativeTo: tokenDir }),
+      { filePath, relativeTo: tokenDir },
+    );
     return {
       state: validateCollectionState(readCollectionsFileState(data)),
       mtimeMs,
@@ -224,16 +240,9 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
       return structuredClone(cache);
     }
 
-    try {
-      const { state, exists } = await loadStateFromDisk();
-      cache = structuredClone(state);
-      cachedMtimeMs = exists ? mtimeMs : null;
-    } catch {
-      if (cache === null) {
-        cache = { collections: [], views: [] };
-        cachedMtimeMs = null;
-      }
-    }
+    const { state, exists } = await loadStateFromDisk();
+    cache = structuredClone(state);
+    cachedMtimeMs = exists ? mtimeMs : null;
 
     return structuredClone(cache);
   }

@@ -10,6 +10,12 @@ import type {
   ViewPreset,
 } from "./types.js";
 
+export const COLLECTION_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+
+export function isValidCollectionName(name: string): boolean {
+  return COLLECTION_NAME_RE.test(name);
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

@@ -209,7 +209,7 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
           onClick={e => e.stopPropagation()}
           onBlur={handleCommit}
           onKeyDown={e => { if (e.key === 'Enter') handleCommit(); if (e.key === 'Escape') setEditing(false); }}
-          className="w-24 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none shrink-0"
+          className="w-24 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] shrink-0"
         />
       ) : (
         <div className="flex items-center gap-1 shrink-0">

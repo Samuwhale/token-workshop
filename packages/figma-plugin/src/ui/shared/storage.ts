@@ -5,6 +5,7 @@
  */
 
 type BrowserStorageKind = "local" | "session";
+const STORAGE_PROBE_VALUE = "__tokenmanager_storage_probe__";
 
 function createMemoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -36,26 +37,65 @@ const storageFallbacks: Record<BrowserStorageKind, Storage> = {
 };
 
 const storageCache: Partial<Record<BrowserStorageKind, Storage>> = {};
+const storageFallbackLogged = new Set<BrowserStorageKind>();
+
+function logStorageFallback(kind: BrowserStorageKind, reason: unknown): void {
+  if (storageFallbackLogged.has(kind)) {
+    return;
+  }
+  storageFallbackLogged.add(kind);
+  console.debug(`[storage] ${kind}Storage unavailable; using memory fallback:`, reason);
+}
+
+function getStorageRoot():
+  | (Window & typeof globalThis)
+  | (typeof globalThis & { localStorage?: Storage; sessionStorage?: Storage }) {
+  return typeof window !== "undefined"
+    ? window
+    : (globalThis as typeof globalThis & {
+        localStorage?: Storage;
+        sessionStorage?: Storage;
+      });
+}
+
+function verifyStorage(kind: BrowserStorageKind, storage: Storage): boolean {
+  const probeKey = `${STORAGE_PROBE_VALUE}:${kind}`;
+  let previousValue: string | null = null;
+  try {
+    previousValue = storage.getItem(probeKey);
+    storage.setItem(probeKey, STORAGE_PROBE_VALUE);
+    return storage.getItem(probeKey) === STORAGE_PROBE_VALUE;
+  } catch {
+    return false;
+  } finally {
+    try {
+      if (previousValue === null) {
+        storage.removeItem(probeKey);
+      } else {
+        storage.setItem(probeKey, previousValue);
+      }
+    } catch {
+      // Ignore restore failures and fall back to memory storage.
+    }
+  }
+}
 
 function getStorage(kind: BrowserStorageKind): Storage {
   const cached = storageCache[kind];
   if (cached) return cached;
 
   try {
-    const root =
-      typeof window !== "undefined"
-        ? window
-        : (globalThis as typeof globalThis & {
-            localStorage?: Storage;
-            sessionStorage?: Storage;
-          });
+    const root = getStorageRoot();
     const storage =
       kind === "local" ? root.localStorage : root.sessionStorage;
     if (!storage) throw new Error(`${kind}Storage is unavailable.`);
+    if (!verifyStorage(kind, storage)) {
+      throw new Error(`${kind}Storage is not writable.`);
+    }
     storageCache[kind] = storage;
     return storage;
   } catch (error) {
-    console.debug(`[storage] ${kind}Storage unavailable; using memory fallback:`, error);
+    logStorageFallback(kind, error);
     const fallback = storageFallbacks[kind];
     storageCache[kind] = fallback;
     return fallback;
@@ -94,6 +134,7 @@ function storageGetJson<T>(kind: BrowserStorageKind, key: string, fallback: T): 
     return JSON.parse(raw) as T;
   } catch (error) {
     console.debug(`[storage] ${kind}Storage JSON read failed:`, key, error);
+    storageRemove(kind, key);
     return fallback;
   }
 }
@@ -166,7 +207,6 @@ export const STORAGE_KEYS = {
   FIRST_RUN_DONE:        'tm_first_run_done',
   DEEP_INSPECT:          'tm_deep_inspect',
   RECENT_TOKENS:         'tm_recent_tokens',
-  CROSS_COLLECTION_RECENTS: 'tm_cross_collection_recents',
   STARRED_TOKENS:        'tm_starred_tokens',
   PREFERRED_COPY_FORMAT: 'tm_preferred_copy_format',
   CONDENSED_VIEW:        'tm_condensed_view',
@@ -292,7 +332,7 @@ export function lsEntries(): Array<[string, string]> {
  * Remove all keys that start with any of the given prefixes.
  * Iterates localStorage in a single pass.
  */
-export function lsClearByPrefix(...prefixes: string[]): void {
+function lsClearByPrefix(...prefixes: string[]): void {
   for (const [key] of lsEntries()) {
     if (prefixes.some((prefix) => key.startsWith(prefix))) {
       lsRemove(key);

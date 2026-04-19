@@ -113,7 +113,6 @@ export function App() {
     setPreviewingToken,
     inspectingCollection,
     setHighlightedToken,
-    createFromEmpty,
     setPendingHighlight,
     setPendingHighlightForCollection,
     setAliasNotFoundHandler,
@@ -246,6 +245,22 @@ export function App() {
       switchContextualSurface({ surface: null });
     },
     [inspectingCollection, switchContextualSurface],
+  );
+  const handleCollectionRenameComplete = useCallback(
+    (oldCollectionId: string, newCollectionId: string) => {
+      handleInspectedCollectionRename(oldCollectionId, newCollectionId);
+      recentlyTouched.renameCollection(oldCollectionId, newCollectionId);
+      starredTokens.renameCollection(oldCollectionId, newCollectionId);
+    },
+    [handleInspectedCollectionRename, recentlyTouched, starredTokens],
+  );
+  const handleCollectionDeleteComplete = useCallback(
+    (deletedCollectionId: string, nextCollectionId: string) => {
+      handleInspectedCollectionDelete(deletedCollectionId, nextCollectionId);
+      recentlyTouched.removeForCollection(deletedCollectionId);
+      starredTokens.removeForCollection(deletedCollectionId);
+    },
+    [handleInspectedCollectionDelete, recentlyTouched, starredTokens],
   );
   const handleInspectedCollectionMerge = useCallback(
     (sourceCollectionId: string, targetCollectionId: string) => {
@@ -884,7 +899,7 @@ export function App() {
       setErrorToast,
       markDisconnected,
       onPushUndo: pushUndo,
-      onDeleteComplete: handleInspectedCollectionDelete,
+      onDeleteComplete: handleCollectionDeleteComplete,
     });
   const {
     renamingCollectionId,
@@ -905,7 +920,7 @@ export function App() {
     setSuccessToast,
     markDisconnected,
     onPushUndo: pushUndo,
-    onRenameComplete: handleInspectedCollectionRename,
+    onRenameComplete: handleCollectionRenameComplete,
   });
   const { handleDuplicateCollection } = useCollectionDuplicate({
     serverUrl,
@@ -1629,6 +1644,7 @@ export function App() {
 
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">
+      <h1 className="sr-only">TokenManager</h1>
       {/* Sidebar */}
       <nav
         className={`flex ${sidebarCollapsed ? 'w-9' : 'w-[150px]'} shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]`}
@@ -2033,6 +2049,7 @@ export function App() {
         <QuickApplyPicker
           selectedNodes={selectedNodes}
           tokenMap={allTokensFlat}
+          currentCollectionId={currentCollectionId}
           onApply={(tokenPath, tokenType, targetProperty, resolvedValue) => {
             parent.postMessage(
               {

@@ -36,7 +36,7 @@ export interface UseTokenSearchParams {
   expandedPaths: Set<string>;
   pinnedPaths: Set<string>;
   sortedTokens: TokenNode[];
-  recentlyTouched: { paths: Set<string>; timestamps: Map<string, number> };
+  recentlyTouchedPaths: Set<string>;
   // Additional filtering state from component
   showIssuesOnly?: boolean;
   showRecentlyTouched?: boolean;
@@ -63,7 +63,7 @@ export function useTokenSearch({
   expandedPaths: _expandedPaths,
   pinnedPaths,
   sortedTokens,
-  recentlyTouched,
+  recentlyTouchedPaths,
   showIssuesOnly = false,
   showRecentlyTouched = false,
   showPinnedOnly = false,
@@ -473,7 +473,7 @@ export function useTokenSearch({
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && boundTokenPaths.size > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
     if (showRecentlyTouched) {
-      if (recentlyTouched.paths.size > 0) result = filterByDuplicatePaths(result, recentlyTouched.paths);
+      if (recentlyTouchedPaths.size > 0) result = filterByDuplicatePaths(result, recentlyTouchedPaths);
       else result = [];
     }
     if (showPinnedOnly) {
@@ -481,7 +481,7 @@ export function useTokenSearch({
       else result = [];
     }
     return result;
-  }, [sortedTokens, zoomRootPath, collectionId, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedPaths, derivedTokenPaths, unusedTokenPaths]);
+  }, [sortedTokens, zoomRootPath, collectionId, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouchedPaths, showPinnedOnly, pinnedPaths, derivedTokenPaths, unusedTokenPaths]);
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
