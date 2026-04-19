@@ -1064,7 +1064,7 @@ export function App() {
     if (matchesShortcut(e, "CREATE_FROM_SELECTION")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("inspect", "inspect");
+      navigateTo("canvas", "inspect");
       setTriggerCreateToken((n) => n + 1);
     }
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === "n") {
@@ -1081,12 +1081,12 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_APPLY")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("inspect", "inspect");
+      navigateTo("canvas", "inspect");
     }
     if (matchesShortcut(e, "GO_TO_SYNC")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("sync", "publish");
+      navigateTo("publish", "sync");
     }
     if (matchesShortcut(e, "TOGGLE_QUICK_APPLY")) {
       e.preventDefault();
@@ -1512,7 +1512,7 @@ export function App() {
   const workspacePrimaryAction = useMemo(() => {
     if (
       activeSecondarySurface === null &&
-      activeWorkspace.id === "inspect" &&
+      activeWorkspace.id === "canvas" &&
       activeWorkspaceSection?.id === "inspect"
     ) {
       return null;
@@ -1520,8 +1520,8 @@ export function App() {
 
     if (
       activeSecondarySurface === null &&
-      activeWorkspace.id === "sync" &&
-      activeWorkspaceSection?.id === "publish"
+      activeWorkspace.id === "publish" &&
+      activeWorkspaceSection?.id === "sync"
     ) {
       if (publishPreflightState.stage === "running") {
         return {
@@ -1563,6 +1563,7 @@ export function App() {
 
     if (
       activeSecondarySurface === null &&
+      activeWorkspace.id === "tokens" &&
       activeSubTab === "health"
     ) {
       return {
@@ -1623,8 +1624,8 @@ export function App() {
 
   const isSidebarItemActive = useCallback((item: SidebarItem) => {
     if (activeSecondarySurface !== null) return false;
-    return item.topTab === activeTopTab && item.subTab === activeSubTab;
-  }, [activeSecondarySurface, activeTopTab, activeSubTab]);
+    return item.workspaceId === activeWorkspace.id;
+  }, [activeSecondarySurface, activeWorkspace.id]);
 
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">

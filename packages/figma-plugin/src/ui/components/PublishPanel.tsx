@@ -905,10 +905,10 @@ export function PublishPanel({
       if (actionId === 'review-audit-findings') {
         beginHandoff({
           reason:
-            'Review the audit findings behind these blockers, then return to Sync.',
+            'Review the audit findings behind these blockers, then return to Publish.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('sync', 'health', { preserveHandoff: true });
+        navigateTo('tokens', 'health', { preserveHandoff: true });
         return;
       }
 

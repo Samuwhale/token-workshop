@@ -41,7 +41,7 @@ export function ExtendsTokenPicker({
         }}
         className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors text-left"
       >
-        + Set base token to inherit from…
+        Inherit from token…
       </button>
     );
   }

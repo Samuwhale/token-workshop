@@ -37,6 +37,7 @@ interface ToolbarStateChipsConfig {
   toggleMultiMode: () => void;
   modeLensEnabled: boolean;
   setModeLensEnabled: (v: boolean) => void;
+  onResetViewMode?: () => void;
   condensedView: boolean;
   setCondensedView: (v: boolean) => void;
   showPreviewSplit: boolean;
@@ -54,7 +55,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
-    modeLensEnabled, setModeLensEnabled, condensedView, setCondensedView,
+    modeLensEnabled, setModeLensEnabled, onResetViewMode, condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation, activeFilterCount,
   } = config;
@@ -183,18 +184,18 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         key: "view:modes",
         label:
           multiModeDimensionName
-            ? `Mode columns: ${multiModeDimensionName}`
-            : "Mode columns",
+            ? `All modes: ${multiModeDimensionName}`
+            : "All modes",
         tone: "view",
-        onRemove: toggleMultiMode,
+        onRemove: onResetViewMode ?? toggleMultiMode,
       });
     }
     if (modeLensEnabled) {
       chips.push({
         key: "view:mode-values",
-        label: "Resolved values",
+        label: "Resolved",
         tone: "view",
-        onRemove: () => setModeLensEnabled(false),
+        onRemove: onResetViewMode ?? (() => setModeLensEnabled(false)),
       });
     }
     if (condensedView) {
@@ -228,7 +229,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     multiModeDimensionName, multiModeEnabled, onToggleIssuesOnly,
     onTogglePreviewSplit, refFilter, removeQueryToken, setCondensedView,
     setCrossCollectionSearch, setInspectMode, setRefFilter,
-    setSearchResultPresentation, setModeLensEnabled, setShowDuplicates,
+    setSearchResultPresentation, setModeLensEnabled, onResetViewMode, setShowDuplicates,
     setShowRecentlyTouched, setSortOrder, setTypeFilter, showDuplicates,
     showFlatSearchResults, showIssuesOnly, showPreviewSplit,
     showRecentlyTouched, sortOrder, structuredFilterChips, modeLensEnabled,

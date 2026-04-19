@@ -245,7 +245,7 @@ export interface HealthPanelProps {
   collections?: TokenCollection[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
-  onNavigateTo: (topTab: "tokens" | "inspect" | "sync", subTab?: string) => void;
+  onNavigateTo: (topTab: "tokens" | "canvas" | "publish", subTab?: string) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
   onTriggerHeatmap: () => void;
@@ -1110,7 +1110,7 @@ export function HealthPanel({
         };
       case "canvas":
         return () => {
-          onNavigateTo("inspect", "canvas-analysis");
+          onNavigateTo("canvas", "canvas-analysis");
           if (!heatmapResult) onTriggerHeatmap();
         };
       case "validation-scroll":

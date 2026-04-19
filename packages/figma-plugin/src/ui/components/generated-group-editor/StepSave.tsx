@@ -84,10 +84,8 @@ export function StepSave({
   targetCollection,
   collectionModeLabel = null,
   selectedType,
-  isEditing: _isEditing,
   previewTokens,
   previewAnalysis,
-  existingOverwritePathSet: _existingOverwritePathSet,
   overwritePendingPaths,
   overwriteCheckLoading,
   overwriteCheckError,
@@ -107,60 +105,21 @@ export function StepSave({
         </div>
       )}
 
-      <section className={AUTHORING.generatorSectionCard}>
-        <div className={AUTHORING.generatorTitleBlock}>
-          <h4 className={AUTHORING.generatorTitle}>
-            Review changes
-          </h4>
-          <p className={AUTHORING.generatorDescription}>
-            Confirm the collection, preview mode, output changes, and manual exceptions before you save.
-          </p>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Group label
-            </div>
-            <div className="mt-0.5 text-[11px] font-medium text-[var(--color-figma-text)]">
-              {name}
-            </div>
-          </div>
-          <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Outcome
-            </div>
-            <div className="mt-0.5 text-[11px] font-medium text-[var(--color-figma-text)]">
-              {getGeneratedGroupTypeLabel(selectedType)}
-            </div>
-          </div>
-          <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Collection
-            </div>
-            <div className="mt-0.5 font-mono text-[11px] text-[var(--color-figma-text)]">
-              {targetCollection}
-            </div>
-          </div>
-          <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Group
-            </div>
-            <div className="mt-0.5 font-mono text-[11px] text-[var(--color-figma-text)]">
-              {targetGroup}
-            </div>
-          </div>
-          {collectionModeLabel && (
-            <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2 sm:col-span-2">
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Preview mode
-              </div>
-              <div className="mt-0.5 text-[11px] font-medium text-[var(--color-figma-text)]">
-                {collectionModeLabel}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2 text-[11px]">
+        <span className="font-medium text-[var(--color-figma-text)]">{name}</span>
+        <span className="text-[var(--color-figma-text-tertiary)]">&middot;</span>
+        <span className="font-mono text-[var(--color-figma-text-secondary)]">{targetCollection}</span>
+        <span className="text-[var(--color-figma-text-tertiary)]">/</span>
+        <span className="font-mono text-[var(--color-figma-text-secondary)]">{targetGroup}</span>
+        <span className="text-[var(--color-figma-text-tertiary)]">&middot;</span>
+        <span className="text-[var(--color-figma-text-secondary)]">{getGeneratedGroupTypeLabel(selectedType)}</span>
+        {collectionModeLabel && (
+          <>
+            <span className="text-[var(--color-figma-text-tertiary)]">&middot;</span>
+            <span className="text-[var(--color-figma-text-secondary)]">{collectionModeLabel}</span>
+          </>
+        )}
+      </div>
 
       {/* Condensed impact line */}
       {previewAnalysis && (

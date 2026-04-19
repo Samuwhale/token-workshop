@@ -265,17 +265,15 @@ export function PanelRouter({
   useEffect(() => {
     if (!showPreviewSplit) return;
     if (
-      activeTokensContextualSurface === "compare" ||
-      activeTokensContextualSurface === "collection-details" ||
-      activeTokensContextualSurface === "token-editor" ||
-      activeTokensContextualSurface === "generated-group-editor"
+      activeTokensContextualSurface !== null &&
+      activeTokensContextualSurface !== "token-preview"
     ) {
       setShowPreviewSplit(false);
     }
   }, [activeTokensContextualSurface, setShowPreviewSplit, showPreviewSplit]);
 
   useEffect(() => {
-    if (activeTopTab !== "inspect") {
+    if (activeTopTab !== "canvas") {
       return;
     }
 
@@ -288,7 +286,7 @@ export function PanelRouter({
 
   useEffect(() => {
     if (
-      activeTopTab === "inspect" &&
+      activeTopTab === "canvas" &&
       activeSubTab === "canvas-analysis" &&
       !heatmapLoading &&
       !heatmapResult &&
@@ -609,7 +607,7 @@ export function PanelRouter({
     onNavigateToCollection: controller.handleNavigateToCollection,
     onViewTokenHistory: (path: string) => {
       setHistoryFilterPath(path);
-      navigateTo("sync", "history");
+      navigateTo("tokens", "history");
     },
     onEditGeneratedGroup: (generatorId: string) =>
       controller.guardEditorAction(() => {
@@ -625,7 +623,7 @@ export function PanelRouter({
     onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
     onShowReferences: (path: string) => {
       controller.setFlowPanelInitialPath(path);
-      navigateTo("sync", "health");
+      navigateTo("tokens", "health");
     },
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => {
       controller.displayedLeafNodesRef.current = nodes;
@@ -695,7 +693,7 @@ export function PanelRouter({
         derivedTokenPaths,
         onShowReferences: (path: string) => {
           controller.setFlowPanelInitialPath(path);
-          navigateTo("sync", "health");
+          navigateTo("tokens", "health");
         },
         onNavigateToToken: (path: string) =>
           openLinkedTokenSurface({
@@ -1201,7 +1199,7 @@ export function PanelRouter({
         <div ref={canvasAnalysisRef} className="min-h-[320px] min-w-0 flex-1">
           <ErrorBoundary
             panelName="Canvas analysis"
-            onReset={() => navigateTo("inspect", "inspect")}
+            onReset={() => navigateTo("canvas", "inspect")}
           >
             <CanvasAnalysisPanel
               availableTokens={allTokensFlat}
@@ -1256,16 +1254,16 @@ export function PanelRouter({
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     tokens: {
       tokens: renderDefineTokens,
+      health: renderTokensHealth,
+      history: renderTokensHistory,
     },
-    inspect: {
+    canvas: {
       inspect: renderCanvasWorkspace,
       "canvas-analysis": renderCanvasWorkspace,
     },
-    sync: {
-      publish: renderSyncPublish,
+    publish: {
+      sync: renderSyncPublish,
       export: renderSyncExport,
-      history: renderSyncHistory,
-      health: renderSyncHealth,
     },
   };
 
@@ -1299,6 +1297,11 @@ export function PanelRouter({
       !controller.showPreviewSplit
         ? getTokensContextualSurfaceRenderState()
         : null;
+
+    const isSidePanelSurface =
+      contextualSurface?.surface === "token-editor" ||
+      contextualSurface?.surface === "token-preview" ||
+      contextualSurface?.surface === "collection-details";
 
     const renderLibrarySection = () => (
       <>
@@ -1336,11 +1339,39 @@ export function PanelRouter({
           !createFromEmpty &&
           !editingToken &&
           renderTokensStartSurface()}
-        {/* Main content: TokenList or contextual surface (full takeover) */}
-        {hasTokensLibrarySurface && !controller.showPreviewSplit && (
-          contextualSurface
-            ? renderFullContextualSurface(contextualSurface)
-            : renderTokensLibraryBody()
+        {/* Side panel layout: library + editor/preview side by side */}
+        {hasTokensLibrarySurface && !controller.showPreviewSplit && contextualSurface && isSidePanelSurface && (
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            <div className="min-w-0 flex-1 overflow-hidden border-r border-[var(--color-figma-border)]">
+              {renderTokensLibraryBody()}
+            </div>
+            <div
+              className="w-[320px] min-w-[280px] shrink-0 overflow-hidden panel-slide-in"
+              data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
+              data-tokens-library-contextual-surface={contextualSurface.surface}
+              onKeyDown={(e) => {
+                if (
+                  (e.key === "]" || e.key === "[") &&
+                  (e.metaKey || e.ctrlKey) &&
+                  !e.shiftKey &&
+                  !e.altKey
+                ) {
+                  e.preventDefault();
+                  controller.handleEditorNavigate(e.key === "]" ? 1 : -1);
+                }
+              }}
+            >
+              {contextualSurface.content}
+            </div>
+          </div>
+        )}
+        {/* Full takeover: compare, generated-group-editor */}
+        {hasTokensLibrarySurface && !controller.showPreviewSplit && contextualSurface && !isSidePanelSurface && (
+          renderFullContextualSurface(contextualSurface)
+        )}
+        {/* Default: library body only */}
+        {hasTokensLibrarySurface && !controller.showPreviewSplit && !contextualSurface && (
+          renderTokensLibraryBody()
         )}
         {/* Preview split view */}
         {hasTokensLibrarySurface && controller.showPreviewSplit && (
@@ -1468,7 +1499,7 @@ export function PanelRouter({
     return (
       <ErrorBoundary
         panelName="Figma Sync"
-        onReset={() => navigateTo("sync", "publish")}
+        onReset={() => navigateTo("publish", "sync")}
       >
         <PublishPanel
           serverUrl={serverUrl}
@@ -1489,18 +1520,18 @@ export function PanelRouter({
     return (
       <ErrorBoundary
         panelName="Export"
-        onReset={() => navigateTo("sync", "export")}
+        onReset={() => navigateTo("publish", "export")}
       >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );
   }
 
-  function renderSyncHistory(): ReactNode {
+  function renderTokensHistory(): ReactNode {
     return (
       <ErrorBoundary
         panelName="History"
-        onReset={() => navigateTo("sync", "history")}
+        onReset={() => navigateTo("tokens", "history")}
       >
         <HistoryPanel
           serverUrl={serverUrl}
@@ -1524,11 +1555,11 @@ export function PanelRouter({
     );
   }
 
-  function renderSyncHealth(): ReactNode {
+  function renderTokensHealth(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Audit"
-        onReset={() => navigateTo("sync", "health")}
+        onReset={() => navigateTo("tokens", "health")}
       >
         <HealthPanel
           serverUrl={serverUrl}

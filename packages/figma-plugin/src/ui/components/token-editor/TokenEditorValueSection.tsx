@@ -32,6 +32,36 @@ import {
   VALUE_FORMAT_HINTS,
 } from "../ValueEditors";
 
+function buildTypographyPreviewStyle(value: Record<string, unknown>): React.CSSProperties {
+  const style: React.CSSProperties = {};
+  if (typeof value.fontFamily === "string" && value.fontFamily) {
+    style.fontFamily = value.fontFamily;
+  }
+  if (value.fontSize != null) {
+    const fs = value.fontSize;
+    if (typeof fs === "object" && fs !== null && "value" in fs) {
+      const { value: v, unit } = fs as { value: number; unit?: string };
+      style.fontSize = `${Math.min(v, 48)}${unit || "px"}`;
+    } else if (typeof fs === "number") {
+      style.fontSize = `${Math.min(fs, 48)}px`;
+    }
+  }
+  if (typeof value.fontWeight === "number" || typeof value.fontWeight === "string") {
+    style.fontWeight = value.fontWeight as React.CSSProperties["fontWeight"];
+  }
+  if (typeof value.lineHeight === "number") {
+    style.lineHeight = value.lineHeight;
+  }
+  if (value.letterSpacing != null) {
+    const ls = value.letterSpacing;
+    if (typeof ls === "object" && ls !== null && "value" in ls) {
+      const { value: v, unit } = ls as { value: number; unit?: string };
+      style.letterSpacing = `${v}${unit || "px"}`;
+    }
+  }
+  return style;
+}
+
 export interface TokenEditorValueSectionProps {
   tokenPath: string;
   tokenType: string;
@@ -276,6 +306,20 @@ export function TokenEditorValueSection({
       </>
       {tokenType === "asset" && (
         <AssetEditor value={value} onChange={setValue} />
+      )}
+      {tokenType === "typography" && value && typeof value === "object" && !Array.isArray(value) &&
+        (typeof (value as Record<string, unknown>).fontFamily === "string" || (value as Record<string, unknown>).fontSize != null) && (
+        <div
+          className="overflow-hidden rounded border border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)]/25 px-3 py-2"
+          aria-label="Typography preview"
+        >
+          <span
+            className="block text-[var(--color-figma-text)] leading-normal"
+            style={buildTypographyPreviewStyle(value as Record<string, unknown>)}
+          >
+            Aa Bb Cc 123
+          </span>
+        </div>
       )}
       {/* Smart alias suggestion — exact & near matches */}
       <TokenNudge

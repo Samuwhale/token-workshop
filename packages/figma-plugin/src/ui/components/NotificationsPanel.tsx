@@ -14,12 +14,12 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "tokens" | "inspect" | "sync";
+      topTab: "tokens" | "canvas" | "publish";
       subTab:
         | "tokens"
         | "inspect"
         | "canvas-analysis"
-        | "publish"
+        | "sync"
         | "export"
         | "history"
         | "health";
@@ -153,7 +153,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open publish",
-      target: { kind: "workspace", topTab: "sync", subTab: "publish" },
+      target: { kind: "workspace", topTab: "publish", subTab: "sync" },
     };
   }
   if (
@@ -163,7 +163,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open export",
-      target: { kind: "workspace", topTab: "sync", subTab: "export" },
+      target: { kind: "workspace", topTab: "publish", subTab: "export" },
     };
   }
   if (
@@ -176,7 +176,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open history",
-      target: { kind: "workspace", topTab: "sync", subTab: "history" },
+      target: { kind: "workspace", topTab: "tokens", subTab: "history" },
     };
   }
   if (
@@ -187,13 +187,13 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open apply",
-      target: { kind: "workspace", topTab: "inspect", subTab: "inspect" },
+      target: { kind: "workspace", topTab: "canvas", subTab: "inspect" },
     };
   }
   if (lower.includes("dependency") || lower.includes("alias")) {
     return {
       label: "Open dependencies",
-      target: { kind: "workspace", topTab: "sync", subTab: "health" },
+      target: { kind: "workspace", topTab: "tokens", subTab: "health" },
     };
   }
   return {

@@ -231,7 +231,7 @@ export function useCommandPaletteCommands(): {
           "Refresh validation across references, duplicates, and generated output",
         category: "Audit",
         handler: () => {
-          navigateTo("sync", "health");
+          navigateTo("tokens", "health");
           void sync.refreshValidation();
         },
       },
@@ -444,7 +444,7 @@ export function useCommandPaletteCommands(): {
               category: "Audit" as const,
               handler: () => {
                 tokens.setFlowPanelInitialPath(highlightedToken);
-                navigateTo("sync", "health");
+                navigateTo("tokens", "health");
               },
             },
           ]
@@ -544,7 +544,7 @@ export function useCommandPaletteCommands(): {
       category: "Export" as const,
       handler: () => {
         lsSet(STORAGE_KEYS.EXPORT_PRESET_APPLY, preset.id);
-        navigateTo("sync", "export");
+        navigateTo("publish", "export");
         window.dispatchEvent(new CustomEvent("applyExportPreset"));
       },
     }));

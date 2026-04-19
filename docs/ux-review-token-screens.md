@@ -1,409 +1,350 @@
 # UX Review: Token Library, Token Editor, Generator Editor
 
 > Critical implementation-grounded review of the current token authoring surfaces.
-> Validated against current code and bundled screenshots on 2026-04-19.
-> Scope: `packages/figma-plugin/src/ui/**` plus `screenshot-main-view.png`, `screenshot-token-editor-open.png`, `screenshot-editor-open.png`, and `screenshot-wide-view.png`.
+> Validated against current code on 2026-04-19.
+> Scope: `packages/figma-plugin/src/ui/**` plus supporting navigation and command surfaces.
+>
+> **Constraint context:** The Figma plugin panel is ~300–340px wide. Many surfaces that appear “overloaded” exist because there is no room for the separate views that a full-width application could afford. Recommendations must work within this constraint, not ignore it.
 
 ---
 
 ## Executive Summary
 
-This UI does not mainly have a polish problem. It has an information architecture problem.
+The UI has three categories of problem, listed in order of severity:
 
-The product says the canonical model is simple: collections are primary, modes belong to collections, and tokens belong to collections. The UI does not consistently reinforce that model. Instead, the current implementation exposes multiple parallel browsing models, multiple value lenses, multiple editing modes, and multiple utility workflows inside the same surfaces.
+1. **Bugs** — a mislabeled toggle, a hidden required field, and a destructive segment switch. These are clear interaction contract violations that can be fixed immediately.
+2. **Design debt** — bulk-edit scope is hidden, token rows carry too many responsibilities in their default state, and the typography scale is too small. These need focused design work.
+3. **Architecture questions** — workspace ownership, editor panel structure, and terminology. These are real but less urgent, and some are overstated in earlier drafts of this review.
 
-The result is a tool that feels powerful but not calm. Advanced capability is visible everywhere, but primary authoring is not protected from it.
+The most serious problems are the ones where the UI contradicts itself: blocking save on a hidden field, labeling a mode toggle as “Resolved values,” and silently destroying state on a segment click.
 
 ### Overall Assessment
 
-| Surface | Assessment |
-| --- | --- |
-| Token Library | Powerful, but defaults users into too much complexity and too much row noise. |
-| Token Editor | Technically capable, but overloaded. It mixes authoring, diagnostics, governance, and internal representation in one panel. |
-| Generator Editor | Strongest structural base, but still hides required identity and destination choices behind nested disclosure and does not present itself as a clear step flow. |
+| Surface | Assessment | Severity |
+| --- | --- | --- |
+| Token Library | Has real issues: a mislabeled toggle and hidden scope during bulk edit. The “structural conflict” with Publish is overstated — it's two misplaced menu items, not an architectural crisis. | Mixed |
+| Token Editor | Large but uses progressive disclosure. The dependents duplication is mild (summary vs. detail). The bigger issue is section ordering in create mode. | Moderate |
+| Generator Editor | Contains the two clearest bugs: hidden required field and destructive source switching. Fixable without redesign. | High (fixable) |
 
 ### Core Conclusion
 
-The current UI is strongest when it helps a designer make one focused decision at a time.
+The current product is strongest when it narrows the user to one explicit authoring decision.
 
-It is weakest when it tries to make browsing, editing, inspection, generation, sync, and maintenance all equally visible at once.
+It is weakest when the UI's promises contradict its behavior — blocking save on invisible fields, mislabeling toggles, and destroying state without confirmation.
 
 ---
 
 ## What This Review Is Based On
 
-This review is based on the current implementation, not on intent or older screenshots.
+This review is based on the current implementation, not on intent, screenshots, or older critique.
 
 Primary files reviewed:
 
 - `packages/figma-plugin/src/ui/components/TokenList.tsx`
 - `packages/figma-plugin/src/ui/components/TokenListToolbar.tsx`
+- `packages/figma-plugin/src/ui/components/TokenListOverflowMenu.tsx`
 - `packages/figma-plugin/src/ui/components/SelectModeToolbar.tsx`
 - `packages/figma-plugin/src/ui/components/token-list/useToolbarStateChips.ts`
 - `packages/figma-plugin/src/ui/hooks/useTokenListViewState.ts`
 - `packages/figma-plugin/src/ui/components/token-tree/TokenLeafNode.tsx`
-- `packages/figma-plugin/src/ui/components/token-tree/TokenGroupNode.tsx`
 - `packages/figma-plugin/src/ui/components/TokenEditor.tsx`
 - `packages/figma-plugin/src/ui/components/token-editor/TokenEditorInfoSection.tsx`
+- `packages/figma-plugin/src/ui/components/token-editor/TokenStateSummary.tsx`
 - `packages/figma-plugin/src/ui/components/GeneratedGroupEditor.tsx`
 - `packages/figma-plugin/src/ui/components/generated-group-editor/StepSource.tsx`
 - `packages/figma-plugin/src/ui/components/generated-group-editor/StepWhere.tsx`
 - `packages/figma-plugin/src/ui/components/generated-group-editor/StepSave.tsx`
+- `packages/figma-plugin/src/ui/components/UnifiedSourceInput.tsx`
+- `packages/figma-plugin/src/ui/hooks/useCommandPaletteCommands.ts`
+- `packages/figma-plugin/src/ui/shared/navigationTypes.ts`
 
 ---
 
 ## Critical Findings
 
-### 1. The Default Library Experience Is Too Advanced
+### 1. Tokens And Publish Have A Minor Placement Overlap
 
-This is the most important issue in the product right now.
+> **Severity:** Low | **Effort:** Small | **Type:** Menu cleanup
 
-The library does not open in a calm, obvious default state. It opens with advanced view concepts already active or immediately adjacent:
+The app shell has a dedicated Publish workspace (`TopTab = “sync”`, label `Publish`, with Publish/Export/History/Health sub-tabs in `navigationTypes.ts:94-103`).
 
-- `multiModeEnabled` auto-enables when collections exist in `useTokenListViewState.ts`.
-- The library supports both `modeLensEnabled` and `showResolvedValues`, which are separate concepts implemented separately.
-- The toolbar also exposes `tree/json`, condensed rows, preview split, flat search results, cross-collection search, selection-related filtering, and recently touched filtering.
+The Tokens surface leaks two publish actions into the `+` menu:
 
-This is not just “a lot of options.” It creates multiple competing answers to a basic question:
+- “Push variables” (`TokenListToolbar.tsx:422`)
+- “Push styles” (`TokenListToolbar.tsx:432`)
 
-What value am I looking at right now?
+Both sit under a “Sync” separator in the toolbar's add menu. One command palette entry (“Validate”) also navigates to the Publish/Health workspace (`useCommandPaletteCommands.ts:234`).
 
-Current value interpretations include:
+There are no visual sync-status indicators, readiness badges, or publish-state summaries in the Tokens surface itself. The leak is functional only — two menu items and one command shortcut.
 
-- base authored value
-- resolved alias value
-- active-mode value
-- multi-mode column values
-- JSON representation
+#### Assessment
 
-That is too many mental layers for a default browse surface aimed at designers.
-
-#### Why This Matters
-
-The canonical domain model is being obscured by view mechanics.
-
-A designer should first understand:
-
-- which collection they are in
-- which token they are looking at
-- what its current authored value is
-- whether it needs attention
-
-The current library often asks them to understand view state first.
+This is not a fundamental architectural conflict. The Publish workspace is clearly separated at the routing level. The actual problem is two misplaced menu items that belong in the Publish workspace rather than the Tokens `+` menu.
 
 #### Recommendation
 
-Choose one default library mode and treat everything else as an explicit alternate view.
-
-The default library should emphasize:
-
-- collection
-- token path
-- primary displayed value
-- one compact status signal when needed
-
-Everything else should be secondary or opt-in.
+Move “Push variables” and “Push styles” out of the Tokens `+` menu. Keep the command palette shortcut for power users who want fast access to validation.
 
 ---
 
-### 2. The Library Is Carrying Too Many Jobs At Once
+### 2. Multi-Token Workflows Hide Scope Behind Mode Switches
 
-The token library is doing too much work as one surface.
+> **Severity:** Medium | **Effort:** Medium | **Type:** Design debt
 
-Today it is simultaneously:
+**Verified in code:** When `selectMode` is true, the entire `TokenListToolbar` is unmounted (`TokenList.tsx:2455` — `{!selectMode && (`). The replacement `SelectModeToolbar` contains only basic selection controls (select all, batch editor toggle, delete, exit) — no search, no filter context, no zoom breadcrumb.
 
-- the main browse surface
-- the token creation launch point
-- the group creation launch point
-- the generator launch point
-- the import launch point
-- the sync launch point
-- the compare workflow entry
-- the batch selection workflow entry
-- the find/replace workflow entry
-- the token table workflow entry
+`openBulkEditorForPaths` (`TokenList.tsx:1295-1307`) converts `displayedLeafNodes` (the current query/filter/zoom results) into a `selectedPaths` Set. Once that conversion happens and selectMode activates, the original query context is gone from the UI.
 
-The `+` menu in `TokenListToolbar.tsx` is better grouped than before, but it still combines five categories and a long list of actions behind a single 24x24 trigger. That is still too much compression for the primary control in the primary screen.
+This is a real clarity problem: the user enters bulk edit from a filtered view but loses visibility of that filter during the operation.
 
-The bigger issue is what happens after entry:
+#### Constraint
 
-- `selectMode` fully replaces the normal toolbar in `TokenList.tsx`.
-- search disappears in selection mode because `SelectModeToolbar` replaces the standard toolbar.
-- `BatchEditor` then appears as a separate second surface above the list.
-- compare mode is routed through selection mode and the command palette.
-
-This means the user has to understand a mode switch before they can perform routine multi-token work.
-
-#### Why This Matters
-
-The main authoring surface should not feel like a control panel for every capability in the app.
-
-Right now the library is trying to be both:
-
-- the place where designers author tokens
-- the place where power users orchestrate utilities
-
-That split is what users feel as clutter.
+The plugin panel is ~300px wide. Showing both the selection toolbar and the search/filter context simultaneously is a real layout challenge, not a simple oversight.
 
 #### Recommendation
 
-Protect the library as the primary authoring surface.
-
-Move secondary workflows toward explicit utility entry points:
-
-- batch operations
-- compare
-- find/replace
-- token table
-- sync
-
-They can still be close. They should not all compete for first-tier attention in the same toolbar model.
+At minimum, keep a read-only summary of the originating scope visible in the `SelectModeToolbar` (e.g., "12 tokens matching 'color.primary'"). This doesn't require keeping the full search bar, just a label describing what produced the current selection.
 
 ---
 
-### 3. Token Rows Carry Too Much Repeated Metadata
+### 3. The Mode Toggle Is Mislabeled As “Resolved Values”
 
-The current token rows are too noisy.
+> **Severity:** High | **Effort:** Small (label fix) | **Type:** Bug
 
-`TokenLeafNode.tsx` builds row metadata for many different concerns:
+**Verified in code:** This is a concrete semantic error, not a judgment call.
 
-- generated provenance
-- alias identity
-- extends identity
-- Figma scopes
-- incoming references
-- origin/provenance
-- missing mode counts
-- lifecycle
+Two separate concepts exist:
 
-This is visible in the screenshots: rows repeatedly show generated provenance and missing-mode warnings, often on nearly every token in a group.
+- `modeLensEnabled` (`useTokenListViewState.ts:173-188`) — shows mode-selected values from `allTokensFlat` instead of base values from `unresolvedAllTokensFlat`. This is about which **mode** the value comes from.
+- `showResolvedValues` (`useTokenListViewState.ts:69-88`) — resolves alias references (`{alias}` syntax) to their target values. This is about **alias resolution**.
 
-That makes the list feel status-heavy rather than authoring-first.
+But the UI labels `modeLensEnabled` as “Resolved values” in two places:
 
-#### Why This Matters
+- `useToolbarStateChips.ts:195` — chip label
+- `TokenListOverflowMenu.tsx:307` — menu item label
 
-A token row has one primary job:
-
-Help the user quickly identify the token and understand its current value.
-
-When every row carries multiple secondary labels, the eye stops knowing what to trust as primary.
-
-This is especially harmful in a narrow plugin panel where horizontal room is already scarce.
+This is wrong. Mode viewing and alias resolution are different operations. A user toggling “Resolved values” expects to see aliases expanded, not mode-specific overrides.
 
 #### Recommendation
 
-Each row should usually show:
+Rename the `modeLensEnabled` label to “Mode values” or “Active mode” in both locations. This is a two-line fix.
 
-- token name/path
-- current visible value
-- at most one primary status signal
+#### Broader view-model question
 
-Additional metadata should move to:
-
-- hover
-- selection side panel
-- detail pane
-- explicit review/filter surfaces
-
-The row should not be the universal home for every useful fact.
+The library does support multiple value interpretations (authored, alias-resolved, mode-selected, multi-mode columns, JSON). Whether these should be mutually exclusive presets or independent toggles is a design decision worth revisiting, but the immediate fix is the mislabel.
 
 ---
 
-### 4. The Token Editor Is Overloaded
+### 4. Token Rows Carry Many Responsibilities, But Most Are Progressive
 
-The token editor is not just slightly crowded. It is carrying too many conceptually different jobs.
+> **Severity:** Medium | **Effort:** Large | **Type:** Design debt
 
-Today the editor can contain:
+**Verified in code:** `TokenLeafNode.tsx` is 2,522 lines and handles at least 15 distinct concerns:
 
-- token identity and type
-- main value editing
-- mode authoring
-- alias authoring
-- extends authoring
-- generated-token governance
-- dependents browsing
-- color modifiers
-- contrast checking
-- description
-- lifecycle
-- scopes and metadata
-- derived groups
-- raw JSON preview
-- dependency inspection
-- usage inspection
-- history inspection
+- inline value editing (lines 629-659, 1458-1589)
+- alias navigation (lines 412-414, 1594-1626)
+- metadata segment assembly (lines 776-863)
+- status icon rendering (lines 1674-1750)
+- selection checkbox behavior (lines 1189-1205)
+- context menus with ~20 items (lines 1817-2089)
+- reverse-reference popovers (lines 2141-2207)
+- generated-token save choices (lines 2209-2303)
+- resolution-chain debugging (lines 2411-2506)
+- drag-and-drop reordering (lines 1112-1165)
+- inline rename (lines 1308-1356)
+- color picker integration (lines 1208-1245)
+- multi-mode value columns (lines 2346-2385)
+- nearby-token nudge (lines 2388-2409)
+- keyboard tab navigation (lines 662-685)
 
-All of that is currently routed through one panel in `TokenEditor.tsx`.
+The metadata strip can include: generated-by, alias-of, extends, scopes, incoming references, origin, missing mode count, and lifecycle.
 
-The problem is not only that “Details” is a catch-all. It is that the entire editor has no hard boundary between:
+#### Nuance the earlier draft missed
 
-- authoring
-- inspection
-- governance
-- implementation detail
+Many of these concerns are **not simultaneously visible**. Context menus, popovers, resolution chains, and save-choice modals appear on interaction. The drag ghost only appears during drag. Inline rename replaces the label.
 
-#### What The Current Structure Gets Right
-
-- `EditorShell` is solid.
-- value editors are generally strong.
-- draft recovery is useful.
-- generated-token conflict handling is thoughtful.
-
-#### Where The Structure Breaks Down
-
-- Create mode starts with a “Token details” block before value authoring.
-- Edit mode still puts a packed header, mode bar, and optional draft banner ahead of the main work.
-- “Reference” combines aliasing and extends under one weak label.
-- “Details” combines user-facing and system-facing concerns.
-- the footer layout still feels like a workaround rather than a clear action hierarchy.
-
-The token editor is acting like the only place a token can ever be understood.
-
-That is the wrong burden for a narrow side panel.
+The real question is: **what appears in the default, non-hovered, non-expanded state?** That's the row contract that matters to a user scanning a list. The component's code complexity is a maintainability concern, not necessarily a UX concern.
 
 #### Recommendation
 
-Split the editor into clearer mental zones.
+Audit what appears in the default row state specifically. If the default row shows identity + value + one status indicator, the progressive disclosure model may be working. If metadata segments are visible by default and competing for attention, tighten the default and move more to hover/detail.
 
-At minimum:
-
-- authoring should focus on path, type, value, and mode values
-- references should be reframed more clearly than “Reference”
-- governance and diagnostics should be secondary, not mixed into the main flow
-- raw JSON should not live in the same prominence tier as normal authoring controls
-
-The ideal outcome is that a designer can author a token confidently without being forced to parse system internals.
+The component itself could benefit from decomposition regardless, for maintainability.
 
 ---
 
-### 5. The Generator Editor Hides Required Decisions Behind Nested Disclosure
+### 5. The Token Editor Is Large But Uses Progressive Disclosure; Dependents Appear Twice
 
-The generator editor is the best of the three surfaces, but it still has a serious IA flaw.
+> **Severity:** Low-Medium | **Effort:** Medium | **Type:** Architecture question
 
-It correctly has:
+**Verified in code:** `TokenEditor.tsx` is 2,037 lines. The panel sections in render order (`TokenEditor.tsx:1570-1915`):
 
-- intent selection
-- source input
-- config editing
-- live preview
-- explicit review/save stage
+1. Create mode header — type selector + path input (lines 1570-1671)
+2. Value section — type-specific value editors (line 1673)
+3. Mode values editor — per-mode overrides (lines 1706-1719)
+4. Reference section — alias picker + extends picker (lines 1721, 1239-1344)
+5. Generator status — warning if token is generated (lines 1723-1770)
+6. **Dependents list** — collapsible, shows direct dependents (lines 1772, 1347-1421)
+7. Details collapsible (lines 1774-1915), containing:
+   - Color modifiers, contrast checker, description, lifecycle, metadata/scopes
+   - Derived groups, raw JSON
+   - **TokenEditorInfoSection** (lines 1880-1913), which contains:
+     - **TokenStateSummary** (alias/extends/scopes/lifecycle/origin/generated-by)
+     - **Dependencies tab** (outgoing references AND incoming dependents)
+     - Usage tab, History tab
 
-That is good structure.
+#### The actual duplication
 
-The problem is that some required identity and destination decisions are still visually treated as optional or advanced.
+Dependents appear in two places:
 
-Current issues:
+- The top-level `Dependents` section (line 1772) — a quick summary limited to 20 items
+- The `Dependencies` tab inside `TokenEditorInfoSection` (lines 127-369) — a comprehensive view with both outgoing and incoming references
 
-- the top summary bar is passive context only
-- “Collection and group” is collapsible inside `StepSource.tsx`
-- within `StepWhere.tsx`, `Group label` is hidden behind “Advanced settings”
-- the outcome summary card is low-density and not especially useful once the user is already in the flow
+This is intentional progressive disclosure (summary at top level, detail inside Details), but the two views show overlapping data. A user scrolling through the editor sees incoming dependents twice.
 
-This creates the wrong hierarchy:
+#### What the earlier draft overstated
 
-config feels central, identity feels secondary
-
-That is backwards. Designers care deeply about what a generated group is called and where it will live.
+- Calling this "duplicated understanding" is too strong. It's a summary-vs-detail pattern, which is common. The problem is mild.
+- The create flow putting path before value (`TokenEditor.tsx:1596` before `:1673`) is standard in token tooling — you need to know where a token lives before authoring its value. This is not "bureaucracy."
+- The editor has many sections, but most are inside a collapsed `Details` section. The default view is not as overwhelming as listing all 16 concerns makes it sound.
 
 #### Recommendation
 
-Make required identity and destination choices always visible during the main authoring flow.
+Consolidate the two dependents views into one. Either remove the top-level summary and let users find it in Details, or remove it from the Details tab and keep only the summary. Pick one location.
 
-The generator editor should behave like a real stepped workflow, even if it remains in a single panel:
-
-- outcome
-- source
-- destination and naming
-- configuration
-- preview
-- review
-
-The current structure is close. It just still hides too much of the naming/destination model behind disclosure.
+The "Details" catch-all bucket is worth splitting eventually, but it's not urgent given that it's collapsed by default.
 
 ---
 
-### 6. Readability Is Below The Bar For The Target User
+### 6. The Generator Editor Blocks Save On A Hidden Required Field
 
-This is a systemic problem, not a taste issue.
+> **Severity:** High | **Effort:** Small | **Type:** Bug
 
-The current codebase contains approximately:
+**Verified in code:** This is a clear interaction contract violation.
 
-- `1884` uses of `text-[10px]`
-- `416` uses of `text-[11px]`
-- `153` uses of `text-[8px]`
+Save is disabled when either `targetGroup` or `name` is empty (`GeneratedGroupEditor.tsx:237-240`):
 
-Those scales appear across the token library, token editor, generator editor, badges, helper text, and metadata rows.
+```
+!canSave = dialog.targetGroup.trim().length === 0 || dialog.name.trim().length === 0
+```
 
-The target user is not an engineer reading dense debug UI. It is a Figma designer authoring a design system in a narrow panel.
+But the two fields have different visibility:
 
-That makes this typography choice especially costly.
+- `Group` (`targetGroup`) — always visible in `StepWhere.tsx:96-108`
+- `Group label` (`name`) — hidden behind “Advanced settings” toggle (`StepWhere.tsx:139-160`, inside `{advancedOpen && (...)}` at line 139)
 
-The worst offenders are the repeated secondary labels and tiny badges in dependency and metadata surfaces.
+The `Group label` field even shows error styling for empty state (lines 155-157), but the user can't see it unless they've expanded Advanced settings.
+
+A user who fills in `Group` and tries to save will see a disabled button with no visible explanation, because the missing required field is hidden.
 
 #### Recommendation
 
-Raise the base type scale across authoring surfaces.
+Move `Group label` out of “Advanced settings” and make it always visible. A required field must never be hidden behind a disclosure.
 
-This should be treated as a product-level readability correction, not a local cleanup.
-
-The UI should feel calm and legible before it feels dense and information-rich.
+If the two-name model (`Group` vs `Group label`) is confusing, either clarify the distinction inline or collapse to a single field.
 
 ---
 
-### 7. Terminology Quality Is Uneven
+### 7. Generator Source Switching Silently Destroys State
 
-The language is not uniformly bad, but it is inconsistent.
+> **Severity:** High | **Effort:** Small | **Type:** Bug
 
-There has been real improvement:
+**Verified in code:** `UnifiedSourceInput.tsx:104-114`:
 
-- group actions now say “Sync to Figma variables” and “Sync to Figma styles”
+```tsx
+onClick={() => {
+  setMode('value');
+  // Clear the source token binding so inline value drives the preview
+  if (sourceTokenPath) onSourcePathChange('');  // line 109 — CLEARS PATH
+  // Seed a sensible default when switching to inline
+  if (!inlineValue) {
+    // seeds #ffffff for color, { value: 16, unit: 'px' } for dimension
+  }
+```
 
-But several terms still require a token-engineering mental model:
+Clicking the “Enter value” segment:
+1. Clears `sourceTokenPath` immediately and irreversibly
+2. Seeds a default inline value if empty
+3. Offers no confirmation, no undo, no way to recover the previous token path
 
-- “Extract to alias”
-- “Edit Figma scopes”
-- “Group label”
-- “Keep updated”
-- “manual exception”
-- “Detach from generator”
+The code comment acknowledges this is intentional (“Clear the source token binding”), but the UX contract is wrong: segmented controls imply reversible mode switching, not destructive data mutation.
 
-Some of these concepts are valid and necessary. The issue is that the UI often names the mechanism instead of the user goal.
+A user who carefully selected a source token and clicks “Enter value” to experiment loses that binding permanently.
 
 #### Recommendation
 
-Normalize labels around designer intent:
+Preserve `sourceTokenPath` when switching to “Enter value” mode. Let the active segment determine which source drives the preview, but don't clear the other. On save, commit whichever mode is active.
 
-- what is this
-- what will it do
-- when should I use it
-
-The tool should sound like a Figma-native authoring environment, not like a thin UI on top of token operations.
+Alternatively, show a brief confirmation (“Replace token source with direct value?”) before clearing.
 
 ---
 
-## Screen-by-Screen Assessment
+### 8. The Typography Scale Is Too Small For The Target User
+
+> **Severity:** Medium | **Effort:** Medium-Large | **Type:** Design debt
+
+**Verified in code — counts are exact:**
+
+- `text-[10px]`: **1,884** occurrences across `packages/figma-plugin/src/ui/`
+- `text-[11px]`: **416** occurrences
+- `text-[8px]`: **153** occurrences
+
+Concentration in authoring surfaces: generator editors (~55 instances), token editors (~41), value editors (~33), generators (~180). But this is a project-wide scale problem, not specific to these surfaces — ~77% of all small-text usage is 10px.
+
+The target user is a designer authoring a design system, not an engineer reading a debug log. 10px as the dominant text size in a ~300px panel is below the readability bar.
+
+#### Recommendation
+
+Define a proper type scale (e.g., 11px base, 13px labels, 10px secondary, 8px only for decorative/non-critical indicators). Apply it systematically rather than raising sizes ad-hoc. This is a product-level change that affects every surface, so it should be done once and consistently.
+
+---
+
+### 9. Some Terminology Is Implementation-Heavy
+
+> **Severity:** Low | **Effort:** Small per label | **Type:** Polish
+
+Terms flagged as potentially confusing:
+
+- `Extract to alias`
+- `Edit Figma scopes`
+- `Group label`
+- `Keep updated`
+- `Make manual exception`
+- `Detach from generator`
+
+#### Assessment
+
+This is the most subjective finding. Several of these terms ("Detach from generator", "Extract to alias") map directly to the DTCG mental model that the target audience works with. Whether "Detach from generator" is clearer than an alternative depends on what the alternative is — and this review doesn't propose specific replacements.
+
+"Group label" is the one that genuinely confuses (see Finding 6). "Edit Figma scopes" is accurate but could benefit from a brief tooltip explaining what scopes affect.
+
+#### Recommendation
+
+Evaluate labels case-by-case. For each one, propose a specific alternative and test whether it's actually clearer. Don't rename purely for the sake of sounding less technical — the target user works with design tokens professionally.
+
+---
+
+## Surface-By-Surface Assessment
 
 ## 1. Token Library
 
 ### What Is Strong
 
-- Collection rail and tree structure are aligned with the domain model.
-- Virtualization is the right technical choice.
-- Structured search is powerful.
-- Multi-mode comparison is valuable when explicitly invoked.
+- Collection-first structure aligns with the canonical domain model
+- Virtualization is the correct technical choice for large token sets
+- Structured search is powerful
+- The dedicated Publish workspace already exists and is clearly separated at the routing level
 
-### What Is Weak
+### Actual Issues
 
-- default state is too advanced
-- row metadata is too noisy
-- creation, utilities, and maintenance are too co-located
-- selection and compare workflows are too modal
+- **Bug:** `modeLensEnabled` is mislabeled "Resolved values" (Finding 3) — fix immediately
+- **Design debt:** Bulk-edit scope is hidden when selectMode activates (Finding 2)
+- **Minor:** Two sync menu items are misplaced in the Tokens `+` menu (Finding 1)
+- **Maintainability:** `TokenLeafNode.tsx` at 2,522 lines handles 15+ concerns and should be decomposed
 
-### Current Verdict
+### Verdict
 
-This screen is capable, but not disciplined.
-
-It needs a stronger opinion about what the default experience is for.
+The library's foundations are solid. The urgent fix is the mislabeled toggle (two lines). The design debt items (scope visibility, row audit) need focused work but aren't structural crises.
 
 ---
 
@@ -411,22 +352,19 @@ It needs a stronger opinion about what the default experience is for.
 
 ### What Is Strong
 
-- Core value editors are generally good.
-- Generated-token handling is thoughtful.
-- Draft recovery is useful.
+- Value editors are generally capable
+- Draft recovery is useful
+- Generated-token conflict handling is thoughtful
+- Progressive disclosure via collapsed `Details` keeps the default view manageable
 
-### What Is Weak
+### Actual Issues
 
-- too many jobs in one panel
-- weak separation between authoring and inspection
-- vague grouping labels
-- heavy use of secondary chrome ahead of the main task
+- **Mild duplication:** Dependents appear at top level (summary) and inside Details > Dependencies tab (Finding 5) — consolidate to one location
+- **Section count:** The editor has many sections, but most are collapsed by default. The problem is less severe than it appears when listing every possible section.
 
-### Current Verdict
+### Verdict
 
-This screen is structurally overgrown.
-
-It should become narrower in responsibility, not broader.
+Not structurally overgrown — uses progressive disclosure effectively. The dependents duplication is worth cleaning up. The create-flow ordering (path before value) is standard for token tooling.
 
 ---
 
@@ -434,74 +372,64 @@ It should become narrower in responsibility, not broader.
 
 ### What Is Strong
 
-- Best overall flow in the product
-- Strong live preview model
-- Responsible review step before save
-- Good fit for visual token generation workflows
+- Live preview model is useful
+- Explicit review before save is the right pattern
+- Config editors are capable once the user reaches them
 
-### What Is Weak
+### Actual Issues
 
-- not clearly stepped enough in presentation
-- required naming and destination choices are still visually demoted
-- some generator-specific editors still vary too much in density and finish
+- **Bug:** Required `Group label` field is hidden behind "Advanced settings" while blocking save (Finding 6) — fix immediately
+- **Bug:** Source switching silently clears `sourceTokenPath` (Finding 7) — fix immediately
+- Config editors work well once reached
 
-### Current Verdict
+### Verdict
 
-This is the closest surface to the right product shape.
-
-It needs hierarchy cleanup more than conceptual reinvention.
+Contains the two most actionable bugs in the product. Both are small fixes with immediate UX improvement. The rest of the generator flow is in reasonable shape.
 
 ---
 
-## Corrections To The Previous Draft
+## Prioritized Action Plan
 
-Several claims from the earlier review should not be carried forward as-is.
+### Tier 1 — Fix immediately (bugs, small effort, high impact)
 
-### The stale generated-group banner is not non-actionable
+| # | Finding | What to do | Effort |
+| --- | --- | --- | --- |
+| 3 | Mislabeled toggle | Rename "Resolved values" to "Mode values" in `useToolbarStateChips.ts:195` and `TokenListOverflowMenu.tsx:307` | ~30 min |
+| 6 | Hidden required field | Move `Group label` out of Advanced settings in `StepWhere.tsx` | ~1 hr |
+| 7 | Destructive source switch | Preserve `sourceTokenPath` when switching segments in `UnifiedSourceInput.tsx` | ~1 hr |
 
-It already names stale generated groups and links to them.
+### Tier 2 — Address next (design debt, medium effort)
 
-The real issue is that it still does not explain impact before “Re-run all.”
+| # | Finding | What to do | Effort |
+| --- | --- | --- | --- |
+| 2 | Hidden bulk-edit scope | Add a scope-summary label to `SelectModeToolbar` | ~2-4 hrs |
+| 5 | Duplicated dependents | Consolidate to one location in `TokenEditor.tsx` | ~2 hrs |
+| 8 | Typography scale | Define and apply a proper type scale across all surfaces | ~1-2 days |
+| 1 | Misplaced sync menu items | Move "Push variables" / "Push styles" from Tokens `+` menu to Publish | ~1 hr |
 
-### Users can rename individual generated outputs in several generators
+### Tier 3 — Consider when doing broader work (architecture, large effort)
 
-This is already supported in multiple generator editors through editable step names.
-
-The real issue is inconsistency across generator types and how discoverable that naming control is.
-
-### Terminology has partially improved
-
-Some older developer-centric labels have already been replaced with clearer Figma-facing labels.
-
-The real issue is that terminology quality is still uneven across surfaces.
-
----
-
-## Redesign Priorities
-
-If only a few things are addressed, they should be these:
-
-1. Simplify the default token library state so it represents one clear browsing model.
-2. Reduce row-level metadata noise in the library.
-3. Separate token authoring from token inspection/governance in the editor.
-4. Make generator naming and destination first-class, always-visible decisions.
-5. Raise the typography scale across authoring surfaces.
-6. Normalize UI language around Figma designer intent, not internal token mechanics.
+| # | Finding | What to do | Effort |
+| --- | --- | --- | --- |
+| 4 | Row responsibilities | Audit default row state; decompose `TokenLeafNode.tsx` for maintainability | ~1-2 weeks |
+| 9 | Terminology | Evaluate labels case-by-case with specific alternatives | Ongoing |
+| — | View presets | Replace independent toggles with named mutually exclusive presets | ~1 week |
 
 ---
 
 ## Final Assessment
 
-The current product is more mature technically than it is experientially.
+The product is technically capable with solid foundations:
 
-The strongest parts already exist:
+- A good canonical domain model
+- Strong core value editing
+- Useful preview infrastructure
+- Effective progressive disclosure in most surfaces
 
-- a good canonical domain model
-- strong core editing controls
-- a promising generator workflow
+The most urgent problems are interaction contract violations — places where the UI contradicts itself. These are all small fixes:
 
-The problem is that the UI keeps exposing too much of the system at once.
+- A toggle that says one thing and does another
+- A required field that's hidden from the user
+- A segment switch that silently destroys state
 
-The next round of UX work should not be about adding capability.
-
-It should be about protecting the core authoring experience from capability overload.
+Fix these three and the product's trustworthiness improves immediately. The design debt items (scope visibility, typography, dependents duplication) are real but less urgent. The architecture questions (row decomposition, view presets, editor restructuring) are worth considering during broader redesign work, not as immediate priorities.

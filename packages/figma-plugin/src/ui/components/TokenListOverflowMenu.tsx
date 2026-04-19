@@ -16,10 +16,6 @@ export interface ViewMenuProps {
   onDensityChange: (d: Density) => void;
   condensedView: boolean;
   onCondensedViewChange: (v: boolean) => void;
-  multiModeEnabled: boolean;
-  onToggleMultiMode: () => void;
-  modeLensEnabled: boolean;
-  onToggleModeLens: () => void;
   hasCollections: boolean;
   showPreviewSplit: boolean;
   onTogglePreviewSplit?: () => void;
@@ -52,22 +48,9 @@ export interface FilterMenuProps {
   activeCount: number;
 }
 
-export interface ToolsSyncMenuProps {
-  onSelectTokens: () => void;
-  onBulkEdit: () => void;
-  onFindReplace: () => void;
-  onFoundationTemplates?: () => void;
-  onApplyVariables: () => void;
-  onApplyStyles: () => void;
-  applyingOrLoading: boolean;
-  tokensExist: boolean;
-  connected: boolean;
-}
-
 export interface TokenListOverflowMenuProps
   extends ViewMenuProps,
-    FilterMenuProps,
-    ToolsSyncMenuProps {}
+    FilterMenuProps {}
 
 const MENU_SECTION_BORDER =
   "border-t border-[var(--color-figma-border)] mt-0.5 pt-0.5";
@@ -147,7 +130,7 @@ function MenuLabel({ children }: { children: string }) {
 }
 
 export function ViewMenu(
-  props: TokenListOverflowMenuProps & {
+  props: ViewMenuProps & {
     currentLibraryViewMode: LibraryViewMode;
     onActivateViewMode: (mode: LibraryViewMode) => void;
   },
@@ -197,10 +180,10 @@ export function ViewMenu(
         <span>
           {props.currentLibraryViewMode === "library"
             ? "View"
-            : props.currentLibraryViewMode === "mode-options"
-              ? "View: Modes"
-              : props.currentLibraryViewMode === "active-mode"
-                ? "View: Active mode"
+            : props.currentLibraryViewMode === "active-mode"
+              ? "View: Resolved"
+              : props.currentLibraryViewMode === "mode-options"
+                ? "View: All modes"
                 : "View: JSON"}
         </span>
       </button>
@@ -213,22 +196,22 @@ export function ViewMenu(
         >
           <div className="max-h-[420px] overflow-y-auto">
             <MenuItem
-              label="Library"
+              label="Authored"
               checked={props.currentLibraryViewMode === "library"}
               onClick={() => runAndClose(() => props.onActivateViewMode("library"))}
             />
             {props.hasCollections && (
               <MenuItem
-                label="Mode Columns"
-                checked={props.currentLibraryViewMode === "mode-options"}
-                onClick={() => runAndClose(() => props.onActivateViewMode("mode-options"))}
+                label="Resolved"
+                checked={props.currentLibraryViewMode === "active-mode"}
+                onClick={() => runAndClose(() => props.onActivateViewMode("active-mode"))}
               />
             )}
             {props.hasCollections && (
               <MenuItem
-                label="Active Mode"
-                checked={props.currentLibraryViewMode === "active-mode"}
-                onClick={() => runAndClose(() => props.onActivateViewMode("active-mode"))}
+                label="All modes"
+                checked={props.currentLibraryViewMode === "mode-options"}
+                onClick={() => runAndClose(() => props.onActivateViewMode("mode-options"))}
               />
             )}
             <MenuItem
@@ -295,20 +278,6 @@ export function ViewMenu(
                 )
               }
             />
-            {props.hasCollections && (
-              <MenuItem
-                label="Mode columns"
-                checked={props.multiModeEnabled}
-                onClick={() => runAndClose(props.onToggleMultiMode)}
-              />
-            )}
-            {props.hasCollections && (
-              <MenuItem
-                label="Resolved values"
-                checked={props.modeLensEnabled}
-                onClick={() => runAndClose(props.onToggleModeLens)}
-              />
-            )}
             <MenuItem
               label="Preview pane"
               checked={props.showPreviewSplit}
@@ -334,83 +303,6 @@ export function ViewMenu(
                   )
                 }
               />
-            )}
-            <div className={MENU_SECTION_BORDER}>
-              <MenuLabel>Filters</MenuLabel>
-            </div>
-            {props.lintCount > 0 && (
-              <MenuItem
-                label="Only tokens with issues"
-                checked={props.showIssuesOnly}
-                suffix={`${props.lintCount}`}
-                onClick={() =>
-                  runAndClose(() => props.onToggleIssuesOnly?.())
-                }
-              />
-            )}
-            {props.recentlyTouchedCount > 0 && (
-              <MenuItem
-                label="Recently touched"
-                checked={props.showRecentlyTouched}
-                suffix={`${props.recentlyTouchedCount}`}
-                onClick={() => runAndClose(props.onToggleRecentlyTouched)}
-              />
-            )}
-            <MenuItem
-              label="Related to selection"
-              checked={props.inspectMode}
-              onClick={() => runAndClose(props.onToggleInspectMode)}
-            />
-            {props.hasMultipleCollections && (
-              <MenuItem
-                label="Search across all collections"
-                checked={props.crossCollectionSearch}
-                onClick={() =>
-                  runAndClose(props.onToggleCrossCollectionSearch)
-                }
-              />
-            )}
-            <MenuItem
-              label={
-                props.refFilter === "all"
-                  ? "Reference mode: all tokens"
-                  : props.refFilter === "aliases"
-                    ? "Reference mode: alias tokens"
-                    : "Reference mode: direct values"
-              }
-              onClick={() =>
-                runAndClose(() => {
-                  const next =
-                    props.refFilter === "all"
-                      ? "aliases"
-                      : props.refFilter === "aliases"
-                        ? "direct"
-                        : "all";
-                  props.onRefFilterChange(next as "all" | "aliases" | "direct");
-                })
-              }
-              checked={props.refFilter !== "all"}
-            />
-            <MenuItem
-              label="Duplicate values only"
-              checked={props.showDuplicates}
-              onClick={() => runAndClose(props.onToggleDuplicates)}
-            />
-            {props.filterPresets.length > 0 && (
-              <>
-                <div className={MENU_SECTION_BORDER}>
-                  <MenuLabel>Saved filters</MenuLabel>
-                </div>
-                {props.filterPresets.map((preset) => (
-                  <MenuItem
-                    key={preset.id}
-                    label={preset.name}
-                    onClick={() =>
-                      runAndClose(() => props.onApplyFilterPreset(preset))
-                    }
-                  />
-                ))}
-              </>
             )}
           </div>
         </div>

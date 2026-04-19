@@ -8,11 +8,11 @@ import { STORAGE_KEYS } from "./storage";
 import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratedGroupEditor";
 import type { GeneratorTemplate } from "../hooks/useGenerators";
 
-export type TopTab = "tokens" | "inspect" | "sync";
-type TokensSubTab = "tokens";
-type InspectSubTab = "inspect" | "canvas-analysis";
-type SyncSubTab = "publish" | "export" | "history" | "health";
-export type SubTab = TokensSubTab | InspectSubTab | SyncSubTab;
+export type TopTab = "tokens" | "canvas" | "publish";
+type TokensSubTab = "tokens" | "history" | "health";
+type CanvasSubTab = "inspect" | "canvas-analysis";
+type PublishSubTab = "sync" | "export";
+export type SubTab = TokensSubTab | CanvasSubTab | PublishSubTab;
 export type SecondarySurfaceId =
   | "import"
   | "notifications"
@@ -81,45 +81,47 @@ export const TOP_TABS: {
   {
     id: "tokens",
     label: "Tokens",
-    subTabs: [{ id: "tokens", label: "Tokens" }],
-  },
-  {
-    id: "inspect",
-    label: "Canvas",
     subTabs: [
-      { id: "inspect", label: "Canvas" },
-      { id: "canvas-analysis", label: "Canvas analysis" },
+      { id: "tokens", label: "Library" },
+      { id: "health", label: "Health" },
+      { id: "history", label: "History" },
     ],
   },
   {
-    id: "sync",
+    id: "canvas",
+    label: "Canvas",
+    subTabs: [
+      { id: "inspect", label: "Selection" },
+      { id: "canvas-analysis", label: "Analysis" },
+    ],
+  },
+  {
+    id: "publish",
     label: "Publish",
     subTabs: [
-      { id: "publish", label: "Publish" },
+      { id: "sync", label: "Publish" },
       { id: "export", label: "Export" },
-      { id: "history", label: "History" },
-      { id: "health", label: "Health" },
     ],
   },
 ];
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   tokens: "tokens",
-  inspect: "inspect",
-  sync: "publish",
+  canvas: "inspect",
+  publish: "sync",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   tokens: STORAGE_KEYS.ACTIVE_SUB_TAB_TOKENS,
-  inspect: STORAGE_KEYS.ACTIVE_SUB_TAB_INSPECT,
-  sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
+  canvas: STORAGE_KEYS.ACTIVE_SUB_TAB_CANVAS,
+  publish: STORAGE_KEYS.ACTIVE_SUB_TAB_PUBLISH,
 };
 
 // ---------------------------------------------------------------------------
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "tokens" | "inspect" | "sync";
+export type WorkspaceId = "tokens" | "canvas" | "publish";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -405,8 +407,8 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Primary",
     items: [
       { id: "tokens", label: "Tokens", railCode: "To", topTab: "tokens", subTab: "tokens", workspaceId: "tokens" },
-      { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "inspect", subTab: "inspect", workspaceId: "inspect" },
-      { id: "publish", label: "Publish", railCode: "Pu", topTab: "sync", subTab: "publish", workspaceId: "sync" },
+      { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "canvas", subTab: "inspect", workspaceId: "canvas" },
+      { id: "publish", label: "Publish", railCode: "Pu", topTab: "publish", subTab: "sync", workspaceId: "publish" },
     ],
   },
 ];
@@ -419,31 +421,68 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "tokens",
     subTab: "tokens",
     transition: workspaceTransition("Browse and edit tokens."),
+    sections: [
+      {
+        id: "tokens",
+        label: "Library",
+        topTab: "tokens",
+        subTab: "tokens",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Browse, search, and edit tokens.",
+        ),
+      },
+      {
+        id: "health",
+        label: "Health",
+        topTab: "tokens",
+        subTab: "health",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Audit issues, dependencies, and token quality.",
+        ),
+      },
+      {
+        id: "history",
+        label: "History",
+        topTab: "tokens",
+        subTab: "history",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Review recent operations.",
+        ),
+      },
+    ],
+    matchRoutes: [
+      route("tokens", "tokens"),
+      route("tokens", "health"),
+      route("tokens", "history"),
+    ],
   },
   {
-    id: "inspect",
+    id: "canvas",
     label: "Canvas",
     summaryTitle: "Canvas",
-    topTab: "inspect",
+    topTab: "canvas",
     subTab: "inspect",
     transition: workspaceTransition(
       "Inspect the current selection and analyze token usage on the canvas.",
     ),
-    matchRoutes: [route("inspect", "inspect"), route("inspect", "canvas-analysis")],
+    matchRoutes: [route("canvas", "inspect"), route("canvas", "canvas-analysis")],
   },
   {
-    id: "sync",
+    id: "publish",
     label: "Publish",
     summaryTitle: "Publish",
-    topTab: "sync",
-    subTab: "publish",
-    transition: workspaceTransition("Sync, export, and review."),
+    topTab: "publish",
+    subTab: "sync",
+    transition: workspaceTransition("Publish and export."),
     sections: [
       {
-        id: "publish",
+        id: "sync",
         label: "Publish",
-        topTab: "sync",
-        subTab: "publish",
+        topTab: "publish",
+        subTab: "sync",
         transition: contextualSubScreenTransition(
           "full-height-body",
           "Publish tokens and configure sync targets.",
@@ -452,39 +491,17 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       {
         id: "export",
         label: "Export",
-        topTab: "sync",
+        topTab: "publish",
         subTab: "export",
         transition: contextualSubScreenTransition(
           "full-height-body",
           "Export the current token system.",
         ),
       },
-      {
-        id: "history",
-        label: "History",
-        topTab: "sync",
-        subTab: "history",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Review recent operations.",
-        ),
-      },
-      {
-        id: "health",
-        label: "Health",
-        topTab: "sync",
-        subTab: "health",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Audit issues, dependencies, and publish readiness.",
-        ),
-      },
     ],
     matchRoutes: [
-      route("sync", "publish"),
-      route("sync", "export"),
-      route("sync", "history"),
-      route("sync", "health"),
+      route("publish", "sync"),
+      route("publish", "export"),
     ],
   },
 ];
@@ -681,8 +698,8 @@ export function getImportResultNextStepRecommendations(
   if (isLargeInitialImport(summary)) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "sync",
         "publish",
+        "sync",
         "Large import — confirm sync mapping.",
       ),
     );

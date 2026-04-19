@@ -136,11 +136,9 @@ export function useTokenListViewState({
   }, []);
 
   // --- Multi-mode column view ---
-  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
-    const stored = lsGet("tm_multi_mode");
-    if (stored !== null) return stored === "1";
-    return collections.length > 0;
-  });
+  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(
+    () => lsGet("tm_multi_mode") === "1",
+  );
   const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
 
   const toggleMultiMode = useCallback(() => {
@@ -150,13 +148,6 @@ export function useTokenListViewState({
       return next;
     });
   }, []);
-
-  // Auto-enable when collections appear for the first time (no stored preference)
-  useEffect(() => {
-    if (collections.length > 0 && lsGet("tm_multi_mode") === null) {
-      setMultiModeEnabled(true);
-    }
-  }, [collections.length]);
 
   // Auto-select first collection when multi-mode is enabled and no collection is selected.
   useEffect(() => {

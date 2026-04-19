@@ -1016,6 +1016,17 @@ export function TokenList({
   );
 
   const hasStructuredFilters = structuredFilterChips.length > 0;
+  const filterMenuActiveCount =
+    activeFilterCount +
+    (inspectMode ? 1 : 0) +
+    (crossCollectionSearch ? 1 : 0);
+
+  const resetToAuthoredView = useCallback(() => {
+    if (multiModeEnabled) toggleMultiMode();
+    if (modeLensEnabled) setModeLensEnabled(false);
+    if (showResolvedValues) setShowResolvedValues(false);
+    if (viewMode !== "tree") setViewMode("tree");
+  }, [multiModeEnabled, modeLensEnabled, showResolvedValues, viewMode, toggleMultiMode, setModeLensEnabled, setShowResolvedValues, setViewMode]);
 
   const {
     viewOptionsActiveCount,
@@ -1028,7 +1039,8 @@ export function TokenList({
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
-    modeLensEnabled, setModeLensEnabled, condensedView, setCondensedView,
+    modeLensEnabled, setModeLensEnabled, onResetViewMode: resetToAuthoredView,
+    condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation, activeFilterCount,
   });
@@ -1852,6 +1864,7 @@ export function TokenList({
   const clearViewModes = useCallback(() => {
     if (multiModeEnabled) toggleMultiMode();
     if (modeLensEnabled) setModeLensEnabled(false);
+    if (showResolvedValues) setShowResolvedValues(false);
     if (condensedView) setCondensedView(false);
     if (showPreviewSplit) onTogglePreviewSplit?.();
     if (showFlatSearchResults) setSearchResultPresentation("grouped");
@@ -1864,7 +1877,9 @@ export function TokenList({
     setSearchResultPresentation,
     setSortOrder,
     setModeLensEnabled,
+    setShowResolvedValues,
     showPreviewSplit,
+    showResolvedValues,
     showFlatSearchResults,
     sortOrder,
     modeLensEnabled,
@@ -2491,6 +2506,8 @@ export function TokenList({
             onToggleMultiMode={toggleMultiMode}
             modeLensEnabled={modeLensEnabled}
             onToggleModeLens={() => setModeLensEnabled((value) => !value)}
+            showResolvedValues={showResolvedValues}
+            setShowResolvedValues={setShowResolvedValues}
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
@@ -2509,10 +2526,6 @@ export function TokenList({
               onDensityChange: setDensity,
               condensedView,
               onCondensedViewChange: setCondensedView,
-              multiModeEnabled,
-              onToggleMultiMode: toggleMultiMode,
-              modeLensEnabled,
-              onToggleModeLens: () => setModeLensEnabled((v) => !v),
               hasCollections: collections.length > 0,
               showPreviewSplit,
               onTogglePreviewSplit,
@@ -2537,15 +2550,7 @@ export function TokenList({
               filterPresets,
               onApplyFilterPreset: applyFilterPreset,
               onDeleteFilterPreset: deleteFilterPreset,
-              onSelectTokens: () => { setSelectMode(true); setShowBatchEditor(false); },
-              onBulkEdit: handleOpenBulkWorkflowForVisibleTokens,
-              onFindReplace: handleOpenFindReplaceReview,
-              onApplyVariables: handleApplyVariables,
-              onApplyStyles: handleApplyStyles,
-              applyingOrLoading: applying || varDiffLoading,
-              tokensExist: tokens.length > 0,
-              connected,
-              activeCount: viewOptionsActiveCount,
+              activeCount: filterMenuActiveCount,
             } : null}
           />
         )}

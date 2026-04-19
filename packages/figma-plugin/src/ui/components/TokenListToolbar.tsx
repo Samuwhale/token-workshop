@@ -5,6 +5,7 @@ import React, {
 } from "react";
 import {
   ViewMenu,
+  FilterMenu,
   type TokenListOverflowMenuProps,
 } from "./TokenListOverflowMenu";
 import { replaceQueryToken } from "./tokenListUtils";
@@ -64,6 +65,8 @@ export interface TokenListToolbarProps {
   onToggleMultiMode: () => void;
   modeLensEnabled: boolean;
   onToggleModeLens: () => void;
+  showResolvedValues: boolean;
+  setShowResolvedValues: (v: boolean) => void;
   onCreateGeneratedGroup?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
@@ -129,6 +132,8 @@ export function TokenListToolbar({
   onToggleMultiMode,
   modeLensEnabled,
   onToggleModeLens,
+  showResolvedValues,
+  setShowResolvedValues,
   onCreateGeneratedGroup,
   onSelectTokens,
   onBulkEdit,
@@ -149,10 +154,23 @@ export function TokenListToolbar({
     close: closeCreateToolsMenu,
   } = useDropdownMenu();
 
+  const {
+    open: actionsMenuOpen,
+    menuRef: actionsMenuRef,
+    triggerRef: actionsMenuButtonRef,
+    toggle: toggleActionsMenu,
+    close: closeActionsMenu,
+  } = useDropdownMenu();
+
   const runCreateToolsAction = useCallback((action: () => void) => {
     action();
     closeCreateToolsMenu({ restoreFocus: false });
   }, [closeCreateToolsMenu]);
+
+  const runActionsAction = useCallback((action: () => void) => {
+    action();
+    closeActionsMenu({ restoreFocus: false });
+  }, [closeActionsMenu]);
 
   const currentLibraryViewMode = getCurrentLibraryViewMode({
     viewMode,
@@ -168,6 +186,7 @@ export function TokenListToolbar({
     (nextMode: LibraryViewMode) => {
       if (nextMode === "json") {
         setViewMode("json");
+        setShowResolvedValues(false);
         return;
       }
 
@@ -178,23 +197,28 @@ export function TokenListToolbar({
       if (nextMode === "library") {
         if (multiModeEnabled) onToggleMultiMode();
         if (modeLensEnabled) onToggleModeLens();
+        setShowResolvedValues(false);
         return;
       }
 
       if (nextMode === "mode-options") {
         if (modeLensEnabled) onToggleModeLens();
         if (!multiModeEnabled) onToggleMultiMode();
+        setShowResolvedValues(false);
         return;
       }
 
       if (multiModeEnabled) onToggleMultiMode();
       if (!modeLensEnabled) onToggleModeLens();
+      setShowResolvedValues(true);
     },
     [
       multiModeEnabled,
       onToggleMultiMode,
       onToggleModeLens,
       setViewMode,
+      setShowResolvedValues,
+      showResolvedValues,
       modeLensEnabled,
       viewMode,
     ],
@@ -245,6 +269,32 @@ export function TokenListToolbar({
 
           <div className="flex shrink-0 items-center gap-1">
             {scenarioControl}
+
+            {onOpenImportPanel && (
+              <button
+                type="button"
+                onClick={onOpenImportPanel}
+                disabled={!connected}
+                className="inline-flex h-[24px] items-center gap-1 rounded px-2 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
+                title="Import tokens from files, Figma variables, or other sources"
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                </svg>
+                Import
+              </button>
+            )}
+
             <div className="relative shrink-0">
               <button
                 ref={createToolsMenuButtonRef}
@@ -254,7 +304,7 @@ export function TokenListToolbar({
                 aria-expanded={createToolsMenuOpen}
                 aria-haspopup="menu"
                 className="inline-flex h-[24px] w-[24px] items-center justify-center rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                title="Add, generate, or import"
+                title="Create token, group, or collection"
               >
                 <svg
                   width="10"
@@ -274,13 +324,9 @@ export function TokenListToolbar({
               {createToolsMenuOpen && (
                 <div
                   ref={createToolsMenuRef}
-                  className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
+                  className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
                   role="menu"
                 >
-                  {/* Group 1: Create */}
-                  <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                    Create
-                  </div>
                   <button
                     role="menuitem"
                     onClick={() => runCreateToolsAction(() => onCreateNew?.())}
@@ -297,141 +343,27 @@ export function TokenListToolbar({
                   >
                     New group
                   </button>
+                  {onCreateGeneratedGroup && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onCreateGeneratedGroup)}
+                      disabled={!connected}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Generate group…
+                    </button>
+                  )}
                   {onOpenCreateCollection && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runCreateToolsAction(onOpenCreateCollection)}
-                      disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      New collection
-                    </button>
-                  )}
-
-                  {/* Group 2: Generate */}
-                  {(onCreateGeneratedGroup || onFoundationTemplates) && (
                     <>
                       <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                      <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                        Generate
-                      </div>
-                      {onCreateGeneratedGroup && (
-                        <button
-                          role="menuitem"
-                          onClick={() => runCreateToolsAction(onCreateGeneratedGroup)}
-                          disabled={!connected}
-                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          Generate group…
-                        </button>
-                      )}
-                      {onFoundationTemplates && (
-                        <button
-                          role="menuitem"
-                          onClick={() => runCreateToolsAction(onFoundationTemplates)}
-                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                        >
-                          Templates
-                        </button>
-                      )}
-                    </>
-                  )}
-
-                  {/* Group 3: Edit */}
-                  <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                    Edit
-                  </div>
-                  <button
-                    role="menuitem"
-                    onClick={() => runCreateToolsAction(openTableCreate)}
-                    disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Token table
-                  </button>
-                  {onSelectTokens && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runCreateToolsAction(onSelectTokens)}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                    >
-                      Select tokens
-                    </button>
-                  )}
-                  {onBulkEdit && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runCreateToolsAction(onBulkEdit)}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                    >
-                      Bulk edit
-                    </button>
-                  )}
-                  {onFindReplace && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runCreateToolsAction(onFindReplace)}
-                      disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Find and replace
-                    </button>
-                  )}
-
-                  {/* Group 4: Import */}
-                  <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                    Import
-                  </div>
-                  <button
-                    role="menuitem"
-                    onClick={() =>
-                      runCreateToolsAction(() => onShowPasteModal?.())
-                    }
-                    disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Paste JSON
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={() =>
-                      runCreateToolsAction(() => onOpenImportPanel?.())
-                    }
-                    disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Import tokens
-                  </button>
-
-                  {/* Group 5: Sync */}
-                  {(onApplyVariables || onApplyStyles) && (
-                    <>
-                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                      <div className="px-2.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                        Sync
-                      </div>
-                      {onApplyVariables && (
-                        <button
-                          role="menuitem"
-                          onClick={() => runCreateToolsAction(onApplyVariables)}
-                          disabled={applyingOrLoading || !tokensExist}
-                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          Push variables
-                        </button>
-                      )}
-                      {onApplyStyles && (
-                        <button
-                          role="menuitem"
-                          onClick={() => runCreateToolsAction(onApplyStyles)}
-                          disabled={applyingOrLoading || !tokensExist}
-                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          Push styles
-                        </button>
-                      )}
+                      <button
+                        role="menuitem"
+                        onClick={() => runCreateToolsAction(onOpenCreateCollection)}
+                        disabled={!connected}
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        New collection
+                      </button>
                     </>
                   )}
                 </div>
@@ -445,6 +377,134 @@ export function TokenListToolbar({
                 onActivateViewMode={activateViewMode}
               />
             )}
+
+            {overflowMenuProps && (
+              <FilterMenu {...overflowMenuProps} />
+            )}
+
+            <div className="relative shrink-0">
+              <button
+                ref={actionsMenuButtonRef}
+                type="button"
+                onClick={toggleActionsMenu}
+                disabled={!connected}
+                aria-expanded={actionsMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Actions"
+                className={`inline-flex h-[24px] w-[24px] items-center justify-center rounded transition-colors ${
+                  actionsMenuOpen
+                    ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                } disabled:cursor-not-allowed disabled:opacity-40`}
+                title="Actions"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
+                </svg>
+              </button>
+              {actionsMenuOpen && (
+                <div
+                  ref={actionsMenuRef}
+                  className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
+                  role="menu"
+                >
+                  <button
+                    role="menuitem"
+                    onClick={() => runActionsAction(openTableCreate)}
+                    disabled={!connected}
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Token table
+                  </button>
+                  {onSelectTokens && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runActionsAction(onSelectTokens)}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      Select tokens
+                    </button>
+                  )}
+                  {onBulkEdit && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runActionsAction(onBulkEdit)}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      Bulk edit
+                    </button>
+                  )}
+                  {onFindReplace && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runActionsAction(onFindReplace)}
+                      disabled={!connected}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Find and replace
+                    </button>
+                  )}
+                  {onFoundationTemplates && (
+                    <>
+                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                      <button
+                        role="menuitem"
+                        onClick={() => runActionsAction(onFoundationTemplates)}
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                      >
+                        Templates
+                      </button>
+                    </>
+                  )}
+                  {onShowPasteModal && (
+                    <>
+                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                      <button
+                        role="menuitem"
+                        onClick={() => runActionsAction(() => onShowPasteModal())}
+                        disabled={!connected}
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Paste JSON
+                      </button>
+                    </>
+                  )}
+                  {(onApplyVariables || onApplyStyles) && (
+                    <>
+                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                      {onApplyVariables && (
+                        <button
+                          role="menuitem"
+                          onClick={() => runActionsAction(onApplyVariables)}
+                          disabled={applyingOrLoading || !tokensExist}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Push variables
+                        </button>
+                      )}
+                      {onApplyStyles && (
+                        <button
+                          role="menuitem"
+                          onClick={() => runActionsAction(onApplyStyles)}
+                          disabled={applyingOrLoading || !tokensExist}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Push styles
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

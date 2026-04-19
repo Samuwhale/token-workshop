@@ -93,30 +93,8 @@ export function ModeValuesEditor({
   const hasTokens = Object.keys(allTokensFlat).length > 0;
   const useRichEditor = RICH_EDITOR_TYPES.has(tokenType);
 
-  if (!collectionDefinition || collectionDefinition.modes.length === 0) {
-    return (
-      <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
-        <div className="min-w-0">
-          <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Collection modes
-          </p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            This collection has no modes yet. Open collection setup to define
-            the variations for this collection before you author mode-specific
-            values.
-          </p>
-        </div>
-        {onOpenCollectionSetup ? (
-          <button
-            type="button"
-            onClick={onOpenCollectionSetup}
-            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
-          >
-            Open collection setup
-          </button>
-        ) : null}
-      </div>
-    );
+  if (!collectionDefinition || collectionDefinition.modes.length <= 1) {
+    return null;
   }
 
   return (

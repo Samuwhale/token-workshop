@@ -804,8 +804,8 @@ export function TokenEditor({
   const referenceSummary = aliasMode
     ? (extractAliasPath(reference) ?? "Alias")
     : extendsPath
-      ? "Extends"
-      : "Optional";
+      ? extendsPath
+      : null;
 
   useEffect(() => {
     if (previousTokenPathRef.current === tokenPath) return;
@@ -1035,19 +1035,31 @@ export function TokenEditor({
           );
         })()}
       {!isCreateMode && (
-        <select
-          value={tokenType}
-          onChange={(e) => handleTypeChange(e.target.value)}
-          title="Change token type"
-          className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
-          style={{ backgroundImage: "none" }}
-        >
-          {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
+        <span className="relative inline-flex items-center">
+          <select
+            value={tokenType}
+            onChange={(e) => handleTypeChange(e.target.value)}
+            title="Change token type"
+            className={`pr-4 pl-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
+            style={{ backgroundImage: "none" }}
+          >
+            {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <svg
+            width="6"
+            height="6"
+            viewBox="0 0 6 6"
+            fill="currentColor"
+            className="pointer-events-none absolute right-1 opacity-60"
+            aria-hidden="true"
+          >
+            <path d="M0 1.5L3 4.5L6 1.5" />
+          </svg>
+        </span>
       )}
     </>
   );
@@ -1243,9 +1255,11 @@ export function TokenEditor({
       label={
         <span className="flex items-center gap-1.5">
           <span>Reference</span>
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {referenceSummary}
-          </span>
+          {referenceSummary && (
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+              {referenceSummary}
+            </span>
+          )}
         </span>
       }
       className="flex flex-col gap-2"
@@ -1269,7 +1283,7 @@ export function TokenEditor({
         {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-              Extends
+              Inherits from
             </label>
             {extendsPath ? (
               <div className="flex items-center gap-1.5">
@@ -1615,7 +1629,7 @@ export function TokenEditor({
                     setShowPathAutocomplete(false);
                   }
                 }}
-                placeholder="color.brand.500"
+                placeholder={NAMESPACE_SUGGESTIONS[tokenType]?.example ?? "token.name"}
                 autoFocus
                 autoComplete="off"
                 className={`${AUTHORING.inputMono} ${
