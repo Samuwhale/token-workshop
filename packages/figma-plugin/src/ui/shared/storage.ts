@@ -177,7 +177,6 @@ export const STORAGE_KEYS = {
   FILTER_PRESETS:           'tm_filter_presets',
   ACTIVE_RESOLVER:          'tm_active_resolver',
   RESOLVER_INPUT:           'tm_resolver_input',
-  EDITOR_WIDTH:             'tm_editor_width',
   SIDEBAR_COLLAPSED:        'tm_sidebar_collapsed',
 } as const;
 

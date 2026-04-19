@@ -361,9 +361,9 @@ export function GeneratedGroupEditor({
       save: () =>
         showConfirmation ? handleConfirmSave() : handleQuickSave(),
       discard: async () => {
-        requestClose();
+        onClose();
       },
-      closeWhenClean: requestClose,
+      closeWhenClean: onClose,
     });
     return () => {
       editorSessionHost.registerSession(null);
@@ -372,7 +372,7 @@ export function GeneratedGroupEditor({
     canSave,
     dialog,
     editorSessionHost,
-    requestClose,
+    onClose,
   ]);
 
   const isPanel = presentation === "panel";

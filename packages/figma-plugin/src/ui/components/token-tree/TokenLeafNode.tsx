@@ -842,10 +842,9 @@ export const TokenLeafNode = memo(
     const missingModeCount = tokenModeMissing?.get(node.path);
     if (missingModeCount && missingModeCount > 0) {
       leafMetadataSegments.push({
-        label: `${missingModeCount} missing`,
+        label: `${missingModeCount} mode${missingModeCount === 1 ? "" : "s"} unfilled`,
         title: `${missingModeCount} mode value${missingModeCount === 1 ? "" : "s"} still need authoring`,
-        tone: "warning",
-        priority: "status" as const,
+        priority: "detail" as const,
       });
     } else if (modeVariantPaths?.has(node.path) && !multiModeValues) {
       leafMetadataSegments.push({
@@ -1682,7 +1681,15 @@ export const TokenLeafNode = memo(
                   else onEdit(node.path, node.name);
                 }}
                 title={tokenStatus.title}
-                className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass} ${isRowActive ? "opacity-100" : "opacity-60 group-hover:opacity-100"}`}
+                className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded transition-opacity ${tokenStatus.toneClass} ${
+                  isRowActive
+                    ? "opacity-100"
+                    : tokenStatus.lintSeverity === "error"
+                      ? "opacity-60 group-hover:opacity-100"
+                      : tokenStatus.lintSeverity === "warning"
+                        ? "opacity-30 group-hover:opacity-80"
+                        : "opacity-0 group-hover:opacity-60"
+                }`}
               >
                 <svg
                   width="8"

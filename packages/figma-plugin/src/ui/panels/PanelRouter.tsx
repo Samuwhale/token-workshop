@@ -74,7 +74,6 @@ import {
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
 import type { ToastAction } from "../shared/toastBus";
-import { useEditorWidth } from "../hooks/useEditorWidth";
 
 const LAST_CREATE_GROUP_STORAGE_KEY = "tm_last_create_group";
 const LAST_CREATE_TYPE_STORAGE_KEY = "tm_last_token_type";
@@ -306,11 +305,6 @@ export function PanelRouter({
     triggerHeatmapScan,
   ]);
 
-  const editingTokenType = editingToken
-    ? (allTokensFlat[editingToken.path]?.$type ?? editingToken.initialType)
-    : undefined;
-  const { editorWidth, handleEditorWidthDragStart } =
-    useEditorWidth(editingTokenType);
   const tokenListHighlightedPath =
     editingToken?.path || previewingToken?.path || highlightedToken;
   const hasTokensLibrarySurface =
@@ -559,7 +553,7 @@ export function PanelRouter({
   ]);
 
   // Build the common TokenList `actions` object once — it's identical across the
-  // three TokenList render variants (side-panel, no-split, preview-split).
+  // the TokenList render variants (no-split, preview-split).
   const tokenListActions = {
     onEdit: (path: string, name?: string) =>
       controller.guardEditorAction(() => {
@@ -671,7 +665,7 @@ export function PanelRouter({
     onTogglePreviewSplit: () => controller.setShowPreviewSplit((v) => !v),
   };
 
-  // Common TokenEditor props shared between side-panel and drawer variants
+  // Common TokenEditor props
   const tokenEditorProps = editingToken
     ? {
         tokenPath: editingToken.path,
@@ -847,7 +841,6 @@ export function PanelRouter({
     surface: TokensLibraryContextualSurface;
     content: ReactNode;
     onDismiss: () => void;
-    height: string;
   };
 
   const getTokensContextualSurfaceRenderState =
@@ -912,7 +905,6 @@ export function PanelRouter({
             />
           ),
           onDismiss: () => switchContextualSurface({ surface: null }),
-          height: "78%",
         };
       }
 
@@ -925,7 +917,6 @@ export function PanelRouter({
           surface: "token-editor",
           content: <TokenEditor {...tokenEditorProps} />,
           onDismiss: controller.requestEditorClose,
-          height: "65%",
         };
       }
 
@@ -943,7 +934,6 @@ export function PanelRouter({
             />
           ),
           onDismiss: controller.requestEditorClose,
-          height: "72%",
         };
       }
 
@@ -983,7 +973,6 @@ export function PanelRouter({
             />
           ),
           onDismiss: controller.handlePreviewClose,
-          height: "50%",
         };
       }
 
@@ -992,7 +981,6 @@ export function PanelRouter({
           surface: "compare",
           content: renderTokensComparePanel(),
           onDismiss: () => setShowTokensCompare(false),
-          height: "72%",
         };
       }
 
@@ -1046,12 +1034,11 @@ export function PanelRouter({
     </div>
   );
 
-  const renderWideTokensContextualSurface = (
+  const renderFullContextualSurface = (
     surfaceState: TokensContextualSurfaceRenderState,
   ) => (
     <div
-      className="flex min-h-0 shrink-0 flex-row overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
-      style={{ width: editorWidth }}
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden panel-slide-in"
       data-surface-kind={controller.contextualEditorTransition.kind}
       data-surface-presentation={
         controller.contextualEditorTransition.presentation
@@ -1072,63 +1059,9 @@ export function PanelRouter({
         }
       }}
     >
-      <div
-        className="w-1 shrink-0 cursor-col-resize hover:bg-[var(--color-figma-accent)]/30 active:bg-[var(--color-figma-accent)]/50 transition-colors"
-        onMouseDown={handleEditorWidthDragStart}
-        title="Drag to resize"
-        aria-hidden="true"
-      />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {surfaceState.content}
-      </div>
+      {surfaceState.content}
     </div>
   );
-
-  const renderNarrowTokensContextualSurface = () => {
-    if (controller.useSidePanel || controller.showPreviewSplit) return null;
-
-    const surfaceState = getTokensContextualSurfaceRenderState();
-    if (!surfaceState) return null;
-
-    return (
-      <div
-        className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden"
-        data-surface-kind={controller.contextualEditorTransition.kind}
-        data-surface-presentation={
-          controller.contextualEditorTransition.presentation
-        }
-        data-tokens-library-surface-slot={
-          TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id
-        }
-        data-tokens-library-contextual-surface={surfaceState.surface}
-        onKeyDown={(e) => {
-          if (
-            (e.key === "]" || e.key === "[") &&
-            (e.metaKey || e.ctrlKey) &&
-            !e.shiftKey &&
-            !e.altKey
-          ) {
-            e.preventDefault();
-            controller.handleEditorNavigate(e.key === "]" ? 1 : -1);
-          }
-        }}
-      >
-        <div
-          className="absolute inset-0 bg-[var(--color-figma-overlay)] drawer-fade-in"
-          onClick={() => surfaceState.onDismiss()}
-        />
-        <div
-          className="relative flex min-h-0 flex-col rounded-t-xl bg-[var(--color-figma-bg)] shadow-2xl drawer-slide-up"
-          style={{ height: surfaceState.height }}
-        >
-          <div className="flex justify-center pt-2 pb-1 shrink-0">
-            <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
-          </div>
-          <div className="min-h-0 flex-1 overflow-hidden">{surfaceState.content}</div>
-        </div>
-      </div>
-    );
-  };
 
   const openImportNextStep = useCallback(
     (
@@ -1362,8 +1295,8 @@ export function PanelRouter({
       />
     );
 
-    const wideContextualSurface =
-      !controller.showPreviewSplit && controller.useSidePanel
+    const contextualSurface =
+      !controller.showPreviewSplit
         ? getTokensContextualSurfaceRenderState()
         : null;
 
@@ -1403,14 +1336,11 @@ export function PanelRouter({
           !createFromEmpty &&
           !editingToken &&
           renderTokensStartSurface()}
-        {/* Main content: TokenList variants */}
+        {/* Main content: TokenList or contextual surface (full takeover) */}
         {hasTokensLibrarySurface && !controller.showPreviewSplit && (
-          <div className="flex h-full min-h-0 overflow-hidden">
-            {renderTokensLibraryBody()}
-            {wideContextualSurface
-              ? renderWideTokensContextualSurface(wideContextualSurface)
-              : null}
-          </div>
+          contextualSurface
+            ? renderFullContextualSurface(contextualSurface)
+            : renderTokensLibraryBody()
         )}
         {/* Preview split view */}
         {hasTokensLibrarySurface && controller.showPreviewSplit && (
@@ -1531,7 +1461,6 @@ export function PanelRouter({
             {renderLibrarySection()}
           </div>
         </div>
-        {renderNarrowTokensContextualSurface()}
       </>
     );
   }

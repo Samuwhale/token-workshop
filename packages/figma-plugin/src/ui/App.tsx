@@ -32,7 +32,6 @@ import type {
   SecondarySurfaceId,
 } from "./shared/navigationTypes";
 import {
-  getContextualPanelMinWidth,
   CONTEXTUAL_PANEL_TRANSITIONS,
   SIDEBAR_GROUPS,
   resolveWorkspaceSummary,
@@ -802,12 +801,6 @@ export function App() {
     paths: string[];
     label: string;
   } | null>(null);
-  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
-  useEffect(() => {
-    const onResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => lsGet(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "1",
   );
@@ -818,20 +811,7 @@ export function App() {
       return next;
     });
   }, []);
-  const useSidePanel =
-    windowWidth >= getContextualPanelMinWidth(sidebarCollapsed) &&
-    !!(editingToken || editingGeneratedGroupData || previewingToken || inspectingCollection) &&
-    activeSecondarySurface === null &&
-    activeTopTab === "tokens" &&
-    activeSubTab === "tokens" &&
-    (tokens.length > 0 || createFromEmpty);
-  const contextualEditorTransition = useMemo(
-    () =>
-      useSidePanel
-        ? CONTEXTUAL_PANEL_TRANSITIONS.sidePanel
-        : CONTEXTUAL_PANEL_TRANSITIONS.bottomDrawer,
-    [useSidePanel],
-  );
+  const contextualEditorTransition = CONTEXTUAL_PANEL_TRANSITIONS.fullTakeover;
 
   const cascadeDiff = null;
 
@@ -1407,7 +1387,6 @@ export function App() {
       clearNotificationHistory,
     },
     editor: {
-      useSidePanel,
       contextualEditorTransition,
       splitPreviewTransition: CONTEXTUAL_PANEL_TRANSITIONS.splitPreview,
       guardEditorAction,

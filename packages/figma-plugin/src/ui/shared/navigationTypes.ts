@@ -27,8 +27,7 @@ export type SurfaceKind =
 export type SurfacePresentation =
   | "route"
   | "full-height-body"
-  | "side-panel"
-  | "bottom-drawer"
+  | "full-takeover"
   | "split-pane"
   | "centered-dialog"
   | "bottom-sheet";
@@ -296,29 +295,12 @@ const transientOverlayTransition = (
   usage,
 });
 
-export const SIDEBAR_WIDTH_EXPANDED = 150;
-export const SIDEBAR_WIDTH_COLLAPSED = 36;
-
-/** Minimum content area width to show the contextual editor as a side panel. */
-const CONTENT_AREA_MIN_WIDTH = 712;
-
-/** Minimum window width for the side panel layout, accounting for sidebar state. */
-export function getContextualPanelMinWidth(sidebarCollapsed: boolean): number {
-  const sidebarWidth = sidebarCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
-  return CONTENT_AREA_MIN_WIDTH + sidebarWidth;
-}
 export const CONTEXTUAL_PANEL_TRANSITIONS = {
-  sidePanel: {
+  fullTakeover: {
     kind: "contextual-panel",
-    presentation: "side-panel",
+    presentation: "full-takeover",
     closeBehavior: "restore-underlying-surface",
-    usage: "Edit beside your list.",
-  },
-  bottomDrawer: {
-    kind: "contextual-panel",
-    presentation: "bottom-drawer",
-    closeBehavior: "restore-underlying-surface",
-    usage: "Edit in drawer.",
+    usage: "Edit in place.",
   },
   splitPreview: {
     kind: "contextual-panel",
@@ -327,7 +309,7 @@ export const CONTEXTUAL_PANEL_TRANSITIONS = {
     usage: "Live preview beside library.",
   },
 } satisfies Record<
-  "sidePanel" | "bottomDrawer" | "splitPreview",
+  "fullTakeover" | "splitPreview",
   SurfaceTransition
 >;
 
@@ -342,10 +324,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
     id: "contextual-panel",
     label: "Tokens > Library tools",
     usage: "Compare, edit, and preview tools.",
-    presentations: {
-      wide: CONTEXTUAL_PANEL_TRANSITIONS.sidePanel,
-      narrow: CONTEXTUAL_PANEL_TRANSITIONS.bottomDrawer,
-    },
+    presentation: CONTEXTUAL_PANEL_TRANSITIONS.fullTakeover,
     surfaces: {
       compare: {
         label: "Compare",
@@ -385,10 +364,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
     id: TokensLibrarySurfaceSlot;
     label: string;
     usage: string;
-    presentations: {
-      wide: SurfaceTransition;
-      narrow: SurfaceTransition;
-    };
+    presentation: SurfaceTransition;
     surfaces: Record<
       TokensLibraryContextualSurface,
       { label: string; usage: string }

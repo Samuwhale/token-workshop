@@ -47,7 +47,6 @@ export interface ShellWorkspaceController {
 }
 
 export interface EditorShellController {
-  useSidePanel: boolean;
   contextualEditorTransition: SurfaceTransition;
   splitPreviewTransition: SurfaceTransition;
   guardEditorAction: (fn: () => void) => void;

@@ -320,7 +320,7 @@ export function CollectionDetailsPanel({
         <div className="min-h-0 flex-1 overflow-y-auto">
           <Section
             title="Collection"
-            description="Rename the active collection and maintain its description here."
+            description="Name and description for this collection."
           >
             {renamingCollectionId === collection.id ? (
               <div className="space-y-2">
@@ -372,7 +372,7 @@ export function CollectionDetailsPanel({
                 <button
                   type="button"
                   onClick={() => onRename?.(collection.id)}
-                  className="rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                  className="shrink-0 rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                 >
                   Rename
                 </button>
@@ -398,9 +398,9 @@ export function CollectionDetailsPanel({
                 <button
                   type="button"
                   onClick={() => void onMetadataSave?.()}
-                  className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white"
+                  className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white"
                 >
-                  Save details
+                  Save
                 </button>
               </div>
             </div>
@@ -408,7 +408,7 @@ export function CollectionDetailsPanel({
 
           <Section
             title="Modes"
-            description="Mode creation and deletion live with collection setup, not in the global shell."
+            description="Add or remove modes for this collection."
           >
             <div className="space-y-2">
               {collection.modes.length === 0 ? (
@@ -468,7 +468,7 @@ export function CollectionDetailsPanel({
 
           <Section
             title="Actions"
-            description="Duplicate, split, merge, and delete are collection operations, not separate workspaces."
+            description="Operations that affect the entire collection."
           >
             <div className="space-y-2">
               <button

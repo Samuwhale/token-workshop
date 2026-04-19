@@ -544,7 +544,7 @@ export function getQuickGeneratedGroupActionLabel(type: GeneratorType): string {
 }
 
 type TokenRowStatus =
-  | { kind: "lint"; label: string; title: string; toneClass: string }
+  | { kind: "lint"; label: string; title: string; toneClass: string; lintSeverity: "error" | "warning" | "info" }
   | { kind: "applied"; label: string; title: string; toneClass: string }
   | { kind: "sync"; label: string; title: string; toneClass: string }
   | { kind: "duplicate"; label: string; title: string; toneClass: string }
@@ -701,6 +701,7 @@ export function getTokenRowStatus(props: {
           : worst === "warning"
             ? "text-[var(--color-figma-warning)]"
             : "text-[var(--color-figma-text-tertiary)]",
+      lintSeverity: worst,
     };
   }
   if (quickBound) {

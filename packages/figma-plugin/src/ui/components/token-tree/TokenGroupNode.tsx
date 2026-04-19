@@ -561,15 +561,14 @@ export const TokenGroupNode = memo(
             )
           )}
           {!renamingGroup &&
-            isGroupActive &&
             collectionCoverageSummary &&
             collectionCoverageSummary.total > 0 &&
             collectionCoverageSummary.totalMissing > 0 && (
               <span
                 className="shrink-0 text-[9px] font-normal text-[var(--color-figma-text-tertiary)]"
-                title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} missing across ${collectionCoverageSummary.total} tokens`}
+                title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
               >
-                {collectionCoverageSummary.totalMissing} missing
+                {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
               </span>
             )}
         {!renamingGroup && isGroupActive && targetGenerator && (
