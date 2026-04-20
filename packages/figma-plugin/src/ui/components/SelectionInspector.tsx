@@ -5,6 +5,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
+import type { ReactNode } from "react";
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
@@ -52,6 +53,8 @@ import { ExtractTokensPanel } from "./ExtractTokensPanel";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
 
+type CanvasView = "selection" | "coverage";
+
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
   selectionLoading: boolean;
@@ -70,6 +73,11 @@ interface SelectionInspectorProps {
   onToast?: (message: string) => void;
   onGoToTokens?: () => void;
   triggerCreateToken?: number;
+  coverageContent?: ReactNode;
+  triggerHeatmapScan?: () => void;
+  heatmapLoading?: boolean;
+  heatmapResult?: unknown;
+  heatmapError?: string | null;
 }
 
 const PROP_FILTER_MODES = ["bound", "unbound", "colors", "dimensions"] as const;
@@ -92,7 +100,13 @@ export function SelectionInspector({
   onToast,
   onGoToTokens,
   triggerCreateToken,
+  coverageContent,
+  triggerHeatmapScan,
+  heatmapLoading,
+  heatmapResult,
+  heatmapError,
 }: SelectionInspectorProps) {
+  const [canvasView, setCanvasView] = useState<CanvasView>("selection");
   const {
     deepInspect,
     toggleDeepInspect,
@@ -833,7 +847,36 @@ export function SelectionInspector({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
+      {coverageContent && (
+        <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)]">
+          {(["selection", "coverage"] as const).map((view) => (
+            <button
+              key={view}
+              onClick={() => {
+                setCanvasView(view);
+                if (view === "coverage" && triggerHeatmapScan && !heatmapLoading && !heatmapResult && !heatmapError) {
+                  triggerHeatmapScan();
+                }
+              }}
+              className={`flex-1 text-center text-secondary font-medium py-1 rounded transition-colors ${
+                canvasView === view
+                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              }`}
+            >
+              {view === "selection" ? "Selection" : "Coverage"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {canvasView === "coverage" && coverageContent ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {coverageContent}
+        </div>
+      ) : (
+        <>
+        <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
         <div className="relative min-w-0 flex-1">
           <svg
             width="9" height="9" viewBox="0 0 24 24" fill="none"
@@ -1255,6 +1298,8 @@ export function SelectionInspector({
         onNavigateToToken={onNavigateToToken}
         onDismissCreatedToken={() => setCreatedTokenPath(null)}
       />
+        </>
+      )}
     </div>
   );
 }

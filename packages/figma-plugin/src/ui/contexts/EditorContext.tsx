@@ -1,5 +1,5 @@
 /**
- * EditorContext — owns token editing state (editingToken, previewingToken) and
+ * EditorContext — owns token editing state (editingToken) and
  * the token-navigation state (highlightedToken, createFromEmpty, alias
  * navigation history). Extracted from App.tsx so PanelRouter and other
  * consumers can access this state without receiving it as props.
@@ -32,7 +32,6 @@ export type EditingToken = {
   initialValue?: string;
 };
 
-export type PreviewingToken = { path: string; name?: string; currentCollectionId: string };
 export type EditingGeneratedGroup = TokensLibraryGeneratedGroupEditorTarget;
 export type InspectingCollection = { collectionId: string };
 export type EditorContextualSurfaceTarget =
@@ -40,7 +39,6 @@ export type EditorContextualSurfaceTarget =
   | { surface: "collection-details"; collection: InspectingCollection }
   | { surface: 'token-editor'; token: EditingToken }
   | { surface: 'generated-group-editor'; generatedGroup: EditingGeneratedGroup }
-  | { surface: 'token-preview'; token: PreviewingToken }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshCompareModeConfig?: boolean }
   | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean }
   | { surface: 'color-analysis' }
@@ -58,8 +56,6 @@ export interface EditorContextValue {
   setEditingToken: Dispatch<SetStateAction<EditingToken | null>>;
   editingGeneratedGroup: EditingGeneratedGroup | null;
   setEditingGeneratedGroup: Dispatch<SetStateAction<EditingGeneratedGroup | null>>;
-  previewingToken: PreviewingToken | null;
-  setPreviewingToken: Dispatch<SetStateAction<PreviewingToken | null>>;
   inspectingCollection: InspectingCollection | null;
   setInspectingCollection: Dispatch<SetStateAction<InspectingCollection | null>>;
   highlightedToken: string | null;
@@ -128,7 +124,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
   const [editingGeneratedGroup, setEditingGeneratedGroup] = useState<EditingGeneratedGroup | null>(null);
-  const [previewingToken, setPreviewingToken] = useState<PreviewingToken | null>(null);
   const [inspectingCollection, setInspectingCollection] = useState<InspectingCollection | null>(null);
   const [showTokensCompare, setShowTokensCompare] = useState(false);
   const [showColorAnalysis, setShowColorAnalysis] = useState(false);
@@ -175,19 +170,18 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!showTokensCompare && !showColorAnalysis && !showImport && !showHealth && !showHistory) return;
-    if (editingToken || editingGeneratedGroup || previewingToken || inspectingCollection) {
+    if (editingToken || editingGeneratedGroup || inspectingCollection) {
       setShowTokensCompare(false);
       setShowColorAnalysis(false);
       setShowImport(false);
       setShowHealth(false);
       setShowHistory(false);
     }
-  }, [showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory, editingToken, editingGeneratedGroup, previewingToken, inspectingCollection]);
+  }, [showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory, editingToken, editingGeneratedGroup, inspectingCollection]);
 
   const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
     setEditingToken(null);
     setEditingGeneratedGroup(null);
-    setPreviewingToken(null);
     setInspectingCollection(null);
     setShowTokensCompare(false);
     setShowColorAnalysis(false);
@@ -210,11 +204,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     if (target.surface === 'generated-group-editor') {
       setEditingGeneratedGroup(target.generatedGroup);
-      return;
-    }
-
-    if (target.surface === 'token-preview') {
-      setPreviewingToken(target.token);
       return;
     }
 
@@ -260,7 +249,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setEditingGeneratedGroup,
     setEditingToken,
     setInspectingCollection,
-    setPreviewingToken,
     setShowTokensCompare,
     setTokensCompareMode,
     setTokensComparePath,
@@ -272,14 +260,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     if (inspectingCollection) return "collection-details";
     if (editingToken) return 'token-editor';
     if (editingGeneratedGroup) return 'generated-group-editor';
-    if (previewingToken) return 'token-preview';
     if (showTokensCompare) return 'compare';
     if (showColorAnalysis) return 'color-analysis';
     if (showImport) return 'import';
     if (showHealth) return 'health';
     if (showHistory) return 'history';
     return null;
-  }, [inspectingCollection, editingToken, editingGeneratedGroup, previewingToken, showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory]);
+  }, [inspectingCollection, editingToken, editingGeneratedGroup, showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory]);
 
   const tokensContextualSurfaceState = useMemo<TokensContextualSurfaceState>(() => ({
     activeSurface,
@@ -291,8 +278,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setEditingToken,
     editingGeneratedGroup,
     setEditingGeneratedGroup,
-    previewingToken,
-    setPreviewingToken,
     inspectingCollection,
     setInspectingCollection,
     highlightedToken,
@@ -332,7 +317,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }), [
     editingToken,
     editingGeneratedGroup,
-    previewingToken,
     inspectingCollection,
     highlightedToken,
     createFromEmpty,

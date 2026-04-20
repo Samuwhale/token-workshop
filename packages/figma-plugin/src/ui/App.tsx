@@ -48,7 +48,6 @@ import {
 } from "./contexts/CollectionContext";
 import {
   useSelectionContext,
-  useHeatmapContext,
   useUsageContext,
 } from "./contexts/InspectContext";
 import { useNavigationContext } from "./contexts/NavigationContext";
@@ -79,7 +78,7 @@ import { apiFetch } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 import {
-  Layers, Frame, Upload, RefreshCw, ChevronRight, Bell, Settings,
+  Layers, Frame, Share2, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
 } from "lucide-react";
 
@@ -110,8 +109,6 @@ export function App() {
     setEditingToken,
     editingGeneratedGroup,
     setEditingGeneratedGroup,
-    previewingToken,
-    setPreviewingToken,
     inspectingCollection,
     setHighlightedToken,
     setPendingHighlight,
@@ -172,7 +169,6 @@ export function App() {
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
-  const { triggerHeatmapScan } = useHeatmapContext();
   const { triggerUsageScan } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } =
     useAvailableFonts();
@@ -592,22 +588,6 @@ export function App() {
     if (pendingUnsavedAction !== null) return;
     setPendingNavAction(null);
   }, [pendingUnsavedAction]);
-  const handlePreviewEdit = useCallback(() => {
-    guardEditorAction(() => {
-      if (!previewingToken) return;
-      switchContextualSurface({
-        surface: "token-editor",
-        token: {
-          path: previewingToken.path,
-          name: previewingToken.name,
-          currentCollectionId: previewingToken.currentCollectionId,
-        },
-      });
-    });
-  }, [guardEditorAction, previewingToken, switchContextualSurface]);
-  const handlePreviewClose = useCallback(() => {
-    setPreviewingToken(null);
-  }, [setPreviewingToken]);
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"
       ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
@@ -631,7 +611,6 @@ export function App() {
     (path: string) => {
       setEditingToken(null);
       setEditingGeneratedGroup(null);
-      setPreviewingToken(null);
       setTokensCompareMode("cross-collection");
       setTokensComparePath(path);
       setTokensCompareModeKey((key) => key + 1);
@@ -642,7 +621,6 @@ export function App() {
       navigateTo,
       setEditingGeneratedGroup,
       setEditingToken,
-      setPreviewingToken,
       setShowTokensCompare,
       setTokensCompareMode,
       setTokensComparePath,
@@ -1054,7 +1032,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_SYNC")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("sync", "sync");
+      navigateTo("share", "figma-sync");
     }
     if (matchesShortcut(e, "TOGGLE_QUICK_APPLY")) {
       e.preventDefault();
@@ -1369,8 +1347,6 @@ export function App() {
       handleEditorNavigate,
       handleEditorSave,
       handleEditorSaveAndCreateAnother,
-      handlePreviewEdit,
-      handlePreviewClose,
       splitRatio,
       splitValueNow,
       splitContainerRef,
@@ -1505,18 +1481,14 @@ export function App() {
       closeNotifications();
       clearHandoff();
       setExpandedWorkspaces((prev) => new Set(prev).add(item.workspaceId));
-      if (item.subTab === "canvas-analysis") {
-        triggerHeatmapScan();
-      }
     });
-  }, [activeWorkspace.id, activeSecondarySurface, guardEditorAction, navigateTo, closeSecondarySurface, closeNotifications, clearHandoff, triggerHeatmapScan]);
+  }, [activeWorkspace.id, activeSecondarySurface, guardEditorAction, navigateTo, closeSecondarySurface, closeNotifications, clearHandoff]);
 
   const workspaceIcon = (id: string) => {
     switch (id) {
       case "library":  return <Layers size={16} strokeWidth={1.5} aria-hidden />;
       case "canvas":   return <Frame size={16} strokeWidth={1.5} aria-hidden />;
-      case "sync":     return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
-      case "export":   return <Upload size={16} strokeWidth={1.5} aria-hidden />;
+      case "share":    return <Share2 size={16} strokeWidth={1.5} aria-hidden />;
       default:         return null;
     }
   };
@@ -1524,11 +1496,8 @@ export function App() {
   const handleSubTabClick = useCallback((section: WorkspaceSection) => {
     guardEditorAction(() => {
       navigateTo(section.topTab, section.subTab);
-      if (section.id === "canvas-analysis") {
-        triggerHeatmapScan();
-      }
     });
-  }, [guardEditorAction, navigateTo, triggerHeatmapScan]);
+  }, [guardEditorAction, navigateTo]);
 
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">

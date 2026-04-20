@@ -1,9 +1,8 @@
 import type { CSSProperties } from 'react';
 import { useCallback, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
-import { TokenDetailPreview } from './TokenDetailPreview';
+import { TokenCompactPreview } from './TokenCompactPreview';
 import { Spinner } from './Spinner';
 import { lsGet, lsSet } from '../shared/storage';
 
@@ -11,7 +10,6 @@ interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   onGoToTokens?: () => void;
   onNavigateToToken?: (path: string) => void;
-  onNavigateToGeneratedGroup?: (generatorId: string) => void;
   /** When set, the panel renders token detail instead of collection templates */
   focusedToken?: { path: string; name?: string; currentCollectionId: string } | null;
   pathToCollectionId?: Record<string, string>;
@@ -21,11 +19,6 @@ interface PreviewPanelProps {
     name?: string,
     currentCollectionId?: string,
   ) => void;
-  serverUrl?: string;
-  tokenUsageCounts?: Record<string, number>;
-  generators?: TokenGenerator[];
-  generatorsBySource?: Map<string, TokenGenerator[]>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
 }
@@ -227,7 +220,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, onNavigateToGeneratedGroup, focusedToken, pathToCollectionId, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, generators, generatorsBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, focusedToken, pathToCollectionId, onClearFocus, onEditToken, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = lsGet(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -419,19 +412,14 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, o
   if (focusedToken) {
     return (
       <div className="flex flex-col h-full bg-[var(--color-figma-bg)] overflow-hidden">
-        <TokenDetailPreview
+        <TokenCompactPreview
           tokenPath={focusedToken.path}
           tokenName={focusedToken.name}
           storageCollectionId={focusedToken.currentCollectionId}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={pathToCollectionId}
-          tokenUsageCounts={tokenUsageCounts}
-          generators={generators}
-          generatorsBySource={generatorsBySource}
-          derivedTokenPaths={derivedTokenPaths}
           lintViolations={lintViolations?.filter(violation => violation.path === focusedToken.path)}
           syncSnapshot={syncSnapshot}
-          serverUrl={serverUrl}
           onEdit={() =>
             onEditToken?.(
               focusedToken.path,
@@ -441,7 +429,6 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, o
           }
           onClose={onClearFocus ?? (() => {})}
           onNavigateToAlias={(path) => onNavigateToToken?.(path)}
-          onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
         />
       </div>
     );

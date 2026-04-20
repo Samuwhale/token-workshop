@@ -15,7 +15,7 @@ import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
 import { GeneratedGroupEditor } from "../components/GeneratedGroupEditor";
-import { TokenDetailPreview } from "../components/TokenDetailPreview";
+import { TokenCompactPreview } from "../components/TokenCompactPreview";
 import { CollectionRail } from "../components/CollectionRail";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
 import { PublishPanel } from "../components/PublishPanel";
@@ -114,35 +114,6 @@ function resolveCreateLauncherPath(initialPath?: string): string {
   return lastGroup ? `${lastGroup}.` : "";
 }
 
-// ---------------------------------------------------------------------------
-// History surface — tabs between Changes and Versions
-// ---------------------------------------------------------------------------
-
-function HistorySurfaceTabs({
-  historyView,
-  setHistoryView,
-}: {
-  historyView: "changes" | "versions";
-  setHistoryView: (v: "changes" | "versions") => void;
-}) {
-  return (
-    <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)]">
-      {(["changes", "versions"] as const).map((view) => (
-        <button
-          key={view}
-          onClick={() => setHistoryView(view)}
-          className={`flex-1 text-center text-secondary font-medium py-1 rounded transition-colors ${
-            historyView === view
-              ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-              : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-          }`}
-        >
-          {view === "changes" ? "Changes" : "Versions"}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -202,8 +173,6 @@ export function PanelRouter({
     setEditingToken,
     editingGeneratedGroup,
     setEditingGeneratedGroup,
-    previewingToken,
-    setPreviewingToken,
     inspectingCollection,
     highlightedToken,
     setHighlightedToken,
@@ -212,7 +181,6 @@ export function PanelRouter({
     setPendingHighlight,
     setPendingHighlightForCollection,
     handleNavigateToAlias,
-    handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
     consumeNavigateBack,
     navHistoryLength,
@@ -287,7 +255,6 @@ export function PanelRouter({
     path: string;
     collectionId: string;
   } | null>(null);
-  const [historyView, setHistoryView] = useState<"changes" | "versions">("changes");
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"
       ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
@@ -304,37 +271,23 @@ export function PanelRouter({
     setEditingGeneratedGroup(null);
   }, [editingGeneratedGroup, editingGeneratedGroupData, setEditingGeneratedGroup]);
 
+  const [splitPreviewToken, setSplitPreviewToken] = useState<{
+    path: string;
+    name?: string;
+    currentCollectionId: string;
+  } | null>(null);
+
   useEffect(() => {
     if (!showPreviewSplit) return;
-    if (
-      activeTokensContextualSurface !== null &&
-      activeTokensContextualSurface !== "token-preview"
-    ) {
+    if (activeTokensContextualSurface !== null) {
       setShowPreviewSplit(false);
+      setSplitPreviewToken(null);
     }
   }, [activeTokensContextualSurface, setShowPreviewSplit, showPreviewSplit]);
 
-  useEffect(() => {
-    if (
-      activeTopTab === "canvas" &&
-      activeSubTab === "canvas-analysis" &&
-      !heatmapLoading &&
-      !heatmapResult &&
-      !heatmapError
-    ) {
-      triggerHeatmapScan();
-    }
-  }, [
-    activeSubTab,
-    activeTopTab,
-    heatmapError,
-    heatmapLoading,
-    heatmapResult,
-    triggerHeatmapScan,
-  ]);
 
   const tokenListHighlightedPath =
-    editingToken?.path || previewingToken?.path || highlightedToken;
+    editingToken?.path || splitPreviewToken?.path || highlightedToken;
   const hasTokensLibrarySurface =
     tokens.length > 0 ||
     Boolean(currentCollectionId) ||
@@ -366,7 +319,7 @@ export function PanelRouter({
   const openTokenEditor = useCallback(
     (options: { path: string; currentCollectionId: string; name?: string }) => {
       setShowPreviewSplit(false);
-      setPreviewingToken(null);
+      setSplitPreviewToken(null);
       setHighlightedToken(options.path);
       if (options.currentCollectionId !== currentCollectionId) {
         setCurrentCollectionId(options.currentCollectionId);
@@ -384,7 +337,6 @@ export function PanelRouter({
       currentCollectionId,
       setCurrentCollectionId,
       setHighlightedToken,
-      setPreviewingToken,
       setShowPreviewSplit,
       switchContextualSurface,
     ],
@@ -394,37 +346,21 @@ export function PanelRouter({
     (options: {
       path: string;
       fromPath?: string;
-      surface: "token-editor" | "token-preview";
     }) => {
       const targetCollectionId = pathToCollectionId[options.path];
-      if (options.surface === "token-editor") {
-        handleNavigateToAlias(options.path, options.fromPath);
-      } else {
-        handleNavigateToAliasWithoutHistory(options.path);
-      }
+      handleNavigateToAlias(options.path, options.fromPath);
       if (!targetCollectionId) return;
 
-      switchContextualSurface(
-        options.surface === "token-editor"
-          ? {
-              surface: "token-editor",
-              token: {
-                path: options.path,
-                currentCollectionId: targetCollectionId,
-              },
-            }
-          : {
-              surface: "token-preview",
-              token: {
-                path: options.path,
-                currentCollectionId: targetCollectionId,
-              },
-            },
-      );
+      switchContextualSurface({
+        surface: "token-editor",
+        token: {
+          path: options.path,
+          currentCollectionId: targetCollectionId,
+        },
+      });
     },
     [
       handleNavigateToAlias,
-      handleNavigateToAliasWithoutHistory,
       pathToCollectionId,
       switchContextualSurface,
     ],
@@ -559,7 +495,6 @@ export function PanelRouter({
       !createFromEmpty ||
       editingToken ||
       editingGeneratedGroup ||
-      previewingToken ||
       showTokensCompare
     )
       return;
@@ -570,7 +505,6 @@ export function PanelRouter({
     editingGeneratedGroup,
     editingToken,
     openCreateLauncher,
-    previewingToken,
     setShowPreviewSplit,
     showTokensCompare,
   ]);
@@ -588,11 +522,20 @@ export function PanelRouter({
         setHighlightedToken(path);
       }),
     onPreview: (path: string, name?: string) => {
-      switchContextualSurface({
-        surface: "token-preview",
-        token: { path, name, currentCollectionId },
-      });
-      setHighlightedToken(path);
+      if (controller.showPreviewSplit) {
+        const targetCollectionId =
+          pathToCollectionId[path] ?? currentCollectionId;
+        setSplitPreviewToken({ path, name, currentCollectionId: targetCollectionId });
+        setHighlightedToken(path);
+      } else {
+        controller.guardEditorAction(() => {
+          switchContextualSurface({
+            surface: "token-editor",
+            token: { path, name, currentCollectionId },
+          });
+          setHighlightedToken(path);
+        });
+      }
     },
     onCreateNew: (
       initialPath: string | undefined,
@@ -749,10 +692,12 @@ export function PanelRouter({
           openLinkedTokenSurface({
             path,
             fromPath: editingToken.path,
-            surface: "token-editor",
           }),
         onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
         onOpenGeneratedGroupEditor: openGeneratedGroupEditor,
+        lintViolations: controller.lintViolations,
+        syncSnapshot:
+          Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
       }
     : null;
 
@@ -980,45 +925,6 @@ export function PanelRouter({
         };
       }
 
-      if (
-        activeTokensContextualSurface === "token-preview" &&
-        previewingToken
-      ) {
-        return {
-          surface: "token-preview",
-          content: (
-            <TokenDetailPreview
-              tokenPath={previewingToken.path}
-              tokenName={previewingToken.name}
-              storageCollectionId={previewingToken.currentCollectionId}
-              allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToCollectionId}
-              tokenUsageCounts={tokenUsageCounts}
-              generators={generators}
-              derivedTokenPaths={derivedTokenPaths}
-              lintViolations={controller.lintViolations.filter(
-                (violation) => violation.path === previewingToken.path,
-              )}
-              syncSnapshot={
-                Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined
-              }
-              serverUrl={serverUrl}
-              onEdit={controller.handlePreviewEdit}
-              onClose={controller.handlePreviewClose}
-              onNavigateToAlias={(path: string, fromPath?: string) =>
-                openLinkedTokenSurface({
-                  path,
-                  fromPath,
-                  surface: "token-preview",
-                })
-              }
-              onNavigateToGeneratedGroup={controller.handleNavigateToGeneratedGroup}
-            />
-          ),
-          onDismiss: controller.handlePreviewClose,
-        };
-      }
-
       if (activeTokensContextualSurface === "compare" && showTokensCompare) {
         return {
           surface: "compare",
@@ -1113,16 +1019,14 @@ export function PanelRouter({
                 {healthPanel}
               </div>
               <div className="w-[320px] min-w-[280px] shrink-0 overflow-hidden panel-slide-in">
-                <TokenDetailPreview
+                <TokenCompactPreview
                   tokenPath={healthDetailToken.path}
                   storageCollectionId={healthDetailToken.collectionId}
                   allTokensFlat={allTokensFlat}
                   pathToCollectionId={pathToCollectionId}
-                  tokenUsageCounts={tokenUsageCounts}
-                  generators={generators}
-                  derivedTokenPaths={derivedTokenPaths}
-                  lintViolations={controller.lintViolations}
-                  serverUrl={serverUrl}
+                  lintViolations={controller.lintViolations.filter(
+                    (v) => v.path === healthDetailToken.path,
+                  )}
                   onEdit={() => {
                     setCurrentCollectionId(healthDetailToken.collectionId);
                     setPendingHighlight(healthDetailToken.path);
@@ -1138,9 +1042,6 @@ export function PanelRouter({
                   onNavigateToAlias={(path) => {
                     const cid = pathToCollectionId[path];
                     if (cid) setHealthDetailToken({ path, collectionId: cid });
-                  }}
-                  onNavigateToGeneratedGroup={(generatorId) => {
-                    openGeneratedGroupEditor({ mode: "edit", id: generatorId });
                   }}
                 />
               </div>
@@ -1158,39 +1059,27 @@ export function PanelRouter({
           surface: "history",
           content: (
             <div className="flex h-full flex-col overflow-hidden">
-              <HistorySurfaceTabs historyView={historyView} setHistoryView={setHistoryView} />
               <div className="flex-1 min-h-0 overflow-hidden">
-                {historyView === "changes" ? (
-                  <ErrorBoundary panelName="Changes" onReset={onReset}>
-                    <HistoryPanel
-                      serverUrl={serverUrl}
-                      connected={connected}
-                      onPushUndo={controller.pushUndo}
-                      onRefreshTokens={controller.refreshAll}
-                      filterTokenPath={historyFilterPath}
-                      onClearFilter={() => setHistoryFilterPath(null)}
-                      recentOperations={controller.recentOperations}
-                      totalOperations={controller.totalOperations}
-                      hasMoreOperations={controller.hasMoreOperations}
-                      onLoadMoreOperations={controller.loadMoreOperations}
-                      onRollback={controller.handleRollback}
-                      undoDescriptions={controller.undoDescriptions}
-                      redoableOpIds={controller.redoableOpIds}
-                      onServerRedo={controller.handleServerRedo}
-                      executeUndo={controller.executeUndo}
-                      canUndo={controller.canUndo}
-                    />
-                  </ErrorBoundary>
-                ) : (
-                  <ErrorBoundary panelName="Versions" onReset={onReset}>
-                    <GitRepositoryPanel
-                      serverUrl={serverUrl}
-                      connected={connected}
-                      onPushUndo={controller.pushUndo}
-                      onRefreshTokens={controller.refreshAll}
-                    />
-                  </ErrorBoundary>
-                )}
+                <ErrorBoundary panelName="Changes" onReset={onReset}>
+                  <HistoryPanel
+                    serverUrl={serverUrl}
+                    connected={connected}
+                    onPushUndo={controller.pushUndo}
+                    onRefreshTokens={controller.refreshAll}
+                    filterTokenPath={historyFilterPath}
+                    onClearFilter={() => setHistoryFilterPath(null)}
+                    recentOperations={controller.recentOperations}
+                    totalOperations={controller.totalOperations}
+                    hasMoreOperations={controller.hasMoreOperations}
+                    onLoadMoreOperations={controller.loadMoreOperations}
+                    onRollback={controller.handleRollback}
+                    undoDescriptions={controller.undoDescriptions}
+                    redoableOpIds={controller.redoableOpIds}
+                    onServerRedo={controller.handleServerRedo}
+                    executeUndo={controller.executeUndo}
+                    canUndo={controller.canUndo}
+                  />
+                </ErrorBoundary>
               </div>
             </div>
           ),
@@ -1234,6 +1123,8 @@ export function PanelRouter({
         showPreviewSplit={controller.showPreviewSplit}
         editingTokenPath={editingToken?.path}
         compareHandle={controller.tokenListCompareRef}
+        validationSummary={controller.validationSummary}
+        onOpenHealth={() => switchContextualSurface({ surface: "health" })}
       />
     </div>
   );
@@ -1341,59 +1232,57 @@ export function PanelRouter({
             onToast={controller.setSuccessToast}
             onGoToTokens={() => navigateTo("library", "library")}
             triggerCreateToken={controller.triggerCreateToken}
+            coverageContent={renderCanvasAnalysisContent()}
+            triggerHeatmapScan={triggerHeatmapScan}
+            heatmapLoading={heatmapLoading}
+            heatmapResult={heatmapResult}
+            heatmapError={heatmapError}
           />
         </ErrorBoundary>
       </div>
     );
   }
 
-  function renderCanvasAnalysis(): ReactNode {
+  function renderCanvasAnalysisContent(): ReactNode {
     return (
-      <div className="h-full min-h-0 overflow-hidden">
-        <ErrorBoundary
-          panelName="Canvas analysis"
-          onReset={() => navigateTo("canvas", "inspect")}
-        >
-          <CanvasAnalysisPanel
-            availableTokens={allTokensFlat}
-            heatmapResult={heatmapResult}
-            heatmapLoading={heatmapLoading}
-            heatmapProgress={heatmapProgress}
-            heatmapError={heatmapError}
-            onSelectNodes={(ids) =>
-              parent.postMessage(
-                {
-                  pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
-                },
-                "*",
-              )
-            }
-            onBatchBind={(nodeIds, tokenPath, property) => {
-              const entry = allTokensFlat[tokenPath];
-              if (!entry) return;
-              parent.postMessage(
-                {
-                  pluginMessage: {
-                    type: "batch-bind-heatmap-nodes",
-                    nodeIds,
-                    tokenPath,
-                    tokenType: entry.$type,
-                    targetProperty: property,
-                    resolvedValue: entry.$value,
-                  },
-                },
-                "*",
-              );
-            }}
-            onSelectNode={(nodeId) =>
-              parent.postMessage(
-                { pluginMessage: { type: "select-node", nodeId } },
-                "*",
-              )
-            }
-          />
-        </ErrorBoundary>
-      </div>
+      <CanvasAnalysisPanel
+        availableTokens={allTokensFlat}
+        heatmapResult={heatmapResult}
+        heatmapLoading={heatmapLoading}
+        heatmapProgress={heatmapProgress}
+        heatmapError={heatmapError}
+        onSelectNodes={(ids) =>
+          parent.postMessage(
+            {
+              pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
+            },
+            "*",
+          )
+        }
+        onBatchBind={(nodeIds, tokenPath, property) => {
+          const entry = allTokensFlat[tokenPath];
+          if (!entry) return;
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "batch-bind-heatmap-nodes",
+                nodeIds,
+                tokenPath,
+                tokenType: entry.$type,
+                targetProperty: property,
+                resolvedValue: entry.$value,
+              },
+            },
+            "*",
+          );
+        }}
+        onSelectNode={(nodeId) =>
+          parent.postMessage(
+            { pluginMessage: { type: "select-node", nodeId } },
+            "*",
+          )
+        }
+      />
     );
   }
 
@@ -1409,13 +1298,11 @@ export function PanelRouter({
     },
     canvas: {
       inspect: renderCanvasInspect,
-      "canvas-analysis": renderCanvasAnalysis,
     },
-    sync: {
-      sync: renderSyncPublish,
-    },
-    export: {
-      export: renderSyncExport,
+    share: {
+      "figma-sync": renderShareFigmaSync,
+      "export": renderShareExport,
+      "versions": renderShareVersions,
     },
   };
 
@@ -1468,7 +1355,6 @@ export function PanelRouter({
 
     const isSidePanelSurface =
       contextualSurface?.surface === "token-editor" ||
-      contextualSurface?.surface === "token-preview" ||
       contextualSurface?.surface === "collection-details";
 
     const renderLibrarySection = () => (
@@ -1573,16 +1459,16 @@ export function PanelRouter({
                     const name = path.split(".").pop();
                     const targetCollectionId =
                       pathToCollectionId[path] ?? currentCollectionId;
-                    setPreviewingToken({
+                    setSplitPreviewToken({
                       path,
                       name,
                       currentCollectionId: targetCollectionId,
                     });
                     setHighlightedToken(path);
                   }}
-                  focusedToken={previewingToken}
+                  focusedToken={splitPreviewToken}
                   pathToCollectionId={pathToCollectionId}
-                  onClearFocus={() => setPreviewingToken(null)}
+                  onClearFocus={() => setSplitPreviewToken(null)}
                   lintViolations={controller.lintViolations}
                   syncSnapshot={
                     Object.keys(syncSnapshot).length > 0
@@ -1599,11 +1485,6 @@ export function PanelRouter({
                       });
                     });
                   }}
-                  serverUrl={serverUrl}
-                  tokenUsageCounts={tokenUsageCounts}
-                  generators={generators}
-                  derivedTokenPaths={derivedTokenPaths}
-                  onNavigateToGeneratedGroup={controller.handleNavigateToGeneratedGroup}
                 />
               </ErrorBoundary>
             </div>
@@ -1646,7 +1527,7 @@ export function PanelRouter({
       </>
     );
   }
-  function renderSyncPublish(): ReactNode {
+  function renderShareFigmaSync(): ReactNode {
     const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;
     let publishAction: { label: string; onClick: () => void; disabled?: boolean } | null = null;
     if (publishPreflightState.stage === "running") {
@@ -1664,8 +1545,8 @@ export function PanelRouter({
         <PanelContentHeader primaryAction={publishAction} />
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Sync"
-            onReset={() => navigateTo("sync", "sync")}
+            panelName="Figma Sync"
+            onReset={() => navigateTo("share", "figma-sync")}
           >
             <PublishPanel
               serverUrl={serverUrl}
@@ -1684,13 +1565,29 @@ export function PanelRouter({
     );
   }
 
-  function renderSyncExport(): ReactNode {
+  function renderShareExport(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Export"
-        onReset={() => navigateTo("export", "export")}
+        onReset={() => navigateTo("share", "export")}
       >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
+      </ErrorBoundary>
+    );
+  }
+
+  function renderShareVersions(): ReactNode {
+    return (
+      <ErrorBoundary
+        panelName="Versions"
+        onReset={() => navigateTo("share", "versions")}
+      >
+        <GitRepositoryPanel
+          serverUrl={serverUrl}
+          connected={connected}
+          onPushUndo={controller.pushUndo}
+          onRefreshTokens={controller.refreshAll}
+        />
       </ErrorBoundary>
     );
   }

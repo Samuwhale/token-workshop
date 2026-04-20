@@ -61,8 +61,6 @@ export interface EditorShellController {
     savedPath: string,
     savedType: string,
   ) => void;
-  handlePreviewEdit: () => void;
-  handlePreviewClose: () => void;
   splitRatio: number;
   splitValueNow: number;
   splitContainerRef: RefObject<HTMLDivElement>;

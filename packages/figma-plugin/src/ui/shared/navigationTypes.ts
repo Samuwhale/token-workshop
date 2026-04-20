@@ -8,9 +8,9 @@ import { STORAGE_KEYS } from "./storage";
 import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratedGroupEditor";
 import type { GeneratorTemplate } from "../hooks/useGenerators";
 
-export type TopTab = "library" | "canvas" | "sync" | "export";
-type CanvasSubTab = "inspect" | "canvas-analysis";
-export type SubTab = "library" | CanvasSubTab | "sync" | "export";
+export type TopTab = "library" | "canvas" | "share";
+type ShareSubTab = "figma-sync" | "export" | "versions";
+export type SubTab = "library" | "inspect" | ShareSubTab;
 export type SecondarySurfaceId =
   | "shortcuts"
   | "settings";
@@ -36,7 +36,6 @@ export type TokensLibraryContextualSurface =
   | "collection-details"
   | "token-editor"
   | "generated-group-editor"
-  | "token-preview"
   | "color-analysis"
   | "import"
   | "health"
@@ -86,42 +85,36 @@ export const TOP_TABS: {
   {
     id: "canvas",
     label: "Canvas",
+    subTabs: [{ id: "inspect", label: "Selection" }],
+  },
+  {
+    id: "share",
+    label: "Share",
     subTabs: [
-      { id: "inspect", label: "Selection" },
-      { id: "canvas-analysis", label: "Coverage" },
+      { id: "figma-sync", label: "Figma Sync" },
+      { id: "export", label: "Export" },
+      { id: "versions", label: "Versions" },
     ],
-  },
-  {
-    id: "sync",
-    label: "Sync",
-    subTabs: [{ id: "sync", label: "Sync" }],
-  },
-  {
-    id: "export",
-    label: "Export",
-    subTabs: [{ id: "export", label: "Export" }],
   },
 ];
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   library: "library",
   canvas: "inspect",
-  sync: "sync",
-  export: "export",
+  share: "figma-sync",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   library: STORAGE_KEYS.ACTIVE_SUB_TAB_LIBRARY,
   canvas: STORAGE_KEYS.ACTIVE_SUB_TAB_CANVAS,
-  sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
-  export: STORAGE_KEYS.ACTIVE_SUB_TAB_EXPORT,
+  share: STORAGE_KEYS.ACTIVE_SUB_TAB_SHARE,
 };
 
 // ---------------------------------------------------------------------------
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "library" | "canvas" | "sync" | "export";
+export type WorkspaceId = "library" | "canvas" | "share";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -344,10 +337,6 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         label: "Generated group editor",
         usage: "Configure a generated group.",
       },
-      "token-preview": {
-        label: "Token preview",
-        usage: "Inspect token details.",
-      },
       "color-analysis": {
         label: "Color analysis",
         usage: "Contrast matrix and lightness scale inspector.",
@@ -362,7 +351,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
       },
       history: {
         label: "History",
-        usage: "Review recent edits, checkpoints, and version history.",
+        usage: "Review recent edits and checkpoints.",
       },
     } satisfies Record<
       TokensLibraryContextualSurface,
@@ -424,8 +413,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { id: "library", label: "Library", railCode: "Li", topTab: "library", subTab: "library", workspaceId: "library" },
       { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "canvas", subTab: "inspect", workspaceId: "canvas" },
-      { id: "sync", label: "Sync", railCode: "Sy", topTab: "sync", subTab: "sync", workspaceId: "sync" },
-      { id: "export", label: "Export", railCode: "Ex", topTab: "export", subTab: "export", workspaceId: "export" },
+      { id: "share", label: "Share", railCode: "Sh", topTab: "share", subTab: "figma-sync", workspaceId: "share" },
     ],
   },
 ];
@@ -449,49 +437,54 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     transition: workspaceTransition(
       "Inspect the current selection and analyze token usage on the canvas.",
     ),
+    matchRoutes: [route("canvas", "inspect")],
+  },
+  {
+    id: "share",
+    label: "Share",
+    summaryTitle: "Share",
+    topTab: "share",
+    subTab: "figma-sync",
+    transition: workspaceTransition(
+      "Sync with Figma, export platform files, and manage versions.",
+    ),
     sections: [
       {
-        id: "inspect",
-        label: "Selection",
-        topTab: "canvas",
-        subTab: "inspect",
+        id: "figma-sync",
+        label: "Figma Sync",
+        topTab: "share",
+        subTab: "figma-sync",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Inspect current selection.",
+          "Sync tokens with Figma variables and styles.",
         ),
       },
       {
-        id: "canvas-analysis",
-        label: "Coverage",
-        topTab: "canvas",
-        subTab: "canvas-analysis",
+        id: "export",
+        label: "Export",
+        topTab: "share",
+        subTab: "export",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Scan canvas for token coverage.",
+          "Generate platform token files.",
+        ),
+      },
+      {
+        id: "versions",
+        label: "Versions",
+        topTab: "share",
+        subTab: "versions",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Version history and team sharing.",
         ),
       },
     ],
-    matchRoutes: [route("canvas", "inspect"), route("canvas", "canvas-analysis")],
-  },
-  {
-    id: "sync",
-    label: "Sync",
-    summaryTitle: "Sync",
-    topTab: "sync",
-    subTab: "sync",
-    transition: workspaceTransition(
-      "Sync tokens with Figma variables and styles.",
-    ),
-    matchRoutes: [route("sync", "sync")],
-  },
-  {
-    id: "export",
-    label: "Export",
-    summaryTitle: "Export",
-    topTab: "export",
-    subTab: "export",
-    transition: workspaceTransition("Generate platform token files."),
-    matchRoutes: [route("export", "export")],
+    matchRoutes: [
+      route("share", "figma-sync"),
+      route("share", "export"),
+      route("share", "versions"),
+    ],
   },
 ];
 
@@ -660,8 +653,8 @@ export function getImportResultNextStepRecommendations(
   if (isLargeInitialImport(summary)) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "sync",
-        "sync",
+        "share",
+        "figma-sync",
         "Large import — confirm sync mapping.",
       ),
     );

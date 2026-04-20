@@ -15,8 +15,8 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "library" | "canvas" | "sync" | "export";
-      subTab: "library" | "inspect" | "canvas-analysis" | "sync" | "export";
+      topTab: "library" | "canvas" | "share";
+      subTab: "library" | "inspect" | "figma-sync" | "export" | "versions";
     }
   | { kind: "surface"; surface: "settings" }
   | { kind: "contextual-surface"; surface: "import" | "health" | "history" };
@@ -147,8 +147,8 @@ function inferWorkspaceAction(message: string): InboxAction {
     lower.includes("sync")
   ) {
     return {
-      label: "Open Sync",
-      target: { kind: "workspace", topTab: "sync", subTab: "sync" },
+      label: "Open Figma Sync",
+      target: { kind: "workspace", topTab: "share", subTab: "figma-sync" },
     };
   }
   if (
@@ -156,14 +156,21 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open export",
-      target: { kind: "workspace", topTab: "export", subTab: "export" },
+      target: { kind: "workspace", topTab: "share", subTab: "export" },
     };
   }
   if (
     lower.includes("git") ||
     lower.includes("pull") ||
     lower.includes("push") ||
-    lower.includes("version") ||
+    lower.includes("version")
+  ) {
+    return {
+      label: "Open versions",
+      target: { kind: "workspace", topTab: "share", subTab: "versions" },
+    };
+  }
+  if (
     lower.includes("history") ||
     lower.includes("rollback") ||
     lower.includes("redo") ||

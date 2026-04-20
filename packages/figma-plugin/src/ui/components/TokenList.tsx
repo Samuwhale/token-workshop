@@ -202,6 +202,8 @@ export function TokenList({
   showPreviewSplit = false,
   editingTokenPath,
   compareHandle,
+  validationSummary,
+  onOpenHealth,
 }: TokenListProps) {
   const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
@@ -2516,6 +2518,8 @@ export function TokenList({
               onDeleteFilterPreset: deleteFilterPreset,
               activeCount: filterMenuActiveCount,
             } : null}
+            validationSummary={validationSummary}
+            onOpenHealth={onOpenHealth}
           />
         )}
       </div>

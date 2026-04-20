@@ -232,6 +232,8 @@ export interface TokenListProps {
   editingTokenPath?: string | null;
   /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */
   compareHandle?: React.MutableRefObject<TokenListImperativeHandle | null>;
+  validationSummary?: { errors: number; warnings: number } | null;
+  onOpenHealth?: () => void;
 }
 
 export interface AffectedRef {

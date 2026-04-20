@@ -557,7 +557,7 @@ export function useCommandPaletteCommands(): {
       category: "Export" as const,
       handler: () => {
         lsSet(STORAGE_KEYS.EXPORT_PRESET_APPLY, preset.id);
-        navigateTo("export", "export");
+        navigateTo("share", "export");
         window.dispatchEvent(new CustomEvent("applyExportPreset"));
       },
     }));

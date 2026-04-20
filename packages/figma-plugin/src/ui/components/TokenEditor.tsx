@@ -16,7 +16,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { AliasPicker } from "./AliasPicker";
-import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
+import { isAlias, extractAliasPath, buildResolutionChain } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
 import { MetadataEditor } from "./MetadataEditor";
@@ -52,6 +52,8 @@ import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
 import { TokenEditorValueSection } from "./token-editor/TokenEditorValueSection";
 import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
 import { TokenEditorInfoSection } from "./token-editor/TokenEditorInfoSection";
+import { TokenEditorLintBanner } from "./token-editor/TokenEditorLintBanner";
+import type { LintViolation } from "../hooks/useLint";
 
 interface TokenEditorProps {
   tokenPath: string;
@@ -83,6 +85,8 @@ interface TokenEditorProps {
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
   onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
+  lintViolations?: LintViolation[];
+  syncSnapshot?: Record<string, string>;
 }
 
 
@@ -112,6 +116,8 @@ export function TokenEditor({
   onNavigateToGeneratedGroup,
   onOpenGeneratedGroupEditor,
   pushUndo,
+  lintViolations = [],
+  syncSnapshot,
 }: TokenEditorProps) {
   const effectivePathToCollectionId = pathToCollectionId;
   const ownerCollectionId = useMemo(
@@ -945,6 +951,26 @@ export function TokenEditor({
     );
   }
 
+  const syncChanged = !isCreateMode && syncSnapshot != null && tokenPath in syncSnapshot &&
+    syncSnapshot[tokenPath] !== stableStringify(value);
+
+  const tokenLintViolations = lintViolations.filter((v) => v.path === tokenPath);
+
+  const resolutionSteps = useMemo(() => {
+    if (!aliasMode || !reference || !isAlias(reference)) return null;
+    return buildResolutionChain(
+      tokenPath,
+      reference,
+      tokenType,
+      allTokensFlat,
+      pathToCollectionId,
+    );
+  }, [aliasMode, reference, tokenPath, tokenType, allTokensFlat, pathToCollectionId]);
+
+  const resolvedColorValue = tokenType === "color" && aliasMode && reference
+    ? resolveRefValue(extractAliasPath(reference) ?? "", colorFlatMap) ?? null
+    : null;
+
   const trimmedEditPath = editPath.trim();
   const trimmedEditLeaf = trimmedEditPath.split(".").filter(Boolean).pop() ?? "";
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
@@ -979,6 +1005,15 @@ export function TokenEditor({
                 aria-label="Unsaved changes"
               >
                 Unsaved
+              </span>
+            )}
+            {syncChanged && (
+              <span
+                className="shrink-0 px-1 py-px rounded text-secondary font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30 leading-none"
+                title="Unpublished changes"
+                aria-label="Unpublished changes"
+              >
+                Unpublished
               </span>
             )}
           </div>
@@ -1308,6 +1343,8 @@ export function TokenEditor({
           </div>
         )}
 
+        <TokenEditorLintBanner lintViolations={tokenLintViolations} />
+
         {/* Type-change confirmation — shown when a type switch would reset a non-default value */}
         {pendingTypeChange && (
           <div className="px-2 py-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 text-secondary">
@@ -1620,6 +1657,7 @@ export function TokenEditor({
               setTimeout(() => refInputRef.current?.focus(), 0);
             }}
             valueEditorContainerRef={valueEditorContainerRef}
+            resolvedColorValue={resolvedColorValue}
           />
         )}
 
@@ -1858,6 +1896,7 @@ export function TokenEditor({
                 initialValue={initialRef.current?.value}
                 activeProducingGenerator={activeProducingGenerator}
                 existingGeneratorsForToken={existingGeneratorsForToken}
+                resolutionSteps={resolutionSteps}
                 infoTab={infoTab}
                 onInfoTabChange={handleInfoTab}
                 refsExpanded={refsExpanded}

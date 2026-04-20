@@ -5,6 +5,10 @@ import type {
   TokenDependencyNode,
   TokenDependencySnapshot,
 } from "../TokenFlowPanel";
+import type { ResolutionStep } from "../../../shared/resolveAlias";
+import { isAlias } from "../../../shared/resolveAlias";
+import { formatValue } from "../tokenListUtils";
+import { ValuePreview } from "../ValuePreview";
 import type { TokenGenerator } from "../../hooks/useGenerators";
 import { TokenUsages } from "../TokenUsages";
 import { TokenHistorySection } from "../TokenHistorySection";
@@ -36,6 +40,8 @@ export interface TokenEditorInfoSectionProps {
   initialValue: any | undefined;
   activeProducingGenerator: TokenGenerator | null;
   existingGeneratorsForToken: TokenGenerator[];
+  /** Resolution chain for alias tokens (first step → ... → final resolved). */
+  resolutionSteps: ResolutionStep[] | null;
   // UI state
   infoTab: 'dependencies' | 'usage' | 'history' | null;
   onInfoTabChange: (tab: 'dependencies' | 'usage' | 'history') => void;
@@ -71,6 +77,7 @@ export function TokenEditorInfoSection({
   initialValue,
   activeProducingGenerator,
   existingGeneratorsForToken,
+  resolutionSteps,
   infoTab,
   onInfoTabChange,
   refsExpanded,
@@ -140,6 +147,67 @@ export function TokenEditorInfoSection({
               </button>
             )}
           </div>
+
+          {resolutionSteps && resolutionSteps.length >= 2 && (() => {
+            const first = resolutionSteps[0];
+            const last = resolutionSteps[resolutionSteps.length - 1];
+            const middleCount = resolutionSteps.length - 2;
+            const isConcrete = !last.isError && last.value != null && !isAlias(last.value);
+            return (
+              <div className="mb-1">
+                <div className="text-secondary font-semibold text-[var(--color-figma-text-tertiary)] mb-1">
+                  Resolves to
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] shrink-0" />
+                    <span className="text-secondary font-mono text-[var(--color-figma-accent)] truncate">
+                      {first.path}
+                    </span>
+                  </div>
+                  {middleCount > 0 && (
+                    <div className="flex items-center gap-1.5 pl-0.5">
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
+                        <path d="M4 0v4M1 4l3 4 3-4" />
+                      </svg>
+                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                        via {middleCount} alias{middleCount !== 1 ? "es" : ""}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-1.5 pl-0.5">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-tertiary)] shrink-0 mt-0.5" aria-hidden="true">
+                      <path d="M4 0v4M1 4l3 4 3-4" />
+                    </svg>
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      <button
+                        className={`text-secondary font-mono truncate text-left ${last.isError ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline"}`}
+                        onClick={() => !last.isError && onNavigateToToken?.(last.path, tokenPath)}
+                        title={last.isError ? last.errorMsg : last.path}
+                      >
+                        {last.path}
+                      </button>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {isConcrete && (
+                          <span className="flex items-center gap-1">
+                            <ValuePreview type={last.$type} value={last.value} />
+                            <span className="text-secondary font-mono text-[var(--color-figma-text)] font-medium">
+                              {formatValue(last.$type, last.value)}
+                            </span>
+                          </span>
+                        )}
+                        {last.isError && (
+                          <span className="text-[8px] text-[var(--color-figma-error)] italic">
+                            {last.errorMsg}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {dependencySnapshot?.hasCycles && (
             <div className="rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-secondary text-[var(--color-figma-error)]">

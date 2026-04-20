@@ -104,6 +104,8 @@ export interface TokenEditorValueSectionProps {
   onAcceptNudge: (path: string) => void;
   // Ref for container
   valueEditorContainerRef: React.RefObject<HTMLDivElement>;
+  /** Resolved color value for alias color tokens (shows a large swatch). */
+  resolvedColorValue?: string | null;
 }
 
 export function TokenEditorValueSection({
@@ -128,6 +130,7 @@ export function TokenEditorValueSection({
   nearbyMatches,
   onAcceptNudge,
   valueEditorContainerRef,
+  resolvedColorValue,
 }: TokenEditorValueSectionProps) {
   const baseValue: TokenMapEntry["$value"] | undefined = extendsPath
     ? allTokensFlat[extendsPath]?.$value
@@ -185,6 +188,13 @@ export function TokenEditorValueSection({
             onChange={setValue}
             autoFocus={!isCreateMode}
             allTokensFlat={allTokensFlat}
+          />
+        )}
+        {tokenType === "color" && resolvedColorValue && (
+          <div
+            className="w-full h-10 rounded border border-[var(--color-figma-border)]"
+            style={{ backgroundColor: resolvedColorValue }}
+            aria-label={`Resolved color: ${resolvedColorValue}`}
           />
         )}
         {tokenType === "dimension" && (
