@@ -69,6 +69,12 @@ export const DEPTH_COLORS: readonly string[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Mode column sizing
+// ---------------------------------------------------------------------------
+export const MODE_COLUMN_WIDTH = "w-[80px]";
+export const MODE_COLUMN_WIDTH_PX = 80;
+
+// ---------------------------------------------------------------------------
 // Virtual scroll constants
 // ---------------------------------------------------------------------------
 export const VIRTUAL_ITEM_HEIGHT = 30; // px per row base height (default density — overridden at runtime)
@@ -228,7 +234,6 @@ export interface TokenListProps {
   editingTokenPath?: string | null;
   /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */
   compareHandle?: React.MutableRefObject<TokenListImperativeHandle | null>;
-  toolbarScenarioControl?: React.ReactNode;
 }
 
 export interface AffectedRef {

@@ -10,7 +10,7 @@ import {
   getEditableString,
   parseInlineValue,
 } from "../tokenListHelpers";
-import { INLINE_SIMPLE_TYPES } from "../tokenListTypes";
+import { INLINE_SIMPLE_TYPES, MODE_COLUMN_WIDTH } from "../tokenListTypes";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { useTokenTreeSharedData } from "../TokenTreeContext";
 
@@ -158,7 +158,7 @@ export function MultiModeCell({
   return (
     <div
       ref={cellRef}
-      className={`w-[48px] shrink-0 px-0.5 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}
+      className={`${MODE_COLUMN_WIDTH} shrink-0 px-1 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}
       title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}`}
     >
       {/* Hidden color input — rendered for existing color values or creatable empty color cells */}
@@ -191,7 +191,7 @@ export function MultiModeCell({
       {!value ? (
         canCreate ? (
           <span
-            className={`text-[10px] text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer" : "cursor-text"} hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors`}
+            className={`text-[11px] text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer" : "cursor-text"} hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors`}
             onClick={(e) => {
               e.stopPropagation();
               if (tokenType === "color") {
@@ -206,19 +206,19 @@ export function MultiModeCell({
           </span>
         ) : onEdit ? (
           <span
-            className="text-[10px] text-[var(--color-figma-text-tertiary)] cursor-pointer hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
+            className="text-[11px] text-[var(--color-figma-text-tertiary)] cursor-pointer hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
           >
             +
           </span>
         ) : (
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <span className="text-[11px] text-[var(--color-figma-text-tertiary)]">
             —
           </span>
         )
       ) : isColor ? (
         <span
-          className={`w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]" : ""}`}
+          className={`w-5 h-5 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]" : ""}`}
           style={{ backgroundColor: value.$value as string }}
           onClick={
             canEdit
@@ -285,12 +285,12 @@ export function MultiModeCell({
           onClick={(e) => e.stopPropagation()}
           aria-label="Edit token value"
           autoFocus
-          className="text-[10px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+          className="text-[11px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
         />
       ) : isAliasValue ? (
         <>
           <span
-            className={`text-[10px] truncate max-w-full font-mono ${canEditAlias ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
+            className={`text-[11px] truncate max-w-full font-mono ${canEditAlias ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
             onClick={canEditAlias ? openAliasEditor : undefined}
             title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}\nClick to redirect alias`}
           >
@@ -348,7 +348,7 @@ export function MultiModeCell({
         </>
       ) : (
         <span
-          className={`text-[10px] truncate max-w-full ${canEdit ? "cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
+          className={`text-[11px] truncate max-w-full ${canEdit ? "cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
           onClick={
             canEdit
               ? (e) => {

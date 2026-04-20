@@ -8,7 +8,6 @@ import { createTokenValueBody } from "../shared/tokenMutations";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { TokenCollection } from "@tokenmanager/core";
-import { useCollectionStateContext } from "../contexts/TokenDataContext";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
@@ -20,7 +19,8 @@ import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
 import { MetadataEditor } from "./MetadataEditor";
-import { ModeValuesEditor } from "./token-editor/ModeValuesEditor";
+import { ModeValueEditor } from "./token-editor/ModeValueEditor";
+import { useTokenEditorModeValue } from "../hooks/useTokenEditorModeValue";
 import { readTokenPresentationMetadata } from "../shared/tokenMetadata";
 import { PathAutocomplete } from "./PathAutocomplete";
 import { useNearbyTokenMatch } from "../hooks/useNearbyTokenMatch";
@@ -111,12 +111,7 @@ export function TokenEditor({
   onOpenGeneratedGroupEditor,
   pushUndo,
 }: TokenEditorProps) {
-  const collectionState = useCollectionStateContext();
   const effectivePathToCollectionId = pathToCollectionId;
-  const collectionsWithModes = useMemo(
-    () => collections.filter((collection) => collection.modes.length > 0),
-    [collections],
-  );
   const ownerCollectionId = useMemo(
     () =>
       explicitCollectionId ??
@@ -188,6 +183,15 @@ export function TokenEditor({
     isDirty,
     colorFlatMap,
   } = fields;
+
+  const modeValue = useTokenEditorModeValue({
+    collectionId: ownerCollectionId,
+    collections,
+    value,
+    setValue,
+    modeValues,
+    setModeValues,
+  });
 
   const valueEditorContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -386,6 +390,7 @@ export function TokenEditor({
     extensionsJsonText,
     lifecycle,
     extendsPath,
+    collections,
     initialServerSnapshotRef,
     onBack,
     requestClose,
@@ -1065,41 +1070,6 @@ export function TokenEditor({
 
   const afterHeader = (
     <>
-      {collectionsWithModes.length > 0 && !isCreateMode && (
-        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30">
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Mode</span>
-          {collectionsWithModes.map((collection) => {
-            const activeOption =
-              collectionState.selectedModes[collection.id] ||
-              collection.modes[0]?.name ||
-              "";
-            return (
-              <button
-                key={collection.id}
-                type="button"
-                onClick={() => {
-                  const idx = collection.modes.findIndex(
-                    (mode) => mode.name === activeOption,
-                  );
-                  const nextIdx = (idx + 1) % collection.modes.length;
-                  const nextOption = collection.modes[nextIdx]?.name;
-                  if (nextOption) {
-                    collectionState.setSelectedModes({
-                      ...collectionState.selectedModes,
-                      [collection.id]: nextOption,
-                    });
-                  }
-                }}
-                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-accent)] transition-colors"
-                title={`${collection.id}: ${activeOption} (click to cycle)`}
-              >
-                {collectionsWithModes.length > 1 ? `${collection.id}: ` : ""}
-                {activeOption}
-              </button>
-            );
-          })}
-        </div>
-      )}
       {pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-[11px]">
           <svg
@@ -1606,7 +1576,37 @@ export function TokenEditor({
           </div>
         )}
 
-        {aliasMode ? (
+        {modeValue.hasMultipleModes ? (
+          <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePaste}>
+            <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
+              Value
+            </label>
+            <div className="divide-y divide-[var(--color-figma-border)]/50 overflow-hidden rounded-md border border-[var(--color-figma-border)]/65">
+              {modeValue.modes.map((mode) => (
+                <div
+                  key={mode.name}
+                  className="group flex items-center gap-2 px-2.5 py-1.5"
+                >
+                  <span
+                    className="w-[92px] shrink-0 truncate text-[11px] font-medium text-[var(--color-figma-text)]"
+                    title={mode.name}
+                  >
+                    {mode.name}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <ModeValueEditor
+                      tokenType={tokenType}
+                      value={mode.value === "" ? undefined : mode.value}
+                      onChange={mode.setValue}
+                      allTokensFlat={allTokensFlat}
+                      pathToCollectionId={pathToCollectionId}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : aliasMode ? (
           referenceSection
         ) : (
           <TokenEditorValueSection
@@ -1664,21 +1664,7 @@ export function TokenEditor({
           />
         )}
 
-        <ModeValuesEditor
-          collectionId={ownerCollectionId}
-          collections={collections}
-          modeValues={modeValues}
-          onModeValuesChange={setModeValues}
-          tokenType={tokenType}
-          aliasMode={aliasMode}
-          reference={reference}
-          value={value}
-          allTokensFlat={allTokensFlat}
-          pathToCollectionId={effectivePathToCollectionId}
-          selectedModes={collectionState.selectedModes}
-        />
-
-        {!aliasMode && referenceSection}
+        {!aliasMode && !modeValue.hasMultipleModes && referenceSection}
 
         {activeProducingGenerator && !isCreateMode && (
           <div className="rounded-md border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-3 py-2">

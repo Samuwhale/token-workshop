@@ -1,28 +1,15 @@
 import { useMemo, useState } from 'react';
 import { createTokenBody, updateToken } from '../shared/tokenMutations';
+import type { DuplicateGroup } from '../hooks/useHealthData';
+import { useInlineConfirm } from '../hooks/useInlineConfirm';
 
-export interface DuplicateTokenCandidate {
-  path: string;
-  collectionId: string;
-  type: string;
-  lifecycle?: 'draft' | 'published' | 'deprecated';
-  scopes: string[];
-  colorHex?: string;
-}
+type DuplicateTokenCandidate = DuplicateGroup['tokens'][number];
 
-export interface DuplicateGroup {
-  id: string;
-  valueLabel: string;
-  typeLabel: string;
-  tokens: DuplicateTokenCandidate[];
-  colorHex?: string;
-}
-
-export interface DuplicateDetectionPanelProps {
+interface DuplicateDetectionPanelProps {
   serverUrl: string;
   lintDuplicateGroups: DuplicateGroup[];
   totalDuplicateAliases: number;
-  onNavigateToToken?: (path: string, set: string) => void;
+  onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
   onMutate: () => void;
   onRefreshValidation: () => void;
@@ -32,54 +19,18 @@ function tokenKey(token: { path: string; collectionId: string }): string {
   return `${token.collectionId}:${token.path}`;
 }
 
-function formatLifecycle(lifecycle?: DuplicateTokenCandidate['lifecycle']): string {
-  return lifecycle ?? 'published';
-}
-
-function formatScopes(scopes: string[]): string {
-  return scopes.length > 0 ? scopes.join(', ') : 'Any';
-}
-
 function truncateValue(value: string): string {
   return value.length > 72 ? `${value.slice(0, 69)}...` : value;
 }
 
-function getMetadataDiffs(
-  canonical: DuplicateTokenCandidate,
-  candidate: DuplicateTokenCandidate,
-): Array<{ label: string; canonical: string; candidate: string }> {
-  const diffs: Array<{ label: string; canonical: string; candidate: string }> = [];
-
-  if (canonical.collectionId !== candidate.collectionId) {
-    diffs.push({
-      label: 'Collection',
-      canonical: canonical.collectionId,
-      candidate: candidate.collectionId,
-    });
-  }
-
-  const canonicalLifecycle = formatLifecycle(canonical.lifecycle);
-  const candidateLifecycle = formatLifecycle(candidate.lifecycle);
-  if (canonicalLifecycle !== candidateLifecycle) {
-    diffs.push({
-      label: 'Lifecycle',
-      canonical: canonicalLifecycle,
-      candidate: candidateLifecycle,
-    });
-  }
-
-  const canonicalScopes = formatScopes(canonical.scopes);
-  const candidateScopes = formatScopes(candidate.scopes);
-  if (canonicalScopes !== candidateScopes) {
-    diffs.push({
-      label: 'Scopes',
-      canonical: canonicalScopes,
-      candidate: candidateScopes,
-    });
-  }
-
-  return diffs;
+function getDiffLabels(kept: DuplicateTokenCandidate, other: DuplicateTokenCandidate): string[] {
+  const labels: string[] = [];
+  if (kept.collectionId !== other.collectionId) labels.push('Collection');
+  if ((kept.lifecycle ?? 'published') !== (other.lifecycle ?? 'published')) labels.push('Lifecycle');
+  if (kept.scopes.join(',') !== other.scopes.join(',')) labels.push('Scopes');
+  return labels;
 }
+
 
 export function DuplicateDetectionPanel({
   serverUrl,
@@ -92,164 +43,146 @@ export function DuplicateDetectionPanel({
 }: DuplicateDetectionPanelProps) {
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
-  const [selectedCanonicalKeys, setSelectedCanonicalKeys] = useState<Record<string, string>>({});
-  const [deduplicatingGroupId, setDeduplicatingGroupId] = useState<string | null>(null);
-  const [confirmDedupGroupId, setConfirmDedupGroupId] = useState<string | null>(null);
-  const [bulkDeduplicating, setBulkDeduplicating] = useState(false);
-  const [confirmBulkDedup, setConfirmBulkDedup] = useState(false);
+  const [selectedKeepKeys, setSelectedKeepKeys] = useState<Record<string, string>>({});
+  const [resolvingGroupId, setResolvingGroupId] = useState<string | null>(null);
+  const [bulkResolving, setBulkResolving] = useState(false);
 
-  const selectedCanonicals = useMemo(() => {
-    const next = new Map<string, DuplicateTokenCandidate>();
+  const groupConfirm = useInlineConfirm();
+  const bulkConfirm = useInlineConfirm();
+
+  const keptTokens = useMemo(() => {
+    const map = new Map<string, DuplicateTokenCandidate>();
     for (const group of lintDuplicateGroups) {
-      const selectedKey = selectedCanonicalKeys[group.id];
-      if (!selectedKey) continue;
-      const selectedToken = group.tokens.find(token => tokenKey(token) === selectedKey);
-      if (selectedToken) next.set(group.id, selectedToken);
+      const key = selectedKeepKeys[group.id];
+      if (!key) continue;
+      const token = group.tokens.find(t => tokenKey(t) === key);
+      if (token) map.set(group.id, token);
     }
-    return next;
-  }, [lintDuplicateGroups, selectedCanonicalKeys]);
+    return map;
+  }, [lintDuplicateGroups, selectedKeepKeys]);
 
-  const configuredGroupCount = selectedCanonicals.size;
-  const allGroupsConfigured = configuredGroupCount === lintDuplicateGroups.length;
-  const configuredAliasCount = lintDuplicateGroups.reduce((sum, group) => (
-    selectedCanonicals.has(group.id) ? sum + group.tokens.length - 1 : sum
-  ), 0);
+  const configuredCount = keptTokens.size;
+  const allConfigured = configuredCount === lintDuplicateGroups.length;
+  const aliasCount = lintDuplicateGroups.reduce(
+    (sum, g) => (keptTokens.has(g.id) ? sum + g.tokens.length - 1 : sum), 0,
+  );
 
   if (lintDuplicateGroups.length === 0) return null;
 
-  const patchTokenToAlias = async (token: DuplicateTokenCandidate, canonicalPath: string) => {
-    await updateToken(serverUrl, token.collectionId, token.path, createTokenBody({ $value: `{${canonicalPath}}` }));
+  const patchTokenToAlias = async (token: DuplicateTokenCandidate, keepPath: string) => {
+    await updateToken(serverUrl, token.collectionId, token.path, createTokenBody({ $value: `{${keepPath}}` }));
   };
 
-  const resolveGroup = async (group: DuplicateGroup, canonical: DuplicateTokenCandidate) => {
-    let updatedCount = 0;
+  const resolveGroup = async (group: DuplicateGroup, keep: DuplicateTokenCandidate) => {
+    let count = 0;
     for (const token of group.tokens) {
-      if (tokenKey(token) === tokenKey(canonical)) continue;
-      await patchTokenToAlias(token, canonical.path);
-      updatedCount += 1;
+      if (tokenKey(token) === tokenKey(keep)) continue;
+      await patchTokenToAlias(token, keep.path);
+      count += 1;
     }
-    return updatedCount;
+    return count;
   };
 
-  const handleDeduplicate = async (group: DuplicateGroup, canonical: DuplicateTokenCandidate) => {
-    setDeduplicatingGroupId(group.id);
+  const handleResolve = async (group: DuplicateGroup, keep: DuplicateTokenCandidate) => {
+    setResolvingGroupId(group.id);
     let mutated = false;
     try {
-      mutated = (await resolveGroup(group, canonical)) > 0;
-      setConfirmDedupGroupId(null);
+      mutated = (await resolveGroup(group, keep)) > 0;
+      groupConfirm.reset();
       onMutate();
       onRefreshValidation();
     } catch (err) {
-      console.warn('[DuplicateDetectionPanel] deduplicate failed:', err);
+      console.warn('[DuplicateDetectionPanel] resolve failed:', err);
       onError('Cleanup failed — refresh and review remaining tokens.');
-      if (mutated) {
-        onMutate();
-      }
+      if (mutated) onMutate();
       onRefreshValidation();
     } finally {
-      setDeduplicatingGroupId(null);
+      setResolvingGroupId(null);
     }
   };
 
-  const handleBulkDeduplicate = async () => {
-    setBulkDeduplicating(true);
+  const handleBulkResolve = async () => {
+    setBulkResolving(true);
     let mutated = false;
     try {
       for (const group of lintDuplicateGroups) {
-        const canonical = selectedCanonicals.get(group.id);
-        if (!canonical) {
-          throw new Error('Select a canonical token for every group first.');
-        }
-        setDeduplicatingGroupId(group.id);
-        mutated = (await resolveGroup(group, canonical)) > 0 || mutated;
+        const keep = keptTokens.get(group.id);
+        if (!keep) throw new Error('Select a token to keep for every group first.');
+        setResolvingGroupId(group.id);
+        mutated = (await resolveGroup(group, keep)) > 0 || mutated;
       }
-      setConfirmBulkDedup(false);
+      bulkConfirm.reset();
       onMutate();
       onRefreshValidation();
     } catch (err) {
-      console.warn('[DuplicateDetectionPanel] bulk deduplicate failed:', err);
+      console.warn('[DuplicateDetectionPanel] bulk resolve failed:', err);
       onError(mutated
         ? 'Batch partially applied — validation refreshed.'
-        : 'Select a canonical token for every group first.');
-      if (mutated) {
-        onMutate();
-      }
+        : 'Select a token to keep for every group first.');
+      if (mutated) onMutate();
       onRefreshValidation();
     } finally {
-      setDeduplicatingGroupId(null);
-      setBulkDeduplicating(false);
+      setResolvingGroupId(null);
+      setBulkResolving(false);
     }
   };
+
+  const btnBase = 'text-[10px] px-2 py-1 rounded transition-colors';
+  const btnAccent = `${btnBase} bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`;
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
       <button
         onClick={() => setShowDuplicates(v => !v)}
-        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+        className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
       >
-        <span className="flex flex-wrap items-center gap-1.5 text-left">
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-          <span>Duplicates</span>
-          <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] font-mono normal-case">
-            {lintDuplicateGroups.length} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
+        <span className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Duplicates</span>
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {lintDuplicateGroups.length} group{lintDuplicateGroups.length !== 1 ? 's' : ''} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
           </span>
         </span>
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform text-[var(--color-figma-text-secondary)] ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
       </button>
+
       {showDuplicates && (
         <div className="divide-y divide-[var(--color-figma-border)]">
+          {/* Bulk toolbar */}
           <div className="px-3 py-2.5">
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  {configuredGroupCount}/{lintDuplicateGroups.length} configured · {configuredAliasCount} aliases
+                  {configuredCount}/{lintDuplicateGroups.length} selected · {aliasCount} aliases
                 </div>
-                {confirmBulkDedup ? (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <button
-                      disabled={bulkDeduplicating || !allGroupsConfigured}
-                      onClick={handleBulkDeduplicate}
-                      className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                    >
-                      {bulkDeduplicating ? 'Resolving…' : `Confirm ${configuredAliasCount} aliases`}
-                    </button>
-                    <button
-                      onClick={() => setConfirmBulkDedup(false)}
-                      className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    disabled={bulkDeduplicating || !allGroupsConfigured}
-                    onClick={() => setConfirmBulkDedup(true)}
-                    className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                  >
-                    {bulkDeduplicating ? 'Resolving…' : `Resolve configured (${configuredAliasCount})`}
-                  </button>
-                )}
+                <button
+                  disabled={bulkResolving || !allConfigured}
+                  onClick={() => bulkConfirm.trigger('bulk', handleBulkResolve)}
+                  className={btnAccent}
+                >
+                  {bulkResolving
+                    ? 'Resolving\u2026'
+                    : bulkConfirm.isPending('bulk')
+                      ? `Confirm? ${aliasCount} token${aliasCount !== 1 ? 's' : ''} will become aliases`
+                      : `Apply all selections (${aliasCount})`}
+                </button>
               </div>
             </div>
           </div>
+
+          {/* Groups */}
           {lintDuplicateGroups.map(group => {
-            const canonical = selectedCanonicals.get(group.id) ?? null;
-            const others = canonical
-              ? group.tokens.filter(token => tokenKey(token) !== tokenKey(canonical))
-              : [];
-            const isDeduplicating = deduplicatingGroupId === group.id;
+            const keep = keptTokens.get(group.id) ?? null;
+            const others = keep ? group.tokens.filter(t => tokenKey(t) !== tokenKey(keep)) : [];
+            const isResolving = resolvingGroupId === group.id;
             const isExpanded = expandedGroupId === group.id;
-            const isConfigured = Boolean(canonical);
+            const isConfigured = Boolean(keep);
 
             return (
               <div key={group.id} className="px-3 py-2.5">
                 <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                  {/* Group header */}
                   <button
-                    onClick={() =>
-                      setExpandedGroupId(current =>
-                        current === group.id ? null : group.id,
-                      )
-                    }
+                    onClick={() => setExpandedGroupId(cur => cur === group.id ? null : group.id)}
                     className="w-full flex items-center gap-2 px-3 py-2 text-left bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                     aria-expanded={isExpanded}
                   >
@@ -260,7 +193,7 @@ export function DuplicateDetectionPanel({
                         <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.tokens.length} matching tokens</span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{group.typeLabel}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded border ${isConfigured ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
-                          {isConfigured ? 'Configured' : 'Needs canonical'}
+                          {isConfigured ? 'Ready' : 'Choose which to keep'}
                         </span>
                       </div>
                       <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate">
@@ -269,116 +202,76 @@ export function DuplicateDetectionPanel({
                     </div>
                   </button>
 
+                  {/* Expanded body */}
                   {isExpanded && (
                     <div className="border-t border-[var(--color-figma-border)] p-3 flex flex-col gap-2">
-                      <div className="flex flex-col gap-1.5">
+                      {/* Token radios */}
+                      <fieldset className="flex flex-col gap-1.5">
+                        <legend className="sr-only">Choose which token to keep</legend>
                         {group.tokens.map(token => {
-                          const isSelected = canonical ? tokenKey(token) === tokenKey(canonical) : false;
+                          const isSelected = keep ? tokenKey(token) === tokenKey(keep) : false;
+                          const radioId = `keep-${group.id}-${tokenKey(token)}`;
+                          const diffLabels = keep && !isSelected ? getDiffLabels(keep, token) : [];
+
                           return (
-                            <div
+                            <label
                               key={tokenKey(token)}
-                              className={`rounded border p-2 ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/20'}`}
+                              htmlFor={radioId}
+                              className={`rounded border p-2 cursor-pointer ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/20 hover:border-[var(--color-figma-text-secondary)]/40'} transition-colors`}
                             >
-                              <div className="flex items-start gap-2">
-                                <button
-                                  onClick={() => setSelectedCanonicalKeys(prev => ({ ...prev, [group.id]: tokenKey(token) }))}
-                                  className="flex-1 min-w-0 text-left"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span className={`w-3 h-3 rounded-full border ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] bg-transparent'}`} />
-                                    {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
-                                    <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.collectionId}</span>
-                                    {isSelected && <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>}
-                                  </div>
-                                  <div className="mt-1 pl-5 flex flex-wrap gap-1">
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Lifecycle: {formatLifecycle(token.lifecycle)}</span>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">Scopes: {formatScopes(token.scopes)}</span>
-                                  </div>
-                                </button>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  id={radioId}
+                                  name={`keep-${group.id}`}
+                                  checked={isSelected}
+                                  onChange={() => setSelectedKeepKeys(prev => ({ ...prev, [group.id]: tokenKey(token) }))}
+                                  className="sr-only peer"
+                                />
+                                <span className={`w-3 h-3 rounded-full border-[1.5px] shrink-0 flex items-center justify-center ${isSelected ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'}`}>
+                                  {isSelected && <span className="w-[7px] h-[7px] rounded-full bg-[var(--color-figma-accent)]" />}
+                                </span>
+                                {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
+                                <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
+                                <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.collectionId}</span>
                                 {onNavigateToToken && (
                                   <button
-                                    onClick={() => onNavigateToToken(token.path, token.collectionId)}
+                                    onClick={(e) => { e.preventDefault(); onNavigateToToken(token.path, token.collectionId); }}
                                     className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
                                   >
                                     Open
                                   </button>
                                 )}
                               </div>
-                            </div>
+                              {diffLabels.length > 0 && (
+                                <p className="mt-1 pl-5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                  Differs: {diffLabels.join(', ')}
+                                </p>
+                              )}
+                            </label>
                           );
                         })}
-                      </div>
+                      </fieldset>
 
-                      {canonical ? (
-                        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30 p-2.5 flex flex-col gap-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <div>
-                              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                Keep <span className="font-mono text-[var(--color-figma-text)]">{canonical.path}</span>, alias {others.length} to it
-                              </p>
-                            </div>
-                            <button
-                              disabled={isDeduplicating}
-                              onClick={() => setConfirmDedupGroupId(group.id)}
-                              className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors shrink-0"
-                            >
-                              {isDeduplicating ? 'Resolving…' : `Resolve group (${others.length})`}
-                            </button>
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            {others.map(token => {
-                              const diffs = getMetadataDiffs(canonical, token);
-                              return (
-                                <div key={tokenKey(token)} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/60 p-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.collectionId}</span>
-                                  </div>
-                                  {diffs.length > 0 ? (
-                                    <div className="mt-1 flex flex-col gap-1">
-                                      {diffs.map(diff => (
-                                        <div key={`${tokenKey(token)}:${diff.label}`} className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                                          <span className="font-medium text-[var(--color-figma-text)]">{diff.label}:</span> {diff.candidate} → {diff.canonical}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                                      Matches canonical
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 p-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                          Select a canonical token above.
-                        </div>
-                      )}
-
-                      {confirmDedupGroupId === group.id && canonical && (
-                        <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5">
-                          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                            Convert {others.length} token{others.length !== 1 ? 's' : ''} into aliases that point to <span className="font-mono text-[var(--color-figma-text)]">{canonical.path}</span>?
+                      {/* Resolve action */}
+                      {keep && (
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <p className="text-[10px] text-[var(--color-figma-text-secondary)] min-w-0">
+                            Keep <span className="font-mono text-[var(--color-figma-text)]">{keep.path}</span>, alias {others.length} to it
                           </p>
-                          <div className="flex gap-2 mt-0.5">
-                            <button
-                              disabled={isDeduplicating}
-                              onClick={() => handleDeduplicate(group, canonical)}
-                              className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                            >
-                              {isDeduplicating ? 'Resolving…' : 'Confirm'}
-                            </button>
-                            <button
-                              onClick={() => setConfirmDedupGroupId(null)}
-                              className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </div>
+                          <button
+                            disabled={isResolving}
+                            onClick={() => {
+                              groupConfirm.trigger(group.id, () => handleResolve(group, keep));
+                            }}
+                            className={`${btnAccent} shrink-0`}
+                          >
+                            {isResolving
+                              ? 'Resolving\u2026'
+                              : groupConfirm.isPending(group.id)
+                                ? `Confirm? ${others.length} token${others.length !== 1 ? 's' : ''} will become alias${others.length !== 1 ? 'es' : ''}`
+                                : `Keep & alias others (${others.length})`}
+                          </button>
                         </div>
                       )}
                     </div>

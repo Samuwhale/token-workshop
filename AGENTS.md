@@ -21,6 +21,15 @@ This project is in **rapid, active development** and has not shipped to any user
 
 Keep one canonical authoring model aligned to the Figma mental model: collections are the primary container, modes belong to collections, and tokens belong to collections and vary only by their own collection's modes. Do not reintroduce overlapping `set`, `theme`, or mixed view-state concepts into the domain model; selected modes and hover preview are view state only, and generators are advanced automation layered on top of authored tokens.
 
+## Modes
+
+Modes follow Figma's mental model: every token value IS a mode value. There is no "base value plus optional overrides."
+
+- When a collection has 2+ modes, the UI shows all modes equally (stacked list in editor, columns in token list). The first mode's value maps to `$value` (DTCG requirement); other modes store in `$extensions.tokenmanager.modes`. This is a storage detail — never expose it in UI.
+- Do not reintroduce a "base value" concept, a global alias toggle for multi-mode tokens, or a mode-selection dropdown that picks which single mode to view. All modes are visible simultaneously.
+- Mode management (add, rename, reorder, delete) lives in the token list column headers — not in a settings panel.
+- Each mode field independently accepts literal values or alias references (`{token.path}`).
+
 ## Tests
 
 - Do NOT write, expand, or refactor tests unless explicitly asked

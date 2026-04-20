@@ -13,6 +13,7 @@ import {
 import { clearEditorDraft } from './useTokenEditorUtils';
 import type { UndoSlot } from './useUndo';
 import { matchesShortcut } from '../shared/shortcutRegistry';
+import type { TokenCollection } from '@tokenmanager/core';
 import type {
   TokenEditorLifecycle,
   TokenEditorModeValues,
@@ -46,6 +47,7 @@ interface UseTokenEditorSaveParams {
     forceOverwrite: boolean,
     createAnother: boolean,
   ) => Promise<boolean> | boolean;
+  collections: TokenCollection[];
   // For keyboard handler
   handleToggleAlias: () => void;
   showAutocomplete: boolean;
@@ -68,6 +70,7 @@ export function useTokenEditorSave({
   extensionsJsonText,
   lifecycle,
   extendsPath,
+  collections,
   initialServerSnapshotRef,
   onBack,
   requestClose,
@@ -79,6 +82,7 @@ export function useTokenEditorSave({
   showAutocomplete,
   setShowAutocomplete,
 }: UseTokenEditorSaveParams) {
+  const firstModeName = collections.find((c) => c.id === collectionId)?.modes[0]?.name ?? null;
   const sanitizeModeValues = (
     modes: TokenEditorModeValues,
   ): TokenEditorModeValues => {
@@ -148,6 +152,12 @@ export function useTokenEditorSave({
       const tmExt: Record<string, any> = {};
       if (colorModifiers.length > 0) tmExt.colorModifier = colorModifiers;
       const cleanModes = sanitizeModeValues(modeValues);
+      if (firstModeName && cleanModes[collectionId]?.[firstModeName] !== undefined) {
+        delete cleanModes[collectionId][firstModeName];
+        if (Object.keys(cleanModes[collectionId]).length === 0) {
+          delete cleanModes[collectionId];
+        }
+      }
       if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
       if (lifecycle !== 'published') tmExt.lifecycle = lifecycle;
       if (extendsPath) tmExt.extends = extendsPath;

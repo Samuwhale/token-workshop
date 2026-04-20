@@ -20,29 +20,14 @@ import { SnapshotsSource } from './history/SnapshotsSource';
 import { RollbackPreviewModal } from './history/RollbackPreviewModal';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 import { InlineBanner } from './InlineBanner';
+import { PanelContentHeader } from './PanelContentHeader';
 
-function TypePill({ kind }: { kind: 'action' | 'commit' | 'snapshot' | 'local' }) {
-  const styles: Record<string, string> = {
-    local: 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]',
-    action: 'bg-[color-mix(in_srgb,var(--color-figma-accent)_14%,transparent)] text-[var(--color-figma-accent)]',
-    commit: 'bg-[color-mix(in_srgb,#a855f7_14%,transparent)] text-[#a855f7]',
-    snapshot: 'bg-[color-mix(in_srgb,var(--color-figma-success)_14%,transparent)] text-[var(--color-figma-success)]',
-  };
-  const labels: Record<string, string> = { local: 'Session', action: 'Edit', commit: 'Git', snapshot: 'Snapshot' };
-  return (
-    <span className={`shrink-0 text-[10px] font-medium px-1 py-0.5 rounded ${styles[kind]}`}>
-      {labels[kind]}
-    </span>
-  );
-}
-
-function RecoverySection({
+function HistorySection({
   title,
   action,
   children,
 }: {
   title: string;
-  countLabel?: string;
   action?: ReactNode;
   children: ReactNode;
 }) {
@@ -54,23 +39,6 @@ function RecoverySection({
       </div>
       {children}
     </section>
-  );
-}
-
-function RecoverySubsection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="border-t border-[var(--color-figma-border)] first:border-t-0">
-      <div className="px-3 py-1.5 bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_42%,transparent)]">
-        <p className="text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">{title}</p>
-      </div>
-      {children}
-    </div>
   );
 }
 
@@ -258,53 +226,51 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     );
   }
 
-  // Commit detail view
-  if (selectedCommitHash) {
-    return (
-      <GitCommitsSource
-        serverUrl={serverUrl}
-        onPushUndo={onPushUndo}
-        onRefreshTokens={onRefreshTokens}
-        filterTokenPath={filterTokenPath ?? undefined}
-        initialSelectedHash={selectedCommitHash}
-        initialSelectedCommit={selectedCommitEntry ?? undefined}
-        onBack={() => { setSelectedCommitHash(null); setSelectedCommitEntry(null); fetchTimeline(); }}
-        skipListFetch
-      />
-    );
-  }
-
-  // Snapshot compare view
-  if (selectedSnapshotId) {
-    return (
-      <SnapshotsSource
-        serverUrl={serverUrl}
-        onPushUndo={onPushUndo}
-        onRefreshTokens={onRefreshTokens}
-        filterTokenPath={filterTokenPath ?? undefined}
-        initialComparingId={selectedSnapshotId}
-        initialComparingLabel={selectedSnapshotLabel ?? undefined}
-        onBack={() => { setSelectedSnapshotId(null); setSelectedSnapshotLabel(null); fetchTimeline(); }}
-      />
-    );
-  }
-
-  // Compare view
-  if (showCompare && compareA && compareB) {
-    return (
-      <CommitCompareView
-        serverUrl={serverUrl}
-        commitA={compareA}
-        commitB={compareB}
-        onBack={() => {
-          setShowCompare(false);
-          setCompareMode(false);
-          setCompareA(null);
-          setCompareB(null);
-        }}
-      />
-    );
-  }
+  const detailPanel = (() => {
+    if (selectedCommitHash) {
+      return (
+        <GitCommitsSource
+          serverUrl={serverUrl}
+          onPushUndo={onPushUndo}
+          onRefreshTokens={onRefreshTokens}
+          filterTokenPath={filterTokenPath ?? undefined}
+          initialSelectedHash={selectedCommitHash}
+          initialSelectedCommit={selectedCommitEntry ?? undefined}
+          onBack={() => { setSelectedCommitHash(null); setSelectedCommitEntry(null); fetchTimeline(); }}
+          skipListFetch
+        />
+      );
+    }
+    if (selectedSnapshotId) {
+      return (
+        <SnapshotsSource
+          serverUrl={serverUrl}
+          onPushUndo={onPushUndo}
+          onRefreshTokens={onRefreshTokens}
+          filterTokenPath={filterTokenPath ?? undefined}
+          initialComparingId={selectedSnapshotId}
+          initialComparingLabel={selectedSnapshotLabel ?? undefined}
+          onBack={() => { setSelectedSnapshotId(null); setSelectedSnapshotLabel(null); fetchTimeline(); }}
+        />
+      );
+    }
+    if (showCompare && compareA && compareB) {
+      return (
+        <CommitCompareView
+          serverUrl={serverUrl}
+          commitA={compareA}
+          commitB={compareB}
+          onBack={() => {
+            setShowCompare(false);
+            setCompareMode(false);
+            setCompareA(null);
+            setCompareB(null);
+          }}
+        />
+      );
+    }
+    return null;
+  })();
 
   const searchQuery = timelineSearch.trim().toLowerCase();
   const localEntries = (undoDescriptions ?? [])
@@ -358,6 +324,8 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
     onClearFilter?.();
   };
 
+  const recentChangesEmpty = filteredLocalEntries.length === 0 && filteredOperations.length === 0;
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Rollback preview modal — shows diff before executing */}
@@ -370,6 +338,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
           onCancel={() => setConfirmOp(null)}
         />
       )}
+
+      {/* Header with Refresh action */}
+      <PanelContentHeader
+        primaryAction={{ label: 'Refresh', onClick: () => fetchTimeline(debouncedTimelineSearch) }}
+      />
 
       {/* Token filter banner */}
       {filterTokenPath && (
@@ -428,16 +401,11 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
             Clear
           </button>
         )}
-        <button
-          onClick={() => fetchTimeline(debouncedTimelineSearch)}
-          className="shrink-0 text-[10px] text-[var(--color-figma-accent)] hover:underline"
-        >
-          Refresh
-        </button>
       </div>
 
-      {/* Recovery surfaces */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Timeline + optional detail side panel */}
+      <div className={`flex-1 overflow-hidden ${detailPanel ? 'flex min-h-0' : ''}`}>
+      <div className={`${detailPanel ? 'min-w-0 flex-1 overflow-hidden border-r border-[var(--color-figma-border)]' : ''} overflow-y-auto`}>
         {timelineLoading && !hasAnyEntries && (
           <div aria-label="Loading history…" aria-busy="true">
             {[
@@ -476,162 +444,140 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
 
         {!timelineLoading && !timelineError && !isEmpty && !isFilteredEmpty && (
           <>
-            <RecoverySection
-              title="Undo recent edits"
-              countLabel={`${filteredLocalEntries.length + filteredOperations.length} option${filteredLocalEntries.length + filteredOperations.length !== 1 ? 's' : ''}`}
+            <HistorySection
+              title="Recent changes"
             >
-              <RecoverySubsection
-                title="Session"
-              >
-                {filteredLocalEntries.length > 0 ? filteredLocalEntries.map(({ description, stepsToUndo }) => {
-                  const isTop = stepsToUndo === 1;
-                  const isUndoingThis = undoingToEntry !== null && undoingToEntry >= stepsToUndo;
-                  const isBusy = undoingToEntry !== null;
-                  return (
-                    <div key={`local-${stepsToUndo}`} className="flex items-start gap-2 px-3 py-2 border-t border-[var(--color-figma-border)] first:border-t-0 hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
-                      <div className="mt-0.5 shrink-0">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <TypePill kind="local" />
+              {recentChangesEmpty ? (
+                <FeedbackPlaceholder
+                  variant={filterTokenPath ? 'no-results' : 'empty'}
+                  size="section"
+                  title="No recent changes."
+                  description={filterTokenPath ? 'Try another token or clear the filter.' : 'Make an edit to see changes here.'}
+                />
+              ) : (
+                <>
+                  {filteredLocalEntries.map(({ description, stepsToUndo }) => {
+                    const isTop = stepsToUndo === 1;
+                    const isUndoingThis = undoingToEntry !== null && undoingToEntry >= stepsToUndo;
+                    const isBusy = undoingToEntry !== null;
+                    return (
+                      <div key={`local-${stepsToUndo}`} className="flex items-start gap-2 px-3 py-2 border-t border-[var(--color-figma-border)] first:border-t-0 hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
+                        <div className="mt-0.5 shrink-0">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
                           <span className="text-[10px] truncate min-w-0 text-[var(--color-figma-text)]">{description}</span>
                         </div>
-                        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
-                          Not persisted yet
-                        </p>
+                        <div className="shrink-0 mt-0.5 flex items-center gap-1">
+                          {executeUndo && (
+                            <button
+                              onClick={() => handleUndoToEntry(stepsToUndo)}
+                              disabled={isBusy}
+                              title={isTop ? 'Undo this action' : `Undo this and ${stepsToUndo - 1} newer action${stepsToUndo > 2 ? 's' : ''}`}
+                              className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                            >
+                              {isUndoingThis ? (
+                                <span className="flex items-center gap-1"><Spinner size="xs" />Undoing…</span>
+                              ) : isTop ? 'Undo' : `Undo ${stepsToUndo}`}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="shrink-0 mt-0.5 flex items-center gap-1">
-                        {executeUndo && (
-                          <button
-                            onClick={() => handleUndoToEntry(stepsToUndo)}
-                            disabled={isBusy}
-                            title={isTop ? 'Undo this action (⌘Z)' : `Undo this and ${stepsToUndo - 1} newer action${stepsToUndo > 2 ? 's' : ''}`}
-                            className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
-                          >
-                            {isUndoingThis ? (
-                              <span className="flex items-center gap-1"><Spinner size="xs" />Undoing…</span>
-                            ) : isTop ? 'Undo' : `Undo ${stepsToUndo}`}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }) : (
-                  <FeedbackPlaceholder
-                    variant={filterTokenPath ? 'no-results' : 'empty'}
-                    size="section"
-                    title={filterTokenPath ? 'Session undo hidden while filtering.' : 'No session undo yet.'}
-                    description={filterTokenPath ? 'Local undo cannot scope to a single token.' : 'Make an edit to see undo options.'}
-                  />
-                )}
-              </RecoverySubsection>
+                    );
+                  })}
 
-              <RecoverySubsection
-                title="Saved server edits"
-              >
-                {filteredOperations.length > 0 ? filteredOperations.map((op) => {
-                  const isError = op.type.includes('error');
-                  const metadataChanges = getFieldChanges(op);
-                  const isSetMetadata = metadataChanges.length > 0;
-                  const impactLabel = isSetMetadata
-                    ? `${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''}`
-                    : `${op.affectedPaths.length} path${op.affectedPaths.length !== 1 ? 's' : ''}`;
-                  return (
-                    <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-t border-[var(--color-figma-border)] first:border-t-0 hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
-                      <div className="mt-0.5 shrink-0">
-                        <OpIcon type={op.type} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <TypePill kind="action" />
+                  {filteredOperations.map((op) => {
+                    const isError = op.type.includes('error');
+                    const metadataChanges = getFieldChanges(op);
+                    const isSetMetadata = metadataChanges.length > 0;
+                    const impactLabel = isSetMetadata
+                      ? `${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''}`
+                      : `${op.affectedPaths.length} path${op.affectedPaths.length !== 1 ? 's' : ''}`;
+                    return (
+                      <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-t border-[var(--color-figma-border)] first:border-t-0 hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
+                        <div className="mt-0.5 shrink-0">
+                          <OpIcon type={op.type} />
+                        </div>
+                        <div className="flex-1 min-w-0">
                           <span className={`text-[10px] truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`}>
                             {op.description}
                           </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{op.resourceId}</span>
-                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
-                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
-                        </div>
-                        {isSetMetadata && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {metadataChanges.map((change) => (
-                              <span
-                                key={`${op.id}-${change.field}`}
-                                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
-                                title={`${change.label}: ${formatMetadataValue(change.before)} → ${formatMetadataValue(change.after)}`}
-                              >
-                                {change.label}: {formatMetadataValue(change.before)} → {formatMetadataValue(change.after)}
-                              </span>
-                            ))}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{op.resourceId}</span>
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
                           </div>
-                        )}
-                      </div>
-                      <div className="shrink-0 mt-0.5 flex items-center gap-1">
-                        {isError ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning,#f59e0b)_12%,transparent)] text-[var(--color-figma-warning,#f59e0b)]">
-                            Failed
-                          </span>
-                        ) : op.rolledBack ? (
-                          <>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
-                              Rolled back
+                          {isSetMetadata && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {metadataChanges.map((change) => (
+                                <span
+                                  key={`${op.id}-${change.field}`}
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
+                                  title={`${change.label}: ${formatMetadataValue(change.before)} → ${formatMetadataValue(change.after)}`}
+                                >
+                                  {change.label}: {formatMetadataValue(change.before)} → {formatMetadataValue(change.after)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="shrink-0 mt-0.5 flex items-center gap-1">
+                          {isError ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning,#f59e0b)_12%,transparent)] text-[var(--color-figma-warning,#f59e0b)]">
+                              Failed
                             </span>
-                            {redoableOpIds?.has(op.id) && onServerRedo && (
-                              <button
-                                onClick={() => handleRedo(op.id)}
-                                disabled={redoing !== null || rollingBack !== null}
-                                title="Redo this operation"
-                                className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
-                              >
-                                {redoing === op.id ? (
-                                  <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span>
-                                ) : 'Redo'}
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmOp(op)}
-                            disabled={rollingBack !== null}
-                            className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
-                          >
-                            {rollingBack === op.id ? (
-                              <span className="flex items-center gap-1"><Spinner size="xs" />Rolling back…</span>
-                            ) : 'Rollback'}
-                          </button>
-                        )}
+                          ) : op.rolledBack ? (
+                            <>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                                Rolled back
+                              </span>
+                              {redoableOpIds?.has(op.id) && onServerRedo && (
+                                <button
+                                  onClick={() => handleRedo(op.id)}
+                                  disabled={redoing !== null || rollingBack !== null}
+                                  title="Redo this operation"
+                                  className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                                >
+                                  {redoing === op.id ? (
+                                    <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span>
+                                  ) : 'Redo'}
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmOp(op)}
+                              disabled={rollingBack !== null}
+                              className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                            >
+                              {rollingBack === op.id ? (
+                                <span className="flex items-center gap-1"><Spinner size="xs" />Rolling back…</span>
+                              ) : 'Rollback'}
+                            </button>
+                          )}
+                        </div>
                       </div>
+                    );
+                  })}
+
+                  {hasMoreOperations && onLoadMoreOperations && (
+                    <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
+                      <button
+                        onClick={onLoadMoreOperations}
+                        className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      >
+                        Load more saved edits{totalOperations != null ? ` (${totalOperations - (recentOperations?.length ?? 0)} remaining)` : ''}
+                      </button>
                     </div>
-                  );
-                }) : (
-                  <FeedbackPlaceholder
-                    variant={filterTokenPath ? 'no-results' : 'empty'}
-                    size="section"
-                    title="No saved edits match."
-                    description={filterTokenPath ? 'Try another token or clear the filter.' : 'Server-side changes appear here.'}
-                  />
-                )}
+                  )}
+                </>
+              )}
+            </HistorySection>
 
-                {hasMoreOperations && onLoadMoreOperations && (
-                  <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-                    <button
-                      onClick={onLoadMoreOperations}
-                      className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                    >
-                      Load more saved edits{totalOperations != null ? ` (${totalOperations - (recentOperations?.length ?? 0)} remaining)` : ''}
-                    </button>
-                  </div>
-                )}
-              </RecoverySubsection>
-            </RecoverySection>
-
-            <RecoverySection
-              title="Restore snapshot"
-              countLabel={`${filteredSnapshots.length} snapshot${filteredSnapshots.length !== 1 ? 's' : ''}`}
+            <HistorySection
+              title="Checkpoints"
               action={showSaveInput ? (
                 <div className="flex items-center gap-1.5 min-w-0 max-w-[240px]">
                   <input
@@ -694,10 +640,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <TypePill kind="snapshot" />
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{snapshot.label}</span>
-                    </div>
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{snapshot.label}</span>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
                       {formatSnapshotWorkspaceCounts(snapshot) ? (
@@ -718,11 +661,10 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   description="Save a checkpoint before large changes to restore later."
                 />
               )}
-            </RecoverySection>
+            </HistorySection>
 
-            <RecoverySection
-              title="Return to git commit"
-              countLabel={`${filteredCommits.length} commit${filteredCommits.length !== 1 ? 's' : ''}`}
+            <HistorySection
+              title="Git history"
               action={(
                 <button
                   onClick={() => {
@@ -802,7 +744,6 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                           {isB && (
                             <span className="shrink-0 text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
                           )}
-                          <TypePill kind="commit" />
                           <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -859,10 +800,7 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <TypePill kind="commit" />
-                        <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
-                      </div>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
                         <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
@@ -903,9 +841,15 @@ export function HistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens
                   </button>
                 </div>
               )}
-            </RecoverySection>
+            </HistorySection>
           </>
         )}
+      </div>
+      {detailPanel && (
+        <div className="w-[320px] min-w-[280px] shrink-0 overflow-hidden panel-slide-in">
+          {detailPanel}
+        </div>
+      )}
       </div>
     </div>
   );

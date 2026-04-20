@@ -15,6 +15,7 @@ import { JsonEditorView } from "../JsonEditorView";
 import { TokenListFilteredEmptyState } from "./TokenListStates";
 import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
+import { MODE_COLUMN_WIDTH } from "../tokenListTypes";
 import { apiFetch } from "../../shared/apiFetch";
 
 type VisibleTokenRow = {
@@ -258,7 +259,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           </span>
         )}
       </div>
-      {multiModeData.results.map((r) => (
+      {multiModeData.results.map((r, i) => (
         <ModeColumnHeader
           key={r.optionName}
           modeName={r.optionName}
@@ -266,10 +267,12 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           serverUrl={serverUrl}
           connected={connected}
           onMutated={() => onModeMutated?.()}
+          allModeNames={multiModeData.results.map((m) => m.optionName)}
+          modeIndex={i}
         />
       ))}
       {addingMode ? (
-        <div className="w-[48px] shrink-0 px-0.5 py-0.5 border-l border-[var(--color-figma-border)]">
+        <div className={`${MODE_COLUMN_WIDTH} shrink-0 px-1 py-0.5 border-l border-[var(--color-figma-border)]`}>
           <input
             type="text"
             value={newModeName}
@@ -289,8 +292,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             }}
             autoFocus
             disabled={addingModeSaving}
-            placeholder="Name"
-            className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-0.5 py-0.5 text-[9px] text-[var(--color-figma-text)] outline-none"
+            placeholder="Mode name"
+            className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
           />
         </div>
       ) : (
@@ -298,7 +301,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           type="button"
           onClick={() => setAddingMode(true)}
           disabled={!connected}
-          className="w-[24px] shrink-0 flex items-center justify-center py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
+          className="w-[28px] shrink-0 flex items-center justify-center py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
           title="Add mode"
         >
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">

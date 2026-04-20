@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { ReactNode, Ref } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
-import { apiFetch } from "../shared/apiFetch";
-import { useCollectionStateContext } from "../contexts/TokenDataContext";
 import {
   CollectionMergeInline,
   SetDeleteDialog,
@@ -15,8 +13,6 @@ interface CollectionDetailsPanelProps {
   collectionIds: string[];
   collectionTokenCounts: Record<string, number>;
   collectionDescriptions: Record<string, string>;
-  serverUrl: string;
-  connected: boolean;
   onClose: () => void;
   onRename?: (collectionId: string) => void;
   onDuplicate?: (collectionId: string) => void;
@@ -97,8 +93,6 @@ export function CollectionDetailsPanel({
   collectionIds,
   collectionTokenCounts,
   collectionDescriptions,
-  serverUrl,
-  connected,
   onClose,
   onRename,
   onDuplicate,
@@ -139,14 +133,6 @@ export function CollectionDetailsPanel({
   onSplitConfirm,
   onSplitClose,
 }: CollectionDetailsPanelProps) {
-  const { refreshCollections } = useCollectionStateContext();
-  const [modeDraft, setModeDraft] = useState("");
-  const [modeSaving, setModeSaving] = useState(false);
-  const [modeDeletingName, setModeDeletingName] = useState<string | null>(null);
-  const [modeRenamingName, setModeRenamingName] = useState<string | null>(null);
-  const [modeRenameValue, setModeRenameValue] = useState("");
-  const [modeError, setModeError] = useState("");
-
   useEffect(() => {
     if (!collection || !onEditInfo) {
       return;
@@ -156,12 +142,6 @@ export function CollectionDetailsPanel({
     }
     onEditInfo(collection.id);
   }, [collection, editingMetadataCollectionId, onEditInfo]);
-
-  useEffect(() => {
-    setModeDraft("");
-    setModeError("");
-    setModeDeletingName(null);
-  }, [collection?.id]);
 
   const deletePreflight = useCollectionStructuralPreflight({
     operation: "delete",
@@ -183,87 +163,6 @@ export function CollectionDetailsPanel({
     deleteOriginal: splitDeleteOriginal,
     enabled: !!splittingCollectionId && !!onSplitConfirm,
   });
-
-  const handleAddMode = useCallback(async () => {
-    if (!collection || !modeDraft.trim()) {
-      return;
-    }
-    setModeSaving(true);
-    setModeError("");
-    try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(collection.id)}/modes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: modeDraft.trim() }),
-        },
-      );
-      setModeDraft("");
-      await refreshCollections();
-    } catch (error) {
-      setModeError(error instanceof Error ? error.message : "Failed to add mode.");
-    } finally {
-      setModeSaving(false);
-    }
-  }, [collection, modeDraft, refreshCollections, serverUrl]);
-
-  const handleDeleteMode = useCallback(
-    async (modeName: string) => {
-      if (!collection) {
-        return;
-      }
-      setModeDeletingName(modeName);
-      setModeError("");
-      try {
-        await apiFetch(
-          `${serverUrl}/api/collections/${encodeURIComponent(collection.id)}/modes/${encodeURIComponent(modeName)}`,
-          { method: "DELETE" },
-        );
-        await refreshCollections();
-      } catch (error) {
-        setModeError(
-          error instanceof Error ? error.message : "Failed to delete mode.",
-        );
-      } finally {
-        setModeDeletingName((currentName) =>
-          currentName === modeName ? null : currentName,
-        );
-      }
-    },
-    [collection, refreshCollections, serverUrl],
-  );
-  const handleRenameMode = useCallback(
-    async (oldName: string) => {
-      const newName = modeRenameValue.trim();
-      if (!collection || !newName || newName === oldName) {
-        setModeRenamingName(null);
-        return;
-      }
-      setModeSaving(true);
-      setModeError("");
-      try {
-        await apiFetch(
-          `${serverUrl}/api/collections/${encodeURIComponent(collection.id)}/modes/${encodeURIComponent(oldName)}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: newName }),
-          },
-        );
-        setModeRenamingName(null);
-        await refreshCollections();
-      } catch (error) {
-        setModeError(
-          error instanceof Error ? error.message : "Failed to rename mode.",
-        );
-      } finally {
-        setModeSaving(false);
-      }
-    },
-    [collection, modeRenameValue, refreshCollections, serverUrl],
-  );
-  const modeMutationInFlight = modeSaving || modeDeletingName !== null;
 
   if (!collection) {
     return (
@@ -350,95 +249,6 @@ export function CollectionDetailsPanel({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <Section
-            title="Modes"
-            description="Add or remove modes for this collection."
-          >
-            <div className="space-y-2">
-              {collection.modes.length === 0 ? (
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  No modes yet. Add them here before authoring mode-specific values.
-                </p>
-              ) : (
-                collection.modes.map((mode) => (
-                  <div
-                    key={mode.name}
-                    className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2"
-                  >
-                    {modeRenamingName === mode.name ? (
-                      <input
-                        type="text"
-                        value={modeRenameValue}
-                        onChange={(e) => {
-                          setModeRenameValue(e.target.value);
-                          setModeError("");
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") void handleRenameMode(mode.name);
-                          if (e.key === "Escape") setModeRenamingName(null);
-                        }}
-                        onBlur={() => void handleRenameMode(mode.name)}
-                        autoFocus
-                        disabled={modeSaving}
-                        className="flex-1 rounded-md border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (connected && !modeMutationInFlight) {
-                            setModeRenamingName(mode.name);
-                            setModeRenameValue(mode.name);
-                          }
-                        }}
-                        className="text-[11px] font-medium text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] transition-colors"
-                        title="Click to rename"
-                      >
-                        {mode.name}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteMode(mode.name)}
-                      disabled={!connected || modeMutationInFlight}
-                      className="rounded-md px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {modeDeletingName === mode.name ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
-                ))
-              )}
-              <div className="space-y-2 rounded-md border border-[var(--color-figma-border)] p-2.5">
-                <input
-                  type="text"
-                  value={modeDraft}
-                  onChange={(event) => {
-                    setModeDraft(event.target.value);
-                    setModeError("");
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      void handleAddMode();
-                    }
-                  }}
-                  placeholder="Add a mode"
-                  className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                />
-                {modeError ? (
-                  <p className="text-[10px] text-[var(--color-figma-error)]">{modeError}</p>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => void handleAddMode()}
-                  disabled={!modeDraft.trim() || modeMutationInFlight || !connected}
-                  className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white disabled:opacity-50"
-                >
-                  {modeSaving ? "Adding..." : "Add mode"}
-                </button>
-              </div>
-            </div>
-          </Section>
-
           <Section title="Description">
             <div className="space-y-2">
               <textarea

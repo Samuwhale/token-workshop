@@ -39,7 +39,8 @@ export type TokensLibraryContextualSurface =
   | "collection-details"
   | "token-editor"
   | "generated-group-editor"
-  | "token-preview";
+  | "token-preview"
+  | "color-analysis";
 export type TokensLibrarySurfaceSlot =
   | "library-body"
   | "contextual-panel"
@@ -346,6 +347,10 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
       "token-preview": {
         label: "Token preview",
         usage: "Inspect token details.",
+      },
+      "color-analysis": {
+        label: "Color analysis",
+        usage: "Contrast matrix and lightness scale inspector.",
       },
     } satisfies Record<
       TokensLibraryContextualSurface,

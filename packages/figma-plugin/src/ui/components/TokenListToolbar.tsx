@@ -1,7 +1,6 @@
 import React, {
   useCallback,
   type RefObject,
-  type ReactNode,
 } from "react";
 import {
   ViewMenu,
@@ -51,7 +50,6 @@ export interface TokenListToolbarProps {
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
   onOpenCreateCollection?: () => void;
-  scenarioControl?: ReactNode;
   onCreateGeneratedGroup?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
@@ -96,7 +94,6 @@ export function TokenListToolbar({
   onShowPasteModal,
   onOpenImportPanel,
   onOpenCreateCollection,
-  scenarioControl,
   onCreateGeneratedGroup,
   onSelectTokens,
   onBulkEdit,
@@ -184,8 +181,6 @@ export function TokenListToolbar({
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {scenarioControl}
-
             <div className="relative shrink-0">
               <button
                 ref={createToolsMenuButtonRef}

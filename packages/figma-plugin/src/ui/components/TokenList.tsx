@@ -203,7 +203,6 @@ export function TokenList({
   showPreviewSplit = false,
   editingTokenPath,
   compareHandle,
-  toolbarScenarioControl,
 }: TokenListProps) {
   const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
@@ -2480,7 +2479,6 @@ export function TokenList({
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
             onOpenCreateCollection={onOpenCreateCollection}
-            scenarioControl={toolbarScenarioControl}
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}

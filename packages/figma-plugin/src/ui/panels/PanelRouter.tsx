@@ -17,7 +17,6 @@ import { GeneratedGroupEditor } from "../components/GeneratedGroupEditor";
 import { TokenDetailPreview } from "../components/TokenDetailPreview";
 import { CollectionRail } from "../components/CollectionRail";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
-import { CollectionScenarioControl } from "../components/CollectionScenarioControl";
 import { PublishPanel } from "../components/PublishPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 import { ImportPanel } from "../components/ImportPanel";
@@ -27,6 +26,7 @@ import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
 import { ExportPanel } from "../components/ExportPanel";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { HealthPanel } from "../components/HealthPanel";
+import { ColorAnalysisPanel } from "../components/ColorAnalysisPanel";
 import { PreviewPanel } from "../components/PreviewPanel";
 import { FeedbackPlaceholder } from "../components/FeedbackPlaceholder";
 import { SettingsPanel } from "../components/SettingsPanel";
@@ -255,6 +255,10 @@ export function PanelRouter({
   const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(
     null,
   );
+  const [healthDetailToken, setHealthDetailToken] = useState<{
+    path: string;
+    collectionId: string;
+  } | null>(null);
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"
       ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
@@ -872,8 +876,6 @@ export function PanelRouter({
               collectionIds={collectionIds}
               collectionTokenCounts={collectionTokenCounts}
               collectionDescriptions={collectionDescriptions}
-              serverUrl={serverUrl}
-              connected={connected}
               onClose={() => switchContextualSurface({ surface: null })}
               onRename={collectionStructureController.onRename}
               onDuplicate={collectionStructureController.onDuplicate}
@@ -995,6 +997,27 @@ export function PanelRouter({
         };
       }
 
+      if (activeTokensContextualSurface === "color-analysis") {
+        return {
+          surface: "color-analysis",
+          content: (
+            <ColorAnalysisPanel
+              allTokensFlat={allTokensFlat}
+              pathToCollectionId={pathToCollectionId}
+              collections={collections}
+              currentCollectionId={currentCollectionId}
+              onNavigateToToken={(path, collectionId) => {
+                setCurrentCollectionId(collectionId);
+                setPendingHighlight(path);
+                switchContextualSurface({ surface: null });
+              }}
+              onClose={() => switchContextualSurface({ surface: null })}
+            />
+          ),
+          onDismiss: () => switchContextualSurface({ surface: null }),
+        };
+      }
+
       return null;
     };
 
@@ -1032,13 +1055,6 @@ export function PanelRouter({
         showPreviewSplit={controller.showPreviewSplit}
         editingTokenPath={editingToken?.path}
         compareHandle={controller.tokenListCompareRef}
-        toolbarScenarioControl={
-          <CollectionScenarioControl
-            collections={collections}
-            selectedModes={selectedModes}
-            setSelectedModes={setSelectedModes}
-          />
-        }
       />
     </div>
   );
@@ -1599,15 +1615,7 @@ export function PanelRouter({
   }
 
   function renderTokensHealth(): ReactNode {
-    return (
-      <div className="flex h-full flex-col overflow-hidden">
-        <PanelContentHeader
-          primaryAction={{
-            label: "Refresh audit",
-            onClick: controller.refreshValidation,
-          }}
-        />
-        <div className="min-h-0 flex-1 overflow-hidden">
+    const healthPanel = (
       <ErrorBoundary
         panelName="Audit"
         onReset={() => navigateTo("tokens", "health")}
@@ -1620,20 +1628,13 @@ export function PanelRouter({
           lintViolations={controller.lintViolations}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={pathToCollectionId}
-          collections={collections}
           tokenUsageCounts={tokenUsageCounts}
           heatmapResult={heatmapResult}
           onNavigateTo={(topTab, subTab) =>
             navigateTo(topTab as TopTab, subTab as SubTab | undefined)
           }
-          onNavigateToToken={(path, set) => {
-            beginHandoff({
-              reason:
-                "Inspect the source token behind this audit finding, then return to Audit.",
-            });
-            setCurrentCollectionId(set);
-            navigateTo("tokens", "tokens", { preserveHandoff: true });
-            setPendingHighlight(path);
+          onNavigateToToken={(path, collectionId) => {
+            setHealthDetailToken({ path, collectionId });
           }}
           onNavigateToGeneratedGroup={(generatorId) => {
             beginHandoff({
@@ -1655,6 +1656,63 @@ export function PanelRouter({
           onError={controller.setErrorToast}
         />
       </ErrorBoundary>
+    );
+
+    return (
+      <div className="flex h-full flex-col overflow-hidden">
+        <PanelContentHeader
+          primaryAction={{
+            label: "Refresh audit",
+            onClick: controller.refreshValidation,
+          }}
+        />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {healthDetailToken ? (
+            <div className="flex min-h-0 flex-1 h-full overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden border-r border-[var(--color-figma-border)]">
+                {healthPanel}
+              </div>
+              <div className="w-[320px] min-w-[280px] shrink-0 overflow-hidden panel-slide-in">
+                <TokenDetailPreview
+                  tokenPath={healthDetailToken.path}
+                  storageCollectionId={healthDetailToken.collectionId}
+                  allTokensFlat={allTokensFlat}
+                  pathToCollectionId={pathToCollectionId}
+                  tokenUsageCounts={tokenUsageCounts}
+                  generators={generators}
+                  derivedTokenPaths={derivedTokenPaths}
+                  lintViolations={controller.lintViolations}
+                  serverUrl={serverUrl}
+                  onEdit={() => {
+                    beginHandoff({
+                      reason: "Edit token from Health audit.",
+                    });
+                    setCurrentCollectionId(healthDetailToken.collectionId);
+                    navigateTo("tokens", "tokens", { preserveHandoff: true });
+                    setPendingHighlight(healthDetailToken.path);
+                    setEditingToken({
+                      path: healthDetailToken.path,
+                      currentCollectionId: healthDetailToken.collectionId,
+                    });
+                  }}
+                  onClose={() => setHealthDetailToken(null)}
+                  onNavigateToAlias={(path) => {
+                    const cid = pathToCollectionId[path];
+                    if (cid) setHealthDetailToken({ path, collectionId: cid });
+                  }}
+                  onNavigateToGeneratedGroup={(generatorId) => {
+                    beginHandoff({
+                      reason: "Inspect the generator behind this audit finding, then return to Audit.",
+                    });
+                    navigateTo("tokens", "tokens", { preserveHandoff: true });
+                    openGeneratedGroupEditor({ mode: "edit", id: generatorId });
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            healthPanel
+          )}
         </div>
       </div>
     );

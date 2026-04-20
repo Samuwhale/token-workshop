@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import type { LintViolation } from "../hooks/useLint";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import type { UndoSlot } from "../hooks/useUndo";
@@ -15,10 +15,8 @@ import {
 } from "../shared/noticeSystem";
 import type { NoticeSeverity } from "../shared/noticeSystem";
 import { apiFetch } from "../shared/apiFetch";
-import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
-import { hexToLuminance } from "../shared/colorUtils";
-import { normalizeHex } from "@tokenmanager/core";
-import type { TokenCollection } from "@tokenmanager/core";
+import { useDropdownMenu } from "../hooks/useDropdownMenu";
+import { dispatchToast } from "../shared/toastBus";
 import { LINT_RULE_BY_ID } from "../shared/lintRules";
 import {
   createTokenBody,
@@ -27,14 +25,10 @@ import {
 } from "../shared/tokenMutations";
 import { UnusedTokensPanel } from "./UnusedTokensPanel";
 import { DuplicateDetectionPanel } from "./DuplicateDetectionPanel";
-import { ContrastMatrixPanel } from "./ContrastMatrixPanel";
-import { LightnessInspectorPanel } from "./LightnessInspectorPanel";
 import { TokenPickerDropdown } from "./TokenPicker";
-import {
-  ensureUniqueSharedAliasPath,
-  promoteTokensToSharedAlias,
-  suggestSharedAliasPath,
-} from "../hooks/useExtractToAlias";
+import { promoteTokensToSharedAlias } from "../hooks/useExtractToAlias";
+import { useHealthData } from "../hooks/useHealthData";
+import type { AliasOpportunityGroup } from "../hooks/useHealthData";
 
 type HealthStatus = "healthy" | "warning" | "critical";
 
@@ -190,36 +184,6 @@ function getValidationPriorityCtaLabel(rule: string): string {
   }
 }
 
-function formatDuplicateValue(value: unknown): string {
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return String(value);
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "[complex value]";
-  }
-}
-
-interface AliasOpportunityToken {
-  path: string;
-  collectionId: string;
-}
-
-interface AliasOpportunityGroup {
-  id: string;
-  tokens: AliasOpportunityToken[];
-  typeLabel: string;
-  valueLabel: string;
-  suggestedPrimitivePath: string;
-  suggestedPrimitiveCollectionId: string;
-  colorHex?: string;
-}
-
 interface DeprecatedUsageDependent {
   path: string;
   collectionId: string;
@@ -241,8 +205,6 @@ export interface HealthPanelProps {
   lintViolations: LintViolation[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  /** Collections enable cross-collection contrast checking in the matrix. */
-  collections?: TokenCollection[];
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
   onNavigateTo: (topTab: "tokens" | "canvas" | "publish", subTab?: string) => void;
@@ -269,7 +231,6 @@ export function HealthPanel({
   lintViolations,
   allTokensFlat,
   pathToCollectionId,
-  collections = [],
   tokenUsageCounts,
   heatmapResult,
   onNavigateTo,
@@ -385,12 +346,7 @@ export function HealthPanel({
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
   const [validationReportExpanded, setValidationReportExpanded] =
     useState(true);
-  const [validationToolsExpanded, setValidationToolsExpanded] =
-    useState(false);
-  const [validationCopied, setValidationCopied] = useState(false);
-  const [validationExported, setValidationExported] = useState<
-    "json" | "csv" | null
-  >(null);
+  const exportMenu = useDropdownMenu();
   const [issueGroupVisibleCounts, setIssueGroupVisibleCounts] = useState<
     Record<string, number>
   >({});
@@ -439,277 +395,18 @@ export function HealthPanel({
     };
   }, [connected, serverUrl, reloadKey, validationIssuesProp]);
 
-  // ── Derived data from allTokensFlat ────────────────────────────────────────
-
-  const allTokensUnified = useMemo(() => {
-    const result: Record<
-      string,
-      {
-        $value: unknown;
-        $type: string;
-        collectionId: string;
-        $scopes?: string[];
-        $lifecycle?: TokenMapEntry["$lifecycle"];
-      }
-    > = {};
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      result[path] = {
-        $value: entry.$value,
-        $type: entry.$type,
-        collectionId: pathToCollectionId[path] ?? "",
-        $scopes: entry.$scopes,
-        $lifecycle: entry.$lifecycle,
-      };
-    }
-    return result;
-  }, [allTokensFlat, pathToCollectionId]);
-
-  const resolveColorHex = useMemo(() => {
-    return (path: string, visited = new Set<string>()): string | null => {
-      if (visited.has(path)) return null;
-      visited.add(path);
-      const entry = allTokensUnified[path];
-      if (!entry || entry.$type !== "color") return null;
-      const v = entry.$value as import("@tokenmanager/core").TokenValue;
-      if (isAlias(v)) {
-        const aliasPath = extractAliasPath(v);
-        return aliasPath ? resolveColorHex(aliasPath, visited) : null;
-      }
-      return typeof v === "string" &&
-        /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)
-        ? v
-        : null;
-    };
-  }, [allTokensUnified]);
-  // Non-alias color tokens sorted by luminance (for ContrastMatrixPanel)
-  const colorTokens = useMemo((): { path: string; hex: string }[] => {
-    const colors: { path: string; hex: string }[] = [];
-    for (const [path, entry] of Object.entries(allTokensUnified)) {
-      if (entry.$type !== "color") continue;
-      if (isAlias(entry.$value as import("@tokenmanager/core").TokenValue))
-        continue;
-      const v = entry.$value;
-      if (
-        typeof v !== "string" ||
-        !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)
-      )
-        continue;
-      colors.push({ path, hex: normalizeHex(v) });
-    }
-    return colors.sort(
-      (a, b) => (hexToLuminance(a.hex) ?? 0) - (hexToLuminance(b.hex) ?? 0),
-    );
-  }, [allTokensUnified]);
-  // All color tokens with alias resolution (for LightnessInspectorPanel)
-  const allColorTokens = useMemo((): {
-    path: string;
-    collectionId: string;
-    hex: string;
-  }[] => {
-    const colors: { path: string; collectionId: string; hex: string }[] = [];
-    for (const [path, entry] of Object.entries(allTokensUnified)) {
-      if (entry.$type !== "color") continue;
-      const hex = resolveColorHex(path);
-      if (hex) {
-        colors.push({
-          path,
-          collectionId: entry.collectionId,
-          hex: normalizeHex(hex),
-        });
-      }
-    }
-    return colors;
-  }, [allTokensUnified, resolveColorHex]);
-  // Duplicate groups from validation results (for DuplicateDetectionPanel)
-  const lintDuplicateGroups = useMemo(() => {
-    if (!validationIssuesProp) return [];
-    const dupViolations = validationIssuesProp.filter(
-      (v) => v.rule === "no-duplicate-values" && v.group,
-    );
-    if (dupViolations.length === 0) return [];
-    const byGroup = new Map<
-      string,
-      { tokens: { path: string; collectionId: string }[] }
-    >();
-    for (const v of dupViolations) {
-      const groupId = v.group!;
-      if (!byGroup.has(groupId)) byGroup.set(groupId, { tokens: [] });
-      const entry = byGroup.get(groupId)!;
-      if (
-        !entry.tokens.some((t) => t.path === v.path && t.collectionId === v.collectionId)
-      ) {
-        entry.tokens.push({ path: v.path, collectionId: v.collectionId });
-      }
-    }
-    return [...byGroup.entries()]
-      .filter(([, g]) => g.tokens.length > 1)
-      .map(([id, { tokens }]) => {
-        const sampleToken = tokens[0];
-        const tokenEntry = sampleToken
-          ? allTokensUnified[sampleToken.path]
-          : undefined;
-        const colorHex =
-          tokenEntry?.$type === "color" && typeof tokenEntry.$value === "string"
-            ? tokenEntry.$value
-            : undefined;
-        return {
-          id,
-          valueLabel: tokenEntry
-            ? formatDuplicateValue(tokenEntry.$value)
-            : "Unknown value",
-          typeLabel: tokenEntry?.$type ?? "unknown",
-          colorHex,
-          tokens: tokens
-            .map(({ path, collectionId }) => {
-              const duplicateEntry = allTokensUnified[path];
-              return {
-                path,
-                collectionId,
-                type: duplicateEntry?.$type ?? "unknown",
-                lifecycle: duplicateEntry?.$lifecycle,
-                scopes: duplicateEntry?.$scopes ?? [],
-                colorHex:
-                  duplicateEntry?.$type === "color" &&
-                  typeof duplicateEntry.$value === "string"
-                    ? duplicateEntry.$value
-                    : undefined,
-              };
-            })
-            .sort(
-              (a, b) =>
-                a.path.localeCompare(b.path) ||
-                a.collectionId.localeCompare(b.collectionId),
-            ),
-        };
-      })
-      .sort((a, b) => b.tokens.length - a.tokens.length);
-  }, [validationIssuesProp, allTokensUnified]);
-
-  const aliasOpportunityGroups = useMemo((): AliasOpportunityGroup[] => {
-    if (!validationIssuesProp) return [];
-    const groupedIssues = validationIssuesProp.filter(
-      (issue) => issue.rule === "alias-opportunity" && issue.group,
-    );
-    if (groupedIssues.length === 0) return [];
-
-    const groups = new Map<string, AliasOpportunityToken[]>();
-    for (const issue of groupedIssues) {
-      const groupId = issue.group!;
-      const existing = groups.get(groupId) ?? [];
-      if (
-        !existing.some(
-          (token) =>
-            token.path === issue.path && token.collectionId === issue.collectionId,
-        )
-      ) {
-        existing.push({ path: issue.path, collectionId: issue.collectionId });
-      }
-      groups.set(groupId, existing);
-    }
-
-    return [...groups.entries()]
-      .filter(([, tokens]) => tokens.length > 1)
-      .map(([id, tokens]) => {
-        const sortedTokens = [...tokens].sort(
-          (a, b) =>
-            a.path.localeCompare(b.path) ||
-            a.collectionId.localeCompare(b.collectionId),
-        );
-        const sampleEntry = allTokensUnified[sortedTokens[0]?.path ?? ""];
-        const sourceCollectionIds = Array.from(
-          new Set(sortedTokens.map((token) => token.collectionId)),
-        );
-        const suggestedPrimitiveCollectionId = sourceCollectionIds.includes(currentCollectionId)
-          ? currentCollectionId
-          : sortedTokens[0]?.collectionId ?? currentCollectionId;
-        const suggestedPrimitivePath = ensureUniqueSharedAliasPath(
-          suggestSharedAliasPath(
-            sortedTokens.map((token) => token.path),
-            sampleEntry?.$type,
-          ),
-          [
-            ...Object.keys(allTokensUnified),
-            ...sortedTokens.map((token) => token.path),
-          ],
-        );
-
-        return {
-          id,
-          tokens: sortedTokens,
-          typeLabel: sampleEntry?.$type ?? "unknown",
-          valueLabel: sampleEntry
-            ? formatDuplicateValue(sampleEntry.$value)
-            : "Unknown value",
-          suggestedPrimitivePath,
-          suggestedPrimitiveCollectionId,
-          colorHex:
-            sampleEntry?.$type === "color" &&
-            typeof sampleEntry.$value === "string"
-              ? sampleEntry.$value
-              : undefined,
-        };
-      })
-      .sort((a, b) => b.tokens.length - a.tokens.length);
-  }, [validationIssuesProp, allTokensUnified, currentCollectionId]);
-
-  // Color scales for LightnessInspectorPanel (groups with numeric suffix, ≥3 steps)
-  const colorScales = useMemo(() => {
-    const parentGroups = new Map<
-      string,
-      { path: string; label: string; hex: string }[]
-    >();
-    for (const t of allColorTokens) {
-      const parts = t.path.split(".");
-      const last = parts[parts.length - 1];
-      if (!/^\d+$/.test(last)) continue;
-      const parent = parts.slice(0, -1).join(".");
-      const list = parentGroups.get(parent) ?? [];
-      list.push({ path: t.path, label: last, hex: t.hex });
-      parentGroups.set(parent, list);
-    }
-    return [...parentGroups.entries()]
-      .filter(([, steps]) => steps.length >= 3)
-      .map(([parent, steps]) => ({
-        parent,
-        steps: steps.sort((a, b) => Number(a.label) - Number(b.label)),
-      }));
-  }, [allColorTokens]);
-  // Unused tokens (for UnusedTokensPanel)
-  const unusedTokens = useMemo(() => {
-    if (
-      Object.keys(tokenUsageCounts).length === 0 ||
-      Object.keys(allTokensUnified).length === 0
-    )
-      return [];
-    const referencedPaths = new Set<string>();
-    const collectRefs = (value: unknown) => {
-      if (typeof value === "string") {
-        const m = value.match(/^\{([^}]+)\}$/);
-        if (m) referencedPaths.add(m[1]);
-      } else if (Array.isArray(value)) {
-        for (const item of value) collectRefs(item);
-      } else if (value && typeof value === "object") {
-        for (const v of Object.values(value as Record<string, unknown>))
-          collectRefs(v);
-      }
-    };
-    for (const entry of Object.values(allTokensUnified))
-      collectRefs(entry.$value);
-    return Object.entries(allTokensUnified)
-      .filter(
-        ([path, _entry]) =>
-          (tokenUsageCounts[path] ?? 0) === 0 &&
-          !referencedPaths.has(path) &&
-          allTokensUnified[path]?.$lifecycle !== "deprecated",
-      )
-      .map(([path, entry]) => ({
-        path,
-        collectionId: entry.collectionId,
-        $type: entry.$type,
-        $lifecycle: entry.$lifecycle,
-      }))
-      .sort((a, b) => a.path.localeCompare(b.path));
-  }, [tokenUsageCounts, allTokensUnified]);
+  const {
+    allTokensUnified,
+    lintDuplicateGroups,
+    aliasOpportunityGroups,
+    unusedTokens,
+  } = useHealthData({
+    allTokensFlat,
+    pathToCollectionId,
+    tokenUsageCounts,
+    validationIssues: validationIssuesProp,
+    currentCollectionId,
+  });
   // ── Validation issue filtering ──────────────────────────────────────────────
 
   const suppressKey = (issue: ValidationIssue) =>
@@ -736,7 +433,6 @@ export function HealthPanel({
   useEffect(() => {
     if (validationIssuesProp === null) return;
     setValidationReportExpanded((activeIssues?.length ?? 0) > 0);
-    setValidationToolsExpanded(false);
   }, [validationIssuesProp, activeIssues?.length]);
 
   const issueGroups = (() => {
@@ -1309,130 +1005,105 @@ export function HealthPanel({
                           </button>
                         );
                       })}
-                      <button
-                        onClick={() =>
-                          setValidationToolsExpanded((current) => !current)
-                        }
-                        className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                        aria-expanded={validationToolsExpanded}
-                      >
-                        Tools
-                      </button>
+                      <div className="relative">
+                        <button
+                          ref={exportMenu.triggerRef}
+                          onClick={exportMenu.toggle}
+                          className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          aria-haspopup="true"
+                          aria-expanded={exportMenu.open}
+                        >
+                          &hellip;
+                        </button>
+                        {exportMenu.open && (
+                          <div
+                            ref={exportMenu.menuRef}
+                            className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-0.5"
+                            role="menu"
+                          >
+                            <button
+                              role="menuitem"
+                              onClick={() => {
+                                const issues = validationIssuesProp ?? [];
+                                const lines: string[] = [
+                                  `# Validation Report — ${issues.length} issue${issues.length !== 1 ? "s" : ""}\n`,
+                                ];
+                                for (const sev of ["error", "warning", "info"] as const) {
+                                  const group = issues.filter((i) => i.severity === sev);
+                                  if (group.length === 0) continue;
+                                  lines.push(`## ${sev.charAt(0).toUpperCase() + sev.slice(1)}s (${group.length})`);
+                                  for (const issue of group) {
+                                    lines.push(`- **${issue.path}** (collection: ${issue.collectionId}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ""}`);
+                                  }
+                                  lines.push("");
+                                }
+                                navigator.clipboard.writeText(lines.join("\n")).then(() => {
+                                  dispatchToast("Copied as Markdown", "success");
+                                });
+                                exportMenu.close();
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                            >
+                              Copy as Markdown
+                            </button>
+                            <button
+                              role="menuitem"
+                              onClick={() => {
+                                const issues = validationIssuesProp ?? [];
+                                const payload = {
+                                  generatedAt: new Date().toISOString(),
+                                  total: issues.length,
+                                  issues: issues.map((i) => ({
+                                    severity: i.severity,
+                                    rule: i.rule,
+                                    collectionId: i.collectionId,
+                                    path: i.path,
+                                    message: i.message,
+                                    ...(i.suggestedFix ? { suggestedFix: i.suggestedFix } : {}),
+                                  })),
+                                };
+                                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = "validation-report.json";
+                                a.click();
+                                URL.revokeObjectURL(url);
+                                dispatchToast("Exported JSON", "success");
+                                exportMenu.close();
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                            >
+                              Export JSON
+                            </button>
+                            <button
+                              role="menuitem"
+                              onClick={() => {
+                                const issues = validationIssuesProp ?? [];
+                                const header = "severity,rule,collectionId,path,message,suggestedFix";
+                                const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
+                                const rows = issues.map((i) =>
+                                  [i.severity, i.rule, i.collectionId, i.path, i.message, i.suggestedFix ?? ""].map(escape).join(","),
+                                );
+                                const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = "validation-report.csv";
+                                a.click();
+                                URL.revokeObjectURL(url);
+                                dispatchToast("Exported CSV", "success");
+                                exportMenu.close();
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                            >
+                              Export CSV
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  {validationToolsExpanded && (
-                    <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]/45">
-                      <button
-                        onClick={() => {
-                          const issues = validationIssuesProp ?? [];
-                          const lines: string[] = [
-                            `# Validation Report — ${issues.length} issue${issues.length !== 1 ? "s" : ""}\n`,
-                          ];
-                          for (const sev of [
-                            "error",
-                            "warning",
-                            "info",
-                          ] as const) {
-                            const group = issues.filter(
-                              (i) => i.severity === sev,
-                            );
-                            if (group.length === 0) continue;
-                            lines.push(
-                              `## ${sev.charAt(0).toUpperCase() + sev.slice(1)}s (${group.length})`,
-                            );
-                            for (const issue of group) {
-                              lines.push(
-                                `- **${issue.path}** (collection: ${issue.collectionId}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ""}`,
-                              );
-                            }
-                            lines.push("");
-                          }
-                          navigator.clipboard
-                            .writeText(lines.join("\n"))
-                            .then(() => {
-                              setValidationCopied(true);
-                              setTimeout(() => setValidationCopied(false), 1500);
-                            });
-                        }}
-                        className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        {validationCopied ? "Copied!" : "Copy MD"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          const issues = validationIssuesProp ?? [];
-                          const payload = {
-                            generatedAt: new Date().toISOString(),
-                            total: issues.length,
-                            issues: issues.map((i) => ({
-                              severity: i.severity,
-                              rule: i.rule,
-                              collectionId: i.collectionId,
-                              path: i.path,
-                              message: i.message,
-                              ...(i.suggestedFix
-                                ? { suggestedFix: i.suggestedFix }
-                                : {}),
-                            })),
-                          };
-                          const blob = new Blob(
-                            [JSON.stringify(payload, null, 2)],
-                            { type: "application/json" },
-                          );
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = "validation-report.json";
-                          a.click();
-                          URL.revokeObjectURL(url);
-                          setValidationExported("json");
-                          setTimeout(() => setValidationExported(null), 1500);
-                        }}
-                        className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        {validationExported === "json" ? "Saved!" : "JSON"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          const issues = validationIssuesProp ?? [];
-                          const header =
-                            "severity,rule,collectionId,path,message,suggestedFix";
-                          const escape = (s: string) =>
-                            `"${s.replace(/"/g, '""')}"`;
-                          const rows = issues.map((i) =>
-                            [
-                              i.severity,
-                              i.rule,
-                              i.collectionId,
-                              i.path,
-                              i.message,
-                              i.suggestedFix ?? "",
-                            ]
-                              .map(escape)
-                              .join(","),
-                          );
-                          const blob = new Blob(
-                            [[header, ...rows].join("\n")],
-                            {
-                              type: "text/csv",
-                            },
-                          );
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = "validation-report.csv";
-                          a.click();
-                          URL.revokeObjectURL(url);
-                          setValidationExported("csv");
-                          setTimeout(() => setValidationExported(null), 1500);
-                        }}
-                        className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        {validationExported === "csv" ? "Saved!" : "CSV"}
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {validationReportExpanded && filteredIssues && filteredIssues.length === 0 ? (
@@ -1725,8 +1396,6 @@ export function HealthPanel({
               <UnusedTokensPanel
                 serverUrl={serverUrl}
                 unusedTokens={unusedTokens}
-                hasUsageData={hasUsageData}
-                unusedCount={unusedCount}
                 onNavigateToToken={onNavigateToToken}
                 onError={onError}
                 onMutate={() => setReloadKey((k) => k + 1)}
@@ -1989,28 +1658,6 @@ export function HealthPanel({
               />
             </div>
 
-            {/* Color Contrast Matrix */}
-            <ContrastMatrixPanel
-              colorTokens={colorTokens}
-              collections={collections}
-              allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToCollectionId}
-              onNavigateToToken={onNavigateToToken}
-            />
-
-            {/* Color Scale Lightness Inspector */}
-            <LightnessInspectorPanel
-              colorScales={colorScales}
-              onNavigateToToken={
-                onNavigateToToken
-                  ? (path) => {
-                      const collectionId = pathToCollectionId[path];
-                      if (!collectionId) return;
-                      onNavigateToToken(path, collectionId);
-                    }
-                  : undefined
-              }
-            />
           </>
         )}
       </div>
@@ -2018,20 +1665,4 @@ export function HealthPanel({
   );
 }
 
-/** Computes a single health issue count for use in status badges outside the panel. */
-export function computeHealthIssueCount(
-  lintViolations: LintViolation[],
-  generators: TokenGenerator[],
-  validationSummary?: ValidationSummary | null,
-): number {
-  const lintCount = lintViolations.filter(
-    (v) => v.severity === "error" || v.severity === "warning",
-  ).length;
-  const validationCount = validationSummary
-    ? validationSummary.errors + validationSummary.warnings
-    : 0;
-  const genIssues = generators.filter(
-    (g) => g.isStale || g.lastRunError,
-  ).length;
-  return lintCount + validationCount + genIssues;
-}
+export { computeHealthIssueCount } from "../hooks/useHealthData";

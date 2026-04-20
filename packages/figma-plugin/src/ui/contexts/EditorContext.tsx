@@ -42,7 +42,8 @@ export type EditorContextualSurfaceTarget =
   | { surface: 'generated-group-editor'; generatedGroup: EditingGeneratedGroup }
   | { surface: 'token-preview'; token: PreviewingToken }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshCompareModeConfig?: boolean }
-  | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean };
+  | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean }
+  | { surface: 'color-analysis' };
 
 export interface TokensContextualSurfaceState {
   activeSurface: TokensLibraryContextualSurface | null;
@@ -119,6 +120,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [previewingToken, setPreviewingToken] = useState<PreviewingToken | null>(null);
   const [inspectingCollection, setInspectingCollection] = useState<InspectingCollection | null>(null);
   const [showTokensCompare, setShowTokensCompare] = useState(false);
+  const [showColorAnalysis, setShowColorAnalysis] = useState(false);
   const {
     compareMode: tokensCompareMode,
     setCompareMode: setTokensCompareMode,
@@ -157,11 +159,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   } = useTokenNavigation(pathToCollectionId, currentCollectionId, setCurrentCollectionId, tokens, handleAliasNotFound);
 
   useEffect(() => {
-    if (!showTokensCompare) return;
+    if (!showTokensCompare && !showColorAnalysis) return;
     if (editingToken || editingGeneratedGroup || previewingToken || inspectingCollection) {
       setShowTokensCompare(false);
+      setShowColorAnalysis(false);
     }
-  }, [showTokensCompare, editingToken, editingGeneratedGroup, previewingToken, inspectingCollection]);
+  }, [showTokensCompare, showColorAnalysis, editingToken, editingGeneratedGroup, previewingToken, inspectingCollection]);
 
   const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
     setEditingToken(null);
@@ -169,6 +172,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setPreviewingToken(null);
     setInspectingCollection(null);
     setShowTokensCompare(false);
+    setShowColorAnalysis(false);
 
     if (target.surface === null) return;
 
@@ -189,6 +193,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     if (target.surface === 'token-preview') {
       setPreviewingToken(target.token);
+      return;
+    }
+
+    if (target.surface === 'color-analysis') {
+      setShowColorAnalysis(true);
       return;
     }
 
@@ -225,8 +234,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     if (editingGeneratedGroup) return 'generated-group-editor';
     if (previewingToken) return 'token-preview';
     if (showTokensCompare) return 'compare';
+    if (showColorAnalysis) return 'color-analysis';
     return null;
-  }, [inspectingCollection, editingToken, editingGeneratedGroup, previewingToken, showTokensCompare]);
+  }, [inspectingCollection, editingToken, editingGeneratedGroup, previewingToken, showTokensCompare, showColorAnalysis]);
 
   const tokensContextualSurfaceState = useMemo<TokensContextualSurfaceState>(() => ({
     activeSurface,

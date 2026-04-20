@@ -61,6 +61,7 @@ export function useCommandPaletteCommands(): {
     setTokensCompareModeKey,
     setTokensComparePath,
     setTokensComparePaths,
+    switchContextualSurface,
   } = useEditorContext();
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
@@ -233,6 +234,16 @@ export function useCommandPaletteCommands(): {
         handler: () => {
           navigateTo("tokens", "health");
           void sync.refreshValidation();
+        },
+      },
+      {
+        id: "color-analysis",
+        label: "Color analysis",
+        description: "Contrast matrix and lightness scale inspector",
+        category: "Audit",
+        handler: () => {
+          navigateTo("tokens");
+          switchContextualSurface({ surface: "color-analysis" });
         },
       },
       {

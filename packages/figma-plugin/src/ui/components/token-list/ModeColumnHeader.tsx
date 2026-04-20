@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../shared/apiFetch";
+import { MODE_COLUMN_WIDTH } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
   modeName: string;
@@ -7,6 +8,8 @@ interface ModeColumnHeaderProps {
   serverUrl: string;
   connected: boolean;
   onMutated: () => void;
+  allModeNames?: string[];
+  modeIndex?: number;
 }
 
 export function ModeColumnHeader({
@@ -15,6 +18,8 @@ export function ModeColumnHeader({
   serverUrl,
   connected,
   onMutated,
+  allModeNames = [],
+  modeIndex = 0,
 }: ModeColumnHeaderProps) {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(modeName);
@@ -92,9 +97,41 @@ export function ModeColumnHeader({
     }
   }, [collectionId, modeName, onMutated, serverUrl]);
 
+  const canMoveLeft = modeIndex > 0 && allModeNames.length > 1;
+  const canMoveRight = modeIndex < allModeNames.length - 1 && allModeNames.length > 1;
+
+  const handleReorder = useCallback(
+    async (direction: -1 | 1) => {
+      const newIndex = modeIndex + direction;
+      if (newIndex < 0 || newIndex >= allModeNames.length) return;
+      const reordered = [...allModeNames];
+      reordered.splice(modeIndex, 1);
+      reordered.splice(newIndex, 0, modeName);
+      setSaving(true);
+      setError("");
+      try {
+        await apiFetch(
+          `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes-order`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ modes: reordered }),
+          },
+        );
+        setShowMenu(false);
+        onMutated();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Reorder failed");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [allModeNames, collectionId, modeIndex, modeName, onMutated, serverUrl],
+  );
+
   if (renaming) {
     return (
-      <div className="relative w-[48px] shrink-0 px-0.5 py-0.5 border-l border-[var(--color-figma-border)]">
+      <div className={`relative ${MODE_COLUMN_WIDTH} shrink-0 px-1 py-0.5 border-l border-[var(--color-figma-border)]`}>
         <input
           ref={inputRef}
           type="text"
@@ -112,7 +149,7 @@ export function ModeColumnHeader({
           }}
           onBlur={() => void handleRename()}
           disabled={saving}
-          className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-0.5 py-0.5 text-[9px] text-[var(--color-figma-text)] outline-none"
+          className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
         />
         {error && (
           <div className="absolute mt-0.5 text-[8px] text-[var(--color-figma-error)] whitespace-nowrap">
@@ -124,7 +161,7 @@ export function ModeColumnHeader({
   }
 
   return (
-    <div className="relative w-[48px] shrink-0 border-l border-[var(--color-figma-border)]">
+    <div className={`relative ${MODE_COLUMN_WIDTH} shrink-0 border-l border-[var(--color-figma-border)]`}>
       <button
         type="button"
         onContextMenu={(e) => {
@@ -137,7 +174,7 @@ export function ModeColumnHeader({
             setRenaming(true);
           }
         }}
-        className="w-full px-0.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate hover:text-[var(--color-figma-text)] transition-colors"
+        className="w-full px-1.5 py-1 text-[11px] font-medium text-[var(--color-figma-text-secondary)] text-left truncate hover:text-[var(--color-figma-text)] transition-colors"
         title={`${modeName} — double-click to rename, right-click for options`}
       >
         {modeName}
@@ -159,6 +196,26 @@ export function ModeColumnHeader({
           >
             Rename
           </button>
+          {canMoveLeft && (
+            <button
+              type="button"
+              onClick={() => void handleReorder(-1)}
+              disabled={saving}
+              className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+            >
+              Move left
+            </button>
+          )}
+          {canMoveRight && (
+            <button
+              type="button"
+              onClick={() => void handleReorder(1)}
+              disabled={saving}
+              className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+            >
+              Move right
+            </button>
+          )}
           <button
             type="button"
             onClick={() => void handleDelete()}
