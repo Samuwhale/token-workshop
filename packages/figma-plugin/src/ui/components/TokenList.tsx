@@ -548,63 +548,6 @@ export function TokenList({
     pathToCollectionId,
   ]);
 
-  // Lightweight check: which token paths have different values across mode options?
-  // Computed even when mode columns are hidden, for the inline variant indicator.
-  const modeVariantPaths = useMemo<Set<string>>(() => {
-    if (
-      showModeColumns ||
-      !unresolvedAllTokensFlat ||
-      activeCollections.length === 0
-    )
-      return new Set();
-    const collection = activeCollections.find(
-      (candidate) => candidate.modes.length >= 2,
-    );
-    if (!collection) return new Set();
-
-    const candidatePaths = new Set<string>();
-    for (const [path, entry] of Object.entries(unresolvedAllTokensFlat)) {
-      const modeValues = getInlineModeValues(entry, collection.id);
-      if (Object.keys(modeValues).length > 0) {
-        candidatePaths.add(path);
-      }
-    }
-    if (candidatePaths.size === 0) return new Set();
-
-    const optionResults = collection.modes.map((option) =>
-      applyModeSelectionsToTokens(
-        unresolvedAllTokensFlat,
-        activeCollections,
-        {
-          [collection.id]: option.name,
-        },
-        pathToCollectionId,
-      ),
-    );
-
-    const varies = new Set<string>();
-    for (const path of candidatePaths) {
-      const firstEntry = optionResults[0]?.[path];
-      const firstValue = firstEntry?.$value ?? null;
-      for (let i = 1; i < optionResults.length; i++) {
-        const otherEntry = optionResults[i]?.[path];
-        const otherValue = otherEntry?.$value ?? null;
-        if (firstValue !== otherValue) {
-          if (JSON.stringify(firstValue) !== JSON.stringify(otherValue)) {
-            varies.add(path);
-          }
-          break;
-        }
-      }
-    }
-    return varies;
-  }, [
-    showModeColumns,
-    unresolvedAllTokensFlat,
-    activeCollections,
-    pathToCollectionId,
-  ]);
-
   // Build multiModeValues for a given token path
   const getMultiModeValues = useCallback(
     (tokenPath: string): MultiModeValue[] | undefined => {
@@ -639,8 +582,9 @@ export function TokenList({
       let filled = 0;
       for (const collection of activeCollections) {
         const collectionModes = getInlineModeValues(entry, collection.id);
-        for (const mode of collection.modes) {
-          const v = collectionModes[mode.name];
+        for (let i = 0; i < collection.modes.length; i++) {
+          const mode = collection.modes[i];
+          const v = i === 0 ? entry.$value : collectionModes[mode.name];
           if (v !== undefined && v !== null && v !== "") filled++;
         }
       }
@@ -652,8 +596,16 @@ export function TokenList({
 
   const collectionCoverage = useMemo(() => {
     if (activeCollections.length === 0) return undefined;
+    const multiModeCollectionIds = new Set(
+      activeCollections.filter((c) => c.modes.length >= 2).map((c) => c.id),
+    );
     const configuredTokenPaths = new Set<string>();
     for (const [path, entry] of Object.entries(allTokensFlat)) {
+      const tokenCollectionId = pathToCollectionId[path];
+      if (tokenCollectionId && multiModeCollectionIds.has(tokenCollectionId)) {
+        configuredTokenPaths.add(path);
+        continue;
+      }
       if (!entry.$extensions?.tokenmanager?.modes) continue;
       for (const collection of activeCollections) {
         const collectionModes = getInlineModeValues(entry, collection.id);
@@ -691,7 +643,7 @@ export function TokenList({
     }
     walk(tokens);
     return map;
-  }, [activeCollections, allTokensFlat, tokenModeMissing, tokens]);
+  }, [activeCollections, allTokensFlat, pathToCollectionId, tokenModeMissing, tokens]);
 
   // JSON editor state
   const {
@@ -2281,7 +2233,7 @@ export function TokenList({
     starredPaths,
     collections: activeCollections,
     pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
-    showModeColumns, modeVariantPaths, tokenModeMissing,
+    showModeColumns, tokenModeMissing,
   });
 
   const tokenTreeLeafActions = useTokenTreeLeafActions({

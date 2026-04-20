@@ -33,6 +33,12 @@ interface ModeValueEditorProps {
   onChange: (v: unknown) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  autoFocus?: boolean;
+  baseValue?: unknown;
+  availableFonts?: string[];
+  fontWeightsByFamily?: Record<string, number[]>;
+  fontFamilyRef?: React.RefObject<HTMLInputElement>;
+  fontSizeRef?: React.RefObject<HTMLInputElement>;
 }
 
 export function ModeValueEditor({
@@ -41,6 +47,12 @@ export function ModeValueEditor({
   onChange,
   allTokensFlat,
   pathToCollectionId,
+  autoFocus,
+  baseValue,
+  availableFonts,
+  fontWeightsByFamily,
+  fontFamilyRef,
+  fontSizeRef,
 }: ModeValueEditorProps) {
   switch (tokenType) {
     case 'color':
@@ -48,6 +60,7 @@ export function ModeValueEditor({
         <ColorEditor
           value={value || '#000000'}
           onChange={onChange}
+          autoFocus={autoFocus}
           allTokensFlat={allTokensFlat}
         />
       );
@@ -58,14 +71,23 @@ export function ModeValueEditor({
           onChange={onChange}
           allTokensFlat={allTokensFlat}
           pathToCollectionId={pathToCollectionId}
+          autoFocus={autoFocus}
         />
       );
     case 'number':
-      return <NumberEditor value={value ?? 0} onChange={onChange} />;
+      return (
+        <NumberEditor
+          value={value ?? 0}
+          onChange={onChange}
+          allTokensFlat={allTokensFlat}
+          pathToCollectionId={pathToCollectionId}
+          autoFocus={autoFocus}
+        />
+      );
     case 'boolean':
       return <BooleanEditor value={value ?? false} onChange={onChange} />;
     case 'duration':
-      return <DurationEditor value={value ?? 0} onChange={onChange} />;
+      return <DurationEditor value={value ?? 0} onChange={onChange} autoFocus={autoFocus} />;
     case 'typography':
       return (
         <TypographyEditor
@@ -73,6 +95,11 @@ export function ModeValueEditor({
           onChange={onChange}
           allTokensFlat={allTokensFlat ?? {}}
           pathToCollectionId={pathToCollectionId ?? {}}
+          baseValue={baseValue}
+          availableFonts={availableFonts}
+          fontWeightsByFamily={fontWeightsByFamily}
+          fontFamilyRef={fontFamilyRef}
+          fontSizeRef={fontSizeRef}
         />
       );
     case 'shadow':
@@ -82,6 +109,7 @@ export function ModeValueEditor({
           onChange={onChange}
           allTokensFlat={allTokensFlat ?? {}}
           pathToCollectionId={pathToCollectionId ?? {}}
+          baseValue={baseValue}
         />
       );
     case 'border':
@@ -91,6 +119,7 @@ export function ModeValueEditor({
           onChange={onChange}
           allTokensFlat={allTokensFlat ?? {}}
           pathToCollectionId={pathToCollectionId ?? {}}
+          baseValue={baseValue}
         />
       );
     case 'gradient':
@@ -103,13 +132,13 @@ export function ModeValueEditor({
         />
       );
     case 'fontFamily':
-      return <FontFamilyEditor value={value ?? ''} onChange={onChange} />;
+      return <FontFamilyEditor value={value ?? ''} onChange={onChange} autoFocus={autoFocus} availableFonts={availableFonts} />;
     case 'fontWeight':
       return <FontWeightEditor value={value ?? 400} onChange={onChange} />;
     case 'strokeStyle':
       return <StrokeStyleEditor value={value ?? 'solid'} onChange={onChange} />;
     case 'composition':
-      return <CompositionEditor value={value ?? {}} onChange={onChange} />;
+      return <CompositionEditor value={value ?? {}} onChange={onChange} baseValue={baseValue} />;
     case 'cubicBezier':
       return <CubicBezierEditor value={value ?? [0, 0, 1, 1]} onChange={onChange} />;
     case 'transition':
@@ -140,6 +169,6 @@ export function ModeValueEditor({
     case 'asset':
       return <AssetEditor value={value ?? ''} onChange={onChange} />;
     default:
-      return <StringEditor value={value ?? ''} onChange={onChange} />;
+      return <StringEditor value={value ?? ''} onChange={onChange} autoFocus={autoFocus} />;
   }
 }

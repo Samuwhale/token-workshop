@@ -126,7 +126,6 @@ export const TokenLeafNode = memo(
       pendingTabEdit,
       rovingFocusPath,
       showDuplicatesFilter,
-      modeVariantPaths,
       tokenModeMissing,
     } = useTokenTreeLeafState();
     const { allTokensFlat, pathToCollectionId } = useTokenTreeSharedData();
@@ -425,7 +424,6 @@ export const TokenLeafNode = memo(
     }, [node.path, producingGenerator?.id]);
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
-    const isModeLensVariant = modeVariantPaths?.has(node.path) ?? false;
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected && selectMode
@@ -433,9 +431,6 @@ export const TokenLeafNode = memo(
         : isPreviewed
           ? "bg-[var(--color-figma-accent)]/8"
           : "";
-    const modeLensClass = isModeLensVariant
-      ? "bg-[var(--color-figma-accent)]/6"
-      : "";
     const duplicateCount = showDuplicatesFilter
       ? (duplicateCounts.get(stableStringify(node.$value)) ?? 0)
       : 0;
@@ -1096,7 +1091,7 @@ export const TokenLeafNode = memo(
         <div
           role="treeitem"
           aria-level={depth + 1}
-          className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass} ${modeLensClass}`}
+          className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}
           tabIndex={rovingFocusPath === node.path ? 0 : -1}
           data-token-path={node.path}
@@ -1197,8 +1192,8 @@ export const TokenLeafNode = memo(
             />
           )}
 
-          {/* Value preview (resolve aliases for display) */}
-          {canInlineEdit &&
+          {/* Value preview — hidden when multi-mode columns are the value display */}
+          {!(multiModeValues && multiModeValues.length > 0) && (canInlineEdit &&
           node.$type === "color" &&
           typeof displayValue === "string" ? (
             <>
@@ -1263,7 +1258,7 @@ export const TokenLeafNode = memo(
                 size={swatchSize}
               />
             </button>
-          )}
+          ))}
 
           {/* Name and info — single-click opens editor (non-select mode) */}
           {/* ctrl/cmd-click enters select mode; shift-click range-selects */}

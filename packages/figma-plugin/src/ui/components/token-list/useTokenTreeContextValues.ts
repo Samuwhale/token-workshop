@@ -182,7 +182,6 @@ interface LeafStateDeps {
   effectiveRovingPath: string | null;
   showDuplicates: boolean;
   showModeColumns: boolean;
-  modeVariantPaths: Set<string>;
   tokenModeMissing?: Map<string, number>;
 }
 
@@ -213,7 +212,6 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       pendingTabEdit: deps.pendingTabEdit,
       rovingFocusPath: deps.effectiveRovingPath,
       showDuplicatesFilter: deps.showDuplicates,
-      modeVariantPaths: deps.modeVariantPaths.size > 0 ? deps.modeVariantPaths : undefined,
       tokenModeMissing: deps.tokenModeMissing,
     }),
     [deps],

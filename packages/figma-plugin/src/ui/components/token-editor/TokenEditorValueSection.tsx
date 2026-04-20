@@ -3,6 +3,7 @@ import { ValueDiff, OriginalValuePreview } from "../ValueDiff";
 import { TokenNudge } from "../TokenNudge";
 import type { NearbyMatch } from "../../hooks/useNearbyTokenMatch";
 import type { TokenEditorValue } from "../../shared/tokenEditorTypes";
+import { buildTypographyPreviewStyle, getTypographyPreviewValue } from "./tokenEditorHelpers";
 import {
   ColorEditor,
   DimensionEditor,
@@ -31,50 +32,6 @@ import {
   CustomEditor,
   VALUE_FORMAT_HINTS,
 } from "../ValueEditors";
-
-function buildTypographyPreviewStyle(value: Record<string, unknown>): React.CSSProperties {
-  const style: React.CSSProperties = {};
-  if (typeof value.fontFamily === "string" && value.fontFamily) {
-    style.fontFamily = value.fontFamily;
-  }
-  if (value.fontSize != null) {
-    const fs = value.fontSize;
-    if (typeof fs === "object" && fs !== null && "value" in fs) {
-      const { value: v, unit } = fs as { value: number; unit?: string };
-      style.fontSize = `${Math.min(v, 48)}${unit || "px"}`;
-    } else if (typeof fs === "number") {
-      style.fontSize = `${Math.min(fs, 48)}px`;
-    }
-  }
-  if (typeof value.fontWeight === "number" || typeof value.fontWeight === "string") {
-    style.fontWeight = value.fontWeight as React.CSSProperties["fontWeight"];
-  }
-  if (typeof value.lineHeight === "number") {
-    style.lineHeight = value.lineHeight;
-  }
-  if (value.letterSpacing != null) {
-    const ls = value.letterSpacing;
-    if (typeof ls === "object" && ls !== null && "value" in ls) {
-      const { value: v, unit } = ls as { value: number; unit?: string };
-      style.letterSpacing = `${v}${unit || "px"}`;
-    }
-  }
-  return style;
-}
-
-function getTypographyPreviewValue(
-  value: TokenEditorValue,
-): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const previewValue = value as Record<string, unknown>;
-  const hasPreviewContent =
-    typeof previewValue.fontFamily === "string" || previewValue.fontSize != null;
-
-  return hasPreviewContent ? previewValue : null;
-}
 
 export interface TokenEditorValueSectionProps {
   tokenPath: string;

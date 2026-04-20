@@ -47,9 +47,8 @@ import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 
-import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
+import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS, buildTypographyPreviewStyle, getTypographyPreviewValue } from "./token-editor/tokenEditorHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
-import { TokenEditorValueSection } from "./token-editor/TokenEditorValueSection";
 import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
 import { TokenEditorInfoSection } from "./token-editor/TokenEditorInfoSection";
 import { TokenEditorLintBanner } from "./token-editor/TokenEditorLintBanner";
@@ -472,6 +471,15 @@ export function TokenEditor({
     const resolvedType = normalizeTokenType(initialType);
     const aliasInitialValue = initialValue && isAlias(initialValue) ? initialValue : '';
     const initialCreateValue = getInitialCreateValue(resolvedType, initialValue);
+    const collection = collections.find((c) => c.id === ownerCollectionId);
+    const initModeValues: Record<string, Record<string, unknown>> = {};
+    if (collection && collection.modes.length >= 2) {
+      const collectionModes: Record<string, unknown> = {};
+      for (let i = 1; i < collection.modes.length; i++) {
+        collectionModes[collection.modes[i].name] = structuredClone(initialCreateValue);
+      }
+      initModeValues[collection.id] = collectionModes;
+    }
     initialRef.current = {
       value: initialCreateValue,
       description: '',
@@ -479,7 +487,7 @@ export function TokenEditor({
       scopes: [],
       type: resolvedType,
       colorModifiers: [],
-      modeValues: {},
+      modeValues: initModeValues,
       extensionsJsonText: '',
       lifecycle: 'published',
       extendsPath: '',
@@ -491,7 +499,7 @@ export function TokenEditor({
     setAliasMode(Boolean(aliasInitialValue));
     setScopes([]);
     setColorModifiers([]);
-    setModeValues({});
+    setModeValues(initModeValues);
     setExtensionsJsonText('');
     setExtensionsJsonError(null);
     setLifecycle('published');
@@ -500,10 +508,12 @@ export function TokenEditor({
     setShowPathAutocomplete(tokenPath.trim().endsWith('.'));
     setDisplayError(null);
   }, [
+    collections,
     initialRef,
     initialType,
     initialValue,
     isCreateMode,
+    ownerCollectionId,
     setAliasMode,
     setColorModifiers,
     setDescription,
@@ -1539,129 +1549,183 @@ export function TokenEditor({
           </div>
         )}
 
-        {modeValue.hasMultipleModes ? (
-          <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePaste}>
-            <label className="block text-secondary text-[var(--color-figma-text-secondary)]">
-              Value
-            </label>
-            <div className="divide-y divide-[var(--color-figma-border)]/50 overflow-hidden rounded-md border border-[var(--color-figma-border)]/65">
-              {modeValue.modes.map((mode, modeIdx) => (
-                <div
-                  key={mode.name}
-                  className="group/mode flex items-center gap-2 px-2.5 py-1.5"
-                >
-                  <div className="w-[92px] shrink-0 flex items-center gap-1">
-                    <span
-                      className="truncate text-body font-medium text-[var(--color-figma-text)]"
-                      title={mode.name}
-                    >
-                      {mode.name}
-                    </span>
-                    {modeValue.modes.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const sourceIdx = modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1;
-                          const sourceValue = modeValue.modes[sourceIdx].value;
-                          if (sourceValue !== "" && sourceValue != null) {
-                            mode.setValue(
-                              typeof sourceValue === "object"
-                                ? JSON.parse(JSON.stringify(sourceValue))
-                                : sourceValue
-                            );
-                          }
-                        }}
-                        className="opacity-0 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
-                        title={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
-                        aria-label={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
-                      >
-                        <Copy size={10} strokeWidth={2} aria-hidden />
-                      </button>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <ModeValueEditor
-                      tokenType={tokenType}
-                      value={mode.value === "" ? undefined : mode.value}
-                      onChange={mode.setValue}
-                      allTokensFlat={allTokensFlat}
-                      pathToCollectionId={pathToCollectionId}
-                    />
-                  </div>
-                </div>
-              ))}
-              {addingEditorMode ? (
-                <div className="flex items-center gap-2 px-2.5 py-1.5">
-                  <input
-                    type="text"
-                    value={editorNewModeName}
-                    onChange={(e) => setEditorNewModeName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void handleAddEditorMode();
-                      if (e.key === "Escape") {
-                        setAddingEditorMode(false);
-                        setEditorNewModeName("");
-                      }
-                    }}
-                    onBlur={() => {
-                      if (!editorNewModeName.trim()) {
-                        setAddingEditorMode(false);
-                        setEditorNewModeName("");
-                      }
-                    }}
-                    autoFocus
-                    disabled={editorAddModeSaving}
-                    placeholder="Mode name"
-                    className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setAddingEditorMode(true)}
-                  className="flex w-full items-center gap-1 px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
-                >
-                  <Plus size={10} strokeWidth={2} aria-hidden />
-                  Add mode
-                </button>
-              )}
-            </div>
-          </div>
-        ) : aliasMode ? (
+        {aliasMode && modeValue.modes.length <= 1 ? (
           referenceSection
         ) : (
-          <TokenEditorValueSection
-            tokenPath={tokenPath}
-            tokenType={tokenType}
-            value={value}
-            setValue={setValue}
-            isCreateMode={isCreateMode}
-            extendsPath={extendsPath}
-            allTokensFlat={allTokensFlat}
-            pathToCollectionId={pathToCollectionId}
-            initialValue={initialRef.current?.value ?? null}
-            fontFamilyRef={fontFamilyRef}
-            fontSizeRef={fontSizeRef}
-            availableFonts={availableFonts}
-            fontWeightsByFamily={fontWeightsByFamily}
-            canSave={canSave}
-            saveBlockReason={saveBlockReason}
-            focusBlockedField={focusBlockedField}
-            pasteFlash={pasteFlash}
-            onPaste={handlePaste}
-            nearbyMatches={nearbyMatches}
-            onAcceptNudge={(path) => {
-              preAliasValueRef.current = value;
-              setAliasMode(true);
-              setReference(`{${path}}`);
-              setTimeout(() => refInputRef.current?.focus(), 0);
-            }}
-            valueEditorContainerRef={valueEditorContainerRef}
-            resolvedColorValue={resolvedColorValue}
-          />
+          <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePaste}>
+            {modeValue.modes.length >= 2 ? (
+              <div className="divide-y divide-[var(--color-figma-border)]/50 overflow-hidden rounded-md border border-[var(--color-figma-border)]/65">
+                {modeValue.modes.map((mode, modeIdx) => {
+                  const modeVal = mode.value === "" ? undefined : mode.value;
+                  const baseVal = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
+                  const initialModeVal = modeIdx === 0
+                    ? initialFieldsSnapshot?.value
+                    : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[mode.name];
+                  const isModeModified = initialModeVal !== undefined
+                    && stableStringify(modeVal ?? "") !== stableStringify(initialModeVal ?? "");
+                  const modeColorSwatch = tokenType === "color" && typeof modeVal === "string"
+                    ? (isAlias(modeVal)
+                        ? resolveRefValue(extractAliasPath(modeVal) ?? "", colorFlatMap) ?? null
+                        : modeVal)
+                    : null;
+                  const modeTypoPreview = tokenType === "typography"
+                    ? getTypographyPreviewValue(modeVal ?? "")
+                    : null;
+                  const isModeEmpty = modeVal === undefined || modeVal === null || modeVal === "";
+
+                  return (
+                    <div key={mode.name} className={`group/mode flex flex-col${isModeEmpty ? " bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}>
+                      <div className="flex items-center gap-2 px-2.5 py-1.5">
+                        <div className="w-[92px] shrink-0 flex items-center gap-1">
+                          {isModeModified && !isCreateMode && (
+                            <span
+                              className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
+                              title="Modified"
+                              aria-label="Modified"
+                            />
+                          )}
+                          <span
+                            className="truncate text-body font-medium text-[var(--color-figma-text)]"
+                            title={mode.name}
+                          >
+                            {mode.name}
+                          </span>
+                          {modeValue.modes.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const sourceIdx = modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1;
+                                const sourceValue = modeValue.modes[sourceIdx].value;
+                                if (sourceValue !== "" && sourceValue != null) {
+                                  mode.setValue(
+                                    typeof sourceValue === "object"
+                                      ? JSON.parse(JSON.stringify(sourceValue))
+                                      : sourceValue
+                                  );
+                                }
+                              }}
+                              className="opacity-0 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                              title={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
+                              aria-label={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
+                            >
+                              <Copy size={10} strokeWidth={2} aria-hidden />
+                            </button>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <ModeValueEditor
+                            tokenType={tokenType}
+                            value={modeVal}
+                            onChange={mode.setValue}
+                            allTokensFlat={allTokensFlat}
+                            pathToCollectionId={pathToCollectionId}
+                            autoFocus={modeIdx === 0 && !isCreateMode}
+                            baseValue={baseVal}
+                            availableFonts={availableFonts}
+                            fontWeightsByFamily={fontWeightsByFamily}
+                            fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
+                            fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
+                          />
+                        </div>
+                        {modeColorSwatch && (
+                          <div
+                            className="shrink-0 w-4 h-4 rounded-sm border border-[var(--color-figma-border)]"
+                            style={{ backgroundColor: modeColorSwatch }}
+                            aria-label={`Color: ${modeColorSwatch}`}
+                          />
+                        )}
+                      </div>
+                      {modeTypoPreview && (
+                        <div className="px-2.5 pb-1.5">
+                          <span
+                            className="block truncate text-body text-[var(--color-figma-text-secondary)] leading-normal"
+                            style={buildTypographyPreviewStyle(modeTypoPreview)}
+                          >
+                            Aa Bb Cc
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {addingEditorMode ? (
+                  <div className="flex items-center gap-2 px-2.5 py-1.5">
+                    <input
+                      type="text"
+                      value={editorNewModeName}
+                      onChange={(e) => setEditorNewModeName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void handleAddEditorMode();
+                        if (e.key === "Escape") {
+                          setAddingEditorMode(false);
+                          setEditorNewModeName("");
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!editorNewModeName.trim()) {
+                          setAddingEditorMode(false);
+                          setEditorNewModeName("");
+                        }
+                      }}
+                      autoFocus
+                      disabled={editorAddModeSaving}
+                      placeholder="Mode name"
+                      className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAddingEditorMode(true)}
+                    className="flex w-full items-center gap-1 px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+                  >
+                    <Plus size={10} strokeWidth={2} aria-hidden />
+                    Add mode
+                  </button>
+                )}
+              </div>
+            ) : (
+              <ModeValueEditor
+                tokenType={tokenType}
+                value={modeValue.modes[0]?.value}
+                onChange={modeValue.modes[0]?.setValue ?? setValue}
+                allTokensFlat={allTokensFlat}
+                pathToCollectionId={pathToCollectionId}
+                autoFocus={!isCreateMode}
+                baseValue={extendsPath ? allTokensFlat[extendsPath]?.$value : undefined}
+                availableFonts={availableFonts}
+                fontWeightsByFamily={fontWeightsByFamily}
+                fontFamilyRef={fontFamilyRef}
+                fontSizeRef={fontSizeRef}
+              />
+            )}
+            {tokenType === "color" && resolvedColorValue && (
+              <div
+                className="w-full h-10 rounded border border-[var(--color-figma-border)]"
+                style={{ backgroundColor: resolvedColorValue }}
+                aria-label={`Resolved color: ${resolvedColorValue}`}
+              />
+            )}
+            {tokenType === "typography" && modeValue.modes.length <= 1 && (() => {
+              const typoPreview = getTypographyPreviewValue(value);
+              return typoPreview ? (
+                <div
+                  className="overflow-hidden rounded border border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)]/25 px-3 py-2"
+                  aria-label="Typography preview"
+                >
+                  <span
+                    className="block text-[var(--color-figma-text)] leading-normal"
+                    style={buildTypographyPreviewStyle(typoPreview)}
+                  >
+                    Aa Bb Cc 123
+                  </span>
+                </div>
+              ) : null;
+            })()}
+          </div>
         )}
 
-        {!modeValue.hasMultipleModes && canAddMode && (
+        {modeValue.modes.length <= 1 && canAddMode && (
           addingEditorMode ? (
             <div className="flex items-center gap-2">
               <input
@@ -1723,7 +1787,7 @@ export function TokenEditor({
           />
         )}
 
-        {!aliasMode && !modeValue.hasMultipleModes && referenceSection}
+        {!aliasMode && modeValue.modes.length <= 1 && referenceSection}
 
         {activeProducingGenerator && !isCreateMode && (
           <div className="rounded-md border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-3 py-2">

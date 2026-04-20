@@ -460,8 +460,6 @@ export interface TokenTreeLeafStateContextType {
   rovingFocusPath: string | null;
   /** When true, the duplicate-values filter is active — show duplicate count badges on token rows */
   showDuplicatesFilter?: boolean;
-  /** Token paths that have different values across mode variants (for indicator when columns are hidden) */
-  modeVariantPaths?: Set<string>;
   /** Per-token missing mode value count — tokenPath → number of missing mode values */
   tokenModeMissing?: Map<string, number>;
 }

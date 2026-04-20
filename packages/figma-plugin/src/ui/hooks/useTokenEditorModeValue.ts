@@ -30,8 +30,6 @@ export function useTokenEditorModeValue({
     [collections, collectionId],
   );
 
-  const hasMultipleModes = !!collection && collection.modes.length >= 2;
-
   const setModeValue = useCallback(
     (modeName: string, newValue: TokenEditorValue) => {
       if (!collection) return;
@@ -51,7 +49,7 @@ export function useTokenEditorModeValue({
   );
 
   const modes: ModeValueEntry[] = useMemo(() => {
-    if (!collection || collection.modes.length < 2) return [];
+    if (!collection || collection.modes.length === 0) return [];
 
     return collection.modes.map((mode, index) => ({
       name: mode.name,
@@ -62,5 +60,5 @@ export function useTokenEditorModeValue({
     }));
   }, [collection, collectionId, value, modeValues, setModeValue]);
 
-  return { modes, hasMultipleModes };
+  return { modes };
 }

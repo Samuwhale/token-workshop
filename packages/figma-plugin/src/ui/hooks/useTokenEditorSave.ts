@@ -129,6 +129,24 @@ export function useTokenEditorSave({
       setError('Token path cannot be empty');
       return false;
     }
+    const collection = collections.find((c) => c.id === collectionId);
+    if (collection && collection.modes.length >= 2) {
+      const isEmpty = (v: unknown) => v === '' || v === undefined || v === null;
+      if (isEmpty(value)) {
+        setSaveRetryArgs(null);
+        setError(`All modes must have a value (${collection.modes[0].name} is empty)`);
+        return false;
+      }
+      const collectionModes = modeValues[collectionId] ?? {};
+      for (let i = 1; i < collection.modes.length; i++) {
+        const modeName = collection.modes[i].name;
+        if (isEmpty(collectionModes[modeName])) {
+          setSaveRetryArgs(null);
+          setError(`All modes must have a value (${modeName} is empty)`);
+          return false;
+        }
+      }
+    }
     setSaving(true);
     setSaveRetryArgs(null);
     setError(null);
