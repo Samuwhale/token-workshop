@@ -834,7 +834,6 @@ export function SelectionInspector({
         </div>
       </div>
 
-      {/* Slim toolbar: search + filter toggle + children toggle */}
       <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
         <div className="relative min-w-0 flex-1">
           <svg
@@ -866,7 +865,6 @@ export function SelectionInspector({
             </button>
           )}
         </div>
-        {/* Filter toggle — shows mode filter row when clicked */}
         <button
           onClick={() => setShowFilterPanel((p) => !p)}
           title="Property filters"
@@ -882,7 +880,6 @@ export function SelectionInspector({
           </svg>
         </button>
         <span className="w-px h-3 bg-[var(--color-figma-border)] shrink-0" />
-        {/* Show children toggle */}
         <button
           onClick={handleToggleDeepInspect}
           className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
@@ -896,7 +893,6 @@ export function SelectionInspector({
         </button>
       </div>
 
-      {/* Mode filter panel — shown when filter toggle is active */}
       {showFilterPanel && (
         <div className="flex flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
           {PROP_FILTER_MODES.map((mode) => (
@@ -935,245 +931,242 @@ export function SelectionInspector({
         </div>
       )}
 
-      {/* Two-column: properties LEFT, token matches RIGHT */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* LEFT: scrollable property list + actions */}
         <div
           className="flex flex-col overflow-hidden min-w-0"
           style={{ flex: suggestions.length > 0 ? '56 0 0%' : '1 0 0%' }}
         >
-        <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto">
 
-        {/* Property list */}
-        <div className="px-1 py-1">
-          {!hasVisibleProperties && totalBindings === 0 ? (
-            <FeedbackPlaceholder
-              variant="empty"
-              size="section"
-              title="No bindable properties"
-              description="Select a layer with design properties."
-              secondaryAction={
-                onGoToTokens
-                  ? { label: "Go to Tokens", onClick: onGoToTokens }
-                  : undefined
-              }
-            />
-          ) : (
-            <div>
-              {PROPERTY_GROUPS.map((group, groupIdx) => {
-                if (!shouldShowGroup(group.condition, caps)) return null;
+            {/* Property list */}
+            <div className="px-1 py-1">
+              {!hasVisibleProperties && totalBindings === 0 ? (
+                <FeedbackPlaceholder
+                  variant="empty"
+                  size="section"
+                  title="No bindable properties"
+                  description="Select a layer with design properties."
+                  secondaryAction={
+                    onGoToTokens
+                      ? { label: "Go to Tokens", onClick: onGoToTokens }
+                      : undefined
+                  }
+                />
+              ) : (
+                <div>
+                  {PROPERTY_GROUPS.map((group, groupIdx) => {
+                    if (!shouldShowGroup(group.condition, caps)) return null;
 
-                const visibleProps = group.properties.filter((prop) => {
-                  const binding = getBindingForProperty(rootNodes, prop);
-                  const value = getCurrentValue(rootNodes, prop);
-                  if (!binding && value === undefined) return false;
-                  return matchesPropFilter(prop);
-                });
-
-                if (visibleProps.length === 0) return null;
-
-                const boundPropsInGroup = visibleProps.filter((prop) => {
-                  const binding = getBindingForProperty(rootNodes, prop);
-                  return binding && binding !== "mixed";
-                });
-
-                return (
-                  <div
-                    key={group.label}
-                    className={
-                      groupIdx > 0
-                        ? "mt-1 pt-1 border-t border-[var(--color-figma-border)]/50"
-                        : ""
-                    }
-                  >
-                    <div className="relative group/groupheader px-2 py-1 flex items-center">
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-semibold flex-1">
-                        {group.label}
-                      </span>
-                      {boundPropsInGroup.length > 0 && (
-                        <button
-                          onClick={() =>
-                            handleUnbindAllInGroup(boundPropsInGroup)
-                          }
-                          className="opacity-0 group-hover/groupheader:opacity-100 pointer-events-none group-hover/groupheader:pointer-events-auto transition-opacity text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1 py-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] shrink-0"
-                          title={`Unbind all ${group.label.toLowerCase()} properties`}
-                        >
-                          Unbind all
-                        </button>
-                      )}
-                    </div>
-                    {visibleProps.map((prop) => (
-                      <PropertyRow
-                        key={prop}
-                        prop={prop}
-                        rootNodes={rootNodes}
-                        selectedNodes={selectedNodes}
-                        tokenMap={tokenMap}
-                        connected={connected}
-                        currentCollectionId={currentCollectionId}
-                        serverUrl={serverUrl}
-                        hasAnyTokens={hasAnyTokens}
-                        creatingFromProp={creatingFromProp}
-                        bindingFromProp={bindingFromProp}
-                        lastBoundProp={lastBoundProp}
-                        bindingError={bindingErrors[prop] ?? null}
-                        onOpenCreate={openCreateFromProp}
-                        onOpenBind={openBindFromProp}
-                        onCancelCreate={cancelCreate}
-                        onCancelBind={cancelBind}
-                        onBindToken={handleBindToken}
-                        onTokenCreated={handleTokenCreated}
-                        onRemoveBinding={handleRemoveBinding}
-                        onDismissBindingError={(p) =>
-                          setBindingErrors((prev) => {
-                            const n = { ...prev };
-                            delete n[p];
-                            return n;
-                          })
-                        }
-                        onNavigateToToken={onNavigateToToken}
-                        newTokenName={newTokenName}
-                        onNewTokenNameChange={setNewTokenName}
-                      />
-                    ))}
-                  </div>
-                );
-              })}
-              {isFilterActive &&
-                !PROPERTY_GROUPS.some(
-                  (group) =>
-                    shouldShowGroup(group.condition, caps) &&
-                    group.properties.some((prop) => {
+                    const visibleProps = group.properties.filter((prop) => {
                       const binding = getBindingForProperty(rootNodes, prop);
                       const value = getCurrentValue(rootNodes, prop);
-                      return (
-                        (binding || value !== undefined) &&
-                        matchesPropFilter(prop)
-                      );
-                    }),
-                ) && (
-                  <FeedbackPlaceholder
-                    variant="no-results"
-                    size="section"
-                    title="No matching properties"
-                    description="Broaden or reset the filter."
-                    secondaryAction={{
-                      label: "Clear filter",
-                      onClick: clearPropFilters,
-                    }}
-                  />
-                )}
+                      if (!binding && value === undefined) return false;
+                      return matchesPropFilter(prop);
+                    });
+
+                    if (visibleProps.length === 0) return null;
+
+                    const boundPropsInGroup = visibleProps.filter((prop) => {
+                      const binding = getBindingForProperty(rootNodes, prop);
+                      return binding && binding !== "mixed";
+                    });
+
+                    return (
+                      <div
+                        key={group.label}
+                        className={
+                          groupIdx > 0
+                            ? "mt-1 pt-1 border-t border-[var(--color-figma-border)]/50"
+                            : ""
+                        }
+                      >
+                        <div className="relative group/groupheader px-2 py-1 flex items-center">
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-semibold flex-1">
+                            {group.label}
+                          </span>
+                          {boundPropsInGroup.length > 0 && (
+                            <button
+                              onClick={() =>
+                                handleUnbindAllInGroup(boundPropsInGroup)
+                              }
+                              className="opacity-0 group-hover/groupheader:opacity-100 pointer-events-none group-hover/groupheader:pointer-events-auto transition-opacity text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1 py-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                              title={`Unbind all ${group.label.toLowerCase()} properties`}
+                            >
+                              Unbind all
+                            </button>
+                          )}
+                        </div>
+                        {visibleProps.map((prop) => (
+                          <PropertyRow
+                            key={prop}
+                            prop={prop}
+                            rootNodes={rootNodes}
+                            selectedNodes={selectedNodes}
+                            tokenMap={tokenMap}
+                            connected={connected}
+                            currentCollectionId={currentCollectionId}
+                            serverUrl={serverUrl}
+                            hasAnyTokens={hasAnyTokens}
+                            creatingFromProp={creatingFromProp}
+                            bindingFromProp={bindingFromProp}
+                            lastBoundProp={lastBoundProp}
+                            bindingError={bindingErrors[prop] ?? null}
+                            onOpenCreate={openCreateFromProp}
+                            onOpenBind={openBindFromProp}
+                            onCancelCreate={cancelCreate}
+                            onCancelBind={cancelBind}
+                            onBindToken={handleBindToken}
+                            onTokenCreated={handleTokenCreated}
+                            onRemoveBinding={handleRemoveBinding}
+                            onDismissBindingError={(p) =>
+                              setBindingErrors((prev) => {
+                                const n = { ...prev };
+                                delete n[p];
+                                return n;
+                              })
+                            }
+                            onNavigateToToken={onNavigateToToken}
+                            newTokenName={newTokenName}
+                            onNewTokenNameChange={setNewTokenName}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
+                  {isFilterActive &&
+                    !PROPERTY_GROUPS.some(
+                      (group) =>
+                        shouldShowGroup(group.condition, caps) &&
+                        group.properties.some((prop) => {
+                          const binding = getBindingForProperty(rootNodes, prop);
+                          const value = getCurrentValue(rootNodes, prop);
+                          return (
+                            (binding || value !== undefined) &&
+                            matchesPropFilter(prop)
+                          );
+                        }),
+                    ) && (
+                      <FeedbackPlaceholder
+                        variant="no-results"
+                        size="section"
+                        title="No matching properties"
+                        description="Broaden or reset the filter."
+                        secondaryAction={{
+                          label: "Clear filter",
+                          onClick: clearPropFilters,
+                        }}
+                      />
+                    )}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Deep inspect (inline when toggled on) */}
+            {deepInspect && (
+              <div className="border-t border-[var(--color-figma-border)] px-1.5 py-1.5">
+                <DeepInspectSection
+                  deepChildNodes={deepChildNodes}
+                  tokenMap={tokenMap}
+                  onNavigateToToken={onNavigateToToken}
+                  onRemoveBinding={handleDeepRemoveBinding}
+                  onBindToken={handleDeepBindToken}
+                  onSelectNode={handleSelectDeepNode}
+                  showHeader
+                />
+                {deepRemoveError && (
+                  <InlineBanner variant="error">{deepRemoveError}</InlineBanner>
+                )}
+              </div>
+            )}
+
+            {/* Secondary action bar */}
+            {(connected && currentCollectionId && (unboundWithValueCount > 0 || totalBindings > 0)) && (
+              <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--color-figma-border)] px-3 py-2">
+                {connected && currentCollectionId && unboundWithValueCount > 0 && (
+                  <button
+                    onClick={() => {
+                      if (showExtractPanel) {
+                        setShowExtractPanel(false);
+                        return;
+                      }
+                      openExtractPanel();
+                    }}
+                    className={`rounded px-2 py-1 text-[10px] transition-colors ${
+                      showExtractPanel
+                        ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
+                        : "bg-[var(--color-figma-accent)] text-white hover:opacity-90"
+                    }`}
+                  >
+                    Extract {unboundWithValueCount} unbound
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (showRemapPanel) {
+                      setShowRemapPanel(false);
+                    } else {
+                      openRemapPanel(remapMissingTokens);
+                    }
+                  }}
+                  className={`rounded px-2 py-1 text-[10px] transition-colors ${
+                    showRemapPanel
+                      ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
+                      : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                  }`}
+                >
+                  Remap
+                </button>
+                {totalBindings > 0 && (
+                  <button
+                    onClick={() => setShowClearConfirm(true)}
+                    title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
+                    className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error,#f56565)]"
+                  >
+                    Clear all
+                  </button>
+                )}
+                {connected && (
+                  <button
+                    onClick={() => onSync("page")}
+                    disabled={syncing}
+                    className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                  >
+                    Apply to page
+                  </button>
+                )}
+              </div>
+            )}
+
+            {showExtractPanel && (
+              <div className="border-t border-[var(--color-figma-border)] p-3">
+                <ExtractTokensPanel
+                  connected={connected}
+                  currentCollectionId={currentCollectionId}
+                  serverUrl={serverUrl}
+                  tokenMap={tokenMap}
+                  onTokenCreated={onTokenCreated}
+                  onClose={() => setShowExtractPanel(false)}
+                  propertyFilter={extractFilterProperties}
+                  propertyFilterLabel="unbound"
+                  embedded
+                />
+              </div>
+            )}
+            {showRemapPanel && (
+              <div className="border-t border-[var(--color-figma-border)] p-3">
+                <RemapBindingsPanel
+                  tokenMap={tokenMap}
+                  rows={remapDraftRows}
+                  onRowsChange={setRemapDraftRows}
+                  fromSuggestions={staleBindingPaths}
+                  onClose={() => setShowRemapPanel(false)}
+                  embedded
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Deep inspect (inline when toggled on) */}
-        {deepInspect && (
-          <div className="border-t border-[var(--color-figma-border)] px-1.5 py-1.5">
-            <DeepInspectSection
-              deepChildNodes={deepChildNodes}
-              tokenMap={tokenMap}
-              onNavigateToToken={onNavigateToToken}
-              onRemoveBinding={handleDeepRemoveBinding}
-              onBindToken={handleDeepBindToken}
-              onSelectNode={handleSelectDeepNode}
-              showHeader
-            />
-            {deepRemoveError && (
-              <InlineBanner variant="error">{deepRemoveError}</InlineBanner>
-            )}
-          </div>
-        )}
-
-        {/* Secondary action bar */}
-        {(connected && currentCollectionId && (unboundWithValueCount > 0 || totalBindings > 0)) && (
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--color-figma-border)] px-3 py-2">
-            {connected && currentCollectionId && unboundWithValueCount > 0 && (
-              <button
-                onClick={() => {
-                  if (showExtractPanel) {
-                    setShowExtractPanel(false);
-                    return;
-                  }
-                  openExtractPanel();
-                }}
-                className={`rounded px-2 py-1 text-[10px] transition-colors ${
-                  showExtractPanel
-                    ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                    : "bg-[var(--color-figma-accent)] text-white hover:opacity-90"
-                }`}
-              >
-                Extract {unboundWithValueCount} unbound
-              </button>
-            )}
-            <button
-              onClick={() => {
-                if (showRemapPanel) {
-                  setShowRemapPanel(false);
-                } else {
-                  openRemapPanel(remapMissingTokens);
-                }
-              }}
-              className={`rounded px-2 py-1 text-[10px] transition-colors ${
-                showRemapPanel
-                  ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                  : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-              }`}
-            >
-              Remap
-            </button>
-            {totalBindings > 0 && (
-              <button
-                onClick={() => setShowClearConfirm(true)}
-                title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
-                className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error,#f56565)]"
-              >
-                Clear all
-              </button>
-            )}
-            {connected && (
-              <button
-                onClick={() => onSync("page")}
-                disabled={syncing}
-                className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
-              >
-                Apply to page
-              </button>
-            )}
-          </div>
-        )}
-
-        {showExtractPanel && (
-          <div className="border-t border-[var(--color-figma-border)] p-3">
-            <ExtractTokensPanel
-              connected={connected}
-              currentCollectionId={currentCollectionId}
-              serverUrl={serverUrl}
-              tokenMap={tokenMap}
-              onTokenCreated={onTokenCreated}
-              onClose={() => setShowExtractPanel(false)}
-              propertyFilter={extractFilterProperties}
-              propertyFilterLabel="unbound"
-              embedded
-            />
-          </div>
-        )}
-        {showRemapPanel && (
-          <div className="border-t border-[var(--color-figma-border)] p-3">
-            <RemapBindingsPanel
-              tokenMap={tokenMap}
-              rows={remapDraftRows}
-              onRowsChange={setRemapDraftRows}
-              fromSuggestions={staleBindingPaths}
-              onClose={() => setShowRemapPanel(false)}
-              embedded
-            />
-          </div>
-        )}
-        </div>{/* closes flex-1 overflow-y-auto */}
-        </div>{/* closes left column */}
-
-        {/* RIGHT column: token matches — always visible when suggestions exist */}
         {suggestions.length > 0 && (
           <div
             className="flex flex-col border-l border-[var(--color-figma-border)] overflow-hidden"
@@ -1181,7 +1174,6 @@ export function SelectionInspector({
           >
             <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center gap-1.5">
               <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] flex-1">Matches</span>
-              <span className="text-[10px] tabular-nums bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">{suggestions.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto">
               <SuggestedTokens
@@ -1195,7 +1187,7 @@ export function SelectionInspector({
             </div>
           </div>
         )}
-      </div>{/* closes two-column flex-1 flex */}
+      </div>
 
       {showClearConfirm && (
         <ConfirmModal

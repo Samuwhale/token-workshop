@@ -251,7 +251,6 @@ export function CanvasAnalysisPanel({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Scan scope — persistent control above tabs, affects all sections */}
       <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg)] flex items-center gap-2">
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Scope</span>
         <div className="flex-1">
@@ -274,7 +273,6 @@ export function CanvasAnalysisPanel({
         )}
       </div>
 
-      {/* Tab bar */}
       <div className="flex border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg)]">
         {TABS.map((tab) => (
           <button
