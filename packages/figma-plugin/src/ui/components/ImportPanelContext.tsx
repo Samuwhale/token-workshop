@@ -318,12 +318,7 @@ function getImportSourceTag(source: ImportSource): string | null {
   return source;
 }
 
-/**
- * Topologically sort collection import plans so that collections whose tokens
- * are alias targets for other collections are imported first. This prevents
- * the server from rejecting batches due to unresolved cross-collection alias
- * references.
- */
+// Sort plans so alias-target collections are imported before dependents.
 function sortPlansByAliasDependencies(
   plans: CollectionImportPlan[],
 ): CollectionImportPlan[] {
@@ -338,19 +333,18 @@ function sortPlansByAliasDependencies(
 
   const deps = new Map<string, Set<string>>();
   for (const plan of plans) {
-    deps.set(plan.collectionId, new Set());
-  }
-  for (const plan of plans) {
+    const planDeps = new Set<string>();
     for (const source of plan.writeTokens) {
       const val = source.token.$value;
       if (typeof val === 'string' && isReference(val)) {
         const target = parseReference(val);
         const targetCollection = pathToCollection.get(target);
         if (targetCollection && targetCollection !== plan.collectionId) {
-          deps.get(plan.collectionId)!.add(targetCollection);
+          planDeps.add(targetCollection);
         }
       }
     }
+    deps.set(plan.collectionId, planDeps);
   }
 
   const sorted: CollectionImportPlan[] = [];
