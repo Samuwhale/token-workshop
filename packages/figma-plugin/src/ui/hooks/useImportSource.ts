@@ -236,7 +236,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setLoading(false);
         setError(`Figma Styles API error: ${msg.error ?? 'Unknown error'}`);
       }
-      if (msg.type === 'styles-read' && msg.correlationId != null && msg.correlationId === correlationIdRef.current) {
+      if (msg.type === 'styles-read' && pendingSourceRef.current === 'styles' && msg.correlationId === correlationIdRef.current) {
         pendingSourceRef.current = null;
         correlationIdRef.current = null;
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
@@ -265,12 +265,18 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     correlationIdRef.current = cid;
     setSourceFamily('figma');
     setSource('variables');
-    setLoading(true);
     setCollectionData([]);
     setTokens([]);
     setError(null);
+    const sent = postPluginMessage({ type: 'read-variables', correlationId: cid });
+    if (!sent) {
+      pendingSourceRef.current = null;
+      correlationIdRef.current = null;
+      setError('Could not reach the Figma plugin. Make sure the plugin is running inside Figma.');
+      return;
+    }
+    setLoading(true);
     startReadTimeout('variables');
-    postPluginMessage({ type: 'read-variables', correlationId: cid });
   }, [clearFileImportValidation, startReadTimeout]);
 
   const handleReadStyles = useCallback(() => {
@@ -280,11 +286,17 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     correlationIdRef.current = cid;
     setSourceFamily('figma');
     setSource('styles');
-    setLoading(true);
     setTokens([]);
     setError(null);
+    const sent = postPluginMessage({ type: 'read-styles', correlationId: cid });
+    if (!sent) {
+      pendingSourceRef.current = null;
+      correlationIdRef.current = null;
+      setError('Could not reach the Figma plugin. Make sure the plugin is running inside Figma.');
+      return;
+    }
+    setLoading(true);
     startReadTimeout('styles');
-    postPluginMessage({ type: 'read-styles', correlationId: cid });
   }, [clearFileImportValidation, startReadTimeout]);
 
   const processTokensStudioContent = useCallback((
