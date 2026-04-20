@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { Check, Eye, Filter } from "lucide-react";
 import type { SortOrder } from "./tokenListTypes";
 import type { Density } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
@@ -55,22 +56,7 @@ const MENU_SECTION_BORDER =
   "border-t border-[var(--color-figma-border)] mt-0.5 pt-0.5";
 
 function CheckIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  );
+  return <Check size={10} strokeWidth={2.5} className="shrink-0" aria-hidden />;
 }
 
 function MenuItem({
@@ -159,22 +145,7 @@ export function ViewMenu(
         }`}
         title="View options"
       >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
-        </svg>
+        <Eye size={12} strokeWidth={2} aria-hidden />
         <span>View</span>
       </button>
 
@@ -307,19 +278,7 @@ export function FilterMenu(props: FilterMenuProps) {
         }`}
         title="Filter options"
       >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-        </svg>
+        <Filter size={12} strokeWidth={2} aria-hidden />
         <span>Filter</span>
         {props.activeCount > 0 && <span>{props.activeCount}</span>}
       </button>

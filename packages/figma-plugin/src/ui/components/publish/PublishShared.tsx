@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { swatchBgColor } from '../../shared/colorUtils';
 import { getDiffRowId } from '../../shared/syncWorkflow';
 
@@ -348,80 +348,14 @@ export function SyncDiffSummary({ rows, dirs }: {
   );
 }
 
-/* ── ScopesPill ─────────────────────────────────────────────────────────── */
-
-function ScopesPill({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center px-1 py-0 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] leading-4">
-      {label}
-    </span>
-  );
-}
-
-/* ── ScopesEditor ───────────────────────────────────────────────────────── */
-
-function ScopesEditor({
-  options,
-  value,
-  onChange,
-}: {
-  options: { label: string; value: string }[];
-  value: string[];
-  onChange: (scopes: string[]) => void;
-}) {
-  const toggle = useCallback((scope: string) => {
-    onChange(
-      value.includes(scope)
-        ? value.filter(s => s !== scope)
-        : [...value, scope],
-    );
-  }, [value, onChange]);
-
-  return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 pt-0.5">
-      {options.map(opt => (
-        <label key={opt.value} className="flex items-center gap-1.5 cursor-pointer group" title={opt.value}>
-          <input
-            type="checkbox"
-            checked={value.includes(opt.value)}
-            onChange={() => toggle(opt.value)}
-            className="w-3 h-3 rounded"
-          />
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] group-hover:text-[var(--color-figma-text)] leading-4 truncate">
-            {opt.label}
-          </span>
-        </label>
-      ))}
-    </div>
-  );
-}
-
 /* ── VarDiffRowItem ─────────────────────────────────────────────────────── */
 
-export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, onScopesChange, figmaScopeValue, reviewOnly = false }: {
+export function VarDiffRowItem({ row, dir, onChange, reviewOnly = false }: {
   row: VarDiffRow;
   dir: 'push' | 'pull' | 'skip';
   onChange: (dir: 'push' | 'pull' | 'skip') => void;
-  /** Available scope options for this token type */
-  scopeOptions?: { label: string; value: string }[];
-  /** Current scopes (overridden or from local token) */
-  scopeValue?: string[];
-  /** Callback when user edits scopes (only provided when editing is allowed) */
-  onScopesChange?: (scopes: string[]) => void;
-  /** Scopes currently on the Figma variable — shown for figma-only and conflict rows */
-  figmaScopeValue?: string[];
   reviewOnly?: boolean;
 }) {
-  const [scopesExpanded, setScopesExpanded] = useState(false);
-
-  // Determine whether to show scope editing section
-  const canEditScopes = !reviewOnly && !!onScopesChange && !!scopeOptions?.length && dir === 'push';
-  // For figma-only rows, show figma scopes as info (read-only)
-  const showFigmaScopes = row.cat === 'figma-only' && !!figmaScopeValue?.length && !!scopeOptions?.length;
-
-  // Scope conflict: local and figma scopes differ (for conflict rows)
-  const scopesDiffer = row.cat === 'conflict' && !scopesAreEqual(scopeValue, figmaScopeValue);
-
   return (
     <div className="px-3 py-1.5 flex flex-col gap-1">
       <div className="flex items-center gap-2">
@@ -470,88 +404,6 @@ export function VarDiffRowItem({ row, dir, onChange, scopeOptions, scopeValue, o
           <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
         </div>
       )}
-
-      {/* ── Scope section ─────────────────────────────────────────────── */}
-      {(canEditScopes || showFigmaScopes) && (
-        <div className="pl-0.5">
-          {/* Scope summary row */}
-          <div className="flex items-center gap-1 flex-wrap">
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Scopes:</span>
-            {(canEditScopes ? (scopeValue?.length ? scopeValue : null) : (figmaScopeValue ?? null))
-              ? (canEditScopes ? scopeValue! : figmaScopeValue!).map(s => {
-                  const opt = scopeOptions!.find(o => o.value === s);
-                  return <ScopesPill key={s} label={opt?.label ?? s} />;
-                })
-              : <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">All scopes</span>
-            }
-            {scopesDiffer && (
-              <span className="text-[10px] text-[var(--color-figma-warning)] font-medium shrink-0" title="Local and Figma scopes differ">scope conflict</span>
-            )}
-            {canEditScopes && (
-              <button
-                onClick={() => setScopesExpanded(v => !v)}
-                className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] flex items-center gap-0.5 shrink-0"
-                aria-expanded={scopesExpanded}
-                aria-label="Edit scopes"
-              >
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${scopesExpanded ? 'rotate-90' : ''}`} aria-hidden="true">
-                  <path d="M2 1l4 3-4 3V1z" />
-                </svg>
-                Edit
-              </button>
-            )}
-          </div>
-
-          {/* Scope editor (expanded) */}
-          {canEditScopes && scopesExpanded && (
-            <div className="mt-1 pl-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Select which Figma properties can use this variable</span>
-                {scopeValue?.length ? (
-                  <button
-                    onClick={() => onScopesChange!([])}
-                    className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Clear (all)
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => onScopesChange!(scopeOptions!.map(o => o.value))}
-                    className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Select all
-                  </button>
-                )}
-              </div>
-              <ScopesEditor
-                options={scopeOptions!}
-                value={scopeValue ?? []}
-                onChange={onScopesChange!}
-              />
-            </div>
-          )}
-
-          {/* Figma-only: show figma scopes conflict hint for conflict rows */}
-          {row.cat === 'conflict' && scopesDiffer && figmaScopeValue !== undefined && scopeOptions && (
-            <div className="mt-0.5 flex items-start gap-1 flex-wrap">
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Figma:</span>
-              {figmaScopeValue.length
-                ? figmaScopeValue.map(s => {
-                    const opt = scopeOptions.find(o => o.value === s);
-                    return <ScopesPill key={s} label={opt?.label ?? s} />;
-                  })
-                : <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">All scopes</span>
-              }
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
-}
-
-function scopesAreEqual(a: string[] | undefined, b: string[] | undefined): boolean {
-  const aArr = a?.length ? [...a].sort() : [];
-  const bArr = b?.length ? [...b].sort() : [];
-  return aArr.length === bArr.length && aArr.every((s, i) => s === bArr[i]);
 }

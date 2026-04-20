@@ -116,9 +116,9 @@ export function GitRepositoryPanel({ serverUrl, connected, onPushUndo, onRefresh
 
       {confirmAction === 'git-pull' && (
         <GitPreviewModal
-          title="Pull from remote"
-          subtitle="Incoming changes from remote."
-          confirmLabel="Pull"
+          title="Get updates"
+          subtitle="Incoming changes from your team."
+          confirmLabel="Get updates"
           preview={git.pullPreview}
           loading={git.pullPreviewLoading}
           fetchPreview={git.fetchPullPreview}
@@ -136,9 +136,9 @@ export function GitRepositoryPanel({ serverUrl, connected, onPushUndo, onRefresh
 
       {confirmAction === 'git-push' && (
         <GitPreviewModal
-          title={`Push to remote${git.gitStatus?.branch ? ` (${git.gitStatus.branch})` : ''}`}
-          subtitle="Outgoing changes."
-          confirmLabel="Push"
+          title={`Share changes${git.gitStatus?.branch ? ` (${git.gitStatus.branch})` : ''}`}
+          subtitle="Your changes to share with the team."
+          confirmLabel="Share"
           preview={git.pushPreview}
           loading={git.pushPreviewLoading}
           fetchPreview={git.fetchPushPreview}
@@ -362,8 +362,8 @@ function RepositoryTimeline({
           <FeedbackPlaceholder
             variant="empty"
             size="section"
-            title="No commits yet"
-            description="Commit changes to start tracking version history."
+            title="No versions yet"
+            description="Save your changes to start tracking version history."
           />
         )}
 
@@ -688,8 +688,8 @@ function CommitPreviewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
       <div ref={dialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-commit-dialog-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 id="git-commit-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">Commit changes</h3>
-          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">Review before committing.</p>
+          <h3 id="git-commit-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">Save version</h3>
+          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">Review before saving.</p>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           <div className="mb-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
@@ -699,7 +699,7 @@ function CommitPreviewModal({
           <div className="mb-2">
             <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1 flex items-center justify-between">
               <span>
-                {stagedChanges.length} file{stagedChanges.length !== 1 ? 's' : ''} to commit
+                {stagedChanges.length} file{stagedChanges.length !== 1 ? 's' : ''} to save
                 {skippedCount > 0 && <span className="text-[var(--color-figma-text-tertiary)]"> ({skippedCount} skipped)</span>}
               </span>
               {!tokenPreviewLoading && relevantTokenChanges.length > 0 && (
@@ -761,7 +761,7 @@ function CommitPreviewModal({
           <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
           <button onClick={handleConfirm} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
             {busy && <Spinner size="sm" className="text-white" />}
-            {busy ? 'Committing…' : `Commit ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
+            {busy ? 'Saving…' : `Save ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
           </button>
         </div>
       </div>

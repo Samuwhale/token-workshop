@@ -1,6 +1,8 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronUp, ChevronDown, X, Plus } from "lucide-react";
 import type { ReactNode, Ref } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
+import { apiFetch } from "../shared/apiFetch";
 import {
   CollectionMergeInline,
   SetDeleteDialog,
@@ -13,6 +15,9 @@ interface CollectionDetailsPanelProps {
   collectionIds: string[];
   collectionTokenCounts: Record<string, number>;
   collectionDescriptions: Record<string, string>;
+  serverUrl: string;
+  connected: boolean;
+  onModeMutated?: () => void;
   onClose: () => void;
   onRename?: (collectionId: string) => void;
   onDuplicate?: (collectionId: string) => void;
@@ -88,11 +93,379 @@ function Section({
   );
 }
 
+function ModeRow({
+  modeName,
+  modeIndex,
+  allModeNames,
+  collectionId,
+  serverUrl,
+  connected,
+  tokenCount,
+  onMutated,
+}: {
+  modeName: string;
+  modeIndex: number;
+  allModeNames: string[];
+  collectionId: string;
+  serverUrl: string;
+  connected: boolean;
+  tokenCount: number;
+  onMutated?: () => void;
+}) {
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(modeName);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (renaming) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [renaming]);
+
+  const handleRename = useCallback(async () => {
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === modeName) {
+      setRenaming(false);
+      setRenameValue(modeName);
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: trimmed }),
+        },
+      );
+      setRenaming(false);
+      onMutated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Rename failed");
+    } finally {
+      setSaving(false);
+    }
+  }, [collectionId, modeName, onMutated, renameValue, serverUrl]);
+
+  const handleDelete = useCallback(async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
+        { method: "DELETE" },
+      );
+      setConfirmingDelete(false);
+      onMutated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setSaving(false);
+    }
+  }, [collectionId, modeName, onMutated, serverUrl]);
+
+  const handleReorder = useCallback(
+    async (direction: -1 | 1) => {
+      const newIndex = modeIndex + direction;
+      if (newIndex < 0 || newIndex >= allModeNames.length) return;
+      const reordered = [...allModeNames];
+      reordered.splice(modeIndex, 1);
+      reordered.splice(newIndex, 0, modeName);
+      setSaving(true);
+      setError("");
+      try {
+        await apiFetch(
+          `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes-order`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ modes: reordered }),
+          },
+        );
+        onMutated?.();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Reorder failed");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [allModeNames, collectionId, modeIndex, modeName, onMutated, serverUrl],
+  );
+
+  const canMoveUp = modeIndex > 0 && allModeNames.length > 1;
+  const canMoveDown = modeIndex < allModeNames.length - 1 && allModeNames.length > 1;
+
+  if (confirmingDelete) {
+    return (
+      <div className="rounded-md border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/5 px-2.5 py-2">
+        <p className="text-[10px] text-[var(--color-figma-text)]">
+          Delete mode? {tokenCount} token{tokenCount === 1 ? "" : "s"} may lose values.
+        </p>
+        <div className="mt-1.5 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleDelete()}
+            disabled={saving}
+            className="rounded-md bg-[var(--color-figma-error)] px-2 py-0.5 text-[10px] font-medium text-white disabled:opacity-50"
+          >
+            {saving ? "Deleting..." : "Confirm"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(false)}
+            disabled={saving}
+            className="rounded-md px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+        </div>
+        {error ? (
+          <p className="mt-1 text-[10px] text-[var(--color-figma-error)]">{error}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (renaming) {
+    return (
+      <div className="space-y-1">
+        <input
+          ref={inputRef}
+          type="text"
+          value={renameValue}
+          onChange={(e) => {
+            setRenameValue(e.target.value);
+            setError("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void handleRename();
+            if (e.key === "Escape") {
+              setRenaming(false);
+              setRenameValue(modeName);
+            }
+          }}
+          onBlur={() => void handleRename()}
+          disabled={saving}
+          className="w-full rounded-md border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+        />
+        {error ? (
+          <p className="text-[10px] text-[var(--color-figma-error)]">{error}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="group flex items-center gap-1 rounded-md px-2.5 py-1.5 transition-colors hover:bg-[var(--color-figma-bg-hover)]">
+      <span
+        className="flex-1 cursor-default truncate text-[11px] text-[var(--color-figma-text)]"
+        onDoubleClick={() => {
+          if (connected) {
+            setRenameValue(modeName);
+            setRenaming(true);
+          }
+        }}
+        title="Double-click to rename"
+      >
+        {modeName}
+      </span>
+      {connected && allModeNames.length > 1 ? (
+        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={() => void handleReorder(-1)}
+            disabled={!canMoveUp || saving}
+            className="rounded p-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-30"
+            aria-label="Move up"
+          >
+            <ChevronUp size={10} strokeWidth={2.5} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleReorder(1)}
+            disabled={!canMoveDown || saving}
+            className="rounded p-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-30"
+            aria-label="Move down"
+          >
+            <ChevronDown size={10} strokeWidth={2.5} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(true)}
+            disabled={saving}
+            className="rounded p-0.5 text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:opacity-30"
+            aria-label="Delete mode"
+          >
+            <X size={10} strokeWidth={2.5} aria-hidden />
+          </button>
+        </div>
+      ) : null}
+      {error ? (
+        <p className="text-[10px] text-[var(--color-figma-error)]">{error}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function ModesSection({
+  collection,
+  serverUrl,
+  connected,
+  onModeMutated,
+  tokenCount,
+}: {
+  collection: TokenCollection;
+  serverUrl: string;
+  connected: boolean;
+  onModeMutated?: () => void;
+  tokenCount: number;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [addValue, setAddValue] = useState("");
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState("");
+  const addInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (adding) {
+      addInputRef.current?.focus();
+    }
+  }, [adding]);
+
+  const handleAdd = useCallback(async () => {
+    const trimmed = addValue.trim();
+    if (!trimmed) {
+      setAdding(false);
+      setAddValue("");
+      return;
+    }
+    setAddSaving(true);
+    setAddError("");
+    try {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(collection.id)}/modes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: trimmed }),
+        },
+      );
+      setAdding(false);
+      setAddValue("");
+      onModeMutated?.();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Add failed");
+    } finally {
+      setAddSaving(false);
+    }
+  }, [addValue, collection.id, onModeMutated, serverUrl]);
+
+  const allModeNames = collection.modes.map((m) => m.name);
+  const isSingleDefault =
+    collection.modes.length === 1 && collection.modes[0].name === "Mode 1";
+
+  return (
+    <Section title="Modes" description="Define variants like light/dark or responsive breakpoints.">
+      <div className="space-y-1">
+        {collection.modes.map((mode, index) => (
+          <ModeRow
+            key={mode.name}
+            modeName={mode.name}
+            modeIndex={index}
+            allModeNames={allModeNames}
+            collectionId={collection.id}
+            serverUrl={serverUrl}
+            connected={connected}
+            tokenCount={tokenCount}
+            onMutated={onModeMutated}
+          />
+        ))}
+      </div>
+      {isSingleDefault ? (
+        <p className="mt-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
+          Add another mode to enable multi-mode tokens.
+        </p>
+      ) : null}
+      {connected ? (
+        <div className="mt-2">
+          {adding ? (
+            <div className="space-y-1">
+              <input
+                ref={addInputRef}
+                type="text"
+                value={addValue}
+                onChange={(e) => {
+                  setAddValue(e.target.value);
+                  setAddError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleAdd();
+                  if (e.key === "Escape") {
+                    setAdding(false);
+                    setAddValue("");
+                    setAddError("");
+                  }
+                }}
+                disabled={addSaving}
+                placeholder="Mode name"
+                className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+              />
+              {addError ? (
+                <p className="text-[10px] text-[var(--color-figma-error)]">{addError}</p>
+              ) : null}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleAdd()}
+                  disabled={addSaving || !addValue.trim()}
+                  className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white disabled:opacity-50"
+                >
+                  {addSaving ? "Adding..." : "Add"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdding(false);
+                    setAddValue("");
+                    setAddError("");
+                  }}
+                  disabled={addSaving}
+                  className="rounded-md px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              <Plus size={10} strokeWidth={2.5} aria-hidden />
+              Add mode
+            </button>
+          )}
+        </div>
+      ) : null}
+    </Section>
+  );
+}
+
 export function CollectionDetailsPanel({
   collection,
   collectionIds,
   collectionTokenCounts,
   collectionDescriptions,
+  serverUrl,
+  connected,
+  onModeMutated,
   onClose,
   onRename,
   onDuplicate,
@@ -177,9 +550,7 @@ export function CollectionDetailsPanel({
             className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             aria-label="Close collection setup"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <X size={12} strokeWidth={2} aria-hidden />
           </button>
         </div>
         <div className="flex flex-1 items-center justify-center px-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
@@ -242,9 +613,7 @@ export function CollectionDetailsPanel({
             className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             aria-label="Close collection setup"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <X size={12} strokeWidth={2} aria-hidden />
           </button>
         </div>
 
@@ -273,6 +642,14 @@ export function CollectionDetailsPanel({
               </div>
             </div>
           </Section>
+
+          <ModesSection
+            collection={collection}
+            serverUrl={serverUrl}
+            connected={connected}
+            onModeMutated={onModeMutated}
+            tokenCount={collectionTokenCounts[collection.id] ?? 0}
+          />
 
           <Section title="Organize" description="Structural changes to this collection.">
             <details className="group">

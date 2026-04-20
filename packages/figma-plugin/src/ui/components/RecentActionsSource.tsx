@@ -1,4 +1,8 @@
 import { useState, useCallback } from 'react';
+import {
+  Plus, X, ArrowRightLeft, Pencil, RotateCcw,
+  List, AlertTriangle, Play, Minus,
+} from 'lucide-react';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
 import { formatRelativeTime } from '../shared/changeHelpers';
@@ -30,36 +34,37 @@ interface RecentActionsSourceProps {
   onServerRedo?: (opId: string) => void;
 }
 
+const OP_ICON_CLASS = 'shrink-0 text-[var(--color-figma-text-tertiary)]';
+const OP_ICON_SIZE = 10;
+const OP_ICON_SW = 2;
+
 /** Icon for each operation type */
 export function OpIcon({ type }: { type: string }) {
-  const className = 'shrink-0 text-[var(--color-figma-text-tertiary)]';
-  const props = { width: 10, height: 10, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, className, 'aria-hidden': true as const };
-
   if (type.includes('create') || type.includes('add')) {
-    return <svg {...props}><path d="M12 5v14M5 12h14" /></svg>;
+    return <Plus size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   if (type.includes('delete') || type.includes('remove')) {
-    return <svg {...props}><path d="M18 6L6 18M6 6l12 12" /></svg>;
+    return <Minus size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   if (type.includes('rename') || type.includes('move') || type.includes('reorder')) {
-    return <svg {...props}><path d="M11 4H4v16h7M20 12H9m6-5l5 5-5 5" /></svg>;
+    return <ArrowRightLeft size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   if (type.includes('update') || type.includes('replace') || type.includes('meta')) {
-    return <svg {...props}><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>;
+    return <Pencil size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   if (type === 'rollback') {
-    return <svg {...props}><path d="M3 12a9 9 0 109-9" /><path d="M3 3v6h6" /></svg>;
+    return <RotateCcw size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   if (type.includes('bulk')) {
-    return <svg {...props}><path d="M4 6h16M4 12h16M4 18h16" /></svg>;
+    return <List size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   if (type.includes('error')) {
-    return <svg {...props} className="shrink-0 text-[var(--color-figma-warning,#f59e0b)]"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>;
+    return <AlertTriangle size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />;
   }
   if (type.includes('generator') || type.includes('run')) {
-    return <svg {...props}><path d="M5 3l14 9-14 9V3z" /></svg>;
+    return <Play size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
-  return <svg {...props}><circle cx="12" cy="12" r="3" /></svg>;
+  return <X size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={`${OP_ICON_CLASS} opacity-30`} aria-hidden />;
 }
 
 export function RecentActionsSource({ recentOperations, onRollback, undoDescriptions, onSwitchTab, total, hasMore, onLoadMore, redoableOpIds, onServerRedo }: RecentActionsSourceProps) {

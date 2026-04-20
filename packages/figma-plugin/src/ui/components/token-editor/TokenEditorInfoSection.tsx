@@ -1,4 +1,5 @@
 import { resolveRefValue } from "@tokenmanager/core";
+import { Network } from "lucide-react";
 import type { TokenMapEntry } from "../../../shared/types";
 import type {
   TokenDependencyNode,
@@ -134,20 +135,7 @@ export function TokenEditorInfoSection({
                 className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:underline transition-colors"
                 title="Open graph"
               >
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
-                </svg>
+                <Network size={10} strokeWidth={2} aria-hidden />
                 Open graph
               </button>
             )}

@@ -2481,11 +2481,6 @@ export function TokenList({
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
-            generatedTokenCount={derivedTokenPaths?.size ?? 0}
-            onApplyVariables={handleApplyVariables}
-            onApplyStyles={handleApplyStyles}
-            applyingOrLoading={applying || varDiffLoading}
-            tokensExist={tokens.length > 0}
             overflowMenuProps={tokens.length > 0 ? {
               sortOrder,
               onSortOrderChange: setSortOrder,

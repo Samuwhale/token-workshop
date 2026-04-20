@@ -214,6 +214,28 @@ body {
   box-sizing: border-box;
 }
 
+select,
+option,
+optgroup {
+  text-align: left;
+}
+
+select {
+  text-align-last: left;
+}
+
+button[role="menuitem"],
+a[role="menuitem"],
+[role="menuitemradio"],
+[role="menuitemcheckbox"] {
+  text-align: left;
+}
+
+button[role="menuitem"],
+a[role="menuitem"] {
+  justify-content: flex-start;
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,

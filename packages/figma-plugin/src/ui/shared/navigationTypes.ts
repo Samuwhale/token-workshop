@@ -11,7 +11,7 @@ import type { GeneratorTemplate } from "../hooks/useGenerators";
 export type TopTab = "tokens" | "canvas" | "publish";
 type TokensSubTab = "tokens" | "history" | "health";
 type CanvasSubTab = "inspect" | "canvas-analysis";
-type PublishSubTab = "sync" | "export" | "repo";
+type PublishSubTab = "sync" | "export" | "versions";
 export type SubTab = TokensSubTab | CanvasSubTab | PublishSubTab;
 export type SecondarySurfaceId =
   | "import"
@@ -101,7 +101,7 @@ export const TOP_TABS: {
     subTabs: [
       { id: "sync", label: "Sync" },
       { id: "export", label: "Export" },
-      { id: "repo", label: "Repository" },
+      { id: "versions", label: "Versions" },
     ],
   },
 ];
@@ -526,20 +526,20 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         ),
       },
       {
-        id: "repo",
-        label: "Repository",
+        id: "versions",
+        label: "Versions",
         topTab: "publish",
-        subTab: "repo",
+        subTab: "versions",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Commit, push, pull, and review version history.",
+          "Save, share, and view version history.",
         ),
       },
     ],
     matchRoutes: [
       route("publish", "sync"),
       route("publish", "export"),
-      route("publish", "repo"),
+      route("publish", "versions"),
     ],
   },
 ];

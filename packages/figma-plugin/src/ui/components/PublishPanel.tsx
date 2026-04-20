@@ -31,7 +31,6 @@ import type {
   VariableSyncToken,
   VarSnapshot,
 } from '../../shared/types';
-import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
 import {
   buildVariablePublishFigmaMap,
   buildPublishPullPayload,
@@ -43,7 +42,6 @@ import {
   type PublishDiffRow as DiffRow,
   type PublishSyncEntry,
   type PublishPreflightActionId,
-  type PublishPreflightStage,
   type SyncWorkflowStage,
 } from '../shared/syncWorkflow';
 
@@ -302,8 +300,6 @@ export function PublishPanel({
     }),
   });
 
-  // ── Scope overrides: user-edited scopes for variable push rows ──
-  const [scopeOverrides, setScopeOverrides] = useState<Record<string, string[]>>({});
   const [preflightActionBusyId, setPreflightActionBusyId] = useState<PublishPreflightActionId | null>(null);
   const preflightRef = useRef<HTMLDivElement | null>(null);
   const compareRef = useRef<HTMLDivElement | null>(null);
@@ -532,8 +528,7 @@ export function PublishPanel({
     buildPullPayload: buildPublishPullPayload,
     buildApplyPayload: (rows) => ({
       tokens: rows.map(r => {
-        const scopes = scopeOverrides[r.path] ?? r.localScopes;
-        const extensions = scopes?.length ? { 'com.figma.scopes': scopes } : {};
+        const extensions = r.localScopes?.length ? { 'com.figma.scopes': r.localScopes } : {};
         return {
           path: r.path,
           $type: r.localType ?? 'string',
@@ -577,7 +572,6 @@ export function PublishPanel({
 
   // ── Shared diff filter ──
   const [diffFilter] = useState('');
-  const [selectedStage, setSelectedStage] = useState<SyncWorkflowStage>('preflight');
   const [activeCompareTarget, setActiveCompareTarget] = useState<CompareTarget>('variables');
 
   // ── Confirmation modal state ──
@@ -852,30 +846,7 @@ export function PublishPanel({
     }
   }, [resolverRoutingShouldExpand]);
 
-  useEffect(() => {
-    if (
-      readinessLoading ||
-      isReadinessOutdated ||
-      preflightStage === 'idle' ||
-      preflightStage === 'blocked'
-    ) {
-      setSelectedStage('preflight');
-      return;
-    }
-
-    if (selectedStage === 'preflight' && canProceedToSync) {
-      setSelectedStage('compare');
-    }
-  }, [
-    canProceedToSync,
-    isReadinessOutdated,
-    preflightStage,
-    readinessLoading,
-    selectedStage,
-  ]);
-
   const focusStage = useCallback((stage: SyncWorkflowStage) => {
-    setSelectedStage(stage);
     const target =
       stage === 'preflight' ? preflightRef.current :
       stage === 'compare' ? compareRef.current :
@@ -954,37 +925,31 @@ export function PublishPanel({
     'review-audit-findings': () => void handlePreflightAction('review-audit-findings'),
   }), [handlePreflightAction]);
 
-  const handleRunPreflight = useCallback(() => {
-    setSelectedStage('preflight');
-    void runReadinessChecks();
+  const handleSync = useCallback(async () => {
+    await runReadinessChecks();
   }, [runReadinessChecks]);
 
-  const handleCompareTargets = useCallback(async () => {
-    setSelectedStage('compare');
-    await compareAll();
-  }, [compareAll]);
+  useEffect(() => {
+    if (canProceedToSync && !varSync.checked && !styleSync.checked && !varSync.loading && !styleSync.loading) {
+      void compareAll();
+    }
+  }, [canProceedToSync, varSync.checked, styleSync.checked, varSync.loading, styleSync.loading, compareAll]);
 
   const handleSelectCompareTarget = useCallback((target: CompareTarget) => {
     setActiveCompareTarget(target);
-    setSelectedStage('compare');
   }, []);
-
-  const handleOpenApplyReview = useCallback(async () => {
-    setSelectedStage('apply');
-    await handleOpenPublishAll();
-  }, [handleOpenPublishAll]);
 
   useEffect(() => {
     if (!publishPanelHandle) return;
     publishPanelHandle.current = {
-      runReadinessChecks,
+      runReadinessChecks: () => void handleSync(),
       runCompareAll: compareAll,
       focusStage,
     };
     return () => {
       publishPanelHandle.current = null;
     };
-  }, [compareAll, focusStage, publishPanelHandle, runReadinessChecks]);
+  }, [compareAll, focusStage, handleSync, publishPanelHandle]);
 
   // ── Broadcast pending count to Sync tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
@@ -1013,63 +978,14 @@ export function PublishPanel({
     };
   }, [publishPreflightState]);
 
-  const preflightCardState = useMemo(
-    () => buildPreflightCardState({
-      stage: preflightStage,
-      isOutdated: isReadinessOutdated,
-      running: readinessLoading,
-      blockingCount: blockingReadinessChecks.length,
-      advisoryCount: advisoryReadinessChecks.length,
-    }),
-    [
-      advisoryReadinessChecks.length,
-      blockingReadinessChecks.length,
-      isReadinessOutdated,
-      preflightStage,
-      readinessLoading,
-    ],
-  );
+  /* ── Derived UI state ─────────────────────────────────────────────────── */
 
-  const compareCardState = useMemo(
-    () => buildCompareCardState({
-      canProceed: canProceedToSync,
-      compareLoading: compareAllLoading || varSync.loading || styleSync.loading,
-      hasComparedAnything,
-      totalDiffCount,
-      totalConflictCount,
-    }),
-    [
-      canProceedToSync,
-      compareAllLoading,
-      hasComparedAnything,
-      styleSync.loading,
-      totalConflictCount,
-      totalDiffCount,
-      varSync.loading,
-    ],
-  );
-
-  const applyCardState = useMemo(
-    () => buildApplyCardState({
-      canProceed: canProceedToSync,
-      hasComparedAnything,
-      isResolverPublishCompareActive,
-      hasResolverVariableCompare: isResolverPublishCompareActive && varSync.checked,
-      pendingApplyCount: totalPendingApplyCount,
-      applyBusy: publishAllBusy || quickSyncing,
-      publishAllAvailable,
-    }),
-    [
-      canProceedToSync,
-      hasComparedAnything,
-      isResolverPublishCompareActive,
-      publishAllAvailable,
-      publishAllBusy,
-      quickSyncing,
-      totalPendingApplyCount,
-      varSync.checked,
-    ],
-  );
+  const isSyncing = readinessLoading || compareAllLoading || varSync.loading || styleSync.loading;
+  const isApplying = publishAllBusy || quickSyncing;
+  const isInSync = hasComparedAnything && totalDiffCount === 0 && !isSyncing;
+  const hasBlockers = preflightStage === 'blocked';
+  const hasIssues = preflightStage === 'blocked' || preflightStage === 'advisory';
+  const showChanges = hasComparedAnything && totalDiffCount > 0 && !isSyncing;
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
@@ -1087,59 +1003,66 @@ export function PublishPanel({
     <>
     <div className="flex h-full flex-col bg-[var(--color-figma-bg)]">
       <div className="flex-1 overflow-y-auto px-3 py-3">
-        <div className="mx-auto flex max-w-[1080px] flex-col">
-          {/* Compact publish target summary */}
-          <div className="border-b border-[var(--color-figma-border)] pb-3 mb-1">
-            <button
-              type="button"
-              onClick={() => setStandardRoutingExpanded((current) => !current)}
-              className="flex w-full items-center gap-2 text-left"
-            >
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Publishing to</span>
-              <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{resolvedCollectionName} / {resolvedModeName}</span>
-              {standardRoutingDirty && (
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-figma-warning)]" title="Unsaved changes" />
-              )}
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`ml-auto shrink-0 text-[var(--color-figma-text-tertiary)] ${standardRoutingExpanded ? 'rotate-90' : ''} transition-transform`} aria-hidden="true">
-                <path d="M2 1l4 3-4 3V1z" />
-              </svg>
-            </button>
+        <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
 
-            {standardRoutingExpanded && (
-              <div className="mt-3">
-                <StandardPublishRoutingCard
-                  currentCollectionId={currentCollectionId}
-                  draft={standardRoutingDraft}
-                  dirty={standardRoutingDirty}
-                  saving={standardRoutingSaving}
-                  error={standardRoutingError}
-                  onFieldChange={updateStandardRoutingDraft}
-                  onReset={resetStandardRoutingDraft}
-                  onSave={() => void saveStandardRouting()}
-                />
+          {/* ── Primary action ────────────────────────────────────────── */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                {resolvedCollectionName} / {resolvedModeName}
               </div>
-            )}
+            </div>
+            <button
+              onClick={() => void handleSync()}
+              disabled={isSyncing || isApplying || standardRoutingDirty}
+              className="rounded-md bg-[var(--color-figma-accent)] px-4 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isSyncing ? 'Checking…' : isApplying ? 'Applying…' : 'Sync with Figma'}
+            </button>
           </div>
 
-          <div ref={preflightRef}>
-            <WorkflowStage
-              title="Preflight"
-              description="Check for issues before publishing to Figma"
-              expanded={selectedStage === 'preflight'}
-              onSelect={() => setSelectedStage('preflight')}
-              statusSeverity={preflightCardState.severity}
-              statusLabel={preflightCardState.label}
-              helpToggle={undefined}
-              action={(
+          {/* ── Progress indicator ────────────────────────────────────── */}
+          {(isSyncing || isApplying) && (
+            <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+              <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
+              <span>
+                {readinessLoading && 'Running preflight checks…'}
+                {!readinessLoading && (compareAllLoading || varSync.loading || styleSync.loading) && 'Comparing with Figma…'}
+                {isApplying && publishAllStep === 'variables' && 'Publishing variables…'}
+                {isApplying && publishAllStep === 'styles' && 'Publishing styles…'}
+              </span>
+            </div>
+          )}
+
+          {/* ── In sync state ─────────────────────────────────────────── */}
+          {isInSync && !hasBlockers && (
+            <div className="flex items-center gap-2 rounded-md border border-[var(--color-figma-success)]/20 bg-[var(--color-figma-success)]/5 px-4 py-3">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              <span className="text-[11px] text-[var(--color-figma-text)]">Everything in sync</span>
+              {(varSync.snapshot || styleSync.snapshot) && (
                 <button
-                  onClick={handleRunPreflight}
-                  disabled={readinessLoading}
-                  className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={varSync.snapshot ? varSync.revert : styleSync.revert}
+                  disabled={varSync.reverting || styleSync.reverting}
+                  className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
                 >
-                  {readinessLoading ? 'Running…' : isReadinessOutdated || preflightStage === 'idle' ? 'Run preflight' : 'Re-run preflight'}
+                  {varSync.reverting || styleSync.reverting ? 'Reverting…' : 'Undo last sync'}
                 </button>
               )}
-            >
+            </div>
+          )}
+
+          {/* ── Routing dirty warning ─────────────────────────────────── */}
+          {standardRoutingDirty && (
+            <NoticeBanner severity="warning">
+              Save the publish target before syncing.
+            </NoticeBanner>
+          )}
+
+          {/* ── Issues section (from preflight) ───────────────────────── */}
+          {hasIssues && !isSyncing && (
+            <div ref={preflightRef}>
               <SyncPreflightStep
                 stage={preflightStage}
                 isOutdated={isReadinessOutdated}
@@ -1150,144 +1073,124 @@ export function PublishPanel({
                 actionHandlers={preflightActionHandlers}
                 actionBusyId={orphansDeleting ? 'delete-orphan-variables' : preflightActionBusyId}
               />
-            </WorkflowStage>
-          </div>
+            </div>
+          )}
 
-          <div ref={compareRef}>
-            <WorkflowStage
-              title="Compare"
-              expanded={canProceedToSync && selectedStage === 'compare'}
-              onSelect={() => {
-                if (canProceedToSync) {
-                  setSelectedStage('compare');
-                }
-              }}
-              statusSeverity={compareCardState.severity}
-              statusLabel={compareCardState.label}
-              disabled={!canProceedToSync}
-              action={canProceedToSync ? (
-                <button
-                  onClick={() => void handleCompareTargets()}
-                  disabled={compareAllLoading || varSync.loading || styleSync.loading}
-                  className="rounded-md border border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)]/35 hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {compareAllLoading || varSync.loading || styleSync.loading ? 'Comparing…' : hasComparedAnything ? 'Re-run compare' : 'Compare Figma'}
-                </button>
-              ) : null}
-            >
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {compareTargets.map((target) => (
-                    <button
-                      key={target.id}
-                      type="button"
-                      onClick={() => handleSelectCompareTarget(target.id)}
-                      className={[
-                        'rounded-md border px-3 py-1.5 text-[10px] font-medium transition-colors',
-                        activeCompareTarget === target.id
-                          ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                          : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/25 hover:text-[var(--color-figma-text)]',
-                      ].join(' ')}
-                    >
-                      {target.label}
-                      <span className="ml-1.5 text-[10px] opacity-75">{target.badge}</span>
-                    </button>
-                  ))}
+          {readinessError && !hasIssues && (
+            <NoticeBanner severity="error">{readinessError}</NoticeBanner>
+          )}
+
+          {/* ── Changes section ────────────────────────────────────────── */}
+          {showChanges && (
+            <div ref={compareRef} className="flex flex-col gap-3">
+              {/* Summary + apply actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                    {totalDiffCount} difference{totalDiffCount !== 1 ? 's' : ''} found
+                  </span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {[
+                      (varSync.pushCount + styleSync.pushCount) > 0 ? `${varSync.pushCount + styleSync.pushCount} to push` : null,
+                      (varSync.pullCount + styleSync.pullCount) > 0 ? `${varSync.pullCount + styleSync.pullCount} to pull` : null,
+                      totalConflictCount > 0 ? `${totalConflictCount} conflict${totalConflictCount !== 1 ? 's' : ''}` : null,
+                    ].filter(Boolean).join(' · ')}
+                  </span>
                 </div>
-
-                <div className="overflow-hidden border-t border-[var(--color-figma-border)]">
-                  {activeCompareConfig.id === 'variables' ? (
-                    <SyncSubPanel
-                      sync={varSync}
-                      diffFilter={diffFilter}
-                      onRevert={varSync.revert}
-                      inSyncMessage={isResolverPublishCompareActive ? 'Mapped resolver outputs match their target Figma modes.' : 'Local tokens match Figma variables.'}
-                      notCheckedMessage={isResolverPublishCompareActive
-                        ? <>Run compare to review the saved resolver mappings against their target Figma modes.</>
-                        : <>Run compare to see which tokens differ between local files and Figma.</>}
-                      revertDescription="Restore Figma variables to their previous state"
-                      scopeOverrides={scopeOverrides}
-                      onScopesChange={(path, scopes) => setScopeOverrides(prev => ({ ...prev, [path]: scopes }))}
-                      getScopeOptions={(type) => FIGMA_SCOPE_OPTIONS[type ?? ''] ?? []}
-                      reviewOnly={isResolverPublishCompareActive}
-                      reviewOnlyMessage="Resolver-mode variable differences are review-only here. Apply them from Advanced publish routing so the saved resolver mapping stays authoritative."
-                    />
-                  ) : (
-                    <SyncSubPanel
-                      sync={styleSync}
-                      diffFilter={diffFilter}
-                      onRevert={styleSync.revert}
-                      inSyncMessage="Local tokens match Figma styles."
-                      notCheckedMessage={<>Run compare to see which color, text, and effect styles differ.</>}
-                      revertDescription="Restore Figma styles to their previous state"
-                    />
+                <div className="flex items-center gap-2">
+                  {publishAllAvailable && (
+                    <>
+                      <button
+                        onClick={quickSync}
+                        disabled={isApplying}
+                        className="rounded-md border border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                      >
+                        Apply all
+                      </button>
+                      <button
+                        onClick={() => void handleOpenPublishAll()}
+                        disabled={isApplying}
+                        className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      >
+                        Review &amp; apply
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
-            </WorkflowStage>
-          </div>
 
-          <div ref={applyRef}>
-            <WorkflowStage
-              title="Apply"
-              expanded={canProceedToSync && selectedStage === 'apply'}
-              onSelect={() => {
-                if (canProceedToSync) {
-                  setSelectedStage('apply');
-                }
-              }}
-              statusSeverity={applyCardState.severity}
-              statusLabel={applyCardState.label}
-              disabled={!canProceedToSync}
-              action={canProceedToSync && (publishAllAvailable || quickSyncing || publishAllBusy || hasComparedAnything) ? (
-                <button
-                  onClick={() => void handleOpenApplyReview()}
-                  disabled={compareAllLoading || publishAllBusy || quickSyncing || !publishAllAvailable}
-                  className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {publishAllBusy || quickSyncing ? 'Applying…' : publishAllAvailable ? 'Review changes' : 'Nothing to apply'}
-                </button>
-              ) : null}
-            >
-              <div className="flex flex-col gap-3">
-                {(publishAllBusy || quickSyncing || compareAllLoading) && (
-                  <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text)]">
-                    <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
-                    <span>
-                      {compareAllLoading && 'Comparing…'}
-                      {!compareAllLoading && publishAllStep === 'variables' && (quickSyncing ? 'Publishing variables…' : 'Publishing variables…')}
-                      {!compareAllLoading && publishAllStep === 'styles' && (quickSyncing ? 'Publishing styles…' : 'Publishing styles…')}
-                    </span>
-                  </div>
-                )}
+              {publishAllError && (
+                <NoticeBanner severity="error">Publish failed: {publishAllError}</NoticeBanner>
+              )}
 
-                {!publishAllBusy && !quickSyncing && !compareAllLoading && publishAllAvailable && (
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                      {[
-                        hasVarChanges ? `${varSync.syncCount} variable change${varSync.syncCount === 1 ? '' : 's'}` : null,
-                        hasStyleChanges ? `${styleSync.syncCount} style change${styleSync.syncCount === 1 ? '' : 's'}` : null,
-                      ].filter(Boolean).join(' · ')}
-                    </span>
-                    {hasFigmaSyncChanges && (
-                      <button
-                        onClick={quickSync}
-                        title="Apply all changes without review"
-                        className="rounded-md border border-[var(--color-figma-accent)]/35 px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
-                      >
-                        Publish now
-                      </button>
-                    )}
-                  </div>
-                )}
+              {/* Compare target tabs + detail */}
+              <div className="flex flex-wrap items-center gap-2">
+                {compareTargets.map((target) => (
+                  <button
+                    key={target.id}
+                    type="button"
+                    onClick={() => handleSelectCompareTarget(target.id)}
+                    className={[
+                      'rounded-md border px-3 py-1.5 text-[10px] font-medium transition-colors',
+                      activeCompareTarget === target.id
+                        ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+                        : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/25 hover:text-[var(--color-figma-text)]',
+                    ].join(' ')}
+                  >
+                    {target.label}
+                    <span className="ml-1.5 text-[10px] opacity-75">{target.badge}</span>
+                  </button>
+                ))}
+              </div>
 
-                {publishAllError && (
-                  <NoticeBanner severity="error">Publish failed: {publishAllError}</NoticeBanner>
+              <div className="overflow-hidden rounded-md border border-[var(--color-figma-border)]">
+                {activeCompareConfig.id === 'variables' ? (
+                  <SyncSubPanel
+                    sync={varSync}
+                    diffFilter={diffFilter}
+                    onRevert={varSync.revert}
+                    inSyncMessage={isResolverPublishCompareActive ? 'Mapped resolver outputs match their target Figma modes.' : 'Local tokens match Figma variables.'}
+                    notCheckedMessage={<>Comparing…</>}
+                    revertDescription="Restore Figma variables to their previous state"
+                    reviewOnly={isResolverPublishCompareActive}
+                    reviewOnlyMessage="Resolver-mode differences are managed via Advanced routing below."
+                  />
+                ) : (
+                  <SyncSubPanel
+                    sync={styleSync}
+                    diffFilter={diffFilter}
+                    onRevert={styleSync.revert}
+                    inSyncMessage="Local tokens match Figma styles."
+                    notCheckedMessage={<>Comparing…</>}
+                    revertDescription="Restore Figma styles to their previous state"
+                  />
                 )}
               </div>
-            </WorkflowStage>
-          </div>
+            </div>
+          )}
 
+          {/* ── Settings disclosure ───────────────────────────────────── */}
+          <DisclosureSection
+            title="Settings"
+            summary={`${resolvedCollectionName} / ${resolvedModeName}`}
+            expanded={standardRoutingExpanded}
+            onToggle={() => setStandardRoutingExpanded((current) => !current)}
+            statusLabel={standardRoutingDirty ? 'Unsaved' : standardRoutingStatusLabel}
+            statusSeverity={standardRoutingDirty ? 'warning' : 'info'}
+          >
+            <StandardPublishRoutingCard
+              currentCollectionId={currentCollectionId}
+              draft={standardRoutingDraft}
+              dirty={standardRoutingDirty}
+              saving={standardRoutingSaving}
+              error={standardRoutingError}
+              onFieldChange={updateStandardRoutingDraft}
+              onReset={resetStandardRoutingDraft}
+              onSave={() => void saveStandardRouting()}
+            />
+          </DisclosureSection>
+
+          {/* ── Advanced routing (resolver only) ──────────────────────── */}
           {activeResolver && (
             <DisclosureSection
               title="Advanced routing"
@@ -1762,75 +1665,6 @@ function PublishAllPreviewModal({
   );
 }
 
-function buildPreflightCardState({
-  stage,
-  isOutdated,
-  running,
-  blockingCount: _blockingCount,
-  advisoryCount: _advisoryCount,
-}: {
-  stage: PublishPreflightStage;
-  isOutdated: boolean;
-  running: boolean;
-  blockingCount: number;
-  advisoryCount: number;
-}): { label: string; severity: NoticeSeverity } {
-  if (running) return { label: 'Running', severity: 'info' };
-  if (isOutdated) return { label: 'Outdated', severity: 'warning' };
-  if (stage === 'blocked') return { label: 'Blocked', severity: 'error' };
-  if (stage === 'advisory') return { label: 'Advisories', severity: 'warning' };
-  if (stage === 'ready') return { label: 'Ready', severity: 'success' };
-  return { label: 'Not run', severity: 'info' };
-}
-
-function buildCompareCardState({
-  canProceed,
-  compareLoading,
-  hasComparedAnything,
-  totalDiffCount,
-  totalConflictCount,
-}: {
-  canProceed: boolean;
-  compareLoading: boolean;
-  hasComparedAnything: boolean;
-  totalDiffCount: number;
-  totalConflictCount: number;
-}): { label: string; severity: NoticeSeverity } {
-  if (!canProceed) return { label: 'Locked', severity: 'info' };
-  if (compareLoading) return { label: 'Comparing', severity: 'info' };
-  if (!hasComparedAnything) return { label: 'Ready', severity: 'success' };
-  if (totalDiffCount === 0) return { label: 'In sync', severity: 'success' };
-  return {
-    label: `${totalDiffCount} differ`,
-    severity: totalConflictCount > 0 ? 'warning' : 'info',
-  };
-}
-
-function buildApplyCardState({
-  canProceed,
-  hasComparedAnything,
-  isResolverPublishCompareActive,
-  hasResolverVariableCompare,
-  pendingApplyCount,
-  applyBusy,
-  publishAllAvailable,
-}: {
-  canProceed: boolean;
-  hasComparedAnything: boolean;
-  isResolverPublishCompareActive: boolean;
-  hasResolverVariableCompare: boolean;
-  pendingApplyCount: number;
-  applyBusy: boolean;
-  publishAllAvailable: boolean;
-}): { label: string; severity: NoticeSeverity } {
-  if (!canProceed) return { label: 'Locked', severity: 'info' };
-  if (applyBusy) return { label: 'Applying', severity: 'info' };
-  if (!hasComparedAnything) return { label: 'Waiting', severity: 'info' };
-  if (publishAllAvailable) return { label: `${pendingApplyCount} pending`, severity: 'success' };
-  if (isResolverPublishCompareActive && hasResolverVariableCompare) return { label: 'Advanced routing', severity: 'info' };
-  return { label: 'In sync', severity: 'success' };
-}
-
 function stageStatusTextClass(severity: NoticeSeverity): string {
   if (severity === 'error') return 'text-[var(--color-figma-error)]';
   if (severity === 'warning' || severity === 'stale') {
@@ -1838,66 +1672,6 @@ function stageStatusTextClass(severity: NoticeSeverity): string {
   }
   if (severity === 'success') return 'text-[var(--color-figma-success)]';
   return 'text-[var(--color-figma-text-secondary)]';
-}
-
-function WorkflowStage({
-  title,
-  description,
-  statusLabel,
-  statusSeverity,
-  expanded,
-  onSelect,
-  action,
-  disabled = false,
-  children,
-  helpToggle,
-}: {
-  title: string;
-  description?: string;
-  statusLabel: string;
-  statusSeverity: NoticeSeverity;
-  expanded: boolean;
-  onSelect: () => void;
-  action?: React.ReactNode;
-  disabled?: boolean;
-  children?: React.ReactNode;
-  helpToggle?: React.ReactNode;
-}) {
-  return (
-    <section
-      className={[
-        'border-b border-[var(--color-figma-border)] py-4',
-        disabled ? 'opacity-70' : '',
-      ].join(' ')}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <button
-          type="button"
-          onClick={onSelect}
-          disabled={disabled}
-          className="min-w-0 flex-1 text-left disabled:cursor-not-allowed"
-        >
-          <div className="min-w-0">
-            <h2 className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
-            {description && (
-              <p className="mt-0.5 text-[10px] text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">{description}</p>
-            )}
-            <p className={`mt-1 text-[10px] ${stageStatusTextClass(statusSeverity)}`}>
-              {statusLabel}
-            </p>
-          </div>
-        </button>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {helpToggle}
-          {action}
-        </div>
-      </div>
-
-      {expanded && children ? (
-        <div className="mt-4 border-l border-[var(--color-figma-border)] pl-4">{children}</div>
-      ) : null}
-    </section>
-  );
 }
 
 function DisclosureSection({

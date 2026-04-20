@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight, Settings2 } from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { COLLECTION_NAME_RE } from "../shared/utils";
 
@@ -208,27 +209,7 @@ export function CollectionRail({
           aria-label={`Open ${collectionId} setup`}
           title="Collection setup"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 3v3" />
-            <path d="M12 18v3" />
-            <path d="M3 12h3" />
-            <path d="M18 12h3" />
-            <path d="M5.64 5.64l2.12 2.12" />
-            <path d="M16.24 16.24l2.12 2.12" />
-            <path d="M5.64 18.36l2.12-2.12" />
-            <path d="M16.24 7.76l2.12-2.12" />
-            <circle cx="12" cy="12" r="3.25" />
-          </svg>
+          <Settings2 size={12} strokeWidth={1.8} aria-hidden />
         </button>
       </div>
     );
@@ -335,16 +316,7 @@ export function CollectionRail({
                     onClick={() => toggleFolder(group.folder)}
                     className="flex w-full items-center gap-1 rounded-md px-2 py-1 text-left text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                   >
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 8 8"
-                      fill="currentColor"
-                      className={`transition-transform ${isCollapsed ? "" : "rotate-90"}`}
-                      aria-hidden="true"
-                    >
-                      <path d="M2 1l4 3-4 3V1z" />
-                    </svg>
+                    <ChevronRight size={8} strokeWidth={2} className={`transition-transform ${isCollapsed ? "" : "rotate-90"}`} aria-hidden />
                     <span className="truncate">{group.folder}/</span>
                     <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                       {group.collectionIds.length}

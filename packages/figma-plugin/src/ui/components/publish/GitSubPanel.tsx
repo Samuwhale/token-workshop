@@ -118,9 +118,9 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
 
       {!git.gitLoading && !git.gitStatus?.isRepo && (
         <div className="flex flex-col items-center justify-center py-3 gap-3 px-3">
-          <p className="text-[13px] text-[var(--color-figma-text-secondary)]">No Git repository initialized</p>
+          <p className="text-[13px] text-[var(--color-figma-text-secondary)]">No version history set up</p>
           <div className="w-full flex flex-col gap-2">
-            <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote URL</label>
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Shared server URL</label>
             <input
               type="text"
               value={git.remoteUrl}
@@ -134,7 +134,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
             disabled={git.actionLoading !== null}
             className="w-full px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
-            {git.actionLoading === 'init' ? 'Initializing\u2026' : 'Initialize Repository'}
+            {git.actionLoading === 'init' ? 'Setting up\u2026' : 'Set up version history'}
           </button>
         </div>
       )}
@@ -443,10 +443,10 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
             </div>
           )}
 
-          {/* Remote URL */}
+          {/* Shared server URL */}
           <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
             <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
-              Remote URL
+              Shared server
             </div>
             <div className="px-3 py-2 flex gap-2">
               <input
@@ -454,7 +454,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 value={git.remoteUrl}
                 onChange={e => git.setRemoteUrl(e.target.value)}
                 placeholder="https://github.com/user/repo.git"
-                aria-label="Remote URL"
+                aria-label="Shared server URL"
                 className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
               />
               <button
@@ -472,7 +472,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
             <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
               <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote differences</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Shared server differences</span>
                   {git.diffView && git.diffView.localOnly.length + git.diffView.remoteOnly.length + git.diffView.conflicts.length === 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
                   )}

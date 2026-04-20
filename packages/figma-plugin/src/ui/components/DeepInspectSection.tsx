@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Crosshair } from "lucide-react";
 import type {
   BindableProperty,
   SelectionNodeInfo,
@@ -299,20 +300,7 @@ export function DeepInspectSection({
                   aria-label={`Select ${child.name} in Figma`}
                   className="opacity-40 group-hover/layer:opacity-100 pointer-events-none group-hover/layer:pointer-events-auto transition-opacity p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0"
                 >
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 1v4M12 19v4M1 12h4M19 12h4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-                  </svg>
+                  <Crosshair size={8} strokeWidth={2} aria-hidden />
                 </button>
               )}
             </div>

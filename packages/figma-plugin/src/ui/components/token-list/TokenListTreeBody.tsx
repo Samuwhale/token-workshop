@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useState } from "react";
+import { Layers, MousePointer2, X, ChevronUp } from "lucide-react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { LintViolation } from "../../hooks/useLint";
 import type { MultiModeValue } from "../tokenListTypes";
@@ -150,6 +151,7 @@ interface TokenListTreeBodyProps {
 }
 
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
+const MODE_PRESETS = ["Light", "Dark", "Compact"];
 
 export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
@@ -214,13 +216,15 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const [newModeName, setNewModeName] = useState("");
   const [addingModeSaving, setAddingModeSaving] = useState(false);
 
+  const addModeTargetId = multiModeDimId ?? collections[0]?.id ?? null;
+
   const handleAddMode = useCallback(async () => {
     const name = newModeName.trim();
-    if (!name || !multiModeDimId) return;
+    if (!name || !addModeTargetId) return;
     setAddingModeSaving(true);
     try {
       await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(multiModeDimId)}/modes`,
+        `${serverUrl}/api/collections/${encodeURIComponent(addModeTargetId)}/modes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -235,7 +239,27 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     } finally {
       setAddingModeSaving(false);
     }
-  }, [multiModeDimId, newModeName, onModeMutated, serverUrl]);
+  }, [addModeTargetId, newModeName, onModeMutated, serverUrl]);
+
+  const handleAddModePreset = useCallback(async (name: string) => {
+    if (!addModeTargetId) return;
+    setAddingModeSaving(true);
+    try {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(addModeTargetId)}/modes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        },
+      );
+      onModeMutated?.();
+    } catch {
+      // silent — the mode wasn't added
+    } finally {
+      setAddingModeSaving(false);
+    }
+  }, [addModeTargetId, onModeMutated, serverUrl]);
 
   // Multi-mode column headers
   const multiModeHeaders = multiModeData && viewMode === "tree" ? (
@@ -308,6 +332,63 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             <path d="M8 3v10M3 8h10" />
           </svg>
         </button>
+      )}
+    </div>
+  ) : null;
+
+  const singleModeAddHeader = !multiModeData && viewMode === "tree" && connected && addModeTargetId && collections.length > 0 && collections[0]?.modes?.length === 1 ? (
+    <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+      {addingMode ? (
+        <div className="flex items-center gap-1.5">
+          <input
+            type="text"
+            value={newModeName}
+            onChange={(e) => setNewModeName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void handleAddMode();
+              if (e.key === "Escape") {
+                setAddingMode(false);
+                setNewModeName("");
+              }
+            }}
+            onBlur={() => {
+              if (!newModeName.trim()) {
+                setAddingMode(false);
+                setNewModeName("");
+              }
+            }}
+            autoFocus
+            disabled={addingModeSaving}
+            placeholder="Mode name"
+            className="w-32 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+          />
+        </div>
+      ) : (
+        <>
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            Add a mode to define variants
+          </span>
+          <div className="flex items-center gap-1">
+            {MODE_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => handleAddModePreset(preset)}
+                disabled={addingModeSaving}
+                className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+              >
+                {preset}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setAddingMode(true)}
+              className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+            >
+              Custom…
+            </button>
+          </div>
+        </>
       )}
     </div>
   ) : null;
@@ -440,23 +521,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           variant="empty"
           title="Select a layer to inspect"
           description="Bound tokens will appear here."
-          icon={
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-              <path d="M10 17l5-5-5-5" />
-              <path d="M13 12H3" />
-            </svg>
-          }
+          icon={<MousePointer2 size={18} strokeWidth={1.5} aria-hidden />}
         />
       </>
     );
@@ -521,22 +586,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             variant="empty"
             size="section"
             className="w-full max-w-[360px]"
-            icon={
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-              </svg>
-            }
+            icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
             title="This collection is empty"
             description="Create a token, generate a starter group, or import tokens into this collection."
             actions={emptyCollectionActions}
@@ -571,6 +621,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   return (
     <>
       {multiModeHeaders}
+      {singleModeAddHeader}
       <div className="py-1">
         {zoomBreadcrumb ? (
           <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px]">
@@ -606,20 +657,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                 title="Clear the scoped branch (Esc)"
               >
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M18 6 6 18" />
-                  <path d="M6 6l12 12" />
-                </svg>
+                <X size={10} strokeWidth={2} aria-hidden />
                 <span>All tokens</span>
               </button>
               <div className="min-w-0 flex items-center gap-0.5 overflow-x-auto">
@@ -714,19 +752,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 )
               }
             >
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M18 15l-6-6-6 6" />
-              </svg>
+              <ChevronUp size={8} strokeWidth={2.5} aria-hidden />
               <span>Collapse</span>
             </button>
           </div>

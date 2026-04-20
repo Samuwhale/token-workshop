@@ -26,6 +26,7 @@ export function ModeColumnHeader({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showMenu, setShowMenu] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -37,7 +38,10 @@ export function ModeColumnHeader({
   }, [renaming]);
 
   useEffect(() => {
-    if (!showMenu) return;
+    if (!showMenu) {
+      setConfirmingDelete(false);
+      return;
+    }
     const handleMouseDown = (event: MouseEvent) => {
       if (menuRef.current?.contains(event.target as Node)) return;
       setShowMenu(false);
@@ -161,7 +165,7 @@ export function ModeColumnHeader({
   }
 
   return (
-    <div className={`relative ${MODE_COLUMN_WIDTH} shrink-0 border-l border-[var(--color-figma-border)]`}>
+    <div className={`group relative ${MODE_COLUMN_WIDTH} shrink-0 border-l border-[var(--color-figma-border)]`}>
       <button
         type="button"
         onContextMenu={(e) => {
@@ -174,11 +178,24 @@ export function ModeColumnHeader({
             setRenaming(true);
           }
         }}
-        className="w-full px-1.5 py-1 text-[11px] font-medium text-[var(--color-figma-text-secondary)] text-left truncate hover:text-[var(--color-figma-text)] transition-colors"
-        title={`${modeName} — double-click to rename, right-click for options`}
+        className="w-full px-1.5 py-1 pr-4 text-[11px] font-medium text-[var(--color-figma-text-secondary)] text-left truncate hover:text-[var(--color-figma-text)] transition-colors"
+        title={modeName}
       >
         {modeName}
       </button>
+      {connected && (
+        <button
+          type="button"
+          onClick={() => setShowMenu(true)}
+          tabIndex={-1}
+          className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+          aria-label={`${modeName} options`}
+        >
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+            <path d="M1.5 3L4 5.5L6.5 3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
 
       {showMenu && (
         <div
@@ -216,14 +233,39 @@ export function ModeColumnHeader({
               Move right
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => void handleDelete()}
-            disabled={saving}
-            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50"
-          >
-            {saving ? "Deleting..." : "Delete mode"}
-          </button>
+          {confirmingDelete ? (
+            <div className="px-2.5 py-1.5">
+              <p className="text-[10px] text-[var(--color-figma-text)] mb-1.5">
+                Delete "{modeName}"?
+              </p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void handleDelete()}
+                  disabled={saving}
+                  className="rounded px-2 py-0.5 text-[10px] font-medium bg-[var(--color-figma-error)] text-white hover:bg-[var(--color-figma-error)]/90 disabled:opacity-50"
+                >
+                  {saving ? "Deleting..." : "Delete"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="rounded px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              disabled={saving}
+              className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50"
+            >
+              Delete mode
+            </button>
+          )}
           {error && (
             <div className="px-2.5 py-1 text-[9px] text-[var(--color-figma-error)]">
               {error}

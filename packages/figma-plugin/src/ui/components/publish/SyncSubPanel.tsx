@@ -15,11 +15,6 @@ interface SyncSubPanelProps {
   revertDescription: string;
   reviewOnly?: boolean;
   reviewOnlyMessage?: React.ReactNode;
-
-  // Optional scope editing (variable sync only)
-  scopeOverrides?: Record<string, string[]>;
-  onScopesChange?: (path: string, scopes: string[]) => void;
-  getScopeOptions?: (type: string | undefined) => { label: string; value: string }[];
 }
 
 /* ── Category section with header, bulk actions, and collapsible rows ── */
@@ -34,9 +29,6 @@ function CategorySection({
   onSetDirs,
   collapsed,
   onToggleCollapse,
-  getScopeOptions,
-  scopeOverrides,
-  onScopesChange,
   reviewOnly,
 }: {
   title: string;
@@ -46,9 +38,6 @@ function CategorySection({
   onSetDirs: (updater: (prev: Record<string, 'push' | 'pull' | 'skip'>) => Record<string, 'push' | 'pull' | 'skip'>) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
-  getScopeOptions?: (type: string | undefined) => { label: string; value: string }[];
-  scopeOverrides?: Record<string, string[]>;
-  onScopesChange?: (path: string, scopes: string[]) => void;
   reviewOnly?: boolean;
 }) {
   // Count current directions within this category
@@ -129,20 +118,6 @@ function CategorySection({
                     row={row}
                     dir={dirs[getDiffRowId(row)] ?? defaultDir}
                     onChange={d => onSetDirs(prev => ({ ...prev, [getDiffRowId(row)]: d }))}
-                    scopeOptions={getScopeOptions?.(
-                      row.cat === 'figma-only' ? row.figmaType : (row.localType ?? row.figmaType),
-                    )}
-                    scopeValue={
-                      row.cat === 'figma-only'
-                        ? row.figmaScopes
-                        : (scopeOverrides?.[row.path] ?? row.localScopes)
-                    }
-                    onScopesChange={
-                      onScopesChange && row.cat !== 'figma-only'
-                        ? (s) => onScopesChange(row.path, s)
-                        : undefined
-                    }
-                    figmaScopeValue={row.cat !== 'local-only' ? row.figmaScopes : undefined}
                     reviewOnly={reviewOnly}
                   />
                 ))}
@@ -166,9 +141,6 @@ export function SyncSubPanel({
   revertDescription,
   reviewOnly = false,
   reviewOnlyMessage,
-  scopeOverrides,
-  onScopesChange,
-  getScopeOptions,
 }: SyncSubPanelProps) {
   const [revertPending, setRevertPending] = useState(false);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
@@ -294,9 +266,6 @@ export function SyncSubPanel({
               onSetDirs={sync.setDirs}
               collapsed={!!collapsedSections['local-only']}
               onToggleCollapse={() => toggleSection('local-only')}
-              getScopeOptions={getScopeOptions}
-              scopeOverrides={scopeOverrides}
-              onScopesChange={onScopesChange}
               reviewOnly={reviewOnly}
             />
 
@@ -308,9 +277,6 @@ export function SyncSubPanel({
               onSetDirs={sync.setDirs}
               collapsed={!!collapsedSections['figma-only']}
               onToggleCollapse={() => toggleSection('figma-only')}
-              getScopeOptions={getScopeOptions}
-              scopeOverrides={scopeOverrides}
-              onScopesChange={onScopesChange}
               reviewOnly={reviewOnly}
             />
 
@@ -322,9 +288,6 @@ export function SyncSubPanel({
               onSetDirs={sync.setDirs}
               collapsed={!!collapsedSections['conflict']}
               onToggleCollapse={() => toggleSection('conflict')}
-              getScopeOptions={getScopeOptions}
-              scopeOverrides={scopeOverrides}
-              onScopesChange={onScopesChange}
               reviewOnly={reviewOnly}
             />
 

@@ -1,4 +1,5 @@
 import { adaptShortcut, stableStringify } from "../shared/utils";
+import { Network, Copy, Check, ChevronDown, ChevronRight, Clock, Trash2, Link2, X } from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -82,6 +83,76 @@ interface TokenEditorProps {
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
   onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
+}
+
+function AddModeInline({
+  serverUrl,
+  collectionId,
+  onAdded,
+}: {
+  serverUrl: string;
+  collectionId: string;
+  onAdded?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors"
+      >
+        + Add mode
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={async (e) => {
+          if (e.key === "Enter" && name.trim()) {
+            setSaving(true);
+            try {
+              await apiFetch(
+                `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: name.trim() }),
+                },
+              );
+              setOpen(false);
+              setName("");
+              onAdded?.();
+            } catch {} finally {
+              setSaving(false);
+            }
+          }
+          if (e.key === "Escape") {
+            setOpen(false);
+            setName("");
+          }
+        }}
+        onBlur={() => {
+          if (!name.trim()) {
+            setOpen(false);
+            setName("");
+          }
+        }}
+        autoFocus
+        disabled={saving}
+        placeholder="Mode name"
+        className="w-28 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+      />
+    </div>
+  );
 }
 
 export function TokenEditor({
@@ -960,20 +1031,7 @@ export function TokenEditor({
           aria-label="Open dependency graph"
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
-          </svg>
+          <Network size={12} strokeWidth={2} aria-hidden />
         </button>
       )}
       {!isCreateMode && (
@@ -989,34 +1047,9 @@ export function TokenEditor({
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
         >
           {copied ? (
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
+            <Check size={12} strokeWidth={2} aria-hidden />
           ) : (
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-            </svg>
+            <Copy size={12} strokeWidth={2} aria-hidden />
           )}
         </button>
       )}
@@ -1053,16 +1086,7 @@ export function TokenEditor({
               </option>
             ))}
           </select>
-          <svg
-            width="6"
-            height="6"
-            viewBox="0 0 6 6"
-            fill="currentColor"
-            className="pointer-events-none absolute right-1 opacity-60"
-            aria-hidden="true"
-          >
-            <path d="M0 1.5L3 4.5L6 1.5" />
-          </svg>
+          <ChevronDown size={8} strokeWidth={2} className="pointer-events-none absolute right-1 opacity-60" aria-hidden />
         </span>
       )}
     </>
@@ -1072,21 +1096,7 @@ export function TokenEditor({
     <>
       {pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-[11px]">
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="shrink-0 text-[var(--color-figma-warning)]"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
+          <Clock size={11} strokeWidth={2} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />
           <span className="flex-1 text-[var(--color-figma-warning)] truncate">
             Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
           </span>
@@ -1151,19 +1161,7 @@ export function TokenEditor({
               aria-label="Delete token"
               className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
             >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-              </svg>
+              <Trash2 size={12} strokeWidth={2} aria-hidden />
             </button>
           )}
           <button type="button" onClick={requestClose} className={AUTHORING.footerBtnSecondary}>
@@ -1255,21 +1253,7 @@ export function TokenEditor({
             </label>
             {extendsPath ? (
               <div className="flex items-center gap-1.5">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  className="shrink-0 text-[var(--color-figma-accent)]"
-                >
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                </svg>
+                <Link2 size={10} strokeWidth={2} className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden />
                 <span
                   className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
                   title={extendsPath}
@@ -1282,17 +1266,7 @@ export function TokenEditor({
                   title="Remove base token"
                   className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
                 >
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  <X size={8} strokeWidth={2} aria-hidden />
                 </button>
               </div>
             ) : (
@@ -1377,16 +1351,12 @@ export function TokenEditor({
                     onClick={() => setShowPendingDependents((v) => !v)}
                     className="flex items-center gap-1 text-[var(--color-figma-warning)] hover:text-[var(--color-figma-warning)] transition-colors"
                   >
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 8 8"
-                      fill="currentColor"
-                      className={`transition-transform shrink-0 ${showPendingDependents ? "rotate-90" : ""}`}
-                      aria-hidden="true"
-                    >
-                      <path d="M2 1l4 3-4 3V1z" />
-                    </svg>
+                    <ChevronRight
+                      size={8}
+                      strokeWidth={2}
+                      className={`shrink-0 transition-transform ${showPendingDependents ? "rotate-90" : ""}`}
+                      aria-hidden
+                    />
                     {dependents.length} dependent token
                     {dependents.length !== 1 ? "s" : ""} reference this token
                     and may break.
@@ -1405,21 +1375,7 @@ export function TokenEditor({
                             className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-warning)]/20 hover:text-[var(--color-figma-warning)] transition-colors text-left w-full"
                             title={`Open ${dep.path} in dependency graph`}
                           >
-                            <svg
-                              width="8"
-                              height="8"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                              className="shrink-0 opacity-60"
-                            >
-                              <circle cx="12" cy="12" r="3" />
-                              <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
-                            </svg>
+                            <Network size={8} strokeWidth={2} className="shrink-0 opacity-60" aria-hidden />
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                             {dep.collectionId !== ownerCollectionId && (
                               <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
@@ -1582,17 +1538,39 @@ export function TokenEditor({
               Value
             </label>
             <div className="divide-y divide-[var(--color-figma-border)]/50 overflow-hidden rounded-md border border-[var(--color-figma-border)]/65">
-              {modeValue.modes.map((mode) => (
+              {modeValue.modes.map((mode, modeIdx) => (
                 <div
                   key={mode.name}
-                  className="group flex items-center gap-2 px-2.5 py-1.5"
+                  className="group/mode flex items-center gap-2 px-2.5 py-1.5"
                 >
-                  <span
-                    className="w-[92px] shrink-0 truncate text-[11px] font-medium text-[var(--color-figma-text)]"
-                    title={mode.name}
-                  >
-                    {mode.name}
-                  </span>
+                  <div className="w-[92px] shrink-0 flex items-center gap-1">
+                    <span
+                      className="truncate text-[11px] font-medium text-[var(--color-figma-text)]"
+                      title={mode.name}
+                    >
+                      {mode.name}
+                    </span>
+                    {modeValue.modes.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sourceIdx = modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1;
+                          const sourceValue = modeValue.modes[sourceIdx].value;
+                          if (sourceValue !== "" && sourceValue != null) {
+                            mode.setValue(
+                              typeof sourceValue === "object"
+                                ? JSON.parse(JSON.stringify(sourceValue))
+                                : sourceValue
+                            );
+                          }
+                        }}
+                        className="opacity-0 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                        title={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
+                      >
+                        <Copy size={10} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <ModeValueEditor
                       tokenType={tokenType}
@@ -1639,7 +1617,14 @@ export function TokenEditor({
           />
         )}
 
-        {/* Color tools — right after value editor for color tokens */}
+        {!modeValue.hasMultipleModes && !aliasMode && (
+          <AddModeInline
+            serverUrl={serverUrl}
+            collectionId={ownerCollectionId}
+            onAdded={onRefresh}
+          />
+        )}
+
         {tokenType === "color" &&
           (aliasMode
             ? isAlias(reference)

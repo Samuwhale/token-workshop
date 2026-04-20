@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { Layers, AlertCircle } from "lucide-react";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
@@ -874,6 +875,9 @@ export function PanelRouter({
               collectionIds={collectionIds}
               collectionTokenCounts={collectionTokenCounts}
               collectionDescriptions={collectionDescriptions}
+              serverUrl={serverUrl}
+              connected={connected}
+              onModeMutated={refreshTokens}
               onClose={() => switchContextualSurface({ surface: null })}
               onRename={collectionStructureController.onRename}
               onDuplicate={collectionStructureController.onDuplicate}
@@ -1282,7 +1286,7 @@ export function PanelRouter({
     publish: {
       sync: renderSyncPublish,
       export: renderSyncExport,
-      repo: renderSyncRepo,
+      versions: renderSyncRepo,
     },
   };
 
@@ -1319,10 +1323,7 @@ export function PanelRouter({
         variant="empty"
         size="full"
         icon={(
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-          </svg>
+          <Layers size={20} strokeWidth={1.5} aria-hidden />
         )}
         title="No collections yet"
         description="Create your first collection or import an existing token system to start authoring."
@@ -1346,21 +1347,7 @@ export function PanelRouter({
         {/* Fetch error banner */}
         {(fetchError || tokensError) && (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 shrink-0">
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-[var(--color-figma-error)] shrink-0"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4M12 16h.01" />
-            </svg>
+            <AlertCircle size={10} strokeWidth={2} className="text-[var(--color-figma-error)] shrink-0" aria-hidden />
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
               Failed to load tokens: {fetchError || tokensError}
             </span>
@@ -1584,8 +1571,8 @@ export function PanelRouter({
   function renderSyncRepo(): ReactNode {
     return (
       <ErrorBoundary
-        panelName="Repository"
-        onReset={() => navigateTo("publish", "repo")}
+        panelName="Versions"
+        onReset={() => navigateTo("publish", "versions")}
       >
         <GitRepositoryPanel
           serverUrl={serverUrl}
