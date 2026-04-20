@@ -2,7 +2,7 @@
 
 ## Target user
 
-The target user of this app are mainly Figma UI designers, Figma UX designers, Figma Design System Creators/maintainers. These designers might work in conjunction with developers.
+The primary users are Figma UI designers, UX designers, and design system creators/maintainers. Developers are a secondary but important audience — designers and developers use this tool together for design-token handoff, collaboration, and shared governance. Design the UI primarily for designers (Figma-native mental models, minimal jargon), but don't cut or hide developer-facing features like audit reports, git history, or export formats. Instead, give developer features a clear home that doesn't clutter the designer's primary workflow.
 
 ## Development Status
 

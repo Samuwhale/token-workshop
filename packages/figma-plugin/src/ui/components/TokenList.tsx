@@ -151,7 +151,6 @@ export function TokenList({
     collections = [],
     unresolvedAllTokensFlat,
     pathToCollectionId = {},
-    selectedModes = {},
   },
   actions: {
     onEdit,
@@ -2248,8 +2247,8 @@ export function TokenList({
     if (!collection || collection.modes.length === 0) {
       return null;
     }
-    return selectedModes[collection.id] ?? collection.modes[0]?.name ?? null;
-  }, [activeCollections, collectionId, selectedModes]);
+    return collection.modes[0]?.name ?? null;
+  }, [activeCollections, collectionId]);
 
   const tokenTreeGroupState = useTokenTreeGroupState({
     density, collectionId, activeCollectionModeLabel, selectMode, expandedPaths, highlightedToken,
@@ -2281,7 +2280,6 @@ export function TokenList({
     condensedView,
     starredPaths,
     collections: activeCollections,
-    selectedModes,
     pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
     showModeColumns, modeVariantPaths, tokenModeMissing,
   });

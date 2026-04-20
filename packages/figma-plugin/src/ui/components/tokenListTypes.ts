@@ -114,8 +114,6 @@ export interface TokenListData {
   unresolvedAllTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token paths to their collection id */
   pathToCollectionId?: Record<string, string>;
-  /** Currently selected collection modes (collectionId → modeName) */
-  selectedModes?: Record<string, string>;
 }
 
 export interface TokenListActions {
@@ -452,8 +450,6 @@ export interface TokenTreeLeafStateContextType {
   starredPaths?: Set<string>;
   /** Collections used for resolution-chain debugging */
   collections?: TokenCollection[];
-  /** Currently selected collection modes (collectionId → modeName) — for resolution chain debugger */
-  selectedModes?: Record<string, string>;
   /** Path of a token that should enter inline rename mode as soon as it renders */
   pendingRenameToken: string | null;
   /** Tab navigation: token + optional multi-mode column that should enter edit mode */

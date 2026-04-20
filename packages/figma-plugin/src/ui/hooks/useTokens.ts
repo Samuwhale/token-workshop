@@ -4,14 +4,12 @@ import type {
   DTCGGroup,
   TokenValue,
   TokenReference,
-  SelectedModes,
   SerializedTokenCollection,
   TokenCollection,
 } from '@tokenmanager/core';
 import { deserializeTokenCollections } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
-import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
-import { STORAGE_KEYS, lsGet, lsGetJson, lsRemove, lsSet, lsSetJson } from '../shared/storage';
+import { STORAGE_KEYS, lsGet, lsRemove, lsSet } from '../shared/storage';
 import { apiFetch, isNetworkError, createFetchSignal } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
@@ -105,30 +103,16 @@ export function useCollectionState(
   const [collectionsError, setCollectionsError] = useState<string | null>(null);
   const [collectionTokenCounts, setCollectionTokenCounts] = useState<Record<string, number>>({});
   const [collectionDescriptions, setCollectionDescriptions] = useState<Record<string, string>>({});
-  const [selectedModes, setSelectedModesState] = useState<SelectedModes>(() =>
-    lsGetJson<SelectedModes>(STORAGE_KEYS.SELECTED_MODES, {})
-  );
-  const [hoverPreviewModes, setHoverPreviewModes] = useState<SelectedModes>({});
-
   const fetchGenRef = useRef(0);
   const currentCollectionIdRef = useRef(currentCollectionId);
   currentCollectionIdRef.current = currentCollectionId;
-  const selectedModesRef = useRef(selectedModes);
-  selectedModesRef.current = selectedModes;
   const internalCollectionChangeRef = useRef(false);
   const mountedRef = useRef(false);
   const unmountControllerRef = useRef(new AbortController());
-  const figmaSelectedModesReadyRef = useRef(false);
 
   useEffect(() => {
     const controller = unmountControllerRef.current;
     return () => { controller.abort(); };
-  }, []);
-
-  const setSelectedModes = useCallback((nextSelectedModes: SelectedModes) => {
-    lsSetJson(STORAGE_KEYS.SELECTED_MODES, nextSelectedModes);
-    postPluginMessage({ type: 'set-selected-modes', selectedModes: nextSelectedModes });
-    setSelectedModesState(nextSelectedModes);
   }, []);
 
   const fetchCollectionSummaries = useCallback(async (
@@ -150,42 +134,6 @@ export function useCollectionState(
     );
     return collectionsData.collections ?? [];
   }, [getDisconnectSignal, serverUrl]);
-
-  useEffect(() => {
-    if (!postPluginMessage({ type: 'get-selected-modes' })) {
-      figmaSelectedModesReadyRef.current = true;
-      return;
-    }
-
-    const handler = (event: MessageEvent) => {
-      const message = getPluginMessageFromEvent<{ type?: string; selectedModes?: SelectedModes }>(event);
-      if (message?.type !== 'selected-modes-loaded') return;
-      figmaSelectedModesReadyRef.current = true;
-      setSelectedModes(message.selectedModes ?? {});
-      window.removeEventListener('message', handler);
-    };
-
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [setSelectedModes]);
-
-  useEffect(() => {
-    if (!figmaSelectedModesReadyRef.current) return;
-
-    const nextSelectedModes: SelectedModes = {};
-    for (const collection of collections) {
-      const selectedMode = selectedModesRef.current[collection.id];
-      if (selectedMode && collection.modes.some((mode) => mode.name === selectedMode)) {
-        nextSelectedModes[collection.id] = selectedMode;
-      }
-    }
-
-    const previousJson = JSON.stringify(selectedModesRef.current);
-    const nextJson = JSON.stringify(nextSelectedModes);
-    if (previousJson !== nextJson) {
-      setSelectedModes(nextSelectedModes);
-    }
-  }, [collections, setSelectedModes]);
 
   const fetchTokensForCollection = useCallback(async (collectionId: string) => {
     if (!connected) return;
@@ -343,18 +291,6 @@ export function useCollectionState(
       delete nextDescriptions[collectionId];
       return nextDescriptions;
     });
-    setSelectedModesState((previousSelectedModes) => {
-      const nextSelectedModes = { ...previousSelectedModes };
-      delete nextSelectedModes[collectionId];
-      lsSetJson(STORAGE_KEYS.SELECTED_MODES, nextSelectedModes);
-      postPluginMessage({ type: 'set-selected-modes', selectedModes: nextSelectedModes });
-      return nextSelectedModes;
-    });
-    setHoverPreviewModes((previousPreviewModes) => {
-      const nextPreviewModes = { ...previousPreviewModes };
-      delete nextPreviewModes[collectionId];
-      return nextPreviewModes;
-    });
   }, []);
 
   const renameCollectionInState = useCallback((oldCollectionId: string, newCollectionId: string) => {
@@ -379,24 +315,6 @@ export function useCollectionState(
       }
       return nextDescriptions;
     });
-    setSelectedModesState((previousSelectedModes) => {
-      const nextSelectedModes = { ...previousSelectedModes };
-      if (oldCollectionId in nextSelectedModes) {
-        nextSelectedModes[newCollectionId] = nextSelectedModes[oldCollectionId];
-        delete nextSelectedModes[oldCollectionId];
-      }
-      lsSetJson(STORAGE_KEYS.SELECTED_MODES, nextSelectedModes);
-      postPluginMessage({ type: 'set-selected-modes', selectedModes: nextSelectedModes });
-      return nextSelectedModes;
-    });
-    setHoverPreviewModes((previousPreviewModes) => {
-      const nextPreviewModes = { ...previousPreviewModes };
-      if (oldCollectionId in nextPreviewModes) {
-        nextPreviewModes[newCollectionId] = nextPreviewModes[oldCollectionId];
-        delete nextPreviewModes[oldCollectionId];
-      }
-      return nextPreviewModes;
-    });
   }, []);
 
   const updateCollectionMetadataInState = useCallback((collectionId: string, description: string) => {
@@ -412,10 +330,6 @@ export function useCollectionState(
     collectionRevision,
     collectionTokenCounts,
     collectionDescriptions,
-    selectedModes,
-    setSelectedModes,
-    hoverPreviewModes,
-    setHoverPreviewModes,
     collectionsError,
     refreshCollections,
     syncCollectionSummariesToState,

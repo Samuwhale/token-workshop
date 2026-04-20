@@ -177,7 +177,6 @@ interface LeafStateDeps {
   condensedView?: boolean;
   starredPaths?: Set<string>;
   collections?: TokenCollection[];
-  selectedModes?: Record<string, string>;
   pendingRenameToken: string | null;
   pendingTabEdit: { path: string; columnId: string | null } | null;
   effectiveRovingPath: string | null;
@@ -210,7 +209,6 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       condensedView: deps.condensedView,
       starredPaths: deps.starredPaths,
       collections: deps.collections,
-      selectedModes: deps.selectedModes,
       pendingRenameToken: deps.pendingRenameToken,
       pendingTabEdit: deps.pendingTabEdit,
       rovingFocusPath: deps.effectiveRovingPath,

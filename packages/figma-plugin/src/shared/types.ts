@@ -539,15 +539,6 @@ export interface EyedropperMessage {
   type: 'eyedropper';
 }
 
-export interface GetSelectedModesMessage {
-  type: 'get-selected-modes';
-}
-
-export interface SetSelectedModesMessage {
-  type: 'set-selected-modes';
-  selectedModes: Record<string, string>;
-}
-
 export interface ScanSingleTokenUsageMessage {
   type: 'scan-single-token-usage';
   tokenPath: string;
@@ -718,11 +709,6 @@ export interface FontsLoadedMessage {
   type: 'fonts-loaded';
   families: string[];
   weightsByFamily: Record<string, number[]>;
-}
-
-export interface SelectedModesLoadedMessage {
-  type: 'selected-modes-loaded';
-  selectedModes: Record<string, string>;
 }
 
 export interface EyedropperResultMessage {
@@ -997,7 +983,6 @@ export interface ConsistencyScanErrorMessage {
 export type ControllerMessage =
   | ControllerErrorMessage
   | FontsLoadedMessage
-  | SelectedModesLoadedMessage
   | EyedropperResultMessage
   | VariableSyncProgressMessage
   | VariablesAppliedMessage
@@ -1043,7 +1028,6 @@ export type ControllerMessage =
 export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>([
   'error',
   'fonts-loaded',
-  'selected-modes-loaded',
   'eyedropper-result',
   'variable-sync-progress',
   'variables-applied',
@@ -1109,8 +1093,6 @@ export type PluginMessage =
   | SelectHeatmapNodesMessage
   | BatchBindHeatmapNodesMessage
   | EyedropperMessage
-  | GetSelectedModesMessage
-  | SetSelectedModesMessage
   | ScanSingleTokenUsageMessage
   | ScanTokenVariableBindingsMessage
   | ExtractTokensFromSelectionMessage

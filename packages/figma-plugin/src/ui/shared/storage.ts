@@ -180,7 +180,6 @@ export const STORAGE_KEYS = {
   ACTIVE_SUB_TAB_TOKENS:  'tm_sub_tab_tokens',
   ACTIVE_SUB_TAB_CANVAS:  'tm_sub_tab_canvas',
   ACTIVE_SUB_TAB_PUBLISH: 'tm_sub_tab_publish',
-  SELECTED_MODES:        'tm_selected_modes',
   COLLAPSED_FOLDERS:     'tm_collapsed_folders',
   SERVER_URL:            'tokenmanager_server_url',
   PALETTE_RECENT:        'tm_palette_recent',

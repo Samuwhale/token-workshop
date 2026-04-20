@@ -146,8 +146,6 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'remove-binding-from-node':   [['nodeId', 'string'], ['property', 'string']],
   'get-available-fonts':        [],
   'eyedropper':                 [],
-  'get-selected-modes':         [],
-  'set-selected-modes':         [['selectedModes', 'object']],
   'revert-variables':           [['varSnapshot', 'object']],
   'revert-styles':              [['styleSnapshot', 'object']],
   'cancel-scan':                [],
@@ -605,29 +603,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         reportError('eyedropper', e);
       }
       break;
-    case 'get-selected-modes': {
-      try {
-        const key = `selected-modes:${figma.fileKey ?? 'default'}`;
-        const selectedModes = await figma.clientStorage.getAsync(key);
-        figma.ui.postMessage({ type: 'selected-modes-loaded', selectedModes: selectedModes ?? {} });
-      } catch (e) {
-        reportError('get-selected-modes', e);
-      }
-      break;
-    }
-    case 'set-selected-modes': {
-      try {
-        const key = `selected-modes:${figma.fileKey ?? 'default'}`;
-        if (msg.selectedModes && Object.keys(msg.selectedModes).length > 0) {
-          await figma.clientStorage.setAsync(key, msg.selectedModes);
-        } else {
-          await figma.clientStorage.deleteAsync(key);
-        }
-      } catch (e) {
-        reportError('set-selected-modes', e);
-      }
-      break;
-    }
     default: {
       // Should be unreachable — validateMessage() returns early for unknown types.
       // This default branch is a compile-time exhaustiveness guard.

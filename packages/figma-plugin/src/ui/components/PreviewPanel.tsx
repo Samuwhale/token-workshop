@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useCallback, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenCollection } from '@tokenmanager/core';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import { TokenDetailPreview } from './TokenDetailPreview';
@@ -10,9 +9,6 @@ import { lsGet, lsSet } from '../shared/storage';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
-  collections?: TokenCollection[];
-  selectedModes?: Record<string, string>;
-  onSelectedModesChange?: (selectedModes: Record<string, string>) => void;
   onGoToTokens?: () => void;
   onNavigateToToken?: (path: string) => void;
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
@@ -231,7 +227,7 @@ function resolveValue(value: unknown, type: string): string {
 const STORAGE_KEY_TEMPLATE = 'preview-template';
 const STORAGE_KEY_DARK_MODE = 'preview-dark-mode';
 
-export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = {}, onSelectedModesChange, onGoToTokens, onNavigateToToken, onNavigateToGeneratedGroup, focusedToken, pathToCollectionId, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, generators, generatorsBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, onNavigateToGeneratedGroup, focusedToken, pathToCollectionId, onClearFocus, onEditToken, serverUrl, tokenUsageCounts, generators, generatorsBySource, derivedTokenPaths, lintViolations, syncSnapshot }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>(() => {
     const saved = lsGet(STORAGE_KEY_TEMPLATE);
     return (TEMPLATES.some(t => t.id === saved) ? saved : 'colors') as Template;
@@ -489,27 +485,6 @@ export function PreviewPanel({ allTokensFlat, collections = [], selectedModes = 
             {darkMode ? 'Light' : 'Dark'}
           </button>
         </div>
-        {collections.length > 0 && (
-          <div className="flex items-center gap-1.5 px-2 pb-1.5 flex-wrap">
-            {collections.map(collection => {
-              const activeOption = selectedModes[collection.id] ?? collection.modes[0]?.name ?? '';
-              return (
-                <label key={collection.id} className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  <span className="shrink-0">{collection.id}</span>
-                  <select
-                    value={activeOption}
-                    onChange={e => onSelectedModesChange?.({ ...selectedModes, [collection.id]: e.target.value })}
-                    className="text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] cursor-pointer"
-                  >
-                    {collection.modes.map(opt => (
-                      <option key={opt.name} value={opt.name}>{opt.name}</option>
-                    ))}
-                  </select>
-                </label>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Preview surface */}

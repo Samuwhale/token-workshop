@@ -5,8 +5,7 @@ import { isNetworkError } from '../shared/apiFetch';
 import { stableStringify, isAbortError } from '../shared/utils';
 import type { TokenMapEntry } from '../../shared/types';
 import { getPluginMessageFromEvent } from '../../shared/utils';
-import { applyModeSelectionsToTokens } from '../shared/collectionModeUtils';
-import type { SelectedModes, TokenCollection } from '@tokenmanager/core';
+import type { TokenCollection } from '@tokenmanager/core';
 
 interface UseTokenDataLoadingParams {
   serverUrl: string;
@@ -15,8 +14,6 @@ interface UseTokenDataLoadingParams {
   collectionRevision: number;
   markDisconnected: () => void;
   collections: TokenCollection[];
-  selectedModes: SelectedModes;
-  hoverPreviewModes: SelectedModes;
 }
 
 export function useTokenDataLoading({
@@ -25,8 +22,6 @@ export function useTokenDataLoading({
   collectionRevision,
   markDisconnected,
   collections,
-  selectedModes,
-  hoverPreviewModes,
 }: UseTokenDataLoadingParams) {
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [pathToCollectionId, setPathToCollectionId] = useState<Record<string, string>>({});
@@ -85,12 +80,7 @@ export function useTokenDataLoading({
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const modeResolvedTokensFlat = applyModeSelectionsToTokens(
-    allTokensFlat,
-    collections,
-    { ...selectedModes, ...hoverPreviewModes },
-    pathToCollectionId,
-  );
+  const modeResolvedTokensFlat = resolveAllAliases(allTokensFlat);
 
   return {
     allTokensFlat,

@@ -4,7 +4,7 @@ import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import type { TokenGenerator, GeneratorTemplate } from "../hooks/useGenerators";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
-import type { SelectedModes, TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import type { SemanticStarter } from "./graph-templates";
 import {
   useGeneratedGroupDialog,
@@ -40,7 +40,6 @@ export interface GeneratedGroupEditorProps {
     Record<string, import("../../shared/types").TokenMapEntry>
   >;
   collections?: TokenCollection[];
-  selectedModes?: SelectedModes;
   existingGenerator?: TokenGenerator;
   initialDraft?: GeneratorDialogInitialDraft;
   template?: GeneratorTemplate & { semanticStarter?: SemanticStarter };
@@ -91,7 +90,6 @@ export function GeneratedGroupEditor({
   sourceValuesFlat,
   perCollectionFlat,
   collections = [],
-  selectedModes = {},
   existingGenerator,
   initialDraft,
   template,
@@ -136,8 +134,8 @@ export function GeneratedGroupEditor({
     if (!collection || collection.modes.length === 0) {
       return null;
     }
-    return selectedModes[collection.id] ?? collection.modes[0]?.name ?? null;
-  }, [collections, dialog.targetCollection, selectedModes]);
+    return collection.modes[0]?.name ?? null;
+  }, [collections, dialog.targetCollection]);
   const keepUpdatedAvailability = useMemo(
     () =>
       getGeneratedGroupKeepUpdatedAvailability({

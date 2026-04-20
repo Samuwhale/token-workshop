@@ -222,8 +222,6 @@ export function PanelRouter({
     collectionDescriptions,
     collectionsError: fetchError,
     refreshCollections: refreshTokens,
-    selectedModes,
-    setSelectedModes,
   } = useCollectionStateContext();
   const collectionIds = collections.map((collection) => collection.id);
   const {
@@ -784,7 +782,6 @@ export function PanelRouter({
           sourceValuesFlat: modeResolvedTokensFlat,
           perCollectionFlat,
           collections,
-          selectedModes,
           sourceTokenPath:
             editingGeneratedGroup.mode === "create"
               ? editingGeneratedGroup.sourceTokenPath
@@ -1045,7 +1042,6 @@ export function PanelRouter({
           collections,
           unresolvedAllTokensFlat: allTokensFlat,
           pathToCollectionId,
-          selectedModes,
         }}
         actions={tokenListActions}
         recentlyTouched={controller.recentlyTouched}
@@ -1454,9 +1450,6 @@ export function PanelRouter({
               >
                 <PreviewPanel
                   allTokensFlat={modeResolvedTokensFlat}
-                  collections={collections}
-                  selectedModes={selectedModes}
-                  onSelectedModesChange={setSelectedModes}
                   onGoToTokens={() => navigateTo("tokens", "tokens")}
                   onNavigateToToken={(path) => {
                     const name = path.split(".").pop();

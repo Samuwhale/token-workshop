@@ -2,9 +2,8 @@
  * TokenDataContext — split into three focused sub-contexts to minimise
  * cascade re-renders:
  *
- *   CollectionStateContext — canonical client owner for collection identity,
- *                            collection metadata, persisted selected modes,
- *                            and transient hover preview state
+ *   CollectionStateContext — canonical client owner for collection identity
+ *                            and collection metadata
  *   TokenFlatMapContext    — flat token maps derived from the fetch cycle
  *                            plus mode-resolved token views
  *   GeneratorContext          — generator list and ownership indexes
@@ -15,7 +14,7 @@
 
 import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import type { SelectedModes, TokenCollection } from '@tokenmanager/core';
+import type { TokenCollection } from '@tokenmanager/core';
 import { useConnectionContext } from './ConnectionContext';
 import { useCollectionState } from '../hooks/useTokens';
 import type { TokenNode } from '../hooks/useTokens';
@@ -34,10 +33,6 @@ export interface CollectionStateContextValue {
   collectionRevision: number;
   collectionTokenCounts: Record<string, number>;
   collectionDescriptions: Record<string, string>;
-  selectedModes: SelectedModes;
-  setSelectedModes: (selectedModes: SelectedModes) => void;
-  hoverPreviewModes: SelectedModes;
-  setHoverPreviewModes: React.Dispatch<React.SetStateAction<SelectedModes>>;
   collectionsError: string | null;
   refreshCollections: () => void;
   syncCollectionSummariesToState: (collectionSummaries: CollectionSummary[]) => void;
@@ -121,10 +116,6 @@ function CollectionStateProvider({
       collectionRevision: collectionState.collectionRevision,
       collectionTokenCounts: collectionState.collectionTokenCounts,
       collectionDescriptions: collectionState.collectionDescriptions,
-      selectedModes: collectionState.selectedModes,
-      setSelectedModes: collectionState.setSelectedModes,
-      hoverPreviewModes: collectionState.hoverPreviewModes,
-      setHoverPreviewModes: collectionState.setHoverPreviewModes,
       collectionsError: collectionState.collectionsError,
       refreshCollections: collectionState.refreshCollections,
       syncCollectionSummariesToState: collectionState.syncCollectionSummariesToState,
@@ -143,10 +134,6 @@ function CollectionStateProvider({
       collectionState.collectionRevision,
       collectionState.collectionTokenCounts,
       collectionState.collectionDescriptions,
-      collectionState.selectedModes,
-      collectionState.setSelectedModes,
-      collectionState.hoverPreviewModes,
-      collectionState.setHoverPreviewModes,
       collectionState.collectionsError,
       collectionState.refreshCollections,
       collectionState.syncCollectionSummariesToState,
@@ -179,8 +166,6 @@ function TokenFlatMapProvider({
   const {
     collectionRevision,
     collections,
-    selectedModes,
-    hoverPreviewModes,
   } = useCollectionStateContext();
 
   const tokenData = useTokenDataLoading({
@@ -189,8 +174,6 @@ function TokenFlatMapProvider({
     collectionRevision,
     markDisconnected,
     collections,
-    selectedModes,
-    hoverPreviewModes,
   });
 
   const value = useMemo<TokenFlatMapContextValue>(
