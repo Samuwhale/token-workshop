@@ -622,14 +622,14 @@ export function PublishPanel({
     (preflightStage === 'advisory' || preflightStage === 'ready');
   const canProceedToSync = canProceedToCompare && !standardRoutingDirty;
   const compareLockedMessage = !readinessChecks.length
-    ? 'Run preflight once for the current token state before comparing Figma variables or styles.'
+    ? 'Click Sync with Figma to run readiness checks first.'
     : standardRoutingDirty
-      ? 'Save the Figma publish target before comparing or applying changes.'
+      ? 'Save the publish target before comparing or applying changes.'
     : isReadinessOutdated
-      ? 'Preflight results are outdated. Re-run preflight before comparing differences.'
+      ? 'Token data changed. Re-sync to compare differences.'
       : readinessBlockingFails > 0
-        ? 'Resolve the blocking preflight clusters before comparing or applying Figma changes.'
-        : 'Preflight must finish before compare is available.';
+        ? 'Resolve the blocking issues before comparing or applying Figma changes.'
+        : 'Readiness checks must finish before compare is available.';
 
   const syncResolverPublishModes = useCallback(async () => {
     if (!activeResolver || !resolverPublishFile) return;
@@ -746,8 +746,6 @@ export function PublishPanel({
     handleOpenPublishAll,
     compareAll,
     runPublishAll,
-    quickSync,
-    quickSyncing,
   } = publishAll;
   const hasFigmaSyncChanges = hasVarChanges || hasStyleChanges;
   const hasComparedAnything = varSync.checked || styleSync.checked;
@@ -866,7 +864,7 @@ export function PublishPanel({
       if (actionId === 'review-draft-tokens') {
         beginHandoff({
           reason:
-            'Review the draft tokens that blocked preflight, then return to Sync.',
+            'Review the draft tokens flagged during sync, then return.',
           onReturn: () => focusStage('preflight'),
         });
         navigateTo('tokens', 'tokens', { preserveHandoff: true });
@@ -891,7 +889,7 @@ export function PublishPanel({
       }
 
       if (actionId === 'add-token-descriptions') {
-        dispatchToast('Add descriptions in Tokens, then re-run preflight.', 'success');
+        dispatchToast('Add descriptions in Tokens, then re-sync.', 'success');
         beginHandoff({
           reason:
             'Add descriptions in Tokens, then return to Sync.',
@@ -981,7 +979,7 @@ export function PublishPanel({
   /* ── Derived UI state ─────────────────────────────────────────────────── */
 
   const isSyncing = readinessLoading || compareAllLoading || varSync.loading || styleSync.loading;
-  const isApplying = publishAllBusy || quickSyncing;
+  const isApplying = publishAllBusy;
   const isInSync = hasComparedAnything && totalDiffCount === 0 && !isSyncing;
   const hasBlockers = preflightStage === 'blocked';
   const hasIssues = preflightStage === 'blocked' || preflightStage === 'advisory';
@@ -1005,20 +1003,39 @@ export function PublishPanel({
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
 
-          {/* ── Primary action ────────────────────────────────────────── */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          {/* ── Publish target ──────────────────────────────────────── */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Publishing to</span>
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
                 {resolvedCollectionName} / {resolvedModeName}
-              </div>
+              </span>
+              <button
+                type="button"
+                onClick={() => setStandardRoutingExpanded((c) => !c)}
+                className="ml-0.5 flex items-center justify-center rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                title="Edit publish target"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={() => void handleSync()}
-              disabled={isSyncing || isApplying || standardRoutingDirty}
-              className="rounded-md bg-[var(--color-figma-accent)] px-4 py-2 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {isSyncing ? 'Checking…' : isApplying ? 'Applying…' : 'Sync with Figma'}
-            </button>
+            {standardRoutingExpanded && (
+              <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+                <StandardPublishRoutingCard
+                  currentCollectionId={currentCollectionId}
+                  draft={standardRoutingDraft}
+                  dirty={standardRoutingDirty}
+                  saving={standardRoutingSaving}
+                  error={standardRoutingError}
+                  onFieldChange={updateStandardRoutingDraft}
+                  onReset={resetStandardRoutingDraft}
+                  onSave={() => void saveStandardRouting()}
+                />
+              </div>
+            )}
           </div>
 
           {/* ── Progress indicator ────────────────────────────────────── */}
@@ -1026,7 +1043,7 @@ export function PublishPanel({
             <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
               <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
               <span>
-                {readinessLoading && 'Running preflight checks…'}
+                {readinessLoading && 'Checking readiness…'}
                 {!readinessLoading && (compareAllLoading || varSync.loading || styleSync.loading) && 'Comparing with Figma…'}
                 {isApplying && publishAllStep === 'variables' && 'Publishing variables…'}
                 {isApplying && publishAllStep === 'styles' && 'Publishing styles…'}
@@ -1053,14 +1070,16 @@ export function PublishPanel({
             </div>
           )}
 
-          {/* ── Routing dirty warning ─────────────────────────────────── */}
-          {standardRoutingDirty && (
-            <NoticeBanner severity="warning">
-              Save the publish target before syncing.
-            </NoticeBanner>
+          {!hasComparedAnything && !isSyncing && !isApplying && !hasIssues && preflightStage === 'idle' && !readinessError && (
+            <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-3">
+              <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                Sync keeps your token files and Figma variables in alignment. Click{' '}
+                <strong className="text-[var(--color-figma-text)]">Sync with Figma</strong> above to compare and apply changes.
+              </p>
+            </div>
           )}
 
-          {/* ── Issues section (from preflight) ───────────────────────── */}
+          {/*── Issues section (from preflight) ───────────────────────── */}
           {hasIssues && !isSyncing && (
             <div ref={preflightRef}>
               <SyncPreflightStep
@@ -1091,32 +1110,21 @@ export function PublishPanel({
                   </span>
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                     {[
-                      (varSync.pushCount + styleSync.pushCount) > 0 ? `${varSync.pushCount + styleSync.pushCount} to push` : null,
-                      (varSync.pullCount + styleSync.pullCount) > 0 ? `${varSync.pullCount + styleSync.pullCount} to pull` : null,
+                      (varSync.pushCount + styleSync.pushCount) > 0 ? `${varSync.pushCount + styleSync.pushCount} to update in Figma` : null,
+                      (varSync.pullCount + styleSync.pullCount) > 0 ? `${varSync.pullCount + styleSync.pullCount} to update locally` : null,
                       totalConflictCount > 0 ? `${totalConflictCount} conflict${totalConflictCount !== 1 ? 's' : ''}` : null,
                     ].filter(Boolean).join(' · ')}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  {publishAllAvailable && (
-                    <>
-                      <button
-                        onClick={quickSync}
-                        disabled={isApplying}
-                        className="rounded-md border border-[var(--color-figma-border)] px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                      >
-                        Apply all
-                      </button>
-                      <button
-                        onClick={() => void handleOpenPublishAll()}
-                        disabled={isApplying}
-                        className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                      >
-                        Review &amp; apply
-                      </button>
-                    </>
-                  )}
-                </div>
+                {publishAllAvailable && (
+                  <button
+                    onClick={() => void handleOpenPublishAll()}
+                    disabled={isApplying}
+                    className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                  >
+                    Review &amp; apply
+                  </button>
+                )}
               </div>
 
               {publishAllError && (
@@ -1169,28 +1177,6 @@ export function PublishPanel({
             </div>
           )}
 
-          {/* ── Settings disclosure ───────────────────────────────────── */}
-          <DisclosureSection
-            title="Settings"
-            summary={`${resolvedCollectionName} / ${resolvedModeName}`}
-            expanded={standardRoutingExpanded}
-            onToggle={() => setStandardRoutingExpanded((current) => !current)}
-            statusLabel={standardRoutingDirty ? 'Unsaved' : standardRoutingStatusLabel}
-            statusSeverity={standardRoutingDirty ? 'warning' : 'info'}
-          >
-            <StandardPublishRoutingCard
-              currentCollectionId={currentCollectionId}
-              draft={standardRoutingDraft}
-              dirty={standardRoutingDirty}
-              saving={standardRoutingSaving}
-              error={standardRoutingError}
-              onFieldChange={updateStandardRoutingDraft}
-              onReset={resetStandardRoutingDraft}
-              onSave={() => void saveStandardRouting()}
-            />
-          </DisclosureSection>
-
-          {/* ── Advanced routing (resolver only) ──────────────────────── */}
           {activeResolver && (
             <DisclosureSection
               title="Advanced routing"
@@ -1598,8 +1584,8 @@ function PublishAllPreviewModal({
                 <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Variables</span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {[
-                    varPushCount > 0 ? `\u2191 ${varPushCount} to Figma` : null,
-                    varPullCount > 0 ? `\u2193 ${varPullCount} to local` : null,
+                    varPushCount > 0 ? `\u2191 ${varPushCount} to update in Figma` : null,
+                    varPullCount > 0 ? `\u2193 ${varPullCount} to update locally` : null,
                   ].filter(Boolean).join(' \u00b7 ')}
                 </span>
               </label>
@@ -1620,8 +1606,8 @@ function PublishAllPreviewModal({
                 <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Styles</span>
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                   {[
-                    stylePushCount > 0 ? `\u2191 ${stylePushCount} to Figma` : null,
-                    stylePullCount > 0 ? `\u2193 ${stylePullCount} to local` : null,
+                    stylePushCount > 0 ? `\u2191 ${stylePushCount} to update in Figma` : null,
+                    stylePullCount > 0 ? `\u2193 ${stylePullCount} to update locally` : null,
                   ].filter(Boolean).join(' \u00b7 ')}
                 </span>
               </label>

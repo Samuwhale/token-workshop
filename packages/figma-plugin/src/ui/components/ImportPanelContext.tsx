@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { flattenTokenGroup, type DTCGGroup } from "@tokenmanager/core";
+import { flattenTokenGroup, isReference, parseReference, type DTCGGroup } from "@tokenmanager/core";
 import {
   type CollectionData,
   defaultCollectionName,
@@ -316,6 +316,66 @@ function getImportSourceTag(source: ImportSource): string | null {
   if (source === "variables") return "figma-variables";
   if (source === "styles") return "figma-styles";
   return source;
+}
+
+/**
+ * Topologically sort collection import plans so that collections whose tokens
+ * are alias targets for other collections are imported first. This prevents
+ * the server from rejecting batches due to unresolved cross-collection alias
+ * references.
+ */
+function sortPlansByAliasDependencies(
+  plans: CollectionImportPlan[],
+): CollectionImportPlan[] {
+  if (plans.length <= 1) return plans;
+
+  const pathToCollection = new Map<string, string>();
+  for (const plan of plans) {
+    for (const source of plan.writeTokens) {
+      pathToCollection.set(source.token.path, plan.collectionId);
+    }
+  }
+
+  const deps = new Map<string, Set<string>>();
+  for (const plan of plans) {
+    deps.set(plan.collectionId, new Set());
+  }
+  for (const plan of plans) {
+    for (const source of plan.writeTokens) {
+      const val = source.token.$value;
+      if (typeof val === 'string' && isReference(val)) {
+        const target = parseReference(val);
+        const targetCollection = pathToCollection.get(target);
+        if (targetCollection && targetCollection !== plan.collectionId) {
+          deps.get(plan.collectionId)!.add(targetCollection);
+        }
+      }
+    }
+  }
+
+  const sorted: CollectionImportPlan[] = [];
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+  const planById = new Map(plans.map((p) => [p.collectionId, p]));
+
+  function visit(id: string): boolean {
+    if (visited.has(id)) return true;
+    if (visiting.has(id)) return false; // cycle
+    visiting.add(id);
+    for (const dep of deps.get(id) ?? []) {
+      if (!visit(dep)) return false;
+    }
+    visiting.delete(id);
+    visited.add(id);
+    sorted.push(planById.get(id)!);
+    return true;
+  }
+
+  for (const plan of plans) {
+    if (!visit(plan.collectionId)) return plans; // cycle — fall back to original order
+  }
+
+  return sorted;
 }
 
 function buildImportPayload(
@@ -1095,7 +1155,8 @@ export function ImportPanelProvider({
       const rollbackOperations: ImportRollbackOperation[] = [];
 
       try {
-        for (const plan of collectionImportPlans) {
+        const orderedPlans = sortPlansByAliasDependencies(collectionImportPlans);
+        for (const plan of orderedPlans) {
           try {
             // Create/ensure collection exists
             try {

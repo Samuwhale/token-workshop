@@ -795,15 +795,15 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
   };
 
   const sections: Array<{ label: string; arrow: string; files: string[] }> = [];
-  if (pushFiles.length > 0) sections.push({ label: 'Push to remote', arrow: '↑', files: pushFiles });
-  if (pullFiles.length > 0) sections.push({ label: 'Pull to local', arrow: '↓', files: pullFiles });
+  if (pushFiles.length > 0) sections.push({ label: 'Update remote', arrow: '↑', files: pushFiles });
+  if (pullFiles.length > 0) sections.push({ label: 'Update local', arrow: '↓', files: pullFiles });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
       <div ref={dialogRef} className="w-[360px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-apply-dialog-title">
         <div className="px-4 pt-4 pb-2">
           <h3 id="git-apply-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">Apply changes</h3>
-          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">Review sync directions before applying.</p>
+          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">Review which direction each file should go.</p>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           {!hasChanges ? (

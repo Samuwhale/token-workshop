@@ -80,8 +80,8 @@ function CategorySection({
         <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{title}</span>
         <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{rows.length}</span>
         <span className="ml-auto flex items-center gap-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
-          {pushCount > 0 && <span>{'\u2191'}{pushCount}</span>}
-          {pullCount > 0 && <span>{'\u2193'}{pullCount}</span>}
+          {pushCount > 0 && <span>{'\u2191'} {pushCount}</span>}
+          {pullCount > 0 && <span>{'\u2193'} {pullCount}</span>}
           {skipCount > 0 && <span>skip {skipCount}</span>}
         </span>
       </button>
@@ -97,7 +97,7 @@ function CategorySection({
                   onClick={(e) => { e.stopPropagation(); setBulk(action); }}
                   className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
-                  {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
+                  {action === 'push' ? '\u2191 All to Figma' : action === 'pull' ? '\u2193 All to local' : 'Skip all'}
                 </button>
               ))}
             </div>

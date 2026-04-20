@@ -101,7 +101,7 @@ export const TOP_TABS: {
     subTabs: [
       { id: "sync", label: "Sync" },
       { id: "export", label: "Export" },
-      { id: "versions", label: "Versions" },
+      { id: "versions", label: "History" },
     ],
   },
 ];
@@ -538,12 +538,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       },
       {
         id: "versions",
-        label: "Versions",
+        label: "History",
         topTab: "publish",
         subTab: "versions",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Save, share, and view version history.",
+          "Save, share, and browse change history.",
         ),
       },
     ],

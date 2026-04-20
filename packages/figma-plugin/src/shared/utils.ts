@@ -41,13 +41,14 @@ export function getPluginMessageHost(): Window | null {
 }
 
 /**
- * Read a pluginMessage from a postMessage event, but only when it originated
- * from the expected host window. This avoids reacting to unrelated window
- * messages in the UI shell.
+ * Read a pluginMessage from a postMessage event. Only accepts events whose
+ * data contains a `pluginMessage` property (the Figma plugin protocol).
+ *
+ * We intentionally do NOT check `event.source` — Figma's internal message
+ * routing does not guarantee that `event.source === window.parent`.
  */
 export function getPluginMessageFromEvent<T>(event: MessageEvent): T | null {
-  const host = getPluginMessageHost();
-  if (!host || event.source !== host) {
+  if (!getPluginMessageHost()) {
     return null;
   }
   const payload = (event.data as { pluginMessage?: unknown } | null)?.pluginMessage;

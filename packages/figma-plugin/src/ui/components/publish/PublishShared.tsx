@@ -288,8 +288,8 @@ export function SyncDiffSummary({ rows, dirs }: {
   const skipCount = rows.filter(r => dirs[getDiffRowId(r)] === 'skip').length;
 
   const sections: { label: string; arrow: string; items: PreviewRow[]; direction: 'push' | 'pull' }[] = [];
-  if (pushRows.length > 0) sections.push({ label: 'Push to Figma', arrow: '\u2191', items: pushRows, direction: 'push' });
-  if (pullRows.length > 0) sections.push({ label: 'Pull to local', arrow: '\u2193', items: pullRows, direction: 'pull' });
+  if (pushRows.length > 0) sections.push({ label: 'Update Figma', arrow: '\u2191', items: pushRows, direction: 'push' });
+  if (pullRows.length > 0) sections.push({ label: 'Update local', arrow: '\u2193', items: pullRows, direction: 'pull' });
 
   if (sections.length === 0) {
     return <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)]">No changes to apply (all skipped).</p>;
@@ -377,8 +377,8 @@ export function VarDiffRowItem({ row, dir, onChange, reviewOnly = false }: {
             onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
             className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5 shrink-0"
           >
-            <option value="push">{'\u2191'} Push to Figma</option>
-            <option value="pull">{'\u2193'} Pull to local</option>
+            <option value="push">{'\u2191'} Update Figma</option>
+            <option value="pull">{'\u2193'} Update local</option>
             <option value="skip">Skip</option>
           </select>
         )}

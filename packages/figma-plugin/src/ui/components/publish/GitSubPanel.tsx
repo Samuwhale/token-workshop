@@ -71,6 +71,25 @@ function DiffPre({ lines, side, isExpanded }: { lines: DiffLine[]; side: 'ours' 
   );
 }
 
+function CollapsibleCard({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+      >
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">{title}</span>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`text-[var(--color-figma-text-tertiary)] transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true">
+          <path d="M2 1l4 3-4 3V1z" />
+        </svg>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 type GitSync = ReturnType<typeof useGitSync>;
 
 interface GitSubPanelProps {
@@ -158,12 +177,12 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   {git.allChanges.length > 0 ? `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
                 </span>
                 {git.gitStatus.remote && (git.gitStatus.status?.ahead ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Push`} className="text-[10px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                  <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Share`} className="text-[10px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
                     ↑{git.gitStatus.status!.ahead}
                   </span>
                 )}
                 {git.gitStatus.remote && (git.gitStatus.status?.behind ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Pull`} className="text-[10px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
+                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Get updates`} className="text-[10px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
                     ↓{git.gitStatus.status!.behind}
                   </span>
                 )}
@@ -195,6 +214,35 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
               </div>
             )}
           </div>
+
+          {/* Get updates / Share */}
+          {git.gitStatus?.remote && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onRequestConfirm('git-pull')}
+                  disabled={git.actionLoading !== null}
+                  title="Get updates from your team"
+                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                >
+                  {git.actionLoading === 'pull' ? 'Getting updates\u2026' : '\u2193 Get updates'}
+                </button>
+                <button
+                  onClick={() => onRequestConfirm('git-push')}
+                  disabled={git.actionLoading !== null}
+                  title="Share changes with your team"
+                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                >
+                  {git.actionLoading === 'push' ? 'Sharing\u2026' : '\u2191 Share'}
+                </button>
+              </div>
+              {git.lastSynced && (
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-right">
+                  Last synced: {formatRelativeTime(git.lastSynced)}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Version conflict resolver */}
           {git.mergeConflicts.length > 0 && (
@@ -443,34 +491,10 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
             </div>
           )}
 
-          {/* Shared server URL */}
-          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-            <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
-              Shared server
-            </div>
-            <div className="px-3 py-2 flex gap-2">
-              <input
-                type="text"
-                value={git.remoteUrl}
-                onChange={e => git.setRemoteUrl(e.target.value)}
-                placeholder="https://github.com/user/repo.git"
-                aria-label="Shared server URL"
-                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
-              />
-              <button
-                onClick={() => git.doAction('remote', { url: git.remoteUrl })}
-                disabled={!git.remoteUrl || git.actionLoading !== null}
-                className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-border)] disabled:opacity-40"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-
           {/* Remote diff */}
           {git.gitStatus?.remote && (
-            <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+            <CollapsibleCard title="Remote differences">
+              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between border-t border-[var(--color-figma-border)]">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Shared server differences</span>
                   {git.diffView && git.diffView.localOnly.length + git.diffView.remoteOnly.length + git.diffView.conflicts.length === 0 && (
@@ -527,8 +551,8 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                               onChange={e => git.setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
                               className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5"
                             >
-                              <option value="push">{'\u2191'} Push</option>
-                              <option value="pull">{'\u2193'} Pull</option>
+                              <option value="push">{'\u2191'} Update remote</option>
+                              <option value="pull">{'\u2193'} Update local</option>
                               <option value="skip">Skip</option>
                             </select>
                           </div>
@@ -555,37 +579,29 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which files differ between local and remote.
                 </div>
               )}
-            </div>
+            </CollapsibleCard>
           )}
 
-          {/* Get updates / Share */}
-          {git.gitStatus?.remote && (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onRequestConfirm('git-pull')}
-                  disabled={git.actionLoading !== null}
-                  title="Pull latest changes"
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                >
-                  {git.actionLoading === 'pull' ? 'Getting updates\u2026' : '\u2193 Get updates'}
-                </button>
-                <button
-                  onClick={() => onRequestConfirm('git-push')}
-                  disabled={git.actionLoading !== null}
-                  title="Push to remote"
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                >
-                  {git.actionLoading === 'push' ? 'Sharing\u2026' : '\u2191 Share'}
-                </button>
-              </div>
-              {git.lastSynced && (
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-right">
-                  Last synced: {formatRelativeTime(git.lastSynced)}
-                </p>
-              )}
+          {/* Shared server URL */}
+          <CollapsibleCard title="Remote server">
+            <div className="px-3 py-2 flex gap-2">
+              <input
+                type="text"
+                value={git.remoteUrl}
+                onChange={e => git.setRemoteUrl(e.target.value)}
+                placeholder="https://github.com/user/repo.git"
+                aria-label="Shared server URL"
+                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
+              />
+              <button
+                onClick={() => git.doAction('remote', { url: git.remoteUrl })}
+                disabled={!git.remoteUrl || git.actionLoading !== null}
+                className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-border)] disabled:opacity-40"
+              >
+                Save
+              </button>
             </div>
-          )}
+          </CollapsibleCard>
         </div>
       )}
     </div>

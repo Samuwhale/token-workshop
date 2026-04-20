@@ -1494,15 +1494,13 @@ export function PanelRouter({
     const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;
     let publishAction: { label: string; onClick: () => void; disabled?: boolean } | null = null;
     if (publishPreflightState.stage === "running") {
-      publishAction = { label: "Running preflight…", onClick: () => {}, disabled: true };
-    } else if (publishPreflightState.isOutdated || publishPreflightState.stage === "idle") {
-      publishAction = { label: "Run preflight", onClick: () => publishPanelHandleRef.current?.runReadinessChecks() };
+      publishAction = { label: "Syncing\u2026", onClick: () => {}, disabled: true };
     } else if (publishPreflightState.stage === "blocked") {
-      publishAction = { label: "Review blockers", onClick: () => publishPanelHandleRef.current?.focusStage("preflight") };
+      publishAction = { label: "Resolve issues", onClick: () => publishPanelHandleRef.current?.focusStage("preflight") };
     } else if (pendingPublishCount > 0) {
-      publishAction = { label: "Review differences", onClick: () => publishPanelHandleRef.current?.focusStage("compare") };
+      publishAction = { label: "Review & apply", onClick: () => publishPanelHandleRef.current?.focusStage("compare") };
     } else {
-      publishAction = { label: "Compare Figma", onClick: () => publishPanelHandleRef.current?.runCompareAll() };
+      publishAction = { label: "Sync with Figma", onClick: () => publishPanelHandleRef.current?.runReadinessChecks() };
     }
 
     return (
