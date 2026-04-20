@@ -252,21 +252,21 @@ export function CanvasAnalysisPanel({
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg)] flex items-center gap-2">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Scope</span>
+        <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Scope</span>
         <div className="flex-1">
           <ScanScopeSelector value={heatmapScope} onChange={setHeatmapScope} showLabel={false} />
         </div>
         <button
           onClick={() => triggerHeatmapScan()}
           disabled={heatmapLoading}
-          className="shrink-0 px-2.5 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="shrink-0 px-2.5 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {heatmapLoading ? 'Scanning…' : 'Scan'}
         </button>
         {heatmapLoading && (
           <button
             onClick={cancelHeatmapScan}
-            className="shrink-0 px-2 py-1 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="shrink-0 px-2 py-1 rounded text-secondary border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Cancel
           </button>
@@ -278,7 +278,7 @@ export function CanvasAnalysisPanel({
           <button
             key={tab.id}
             onClick={() => switchTab(tab.id)}
-            className={`flex-1 px-2 py-2 text-[10px] font-medium transition-colors ${
+            className={`flex-1 px-2 py-2 text-secondary font-medium transition-colors ${
               activeTab === tab.id
                 ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)] -mb-px'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'

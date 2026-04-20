@@ -84,16 +84,16 @@ function SuggestionCard({
         {isColor && <ColorSwatch hex={String(suggestion.tokenValue)} />}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{suggestion.tokenPath}</span>
+            <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate">{suggestion.tokenPath}</span>
           </div>
           <div className="flex items-center gap-1 mt-0.5">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary text-[var(--color-figma-text-secondary)]">
               {formatValue(suggestion.tokenValue as string | number, suggestion.property)}
             </span>
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">·</span>
+            <span className="text-secondary text-[var(--color-figma-text-secondary)]">·</span>
             <button
               onClick={() => setExpanded(v => !v)}
-              className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
             >
               {count}×
               <svg
@@ -109,7 +109,7 @@ function SuggestionCard({
         <button
           onClick={() => onSnap(suggestion)}
           title={`Snap all ${count} instance${count !== 1 ? 's' : ''} to ${suggestion.tokenPath}`}
-          className="shrink-0 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+          className="shrink-0 px-2 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
         >
           Snap all
         </button>
@@ -118,7 +118,7 @@ function SuggestionCard({
             setExpanded(true);
             onReject(suggestion);
           }}
-          className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+          className={`shrink-0 px-2 py-0.5 rounded text-secondary font-medium border transition-colors ${
             rejected
               ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
               : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -132,18 +132,18 @@ function SuggestionCard({
       {expanded && (
         <div className="border-t border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
           {rejected && (
-            <div className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
+            <div className="px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
               Create a token from the actual value for any layer below.
             </div>
           )}
           {uniqueMatches.map((match: ConsistencyMatch, idx: number) => (
             <div key={idx} className="flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-10 shrink-0">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)] w-10 shrink-0">
                 {NODE_TYPE_LABELS[match.nodeType] ?? match.nodeType}
               </span>
               <button
                 onClick={() => onSelectNode(match.nodeId)}
-                className="flex-1 min-w-0 text-left text-[10px] text-[var(--color-figma-text)] truncate hover:underline"
+                className="flex-1 min-w-0 text-left text-secondary text-[var(--color-figma-text)] truncate hover:underline"
                 title={match.nodeName}
               >
                 {match.nodeName}
@@ -151,21 +151,21 @@ function SuggestionCard({
               {rejected && onCreateMatch && (
                 <button
                   onClick={() => onCreateMatch(suggestion, match)}
-                  className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Create token
                 </button>
               )}
               <div className="flex items-center gap-1 shrink-0">
                 {isColor && <ColorSwatch hex={String(match.actualValue)} />}
-                <span className="text-[10px] text-[var(--color-figma-warning)] tabular-nums">
+                <span className="text-secondary text-[var(--color-figma-warning)] tabular-nums">
                   {formatValue(match.actualValue, match.property)}
                 </span>
                 <svg width="8" height="6" viewBox="0 0 8 6" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
                   <path d="M1 3h6M5 1l2 2-2 2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 {isColor && <ColorSwatch hex={String(match.tokenValue)} />}
-                <span className="text-[10px] text-[var(--color-figma-success)] tabular-nums">
+                <span className="text-secondary text-[var(--color-figma-success)] tabular-nums">
                   {formatValue(match.tokenValue, match.property)}
                 </span>
               </div>
@@ -328,7 +328,7 @@ export function ConsistencyPanel({
         {scanning ? (
           <button
             onClick={handleCancel}
-            className="ml-auto px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity"
+            className="ml-auto px-3 py-1 rounded text-secondary font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity"
           >
             Cancel
           </button>
@@ -336,7 +336,7 @@ export function ConsistencyPanel({
           <button
             onClick={handleScan}
             disabled={!hasTokens}
-            className="ml-auto px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+            className="ml-auto px-3 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
           >
             Scan
           </button>
@@ -347,13 +347,13 @@ export function ConsistencyPanel({
         {/* No tokens */}
         {!hasTokens && (
           <div className="flex flex-col items-center justify-center h-full gap-2 p-3 text-center">
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No tokens loaded.</p>
+            <p className="text-body text-[var(--color-figma-text-secondary)]">No tokens loaded.</p>
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div className="m-3 p-3 rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 text-[10px] text-[var(--color-figma-error)]">
+          <div className="m-3 p-3 rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 text-secondary text-[var(--color-figma-error)]">
             {error}
           </div>
         )}
@@ -367,7 +367,7 @@ export function ConsistencyPanel({
                 style={{ width: progress ? `${Math.round((progress.processed / progress.total) * 100)}%` : '0%' }}
               />
             </div>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-secondary text-[var(--color-figma-text-secondary)]">
               {progress
                 ? `Scanning… ${progress.processed} / ${progress.total}`
                 : 'Scanning…'}
@@ -378,7 +378,7 @@ export function ConsistencyPanel({
         {/* Initial / idle */}
         {!scanning && suggestions === null && !error && hasTokens && (
           <div className="flex flex-col items-center justify-center h-full gap-2 p-3 text-center">
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[var(--color-figma-text-secondary)]">
               Scan for near-matches.
             </p>
           </div>
@@ -389,17 +389,17 @@ export function ConsistencyPanel({
           <div className="p-3 flex flex-col gap-2">
             {/* Summary row */}
             <div className="flex items-center justify-between">
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              <p className="text-secondary text-[var(--color-figma-text-secondary)]">
                 {totalNodes} nodes scanned
               </p>
               {visibleSuggestions.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <p className="text-secondary text-[var(--color-figma-text-secondary)]">
                     {visibleSuggestions.reduce((n, s) => n + s.matches.length, 0)} near-matches
                   </p>
                   <button
                     onClick={() => setSnapConfirm(visibleSuggestions)}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    className="px-2 py-0.5 rounded text-secondary font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   >
                     Snap all {visibleSuggestions.length}
                   </button>
@@ -412,8 +412,8 @@ export function ConsistencyPanel({
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
-                <p className="text-[11px] font-medium text-[var(--color-figma-text)]">All consistent</p>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <p className="text-body font-medium text-[var(--color-figma-text)]">All consistent</p>
+                <p className="text-secondary text-[var(--color-figma-text-secondary)]">
                   {snappedKeys.size > 0 ? 'All snapped.' : 'No near-matches found.'}
                 </p>
               </div>
@@ -426,15 +426,15 @@ export function ConsistencyPanel({
                   <div key={cat} className="flex flex-col gap-2">
                     {/* Category header */}
                     <div className="flex items-center justify-between pt-1">
-                      <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                      <p className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
                         {CATEGORY_LABELS[cat]}
-                        <span className="ml-1 font-normal text-[10px]">
+                        <span className="ml-1 font-normal text-secondary">
                           ({catInstanceCount})
                         </span>
                       </p>
                       <button
                         onClick={() => setSnapConfirm(catSuggestions)}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                        className="px-1.5 py-0.5 rounded text-secondary font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                       >
                         Snap {catSuggestions.length} in {CATEGORY_LABELS[cat]}
                       </button>
@@ -481,7 +481,7 @@ export function ConsistencyPanel({
         >
           <div className="mt-2 space-y-1">
             {snapConfirmPreview.map(row => (
-              <div key={row.label} className="flex items-center justify-between text-[11px]">
+              <div key={row.label} className="flex items-center justify-between text-body">
                 <span className="text-[var(--color-figma-text)]">{row.label}</span>
                 <span className="text-[var(--color-figma-text-secondary)]">
                   {row.tokenCount} token{row.tokenCount !== 1 ? 's' : ''},{' '}

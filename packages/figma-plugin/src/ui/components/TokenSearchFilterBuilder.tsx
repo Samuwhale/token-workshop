@@ -94,10 +94,10 @@ export function TokenSearchDiscovery({
   return (
     <div className="mt-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-2">
       <div className="mb-1 flex items-center gap-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+        <span className="text-secondary font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
           {title}
         </span>
-        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+        <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
           Structured search without memorizing qualifiers
         </span>
       </div>
@@ -113,8 +113,8 @@ export function TokenSearchDiscovery({
                 : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
             }`}
           >
-            <div className="text-[10px] font-medium text-[var(--color-figma-text)]">{suggestion.label}</div>
-            <div className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">
+            <div className="text-secondary font-medium text-[var(--color-figma-text)]">{suggestion.label}</div>
+            <div className="mt-0.5 text-secondary leading-snug text-[var(--color-figma-text-tertiary)]">
               {suggestion.description}
             </div>
           </button>
@@ -231,7 +231,7 @@ export function TokenSearchFilterChips({
       {chips.map(chip => (
         <span
           key={`${chip.qualifier}:${chip.value}`}
-          className="group inline-flex items-center gap-0.5 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 pl-1.5 pr-0.5 py-0.5 text-[10px] leading-none"
+          className="group inline-flex items-center gap-0.5 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 pl-1.5 pr-0.5 py-0.5 text-secondary leading-none"
         >
           <button
             onClick={() => handleChipClick(chip)}
@@ -266,7 +266,7 @@ export function TokenSearchFilterChips({
             });
             setEditingSection(null);
           }}
-          className="inline-flex items-center gap-0.5 rounded border border-dashed border-[var(--color-figma-border)] px-1.5 py-0.5 text-[10px] leading-none text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text-secondary)]"
+          className="inline-flex items-center gap-0.5 rounded border border-dashed border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary leading-none text-[var(--color-figma-text-tertiary)] transition-colors hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text-secondary)]"
           title="Add a filter"
         >
           <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -281,7 +281,7 @@ export function TokenSearchFilterChips({
               <button
                 key={section}
                 onClick={() => openSectionForAdd(section)}
-                className="flex w-full items-center px-2 py-1.5 text-left text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                className="flex w-full items-center px-2 py-1.5 text-left text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
               >
                 {FILTER_SECTION_LABELS[section]}
               </button>
@@ -297,7 +297,7 @@ export function TokenSearchFilterChips({
           className="mt-1 w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
         >
           <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[var(--color-figma-border)]">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            <span className="text-secondary font-medium text-[var(--color-figma-text)]">
               {FILTER_SECTION_LABELS[editingSection]}
             </span>
             <div className="flex items-center gap-1.5">
@@ -309,7 +309,7 @@ export function TokenSearchFilterChips({
                 return count > 0 ? (
                   <button
                     onClick={() => { onClearQualifier(editingSection); }}
-                    className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+                    className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
                   >
                     Clear all
                   </button>
@@ -322,6 +322,7 @@ export function TokenSearchFilterChips({
                 }}
                 className="rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                 title="Close"
+                aria-label="Close"
               >
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -340,7 +341,7 @@ export function TokenSearchFilterChips({
                     <button
                       key={type}
                       onClick={() => onToggleQualifierValue('type', type)}
-                      className={`rounded border px-2 py-1 text-left text-[10px] transition-colors ${
+                      className={`rounded border px-2 py-1 text-left text-secondary transition-colors ${
                         selected
                           ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                           : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
@@ -367,8 +368,8 @@ export function TokenSearchFilterChips({
                           : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:text-[var(--color-figma-text)]'
                       }`}
                     >
-                      <div className="text-[10px] font-medium">{option}</div>
-                      <div className="mt-0.5 text-[10px] leading-snug text-[var(--color-figma-text-tertiary)]">{getHasOptionDescription(option)}</div>
+                      <div className="text-secondary font-medium">{option}</div>
+                      <div className="mt-0.5 text-secondary leading-snug text-[var(--color-figma-text-tertiary)]">{getHasOptionDescription(option)}</div>
                     </button>
                   );
                 })}
@@ -383,7 +384,7 @@ export function TokenSearchFilterChips({
                       <button
                         key={val}
                         onClick={() => onRemoveQualifierValue(editingSection, val)}
-                        className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                        className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
                       >
                         {val}
                         <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -407,7 +408,7 @@ export function TokenSearchFilterChips({
                     value={textDraft}
                     onChange={e => setTextDraft(e.target.value)}
                     placeholder={TEXT_SECTION_PLACEHOLDERS[editingSection as TextFilterSection]}
-                    className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                    className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
                     onKeyDown={e => {
                       if (e.key === 'Escape') {
                         e.preventDefault();
@@ -419,7 +420,7 @@ export function TokenSearchFilterChips({
                   <button
                     type="submit"
                     disabled={!textDraft.trim()}
-                    className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Add
                   </button>

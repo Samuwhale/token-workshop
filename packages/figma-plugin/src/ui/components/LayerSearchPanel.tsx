@@ -98,7 +98,7 @@ export function LayerSearchPanel({
           onChange={(event) => handleQueryChange(event.target.value)}
           placeholder="Search layers by name, type, or component…"
           aria-label="Search layers"
-          className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1.5 pl-7 pr-2 text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1.5 pl-7 pr-2 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:focus-visible:border-[var(--color-figma-accent)]"
         />
         {query && (
           <button
@@ -122,13 +122,13 @@ export function LayerSearchPanel({
       </div>
 
       {searching && results.length === 0 && (
-        <p className="px-1 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <p className="px-1 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
           Searching…
         </p>
       )}
 
       {!searching && query && results.length === 0 && (
-        <p className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <p className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
           Nothing matched "{query}". Try a broader layer name, type, or
           component query.
         </p>
@@ -137,7 +137,7 @@ export function LayerSearchPanel({
       {results.length > 0 && (
         <div className="max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
           {totalSearched !== null && (
-            <div className="border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)]">
               {results.length < 50
                 ? `${results.length} result${results.length !== 1 ? "s" : ""} · searched ${totalSearched} layer${totalSearched !== 1 ? "s" : ""}`
                 : `Top 50 results · searched ${totalSearched} layer${totalSearched !== 1 ? "s" : ""}`}
@@ -150,12 +150,12 @@ export function LayerSearchPanel({
               className="group flex w-full items-center gap-1.5 border-b border-[var(--color-figma-border)]/30 px-2 py-1 text-left transition-colors last:border-b-0 hover:bg-[var(--color-figma-bg-hover)]"
             >
               <span
-                className="w-3 shrink-0 text-center text-[10px] text-[var(--color-figma-text-secondary)]"
+                className="w-3 shrink-0 text-center text-secondary text-[var(--color-figma-text-secondary)]"
                 title={layer.type}
               >
                 {nodeTypeIcons[layer.type] || "·"}
               </span>
-              <span className="flex-1 truncate text-[10px] text-[var(--color-figma-text)]">
+              <span className="flex-1 truncate text-secondary text-[var(--color-figma-text)]">
                 {layer.name}
               </span>
               {layer.parentName && (

@@ -82,7 +82,7 @@ function MenuItem({
       role="menuitem"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         danger
           ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
           : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
@@ -98,7 +98,7 @@ function MenuItem({
         </span>
       )}
       {shortcut && (
-        <span className="shrink-0 font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">
+        <span className="shrink-0 font-mono text-secondary text-[var(--color-figma-text-tertiary)]">
           {shortcut}
         </span>
       )}
@@ -108,7 +108,7 @@ function MenuItem({
 
 function MenuLabel({ children }: { children: string }) {
   return (
-    <div className="px-2.5 pt-1.5 pb-0.5 text-[10px] font-semibold text-[var(--color-figma-text-tertiary)]">
+    <div className="px-2.5 pt-1.5 pb-0.5 text-secondary font-semibold text-[var(--color-figma-text-tertiary)]">
       {children}
     </div>
   );
@@ -138,7 +138,7 @@ export function ViewMenu(
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="View options"
-        className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-[10px] font-medium transition-colors ${
+        className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
           open
             ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
             : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -271,7 +271,7 @@ export function FilterMenu(props: FilterMenuProps) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Filter options"
-        className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-[10px] font-medium transition-colors ${
+        className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
           open || props.activeCount > 0
             ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
             : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"

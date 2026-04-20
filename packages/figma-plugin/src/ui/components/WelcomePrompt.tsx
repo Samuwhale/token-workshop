@@ -99,7 +99,7 @@ function ActionRow({
             <div className="min-w-0">
               <span
                 className={[
-                  "text-[11px] font-medium",
+                  "text-body font-medium",
                   emphasized
                     ? "text-[var(--color-figma-accent)]"
                     : "text-[var(--color-figma-text)]",
@@ -107,7 +107,7 @@ function ActionRow({
               >
                 {title}
               </span>
-              <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              <p className="mt-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
                 {description}
               </p>
             </div>
@@ -289,7 +289,7 @@ export function WelcomePrompt({
                   </svg>
                 </button>
               )}
-              <h2 id="welcome-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+              <h2 id="welcome-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">
                 {branchTitle}
               </h2>
             </div>
@@ -313,7 +313,7 @@ export function WelcomePrompt({
             </button>
           </div>
           {branchCopy.description ? (
-            <p className="mt-1.5 max-w-[28ch] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+            <p className="mt-1.5 max-w-[28ch] text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
               {branchCopy.description}
             </p>
           ) : null}
@@ -326,7 +326,7 @@ export function WelcomePrompt({
                     type="button"
                     onClick={onRetryConnection}
                     disabled={checking}
-                    className="shrink-0 rounded-full border border-current/20 px-2.5 py-1 text-[10px] font-medium text-current transition-colors hover:bg-current/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="shrink-0 rounded-full border border-current/20 px-2.5 py-1 text-secondary font-medium text-current transition-colors hover:bg-current/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {checking ? "Checking…" : "Retry"}
                   </button>

@@ -143,12 +143,12 @@ export function TokenEditorValueSection({
     >
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center justify-between">
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)]">
             {extendsPath ? "Overrides" : "Value"}
           </label>
           <div className="flex items-center gap-1.5">
             {pasteFlash && (
-              <span className="text-[10px] text-[var(--color-figma-accent)] font-medium animate-pulse">
+              <span className="text-secondary text-[var(--color-figma-accent)] font-medium animate-pulse">
                 Pasted
               </span>
             )}
@@ -158,7 +158,7 @@ export function TokenEditorValueSection({
                 <button
                   type="button"
                   onClick={focusBlockedField}
-                  className="text-[10px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0"
+                  className="text-secondary text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0"
                 >
                   {saveBlockReason}
                 </button>
@@ -166,7 +166,7 @@ export function TokenEditorValueSection({
           </div>
         </div>
         {VALUE_FORMAT_HINTS[tokenType] && (
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)] italic">
             {VALUE_FORMAT_HINTS[tokenType]}
           </span>
         )}

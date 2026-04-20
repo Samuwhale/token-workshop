@@ -36,14 +36,14 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   full: {
     container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-2 py-1.5 text-center',
     content: 'w-full max-w-[320px] space-y-1.5',
-    title: 'text-[11px] font-medium',
-    description: 'text-[10px] leading-snug',
+    title: 'text-body font-medium',
+    description: 'text-secondary leading-snug',
   },
   section: {
     container: 'flex w-full flex-col items-center justify-center px-2 py-1 text-center',
     content: 'w-full max-w-[300px] space-y-0.5',
-    title: 'text-[10px] font-medium',
-    description: 'text-[10px] leading-snug',
+    title: 'text-secondary font-medium',
+    description: 'text-secondary leading-snug',
   },
 };
 
@@ -121,7 +121,7 @@ function FeedbackActionButton({
       disabled={action.disabled}
       title={action.title}
       className={joinClasses(
-        'rounded-md px-2.5 py-0.5 text-[10px] font-medium transition-colors',
+        'rounded-md px-2.5 py-0.5 text-secondary font-medium transition-colors',
         actionButtonClass(tone),
       )}
     >

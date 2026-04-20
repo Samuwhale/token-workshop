@@ -99,7 +99,7 @@ export function ShadowPreview({ tokens, config, overrides, onOverrideChange, onO
                 aria-label={`Shadow preview for ${t.stepName}`}
               />
               {/* Description */}
-              <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+              <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate">
                 {step ? formatShadowStep(step) : String(t.value)}
               </span>
             </div>
@@ -157,14 +157,14 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
     <div className="flex flex-col gap-3">
       {/* Preset buttons */}
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Preset</label>
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Preset</label>
         <div className="flex gap-1.5 flex-wrap">
           {SHADOW_PRESETS.map((preset, i) => (
             <button
               key={preset.label}
               title={preset.description}
               onClick={() => { setShowSteps(false); onChange({ color: preset.color, steps: preset.steps.map(s => ({ ...s })) }); }}
-              className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+              className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${
                 !showSteps && activePresetIdx === i
                   ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                   : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -191,7 +191,7 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
             onChange={hex => onChange({ ...config, color: hex })}
             aria-label="Shadow base color"
           />
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">(per-step opacity)</span>
+          <span className="text-secondary text-[var(--color-figma-text-secondary)]">(per-step opacity)</span>
         </div>
       </TokenRefInput>
 
@@ -203,7 +203,7 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
       >
         <div className="mt-2 flex flex-col gap-1.5">
             {/* Column headers */}
-            <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] pl-0.5">
+            <div className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] pl-0.5">
               <span className="w-12">Name</span>
               <span className="w-9 text-right">dX</span>
               <span className="w-9 text-right">dY</span>
@@ -218,27 +218,27 @@ export function ShadowScaleConfigEditor({ config, onChange, allTokensFlat, pathT
                   onChange={e => updateStep(i, { name: e.target.value })}
                   aria-label={`Step ${i + 1} name`}
                   placeholder="name"
-                  className="w-12 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]"
+                  className="w-12 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)]"
                 />
                 <input type="number" step="1" value={step.offsetX} onChange={e => updateStep(i, { offsetX: Number(e.target.value) })}
                   aria-label={`Step ${step.name} offsetX`}
-                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
+                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" step="1" value={step.offsetY} onChange={e => updateStep(i, { offsetY: Number(e.target.value) })}
                   aria-label={`Step ${step.name} offsetY`}
-                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
+                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" step="1" min="0" value={step.blur} onChange={e => updateStep(i, { blur: Number(e.target.value) })}
                   aria-label={`Step ${step.name} blur`}
-                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
+                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" step="1" value={step.spread} onChange={e => updateStep(i, { spread: Number(e.target.value) })}
                   aria-label={`Step ${step.name} spread`}
-                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
+                  className="w-9 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary text-right focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" step="0.01" min="0" max="1" value={step.opacity} onChange={e => updateStep(i, { opacity: Number(e.target.value) })}
                   aria-label={`Step ${step.name} opacity`}
-                  className="w-10 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] text-right focus-visible:border-[var(--color-figma-accent)]" />
-                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">&times;</button>
+                  className="w-10 px-1 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary text-right focus-visible:border-[var(--color-figma-accent)]" />
+                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-secondary">&times;</button>
               </div>
             ))}
-            <button onClick={addStep} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
+            <button onClick={addStep} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
           </div>
       </Collapsible>
     </div>

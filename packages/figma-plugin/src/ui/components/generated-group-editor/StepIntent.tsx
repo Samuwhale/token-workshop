@@ -50,10 +50,10 @@ export function StepIntent({
   return (
     <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
       <div className="mb-3 flex flex-col gap-1">
-        <h3 className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+        <h3 className="text-heading font-semibold text-[var(--color-figma-text)]">
           {title}
         </h3>
-        <p className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+        <p className="text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
           {description}
         </p>
       </div>

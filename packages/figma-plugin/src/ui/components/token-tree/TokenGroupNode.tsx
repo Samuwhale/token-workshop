@@ -517,18 +517,18 @@ export const TokenGroupNode = memo(
                     }
                   }}
                   aria-label="Rename group"
-                  className={`flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameGroupError ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
+                  className={`flex-1 text-body font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameGroupError ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
                 />
                 <button
                   onClick={confirmGroupRename}
                   disabled={!renameGroupVal.trim()}
-                  className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0"
+                  className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0"
                 >
                   Save
                 </button>
                 <button
                   onClick={cancelGroupRename}
-                  className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                  className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
                 >
                   Cancel
                 </button>
@@ -536,7 +536,7 @@ export const TokenGroupNode = memo(
               {renameGroupError && (
                 <p
                   role="alert"
-                  className="text-[10px] text-[var(--color-figma-error)]"
+                  className="text-secondary text-[var(--color-figma-error)]"
                 >
                   {renameGroupError}
                 </p>
@@ -544,16 +544,16 @@ export const TokenGroupNode = memo(
             </div>
           ) : (
             isCategoryHeader ? (
-              <span className="flex-1 text-[11px] font-medium text-[var(--color-figma-text-secondary)]">
+              <span className="flex-1 text-body font-medium text-[var(--color-figma-text-secondary)]">
                 {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
               </span>
             ) : (
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+                <span className="truncate text-body font-medium text-[var(--color-figma-text)]">
                   {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
                 </span>
                 {groupMetadataSegments.length > 0 && (
-                  <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-[10px]">
+                  <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
                     {renderRowMetadataSegments(groupMetadataSegments)}
                   </div>
                 )}
@@ -565,7 +565,7 @@ export const TokenGroupNode = memo(
             collectionCoverageSummary.total > 0 &&
             collectionCoverageSummary.totalMissing > 0 && (
               <span
-                className="shrink-0 text-[9px] font-normal text-[var(--color-figma-text-tertiary)]"
+                className="shrink-0 text-micro font-normal text-[var(--color-figma-text-tertiary)]"
                 title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
               >
                 {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
@@ -579,7 +579,7 @@ export const TokenGroupNode = memo(
                 if (targetGenerator.id) onEditGeneratedGroup?.(targetGenerator.id);
               }}
               disabled={!targetGenerator.id || !onEditGeneratedGroup}
-              className={`inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[9px] ${
+              className={`inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-micro ${
                 targetGenerator.isStale
                   ? "text-amber-600"
                   : "text-[var(--color-figma-text-tertiary)]"
@@ -599,7 +599,7 @@ export const TokenGroupNode = memo(
                   onClick={(e) => { e.stopPropagation(); onZoomIntoGroup(node.path); }}
                   title="Focus on this group"
                   aria-label="Focus on this group"
-                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
                   <span>Focus</span>
@@ -900,17 +900,17 @@ export const TokenGroupNode = memo(
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
               Group metadata
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">
+              <label className="text-secondary text-[var(--color-figma-text-secondary)] w-16 shrink-0">
                 $type
               </label>
               <select
                 value={groupMetaType}
                 onChange={(e) => setGroupMetaType(e.target.value)}
-                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
+                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
               >
                 <option value="">(none)</option>
                 <option value="color">color</option>
@@ -930,7 +930,7 @@ export const TokenGroupNode = memo(
               </select>
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">
+              <label className="text-secondary text-[var(--color-figma-text-secondary)] w-16 shrink-0">
                 $description
               </label>
               <input
@@ -938,7 +938,7 @@ export const TokenGroupNode = memo(
                 value={groupMetaDescription}
                 onChange={(e) => setGroupMetaDescription(e.target.value)}
                 placeholder="Optional description…"
-                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
+                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -951,14 +951,14 @@ export const TokenGroupNode = memo(
             <div className="flex gap-1 justify-end">
               <button
                 onClick={() => setEditingGroupMeta(false)}
-                className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                className="px-2 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveGroupMeta}
                 disabled={groupMetaSaving}
-                className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40"
+                className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:opacity-90 disabled:opacity-40"
               >
                 {groupMetaSaving ? "Saving…" : "Save"}
               </button>

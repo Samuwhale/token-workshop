@@ -28,7 +28,7 @@ export const EMPTY_LINT_VIOLATIONS: NonNullable<
   TokenTreeNodeProps["lintViolations"]
 > = [];
 
-export const BADGE_TEXT_CLASS = "text-[10px]";
+export const BADGE_TEXT_CLASS = "text-secondary";
 export const INTERACTIVE_BADGE_HIT_AREA_CLASS = "min-h-[24px] min-w-[24px]";
 
 /** Returns true if `value` contains a direct alias reference to `target`. */
@@ -241,7 +241,7 @@ export function GeneratedGroupSummaryRow({
     >
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="flex flex-wrap items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
             <span className="inline-flex items-center gap-1 font-medium text-[var(--color-figma-text)]">
               <GeneratedGlyph />
               <span>Generated</span>
@@ -258,7 +258,7 @@ export function GeneratedGroupSummaryRow({
               </span>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[var(--color-figma-text-secondary)]">
             <span>
               Source{" "}
               {generator.sourceToken && onNavigateToSourceToken ? (
@@ -291,12 +291,12 @@ export function GeneratedGroupSummaryRow({
             )}
           </div>
           {keepUpdatedDisabledReason && (
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
               {keepUpdatedDisabledReason}
             </div>
           )}
           {shouldNudgeExceptionCleanup && (
-            <div className="text-[10px] text-[var(--color-figma-warning)]">
+            <div className="text-secondary text-[var(--color-figma-warning)]">
               Manual exceptions are piling up. Edit the generator or detach tokens that should stay manual.
             </div>
           )}
@@ -314,7 +314,7 @@ export function GeneratedGroupSummaryRow({
               type="button"
               onClick={() => { void onRun?.(); }}
               disabled={running || !onRun}
-              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {running ? "Running\u2026" : "Rerun"}
             </button>
@@ -323,7 +323,7 @@ export function GeneratedGroupSummaryRow({
             type="button"
             onClick={onEdit}
             disabled={!onEdit}
-            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2 py-1 rounded border border-[var(--color-figma-border)] text-secondary font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Edit {typeLabel.toLowerCase()}
           </button>
@@ -401,7 +401,7 @@ function SummaryOverflowMenu({
             onClick={() => { void onToggleKeepUpdated?.(!keepUpdated); setOpen(false); }}
             disabled={keepUpdatedBusy || !onToggleKeepUpdated || Boolean(keepUpdatedDisabledReason)}
             title={keepUpdatedDisabledReason ?? undefined}
-            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {keepUpdatedBusy ? "Updating\u2026" : keepUpdated ? "Turn off updates" : "Keep updated"}
           </button>
@@ -409,7 +409,7 @@ function SummaryOverflowMenu({
             type="button"
             onClick={() => { onDuplicate?.(); setOpen(false); }}
             disabled={!onDuplicate}
-            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Duplicate
           </button>
@@ -417,7 +417,7 @@ function SummaryOverflowMenu({
             type="button"
             onClick={() => { void onDetach?.(); setOpen(false); }}
             disabled={detaching || !onDetach}
-            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {detaching ? "Detaching\u2026" : "Detach"}
           </button>
@@ -426,7 +426,7 @@ function SummaryOverflowMenu({
             type="button"
             onClick={() => { void onDelete?.(); setOpen(false); }}
             disabled={deleting || !onDelete}
-            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {deleting ? "Deleting\u2026" : `Delete ${typeLabel.toLowerCase()}`}
           </button>
@@ -447,7 +447,7 @@ function CompactGeneratedPreview({
 }) {
   return (
     <div className="mt-0.5">
-      <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
+      <div className="mb-1 flex items-center justify-between gap-2 text-secondary text-[var(--color-figma-text-tertiary)]">
         <span>{totalCount} token{totalCount === 1 ? "" : "s"}</span>
       </div>
       {type === "colorRamp" ? (
@@ -464,7 +464,7 @@ function CompactGeneratedPreview({
                   style={{ background: value ?? "var(--color-figma-bg-secondary)" }}
                   title={`${token.stepName}: ${formatValue(token.value)}`}
                 />
-                <div className="truncate text-[9px] text-[var(--color-figma-text-secondary)]">
+                <div className="truncate text-micro text-[var(--color-figma-text-secondary)]">
                   {token.stepName}
                 </div>
               </div>
@@ -474,7 +474,7 @@ function CompactGeneratedPreview({
       ) : (
         <div className="flex flex-col gap-1">
           {tokens.map((token) => (
-            <div key={token.path} className="flex items-center gap-2 text-[10px]">
+            <div key={token.path} className="flex items-center gap-2 text-secondary">
               <span className="min-w-0 flex-1 truncate font-mono text-[var(--color-figma-text)]">
                 {token.path}
               </span>
@@ -494,13 +494,13 @@ export type MenuPosition = { x: number; y: number };
 export const MENU_SURFACE_CLASS =
   "fixed z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1";
 export const MENU_ITEM_CLASS =
-  "w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors";
+  "w-full flex items-center gap-2 px-2.5 py-1.5 text-body text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors";
 export const MENU_DANGER_ITEM_CLASS =
-  "w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors";
+  "w-full flex items-center gap-2 px-2.5 py-1.5 text-body text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors";
 export const MENU_SEPARATOR_CLASS =
   "h-px mx-2 my-1 bg-[var(--color-figma-border)]";
 export const MENU_SHORTCUT_CLASS =
-  "ml-auto text-[10px] text-[var(--color-figma-text-tertiary)]";
+  "ml-auto text-secondary text-[var(--color-figma-text-tertiary)]";
 
 export function clampMenuPosition(
   x: number,

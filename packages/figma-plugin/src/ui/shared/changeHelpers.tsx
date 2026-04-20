@@ -87,7 +87,7 @@ export function Section({ title, open, onToggle, badge, children }: {
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${open ? 'rotate-90' : ''}`}>
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
-        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">{title}</span>
+        <span className="text-body font-semibold text-[var(--color-figma-text)]">{title}</span>
         {badge}
       </button>
       {open && <div className="border-t border-[var(--color-figma-border)]">{children}</div>}
@@ -97,7 +97,7 @@ export function Section({ title, open, onToggle, badge, children }: {
 
 export function ChangeSummaryBadges({ added, modified, removed }: { added: number; modified: number; removed: number }) {
   return (
-    <span className="flex items-center gap-1.5 ml-auto text-[10px] font-mono">
+    <span className="flex items-center gap-1.5 ml-auto text-secondary font-mono">
       {added > 0 && <span style={{ color: 'var(--color-figma-success)' }}>+{added}</span>}
       {modified > 0 && <span style={{ color: 'var(--color-figma-warning)' }}>~{modified}</span>}
       {removed > 0 && <span style={{ color: 'var(--color-figma-error)' }}>-{removed}</span>}

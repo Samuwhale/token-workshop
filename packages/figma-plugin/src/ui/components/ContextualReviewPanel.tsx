@@ -24,11 +24,11 @@ function ContextualReviewPanel({
     <div className="flex flex-col h-full bg-[var(--color-figma-bg)]">
       <div className="flex items-start justify-between gap-3 px-3 py-2 shrink-0">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+          <div className="text-body font-semibold text-[var(--color-figma-text)]">
             {title}
           </div>
           {description && (
-            <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+            <p className="mt-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
               {description}
             </p>
           )}
@@ -98,21 +98,21 @@ export function VariableDiffReviewPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded px-3 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onApply}
-            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
           >
             Apply
           </button>
         </>
       }
     >
-      <div className="space-y-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+      <div className="space-y-2 text-secondary text-[var(--color-figma-text-secondary)]">
         <p>
           {pending.flat.length} token{pending.flat.length !== 1 ? "s" : ""}
         </p>
@@ -175,7 +175,7 @@ export function PromoteReviewPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded px-3 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>
@@ -183,7 +183,7 @@ export function PromoteReviewPanel({
             type="button"
             onClick={onConfirm}
             disabled={busy || acceptedCount === 0}
-            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {busy ? "Converting…" : `Convert ${acceptedCount}`}
           </button>
@@ -191,7 +191,7 @@ export function PromoteReviewPanel({
       }
     >
       {rows.length === 0 ? (
-        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] italic text-[var(--color-figma-text-secondary)]">
+        <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary italic text-[var(--color-figma-text-secondary)]">
           No raw-value tokens were available for alias promotion.
         </div>
       ) : (
@@ -220,12 +220,12 @@ export function PromoteReviewPanel({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <ValuePreview type={row.$type} value={row.$value} />
-                  <span className="truncate font-mono text-[10px] text-[var(--color-figma-text)]">
+                  <span className="truncate font-mono text-secondary text-[var(--color-figma-text)]">
                     {row.path}
                   </span>
                 </div>
                 {row.proposedAlias ? (
-                  <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <div className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
                     →{" "}
                     <span className="font-mono text-[var(--color-figma-accent)]">{`{${row.proposedAlias}}`}</span>
                     {row.$type === "color" && row.deltaE !== undefined && (
@@ -242,7 +242,7 @@ export function PromoteReviewPanel({
                     )}
                   </div>
                 ) : (
-                  <div className="mt-1 text-[10px] italic text-[var(--color-figma-text-secondary)]">
+                  <div className="mt-1 text-secondary italic text-[var(--color-figma-text-secondary)]">
                     No matching primitive found
                   </div>
                 )}
@@ -302,7 +302,7 @@ export function RelocateTokenReviewPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded px-3 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>
@@ -316,7 +316,7 @@ export function RelocateTokenReviewPanel({
                   conflictNewPath.trim() === tokenPath ||
                   renameConflicts))
             }
-            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {confirmLabel}
           </button>
@@ -325,11 +325,11 @@ export function RelocateTokenReviewPanel({
     >
       <div className="space-y-3">
         <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2">
-          <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+          <div className="text-secondary uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
             Token
           </div>
           <div
-            className="mt-1 truncate font-mono text-[10px] text-[var(--color-figma-text)]"
+            className="mt-1 truncate font-mono text-secondary text-[var(--color-figma-text)]"
             title={tokenPath}
           >
             {tokenPath}
@@ -337,13 +337,13 @@ export function RelocateTokenReviewPanel({
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <label className="text-secondary text-[var(--color-figma-text-secondary)]">
             Destination collection
           </label>
           <select
             value={targetCollectionId}
             onChange={(event) => onTargetCollectionChange(event.target.value)}
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           >
             {collectionIds
               .filter((candidateCollection) => candidateCollection !== collectionId)
@@ -362,7 +362,7 @@ export function RelocateTokenReviewPanel({
                 <NoticeFieldMessage severity="warning" className="font-medium">
                   Conflict: a token already exists at this path in {targetCollectionId}
                 </NoticeFieldMessage>
-                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="grid grid-cols-2 gap-2 text-secondary">
                   <div>
                     <div className="text-[var(--color-figma-text-secondary)]">
                       Existing
@@ -401,7 +401,7 @@ export function RelocateTokenReviewPanel({
                   key={action}
                   type="button"
                   onClick={() => onConflictActionChange(action)}
-                  className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
+                  className={`flex-1 rounded border px-2 py-1 text-secondary font-medium transition-colors ${
                     conflictAction === action
                       ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white"
                       : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
@@ -413,7 +413,7 @@ export function RelocateTokenReviewPanel({
             </div>
             {conflictAction === "rename" ? (
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <label className="text-secondary text-[var(--color-figma-text-secondary)]">
                   New path in target collection
                 </label>
                 <input
@@ -423,7 +423,7 @@ export function RelocateTokenReviewPanel({
                     onConflictNewPathChange(event.target.value)
                   }
                   placeholder="e.g. color.primary.new"
-                  className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                  className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                 />
                 {conflictNewPath.trim() === tokenPath ? (
                   <NoticeFieldMessage severity="warning">

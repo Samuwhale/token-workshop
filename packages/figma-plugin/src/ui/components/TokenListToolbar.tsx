@@ -11,6 +11,7 @@ import {
 import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
 import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
+import { SearchQualifierMenu } from "./SearchQualifierMenu";
 
 interface QualifierHint {
   id: string;
@@ -88,7 +89,7 @@ export function TokenListToolbar({
   openTableCreate,
   handleOpenNewGroupDialog,
   onShowPasteModal,
-  onOpenImportPanel,
+  onOpenImportPanel: _onOpenImportPanel,
   onOpenCreateCollection,
   onCreateGeneratedGroup,
   onSelectTokens,
@@ -145,12 +146,12 @@ export function TokenListToolbar({
                   <ArrowLeft size={10} strokeWidth={2} aria-hidden />
                 </button>
               )}
-              <span className="truncate px-1.5 text-[14px] font-semibold text-[var(--color-figma-text)]">
+              <span className="truncate px-1.5 text-heading font-semibold text-[var(--color-figma-text)]">
                 {collectionId}
               </span>
               {zoomRootPath && (
                 <span
-                  className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]"
+                  className="truncate text-secondary text-[var(--color-figma-text-tertiary)]"
                   title={`Scoped to ${zoomRootPath}`}
                 >
                   in {zoomRootPath}
@@ -170,6 +171,7 @@ export function TokenListToolbar({
                 aria-haspopup="menu"
                 className="inline-flex h-[24px] w-[24px] items-center justify-center rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                 title="Create token, group, or collection"
+                aria-label="Create token, group, or collection"
               >
                 <Plus size={10} strokeWidth={2.5} aria-hidden />
               </button>
@@ -184,7 +186,7 @@ export function TokenListToolbar({
                     role="menuitem"
                     onClick={() => runCreateToolsAction(() => onCreateNew?.())}
                     disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     New token
                   </button>
@@ -192,7 +194,7 @@ export function TokenListToolbar({
                     role="menuitem"
                     onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)}
                     disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     New group
                   </button>
@@ -201,7 +203,7 @@ export function TokenListToolbar({
                       role="menuitem"
                       onClick={() => runCreateToolsAction(onCreateGeneratedGroup)}
                       disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Generate group…
                     </button>
@@ -213,7 +215,7 @@ export function TokenListToolbar({
                         role="menuitem"
                         onClick={() => runCreateToolsAction(onOpenCreateCollection)}
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         New collection
                       </button>
@@ -224,7 +226,7 @@ export function TokenListToolbar({
                     <button
                       role="menuitem"
                       onClick={() => runCreateToolsAction(onFoundationTemplates)}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
                     >
                       Templates
                     </button>
@@ -234,7 +236,7 @@ export function TokenListToolbar({
                       role="menuitem"
                       onClick={() => runCreateToolsAction(() => onShowPasteModal())}
                       disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Paste JSON
                     </button>
@@ -243,7 +245,7 @@ export function TokenListToolbar({
                     role="menuitem"
                     onClick={() => runCreateToolsAction(openTableCreate)}
                     disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Token table
                   </button>
@@ -292,7 +294,7 @@ export function TokenListToolbar({
                       <button
                         role="menuitem"
                         onClick={() => runActionsAction(onSelectTokens)}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
                       >
                         Select tokens
                       </button>
@@ -301,7 +303,7 @@ export function TokenListToolbar({
                       <button
                         role="menuitem"
                         onClick={() => runActionsAction(onBulkEdit)}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
                       >
                         Bulk edit
                       </button>
@@ -311,7 +313,7 @@ export function TokenListToolbar({
                         role="menuitem"
                         onClick={() => runActionsAction(onFindReplace)}
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         Find and replace
                       </button>
@@ -405,7 +407,7 @@ export function TokenListToolbar({
                   }}
                   placeholder="Search…"
                   title={searchTooltip}
-                  className={`flex-1 min-w-[40px] bg-transparent py-1 pl-1 text-[10px] text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${
+                  className={`flex-1 min-w-[40px] bg-transparent py-1 pl-1 text-secondary text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${
                     searchQuery ? "pr-5" : "pr-2"
                   }`}
                 />
@@ -424,6 +426,14 @@ export function TokenListToolbar({
                     <X size={8} strokeWidth={2.5} aria-hidden />
                   </button>
                 )}
+                <SearchQualifierMenu
+                  onSelect={(qualifier) => {
+                    const prefix = searchQuery ? `${searchQuery} ` : "";
+                    setSearchQuery(`${prefix}${qualifier}`);
+                    setHintIndex(0);
+                    searchRef.current?.focus();
+                  }}
+                />
               </div>
 
               {showQualifierHints &&
@@ -459,7 +469,7 @@ export function TokenListToolbar({
                           setHintIndex(0);
                           searchRef.current?.focus();
                         }}
-                        className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[10px] ${
+                        className={`flex w-full items-center gap-2 px-2 py-1 text-left text-secondary ${
                           index === hintIndex
                             ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                             : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
@@ -480,7 +490,7 @@ export function TokenListToolbar({
 
         {(filterItems.length > 0 || viewItems.length > 0) && (
           <div className="flex items-center gap-1.5">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5 text-[10px] leading-tight">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5 text-secondary leading-tight">
               {filterItems.map((item) => (
                 <button
                   key={item.key}
@@ -510,7 +520,7 @@ export function TokenListToolbar({
               <button
                 type="button"
                 onClick={() => { clearFilters(); clearViewModes(); }}
-                className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
               >
                 Clear
               </button>

@@ -177,11 +177,11 @@ export function CanvasCreateTokenDialog({
           <div className="min-w-0 flex-1">
             <h3
               id="canvas-create-token-title"
-              className="text-[14px] font-semibold text-[var(--color-figma-text)]"
+              className="text-heading font-semibold text-[var(--color-figma-text)]"
             >
               {draft.title}
             </h3>
-            <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+            <p className="mt-1 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
               {draft.description}
             </p>
           </div>
@@ -212,7 +212,7 @@ export function CanvasCreateTokenDialog({
                       {selectedOption.propertyLabel}
                     </span>
                     <span
-                      className={`${TOKEN_TYPE_BADGE_CLASS[selectedOption.tokenType] ?? 'token-type-string'} inline-flex shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide`}
+                      className={`${TOKEN_TYPE_BADGE_CLASS[selectedOption.tokenType] ?? 'token-type-string'} inline-flex shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium uppercase tracking-wide`}
                     >
                       {selectedOption.tokenType}
                     </span>

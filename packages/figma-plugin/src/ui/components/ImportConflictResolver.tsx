@@ -88,7 +88,7 @@ export function ImportConflictResolver() {
     <div className="flex flex-col gap-1.5">
       {/* Summary + bulk actions */}
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] text-[var(--color-figma-text)]">
+        <div className="text-secondary text-[var(--color-figma-text)]">
           <span className="font-medium">{conflictPaths.length}</span> conflict{conflictPaths.length !== 1 ? 's' : ''}
           {newCount > 0 && <span className="text-[var(--color-figma-text-secondary)]"> + {newCount} new</span>}
         </div>
@@ -98,7 +98,7 @@ export function ImportConflictResolver() {
               key={d}
               onClick={() => applyToVisible(d)}
               title={`${d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}${hasActiveFilter ? ' visible' : ' all'}`}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              className={`px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
                 d === 'accept'
                   ? 'text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10'
                   : d === 'merge'
@@ -113,7 +113,7 @@ export function ImportConflictResolver() {
       </div>
 
       {/* Compact status line */}
-      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+      <div className="text-secondary text-[var(--color-figma-text-secondary)]">
         {overwriteCount} overwrite, {mergeCount} merge, {keepExistingCount} keep{newCount > 0 ? ` + ${newCount} new` : ''}
       </div>
 
@@ -124,12 +124,12 @@ export function ImportConflictResolver() {
           value={conflictSearch}
           onChange={e => setConflictSearch(e.target.value)}
           placeholder="Search..."
-          className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+          className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)] focus:outline-none"
         />
         {(sortedConflictTypes.length > 1 || conflictPaths.length > 5) && (
           <button
             onClick={() => setShowFilters(v => !v)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
               showFilters || hasActiveFilter
                 ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                 : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30'
@@ -144,7 +144,7 @@ export function ImportConflictResolver() {
           <select
             value={conflictStatusFilter}
             onChange={e => setConflictStatusFilter(e.target.value as 'all' | 'accept' | 'merge' | 'reject')}
-            className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+            className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
           >
             <option value="all">All status</option>
             <option value="accept">{reviewActionCopy.overwrite.label}</option>
@@ -155,7 +155,7 @@ export function ImportConflictResolver() {
             <select
               value={conflictTypeFilter}
               onChange={e => setConflictTypeFilter(e.target.value)}
-              className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+              className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
             >
               <option value="all">All types</option>
               {sortedConflictTypes.map(t => <option key={t} value={t}>{t}</option>)}
@@ -166,7 +166,7 @@ export function ImportConflictResolver() {
 
       {/* Conflict list */}
       {filteredConflictPaths.length === 0 ? (
-        <div className="px-2 py-2 text-center text-[10px] text-[var(--color-figma-text-tertiary)] rounded border border-[var(--color-figma-border)]">
+        <div className="px-2 py-2 text-center text-secondary text-[var(--color-figma-text-tertiary)] rounded border border-[var(--color-figma-border)]">
           No conflicts match filters
         </div>
       ) : (
@@ -178,7 +178,7 @@ export function ImportConflictResolver() {
             return (
               <div key={path} className="px-2 py-1 bg-[var(--color-figma-bg)]">
                 <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={path}>
+                  <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1" title={path}>
                     {path}
                   </span>
                   <div
@@ -195,7 +195,7 @@ export function ImportConflictResolver() {
                           setConflictDecisions(next);
                         }}
                         aria-pressed={decision === d}
-                        className={`px-1 py-0.5 text-[10px] font-medium transition-colors ${
+                        className={`px-1 py-0.5 text-secondary font-medium transition-colors ${
                           i > 0 ? 'border-l border-[var(--color-figma-border)]' : ''
                         } ${
                           decision === d
@@ -213,7 +213,7 @@ export function ImportConflictResolver() {
                   </div>
                 </div>
                 {/* Value diff */}
-                <div className="grid grid-cols-2 gap-x-1 text-[10px] font-mono rounded overflow-hidden">
+                <div className="grid grid-cols-2 gap-x-1 text-secondary font-mono rounded overflow-hidden">
                   <div className="flex items-center gap-1 min-w-0 px-1 py-0.5 bg-[var(--color-figma-error)]/5">
                     <span className="text-[var(--color-figma-text-secondary)] truncate flex items-center gap-1">
                       {renderConflictValue(existing?.$type ?? 'unknown', existing?.$value)}
@@ -247,7 +247,7 @@ export function ImportConflictResolver() {
           executeImport('overwrite', rejected, merged.size > 0 ? merged : undefined);
         }}
         disabled={importing || totalToImport === 0}
-        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
       >
         {importing
           ? importProgress
@@ -268,7 +268,7 @@ export function ImportConflictResolver() {
       <button
         onClick={() => clearConflictState()}
         disabled={importing}
-        className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
+        className="text-secondary text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
       >
         Back
       </button>

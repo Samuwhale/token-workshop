@@ -37,7 +37,7 @@ export function CompactColorInput({
           const val = e.target.value;
           if (/^#[0-9a-fA-F]{0,6}$/.test(val)) onChange(val);
         }}
-        className="w-20 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]"
+        className="w-20 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)]"
         aria-label={`${ariaLabel ?? 'Color'} hex value`}
       />
     </div>
@@ -64,7 +64,7 @@ export function UnitToggle<T extends string>({
           key={u}
           type="button"
           onClick={() => onChange(u)}
-          className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+          className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${
             value === u
               ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
               : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -110,7 +110,7 @@ export function CompactDimensionInput({
           onValueChange(isNaN(num) ? undefined : num);
         }}
         placeholder={placeholder}
-        className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
+        className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]"
       />
       <UnitToggle units={units} value={unit} onChange={onUnitChange} />
     </div>
@@ -173,7 +173,7 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
       onKeyDown={e => { if (!editing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleStartEdit(); } }}
     >
       {/* Step name */}
-      <span className="w-8 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{token.stepName}</span>
+      <span className="w-8 text-secondary text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{token.stepName}</span>
 
       {/* Badge for manual exceptions */}
       {isOverridden && (
@@ -209,7 +209,7 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
           onClick={e => e.stopPropagation()}
           onBlur={handleCommit}
           onKeyDown={e => { if (e.key === 'Enter') handleCommit(); if (e.key === 'Escape') setEditing(false); }}
-          className="w-24 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] shrink-0"
+          className="w-24 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] text-secondary font-mono outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] shrink-0"
         />
       ) : (
         <div className="flex items-center gap-1 shrink-0">
@@ -247,7 +247,7 @@ export function OverrideTable({ tokens, overrides, onOverrideChange, onOverrideC
     <div className="flex flex-col gap-0.5 mt-1 border-t border-[var(--color-figma-border)] pt-1.5">
       {tokens.map(t => (
         <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
-          <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">{formatValue(t.value)}</span>
+          <span className="flex-1 text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate">{formatValue(t.value)}</span>
         </OverrideRow>
       ))}
     </div>
@@ -269,7 +269,7 @@ export function GenericPreview({ tokens, overrides, onOverrideChange, onOverride
   return (
     <div className="flex flex-col gap-1">
       {warningCount > 0 && (
-        <div className="flex items-center gap-1 px-1.5 py-1 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
+        <div className="flex items-center gap-1 px-1.5 py-1 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-secondary">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             <line x1="12" y1="9" x2="12" y2="13" />
@@ -280,7 +280,7 @@ export function GenericPreview({ tokens, overrides, onOverrideChange, onOverride
       )}
       {tokens.map((t) => (
         <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
-          <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate text-right">
+          <span className="flex-1 text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate text-right">
             {formatValue(t.value)}
           </span>
         </OverrideRow>

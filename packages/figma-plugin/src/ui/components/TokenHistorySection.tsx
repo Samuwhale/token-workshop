@@ -28,13 +28,13 @@ export function formatRelativeTime(iso: string): string {
 
 export function HistoryValueChip({ token, type, dim }: { token: { $value?: unknown; $type?: string } | null; type: string; dim: boolean }) {
   if (token == null) {
-    return <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] italic">none</span>;
+    return <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] italic">none</span>;
   }
   const val = token.$value;
   const t = token.$type ?? type;
   const label = typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val ?? '—');
   return (
-    <span className={`flex items-center gap-1 text-[10px] font-mono truncate max-w-[120px] ${dim ? 'text-[var(--color-figma-text-secondary)] line-through opacity-60' : 'text-[var(--color-figma-text)]'}`} title={label}>
+    <span className={`flex items-center gap-1 text-secondary font-mono truncate max-w-[120px] ${dim ? 'text-[var(--color-figma-text-secondary)] line-through opacity-60' : 'text-[var(--color-figma-text)]'}`} title={label}>
       {t === 'color' && typeof val === 'string' && (
         <span
           className="inline-block w-3 h-3 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0"
@@ -122,9 +122,9 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
         >
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
-        <span className="text-[11px] font-medium text-[var(--color-figma-text-secondary)]">History</span>
+        <span className="text-body font-medium text-[var(--color-figma-text-secondary)]">History</span>
         {total > 0 && (
-          <span className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)]">{total} change{total !== 1 ? 's' : ''}</span>
+          <span className="ml-auto text-secondary text-[var(--color-figma-text-tertiary)]">{total} change{total !== 1 ? 's' : ''}</span>
         )}
       </button>
 
@@ -133,14 +133,14 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
           {loading && entries.length === 0 && (
             <div className="flex items-center gap-2 py-2">
               <Spinner size="sm" />
-              <span className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading history…</span>
+              <span className="text-body text-[var(--color-figma-text-secondary)]">Loading history…</span>
             </div>
           )}
           {error && (
-            <div className="text-[11px] text-[var(--color-figma-error)] py-1">{error}</div>
+            <div className="text-body text-[var(--color-figma-error)] py-1">{error}</div>
           )}
           {!loading && !error && entries.length === 0 && (
-            <div className="text-[11px] text-[var(--color-figma-text-tertiary)] py-1 italic">No recorded changes for this token.</div>
+            <div className="text-body text-[var(--color-figma-text-tertiary)] py-1 italic">No recorded changes for this token.</div>
           )}
           {entries.length > 0 && (
             <ol className="flex flex-col gap-2">
@@ -150,20 +150,20 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
                 const effectiveType = entry.before?.$type ?? entry.after?.$type ?? tokenType;
                 const unchanged = JSON.stringify(beforeVal) === JSON.stringify(afterVal);
                 return (
-                  <li key={entry.id} className={`flex flex-col gap-1 text-[10px] ${entry.rolledBack ? 'opacity-50' : ''}`}>
+                  <li key={entry.id} className={`flex flex-col gap-1 text-secondary ${entry.rolledBack ? 'opacity-50' : ''}`}>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <time
                         dateTime={entry.timestamp}
                         title={new Date(entry.timestamp).toLocaleString()}
-                        className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0"
+                        className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0"
                       >
                         {formatRelativeTime(entry.timestamp)}
                       </time>
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate flex-1 min-w-0" title={entry.description}>
+                      <span className="text-secondary text-[var(--color-figma-text-secondary)] truncate flex-1 min-w-0" title={entry.description}>
                         {entry.description}
                       </span>
                       {entry.rolledBack && (
-                        <span className="shrink-0 px-1 py-px rounded text-[10px] font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)] leading-none">
+                        <span className="shrink-0 px-1 py-px rounded text-secondary font-medium bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)] leading-none">
                           rolled back
                         </span>
                       )}
@@ -172,7 +172,7 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
                           type="button"
                           onClick={() => handleRollback(entry.id)}
                           disabled={rollingBack === entry.id}
-                          className="shrink-0 px-1 py-px rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-transparent hover:border-[var(--color-figma-border)] disabled:opacity-50 leading-none"
+                          className="shrink-0 px-1 py-px rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-transparent hover:border-[var(--color-figma-border)] disabled:opacity-50 leading-none"
                           title="Undo this change"
                         >
                           {rollingBack === entry.id ? '…' : 'Undo'}
@@ -189,7 +189,7 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
                       </div>
                     )}
                     {unchanged && (
-                      <div className="pl-1 text-[10px] text-[var(--color-figma-text-tertiary)] italic">metadata/type change</div>
+                      <div className="pl-1 text-secondary text-[var(--color-figma-text-tertiary)] italic">metadata/type change</div>
                     )}
                   </li>
                 );
@@ -201,7 +201,7 @@ export function TokenHistorySection({ tokenPath, serverUrl, tokenType, onRollbac
               type="button"
               onClick={() => load(entries.length)}
               disabled={loading}
-              className="mt-2 text-[10px] text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+              className="mt-2 text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
             >
               {loading ? 'Loading…' : 'Load more'}
             </button>

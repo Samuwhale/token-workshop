@@ -177,7 +177,7 @@ export function CollectionRail({
           className="min-w-0 flex-1 px-2.5 py-1.5 text-left"
         >
           <span
-            className={`truncate text-[11px] font-medium ${
+            className={`truncate text-body font-medium ${
               isActive
                 ? "text-[var(--color-figma-text)]"
                 : "text-[var(--color-figma-text-secondary)]"
@@ -185,7 +185,7 @@ export function CollectionRail({
           >
             {indented ? leafName(collectionId) : collectionId}
           </span>
-          <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <div className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
             {collectionTokenCounts[collectionId] ?? 0} token
             {(collectionTokenCounts[collectionId] ?? 0) === 1 ? "" : "s"}
           </div>
@@ -213,7 +213,7 @@ export function CollectionRail({
       <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+            <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
               Collections
             </h2>
           </div>
@@ -223,7 +223,7 @@ export function CollectionRail({
               setCreateOpen((open) => !open);
               setCreateError("");
             }}
-            className="rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            className="rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
           >
             New
           </button>
@@ -235,7 +235,7 @@ export function CollectionRail({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Find a collection"
-            className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+            className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
         {createOpen ? (
@@ -254,17 +254,17 @@ export function CollectionRail({
                 }
               }}
               placeholder="primitives"
-              className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+              className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
             />
             {createError ? (
-              <p className="text-[10px] text-[var(--color-figma-error)]">{createError}</p>
+              <p className="text-secondary text-[var(--color-figma-error)]">{createError}</p>
             ) : null}
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => void handleCreateCollection()}
                 disabled={creating}
-                className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white disabled:opacity-50"
+                className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white disabled:opacity-50"
               >
                 {creating ? "Creating..." : "Create"}
               </button>
@@ -275,7 +275,7 @@ export function CollectionRail({
                   setNewCollectionName("");
                   setCreateError("");
                 }}
-                className="rounded-md px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                className="rounded-md px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
               </button>
@@ -286,7 +286,7 @@ export function CollectionRail({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
         {visibleGroups.length === 0 ? (
-          <div className="rounded-md border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-[11px] text-[var(--color-figma-text-secondary)]">
+          <div className="rounded-md border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-body text-[var(--color-figma-text-secondary)]">
             {collections.length === 0
               ? "Create a collection to start structuring your token system."
               : "No collections match this search."}
@@ -304,11 +304,11 @@ export function CollectionRail({
                   <button
                     type="button"
                     onClick={() => toggleFolder(group.folder)}
-                    className="flex w-full items-center gap-1 rounded-md px-2 py-1 text-left text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                    className="flex w-full items-center gap-1 rounded-md px-2 py-1 text-left text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                   >
                     <ChevronRight size={8} strokeWidth={2} className={`transition-transform ${isCollapsed ? "" : "rotate-90"}`} aria-hidden />
                     <span className="truncate">{group.folder}/</span>
-                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
                       {group.collectionIds.length}
                     </span>
                   </button>

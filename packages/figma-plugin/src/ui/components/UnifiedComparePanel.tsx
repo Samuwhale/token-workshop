@@ -54,7 +54,7 @@ export function UnifiedComparePanel({
       <div className="shrink-0 flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           aria-label={backLabel}
         >
           <svg width="6" height="10" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -36,12 +36,12 @@ type BannerTone = {
 
 const LAYOUT_STYLES: Record<InlineBannerLayout, Record<InlineBannerSize, string>> = {
   inline: {
-    sm: 'rounded-md px-2.5 py-2 text-[10px]',
-    md: 'rounded-md px-3 py-2 text-[11px]',
+    sm: 'rounded-md px-2.5 py-2 text-secondary',
+    md: 'rounded-md px-3 py-2 text-body',
   },
   strip: {
-    sm: 'shrink-0 border-b px-3 py-1.5 text-[10px]',
-    md: 'shrink-0 border-b px-3 py-1.5 text-[11px]',
+    sm: 'shrink-0 border-b px-3 py-1.5 text-secondary',
+    md: 'shrink-0 border-b px-3 py-1.5 text-body',
   },
 };
 
@@ -163,7 +163,7 @@ export function InlineBanner({
           disabled={action.disabled}
           title={action.title}
           className={joinClasses(
-            'shrink-0 rounded px-2 py-1 text-[10px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+            'shrink-0 rounded px-2 py-1 text-secondary font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
             tone.action,
             action.className,
           )}

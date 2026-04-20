@@ -74,7 +74,7 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
                 {entry.changesValue ? (
                   <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
                 ) : (
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                     Existing value matches the preview, but this path would become managed by this generated group.
                   </span>
                 )}
@@ -111,7 +111,7 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
                 <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
                 </span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                   Creates a manual exception for this generated token.
                 </span>
                 {entry.newValue !== undefined && (
@@ -124,7 +124,7 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
                 <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
                 </span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                   Keeps this manual exception in the group.
                 </span>
                 {entry.newValue !== undefined && (
@@ -137,13 +137,13 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
                 <span className={LONG_TEXT_CLASSES.monoSecondary} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
                 </span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                   Removes this manual exception and restores generated output.
                 </span>
                 {entry.newValue !== undefined ? (
                   <ValueDiff type={entry.type} before={entry.currentValue} after={entry.newValue} />
                 ) : (
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                     This token no longer appears in the generated output.
                   </span>
                 )}
@@ -164,7 +164,7 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
                   {entry.path}
                   {entry.collectionId !== targetCollection && <span className="ml-1 text-[var(--color-figma-text-tertiary)]">@ {entry.collectionId}</span>}
                 </span>
-                <span className="text-[10px] text-[var(--color-figma-warning)] shrink-0">Removed on save</span>
+                <span className="text-secondary text-[var(--color-figma-warning)] shrink-0">Removed on save</span>
               </div>
             ))}
         </RiskSection>
@@ -189,7 +189,7 @@ export function RiskDetailSections({ previewAnalysis, targetCollection }: RiskDe
                 <span className={`${LONG_TEXT_CLASSES.monoSecondary} flex-1`} title={`${entry.collectionId}:${entry.path}`}>
                   {entry.path}
                 </span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Stays manual</span>
+                <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Stays manual</span>
               </div>
             ))}
         </RiskSection>

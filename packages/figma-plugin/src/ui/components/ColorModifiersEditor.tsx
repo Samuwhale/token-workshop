@@ -27,7 +27,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
       <button
         onClick={() => setShowModifiers(v => !v)}
-        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium"
       >
         <span>Color modifiers {colorModifiers.length > 0 ? `(${colorModifiers.length})` : ''}</span>
         <div className="flex items-center gap-1.5">
@@ -42,7 +42,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
       {showModifiers && (
         <div className="p-3 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
           {colorModifiers.length === 0 && (
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No modifiers — add one below.</p>
+            <p className="text-secondary text-[var(--color-figma-text-secondary)]">No modifiers — add one below.</p>
           )}
           {colorModifiers.map((mod, i) => (
             <div key={i} className="flex items-center gap-1.5">
@@ -57,7 +57,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
                     return { type, amount: 20 };
                   }));
                 }}
-                className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
+                className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
               >
                 <option value="lighten">Lighten</option>
                 <option value="darken">Darken</option>
@@ -74,7 +74,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
                     aria-label={`${mod.type === 'lighten' ? 'Lighten' : 'Darken'} amount`}
                     className="flex-1"
                   />
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{mod.amount}</span>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{mod.amount}</span>
                 </>
               )}
               {mod.type === 'alpha' && (
@@ -87,7 +87,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
                     aria-label="Alpha amount"
                     className="flex-1"
                   />
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(mod.amount * 100)}%</span>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(mod.amount * 100)}%</span>
                 </>
               )}
               {mod.type === 'mix' && (
@@ -105,7 +105,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
                     aria-label="Mix ratio"
                     className="flex-1"
                   />
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(mod.ratio * 100)}%</span>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(mod.ratio * 100)}%</span>
                 </>
               )}
               <button
@@ -119,7 +119,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
           ))}
           <button
             onClick={() => setColorModifiers([...colorModifiers, { type: 'lighten', amount: 20 }])}
-            className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left"
+            className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left"
           >
             + Add modifier
           </button>

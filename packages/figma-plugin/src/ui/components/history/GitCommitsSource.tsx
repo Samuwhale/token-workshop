@@ -274,7 +274,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
   if (loading && commits.length === 0) {
     return (
       <div className="flex items-center justify-center flex-1">
-        <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading history…</p>
+        <p className="text-body text-[var(--color-figma-text-secondary)]">Loading history…</p>
       </div>
     );
   }
@@ -282,10 +282,10 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
   if (error && commits.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 p-6 gap-3 text-center">
-        <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{error}</p>
+        <p className="text-body text-[var(--color-figma-text-secondary)]">{error}</p>
         <button
           onClick={() => void fetchCommits()}
-          className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+          className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
         >
           Retry
         </button>
@@ -301,8 +301,8 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
           <polyline points="12 6 12 12 16 14" />
         </svg>
         <div className="flex flex-col gap-1">
-          <p className="text-[14px] font-semibold text-[var(--color-figma-text)]">No commits yet</p>
-          <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+          <p className="text-heading font-semibold text-[var(--color-figma-text)]">No commits yet</p>
+          <p className="text-body text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
             Commit changes in the Publish tab to start tracking version history.
           </p>
         </div>
@@ -319,7 +319,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <button
             onClick={handleBack}
-            className="flex items-center gap-1 text-[11px] text-[var(--color-figma-accent)] hover:underline"
+            className="flex items-center gap-1 text-body text-[var(--color-figma-accent)] hover:underline"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -333,18 +333,18 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
           <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)]">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug">{commit.message}</p>
+                <p className="text-body font-medium text-[var(--color-figma-text)] leading-snug">{commit.message}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
-                  <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
+                  <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
                 </div>
               </div>
               {detail && detail.changes.length > 0 && (
                 <button
                   onClick={() => requestRestore(selectedHash!)}
                   disabled={restoring !== null}
-                  className="shrink-0 px-2.5 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 transition-colors flex items-center gap-1"
+                  className="shrink-0 px-2.5 py-1 rounded text-secondary font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 transition-colors flex items-center gap-1"
                   title="Revert all token changes in this commit"
                 >
                   {restoring === 'all' ? (
@@ -366,26 +366,26 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         <div className="flex-1 overflow-y-auto p-2 space-y-2">
           {detailLoading ? (
             <div className="flex items-center justify-center py-3">
-              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading changes…</p>
+              <p className="text-body text-[var(--color-figma-text-secondary)]">Loading changes…</p>
             </div>
           ) : detailError ? (
             <div className="flex flex-col items-center justify-center py-3 gap-2">
-              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{detailError}</p>
+              <p className="text-body text-[var(--color-figma-text-secondary)]">{detailError}</p>
               <button
                 onClick={() => fetchDetail(selectedHash!)}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
               >
                 Retry
               </button>
             </div>
           ) : detail && detail.changes.length === 0 ? (
             <div className="flex items-center justify-center py-3">
-              <p className="text-[11px] text-[var(--color-figma-text-tertiary)]">No token changes in this commit.</p>
+              <p className="text-body text-[var(--color-figma-text-tertiary)]">No token changes in this commit.</p>
             </div>
           ) : detail && restoring ? (
             <div className="flex flex-col items-center justify-center py-4 gap-2">
               <Spinner size="xl" className="text-[var(--color-figma-accent)]" />
-              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+              <p className="text-body text-[var(--color-figma-text-secondary)]">
                 Restoring {restoring === 'all' ? 'all tokens' : restoring}…
               </p>
             </div>
@@ -404,7 +404,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
                     }]);
                   }}
                   disabled={restoring !== null}
-                  className="shrink-0 ml-auto opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto transition-opacity px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                  className="shrink-0 ml-auto opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto transition-opacity px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
                   title={`Restore ${change.path} to its previous value`}
                 >
                   {restoring === change.path ? (
@@ -424,25 +424,25 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
             <div className="bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded-lg shadow-xl mx-4 max-w-[280px] w-full overflow-hidden">
               <div className="px-4 pt-4 pb-3">
-                <p className="text-[14px] font-semibold text-[var(--color-figma-text)]">Confirm restore</p>
-                <p className="text-[11px] text-[var(--color-figma-text-secondary)] mt-1.5 leading-relaxed">
+                <p className="text-heading font-semibold text-[var(--color-figma-text)]">Confirm restore</p>
+                <p className="text-body text-[var(--color-figma-text-secondary)] mt-1.5 leading-relaxed">
                   {pendingRestore.summary.total === 1
                     ? 'This will overwrite 1 token:'
                     : `This will overwrite ${pendingRestore.summary.total} tokens:`}
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   {pendingRestore.summary.modified > 0 && (
-                    <span className="text-[10px] font-medium" style={{ color: statusColor('modified') }}>
+                    <span className="text-secondary font-medium" style={{ color: statusColor('modified') }}>
                       {pendingRestore.summary.modified} modified
                     </span>
                   )}
                   {pendingRestore.summary.added > 0 && (
-                    <span className="text-[10px] font-medium" style={{ color: statusColor('added') }}>
+                    <span className="text-secondary font-medium" style={{ color: statusColor('added') }}>
                       {pendingRestore.summary.added} added
                     </span>
                   )}
                   {pendingRestore.summary.removed > 0 && (
-                    <span className="text-[10px] font-medium" style={{ color: statusColor('removed') }}>
+                    <span className="text-secondary font-medium" style={{ color: statusColor('removed') }}>
                       {pendingRestore.summary.removed} removed
                     </span>
                   )}
@@ -451,13 +451,13 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
               <div className="flex gap-2 px-4 pb-4">
                 <button
                   onClick={cancelRestore}
-                  className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[11px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-body font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmRestore}
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
                 >
                   Restore
                 </button>
@@ -474,7 +474,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
     return (
       <div className="flex items-center justify-center flex-1 gap-2">
         <Spinner size="md" className="text-[var(--color-figma-accent)]" />
-        <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Searching history…</p>
+        <p className="text-body text-[var(--color-figma-text-secondary)]">Searching history…</p>
       </div>
     );
   }
@@ -489,14 +489,14 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       {/* Header */}
       <div className="shrink-0 flex flex-col border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+          <span className="text-body font-semibold text-[var(--color-figma-text)]">
             {filterTokenPath
               ? `${displayCommits.length} of ${commits.length} commit${commits.length !== 1 ? 's' : ''}`
               : `${commits.length} commit${commits.length !== 1 ? 's' : ''}${hasMore ? '+' : ''}`}
           </span>
           <button
             onClick={() => fetchCommits(debouncedCommitSearch)}
-            className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+            className="text-secondary text-[var(--color-figma-accent)] hover:underline"
           >
             Refresh
           </button>
@@ -511,7 +511,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
               value={commitSearch}
               onChange={e => setCommitSearch(e.target.value)}
               placeholder="Search commits…"
-              className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
+              className="flex-1 min-w-0 bg-transparent text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
             />
             {commitSearch && (
               <button
@@ -534,7 +534,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+          <p className="text-body text-[var(--color-figma-text-secondary)]">
             No commits found that changed this token.
           </p>
         </div>
@@ -542,10 +542,10 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
 
       {!filterTokenPath && !loading && commits.length === 0 && debouncedCommitSearch && (
         <div className="flex flex-col items-center justify-center flex-1 px-3 py-3 text-center gap-2">
-          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No commits match "{debouncedCommitSearch}".</p>
+          <p className="text-body text-[var(--color-figma-text-secondary)]">No commits match "{debouncedCommitSearch}".</p>
           <button
             onClick={() => setCommitSearch('')}
-            className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+            className="text-secondary text-[var(--color-figma-accent)] hover:underline"
           >
             Clear search
           </button>
@@ -566,16 +566,16 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
                   <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug truncate">{commit.message}</p>
+                  <p className="text-body font-medium text-[var(--color-figma-text)] leading-snug truncate">{commit.message}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
+                    <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
                   </div>
                   {tokenChange && (
                     <div className="mt-1 flex items-center gap-1.5">
                       <span
-                        className="text-[10px] font-medium uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
+                        className="text-secondary font-medium uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
                         style={{
                           color: tokenChange.status === 'added' ? 'var(--color-figma-success)' : tokenChange.status === 'removed' ? 'var(--color-figma-error)' : 'var(--color-figma-accent)',
                           backgroundColor: `color-mix(in srgb, ${tokenChange.status === 'added' ? 'var(--color-figma-success)' : tokenChange.status === 'removed' ? 'var(--color-figma-error)' : 'var(--color-figma-accent)'} 12%, transparent)`,
@@ -597,13 +597,13 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         {!filterTokenPath && (hasMore || (error && commits.length > 0)) && (
           <div className="px-3 py-3 flex flex-col gap-1.5">
             {error && commits.length > 0 && (
-              <p className="text-[10px] text-center text-[var(--color-figma-text-tertiary)]">{error}</p>
+              <p className="text-secondary text-center text-[var(--color-figma-text-tertiary)]">{error}</p>
             )}
             {(hasMore || (error && commits.length > 0)) && (
               <button
                 onClick={handleLoadMoreCommits}
                 disabled={loadingMore}
-                className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="w-full text-secondary py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {loadingMore ? (
                   <><Spinner size="xs" />Loading…</>

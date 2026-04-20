@@ -42,7 +42,7 @@ export function Tooltip({ label, shortcut, className = '', hidden = false, posit
             opacity-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100
             transition-opacity duration-100
             bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]
-            text-[var(--color-figma-text)] text-[10px] whitespace-nowrap
+            text-[var(--color-figma-text)] text-secondary whitespace-nowrap
             rounded px-1.5 py-0.5 shadow-md
             flex items-center gap-1.5`}
         >

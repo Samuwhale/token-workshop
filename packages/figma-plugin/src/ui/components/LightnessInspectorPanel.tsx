@@ -29,7 +29,7 @@ export function LightnessInspectorPanel({
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
       <button
         onClick={() => setShowScaleInspector((v) => !v)}
-        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-secondary text-[var(--color-figma-text-secondary)] font-medium"
       >
         <span className="text-left">
           <span className="text-[var(--color-figma-text)]">
@@ -91,7 +91,7 @@ export function LightnessInspectorPanel({
             const polyline = pts.map((p) => `${p.x},${p.y}`).join(" ");
             return (
               <div key={parent}>
-                <div className="text-[10px] font-medium text-[var(--color-figma-text)] mb-2">
+                <div className="text-secondary font-medium text-[var(--color-figma-text)] mb-2">
                   {parent}
                 </div>
                 <div
@@ -150,7 +150,7 @@ export function LightnessInspectorPanel({
                       ))}
                 </div>
                 {pts.some((p) => p.isAnom) && (
-                  <div className="text-[10px] text-[var(--color-figma-warning)] mt-1 flex items-start gap-1">
+                  <div className="text-secondary text-[var(--color-figma-warning)] mt-1 flex items-start gap-1">
                     <svg
                       width="8"
                       height="8"
@@ -171,7 +171,7 @@ export function LightnessInspectorPanel({
                         {anomalyPairs.map(({ fromPath, toPath }) => (
                           <span
                             key={`${fromPath}->${toPath}`}
-                            className="rounded border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 font-mono text-[10px] leading-none"
+                            className="rounded border border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 font-mono text-secondary leading-none"
                           >
                             {fromPath} → {toPath}
                           </span>

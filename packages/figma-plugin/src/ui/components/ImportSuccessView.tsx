@@ -43,12 +43,12 @@ export function ImportSuccessView() {
         )}
       </svg>
 
-      <div role="status" aria-live="polite" className="text-[11px] font-medium text-center" style={{ color: statusColor }}>
+      <div role="status" aria-live="polite" className="text-body font-medium text-center" style={{ color: statusColor }}>
         {successMessage}
       </div>
 
       {lastImportReviewSummary && (
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">
+        <div className="text-secondary text-[var(--color-figma-text-secondary)] text-center">
           {lastImportReviewSummary.destinationLabel}
           {" — "}
           {[
@@ -63,16 +63,16 @@ export function ImportSuccessView() {
       {hasFailedWrites && (
         <div className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center gap-2 text-secondary">
               <span className="text-[var(--color-figma-success)] font-medium">{succeededImportCount} ok</span>
               <span className="text-[var(--color-figma-error)] font-medium">{failedImportPaths.length} failed</span>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleCopyFailedPaths} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
+              <button onClick={handleCopyFailedPaths} className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
                 {copyFeedback ? "Copied" : "Copy"}
               </button>
               {failedImportBatches.length > 0 && (
-                <button onClick={handleRetryFailed} disabled={retrying} className="text-[10px] text-[var(--color-figma-accent)] hover:underline disabled:opacity-50">
+                <button onClick={handleRetryFailed} disabled={retrying} className="text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50">
                   {retrying ? "Retrying..." : "Retry"}
                 </button>
               )}
@@ -82,10 +82,10 @@ export function ImportSuccessView() {
             failedImportGroups.map(group => (
               <div key={group.collectionId} className="mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.collectionId}</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{group.paths.length}</span>
+                  <span className="text-secondary font-medium text-[var(--color-figma-text)]">{group.collectionId}</span>
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{group.paths.length}</span>
                 </div>
-                <ul className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
+                <ul className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] space-y-0.5">
                   {group.paths.slice(0, 3).map(path => (
                     <li key={`${group.collectionId}:${path}`} className="font-mono truncate" title={path}>{path}</li>
                   ))}
@@ -94,7 +94,7 @@ export function ImportSuccessView() {
               </div>
             ))
           ) : (
-            <ul className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
+            <ul className="text-secondary text-[var(--color-figma-text-secondary)] space-y-0.5">
               {failedImportPaths.slice(0, 5).map(path => (
                 <li key={path} className="font-mono truncate" title={path}>{path}</li>
               ))}
@@ -108,16 +108,16 @@ export function ImportSuccessView() {
         {viewTokensRecommendation && (
           <button
             onClick={() => openImportNextStep(viewTokensRecommendation)}
-            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white hover:opacity-90"
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-medium text-white hover:opacity-90"
           >
             View tokens
           </button>
         )}
-        <button onClick={clearSuccessState} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
+        <button onClick={clearSuccessState} className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
           Import more
         </button>
         {lastImport && (
-          <button onClick={handleUndoImport} disabled={undoing} className="text-[10px] text-[var(--color-figma-error)] hover:underline disabled:opacity-50">
+          <button onClick={handleUndoImport} disabled={undoing} className="text-secondary text-[var(--color-figma-error)] hover:underline disabled:opacity-50">
             {undoing ? "Undoing..." : "Undo"}
           </button>
         )}

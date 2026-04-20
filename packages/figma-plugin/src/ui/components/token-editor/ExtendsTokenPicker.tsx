@@ -39,7 +39,7 @@ export function ExtendsTokenPicker({
           setOpen(true);
           setTimeout(() => inputRef.current?.focus(), 0);
         }}
-        className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors text-left"
+        className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors text-left"
       >
         Inherit from token…
       </button>
@@ -55,7 +55,7 @@ export function ExtendsTokenPicker({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search ${tokenType} tokens…`}
-          className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setOpen(false);
@@ -69,19 +69,19 @@ export function ExtendsTokenPicker({
             setOpen(false);
             setSearch("");
           }}
-          className="px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          className="px-1.5 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         >
           Cancel
         </button>
       </div>
       {filteredAll.length > 50 && (
-        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] px-0.5">
+        <p className="text-secondary text-[var(--color-figma-text-tertiary)] px-0.5">
           Showing 50 of {filteredAll.length} — refine search to narrow results
         </p>
       )}
       <div className="max-h-32 overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
         {filtered.length === 0 && (
-          <p className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <p className="px-2 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
             No matching {tokenType} tokens
           </p>
         )}
@@ -94,7 +94,7 @@ export function ExtendsTokenPicker({
               setOpen(false);
               setSearch("");
             }}
-            className={`${LONG_TEXT_CLASSES.monoPrimary} w-full px-2 py-1 text-left text-[11px] hover:bg-[var(--color-figma-bg-hover)]`}
+            className={`${LONG_TEXT_CLASSES.monoPrimary} w-full px-2 py-1 text-left text-body hover:bg-[var(--color-figma-bg-hover)]`}
             title={`${p} (${pathToCollectionId[p] || ""})`}
           >
             {p}

@@ -65,7 +65,7 @@ export function WorkflowStageIndicators<StageId extends string>({
               disabled={stage.disabled}
               aria-current={stage.tone === 'current' ? 'step' : undefined}
               title={stage.detail ? `${stage.label}: ${stage.detail}` : stage.label}
-              className={`flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] transition-colors ${toneText[stage.tone]} ${stage.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
+              className={`flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-secondary transition-colors ${toneText[stage.tone]} ${stage.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-[var(--color-figma-bg-hover)]'}`}
             >
               <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${toneDot[stage.tone]}`} />
               {stage.label}
@@ -87,7 +87,7 @@ export function WorkflowStageIndicators<StageId extends string>({
               key={action.label}
               onClick={action.onClick}
               disabled={action.disabled}
-              className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+              className={`rounded border px-2 py-0.5 text-secondary font-medium transition-colors ${
                 action.active
                   ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]'
                   : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'

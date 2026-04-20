@@ -224,19 +224,19 @@ export function TokenPickerDropdown({
           }}
           placeholder={placeholder}
           aria-label="Search tokens"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
         />
       </div>
 
       {/* Results */}
       <div ref={listRef} className="overflow-y-auto max-h-52">
         {entries.length === 0 && (
-          <div className="py-3 px-3 text-[11px] text-[var(--color-figma-text-secondary)] text-center">
+          <div className="py-3 px-3 text-body text-[var(--color-figma-text-secondary)] text-center">
             No matching tokens
           </div>
         )}
         {hasRecent && !query.trim() && (
-          <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
+          <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
             Recent
           </div>
         )}
@@ -267,7 +267,7 @@ export function TokenPickerDropdown({
 
               {/* Path */}
               <span
-                className={`flex-1 text-[11px] text-[var(--color-figma-text)] truncate ${
+                className={`flex-1 text-body text-[var(--color-figma-text)] truncate ${
                   entry.$lifecycle === 'deprecated' ? 'line-through' : ''
                 }`}
               >
@@ -277,7 +277,7 @@ export function TokenPickerDropdown({
               {/* Resolved value preview */}
               {previewValue && (
                 <span
-                  className="text-[10px] text-[var(--color-figma-text-secondary)] truncate max-w-[100px] shrink-0"
+                  className="text-secondary text-[var(--color-figma-text-secondary)] truncate max-w-[100px] shrink-0"
                   title={isAliasToken ? `${rawPreview} → ${previewValue}` : previewValue}
                 >
                   {previewValue}
@@ -315,7 +315,7 @@ export function TokenPickerDropdown({
           );
         })}
         {totalCount > MAX_RESULTS && (
-          <div className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
+          <div className="px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
             Showing {MAX_RESULTS} of {totalCount} — refine your search
           </div>
         )}
@@ -392,7 +392,7 @@ export function TokenPickerField({
       {/* Label row */}
       {label && !compact && (
         <div className="flex items-center gap-1.5">
-          <label className="flex-1 text-[11px] text-[var(--color-figma-text-secondary)]">
+          <label className="flex-1 text-body text-[var(--color-figma-text-secondary)]">
             {label}
           </label>
         </div>
@@ -410,13 +410,13 @@ export function TokenPickerField({
             />
           )}
           <span
-            className="flex-1 text-[11px] font-mono text-[var(--color-figma-accent)] truncate cursor-default"
+            className="flex-1 text-body font-mono text-[var(--color-figma-accent)] truncate cursor-default"
             title={value}
           >
             {value}
           </span>
           {linkedValueStr && (
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono truncate max-w-[80px]">
+            <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0 font-mono truncate max-w-[80px]">
               {linkedValueStr}
             </span>
           )}
@@ -452,7 +452,7 @@ export function TokenPickerField({
           type="button"
           onClick={() => setOpen(o => !o)}
           className={`flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors text-left ${
-            compact ? 'text-[10px]' : 'text-[11px]'
+            compact ? 'text-secondary' : 'text-body'
           }`}
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

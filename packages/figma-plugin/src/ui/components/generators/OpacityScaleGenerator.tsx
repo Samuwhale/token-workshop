@@ -63,7 +63,7 @@ export function OpacityPreview({ tokens, overrides, onOverrideChange, onOverride
             <div className="flex-1 h-2 rounded-sm overflow-hidden bg-[var(--color-figma-bg)]">
               <div className="h-full rounded-sm bg-[var(--color-figma-text)]" style={{ width: `${pct}%`, opacity: val }} />
             </div>
-            <span className="w-10 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right">{Math.round(pct)}%</span>
+            <span className="w-10 text-secondary text-[var(--color-figma-text-secondary)] shrink-0 text-right">{Math.round(pct)}%</span>
           </OverrideRow>
         );
       })}
@@ -94,15 +94,15 @@ export function OpacityScaleConfigEditor({ config, onChange }: { config: Opacity
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Preset</label>
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Preset</label>
         <div className="flex gap-1.5 flex-wrap">
           {OPACITY_PRESETS.map((preset, i) => (
             <button key={preset.label} title={preset.description} onClick={() => { setShowSteps(false); onChange({ steps: preset.steps.map(s => ({ ...s })) }); }}
-              className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!showSteps && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+              className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${!showSteps && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
         </div>
-        <button onClick={() => setShowSteps(v => !v)} className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
+        <button onClick={() => setShowSteps(v => !v)} className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showSteps ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
           Edit steps ({config.steps.length})
         </button>
@@ -112,15 +112,15 @@ export function OpacityScaleConfigEditor({ config, onChange }: { config: Opacity
               <div key={i} className="flex items-center gap-1.5">
                 <input value={step.name} onChange={e => updateStep(i, { name: e.target.value })}
                   aria-label={`Step ${i + 1} name`}
-                  placeholder="name" className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
+                  placeholder="name" className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)]" />
                 <input type="number" min="0" max="100" step="5" value={step.value} onChange={e => updateStep(i, { value: Number(e.target.value), name: step.name === String(step.value) ? e.target.value : step.name })}
                   aria-label={`Step ${step.name} value`}
-                  className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">%</span>
-                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">&times;</button>
+                  className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]" />
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">%</span>
+                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-secondary">&times;</button>
               </div>
             ))}
-            <button onClick={addStep} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
+            <button onClick={addStep} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
           </div>
         )}
       </div>

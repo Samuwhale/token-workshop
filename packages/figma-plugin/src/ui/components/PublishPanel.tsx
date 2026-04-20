@@ -396,9 +396,6 @@ export function PublishPanel({
   const standardRoutingDirty =
     (standardRoutingDraft.collectionName ?? '') !== savedCollectionName ||
     (standardRoutingDraft.modeName ?? '') !== savedModeName;
-  const standardRoutingStatusLabel =
-    savedCollectionName || savedModeName ? 'Custom' : 'Default';
-  const standardRoutingSummary = `${resolvedCollectionName} / ${resolvedModeName}`;
   const variableCompareMode: VariablePublishCompareMode =
     activeResolver && resolverPublishSyncMappings.length > 0 ? 'resolver-publish' : 'standard';
   const isResolverPublishCompareActive = variableCompareMode === 'resolver-publish';
@@ -573,7 +570,7 @@ export function PublishPanel({
   });
 
   // ── Shared diff filter ──
-  const [activeCompareTarget, setActiveCompareTarget] = useState<CompareTarget>('variables');
+  const [, setActiveCompareTarget] = useState<CompareTarget>('variables');
 
   // ── Confirmation modal state ──
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -748,7 +745,6 @@ export function PublishPanel({
     compareAll,
     runPublishAll,
   } = publishAll;
-  const hasFigmaSyncChanges = hasVarChanges || hasStyleChanges;
   const hasComparedAnything = varSync.checked || styleSync.checked;
   const publishPreflightState = useMemo(() => ({
     stage: preflightStage,
@@ -767,12 +763,6 @@ export function PublishPanel({
   const totalConflictCount =
     varSync.rows.filter((row) => row.cat === 'conflict').length +
     styleSync.rows.filter((row) => row.cat === 'conflict').length;
-  const totalPendingApplyCount =
-    (hasVarChanges ? varSync.syncCount : 0) +
-    (hasStyleChanges ? styleSync.syncCount : 0);
-
-
-
   const savedResolverPublishCount = useMemo(
     () => resolverPublishRows.filter((row) => row.sourceModeName.trim().length > 0).length,
     [resolverPublishRows],
@@ -872,6 +862,7 @@ export function PublishPanel({
     beginHandoff,
     isResolverPublishCompareActive,
     navigateTo,
+    switchContextualSurface,
     syncResolverPublishModes,
     triggerReadinessAction,
     varSync,
@@ -954,7 +945,7 @@ export function PublishPanel({
 
   if (!connected) {
     return (
-      <div className="flex items-center justify-center py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
+      <div className="flex items-center justify-center py-3 text-[var(--color-figma-text-secondary)] text-body">
         Connect to server to sync with Figma
       </div>
     );
@@ -971,8 +962,8 @@ export function PublishPanel({
           {/* ── Publish target ──────────────────────────────────────── */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Target</span>
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">Target</span>
+              <span className="text-secondary font-medium text-[var(--color-figma-text)]">
                 {resolvedCollectionName} / {resolvedModeName}
               </span>
               <button
@@ -1005,7 +996,7 @@ export function PublishPanel({
 
           {/* ── Progress indicator ────────────────────────────────────── */}
           {(isSyncing || isApplying) && (
-            <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
               <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
               <span>
                 {readinessLoading && 'Checking readiness…'}
@@ -1022,12 +1013,12 @@ export function PublishPanel({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              <span className="text-[11px] text-[var(--color-figma-text)]">Everything in sync</span>
+              <span className="text-body text-[var(--color-figma-text)]">Everything in sync</span>
               {(varSync.snapshot || styleSync.snapshot) && (
                 <button
                   onClick={varSync.snapshot ? varSync.revert : styleSync.revert}
                   disabled={varSync.reverting || styleSync.reverting}
-                  className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  className="ml-auto text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
                 >
                   {varSync.reverting || styleSync.reverting ? 'Reverting…' : 'Undo last sync'}
                 </button>
@@ -1037,7 +1028,7 @@ export function PublishPanel({
 
           {!hasComparedAnything && !isSyncing && !isApplying && !hasIssues && preflightStage === 'idle' && !readinessError && (
             <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-3">
-              <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              <p className="text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
                 Click <strong className="text-[var(--color-figma-text)]">Check for changes</strong> to compare your tokens with Figma variables and styles.
               </p>
             </div>
@@ -1069,10 +1060,10 @@ export function PublishPanel({
                 {/* Summary card + apply button */}
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-3">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                    <span className="text-body font-medium text-[var(--color-figma-text)]">
                       {totalDiffCount} change{totalDiffCount !== 1 ? 's' : ''} found
                     </span>
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                       {[
                         (varSync.pushCount + styleSync.pushCount) > 0 ? `${varSync.pushCount + styleSync.pushCount} to update in Figma` : null,
                         (varSync.pullCount + styleSync.pullCount) > 0 ? `${varSync.pullCount + styleSync.pullCount} to update locally` : null,
@@ -1084,7 +1075,7 @@ export function PublishPanel({
                     <button
                       onClick={() => void handleOpenPublishAll()}
                       disabled={isApplying}
-                      className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
                       {totalConflictCount > 0 ? 'Review & apply' : 'Apply all'}
                     </button>
@@ -1104,7 +1095,7 @@ export function PublishPanel({
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                       </svg>
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                      <span className="text-secondary font-medium text-[var(--color-figma-text)]">
                         {allConflictRows.length} conflict{allConflictRows.length !== 1 ? 's' : ''} — choose direction
                       </span>
                     </div>
@@ -1126,7 +1117,7 @@ export function PublishPanel({
 
                 {/* Non-conflict summary */}
                 {nonConflictCount > 0 && (
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] px-1">
+                  <div className="text-secondary text-[var(--color-figma-text-secondary)] px-1">
                     {nonConflictCount} non-conflicting change{nonConflictCount !== 1 ? 's' : ''} will be applied automatically.
                   </div>
                 )}
@@ -1196,7 +1187,7 @@ export function PublishPanel({
       >
         <div className="mt-2 max-h-[160px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           {orphanConfirm.orphanPaths.map(p => (
-            <div key={p} className="px-3 py-1 text-[10px] font-mono text-[var(--color-figma-text)] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={p}>
+            <div key={p} className="px-3 py-1 text-secondary font-mono text-[var(--color-figma-text)] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={p}>
               {p}
             </div>
           ))}
@@ -1230,10 +1221,10 @@ function StandardPublishRoutingCard({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+          <div className="text-body font-medium text-[var(--color-figma-text)]">
             {currentCollectionId}
           </div>
-          <p className="mt-1 max-w-[520px] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+          <p className="mt-1 max-w-[520px] text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
             Choose where this collection syncs in Figma. This only changes the
             Figma destination, not the authored modes in your token files.
           </p>
@@ -1243,7 +1234,7 @@ function StandardPublishRoutingCard({
             type="button"
             onClick={onReset}
             disabled={saving || !dirty}
-            className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+            className="rounded px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
           >
             Reset
           </button>
@@ -1251,7 +1242,7 @@ function StandardPublishRoutingCard({
             type="button"
             onClick={onSave}
             disabled={saving || !dirty}
-            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
           >
             {saving ? 'Saving…' : dirty ? 'Save target' : 'Saved'}
           </button>
@@ -1260,7 +1251,7 @@ function StandardPublishRoutingCard({
 
       <div className="grid gap-3 md:grid-cols-2">
         <label className="flex min-w-0 flex-col gap-1.5">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
             Figma collection
           </span>
           <input
@@ -1271,12 +1262,12 @@ function StandardPublishRoutingCard({
             }
             placeholder={DEFAULT_VARIABLE_COLLECTION_NAME}
             disabled={saving}
-            className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+            className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           />
         </label>
 
         <label className="flex min-w-0 flex-col gap-1.5">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
             Figma mode
           </span>
           <input
@@ -1285,12 +1276,12 @@ function StandardPublishRoutingCard({
             onChange={(event) => onFieldChange('modeName', event.target.value)}
             placeholder="First Figma mode"
             disabled={saving}
-            className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+            className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           />
         </label>
       </div>
 
-      <div className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+      <div className="text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
         Leave the collection blank to sync into{' '}
         <span className="text-[var(--color-figma-text)]">
           {DEFAULT_VARIABLE_COLLECTION_NAME}
@@ -1344,7 +1335,7 @@ function ResolverModePublishCard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           {activeResolver ? (
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary text-[var(--color-figma-text-secondary)]">
               {activeResolver}
             </span>
           ) : null}
@@ -1354,21 +1345,21 @@ function ResolverModePublishCard({
             <button
               onClick={onReset}
               disabled={loading || saving || syncing || dirtyCount === 0}
-              className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+              className="rounded px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
             >
               Reset
             </button>
             <button
               onClick={onSave}
               disabled={loading || saving || syncing || dirtyCount === 0}
-              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
             >
               {saving ? 'Saving…' : dirtyCount > 0 ? `Save ${dirtyCount}` : 'Saved'}
             </button>
             <button
               onClick={onSync}
               disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
-              className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+              className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
             >
               {syncing ? 'Syncing…' : 'Sync resolver modes'}
             </button>
@@ -1377,11 +1368,11 @@ function ResolverModePublishCard({
       </div>
 
       {!activeResolver ? (
-        <div className="mt-3 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+        <div className="mt-3 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
           Select a resolver to configure context-to-mode mapping.
         </div>
       ) : loading ? (
-        <div className="mt-3 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="mt-3 flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
           <Spinner size="sm" />
           Loading…
         </div>
@@ -1389,7 +1380,7 @@ function ResolverModePublishCard({
         <>
           <div className="mt-3 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
             <div
-              className="hidden items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-[10px] uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)] md:grid"
+              className="hidden items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)] md:grid"
               style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)' }}
             >
               <span>Resolver context</span>
@@ -1404,7 +1395,7 @@ function ResolverModePublishCard({
                   style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)' }}
                 >
                   <div className="min-w-0 flex items-center gap-1.5">
-                    <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]" title={row.label}>
+                    <div className="truncate text-body font-medium text-[var(--color-figma-text)]" title={row.label}>
                       {row.label}
                     </div>
                     {row.isDirty && (
@@ -1418,7 +1409,7 @@ function ResolverModePublishCard({
                     onChange={(event) => onFieldChange(row.key, 'collectionName', event.target.value)}
                     placeholder={`Default ${DEFAULT_RESOLVER_COLLECTION_NAME} collection`}
                     disabled={saving || syncing}
-                    className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                    className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
                     aria-label={`Collection for ${row.label}`}
                   />
 
@@ -1428,7 +1419,7 @@ function ResolverModePublishCard({
                     onChange={(event) => onFieldChange(row.key, 'modeName', event.target.value)}
                     placeholder="Required mode name"
                     disabled={saving || syncing}
-                    className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                    className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
                     aria-label={`Mode for ${row.label}`}
                   />
                 </div>
@@ -1510,10 +1501,10 @@ function PublishAllPreviewModal({
     >
         <div ref={dialogRef} className="w-full max-w-[400px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="publish-all-modal-title">
         <div className="px-4 pt-4 pb-3">
-          <h3 id="publish-all-modal-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+          <h3 id="publish-all-modal-title" className="text-heading font-semibold text-[var(--color-figma-text)]">
             Review changes
           </h3>
-          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
             Review before applying.
           </p>
         </div>
@@ -1521,7 +1512,7 @@ function PublishAllPreviewModal({
         <div className="flex-1 overflow-y-auto px-4 pb-2 flex flex-col gap-3">
           {/* All in sync — shown when auto-compare found no pending changes */}
           {!hasAnyChanges && (
-            <div className="py-3 text-[10px] text-[var(--color-figma-text-secondary)] text-center">
+            <div className="py-3 text-secondary text-[var(--color-figma-text-secondary)] text-center">
               Everything in sync.
             </div>
           )}
@@ -1536,8 +1527,8 @@ function PublishAllPreviewModal({
                   onChange={e => setIncludeVars(e.target.checked)}
                   className="w-3 h-3 accent-[var(--color-figma-accent)]"
                 />
-                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Variables</span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary font-semibold text-[var(--color-figma-text)]">Variables</span>
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                   {[
                     varPushCount > 0 ? `\u2191 ${varPushCount} to update in Figma` : null,
                     varPullCount > 0 ? `\u2193 ${varPullCount} to update locally` : null,
@@ -1558,8 +1549,8 @@ function PublishAllPreviewModal({
                   onChange={e => setIncludeStyles(e.target.checked)}
                   className="w-3 h-3 accent-[var(--color-figma-accent)]"
                 />
-                <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Styles</span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary font-semibold text-[var(--color-figma-text)]">Styles</span>
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                   {[
                     stylePushCount > 0 ? `\u2191 ${stylePushCount} to update in Figma` : null,
                     stylePullCount > 0 ? `\u2193 ${stylePullCount} to update locally` : null,
@@ -1572,13 +1563,13 @@ function PublishAllPreviewModal({
         </div>
 
         {confirmError && (
-          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words" role="alert">{confirmError}</p>
+          <p className="px-4 pb-2 text-secondary text-[var(--color-figma-error)] break-words" role="alert">{confirmError}</p>
         )}
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
           <button
             onClick={onCancel}
             disabled={busy}
-            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Cancel
           </button>
@@ -1587,7 +1578,7 @@ function PublishAllPreviewModal({
               onClick={handleConfirm}
               disabled={busy || !anySelected}
               title={!anySelected ? 'Select at least one target' : undefined}
-              className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
               {busy ? 'Applying\u2026' : !anySelected ? 'Nothing selected' : 'Apply selected'}
@@ -1595,7 +1586,7 @@ function PublishAllPreviewModal({
           ) : (
             <button
               onClick={onCancel}
-              className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Close
             </button>
@@ -1640,8 +1631,8 @@ function DisclosureSection({
         className="flex w-full items-start justify-between gap-3 text-left"
       >
         <div className="min-w-0">
-          <h2 className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h2>
-          <p className={`mt-1 text-[10px] ${stageStatusTextClass(statusSeverity)}`}>
+          <h2 className="text-heading font-semibold text-[var(--color-figma-text)]">{title}</h2>
+          <p className={`mt-1 text-secondary ${stageStatusTextClass(statusSeverity)}`}>
             {statusLabel}
             <span className="mx-1 text-[var(--color-figma-text-tertiary)]">·</span>
             <span className="text-[var(--color-figma-text-secondary)]">{summary}</span>

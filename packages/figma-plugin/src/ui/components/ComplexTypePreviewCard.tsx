@@ -71,7 +71,7 @@ function TypographyPreview({ value }: { value: Record<string, any> }) {
       >
         The quick brown fox jumps over the lazy dog
       </div>
-      <div className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
+      <div className="text-secondary text-[var(--color-figma-text-tertiary)] truncate">
         {props.join(' · ')}
       </div>
     </div>
@@ -143,7 +143,7 @@ function CubicBezierPreview({ value }: { value: number[] }) {
         <circle cx={sx} cy={sy} r="3" fill="var(--color-figma-text-secondary)" />
         <circle cx={ex} cy={ey} r="3" fill="var(--color-figma-text-secondary)" />
       </svg>
-      <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+      <div className="text-secondary text-[var(--color-figma-text-tertiary)] mt-0.5">
         cubic-bezier({value.join(', ')})
       </div>
     </div>
@@ -157,7 +157,7 @@ function TransitionPreview({ value }: { value: Record<string, any> }) {
     ? `cubic-bezier(${value.timingFunction.join(', ')})`
     : typeof value.timingFunction === 'string' ? value.timingFunction : 'ease';
   return (
-    <div className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-1">
+    <div className="text-secondary text-[var(--color-figma-text-secondary)] space-y-1">
       <div className="flex items-center gap-2">
         <span className="text-[var(--color-figma-text-tertiary)]">Duration</span>
         <span className="text-[var(--color-figma-text)]">{dur}</span>
@@ -182,7 +182,7 @@ function TransitionPreview({ value }: { value: Record<string, any> }) {
 function CompositionPreview({ value }: { value: Record<string, any> }) {
   const entries = Object.entries(value).filter(([k]) => !k.startsWith('$'));
   return (
-    <div className="text-[10px] space-y-0.5">
+    <div className="text-secondary space-y-0.5">
       {entries.map(([key, val]) => (
         <div key={key} className="flex items-center gap-2">
           <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]">{key}</span>
@@ -205,7 +205,7 @@ function BorderPreview({ value }: { value: Record<string, any> }) {
         className="w-20 h-14 rounded-lg bg-[var(--color-figma-bg)]"
         style={{ border }}
       />
-      <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+      <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
         {widthStr} {styleStr}
         {typeof value.color === 'string' && (
           <div className="flex items-center gap-1 mt-0.5">

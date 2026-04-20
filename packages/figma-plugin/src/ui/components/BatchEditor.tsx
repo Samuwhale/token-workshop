@@ -1040,11 +1040,11 @@ export function BatchEditor({
       {/* Header */}
       <div className="tm-authoring-surface__header flex items-center justify-between shrink-0">
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+          <div className="text-heading font-semibold text-[var(--color-figma-text)]">
             Bulk edit {selectedPaths.size} token{selectedPaths.size !== 1 ? 's' : ''}
           </div>
           {selectionScope && (
-            <div className="mt-1 flex min-w-0 flex-wrap items-start gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="mt-1 flex min-w-0 flex-wrap items-start gap-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
               <span className="shrink-0 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 font-medium text-[var(--color-figma-text-secondary)]">
                 {selectionScope.source === 'saved-preset' ? 'Saved scope' : 'Current scope'}
               </span>
@@ -1086,7 +1086,7 @@ export function BatchEditor({
           ))}
         </select>
         {newType !== '' && !showTypeConfirm && typeChangeInfo && typeChangeInfo.currentTypes.length > 0 && (
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+          <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
             {typeChangeInfo.currentTypes.join(', ')} → <span className="text-[var(--color-figma-text)] font-medium">{newType}</span>
             {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
             {typeChangeInfo.incompatible.length > 0 && (
@@ -1102,7 +1102,7 @@ export function BatchEditor({
               ? 'border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/8'
               : 'border-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/8'
           }`}>
-            <p className="text-[10px] text-[var(--color-figma-text)] leading-snug">
+            <p className="text-secondary text-[var(--color-figma-text)] leading-snug">
               Change type of <strong>{typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}</strong>{' '}
               {typeChangeInfo.currentTypes.length > 0 && (
                 <>from <strong>{typeChangeInfo.currentTypes.join(', ')}</strong>{' '}</>
@@ -1111,11 +1111,11 @@ export function BatchEditor({
             </p>
             {typeChangeInfo.incompatible.length > 0 ? (
               <div className="space-y-0.5">
-                <p className="text-[10px] text-[var(--color-figma-error)] leading-snug font-medium">
+                <p className="text-secondary text-[var(--color-figma-error)] leading-snug font-medium">
                   {typeChangeInfo.incompatible.length} token{typeChangeInfo.incompatible.length === 1 ? ' has a' : 's have'} value{typeChangeInfo.incompatible.length === 1 ? '' : 's'} incompatible with {newType}:
                 </p>
                 {(expandedPreviews['typeIncompat'] ? typeChangeInfo.incompatible : typeChangeInfo.incompatible.slice(0, PREVIEW_MAX)).map(({ path, error }) => (
-                  <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                  <div key={path} className="flex flex-col gap-0.5 text-secondary leading-snug">
                     <BatchPreviewPath path={path} />
                     <span className={LONG_TEXT_CLASSES.text} title={error}>
                       {error.includes(':') ? error.split(':').slice(1).join(':').trim() : error}
@@ -1123,23 +1123,23 @@ export function BatchEditor({
                   </div>
                 ))}
                 {typeChangeInfo.incompatible.length > PREVIEW_MAX && (
-                  <button type="button" onClick={() => togglePreview('typeIncompat')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                  <button type="button" onClick={() => togglePreview('typeIncompat')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                     {expandedPreviews['typeIncompat'] ? 'Show less' : `and ${typeChangeInfo.incompatible.length - PREVIEW_MAX} more…`}
                   </button>
                 )}
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+                <p className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
                   This will produce invalid tokens. Update values afterward or cancel.
                 </p>
               </div>
             ) : (
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+              <p className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
                 May break alias references depending on the current type.
               </p>
             )}
             <div className="flex flex-wrap gap-1.5 pt-0.5">
               <button
                 onClick={handleApply}
-                className={`flex-1 min-w-[96px] px-2 py-0.5 rounded text-[10px] font-medium text-white hover:opacity-90 transition-opacity ${
+                className={`flex-1 min-w-[96px] px-2 py-0.5 rounded text-secondary font-medium text-white hover:opacity-90 transition-opacity ${
                   typeChangeInfo.incompatible.length > 0
                     ? 'bg-[var(--color-figma-error)]'
                     : 'bg-[var(--color-figma-accent)]'
@@ -1149,7 +1149,7 @@ export function BatchEditor({
               </button>
               <button
                 onClick={() => setShowTypeConfirm(false)}
-                className="flex-1 min-w-[96px] px-2 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                className="flex-1 min-w-[96px] px-2 py-0.5 rounded text-secondary font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
               >
                 Cancel
               </button>
@@ -1164,7 +1164,7 @@ export function BatchEditor({
           <button
             type="button"
             onClick={() => setShowScopes(v => !v)}
-            className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
           >
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-90' : ''}`}>
               <path d="M2 1l4 3-4 3V1z" />
@@ -1173,7 +1173,7 @@ export function BatchEditor({
           </button>
           {showScopes && (
             <div className="ml-[16px] mt-1 space-y-1">
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
+              <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
                 Applied to {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'}. Empty = all scopes.
               </p>
               {availableScopes.map(scope => (
@@ -1189,8 +1189,8 @@ export function BatchEditor({
                     className="w-3 h-3 rounded mt-0.5"
                   />
                   <span className="flex flex-col">
-                    <span className="text-[10px] text-[var(--color-figma-text)] leading-snug">{scope.label}</span>
-                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">{scope.description}</span>
+                    <span className="text-secondary text-[var(--color-figma-text)] leading-snug">{scope.label}</span>
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">{scope.description}</span>
                   </span>
                 </label>
               ))}
@@ -1198,7 +1198,7 @@ export function BatchEditor({
                 <button
                   type="button"
                   onClick={() => setBatchScopes([])}
-                  className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] underline"
+                  className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] underline"
                 >
                   Clear all scopes
                 </button>
@@ -1213,7 +1213,7 @@ export function BatchEditor({
         <button
           type="button"
           onClick={() => setShowExtensions(v => !v)}
-          className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+          className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
         >
           <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" className={`transition-transform ${showExtensions ? 'rotate-90' : ''}`}>
             <path d="M2 1l4 3-4 3V1z" />
@@ -1222,7 +1222,7 @@ export function BatchEditor({
         </button>
         {showExtensions && (
           <div className="ml-[16px] mt-1 space-y-1">
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
+            <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
               Merged into <span className="font-mono">$extensions</span> on {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'}. Values parsed as JSON.
             </p>
             {batchExtensions.map((entry, i) => (
@@ -1258,7 +1258,7 @@ export function BatchEditor({
             <button
               type="button"
               onClick={() => setBatchExtensions(prev => [...prev, { key: '', value: '' }])}
-              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+              className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
             >
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><path d="M4 1v6M1 4h6"/></svg>
               Add extension key
@@ -1302,14 +1302,14 @@ export function BatchEditor({
                 }`}
               />
               {opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100) && (
-                <span className="text-[10px] text-[var(--color-figma-error)]">0–100</span>
+                <span className="text-secondary text-[var(--color-figma-error)]">0–100</span>
               )}
             </div>
           </div>
           {opacityPreview && opacityPreview.length > 0 && (
             <div className={AUTHORING.previewCard}>
               {(expandedPreviews['opacity'] ? opacityPreview : opacityPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
+                <div key={path} className="flex flex-col gap-1 text-secondary leading-snug">
                   <BatchPreviewPath path={path} />
                   <div className="flex flex-wrap items-center gap-1.5">
                   <span
@@ -1330,14 +1330,14 @@ export function BatchEditor({
                 </div>
               ))}
               {opacityPreview.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('opacity')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                <button type="button" onClick={() => togglePreview('opacity')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                   {expandedPreviews['opacity'] ? 'Show less' : `and ${opacityPreview.length - PREVIEW_MAX} more…`}
                 </button>
               )}
             </div>
           )}
           {hasColors && !allColors && (
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
               Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
             </div>
           )}
@@ -1371,7 +1371,7 @@ export function BatchEditor({
               className={`w-20 ${AUTHORING.inputBase}`}
             />
             {colorAdjustAmt !== '' && !isNaN(parseFloat(colorAdjustAmt)) && (
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
                 {colorAdjustOp === 'hue' ? `${colorAdjustAmt}°` : `${colorAdjustAmt}%`}
               </span>
             )}
@@ -1379,7 +1379,7 @@ export function BatchEditor({
           {colorAdjustPreview && colorAdjustPreview.length > 0 && (
             <div className={AUTHORING.previewCard}>
               {(expandedPreviews['colorAdjust'] ? colorAdjustPreview : colorAdjustPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
+                <div key={path} className="flex flex-col gap-1 text-secondary leading-snug">
                   <BatchPreviewPath path={path} />
                   <div className="flex flex-wrap items-center gap-1.5">
                   <span
@@ -1400,14 +1400,14 @@ export function BatchEditor({
                 </div>
               ))}
               {colorAdjustPreview.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('colorAdjust')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                <button type="button" onClick={() => togglePreview('colorAdjust')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                   {expandedPreviews['colorAdjust'] ? 'Show less' : `and ${colorAdjustPreview.length - PREVIEW_MAX} more…`}
                 </button>
               )}
             </div>
           )}
           {hasColors && !allColors && colorAdjustAmt !== '' && (
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
               Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
             </div>
           )}
@@ -1426,7 +1426,7 @@ export function BatchEditor({
                   onClick={() => setNumericOpMode(op)}
                   aria-label={op}
                   title={op.charAt(0).toUpperCase() + op.slice(1)}
-                  className={`w-6 h-6 text-[11px] font-medium transition-colors ${
+                  className={`w-6 h-6 text-body font-medium transition-colors ${
                     numericOpMode === op
                       ? 'bg-[var(--color-figma-accent)] text-white'
                       : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))] hover:text-[var(--color-figma-text)]'
@@ -1451,26 +1451,26 @@ export function BatchEditor({
               }`}
             />
             {scaleFactor !== '' && !numericTransformActive && !isNaN(parseFloat(scaleFactor)) ? (
-              <span className="text-[10px] text-[var(--color-figma-error)]">cannot be 0</span>
+              <span className="text-secondary text-[var(--color-figma-error)]">cannot be 0</span>
             ) : scaleFactor !== '' && isNaN(parseFloat(scaleFactor)) ? (
-              <span className="text-[10px] text-[var(--color-figma-error)]">invalid</span>
+              <span className="text-secondary text-[var(--color-figma-error)]">invalid</span>
             ) : null}
           </div>
           {scaleAliasCount > 0 && numericTransformActive && (
             <div className={AUTHORING.previewCard}>
-              <span className="text-[10px] text-[var(--color-figma-warning)] leading-tight font-medium">
+              <span className="text-secondary text-[var(--color-figma-warning)] leading-tight font-medium">
                 {scaleAliasCount === scalableCount
                   ? 'All numeric tokens use reference values and cannot be transformed:'
                   : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (reference values cannot be transformed):`}
               </span>
               {(expandedPreviews['skippedAlias'] ? skippedAliasTokens : skippedAliasTokens.slice(0, PREVIEW_MAX)).map(({ path, entry }) => (
-                <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                <div key={path} className="flex flex-col gap-0.5 text-secondary leading-snug">
                   <BatchPreviewPath path={path} />
                   <span className={LONG_TEXT_CLASSES.monoSecondary} title={String(entry.$value)}>{String(entry.$value)}</span>
                 </div>
               ))}
               {skippedAliasTokens.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('skippedAlias')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                <button type="button" onClick={() => togglePreview('skippedAlias')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                   {expandedPreviews['skippedAlias'] ? 'Show less' : `and ${skippedAliasTokens.length - PREVIEW_MAX} more…`}
                 </button>
               )}
@@ -1479,7 +1479,7 @@ export function BatchEditor({
           {scalePreview && scalePreview.length > 0 && (
             <div className={AUTHORING.previewCard}>
               {(expandedPreviews['scale'] ? scalePreview : scalePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                <div key={path} className="flex flex-col gap-0.5 text-secondary leading-snug">
                   <BatchPreviewPath path={path} />
                   <div className="flex flex-wrap items-center gap-1">
                     <span className={LONG_TEXT_CLASSES.monoSecondary}>{formatBatchValue(from)}</span>
@@ -1491,14 +1491,14 @@ export function BatchEditor({
                 </div>
               ))}
               {scalePreview.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('scale')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                <button type="button" onClick={() => togglePreview('scale')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                   {expandedPreviews['scale'] ? 'Show less' : `and ${scalePreview.length - PREVIEW_MAX} more…`}
                 </button>
               )}
             </div>
           )}
           {hasScalable && !allScalable && (
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
               Applies to {scalableCount} numeric token{scalableCount === 1 ? '' : 's'} — {selectedEntries.length - scalableCount} non-numeric skipped
             </div>
           )}
@@ -1531,14 +1531,14 @@ export function BatchEditor({
                 type="button"
                 onClick={() => setCompositeSubPropKey('')}
                 aria-label="Clear sub-property selection"
-                className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+                className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
               >
                 Clear
               </button>
             )}
           </div>
           {compositeSubPropKey && compositeSubPropTargets.length > 0 && (
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+            <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
               {compositeSubPropKind === 'color'
                 ? <>Opacity &amp; color adjust will target <span className="font-mono text-[var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}</>
                 : <>Transform will target <span className="font-mono text-[var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}</>
@@ -1548,7 +1548,7 @@ export function BatchEditor({
           {compositeSubPropPreview && compositeSubPropPreview.length > 0 && (
             <div className={AUTHORING.previewCard}>
               {(expandedPreviews['compositeSub'] ? compositeSubPropPreview : compositeSubPropPreview.slice(0, PREVIEW_MAX)).map(({ path, from, to, arrayLen }) => (
-                <div key={path} className="flex flex-col gap-1 text-[10px] leading-snug">
+                <div key={path} className="flex flex-col gap-1 text-secondary leading-snug">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <BatchPreviewPath path={path} />
                     {arrayLen > 1 && <span className={LONG_TEXT_CLASSES.monoTertiary}>[{arrayLen}]</span>}
@@ -1574,7 +1574,7 @@ export function BatchEditor({
                 </div>
               ))}
               {compositeSubPropPreview.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('compositeSub')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                <button type="button" onClick={() => togglePreview('compositeSub')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                   {expandedPreviews['compositeSub'] ? 'Show less' : `and ${compositeSubPropPreview.length - PREVIEW_MAX} more…`}
                 </button>
               )}
@@ -1599,7 +1599,7 @@ export function BatchEditor({
             type="button"
             onClick={() => setSetValueMode(v => v === 'literal' ? 'json' : 'literal')}
             title={setValueMode === 'json' ? 'JSON parse mode — click to switch to auto-coerce' : 'Auto-coerce mode (numbers/booleans detected) — click to switch to JSON parse'}
-            className={`shrink-0 px-1.5 h-6 rounded border text-[10px] font-mono transition-colors ${
+            className={`shrink-0 px-1.5 h-6 rounded border text-secondary font-mono transition-colors ${
               setValueMode === 'json'
                 ? 'bg-[var(--color-figma-accent)] text-white border-transparent'
                 : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]'
@@ -1609,14 +1609,14 @@ export function BatchEditor({
           </button>
         </div>
         {setValueActive && (aliasActive || opacityActive || numericTransformActive || colorAdjustActive) && (
-          <div className="text-[10px] text-[var(--color-figma-error)]">
+          <div className="text-secondary text-[var(--color-figma-error)]">
             Conflicts with other value operations — clear the conflicting field to apply
           </div>
         )}
         {setValuePreview && setValuePreview.length > 0 && (
           <div className={AUTHORING.previewCard}>
             {(expandedPreviews['setValue'] ? setValuePreview : setValuePreview.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-              <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+              <div key={path} className="flex flex-col gap-0.5 text-secondary leading-snug">
                 <BatchPreviewPath path={path} />
                 <div className="flex flex-wrap items-center gap-1">
                   <span className={LONG_TEXT_CLASSES.monoSecondary} title={String(from)}>{formatBatchValue(from)}</span>
@@ -1628,7 +1628,7 @@ export function BatchEditor({
               </div>
             ))}
             {setValuePreview.length > PREVIEW_MAX && (
-              <button type="button" onClick={() => togglePreview('setValue')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+              <button type="button" onClick={() => togglePreview('setValue')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                 {expandedPreviews['setValue'] ? 'Show less' : `and ${setValuePreview.length - PREVIEW_MAX} more…`}
               </button>
             )}
@@ -1669,7 +1669,7 @@ export function BatchEditor({
               type="button"
               onClick={() => { setAliasInput(''); setAliasRef(''); setShowAliasAutocomplete(false); }}
               aria-label="Clear alias"
-              className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+              className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
             >
               Clear
             </button>
@@ -1692,13 +1692,13 @@ export function BatchEditor({
         )}
         {aliasActive && !showAliasAutocomplete && (
           aliasConflict ? (
-            <div className="text-[10px] text-[var(--color-figma-error)] leading-snug">
+            <div className="text-secondary text-[var(--color-figma-error)] leading-snug">
               Cannot combine alias with value transforms
             </div>
           ) : aliasPreview && aliasPreview.length > 0 ? (
             <div className={AUTHORING.previewCard}>
               {(expandedPreviews['alias'] ? aliasPreview : aliasPreview.slice(0, PREVIEW_MAX)).map(({ path, from }) => (
-                <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                <div key={path} className="flex flex-col gap-0.5 text-secondary leading-snug">
                   <BatchPreviewPath path={path} />
                   <div className="flex flex-wrap items-center gap-1">
                     <span className={LONG_TEXT_CLASSES.monoSecondary} title={String(from)}>{formatBatchValue(from)}</span>
@@ -1710,13 +1710,13 @@ export function BatchEditor({
                 </div>
               ))}
               {aliasPreview.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('alias')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                <button type="button" onClick={() => togglePreview('alias')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                   {expandedPreviews['alias'] ? 'Show less' : `and ${aliasPreview.length - PREVIEW_MAX} more…`}
                 </button>
               )}
             </div>
           ) : (
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+            <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
               Will set <span className="font-mono text-[var(--color-figma-text)] break-all">{aliasRef}</span> on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
             </div>
           )
@@ -1745,7 +1745,7 @@ export function BatchEditor({
                 onClick={() => setUseRegex(v => !v)}
                 title={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
                 aria-label={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
-                className={`absolute right-0.5 top-0.5 h-5 w-6 rounded text-[10px] font-mono flex items-center justify-center transition-colors ${
+                className={`absolute right-0.5 top-0.5 h-5 w-6 rounded text-secondary font-mono flex items-center justify-center transition-colors ${
                   useRegex
                     ? 'bg-[var(--color-figma-accent)] text-white'
                     : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))]'
@@ -1772,20 +1772,20 @@ export function BatchEditor({
             </button>
           </div>
           {regexError && useRegex && findText && (
-            <div className="text-[10px] text-[var(--color-figma-error)]">
+            <div className="text-secondary text-[var(--color-figma-error)]">
               {regexError}
             </div>
           )}
           {renameChanges.length > 0 && (
             <div className={AUTHORING.previewCard}>
-              <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
+              <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
                 {renameChanges.length} path{renameChanges.length === 1 ? '' : 's'} will change
                 {renamePreview > renameChanges.length && (
                   <span className="font-normal text-[var(--color-figma-text-tertiary)]"> ({renamePreview - renameChanges.length} unchanged)</span>
                 )}:
               </div>
               {(expandedPreviews['rename'] ? renameChanges : renameChanges.slice(0, PREVIEW_MAX)).map(({ from, to }) => (
-                <div key={from} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                <div key={from} className="flex flex-col gap-0.5 text-secondary leading-snug">
                   <span className={LONG_TEXT_CLASSES.monoSecondary} title={from}>{from}</span>
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
@@ -1794,7 +1794,7 @@ export function BatchEditor({
                 </div>
               ))}
               {renameChanges.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('rename')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                <button type="button" onClick={() => togglePreview('rename')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                   {expandedPreviews['rename'] ? 'Show less' : `and ${renameChanges.length - PREVIEW_MAX} more…`}
                 </button>
               )}
@@ -1837,11 +1837,11 @@ export function BatchEditor({
           </div>
           {aliasFindText && aliasFindChanges.length > 0 && (
             <div className={AUTHORING.previewCard}>
-              <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
+              <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
                 {aliasFindChanges.length} alias reference{aliasFindChanges.length === 1 ? '' : 's'} will change:
               </div>
               {(expandedPreviews['aliasFind'] ? aliasFindChanges : aliasFindChanges.slice(0, PREVIEW_MAX)).map(({ path, from, to }) => (
-                <div key={path} className="flex flex-col gap-0.5 text-[10px] leading-snug">
+                <div key={path} className="flex flex-col gap-0.5 text-secondary leading-snug">
                   <BatchPreviewPath path={path} />
                   <div className="flex flex-wrap items-center gap-1">
                     <span className={LONG_TEXT_CLASSES.monoSecondary} title={from}>{from}</span>
@@ -1851,14 +1851,14 @@ export function BatchEditor({
                 </div>
               ))}
               {aliasFindChanges.length > PREVIEW_MAX && (
-                <button type="button" onClick={() => togglePreview('aliasFind')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                <button type="button" onClick={() => togglePreview('aliasFind')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                   {expandedPreviews['aliasFind'] ? 'Show less' : `and ${aliasFindChanges.length - PREVIEW_MAX} more…`}
                 </button>
               )}
             </div>
           )}
           {aliasFindText && aliasFindChanges.length === 0 && (
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
               No selected tokens reference <span className="font-mono">{`{${aliasFindText}}`}</span>
             </div>
           )}
@@ -1884,7 +1884,7 @@ export function BatchEditor({
                   onClick={handleCopy}
                   disabled={!connected || !canCopy || copying}
                   title={!connected ? 'Not connected to server' : targetCollectionId === '' ? 'Choose a target collection first' : `Copy ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetCollectionId}" (originals preserved)`}
-                  className="flex-1 min-w-[88px] px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex-1 min-w-[88px] px-2 py-1 rounded text-secondary font-medium border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {copying ? '…' : 'Copy'}
                 </button>
@@ -1892,7 +1892,7 @@ export function BatchEditor({
                   onClick={handleMove}
                   disabled={!connected || !canMove || moving}
                   title={!connected ? 'Not connected to server' : targetCollectionId === '' ? 'Choose a target collection first' : `Move ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetCollectionId}"`}
-                  className="flex-1 min-w-[88px] px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex-1 min-w-[88px] px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {moving ? '…' : 'Move'}
                 </button>
@@ -1901,7 +1901,7 @@ export function BatchEditor({
             {movePreview && movePreview.items.length > 0 && (
               <div className={AUTHORING.previewCard}>
                 {(expandedPreviews['move'] ? movePreview.items : movePreview.items.slice(0, PREVIEW_MAX)).map(({ path, conflict }) => (
-                  <div key={path} className="text-[10px] leading-snug space-y-0.5">
+                  <div key={path} className="text-secondary leading-snug space-y-0.5">
                     <BatchPreviewPath path={path} className="text-[var(--color-figma-text-secondary)]" />
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
@@ -1909,18 +1909,18 @@ export function BatchEditor({
                         {targetCollectionId}: {path}
                       </span>
                       {conflict && (
-                        <span className="text-[var(--color-figma-warning)] shrink-0 text-[10px]">conflict</span>
+                        <span className="text-[var(--color-figma-warning)] shrink-0 text-secondary">conflict</span>
                       )}
                     </div>
                   </div>
                 ))}
                 {movePreview.items.length > PREVIEW_MAX && (
-                  <button type="button" onClick={() => togglePreview('move')} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">
+                  <button type="button" onClick={() => togglePreview('move')} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
                     {expandedPreviews['move'] ? 'Show less' : `and ${movePreview.items.length - PREVIEW_MAX} more…`}
                   </button>
                 )}
                 {movePreview.conflicts > 0 && (
-                  <div className="text-[10px] text-[var(--color-figma-warning)] font-medium leading-snug pt-0.5">
+                  <div className="text-secondary text-[var(--color-figma-warning)] font-medium leading-snug pt-0.5">
                     {movePreview.conflicts} conflict{movePreview.conflicts === 1 ? '' : 's'} in &quot;{targetCollectionId}&quot; — will overwrite
                   </div>
                 )}

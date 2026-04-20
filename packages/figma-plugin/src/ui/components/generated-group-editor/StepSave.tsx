@@ -64,7 +64,7 @@ function ImpactSummaryLine({ previewAnalysis }: { previewAnalysis: GeneratorPrev
   const hasRisk = overwrites > 0 || conflicts > 0 || deleted > 0;
 
   return (
-    <div className={`px-2.5 py-2 rounded-md text-[10px] ${
+    <div className={`px-2.5 py-2 rounded-md text-secondary ${
       hasRisk
         ? 'border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 text-[var(--color-figma-warning)]'
         : 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'
@@ -100,12 +100,12 @@ export function StepSave({
   return (
     <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
       {previewReviewStale && (
-        <div className="rounded-md border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 px-2.5 py-2 text-[10px] text-[var(--color-figma-warning)]">
+        <div className="rounded-md border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 px-2.5 py-2 text-secondary text-[var(--color-figma-warning)]">
           Token store changed. Refresh to confirm.
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2 text-[11px]">
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2 text-body">
         <span className="font-medium text-[var(--color-figma-text)]">{name}</span>
         <span className="text-[var(--color-figma-text-tertiary)]">&middot;</span>
         <span className="font-mono text-[var(--color-figma-text-secondary)]">{targetCollection}</span>
@@ -157,21 +157,21 @@ export function StepSave({
                     className="flex items-start gap-2 border-t border-[var(--color-figma-border)] px-2.5 py-2 first:border-t-0"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-mono text-[10px] text-[var(--color-figma-text)]" title={token.path}>
+                      <div className="font-mono text-secondary text-[var(--color-figma-text)]" title={token.path}>
                         {token.path}
                       </div>
-                      <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]" title={formatValue(token.value)}>
+                      <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]" title={formatValue(token.value)}>
                         {formatValue(token.value)}
                       </div>
                     </div>
-                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${statusClassName}`}>
+                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-micro font-medium ${statusClassName}`}>
                       {statusLabel}
                     </span>
                   </div>
                 );
               })}
               {previewTokens.length > previewRows.length && (
-                <div className="border-t border-[var(--color-figma-border)] px-2.5 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <div className="border-t border-[var(--color-figma-border)] px-2.5 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
                   {previewTokens.length - previewRows.length} more generated token
                   {previewTokens.length - previewRows.length === 1 ? '' : 's'} in this group.
                 </div>
@@ -184,23 +184,23 @@ export function StepSave({
       {overwriteCheckLoading && (
         <div className="flex items-center gap-2 px-2.5 py-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]">
           <Spinner size="sm" />
-          <span className="text-[10px]">Checking&hellip;</span>
+          <span className="text-secondary">Checking&hellip;</span>
         </div>
       )}
       {!overwriteCheckLoading && overwriteCheckError && (
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)] px-2.5 py-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        <div className="text-secondary text-[var(--color-figma-text-secondary)] px-2.5 py-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           {overwriteCheckError}
         </div>
       )}
 
       {!overwriteCheckLoading && overwritePendingPaths.length > 0 && (
         <div className="flex flex-col gap-1 px-2.5 py-2 rounded-md border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10">
-          <span className="text-[10px] font-medium text-[var(--color-figma-warning)]">
+          <span className="text-secondary font-medium text-[var(--color-figma-warning)]">
             {overwritePendingPaths.length} manually edited token{overwritePendingPaths.length !== 1 ? 's' : ''} will be overwritten
           </span>
           <div className="max-h-[80px] overflow-y-auto flex flex-col gap-0.5">
             {overwritePendingPaths.map((p: string) => (
-              <div key={p} className="text-[10px] font-mono text-[var(--color-figma-warning)]/80 truncate" title={p}>{p}</div>
+              <div key={p} className="text-secondary font-mono text-[var(--color-figma-warning)]/80 truncate" title={p}>{p}</div>
             ))}
           </div>
         </div>
@@ -211,7 +211,7 @@ export function StepSave({
         <RiskDetailSections previewAnalysis={previewAnalysis} targetCollection={targetCollection} />
       )}
 
-      {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}
+      {saveError && <div className="text-secondary text-[var(--color-figma-error)]">{saveError}</div>}
     </section>
   );
 }

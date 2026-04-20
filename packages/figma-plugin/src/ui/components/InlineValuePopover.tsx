@@ -97,7 +97,7 @@ function TypeEditor({
       return <CustomEditor value={value} onChange={onChange} />;
     default:
       return (
-        <p className="text-[11px] text-[var(--color-figma-text-secondary)] py-2">
+        <p className="text-body text-[var(--color-figma-text-secondary)] py-2">
           No inline editor for type <code className="font-mono">{type}</code>. Use the full editor.
         </p>
       );
@@ -129,7 +129,7 @@ function AliasEditor({
         type="text"
         value={aliasQuery}
         onChange={e => setAliasQuery(e.target.value)}
-        className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+        className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-body bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
         placeholder="Search tokens…"
         onKeyDown={e => { if (e.key === 'Escape') e.stopPropagation(); }}
       />
@@ -233,7 +233,7 @@ export function InlineValuePopover({
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
-        <span className="text-[11px] text-[var(--color-figma-text)] font-medium truncate flex-1 min-w-0" title={tokenPath}>
+        <span className="text-body text-[var(--color-figma-text)] font-medium truncate flex-1 min-w-0" title={tokenPath}>
           {tokenName}
         </span>
         <span className={`px-1 py-0.5 rounded text-[8px] font-medium shrink-0 ${typeBadgeClass}`}>
@@ -253,7 +253,7 @@ export function InlineValuePopover({
               setAliasQuery('');
             }
           }}
-          className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+          className={`shrink-0 px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
             aliasMode
               ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/25'
               : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -301,21 +301,21 @@ export function InlineValuePopover({
           <button
             type="button"
             onClick={onOpenFullEditor}
-            className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline mr-auto transition-colors"
+            className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline mr-auto transition-colors"
           >
             Open full editor →
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="px-2 py-1 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="px-2 py-1 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-2.5 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            className="px-2.5 py-1 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
           >
             Save
           </button>

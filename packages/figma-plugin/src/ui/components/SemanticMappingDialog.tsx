@@ -187,7 +187,7 @@ export function SemanticMappingDialog({
     <>
       {suggestedPatterns.length > 0 && (
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1.5">
             Suggested patterns
           </label>
           <div className="flex flex-wrap gap-1">
@@ -195,7 +195,7 @@ export function SemanticMappingDialog({
               <button
                 key={pattern.id}
                 onClick={() => handlePatternSelect(pattern.id)}
-                className={`px-2 py-1 rounded text-[10px] border transition-colors ${
+                className={`px-2 py-1 rounded text-secondary border transition-colors ${
                   selectedPatternId === pattern.id
                     ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
                     : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
@@ -209,7 +209,7 @@ export function SemanticMappingDialog({
       )}
 
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">
           Semantic group prefix
         </label>
         <input
@@ -217,18 +217,18 @@ export function SemanticMappingDialog({
           value={semanticPrefix}
           onChange={(event) => setSemanticPrefix(event.target.value)}
           placeholder="semantic"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]"
         />
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <label className="text-secondary text-[var(--color-figma-text-secondary)]">
             Mappings ({mappings.length})
           </label>
           <button
             onClick={handleAddRow}
-            className="text-[10px] text-[var(--color-figma-accent)] hover:underline flex items-center gap-0.5"
+            className="text-secondary text-[var(--color-figma-accent)] hover:underline flex items-center gap-0.5"
           >
             + Add row
           </button>
@@ -249,7 +249,7 @@ export function SemanticMappingDialog({
                   )
                 }
                 placeholder="action.default"
-                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)] min-w-0"
+                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)] min-w-0"
               />
               <svg
                 width="8"
@@ -274,7 +274,7 @@ export function SemanticMappingDialog({
                     ),
                   )
                 }
-                className="w-16 px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
+                className="w-16 px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
               >
                 {availableSteps.map((step) => (
                   <option key={step} value={step}>
@@ -301,7 +301,7 @@ export function SemanticMappingDialog({
             </div>
           ))}
           {mappings.length === 0 && (
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-2 text-center">
+            <div className="text-secondary text-[var(--color-figma-text-secondary)] py-2 text-center">
               No mappings. Click "Add row" to start.
             </div>
           )}
@@ -310,14 +310,14 @@ export function SemanticMappingDialog({
 
       {validMappings.length > 0 && (
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">
             Will create
           </label>
           <div className="border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg-secondary)] flex flex-col gap-0.5">
             {validMappings.map((mapping, index) => (
               <div
                 key={index}
-                className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]"
+                className="text-secondary font-mono text-[var(--color-figma-text-secondary)]"
               >
                 <span className="text-[var(--color-figma-text)]">
                   {semanticPrefix}.{mapping.semantic}
@@ -333,7 +333,7 @@ export function SemanticMappingDialog({
       )}
 
       {error && (
-        <div className="text-[10px] text-[var(--color-figma-error)]">
+        <div className="text-secondary text-[var(--color-figma-error)]">
           {error}
         </div>
       )}
@@ -346,21 +346,21 @@ export function SemanticMappingDialog({
         <button
           onClick={handleRemoveLayer}
           disabled={saving}
-          className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-error)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+          className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-error)] text-body hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
         >
           Remove layer
         </button>
       )}
       <button
         onClick={onClose}
-        className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+        className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
       >
         {isLayerEditor ? "Cancel" : "Skip"}
       </button>
       <button
         onClick={isLayerEditor ? handleSaveLayer : handleCreateTokens}
         disabled={saving || validMappings.length === 0}
-        className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+        className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
       >
         {saving
           ? isLayerEditor
@@ -402,10 +402,10 @@ export function SemanticMappingDialog({
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)] shrink-0">
           <div>
-            <span className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+            <span className="text-heading font-semibold text-[var(--color-figma-text)]">
               {title}
             </span>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+            <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
               {subtitle}
             </p>
           </div>

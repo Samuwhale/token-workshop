@@ -42,11 +42,11 @@ export const VALUE_FORMAT_HINTS: Record<string, string> = {
 export const InheritedBadge = memo(function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
   return (
     <span className="inline-flex items-center gap-0.5 ml-1">
-      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">inherited</span>
+      <span className="text-secondary text-[var(--color-figma-text-tertiary)] italic">inherited</span>
       <button
         type="button"
         onClick={onOverride}
-        className="text-[10px] text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+        className="text-secondary text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
         title={`Override ${propKey}`}
       >override</button>
     </span>
@@ -58,7 +58,7 @@ export const RevertBadge = memo(function RevertBadge({ propKey, onRevert }: { pr
     <button
       type="button"
       onClick={onRevert}
-      className="ml-1 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+      className="ml-1 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
       title={`Revert ${propKey} to inherited value`}
     >revert</button>
   );
@@ -161,6 +161,7 @@ export const SubPropInput = memo(function SubPropInput({
         type="button"
         onClick={openRefPicker}
         title={isAliasVal ? 'Clear reference — use direct value' : 'Reference a token'}
+        aria-label={isAliasVal ? 'Clear reference' : 'Reference a token'}
         className={`p-0.5 rounded shrink-0 transition-colors ${
           isAliasVal
             ? 'text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]'
@@ -314,6 +315,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
             type="button"
             onClick={() => { onChange(''); setShowAC(false); }}
             title="Clear reference — use direct value"
+            aria-label="Clear reference"
             className="p-0.5 rounded shrink-0 transition-colors text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

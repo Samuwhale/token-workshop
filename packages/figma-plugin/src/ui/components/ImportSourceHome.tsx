@@ -20,13 +20,13 @@ export function ImportSourceHome() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+        <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
           From this Figma file
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleReadVariables}
-            className="flex-1 flex items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="flex-1 flex items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -37,7 +37,7 @@ export function ImportSourceHome() {
           </button>
           <button
             onClick={handleReadStyles}
-            className="flex-1 flex items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="flex-1 flex items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -50,7 +50,7 @@ export function ImportSourceHome() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+        <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
           From a file
         </div>
         <div
@@ -73,17 +73,17 @@ export function ImportSourceHome() {
             <path d="M7 10l5 5 5-5" />
             <path d="M5 21h14" />
           </svg>
-          <span className={`text-[11px] ${isDragging ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+          <span className={`text-body ${isDragging ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
             {isDragging ? 'Drop to import' : 'Drop a file or click to browse'}
           </span>
         </div>
-        <div className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center">
+        <div className="text-secondary text-[var(--color-figma-text-tertiary)] text-center">
           JSON · CSS · Tailwind · Tokens Studio
         </div>
       </div>
 
       {fileImportValidation && (
-        <div className={`rounded px-2.5 py-1.5 text-[10px] ${
+        <div className={`rounded px-2.5 py-1.5 text-secondary ${
           validationIsError
             ? 'bg-[var(--color-figma-error)]/8 text-[var(--color-figma-error)]'
             : fileImportValidation.status === 'partial'

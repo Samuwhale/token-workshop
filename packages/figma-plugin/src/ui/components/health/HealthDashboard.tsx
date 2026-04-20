@@ -96,7 +96,7 @@ export function HealthDashboard({
           <line x1="12" y1="8" x2="12" y2="12" />
           <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
-        <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+        <p className="text-body text-[var(--color-figma-text-secondary)]">
           Connect to run audit
         </p>
       </div>
@@ -122,21 +122,21 @@ export function HealthDashboard({
           <StatusIcon status={overallStatus} />
         </span>
         <div className="flex-1 min-w-0">
-          <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+          <span className="text-subheading font-semibold text-[var(--color-figma-text)]">
             {totalIssueCount === 0 ? "All clear" : `${totalIssueCount} issue${totalIssueCount !== 1 ? "s" : ""}`}
           </span>
           <div className="flex items-center gap-1.5 mt-0.5">
             {validationLoading && (
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Auditing…</span>
+              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Auditing…</span>
             )}
             {validationError && !validationLoading && (
-              <span className="text-[10px] text-[var(--color-figma-error)]">Audit failed</span>
+              <span className="text-secondary text-[var(--color-figma-error)]">Audit failed</span>
             )}
             {validationIsStale && !validationLoading && !validationError && (
-              <span className="text-[10px] text-[var(--color-figma-warning)]">Outdated</span>
+              <span className="text-secondary text-[var(--color-figma-warning)]">Outdated</span>
             )}
             {validationLastRefreshed && !validationLoading && !validationError && (
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
                 Checked {formatCheckedAt(validationLastRefreshed)}
               </span>
             )}
@@ -158,10 +158,10 @@ export function HealthDashboard({
                   <circle cx="4" cy="4" r="4" fill="currentColor" />
                 </svg>
               </span>
-              <span className={`flex-1 text-[11px] ${isZero ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text)] font-medium"}`}>
+              <span className={`flex-1 text-body ${isZero ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text)] font-medium"}`}>
                 {cat.label}
               </span>
-              <span className={`text-[11px] tabular-nums ${isZero ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"}`}>
+              <span className={`text-body tabular-nums ${isZero ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"}`}>
                 {isZero ? "All clear" : cat.count}
               </span>
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">

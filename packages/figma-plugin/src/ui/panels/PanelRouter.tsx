@@ -131,7 +131,7 @@ function HistorySurfaceTabs({
         <button
           key={view}
           onClick={() => setHistoryView(view)}
-          className={`flex-1 text-center text-[10px] font-medium py-1 rounded transition-colors ${
+          className={`flex-1 text-center text-secondary font-medium py-1 rounded transition-colors ${
             historyView === view
               ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
               : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -1428,7 +1428,7 @@ export function PanelRouter({
       {notificationsOpen && (
         <>
           <div
-            className="absolute inset-0 z-10 bg-black/10"
+            className="absolute inset-0 z-10 bg-[#1a1a1a]/10"
             onClick={closeNotifications}
           />
           <div className="absolute right-0 top-0 bottom-0 z-20 w-[320px] border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg panel-slide-in">
@@ -1477,12 +1477,12 @@ export function PanelRouter({
         {(fetchError || tokensError) && (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 shrink-0">
             <AlertCircle size={10} strokeWidth={2} className="text-[var(--color-figma-error)] shrink-0" aria-hidden />
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
+            <span className="text-secondary text-[var(--color-figma-text-secondary)] flex-1 truncate">
               Failed to load tokens: {fetchError || tokensError}
             </span>
             <button
               onClick={refreshTokens}
-              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors shrink-0"
+              className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors shrink-0"
             >
               Retry
             </button>

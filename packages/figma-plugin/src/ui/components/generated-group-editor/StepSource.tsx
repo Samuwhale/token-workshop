@@ -42,7 +42,7 @@ function TemplateSuggestion({
   onDismiss: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/5 px-2.5 py-1.5 text-[10px]">
+    <div className="flex items-center gap-2 rounded-md border border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/5 px-2.5 py-1.5 text-secondary">
       <span className="min-w-0 flex-1 truncate text-[var(--color-figma-text)]">
         Start from <span className="font-medium">{template.label}</span>?
       </span>
@@ -296,7 +296,7 @@ export function StepSource({
       {destination && (
         <div className={AUTHORING.generatorSectionCard}>
           {detachedCount > 0 && (
-            <div className="mb-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text)]">
+            <div className="mb-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-1.5 text-secondary text-[var(--color-figma-text)]">
               {detachedCount} detached token{detachedCount === 1 ? "" : "s"}
             </div>
           )}
@@ -315,12 +315,12 @@ export function StepSource({
               >
                 <path d="M3 1.5l4 3.5-4 3.5V1.5z" />
               </svg>
-              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              <span className="text-secondary font-medium text-[var(--color-figma-text)]">
                 Collection and group
               </span>
             </div>
             {!outputExpanded && (
-              <div className="max-w-[65%] text-right text-[10px] text-[var(--color-figma-text-secondary)]">
+              <div className="max-w-[65%] text-right text-secondary text-[var(--color-figma-text-secondary)]">
                 <div className="truncate">
                   Collection{" "}
                   <span className="font-mono text-[var(--color-figma-text)]">
@@ -346,7 +346,7 @@ export function StepSource({
 
       <div className={AUTHORING.generatorSectionCard}>
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
             {TYPE_LABELS[selectedType]}
           </span>
           <div className="flex items-center gap-0.5">
@@ -359,7 +359,7 @@ export function StepSource({
                   onConfigChange(selectedType, starterConfig);
                 }
               }}
-              className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               title="Reset to defaults"
             >
               Reset
@@ -462,12 +462,12 @@ export function StepSource({
 
       <div className={AUTHORING.generatorSectionCard}>
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
             Preview
           </span>
           <div className="flex items-center gap-2">
             {destination && collectionModeLabel && (
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                 Mode: {collectionModeLabel}
               </span>
             )}
@@ -478,7 +478,7 @@ export function StepSource({
         </div>
 
         {previewError && (
-          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
+          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-error)]">
             {previewError}
           </div>
         )}
@@ -490,7 +490,7 @@ export function StepSource({
         )}
 
         {!previewError && !previewLoading && previewTokens.length === 0 && (
-          <div className="rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-4 text-center text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="rounded-lg border border-dashed border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-4 text-center text-secondary text-[var(--color-figma-text-secondary)]">
             {typeNeedsValue && !hasValue
               ? `Enter a base ${typeExpectsColor ? "color" : "value"} to preview.`
               : "Adjust settings to preview."}
@@ -502,12 +502,12 @@ export function StepSource({
             <button
               type="button"
               onClick={onClearAllOverrides}
-              className="self-start text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error)]"
+              className="self-start text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error)]"
             >
               Clear {lockedCount} manual exception{lockedCount === 1 ? "" : "s"}
             </button>
             {shouldNudgeExceptionCleanup && (
-              <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-2 text-[10px] text-[var(--color-figma-text)]">
+              <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-2 text-secondary text-[var(--color-figma-text)]">
                 Manual exceptions are starting to pile up in this group. Edit the generator or detach tokens that should stay manual.
               </div>
             )}

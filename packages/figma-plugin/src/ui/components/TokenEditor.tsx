@@ -938,7 +938,7 @@ export function TokenEditor({
 
   if (loading) {
     return (
-      <div role="status" className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
+      <div role="status" className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-body">
         <Spinner size="md" className="text-[var(--color-figma-accent)]" />
         Loading token...
       </div>
@@ -959,22 +959,22 @@ export function TokenEditor({
     <>
       {isCreateMode ? (
         <div className="flex min-w-0 flex-col gap-0.5">
-          <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+          <div className="text-body font-semibold text-[var(--color-figma-text)]">
             New token
           </div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
             {ownerCollectionId}
           </div>
         </div>
       ) : (
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="truncate font-mono text-[11px] text-[var(--color-figma-text)]" title={tokenPath}>
+            <span className="truncate font-mono text-body text-[var(--color-figma-text)]" title={tokenPath}>
               {tokenPath}
             </span>
             {isDirty && (
               <span
-                className="shrink-0 px-1 py-px rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
+                className="shrink-0 px-1 py-px rounded text-secondary font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
                 title="Unsaved changes"
                 aria-label="Unsaved changes"
               >
@@ -983,7 +983,7 @@ export function TokenEditor({
             )}
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
               in {ownerCollectionId}
             </span>
             <span className="relative inline-flex items-center shrink-0">
@@ -991,7 +991,7 @@ export function TokenEditor({
                 value={tokenType}
                 onChange={(e) => handleTypeChange(e.target.value)}
                 title="Change token type"
-                className={`pr-4 pl-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
+                className={`pr-4 pl-1.5 py-0.5 rounded text-secondary font-medium uppercase cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
                 style={{ backgroundImage: "none" }}
               >
                 {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
@@ -1064,7 +1064,7 @@ export function TokenEditor({
   const afterHeader = (
     <>
       {pendingDraft && !isCreateMode && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-[11px]">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-body">
           <Clock size={11} strokeWidth={2} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />
           <span className="flex-1 text-[var(--color-figma-warning)] truncate">
             Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
@@ -1072,7 +1072,7 @@ export function TokenEditor({
           <button
             type="button"
             onClick={() => applyDraft(pendingDraft)}
-            className="shrink-0 text-[10px] font-medium text-[var(--color-figma-warning)] hover:underline"
+            className="shrink-0 text-secondary font-medium text-[var(--color-figma-warning)] hover:underline"
           >
             Restore
           </button>
@@ -1082,7 +1082,7 @@ export function TokenEditor({
               setPendingDraft(null);
               clearEditorDraft(ownerCollectionId, tokenPath);
             }}
-            className="shrink-0 text-[10px] text-[var(--color-figma-warning)] hover:underline"
+            className="shrink-0 text-secondary text-[var(--color-figma-warning)] hover:underline"
           >
             Dismiss
           </button>
@@ -1110,7 +1110,7 @@ export function TokenEditor({
               onClick={() => handleSave(false, true)}
               disabled={saving || !canSave || !trimmedEditPath || duplicatePath}
               title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-              className="shrink-0 text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+              className="shrink-0 text-secondary font-medium text-[var(--color-figma-accent)] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
             >
               Create another{" "}
               <span className="opacity-60">
@@ -1192,7 +1192,7 @@ export function TokenEditor({
         <span className="flex items-center gap-1.5">
           <span>Reference</span>
           {referenceSummary && (
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
               {referenceSummary}
             </span>
           )}
@@ -1217,7 +1217,7 @@ export function TokenEditor({
 
         {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
               Inherits from
             </label>
             {extendsPath ? (
@@ -1233,6 +1233,7 @@ export function TokenEditor({
                   type="button"
                   onClick={() => setExtendsPath("")}
                   title="Remove base token"
+                  aria-label="Remove base token"
                   className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
                 >
                   <X size={8} strokeWidth={2} aria-hidden />
@@ -1252,13 +1253,13 @@ export function TokenEditor({
                 const base = allTokensFlat[extendsPath];
                 if (!base) {
                   return (
-                    <p className="text-[10px] text-[var(--color-figma-error)]">
+                    <p className="text-secondary text-[var(--color-figma-error)]">
                       Base token not found
                     </p>
                   );
                 }
                 return (
-                  <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                  <p className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
                     Base properties merged with overrides.
                   </p>
                 );
@@ -1289,7 +1290,7 @@ export function TokenEditor({
         {displayError && (
           <div
             role="alert"
-            className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto flex items-start gap-2"
+            className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-secondary break-words max-h-16 overflow-auto flex items-start gap-2"
           >
             <span className="flex-1">{displayError}</span>
             {saveRetryArgs && (
@@ -1309,7 +1310,7 @@ export function TokenEditor({
 
         {/* Type-change confirmation — shown when a type switch would reset a non-default value */}
         {pendingTypeChange && (
-          <div className="px-2 py-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 text-[10px]">
+          <div className="px-2 py-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 text-secondary">
             <p className="text-[var(--color-figma-text)] mb-2">
               Switch to <strong>{pendingTypeChange}</strong>? This will reset
               the current value.
@@ -1341,7 +1342,7 @@ export function TokenEditor({
                               setPendingTypeChange(null);
                               onShowReferences(dep.path);
                             }}
-                            className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-warning)]/20 hover:text-[var(--color-figma-warning)] transition-colors text-left w-full"
+                            className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-warning)]/20 hover:text-[var(--color-figma-warning)] transition-colors text-left w-full"
                             title={`Open ${dep.path} in dependency graph`}
                           >
                             <Network size={8} strokeWidth={2} className="shrink-0 opacity-60" aria-hidden />
@@ -1355,7 +1356,7 @@ export function TokenEditor({
                         ) : (
                           <span
                             key={dep.path}
-                            className="flex items-center gap-1 px-1 py-0.5 font-mono text-[10px] text-[var(--color-figma-text)]"
+                            className="flex items-center gap-1 px-1 py-0.5 font-mono text-secondary text-[var(--color-figma-text)]"
                           >
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                             {dep.collectionId !== ownerCollectionId && (
@@ -1367,7 +1368,7 @@ export function TokenEditor({
                         ),
                       )}
                       {dependents.length > 20 && (
-                        <span className="px-1 py-0.5 text-[10px] text-[var(--color-figma-warning)]/70 italic">
+                        <span className="px-1 py-0.5 text-secondary text-[var(--color-figma-warning)]/70 italic">
                           and {dependents.length - 20} more…
                         </span>
                       )}
@@ -1402,19 +1403,19 @@ export function TokenEditor({
           <div className="flex flex-col gap-3 rounded-lg border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-3 py-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                <p className="text-secondary font-medium text-[var(--color-figma-text)]">
                   Token details
                 </p>
               </div>
               <div className="w-[112px] shrink-0">
-                <label className="mb-1 block text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                <label className="mb-1 block text-secondary font-medium text-[var(--color-figma-text-secondary)]">
                   Type
                 </label>
                 <select
                   value={tokenType}
                   onChange={(e) => handleTypeChange(e.target.value)}
                   title="Change token type"
-                  className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] font-medium uppercase text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                  className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary font-medium uppercase text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
                 >
                   {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
                     <option key={t} value={t}>
@@ -1425,7 +1426,7 @@ export function TokenEditor({
               </div>
             </div>
             <div className="relative" ref={pathInputWrapperRef}>
-              <label className="mb-1 block text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+              <label className="mb-1 block text-secondary font-medium text-[var(--color-figma-text-secondary)]">
                 Token path
               </label>
               <input
@@ -1468,19 +1469,19 @@ export function TokenEditor({
                 />
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[var(--color-figma-text-secondary)]">
               <span>Collection: {ownerCollectionId}</span>
               {trimmedEditLeaf && <span>Leaf: {trimmedEditLeaf}</span>}
             </div>
             {duplicatePath && (
-              <p className="text-[10px] text-[var(--color-figma-error)]">
+              <p className="text-secondary text-[var(--color-figma-error)]">
                 A token with this path already exists in{" "}
                 {pathToCollectionId[trimmedEditPath] || ownerCollectionId}.
               </p>
             )}
             {!editPath.includes(".") && createSuggestions.length > 0 && (
               <div className="flex flex-wrap items-center gap-1">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                   Try:
                 </span>
                 {createSuggestions.map((prefix) => (
@@ -1491,7 +1492,7 @@ export function TokenEditor({
                       setEditPath(prefix);
                       setDisplayError(null);
                     }}
-                    className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                   >
                     {prefix}
                   </button>
@@ -1503,7 +1504,7 @@ export function TokenEditor({
 
         {modeValue.hasMultipleModes ? (
           <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePaste}>
-            <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
+            <label className="block text-secondary text-[var(--color-figma-text-secondary)]">
               Value
             </label>
             <div className="divide-y divide-[var(--color-figma-border)]/50 overflow-hidden rounded-md border border-[var(--color-figma-border)]/65">
@@ -1514,7 +1515,7 @@ export function TokenEditor({
                 >
                   <div className="w-[92px] shrink-0 flex items-center gap-1">
                     <span
-                      className="truncate text-[11px] font-medium text-[var(--color-figma-text)]"
+                      className="truncate text-body font-medium text-[var(--color-figma-text)]"
                       title={mode.name}
                     >
                       {mode.name}
@@ -1535,6 +1536,7 @@ export function TokenEditor({
                         }}
                         className="opacity-0 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
                         title={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
+                        aria-label={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
                       >
                         <Copy size={10} strokeWidth={2} aria-hidden />
                       </button>
@@ -1573,14 +1575,14 @@ export function TokenEditor({
                     autoFocus
                     disabled={editorAddModeSaving}
                     placeholder="Mode name"
-                    className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+                    className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
                   />
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => setAddingEditorMode(true)}
-                  className="flex w-full items-center gap-1 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+                  className="flex w-full items-center gap-1 px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
                 >
                   <Plus size={10} strokeWidth={2} aria-hidden />
                   Add mode
@@ -1644,14 +1646,14 @@ export function TokenEditor({
                 autoFocus
                 disabled={editorAddModeSaving}
                 placeholder="Mode name"
-                className="w-32 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+                className="w-32 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
               />
             </div>
           ) : (
             <button
               type="button"
               onClick={() => setAddingEditorMode(true)}
-              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+              className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
             >
               <Plus size={10} strokeWidth={2} aria-hidden />
               Add mode
@@ -1689,10 +1691,10 @@ export function TokenEditor({
           <div className="rounded-md border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-3 py-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                <p className="text-secondary font-medium text-[var(--color-figma-text)]">
                   Generated
                 </p>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <p className="text-secondary text-[var(--color-figma-text-secondary)]">
                   Managed by{" "}
                   <span className="font-medium text-[var(--color-figma-text)]">
                     {activeProducingGenerator.name}
@@ -1714,7 +1716,7 @@ export function TokenEditor({
                       }
                       onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
                     }}
-                    className="text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline"
+                    className="text-secondary font-medium text-[var(--color-figma-accent)] hover:underline"
                   >
                     Edit generator
                   </button>
@@ -1725,7 +1727,7 @@ export function TokenEditor({
                     void handleDetachGeneratorOwnership();
                   }}
                   disabled={detachingGeneratorOwnership}
-                  className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                  className="text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
                 >
                   {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
                 </button>
@@ -1735,7 +1737,7 @@ export function TokenEditor({
         )}
 
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+          <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
             Description
           </label>
           <textarea
@@ -1743,12 +1745,12 @@ export function TokenEditor({
             onChange={e => setDescription(e.target.value)}
             placeholder="Optional description"
             rows={2}
-            className="min-h-[48px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
+            className="min-h-[48px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+          <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
             Lifecycle
           </label>
           <div className="flex gap-1">
@@ -1757,7 +1759,7 @@ export function TokenEditor({
                 key={lc}
                 type="button"
                 onClick={() => setLifecycle(lc)}
-                className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                className={`rounded px-2 py-0.5 text-secondary font-medium transition-colors ${
                   lifecycle === lc
                     ? lc === "draft"
                       ? "bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ring-1 ring-[var(--color-figma-warning)]/40"
@@ -1771,7 +1773,7 @@ export function TokenEditor({
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
             {lifecycle === "draft"
               ? "Token is a work in progress and may change."
               : lifecycle === "deprecated"
@@ -1787,7 +1789,7 @@ export function TokenEditor({
         >
           <div className="mt-2 flex flex-col gap-3">
             <details className="mt-1">
-              <summary className="cursor-pointer text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
+              <summary className="cursor-pointer text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
                 Developer metadata
               </summary>
               <div className="mt-2">
@@ -1816,15 +1818,15 @@ export function TokenEditor({
             )}
 
             <details className="mt-1">
-              <summary className="cursor-pointer text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
+              <summary className="cursor-pointer text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
                 Raw JSON
               </summary>
               <div className="mt-2">
-                <pre className="max-h-56 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <pre className="max-h-56 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
                   {rawJsonPreview}
                 </pre>
                 {extensionsJsonError && (
-                  <p className="text-[10px] text-[var(--color-figma-error)]">
+                  <p className="text-secondary text-[var(--color-figma-error)]">
                     Extensions JSON is invalid. The preview excludes that invalid block until it parses.
                   </p>
                 )}
@@ -1892,10 +1894,10 @@ export function TokenEditor({
         >
           <div className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
             <div className="px-4 pt-4 pb-3">
-              <h3 className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+              <h3 className="text-heading font-semibold text-[var(--color-figma-text)]">
                 This token is generated
               </h3>
-              <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+              <p className="mt-1.5 text-body leading-relaxed text-[var(--color-figma-text-secondary)]">
                 <span className="font-medium text-[var(--color-figma-text)]">
                   {activeProducingGenerator.name}
                 </span>{" "}
@@ -1919,7 +1921,7 @@ export function TokenEditor({
                   }
                   onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
                 }}
-                className="rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-left text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+                className="rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-left text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
               >
                 Edit generator
               </button>
@@ -1931,14 +1933,14 @@ export function TokenEditor({
                 disabled={
                   generatedTokenChoiceBusy !== null || !canCreateManualException
                 }
-                className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
               >
                 {generatedTokenChoiceBusy === "manual-exception"
                   ? "Saving manual exception…"
                   : "Make manual exception"}
               </button>
               {!canCreateManualException && (
-                <p className="px-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                <p className="px-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
                   Manual exceptions only preserve the generated value. Detach this token if you need to keep description, scope, mode, lifecycle, or extension edits.
                 </p>
               )}
@@ -1948,7 +1950,7 @@ export function TokenEditor({
                   void handleDetachAndSaveGeneratedToken();
                 }}
                 disabled={generatedTokenChoiceBusy !== null}
-                className="rounded-md border border-[var(--color-figma-border)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                className="rounded-md border border-[var(--color-figma-border)] px-3 py-2 text-left text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
               >
                 {generatedTokenChoiceBusy === "detach"
                   ? "Detaching…"
@@ -1961,7 +1963,7 @@ export function TokenEditor({
                   pendingGeneratedSaveArgsRef.current = null;
                 }}
                 disabled={generatedTokenChoiceBusy !== null}
-                className="text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                className="text-body text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
               >
                 Cancel
               </button>

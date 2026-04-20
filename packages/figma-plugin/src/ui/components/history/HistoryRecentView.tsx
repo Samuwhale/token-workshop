@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Spinner } from '../Spinner';
 import { OpIcon } from '../RecentActionsSource';
 import { formatRelativeTime } from '../../shared/changeHelpers';
@@ -131,7 +131,7 @@ export function HistoryRecentView({
           onDismiss={onClearFilter}
           dismissMode="icon"
         >
-          <span className="block text-[10px] text-[var(--color-figma-text-secondary)]">
+          <span className="block text-secondary text-[var(--color-figma-text-secondary)]">
             Filtering: <span className="font-mono text-[var(--color-figma-text)] truncate">{filterTokenPath}</span>
           </span>
         </InlineBanner>
@@ -149,7 +149,7 @@ export function HistoryRecentView({
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search recent changes…"
             aria-label="Search recent changes"
-            className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            className="flex-1 min-w-0 bg-transparent text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors" aria-label="Clear search">
@@ -180,7 +180,7 @@ export function HistoryRecentView({
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><circle cx="12" cy="12" r="3" /></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-[10px] truncate min-w-0 text-[var(--color-figma-text)]">{description}</span>
+                    <span className="text-secondary truncate min-w-0 text-[var(--color-figma-text)]">{description}</span>
                   </div>
                   <div className="shrink-0 mt-0.5 flex items-center gap-1">
                     {executeUndo && (
@@ -188,7 +188,7 @@ export function HistoryRecentView({
                         onClick={() => handleUndoToEntry(stepsToUndo)}
                         disabled={isBusy}
                         title={isTop ? 'Undo this action' : `Undo this and ${stepsToUndo - 1} newer action${stepsToUndo > 2 ? 's' : ''}`}
-                        className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                        className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                       >
                         {isUndoingThis ? <span className="flex items-center gap-1"><Spinner size="xs" />Undoing…</span> : isTop ? 'Undo' : `Undo ${stepsToUndo}`}
                       </button>
@@ -209,18 +209,18 @@ export function HistoryRecentView({
                 <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
                   <div className="mt-0.5 shrink-0"><OpIcon type={op.type} /></div>
                   <div className="flex-1 min-w-0">
-                    <span className={`text-[10px] truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`}>
+                    <span className={`text-secondary truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`}>
                       {op.description}
                     </span>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{op.resourceId}</span>
-                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
-                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
+                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{op.resourceId}</span>
+                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
+                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
                     </div>
                     {isSetMetadata && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {metadataChanges.map((change) => (
-                          <span key={`${op.id}-${change.field}`} className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]" title={`${change.label}: ${formatMetadataValue(change.before)} → ${formatMetadataValue(change.after)}`}>
+                          <span key={`${op.id}-${change.field}`} className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]" title={`${change.label}: ${formatMetadataValue(change.before)} → ${formatMetadataValue(change.after)}`}>
                             {change.label}: {formatMetadataValue(change.before)} → {formatMetadataValue(change.after)}
                           </span>
                         ))}
@@ -229,18 +229,18 @@ export function HistoryRecentView({
                   </div>
                   <div className="shrink-0 mt-0.5 flex items-center gap-1">
                     {isError ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning,#f59e0b)_12%,transparent)] text-[var(--color-figma-warning,#f59e0b)]">Failed</span>
+                      <span className="text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning,#f59e0b)_12%,transparent)] text-[var(--color-figma-warning,#f59e0b)]">Failed</span>
                     ) : op.rolledBack ? (
                       <>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">Rolled back</span>
+                        <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">Rolled back</span>
                         {redoableOpIds?.has(op.id) && onServerRedo && (
-                          <button onClick={() => handleRedo(op.id)} disabled={redoing !== null || rollingBack !== null} className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
+                          <button onClick={() => handleRedo(op.id)} disabled={redoing !== null || rollingBack !== null} className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
                             {redoing === op.id ? <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span> : 'Redo'}
                           </button>
                         )}
                       </>
                     ) : (
-                      <button onClick={() => setConfirmOp(op)} disabled={rollingBack !== null} className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
+                      <button onClick={() => setConfirmOp(op)} disabled={rollingBack !== null} className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
                         {rollingBack === op.id ? <span className="flex items-center gap-1"><Spinner size="xs" />Rolling back…</span> : 'Rollback'}
                       </button>
                     )}
@@ -251,7 +251,7 @@ export function HistoryRecentView({
 
             {hasMoreOperations && onLoadMoreOperations && (
               <div className="px-3 py-2 border-b border-[var(--color-figma-border)]">
-                <button onClick={onLoadMoreOperations} className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]">
+                <button onClick={onLoadMoreOperations} className="w-full text-secondary py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]">
                   Load more saved edits{totalOperations != null ? ` (${totalOperations - (recentOperations?.length ?? 0)} remaining)` : ''}
                 </button>
               </div>

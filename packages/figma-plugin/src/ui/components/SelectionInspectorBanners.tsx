@@ -68,14 +68,14 @@ export function SelectionInspectorBanners({
             <circle cx="9" cy="7" r="4" />
             <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
           </svg>
-          <span className="flex-1 text-[10px] text-[var(--color-figma-text)]">
+          <span className="flex-1 text-secondary text-[var(--color-figma-text)]">
             Apply <strong>{PROPERTY_LABELS[peerSuggestion.property]}</strong> to{" "}
             {peerSuggestion.peerIds.length} sibling
             {peerSuggestion.peerIds.length !== 1 ? "s" : ""}?
           </span>
           <button
             onClick={onApplyPeerSuggestion}
-            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
           >
             Apply
           </button>
@@ -118,14 +118,14 @@ export function SelectionInspectorBanners({
             <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
           </svg>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-[10px] leading-snug text-[var(--color-figma-text)]">
+            <span className="text-secondary leading-snug text-[var(--color-figma-text)]">
               Apply{" "}
               <strong className="font-mono">
                 {propTypeSuggestion.tokenPath}
               </strong>{" "}
               to all <strong>{propTypeSuggestion.tokenType}</strong> properties?
             </span>
-            <span className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
               {propTypeSuggestion.targetProps
                 .map((prop) => PROPERTY_LABELS[prop])
                 .join(", ")}
@@ -133,7 +133,7 @@ export function SelectionInspectorBanners({
           </div>
           <button
             onClick={onApplyPropTypeSuggestion}
-            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
           >
             Apply to all
           </button>
@@ -176,11 +176,11 @@ export function SelectionInspectorBanners({
           }
         >
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            <span className="text-secondary font-medium text-[var(--color-figma-text)]">
               All properties bound
             </span>
             {noMoreSiblings ? (
-              <span className="text-[10px] italic text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary italic text-[var(--color-figma-text-secondary)]">
                 No more layers
               </span>
             ) : null}
@@ -195,7 +195,7 @@ export function SelectionInspectorBanners({
           size="sm"
           className="border-b-0 border-t"
         >
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
             Applying… {applyProgress.processed}/{applyProgress.total} layers
           </span>
         </InlineBanner>
@@ -224,7 +224,7 @@ export function SelectionInspectorBanners({
           dismissMode="icon"
         >
           <span
-            className="block truncate font-mono text-[10px] text-[var(--color-figma-text)]"
+            className="block truncate font-mono text-secondary text-[var(--color-figma-text)]"
             title={createdTokenPath}
           >
             {createdTokenPath}

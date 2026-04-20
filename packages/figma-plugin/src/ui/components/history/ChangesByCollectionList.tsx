@@ -15,7 +15,7 @@ import { stableStringify } from '../../shared/utils';
 export function StatusBadge({ status }: { status: ChangeStatus }) {
   return (
     <span
-      className="text-[10px] font-medium uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
+      className="text-secondary font-medium uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
       style={{
         color: statusColor(status),
         backgroundColor: `color-mix(in srgb, ${statusColor(status)} 12%, transparent)`,
@@ -38,10 +38,10 @@ export function ChangeRow({ change, restoreButton }: { change: TokenChange; rest
     <div className="px-3 py-2 space-y-1 group/row relative">
       <div className="flex items-center gap-2">
         <StatusBadge status={change.status} />
-        <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={change.path}>
+        <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={change.path}>
           {change.path}
         </span>
-        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.type}</span>
+        <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0">{change.type}</span>
         {restoreButton}
       </div>
 
@@ -49,7 +49,7 @@ export function ChangeRow({ change, restoreButton }: { change: TokenChange; rest
         <ValueDiff type={change.type} before={change.before} after={change.after} />
       )}
       {change.status === 'modified' && changedFieldSummary.length > 0 && (
-        <div className="pl-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="pl-1 text-secondary text-[var(--color-figma-text-secondary)]">
           Updated {changedFieldSummary}
         </div>
       )}
@@ -58,7 +58,7 @@ export function ChangeRow({ change, restoreButton }: { change: TokenChange; rest
           {change.type === 'color' && typeof change.after === 'string' && (
             <ColorSwatch color={change.after} />
           )}
-          <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">
             {formatTokenValue(change.type, change.after)}
           </span>
         </div>
@@ -68,7 +68,7 @@ export function ChangeRow({ change, restoreButton }: { change: TokenChange; rest
           {change.type === 'color' && typeof change.before === 'string' && (
             <ColorSwatch color={change.before} />
           )}
-          <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] line-through">
+          <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] line-through">
             {formatTokenValue(change.type, change.before)}
           </span>
         </div>
@@ -113,7 +113,7 @@ export function ChangesByCollectionList({
       {showSummaryBar && (
         <div className="flex items-center gap-2 px-1 py-1">
           <ChangeSummaryBadges {...summarizeChanges(changes)} />
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
             across {changesByCollection.size} collection{changesByCollection.size !== 1 ? 's' : ''}
           </span>
         </div>

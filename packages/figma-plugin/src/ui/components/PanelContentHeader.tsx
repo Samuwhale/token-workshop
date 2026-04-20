@@ -62,7 +62,7 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
         <button
           onClick={returnFromHandoff}
           aria-label={visibleHandoff.returnLabel}
-          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
         >
           &larr; {visibleHandoff.returnLabel}
         </button>
@@ -73,7 +73,7 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
           <button
             onClick={primaryAction.onClick}
             disabled={primaryAction.disabled}
-            className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 disabled:cursor-not-allowed disabled:opacity-40"
+            className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {primaryAction.label}
           </button>

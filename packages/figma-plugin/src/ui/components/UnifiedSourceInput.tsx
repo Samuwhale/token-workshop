@@ -64,6 +64,7 @@ export function UnifiedSourceInput({
           { value: 'value' as SourceMode, label: 'Enter value' },
         ]}
         value={mode}
+        label="Source input mode"
         onChange={(newMode) => {
           if (newMode === 'token' && mode !== 'token') {
             if (stashedTokenPathRef.current) {
@@ -109,7 +110,7 @@ export function UnifiedSourceInput({
                   style={{ backgroundColor: swatchBgColor(resolvedDisplay) }}
                 />
               )}
-              <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">
                 {typeof resolvedDisplay === 'object'
                   ? JSON.stringify(resolvedDisplay)
                   : String(resolvedDisplay)}
@@ -156,7 +157,7 @@ export function UnifiedSourceInput({
           })()}
 
           {expectedType === null && (
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[var(--color-figma-text-secondary)]">
               This outcome does not require a base value.
             </p>
           )}
@@ -233,7 +234,7 @@ function MatchingTokenSuggestions({
 
   return (
     <div className="border-t border-[var(--color-figma-border)] pt-2">
-      <span className="text-[10px] text-[var(--color-figma-text-secondary)] block mb-1">
+      <span className="text-secondary text-[var(--color-figma-text-secondary)] block mb-1">
         Existing tokens with this value:
       </span>
       <div className="flex flex-col gap-0.5">
@@ -249,10 +250,10 @@ function MatchingTokenSuggestions({
                 style={{ backgroundColor: swatchBgColor(tv) }}
               />
             )}
-            <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text)] truncate">
+            <span className="flex-1 text-secondary font-mono text-[var(--color-figma-text)] truncate">
               {path}
             </span>
-            <span className="text-[10px] text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 shrink-0">
+            <span className="text-secondary text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 shrink-0">
               Use token
             </span>
           </button>

@@ -151,7 +151,7 @@ export function SpacingPreview({ tokens, overrides, onOverrideChange, onOverride
             <div className="flex-1 h-2 rounded-sm bg-[var(--color-figma-bg)] overflow-hidden">
               <div className="h-full rounded-sm bg-[var(--color-figma-accent)]" style={{ width: `${pct}%`, opacity: 0.7 }} />
             </div>
-            <span className="w-14 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right">{formatValue(t.value)}</span>
+            <span className="w-14 text-secondary text-[var(--color-figma-text-secondary)] shrink-0 text-right">{formatValue(t.value)}</span>
           </OverrideRow>
         );
       })}
@@ -227,7 +227,7 @@ export function SpacingScaleConfigEditor({ config, onChange, onInteractionStart 
                     />
                   ))}
                 </div>
-                <span className={`text-[10px] font-medium text-center ${
+                <span className={`text-secondary font-medium text-center ${
                   isActive ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
                 }`}>{preset.label}</span>
               </button>
@@ -237,7 +237,7 @@ export function SpacingScaleConfigEditor({ config, onChange, onInteractionStart 
         <button
           type="button"
           onClick={() => setShowFullEditor(v => !v)}
-          className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
+          className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
         >
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showFullEditor ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
           Customize
@@ -246,15 +246,15 @@ export function SpacingScaleConfigEditor({ config, onChange, onInteractionStart 
 
       {showFullEditor && <>
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5 flex-wrap">
           {SPACING_STEP_PRESETS.map((preset, i) => (
             <button key={preset.label} title={preset.description} onClick={() => { onInteractionStart?.(); setShowSteps(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) }); }}
-              className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!showSteps && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+              className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${!showSteps && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
         </div>
-        <button onClick={() => setShowSteps(v => !v)} className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
+        <button onClick={() => setShowSteps(v => !v)} className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showSteps ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
           Edit steps ({config.steps.length})
         </button>
@@ -264,24 +264,24 @@ export function SpacingScaleConfigEditor({ config, onChange, onInteractionStart 
               <div key={i} className="flex items-center gap-1.5">
                 <input value={step.name} onChange={e => updateStep(i, { name: e.target.value })}
                   aria-label={`Step ${i + 1} name`}
-                  placeholder="name" className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">&times;</span>
+                  placeholder="name" className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)]" />
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">&times;</span>
                 <input type="number" step="0.5" value={step.multiplier} onFocus={onInteractionStart} onChange={e => updateStep(i, { multiplier: Number(e.target.value), name: step.name === String(step.multiplier) ? e.target.value : step.name })}
                   aria-label={`Step ${step.name} multiplier`}
-                  className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
-                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">&times;</button>
+                  className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]" />
+                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-secondary">&times;</button>
               </div>
             ))}
-            <button onClick={addStep} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
+            <button onClick={addStep} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
           </div>
         )}
       </div>
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Unit</label>
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Unit</label>
         <div className="flex gap-1">
           {(['px', 'rem'] as const).map(u => (
             <button key={u} onClick={() => onChange({ ...config, unit: u })}
-              className={`px-3 py-1 rounded text-[10px] font-medium border transition-colors ${config.unit === u ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+              className={`px-3 py-1 rounded text-secondary font-medium border transition-colors ${config.unit === u ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{u}</button>
           ))}
         </div>

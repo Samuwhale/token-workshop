@@ -1,11 +1,26 @@
 @import "tailwindcss";
 
+@theme {
+  --font-size-micro: 9px;
+  --font-size-secondary: 10px;
+  --font-size-body: 11px;
+  --font-size-subheading: 12px;
+  --font-size-heading: 15px;
+  --font-size-title: 18px;
+  --font-size-xs: 9px;
+  --font-size-sm: 10px;
+  --font-size-base: 11px;
+  --font-size-lg: 15px;
+  --font-size-xl: 18px;
+}
+
 :root {
-  /* Type scale */
-  --font-size-xs: 9px;    /* micro: notification badges */
-  --font-size-sm: 10px;   /* secondary: captions, metadata, form labels */
-  --font-size-base: 11px; /* primary: body text, inputs, navigation */
-  --font-size-lg: 14px;   /* headings: dialog titles, panel titles */
+  --font-size-xs: 9px;
+  --font-size-sm: 10px;
+  --font-size-base: 11px;
+  --font-size-md: 12px;
+  --font-size-lg: 15px;
+  --font-size-xl: 18px;
   --leading-heading: 1.2;
   --leading-tight: 1.3;
   --leading-body: 1.45;
@@ -23,56 +38,56 @@
   --color-figma-success: #14ae5c;
   --color-figma-warning: #f2a20d;
   --color-figma-error: #f24822;
-  --token-badge-color-bg: #e74c3c33;
-  --token-badge-color-text: #e74c3c;
-  --token-badge-dimension-bg: #3498db33;
-  --token-badge-dimension-text: #3498db;
-  --token-badge-typography-bg: #9b59b633;
-  --token-badge-typography-text: #9b59b6;
-  --token-badge-shadow-bg: #2c3e5033;
-  --token-badge-shadow-text: #b8c9ca;
-  --token-badge-border-bg: #e67e2233;
-  --token-badge-border-text: #e67e22;
-  --token-badge-number-bg: #1abc9c33;
-  --token-badge-number-text: #40ceb2;
-  --token-badge-string-bg: #f39c1233;
-  --token-badge-string-text: #f39c12;
-  --token-badge-boolean-bg: #2ecc7133;
-  --token-badge-boolean-text: #2ecc71;
-  --token-badge-gradient-bg: #e056fd33;
-  --token-badge-gradient-text: #e056fd;
-  --token-badge-duration-bg: #00cec933;
-  --token-badge-duration-text: #40d9d4;
-  --token-badge-fontFamily-bg: #9b59b633;
-  --token-badge-fontFamily-text: #9b59b6;
-  --token-badge-composition-bg: #e056fd33;
-  --token-badge-composition-text: #e056fd;
-  --token-badge-asset-bg: #636e7233;
-  --token-badge-asset-text: #b2bec3;
-  --token-badge-cubicBezier-bg: #00cec933;
-  --token-badge-cubicBezier-text: #40d9d4;
-  --token-badge-transition-bg: #e056fd33;
-  --token-badge-transition-text: #e056fd;
-  --token-badge-fontStyle-bg: #9b59b633;
-  --token-badge-fontStyle-text: #9b59b6;
-  --token-badge-lineHeight-bg: #3498db33;
-  --token-badge-lineHeight-text: #3498db;
-  --token-badge-letterSpacing-bg: #3498db33;
-  --token-badge-letterSpacing-text: #3498db;
-  --token-badge-percentage-bg: #3498db33;
-  --token-badge-percentage-text: #3498db;
-  --token-badge-link-bg: #0d99ff33;
-  --token-badge-link-text: #0d99ff;
-  --token-badge-textDecoration-bg: #9b59b633;
-  --token-badge-textDecoration-text: #9b59b6;
-  --token-badge-textTransform-bg: #9b59b633;
-  --token-badge-textTransform-text: #9b59b6;
-  --token-badge-custom-bg: #636e7233;
-  --token-badge-custom-text: #b2bec3;
-  --token-badge-fontWeight-bg: #9b59b633;
-  --token-badge-fontWeight-text: #9b59b6;
-  --token-badge-strokeStyle-bg: #e67e2233;
-  --token-badge-strokeStyle-text: #e67e22;
+  --token-badge-color-bg: #e74c3c26;
+  --token-badge-color-text: #f27a6a;
+  --token-badge-dimension-bg: #3498db26;
+  --token-badge-dimension-text: #5bb8f0;
+  --token-badge-typography-bg: #9b59b626;
+  --token-badge-typography-text: #b97fd4;
+  --token-badge-shadow-bg: #2db5a026;
+  --token-badge-shadow-text: #4fd4bf;
+  --token-badge-border-bg: #2db5a026;
+  --token-badge-border-text: #4fd4bf;
+  --token-badge-number-bg: #7c8a9226;
+  --token-badge-number-text: #a3b1bd;
+  --token-badge-string-bg: #7c8a9226;
+  --token-badge-string-text: #a3b1bd;
+  --token-badge-boolean-bg: #7c8a9226;
+  --token-badge-boolean-text: #a3b1bd;
+  --token-badge-gradient-bg: #e74c3c26;
+  --token-badge-gradient-text: #f27a6a;
+  --token-badge-duration-bg: #7c8a9226;
+  --token-badge-duration-text: #a3b1bd;
+  --token-badge-fontFamily-bg: #9b59b626;
+  --token-badge-fontFamily-text: #b97fd4;
+  --token-badge-composition-bg: #2db5a026;
+  --token-badge-composition-text: #4fd4bf;
+  --token-badge-asset-bg: #7c8a9226;
+  --token-badge-asset-text: #a3b1bd;
+  --token-badge-cubicBezier-bg: #7c8a9226;
+  --token-badge-cubicBezier-text: #a3b1bd;
+  --token-badge-transition-bg: #2db5a026;
+  --token-badge-transition-text: #4fd4bf;
+  --token-badge-fontStyle-bg: #9b59b626;
+  --token-badge-fontStyle-text: #b97fd4;
+  --token-badge-lineHeight-bg: #3498db26;
+  --token-badge-lineHeight-text: #5bb8f0;
+  --token-badge-letterSpacing-bg: #3498db26;
+  --token-badge-letterSpacing-text: #5bb8f0;
+  --token-badge-percentage-bg: #3498db26;
+  --token-badge-percentage-text: #5bb8f0;
+  --token-badge-link-bg: #7c8a9226;
+  --token-badge-link-text: #a3b1bd;
+  --token-badge-textDecoration-bg: #9b59b626;
+  --token-badge-textDecoration-text: #b97fd4;
+  --token-badge-textTransform-bg: #9b59b626;
+  --token-badge-textTransform-text: #b97fd4;
+  --token-badge-custom-bg: #7c8a9226;
+  --token-badge-custom-text: #a3b1bd;
+  --token-badge-fontWeight-bg: #9b59b626;
+  --token-badge-fontWeight-text: #b97fd4;
+  --token-badge-strokeStyle-bg: #2db5a026;
+  --token-badge-strokeStyle-text: #4fd4bf;
 
   /* Token type colors — used in stats bar segments */
   --color-token-type-color: #e85d4a;
@@ -118,57 +133,56 @@ html.figma-light {
   --color-figma-warning: #f2a20d;
   --color-figma-error: #f24822;
 
-  /* Token badge colors — lower-opacity backgrounds, darker saturated text */
-  --token-badge-color-bg: #e74c3c1a;
+  --token-badge-color-bg: #e74c3c14;
   --token-badge-color-text: #c0392b;
-  --token-badge-dimension-bg: #3498db1a;
-  --token-badge-dimension-text: #2471a3;
-  --token-badge-typography-bg: #9b59b61a;
-  --token-badge-typography-text: #76448a;
-  --token-badge-shadow-bg: #2c3e501a;
-  --token-badge-shadow-text: #2c3e50;
-  --token-badge-border-bg: #e67e221a;
-  --token-badge-border-text: #c46c15;
-  --token-badge-number-bg: #1abc9c1a;
-  --token-badge-number-text: #148f77;
-  --token-badge-string-bg: #f39c121a;
-  --token-badge-string-text: #d4850a;
-  --token-badge-boolean-bg: #2ecc711a;
-  --token-badge-boolean-text: #1e8449;
-  --token-badge-gradient-bg: #e056fd1a;
-  --token-badge-gradient-text: #a435c9;
-  --token-badge-duration-bg: #00cec91a;
-  --token-badge-duration-text: #0e948f;
-  --token-badge-fontFamily-bg: #9b59b61a;
-  --token-badge-fontFamily-text: #76448a;
-  --token-badge-composition-bg: #e056fd1a;
-  --token-badge-composition-text: #a435c9;
-  --token-badge-asset-bg: #636e721a;
-  --token-badge-asset-text: #4d5656;
-  --token-badge-cubicBezier-bg: #00cec91a;
-  --token-badge-cubicBezier-text: #0e948f;
-  --token-badge-transition-bg: #e056fd1a;
-  --token-badge-transition-text: #a435c9;
-  --token-badge-fontStyle-bg: #9b59b61a;
-  --token-badge-fontStyle-text: #76448a;
-  --token-badge-lineHeight-bg: #3498db1a;
-  --token-badge-lineHeight-text: #2471a3;
-  --token-badge-letterSpacing-bg: #3498db1a;
-  --token-badge-letterSpacing-text: #2471a3;
-  --token-badge-percentage-bg: #3498db1a;
-  --token-badge-percentage-text: #2471a3;
-  --token-badge-link-bg: #0d99ff1a;
-  --token-badge-link-text: #0a7dd4;
-  --token-badge-textDecoration-bg: #9b59b61a;
-  --token-badge-textDecoration-text: #76448a;
-  --token-badge-textTransform-bg: #9b59b61a;
-  --token-badge-textTransform-text: #76448a;
-  --token-badge-custom-bg: #636e721a;
-  --token-badge-custom-text: #4d5656;
-  --token-badge-fontWeight-bg: #9b59b61a;
-  --token-badge-fontWeight-text: #76448a;
-  --token-badge-strokeStyle-bg: #e67e221a;
-  --token-badge-strokeStyle-text: #c46c15;
+  --token-badge-dimension-bg: #2471a314;
+  --token-badge-dimension-text: #1a6694;
+  --token-badge-typography-bg: #76448a14;
+  --token-badge-typography-text: #6b3a7d;
+  --token-badge-shadow-bg: #1a8c7c14;
+  --token-badge-shadow-text: #15705f;
+  --token-badge-border-bg: #1a8c7c14;
+  --token-badge-border-text: #15705f;
+  --token-badge-number-bg: #5c6b7514;
+  --token-badge-number-text: #4d5a63;
+  --token-badge-string-bg: #5c6b7514;
+  --token-badge-string-text: #4d5a63;
+  --token-badge-boolean-bg: #5c6b7514;
+  --token-badge-boolean-text: #4d5a63;
+  --token-badge-gradient-bg: #e74c3c14;
+  --token-badge-gradient-text: #c0392b;
+  --token-badge-duration-bg: #5c6b7514;
+  --token-badge-duration-text: #4d5a63;
+  --token-badge-fontFamily-bg: #76448a14;
+  --token-badge-fontFamily-text: #6b3a7d;
+  --token-badge-composition-bg: #1a8c7c14;
+  --token-badge-composition-text: #15705f;
+  --token-badge-asset-bg: #5c6b7514;
+  --token-badge-asset-text: #4d5a63;
+  --token-badge-cubicBezier-bg: #5c6b7514;
+  --token-badge-cubicBezier-text: #4d5a63;
+  --token-badge-transition-bg: #1a8c7c14;
+  --token-badge-transition-text: #15705f;
+  --token-badge-fontStyle-bg: #76448a14;
+  --token-badge-fontStyle-text: #6b3a7d;
+  --token-badge-lineHeight-bg: #2471a314;
+  --token-badge-lineHeight-text: #1a6694;
+  --token-badge-letterSpacing-bg: #2471a314;
+  --token-badge-letterSpacing-text: #1a6694;
+  --token-badge-percentage-bg: #2471a314;
+  --token-badge-percentage-text: #1a6694;
+  --token-badge-link-bg: #5c6b7514;
+  --token-badge-link-text: #4d5a63;
+  --token-badge-textDecoration-bg: #76448a14;
+  --token-badge-textDecoration-text: #6b3a7d;
+  --token-badge-textTransform-bg: #76448a14;
+  --token-badge-textTransform-text: #6b3a7d;
+  --token-badge-custom-bg: #5c6b7514;
+  --token-badge-custom-text: #4d5a63;
+  --token-badge-fontWeight-bg: #76448a14;
+  --token-badge-fontWeight-text: #6b3a7d;
+  --token-badge-strokeStyle-bg: #1a8c7c14;
+  --token-badge-strokeStyle-text: #15705f;
 
   /* Token type colors — stats bar segments */
   --color-token-type-color: #c0392b;
@@ -499,7 +513,7 @@ select:focus-visible,
 }
 
 .tm-generator-authoring__title {
-  font-size: 12px;
+  font-size: var(--font-size-md);
   line-height: var(--leading-tight);
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -539,7 +553,7 @@ select:focus-visible,
   border-radius: 8px;
   background: var(--color-figma-bg);
   padding: 8px 10px;
-  font-size: 11px;
+  font-size: var(--font-size-base);
   line-height: 1.4;
   color: var(--color-figma-text);
 }
@@ -564,14 +578,14 @@ select:focus-visible,
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 4px 8px;
-  font-size: 10px;
+  font-size: var(--font-size-sm);
   line-height: 1.45;
   color: var(--color-figma-text-secondary);
 }
 
 .tm-generator-authoring__summary-label {
   flex: 0 0 auto;
-  font-size: 10px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-figma-text-secondary);
 }

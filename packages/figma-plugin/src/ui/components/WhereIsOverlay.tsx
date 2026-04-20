@@ -32,6 +32,7 @@ export function WhereIsOverlay({
           onClick={onClose}
           className="flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
           title="Close"
+          aria-label="Close"
         >
           <svg
             width="8"
@@ -50,13 +51,13 @@ export function WhereIsOverlay({
           </svg>
         </button>
         <span
-          className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate"
+          className="flex-1 min-w-0 font-mono text-secondary text-[var(--color-figma-text)] truncate"
           title={whereIsPath}
         >
           {whereIsPath}
         </span>
         {!whereIsLoading && whereIsResults !== null && (
-          <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
             {whereIsResults.length} collection
             {whereIsResults.length !== 1 ? "s" : ""}
           </span>
@@ -66,11 +67,11 @@ export function WhereIsOverlay({
       {/* Body */}
       <div className="flex-1 overflow-y-auto">
         {whereIsLoading ? (
-          <div className="py-3 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <div className="py-3 text-center text-secondary text-[var(--color-figma-text-tertiary)]">
             Searching\u2026
           </div>
         ) : whereIsResults !== null && whereIsResults.length === 0 ? (
-          <div className="py-3 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <div className="py-3 text-center text-secondary text-[var(--color-figma-text-tertiary)]">
             Token not found in any collection
           </div>
         ) : whereIsResults !== null ? (
@@ -103,7 +104,7 @@ export function WhereIsOverlay({
                   {/* Set name + value */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
+                      <span className="text-body font-medium text-[var(--color-figma-text)] truncate">
                         {def.collectionId}
                       </span>
                       {i === 0 && (
@@ -118,7 +119,7 @@ export function WhereIsOverlay({
                       )}
                     </div>
                     <div
-                      className="font-mono text-[10px] text-[var(--color-figma-text-secondary)] truncate"
+                      className="font-mono text-secondary text-[var(--color-figma-text-secondary)] truncate"
                       title={valueLabel}
                     >
                       {valueLabel}
@@ -137,7 +138,7 @@ export function WhereIsOverlay({
                   </span>
                   {/* Navigate button */}
                   <button
-                    className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                    className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
                     onClick={() =>
                       onNavigateToCollection?.(def.collectionId, whereIsPath)
                     }

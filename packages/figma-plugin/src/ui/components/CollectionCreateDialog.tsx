@@ -102,7 +102,7 @@ export function CollectionCreateDialog({
         <div className="border-b border-[var(--color-figma-border)] px-4 py-3">
           <h2
             id="new-collection-dialog-title"
-            className="text-[14px] font-semibold text-[var(--color-figma-text)]"
+            className="text-heading font-semibold text-[var(--color-figma-text)]"
           >
             New collection
           </h2>
@@ -110,7 +110,7 @@ export function CollectionCreateDialog({
 
         <div className="flex flex-col gap-3 px-4 py-3">
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary text-[var(--color-figma-text-secondary)]">
               Name
             </span>
             <input
@@ -123,12 +123,12 @@ export function CollectionCreateDialog({
               }}
               placeholder="primitives"
               disabled={pending}
-              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
             />
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary text-[var(--color-figma-text-secondary)]">
               Folder path
             </span>
             <input
@@ -140,24 +140,24 @@ export function CollectionCreateDialog({
               }}
               placeholder="brand or brand/colors"
               disabled={pending}
-              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
             />
           </label>
 
           {fullSetName && (
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="text-secondary text-[var(--color-figma-text-secondary)]">
               Creates <span className="font-mono text-[var(--color-figma-text)]">{fullSetName}</span>
             </div>
           )}
 
-          {error && <div className="text-[10px] text-[var(--color-figma-error)]">{error}</div>}
+          {error && <div className="text-secondary text-[var(--color-figma-error)]">{error}</div>}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-[var(--color-figma-border)] px-4 py-3">
           <button
             type="button"
             onClick={onClose}
-            className="rounded px-2 py-1 text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded px-2 py-1 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>
@@ -165,7 +165,7 @@ export function CollectionCreateDialog({
             type="button"
             onClick={() => void handleSubmit()}
             disabled={pending || !name.trim()}
-            className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {pending ? "Creating…" : "Done"}
           </button>

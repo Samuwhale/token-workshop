@@ -95,7 +95,7 @@ export function UnusedTokensPanel({
   const unusedCount = unusedTokens.length;
 
   const content = unusedCount === 0 ? (
-    <div className={`px-3 ${embedded ? 'py-12 text-center' : 'py-3'} text-[10px] text-[var(--color-figma-text-secondary)]`}>
+    <div className={`px-3 ${embedded ? 'py-12 text-center' : 'py-3'} text-secondary text-[var(--color-figma-text-secondary)]`}>
       No unused tokens — all tokens are either used in Figma or referenced by other tokens.
     </div>
   ) : (
@@ -112,19 +112,19 @@ export function UnusedTokensPanel({
                     <div className="w-full px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                       <button onClick={() => toggleCollection(group.collectionId)} className="flex items-center gap-2 min-w-0 flex-1">
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                        <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">{group.collectionId}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text-secondary)] tabular-nums shrink-0">{group.tokens.length}</span>
+                        <span className="text-body font-semibold text-[var(--color-figma-text)] truncate">{group.collectionId}</span>
+                        <span className="text-secondary text-[var(--color-figma-text-secondary)] tabular-nums shrink-0">{group.tokens.length}</span>
                       </button>
                       <div className="shrink-0 flex items-center gap-1">
                         <button
                           onClick={() => confirm.trigger(`${collKey}:deprecate`, () => runAction(group.tokens, 'deprecate'))}
-                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                         >
                           {confirm.isPending(`${collKey}:deprecate`) ? 'Confirm?' : 'Deprecate all'}
                         </button>
                         <button
                           onClick={() => confirm.trigger(`${collKey}:delete`, () => runAction(group.tokens, 'delete'))}
-                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
+                          className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
                         >
                           {confirm.isPending(`${collKey}:delete`) ? 'Confirm?' : 'Delete all'}
                         </button>
@@ -143,21 +143,21 @@ export function UnusedTokensPanel({
                                 disabled={!onNavigateToToken || isBusy}
                                 className="min-w-0 flex-1 text-left disabled:cursor-default"
                               >
-                                <div className={`text-[10px] font-mono truncate ${isBusy ? 'opacity-40 text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{token.path}</div>
-                                <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">{token.$type}</div>
+                                <div className={`text-secondary font-mono truncate ${isBusy ? 'opacity-40 text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{token.path}</div>
+                                <div className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">{token.$type}</div>
                               </button>
                               <div className="shrink-0 flex items-center gap-1">
                                 <button
                                   onClick={() => confirm.trigger(`${tokenKey}:deprecate`, () => runAction([token], 'deprecate'))}
                                   disabled={isBusy}
-                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 >
                                   {confirm.isPending(`${tokenKey}:deprecate`) ? 'Confirm?' : 'Deprecate'}
                                 </button>
                                 <button
                                   onClick={() => confirm.trigger(`${tokenKey}:delete`, () => runAction([token], 'delete'))}
                                   disabled={isBusy}
-                                  className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 >
                                   {confirm.isPending(`${tokenKey}:delete`) ? 'Confirm?' : 'Delete'}
                                 </button>
@@ -171,7 +171,7 @@ export function UnusedTokensPanel({
                               ...prev,
                               [group.collectionId]: visibleLimit + Math.min(remainingCount, ITEMS_PER_PAGE),
                             }))}
-                            className="w-full px-3 py-2 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center"
+                            className="w-full px-3 py-2 text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center"
                           >
                             Show {Math.min(remainingCount, ITEMS_PER_PAGE)} more{remainingCount > ITEMS_PER_PAGE ? ` of ${remainingCount} remaining` : ''}
                           </button>
@@ -193,9 +193,9 @@ export function UnusedTokensPanel({
         className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
       >
         <span className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Unused tokens</span>
+          <span className="text-body font-semibold text-[var(--color-figma-text)]">Unused tokens</span>
           {unusedCount > 0 && (
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{unusedCount}</span>
+            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{unusedCount}</span>
           )}
         </span>
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showUnused ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>

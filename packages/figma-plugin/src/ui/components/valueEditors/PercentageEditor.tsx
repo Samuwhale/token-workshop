@@ -12,7 +12,7 @@ export const PercentageEditor = memo(function PercentageEditor({ value, onChange
         onChange={e => onChange(parseFloat(e.target.value) || 0)}
         className={inputClass + ' flex-1'}
       />
-      <span className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0">%</span>
+      <span className="text-body text-[var(--color-figma-text-secondary)] shrink-0">%</span>
     </div>
   );
 });

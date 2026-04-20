@@ -305,7 +305,7 @@ export function FormulaInput({
     <div className="relative flex-1">
       {/* Highlighted overlay */}
       <div
-        className="absolute inset-0 pointer-events-none px-2 py-1.5 text-[11px] font-mono whitespace-pre overflow-hidden"
+        className="absolute inset-0 pointer-events-none px-2 py-1.5 text-body font-mono whitespace-pre overflow-hidden"
         aria-hidden="true"
       >
         {segments.map((seg, i) => {
@@ -347,7 +347,7 @@ export function FormulaInput({
           ref={listRef}
           className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
         >
-          <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] border-b border-[var(--color-figma-border)] uppercase tracking-wider">
+          <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] border-b border-[var(--color-figma-border)] uppercase tracking-wider">
             Token references
           </div>
           {acEntries.map(([path, entry], idx) => (
@@ -371,11 +371,11 @@ export function FormulaInput({
               )}
 
               {/* Path */}
-              <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate font-mono">{path}</span>
+              <span className="flex-1 text-secondary text-[var(--color-figma-text)] truncate font-mono">{path}</span>
 
               {/* Value preview */}
               {formatValueShort(entry.$value) && (
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate max-w-[80px] shrink-0">
+                <span className="text-secondary text-[var(--color-figma-text-secondary)] truncate max-w-[80px] shrink-0">
                   {formatValueShort(entry.$value)}
                 </span>
               )}
@@ -399,18 +399,18 @@ export function FormulaInput({
       {/* Operator hints bar */}
       {showOperatorHints && !showAutocomplete && (
         <div className="absolute z-40 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg px-1 py-1 flex items-center gap-0.5 flex-wrap">
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] mr-1">Operators:</span>
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)] mr-1">Operators:</span>
           {OPERATORS.map(({ op, label }) => (
             <button
               key={op}
               onMouseDown={e => { e.preventDefault(); insertOperator(op); }}
               title={label}
-              className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+              className="px-1.5 py-0.5 rounded text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
             >
               {op}
             </button>
           ))}
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] ml-1">Type <kbd className="px-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">{'{'}</kbd> for token ref</span>
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-1">Type <kbd className="px-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">{'{'}</kbd> for token ref</span>
         </div>
       )}
     </div>

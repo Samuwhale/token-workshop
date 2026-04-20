@@ -23,13 +23,13 @@ function LinkIcon() {
 function MatchLabel({ label }: { label: 'Exact' | 'Close' }) {
   if (label === 'Exact') {
     return (
-      <span className="px-1 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
+      <span className="px-1 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
         Exact
       </span>
     );
   }
   return (
-    <span className="px-1 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">
+    <span className="px-1 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">
       Close
     </span>
   );
@@ -54,21 +54,21 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
     const pathParts = m.path.split('.');
     const leafName = pathParts[pathParts.length - 1];
     return (
-      <div className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded bg-[var(--color-figma-accent)]/8 border border-dashed border-[var(--color-figma-accent)]/30 text-[10px] text-[var(--color-figma-accent)]">
+      <div className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded bg-[var(--color-figma-accent)]/8 border border-dashed border-[var(--color-figma-accent)]/30 text-secondary text-[var(--color-figma-accent)]">
         <LinkIcon />
         <span className="flex-1 min-w-0 flex items-center gap-1.5">
           <span className="opacity-60">Did you mean</span>
           <button
             type="button"
             onClick={() => onAccept(m.path)}
-            className="inline-flex items-center gap-1 font-medium hover:underline cursor-pointer bg-transparent border-none p-0 text-[var(--color-figma-accent)] text-[10px]"
+            className="inline-flex items-center gap-1 font-medium hover:underline cursor-pointer bg-transparent border-none p-0 text-[var(--color-figma-accent)] text-secondary"
           >
             {isColor && <ColorSwatch color={m.resolvedValue} />}
             <strong>{`{${formatDisplayPath(m.path, leafName)}}`}</strong>
           </button>
           <MatchLabel label={m.label} />
           {m.label === 'Close' && (
-            <span className="opacity-40 text-[10px]">
+            <span className="opacity-40 text-secondary">
               {isColor ? `ΔE ${m.distance.toFixed(1)}` : formatValue(tokenType, m.resolvedValue)}
             </span>
           )}
@@ -77,7 +77,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
           <button
             type="button"
             onClick={onDismiss}
-            className="opacity-40 hover:opacity-100 cursor-pointer bg-transparent border-none p-0 text-[var(--color-figma-accent)] text-[10px] leading-none"
+            className="opacity-40 hover:opacity-100 cursor-pointer bg-transparent border-none p-0 text-[var(--color-figma-accent)] text-secondary leading-none"
             aria-label="Dismiss suggestion"
           >
             &times;
@@ -89,7 +89,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
 
   // Multiple matches
   return (
-    <div className="w-full rounded bg-[var(--color-figma-accent)]/8 border border-dashed border-[var(--color-figma-accent)]/30 text-[10px] text-[var(--color-figma-accent)] overflow-hidden">
+    <div className="w-full rounded bg-[var(--color-figma-accent)]/8 border border-dashed border-[var(--color-figma-accent)]/30 text-secondary text-[var(--color-figma-accent)] overflow-hidden">
       <div className="flex items-center justify-between px-2 py-1 opacity-60">
         <span className="flex items-center gap-1">
           <LinkIcon />
@@ -99,7 +99,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
           <button
             type="button"
             onClick={onDismiss}
-            className="opacity-40 hover:opacity-100 cursor-pointer bg-transparent border-none p-0 text-[var(--color-figma-accent)] text-[10px] leading-none"
+            className="opacity-40 hover:opacity-100 cursor-pointer bg-transparent border-none p-0 text-[var(--color-figma-accent)] text-secondary leading-none"
             aria-label="Dismiss suggestions"
           >
             &times;
@@ -114,13 +114,13 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
             key={m.path}
             type="button"
             onClick={() => onAccept(m.path)}
-            className="flex items-center gap-1.5 w-full px-2 py-1 hover:bg-[var(--color-figma-accent)]/15 cursor-pointer bg-transparent border-none text-left text-[var(--color-figma-accent)] text-[10px] transition-colors"
+            className="flex items-center gap-1.5 w-full px-2 py-1 hover:bg-[var(--color-figma-accent)]/15 cursor-pointer bg-transparent border-none text-left text-[var(--color-figma-accent)] text-secondary transition-colors"
           >
             {isColor && <ColorSwatch color={m.resolvedValue} />}
             <strong className="flex-1 min-w-0 truncate">{`{${formatDisplayPath(m.path, leafName)}}`}</strong>
             <MatchLabel label={m.label} />
             {m.label === 'Close' && isColor && (
-              <span className="opacity-40 text-[10px]">ΔE {m.distance.toFixed(1)}</span>
+              <span className="opacity-40 text-secondary">ΔE {m.distance.toFixed(1)}</span>
             )}
           </button>
         );

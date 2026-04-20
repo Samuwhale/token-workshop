@@ -40,10 +40,10 @@ function SettingRow({
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+        <p className="text-secondary font-medium text-[var(--color-figma-text)]">
           {label}
         </p>
-        <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+        <p className="mt-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
           {description}
         </p>
       </div>
@@ -89,7 +89,7 @@ export function StepWhere({
         <div className={AUTHORING.generatorFieldStack}>
           <label
             htmlFor="step-where-target-group"
-            className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]"
+            className="text-secondary font-medium text-[var(--color-figma-text-secondary)]"
           >
             Group
           </label>
@@ -112,14 +112,14 @@ export function StepWhere({
       <div className={inline ? "" : AUTHORING.generatorSectionCard}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            <p className="text-secondary font-medium text-[var(--color-figma-text)]">
               Collection
             </p>
-            <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
               Tokens will be created in this collection.
             </p>
           </div>
-          <span className="text-[10px] font-mono text-[var(--color-figma-text)]">
+          <span className="text-secondary font-mono text-[var(--color-figma-text)]">
             {targetCollection}
           </span>
         </div>
@@ -127,7 +127,7 @@ export function StepWhere({
         <button
           type="button"
           onClick={() => setAdvancedOpen((value) => !value)}
-          className={`mt-3 text-[10px] transition-colors ${
+          className={`mt-3 text-secondary transition-colors ${
             advancedOpen
               ? "text-[var(--color-figma-text)]"
               : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -141,7 +141,7 @@ export function StepWhere({
             <div className={AUTHORING.generatorFieldStack}>
               <label
                 htmlFor="step-where-group-label"
-                className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]"
+                className="text-secondary font-medium text-[var(--color-figma-text-secondary)]"
               >
                 Group label
               </label>
@@ -166,7 +166,7 @@ export function StepWhere({
                   type="button"
                   onClick={() => onKeepUpdatedChange(!keepUpdated)}
                   disabled={keepUpdatedDisabled}
-                  className={`rounded border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                  className={`rounded border px-2.5 py-1 text-secondary font-medium transition-colors ${
                     keepUpdated && !keepUpdatedDisabled
                       ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
                       : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:opacity-60"
@@ -189,7 +189,7 @@ export function StepWhere({
                   type="button"
                   onClick={() => setSemanticEditorOpen((value) => !value)}
                   disabled={previewTokens.length === 0}
-                  className="rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {semanticEnabled ? "Edit aliases" : "Set up aliases"}
                 </button>

@@ -205,9 +205,9 @@ export function TokenList({
 }: TokenListProps) {
   const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
-  const [applying, setApplying] = useState(false);
+  const [, setApplying] = useState(false);
   const [varDiffPending, setVarDiffPending] = useState<VariableDiffPendingState | null>(null);
-  const [varDiffLoading, setVarDiffLoading] = useState(false);
+  const [, setVarDiffLoading] = useState(false);
   // Loading indicator for async token operations (delete, rename, move, duplicate, reorder, etc.)
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(
@@ -1969,8 +1969,6 @@ export function TokenList({
 
   const {
     doApplyVariables,
-    handleApplyVariables,
-    handleApplyStyles,
   } = useTokenListApplyOperations({
     tokens,
     allTokensFlat,
@@ -2366,7 +2364,7 @@ export function TokenList({
       {/* Copy feedback toast (⌘⌥C alias-ref or ⌘⇧C preferred-format) */}
       {(copyAliasFeedback || copyPreferredFeedback) && (
         <div
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-[11px] font-medium shadow-md"
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-body font-medium shadow-md"
           aria-live="polite"
         >
           Copied!
@@ -2543,7 +2541,7 @@ export function TokenList({
       )}
       {/* Operation loading indicator */}
       {operationLoading && (
-        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)]">
           <Spinner size="xs" />
           <span>{operationLoading}</span>
         </div>

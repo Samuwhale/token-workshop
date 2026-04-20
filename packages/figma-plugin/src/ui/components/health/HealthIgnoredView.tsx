@@ -33,26 +33,27 @@ export function HealthIgnoredView({
       <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
         <button
           onClick={onBack}
-          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          aria-label="Back"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Ignored</span>
-        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] ml-auto">{keys.length} issue{keys.length !== 1 ? "s" : ""}</span>
+        <span className="text-body font-semibold text-[var(--color-figma-text)]">Ignored</span>
+        <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-auto">{keys.length} issue{keys.length !== 1 ? "s" : ""}</span>
       </div>
 
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
         {keys.length === 0 ? (
           <div className="px-3 py-12 text-center">
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[var(--color-figma-text-secondary)]">
               No ignored issues
             </p>
           </div>
         ) : (
           <div className="px-3 py-1.5">
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-3">
+            <p className="text-secondary text-[var(--color-figma-text-secondary)] mb-3">
               These issues are hidden from the audit. Click <strong>Show again</strong> to restore.
             </p>
             {keys.map((key) => {
@@ -62,21 +63,21 @@ export function HealthIgnoredView({
                 <div key={key} className="group flex items-center gap-2 py-1.5">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">
+                      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate">
                         {path}
                       </span>
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
+                      <span className="text-secondary text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
                         {collectionId}
                       </span>
                     </div>
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-70">
+                    <div className="text-secondary text-[var(--color-figma-text-secondary)] opacity-70">
                       {getRuleLabel(rule)}
                     </div>
                   </div>
                   <button
                     onClick={() => onUnsuppress(key)}
                     disabled={suppressingKey === key}
-                    className="shrink-0 text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-40 disabled:cursor-wait"
+                    className="shrink-0 text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-40 disabled:cursor-wait"
                   >
                     {suppressingKey === key ? "…" : "Show again"}
                   </button>

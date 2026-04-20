@@ -199,7 +199,7 @@ export function HeatmapPanel({
       {result && !loading && (
         <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            <span className="text-secondary font-medium text-[var(--color-figma-text)]">
               {result.total > 0
                 ? `${result.green}/${result.total} layers fully bound (${Math.round((result.green / result.total) * 100)}%)`
                 : `${result.total} layers scanned`}
@@ -207,21 +207,21 @@ export function HeatmapPanel({
             <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={exportCSV}
-                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
                 title="Export as CSV"
               >
                 CSV
               </button>
               <button
                 onClick={exportJSON}
-                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
                 title="Export as JSON"
               >
                 JSON
               </button>
               <button
                 onClick={() => onRescan()}
-                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
               >
                 Rescan
               </button>
@@ -279,7 +279,7 @@ export function HeatmapPanel({
                 <button
                   key={s}
                   onClick={() => setFilter(prev => prev === s ? 'all' : s)}
-                  className={`flex items-center gap-1 text-[10px] transition-opacity ${filter !== 'all' && filter !== s ? 'opacity-40' : ''}`}
+                  className={`flex items-center gap-1 text-secondary transition-opacity ${filter !== 'all' && filter !== s ? 'opacity-40' : ''}`}
                   title={cfg.label}
                 >
                   <StatusIcon status={s} size={8} />
@@ -294,7 +294,7 @@ export function HeatmapPanel({
       {loading && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--color-figma-text-secondary)]">
           <Spinner size="xl" className="opacity-60" />
-          <span className="text-[11px]">Scanning {scope === 'all-pages' ? 'all pages' : scope === 'selection' ? 'selection' : 'current page'}…</span>
+          <span className="text-body">Scanning {scope === 'all-pages' ? 'all pages' : scope === 'selection' ? 'selection' : 'current page'}…</span>
           {progress && progress.total > 0 && (
             <div className="w-32 flex flex-col items-center gap-1">
               <div className="w-full h-1 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
@@ -303,13 +303,13 @@ export function HeatmapPanel({
                   style={{ width: `${Math.round((progress.processed / progress.total) * 100)}%` }}
                 />
               </div>
-              <span className="text-[10px] tabular-nums">{progress.processed} / {progress.total}</span>
+              <span className="text-secondary tabular-nums">{progress.processed} / {progress.total}</span>
             </div>
           )}
           {onCancel && (
             <button
               onClick={onCancel}
-              className="px-3 py-1 rounded text-[11px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="px-3 py-1 rounded text-body text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Cancel
             </button>
@@ -325,10 +325,10 @@ export function HeatmapPanel({
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{error}</p>
+          <p className="text-body text-[var(--color-figma-text-secondary)]">{error}</p>
           <button
             onClick={() => onRescan()}
-            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
           >
             Retry scan
           </button>
@@ -339,8 +339,8 @@ export function HeatmapPanel({
       {!loading && !error && !result && (
         <div className="flex-1 flex flex-col items-center justify-center px-3 py-3 text-center gap-3">
           <div className="flex flex-col gap-1">
-            <p className="text-[11px] font-semibold text-[var(--color-figma-text)]">Heatmap</p>
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+            <p className="text-body font-semibold text-[var(--color-figma-text)]">Heatmap</p>
+            <p className="text-secondary text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
               Scan layers for token coverage.
             </p>
           </div>
@@ -348,7 +348,7 @@ export function HeatmapPanel({
           {/* CTA */}
           <button
             onClick={() => onRescan()}
-            className="px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            className="px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
           >
             Scan canvas
           </button>
@@ -363,7 +363,7 @@ export function HeatmapPanel({
             <line x1="9" y1="9" x2="15" y2="15"/>
             <line x1="15" y1="9" x2="9" y2="15"/>
           </svg>
-          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+          <p className="text-body text-[var(--color-figma-text-secondary)]">
             {scope === 'all-pages'
               ? 'No bindable layers found in this file.'
               : scope === 'selection'
@@ -372,7 +372,7 @@ export function HeatmapPanel({
           </p>
           <button
             onClick={() => onRescan()}
-            className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Scan again
           </button>
@@ -382,7 +382,7 @@ export function HeatmapPanel({
       {!loading && result && result.total > 0 && (
         <div className="flex-1 overflow-y-auto">
           {result.nodes.length < result.total && (
-            <div className="px-3 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+            <div className="px-3 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
               {result.nodes.length} of {result.total} layers shown
             </div>
           )}
@@ -401,12 +401,12 @@ export function HeatmapPanel({
                       <path d="M2 1l4 3-4 3V1z"/>
                     </svg>
                     <StatusIcon status={status} size={10} />
-                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{cfg.label}</span>
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">{nodes.length}</span>
+                    <span className="text-secondary font-medium text-[var(--color-figma-text)]">{cfg.label}</span>
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)] ml-auto">{nodes.length}</span>
                     {nodes.length > 0 && (
                       <button
                         onClick={e => { e.stopPropagation(); onSelectNodes(nodes.map(n => n.id)); if (onBatchBind) { setQuickBind({ nodeIds: nodes.map(n => n.id), statusLabel: cfg.label }); setBindToken(''); setBindProperty('fill'); } }}
-                        className="text-[10px] text-[var(--color-figma-accent)] hover:underline ml-1 shrink-0"
+                        className="text-secondary text-[var(--color-figma-accent)] hover:underline ml-1 shrink-0"
                       >
                         Select all
                       </button>
@@ -437,10 +437,10 @@ export function HeatmapPanel({
             /* Filtered flat view */
             <div>
               <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{filteredNodes.length} layers</span>
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">{filteredNodes.length} layers</span>
                 <button
                   onClick={() => selectAll(filter, STATUS_COLORS[filter as keyof typeof STATUS_COLORS]?.label)}
-                  className="ml-auto text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                  className="ml-auto text-secondary text-[var(--color-figma-accent)] hover:underline"
                 >
                   Select all
                 </button>
@@ -476,8 +476,8 @@ export function HeatmapPanel({
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
             </svg>
-            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Bind to token</span>
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary font-medium text-[var(--color-figma-text)]">Bind to token</span>
+            <span className="text-secondary text-[var(--color-figma-text-secondary)]">
               {quickBind.nodeIds.length === 1
                 ? `· ${quickBind.statusLabel}`
                 : `· ${quickBind.nodeIds.length} layers selected`}
@@ -500,7 +500,7 @@ export function HeatmapPanel({
                 value={bindToken}
                 onChange={e => setBindToken(e.target.value)}
                 placeholder="Token path…"
-                className="w-full text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+                className="w-full text-secondary px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
               />
               <datalist id="heatmap-quick-bind-tokens">
                 {tokenPaths.slice(0, 100).map(p => (
@@ -512,7 +512,7 @@ export function HeatmapPanel({
               value={bindProperty}
               onChange={e => setBindProperty(e.target.value as BindableProperty)}
               aria-label="Heatmap binding property"
-              className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              className="text-secondary px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)]"
             >
               {ALL_BINDABLE_PROPERTIES.map(p => (
                 <option key={p} value={p}>{PROPERTY_LABELS[p]}</option>
@@ -522,7 +522,7 @@ export function HeatmapPanel({
           <button
             disabled={!bindToken.trim()}
             onClick={handleApplyBind}
-            className="w-full text-[10px] py-1.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full text-secondary py-1.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Bind {quickBind.nodeIds.length} layer{quickBind.nodeIds.length !== 1 ? 's' : ''}
           </button>
@@ -558,14 +558,14 @@ function NodeRow({
       >
         <StatusIcon status={node.status} size={8} />
         <span className="flex-1 min-w-0">
-          <span className="block text-[10px] text-[var(--color-figma-text)] truncate">{node.name}</span>
+          <span className="block text-secondary text-[var(--color-figma-text)] truncate">{node.name}</span>
           {node.pageName ? (
-            <span className="block text-[10px] text-[var(--color-figma-text-tertiary)] truncate">{node.pageName}</span>
+            <span className="block text-secondary text-[var(--color-figma-text-tertiary)] truncate">{node.pageName}</span>
           ) : null}
         </span>
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
+        <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
         {node.totalCheckable > 0 && (
-          <span className={`text-[10px] shrink-0 ${cfg.text}`}>{node.boundCount}/{node.totalCheckable}</span>
+          <span className={`text-secondary shrink-0 ${cfg.text}`}>{node.boundCount}/{node.totalCheckable}</span>
         )}
         {!hasActions && (
           <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-0 group-hover:opacity-60 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
@@ -578,7 +578,7 @@ function NodeRow({
           {onCreate && (
             <button
               onClick={e => { e.stopPropagation(); onCreate(); }}
-              className="text-[10px] px-1.5 py-0.5 rounded font-medium border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="text-secondary px-1.5 py-0.5 rounded font-medium border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               aria-label={`Create token for ${node.name}`}
               title="Create token from this value"
             >
@@ -588,7 +588,7 @@ function NodeRow({
           {onBind && (
             <button
               onClick={e => { e.stopPropagation(); onBind(); }}
-              className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] transition-colors"
+              className="text-secondary px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] transition-colors"
               aria-label={`Bind ${node.name} to a token`}
               title="Quick bind to token"
             >

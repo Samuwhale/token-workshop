@@ -79,7 +79,7 @@ export function ImportVariablesSummary() {
     <div className="flex flex-col gap-3">
       <button
         onClick={handleBack}
-        className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors self-start"
+        className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors self-start"
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 2L3 5l3 3" />
@@ -112,11 +112,11 @@ export function ImportVariablesSummary() {
                     }}
                     onBlur={() => setEditingCollection(null)}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingCollection(null); }}
-                    className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-[11px] font-medium text-[var(--color-figma-text)] outline-none"
+                    className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-body font-medium text-[var(--color-figma-text)] outline-none"
                   />
                 ) : (
                   <span
-                    className="text-[11px] font-medium text-[var(--color-figma-text)] truncate cursor-pointer hover:text-[var(--color-figma-accent)]"
+                    className="text-body font-medium text-[var(--color-figma-text)] truncate cursor-pointer hover:text-[var(--color-figma-accent)]"
                     onClick={() => setEditingCollection(summary.name)}
                     title="Click to rename"
                   >
@@ -124,17 +124,17 @@ export function ImportVariablesSummary() {
                   </span>
                 )}
               </div>
-              <span className="shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">
+              <span className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">
                 {summary.tokenCount} tokens
               </span>
             </div>
             {summary.modeCount > 1 && (
-              <div className="mt-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
+              <div className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
                 {summary.modeNames.join(', ')}
               </div>
             )}
             {hasNameCollisions && destinationCounts.get(summary.destinationName)! > 1 && (
-              <div className="mt-1 text-[10px] text-[var(--color-figma-error,#e53935)]">
+              <div className="mt-1 text-secondary text-[var(--color-figma-error,#e53935)]">
                 Destination name conflicts with another collection — click to rename
               </div>
             )}
@@ -145,14 +145,14 @@ export function ImportVariablesSummary() {
       {/* Footer area */}
       <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--color-figma-border)]">
         {checkingVarConflicts && (
-          <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
             <Spinner size="xs" className="text-[var(--color-figma-text-secondary)]" />
             Checking for conflicts...
           </div>
         )}
 
         {!checkingVarConflicts && varConflictPreview !== null && (
-          <div className="flex items-center gap-2 text-[10px]">
+          <div className="flex items-center gap-2 text-secondary">
             {varConflictPreview.newCount > 0 && (
               <span className="text-[var(--color-figma-success,#16a34a)]">
                 {varConflictPreview.newCount} new
@@ -170,7 +170,7 @@ export function ImportVariablesSummary() {
         )}
 
         {hasBlockingCollisions && !importing && (
-          <div className="text-[10px] text-[var(--color-figma-error,#e53935)]">
+          <div className="text-secondary text-[var(--color-figma-error,#e53935)]">
             {ambiguousCollectionImportCount} duplicate destination path{ambiguousCollectionImportCount !== 1 ? 's' : ''} — rename a collection above.
           </div>
         )}
@@ -181,7 +181,7 @@ export function ImportVariablesSummary() {
               <button
                 key={s}
                 onClick={() => setStrategy(s)}
-                className={`flex-1 py-1 text-[10px] font-medium transition-colors ${
+                className={`flex-1 py-1 text-secondary font-medium transition-colors ${
                   strategy === s
                     ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                     : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -196,7 +196,7 @@ export function ImportVariablesSummary() {
         <button
           onClick={() => handleImportVariables(hasConflicts ? strategy : 'overwrite')}
           disabled={!canImport}
-          className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+          className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
         >
           {importing
             ? importProgress

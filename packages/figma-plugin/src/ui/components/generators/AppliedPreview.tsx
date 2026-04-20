@@ -32,7 +32,7 @@ function ColorRampApplied({ tokens }: { tokens: GeneratedTokenResult[] }) {
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full flex-none" style={{ background: primary }} />
           <div className="flex-1 flex flex-col gap-0.5">
-            <div className="text-[10px] font-semibold" style={{ color: textDefault }}>Card title</div>
+            <div className="text-secondary font-semibold" style={{ color: textDefault }}>Card title</div>
             <div className="text-[8px]" style={{ color: textSubtle }}>Descriptive subtitle text</div>
           </div>
         </div>
@@ -147,7 +147,7 @@ export function AppliedPreview({ type, tokens }: { type: GeneratorType; tokens: 
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors mb-1.5"
+        className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors mb-1.5"
       >
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"
           style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 100ms' }}

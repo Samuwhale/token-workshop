@@ -1322,18 +1322,18 @@ export const TokenLeafNode = memo(
                         }
                       }}
                       aria-label="Rename token"
-                      className={`flex-1 text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameTokenError ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
+                      className={`flex-1 text-body text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameTokenError ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
                     />
                     <button
                       onClick={confirmTokenRename}
                       disabled={!renameTokenVal.trim()}
-                      className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0"
+                      className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0"
                     >
                       Save
                     </button>
                     <button
                       onClick={cancelTokenRename}
-                      className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                      className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
                     >
                       Cancel
                     </button>
@@ -1341,7 +1341,7 @@ export const TokenLeafNode = memo(
                   {renameTokenError && (
                     <p
                       role="alert"
-                      className="text-[10px] text-[var(--color-figma-error)]"
+                      className="text-secondary text-[var(--color-figma-error)]"
                     >
                       {renameTokenError}
                     </p>
@@ -1350,7 +1350,7 @@ export const TokenLeafNode = memo(
               ) : (
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span
-                    className="min-w-0 truncate text-[11px] text-[var(--color-figma-text)]"
+                    className="min-w-0 truncate text-body text-[var(--color-figma-text)]"
                     title={formatDisplayPath(node.path, node.name)}
                   >
                     {highlightMatch(
@@ -1361,7 +1361,7 @@ export const TokenLeafNode = memo(
                     )}
                   </span>
                   {(ancestorPathLabel || leafMetadataSegments.length > 0) && (
-                    <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-[10px]">
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
                       {ancestorPathLabel && (
                         <span
                           className="truncate text-[var(--color-figma-text-tertiary)]"
@@ -1427,7 +1427,7 @@ export const TokenLeafNode = memo(
                     setInlineEditValue("true");
                     setInlineEditError(null);
                   }}
-                  className={`rounded px-1.5 py-0.5 text-[10px] leading-none transition-colors ${inlineEditValue === "true" ? "bg-[var(--color-figma-accent)] text-white" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
+                  className={`rounded px-1.5 py-0.5 text-secondary leading-none transition-colors ${inlineEditValue === "true" ? "bg-[var(--color-figma-accent)] text-white" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
                   aria-pressed={inlineEditValue === "true"}
                 >
                   true
@@ -1438,7 +1438,7 @@ export const TokenLeafNode = memo(
                     setInlineEditValue("false");
                     setInlineEditError(null);
                   }}
-                  className={`rounded px-1.5 py-0.5 text-[10px] leading-none transition-colors ${inlineEditValue === "false" ? "bg-[var(--color-figma-accent)] text-white" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
+                  className={`rounded px-1.5 py-0.5 text-secondary leading-none transition-colors ${inlineEditValue === "false" ? "bg-[var(--color-figma-accent)] text-white" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
                   aria-pressed={inlineEditValue === "false"}
                 >
                   false
@@ -1446,7 +1446,7 @@ export const TokenLeafNode = memo(
               </div>
             ) : canInlineEdit && node.$type === "boolean" ? (
               <span
-                className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
+                className="text-body text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
                 title="Double-click to edit"
               >
                 {highlightMatch(
@@ -1469,7 +1469,7 @@ export const TokenLeafNode = memo(
                     tabIndex={-1}
                     title="Decrement"
                     aria-label="Decrement value"
-                    className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-[11px] font-medium leading-none select-none shrink-0"
+                    className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-body font-medium leading-none select-none shrink-0"
                   >
                     −
                   </button>
@@ -1516,10 +1516,10 @@ export const TokenLeafNode = memo(
                     }}
                     aria-label="Token value"
                     autoFocus
-                    className="text-[11px] text-[var(--color-figma-text)] w-[52px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="text-body text-[var(--color-figma-text)] w-[52px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   {node.$type === "dimension" && dimParts && dimParts[2] && (
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
                       {dimParts[2]}
                     </span>
                   )}
@@ -1532,7 +1532,7 @@ export const TokenLeafNode = memo(
                     tabIndex={-1}
                     title="Increment"
                     aria-label="Increment value"
-                    className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-[11px] font-medium leading-none select-none shrink-0"
+                    className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-body font-medium leading-none select-none shrink-0"
                   >
                     +
                   </button>
@@ -1575,12 +1575,12 @@ export const TokenLeafNode = memo(
                     aria-label="Token value"
                     aria-invalid={inlineEditError ? "true" : undefined}
                     autoFocus
-                    className={`text-[11px] text-[var(--color-figma-text)] w-[96px] bg-[var(--color-figma-bg)] border rounded px-1 outline-none ${inlineEditError ? "border-red-400 focus:border-red-400" : "border-[var(--color-figma-accent)]"}`}
+                    className={`text-body text-[var(--color-figma-text)] w-[96px] bg-[var(--color-figma-bg)] border rounded px-1 outline-none ${inlineEditError ? "border-red-400 focus:border-red-400" : "border-[var(--color-figma-accent)]"}`}
                   />
                   {inlineEditError && (
                     <div
                       role="alert"
-                      className="absolute top-full left-0 mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-red-400 rounded px-1.5 py-0.5 text-[10px] text-red-400 whitespace-nowrap shadow-sm pointer-events-none"
+                      className="absolute top-full left-0 mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-red-400 rounded px-1.5 py-0.5 text-secondary text-red-400 whitespace-nowrap shadow-sm pointer-events-none"
                     >
                       {inlineEditError}
                     </div>
@@ -1598,7 +1598,7 @@ export const TokenLeafNode = memo(
                     onNavigateToAlias?.(aliasTargetPath, node.path);
                   }
                 }}
-                className="inline-flex min-w-0 shrink-0 items-center gap-1 text-[11px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                className="inline-flex min-w-0 shrink-0 items-center gap-1 text-body text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
                 title={`${(node.$value as string).slice(1, -1)} → ${formatValue(node.$type, displayValue)}`}
               >
                 <svg
@@ -1625,7 +1625,7 @@ export const TokenLeafNode = memo(
               </button>
             ) : canInlineEdit && node.$type !== "color" ? (
               <span
-                className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-text hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
+                className="text-body text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-text hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
                 title="Click to edit"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1644,7 +1644,7 @@ export const TokenLeafNode = memo(
               </span>
             ) : canInlineEdit && node.$type === "color" ? (
               <span
-                className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-pointer hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
+                className="text-body text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-pointer hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
                 title="Click to edit color"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1661,7 +1661,7 @@ export const TokenLeafNode = memo(
               </span>
             ) : (
               <span
-                className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
+                className="text-body text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
                 title={formatValue(node.$type, displayValue)}
               >
                 {highlightMatch(
@@ -2093,7 +2093,7 @@ export const TokenLeafNode = memo(
               style={{ top: aliasPickerPos.y, left: aliasPickerPos.x }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mb-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+              <div className="mb-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
                 Link{" "}
                 <span className="font-mono normal-case text-[var(--color-figma-text)]">
                   {node.name}
@@ -2112,7 +2112,7 @@ export const TokenLeafNode = memo(
                       setAliasPickerOpen(false);
                     }
                   }}
-                  className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                  className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-body bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
                   placeholder="Search tokens…"
                 />
                 <AliasAutocomplete
@@ -2145,7 +2145,7 @@ export const TokenLeafNode = memo(
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)]">
-                <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                <span className="text-body font-medium text-[var(--color-figma-text)]">
                   {refsPopover.refs.length === 0
                     ? "No references"
                     : `${refsPopover.refs.length} reference${refsPopover.refs.length !== 1 ? "s" : ""}`}
@@ -2170,7 +2170,7 @@ export const TokenLeafNode = memo(
                 </button>
               </div>
               {refsPopover.refs.length === 0 ? (
-                <div className="px-3 py-3 text-[11px] text-[var(--color-figma-text-tertiary)] text-center">
+                <div className="px-3 py-3 text-body text-[var(--color-figma-text-tertiary)] text-center">
                   No tokens reference this one
                 </div>
               ) : (
@@ -2186,7 +2186,7 @@ export const TokenLeafNode = memo(
                           onNavigateToAlias?.(refPath, node.path);
                         }}
                       >
-                        <span className="text-[11px] text-[var(--color-figma-text)] truncate flex-1 min-w-0">
+                        <span className="text-body text-[var(--color-figma-text)] truncate flex-1 min-w-0">
                           {refPath}
                         </span>
                         {collectionLabel && collectionLabel !== collectionId && (
@@ -2216,10 +2216,10 @@ export const TokenLeafNode = memo(
             >
               <div className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
                 <div className="px-4 pt-4 pb-3">
-                  <h3 className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+                  <h3 className="text-heading font-semibold text-[var(--color-figma-text)]">
                     This token is generated
                   </h3>
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                  <p className="mt-1.5 text-body leading-relaxed text-[var(--color-figma-text-secondary)]">
                     <span className="font-medium text-[var(--color-figma-text)]">
                       {producingGenerator.name}
                     </span>{" "}
@@ -2243,7 +2243,7 @@ export const TokenLeafNode = memo(
                       });
                     }}
                     disabled={!onOpenGeneratedGroupEditor || generatedTokenChoiceBusy !== null}
-                    className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-left text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                    className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-left text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
                   >
                     Edit generator
                   </button>
@@ -2258,7 +2258,7 @@ export const TokenLeafNode = memo(
                       !getOverrideableGeneratedStepName() ||
                       generatedTokenChoiceBusy !== null
                     }
-                    className="rounded-md px-3 py-1.5 text-left text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                    className="rounded-md px-3 py-1.5 text-left text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
                   >
                     {generatedTokenChoiceBusy === "manual-exception"
                       ? "Saving manual exception…"
@@ -2267,7 +2267,7 @@ export const TokenLeafNode = memo(
                   {(!pendingGeneratedSave.allowManualException ||
                     !onSaveGeneratedException ||
                     !getOverrideableGeneratedStepName()) && (
-                    <p className="px-0.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    <p className="px-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
                       {pendingGeneratedSave.manualExceptionReason ??
                         "This generated token cannot keep a manual exception here. Detach it first if it needs to diverge."}
                     </p>
@@ -2278,7 +2278,7 @@ export const TokenLeafNode = memo(
                       void handleDetachAndSaveGeneratedToken();
                     }}
                     disabled={!onDetachFromGenerator || generatedTokenChoiceBusy !== null}
-                    className="rounded-md px-3 py-1.5 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                    className="rounded-md px-3 py-1.5 text-left text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
                   >
                     {generatedTokenChoiceBusy === "detach"
                       ? "Detaching…"
@@ -2291,7 +2291,7 @@ export const TokenLeafNode = memo(
                       setPendingGeneratedSave(null);
                     }}
                     disabled={generatedTokenChoiceBusy !== null}
-                    className="text-[11px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                    className="text-body text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -2447,7 +2447,7 @@ export const TokenLeafNode = memo(
                   {/* Token path — clickable to navigate */}
                   {!isFirst ? (
                     <button
-                      className={`text-[10px] font-mono shrink-0 transition-colors ${step.isError ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline"}`}
+                      className={`text-secondary font-mono shrink-0 transition-colors ${step.isError ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline"}`}
                       onClick={() =>
                         !step.isError &&
                         onNavigateToAlias?.(step.path, node.path)
@@ -2461,7 +2461,7 @@ export const TokenLeafNode = memo(
                       {step.path}
                     </button>
                   ) : (
-                    <span className="text-[10px] font-mono text-[var(--color-figma-accent)] shrink-0">
+                    <span className="text-secondary font-mono text-[var(--color-figma-accent)] shrink-0">
                       {step.path}
                     </span>
                   )}
@@ -2483,7 +2483,7 @@ export const TokenLeafNode = memo(
                         value={step.value}
                         size={12}
                       />
-                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] font-medium">
+                      <span className="text-secondary font-mono text-[var(--color-figma-text)] font-medium">
                         {formatValue(step.$type, step.value)}
                       </span>
                     </span>

@@ -181,7 +181,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
               type="button"
               role="option"
               aria-selected={i === highlightIdx}
-              className={`w-full text-left px-2 py-1.5 text-[11px] flex items-center gap-2 cursor-pointer transition-colors ${
+              className={`w-full text-left px-2 py-1.5 text-body flex items-center gap-2 cursor-pointer transition-colors ${
                 i === highlightIdx
                   ? 'bg-[var(--color-figma-accent)] text-white'
                   : family === value
@@ -195,7 +195,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
               }}
             >
               <span
-                className="shrink-0 w-[28px] text-center text-[13px] leading-none overflow-hidden"
+                className="shrink-0 w-[28px] text-center text-subheading leading-none overflow-hidden"
                 style={{ fontFamily: family }}
                 aria-hidden="true"
               >
@@ -210,7 +210,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
             </button>
           ))}
           {filtered.length >= MAX_VISIBLE && (
-            <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] text-center">
+            <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] text-center">
               Type to narrow results…
             </div>
           )}
@@ -219,10 +219,10 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
 
       {open && query.trim() && filtered.length === 0 && (
         <div className="absolute z-50 left-0 right-0 mt-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg p-2">
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">No matching fonts</div>
+          <div className="text-secondary text-[var(--color-figma-text-secondary)] mb-1">No matching fonts</div>
           <button
             type="button"
-            className="w-full text-left px-2 py-1 text-[11px] rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+            className="w-full text-left px-2 py-1 text-body rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
             onMouseDown={e => {
               e.preventDefault();
               selectFont(query.trim());

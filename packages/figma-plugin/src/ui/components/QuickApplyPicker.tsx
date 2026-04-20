@@ -233,10 +233,10 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-accent)] shrink-0" aria-hidden="true">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
-            <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate" title={layerSummary}>
+            <span className="text-body font-medium text-[var(--color-figma-text)] truncate" title={layerSummary}>
               Apply — {layerSummary}
             </span>
-            <kbd className="ml-auto text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
+            <kbd className="ml-auto text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
               ESC
             </kbd>
           </div>
@@ -250,7 +250,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                 <button
                   key={prop}
                   onClick={() => setActiveProp(prop)}
-                  className={`px-2 py-1 text-[10px] font-medium rounded transition-colors whitespace-nowrap shrink-0 ${
+                  className={`px-2 py-1 text-secondary font-medium rounded transition-colors whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 font-semibold'
                       : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -281,10 +281,10 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             placeholder={`Search ${getTokenTypeForProperty(activeProp)} tokens…`}
             aria-label={`Search tokens for ${PROPERTY_LABELS[activeProp]}`}
             aria-autocomplete="list"
-            className="flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-[11px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+            className="flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {currentBinding && currentBinding !== 'mixed' && (
-            <span className="text-[10px] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>
+            <span className="text-secondary text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>
               {currentBinding}
             </span>
           )}
@@ -292,7 +292,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             <button
               onClick={handleUnbind}
               title={`Unbind ${PROPERTY_LABELS[activeProp]} (Backspace)`}
-              className="shrink-0 flex items-center gap-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
+              className="shrink-0 flex items-center gap-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
             >
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -305,7 +305,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
         {/* Token candidates */}
         <div ref={listRef} className="overflow-y-auto flex-1" role="listbox" aria-label="Token candidates">
           {candidates.length === 0 ? (
-            <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
+            <div className="px-3 py-6 text-center text-body text-[var(--color-figma-text-secondary)]">
               {query ? `No tokens matching "${query}"` : `No ${getTokenTypeForProperty(activeProp)} tokens available`}
             </div>
           ) : (
@@ -313,7 +313,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
               {/* Recently used section */}
               {recentCandidates.length > 0 && (
                 <>
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium px-3 pt-1.5 pb-0.5 flex items-center gap-1">
+                  <div className="text-secondary text-[var(--color-figma-text-secondary)] font-medium px-3 pt-1.5 pb-0.5 flex items-center gap-1">
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                     </svg>
@@ -350,14 +350,14 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                             <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
                           </div>
                         )}
-                        <span className={`text-[11px] font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
+                        <span className={`text-body font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
                         {isCurrent && (
                           <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>current</span>
                         )}
                         {valueDisplay && !isCurrent && (
-                          <span className={`text-[10px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>{valueDisplay}</span>
+                          <span className={`text-secondary shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>{valueDisplay}</span>
                         )}
-                        <span className={`text-[10px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>{c.entry.$type}</span>
+                        <span className={`text-secondary shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>{c.entry.$type}</span>
                       </button>
                     );
                   })}
@@ -388,7 +388,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                   return (
                     <div key={c.path}>
                       {showGroupHeader && (
-                        <div className={`text-[10px] font-medium px-3 pt-1.5 pb-0.5 ${
+                        <div className={`text-secondary font-medium px-3 pt-1.5 pb-0.5 ${
                           !isFirstGroup ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5' : ''
                         } ${
                           c.confidence === 'strong' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
@@ -418,7 +418,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                             <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
                           </div>
                         )}
-                        <span className={`text-[11px] font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
+                        <span className={`text-body font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
                         {isCurrent && (
                           <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                             current
@@ -430,11 +430,11 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                           </span>
                         )}
                         {valueDisplay && !isCurrent && (
-                          <span className={`text-[10px] shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                          <span className={`text-secondary shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
                             {valueDisplay}
                           </span>
                         )}
-                        <span className={`text-[10px] shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                        <span className={`text-secondary shrink-0 ${isSelected ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
                           {c.entry.$type}
                         </span>
                       </button>
@@ -443,7 +443,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                 });
               })()}
               {totalCount > MAX_CANDIDATES && (
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center py-1.5 border-t border-[var(--color-figma-border)]">
+                <div className="text-secondary text-[var(--color-figma-text-secondary)] text-center py-1.5 border-t border-[var(--color-figma-border)]">
                   {totalCount - MAX_CANDIDATES} more — type to refine
                 </div>
               )}
@@ -452,7 +452,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
         </div>
 
         {/* Footer hints */}
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex gap-3 text-secondary text-[var(--color-figma-text-secondary)]">
           <span>↑↓ navigate</span>
           <span>↵ apply</span>
           <span>Tab switch property</span>

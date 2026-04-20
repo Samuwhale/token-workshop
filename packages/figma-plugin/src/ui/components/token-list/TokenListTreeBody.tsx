@@ -269,7 +269,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           <select
             value={multiModeDimId ?? ""}
             onChange={(e) => setMultiModeDimId(e.target.value)}
-            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[10px] font-medium text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           >
             {collections.map((collection) => (
               <option key={collection.id} value={collection.id}>
@@ -278,7 +278,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             ))}
           </select>
         ) : (
-          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
             {multiModeDimensionName ?? "Token"}
           </span>
         )}
@@ -311,7 +311,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             autoFocus
             disabled={addingModeSaving}
             placeholder="Mode name"
-            className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+            className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
           />
         </div>
       ) : (
@@ -321,6 +321,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           disabled={!connected}
           className="w-[28px] shrink-0 flex items-center justify-center py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
           title="Add mode"
+          aria-label="Add mode"
         >
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M8 3v10M3 8h10" />
@@ -355,12 +356,12 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             autoFocus
             disabled={addingModeSaving}
             placeholder="Mode name"
-            className="w-32 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+            className="w-32 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
           />
         </div>
       ) : (
         <>
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
             Add a mode to define variants
           </span>
           <div className="flex items-center gap-1">
@@ -370,7 +371,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 type="button"
                 onClick={() => handleAddModePreset(preset)}
                 disabled={addingModeSaving}
-                className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
               >
                 {preset}
               </button>
@@ -378,7 +379,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             <button
               type="button"
               onClick={() => setAddingMode(true)}
-              className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
             >
               Custom…
             </button>
@@ -445,7 +446,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               );
               return (
                 <div key={sn}>
-                  <div className="px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
+                  <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
                     {sn}{" "}
                     <span className="font-normal opacity-60">
                       ({collectionResults.length})
@@ -466,7 +467,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                           />
                         )}
                       <span
-                        className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate"
+                        className="flex-1 min-w-0 font-mono text-secondary text-[var(--color-figma-text)] truncate"
                         title={r.path}
                       >
                         {highlightMatch(
@@ -486,11 +487,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             })}
           {crossCollectionTotal > crossCollectionResults.length && (
             <div className="px-3 py-2 flex items-center justify-between border-t border-[var(--color-figma-border)]">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                 {crossCollectionResults.length} of {crossCollectionTotal} shown
               </span>
               <button
-                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
                 onClick={() => setCrossCollectionOffset(crossCollectionResults.length)}
               >
                 Load{" "}
@@ -619,7 +620,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       {singleModeAddHeader}
       <div className="py-1">
         {zoomBreadcrumb ? (
-          <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px]">
+          <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary">
             <div className="flex items-center gap-1">
               <button
                 onClick={handleZoomUpOneLevel}
@@ -684,7 +685,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             </div>
             {zoomSiblingBranches.length > 0 && (
               <div className="mt-1 flex items-center gap-1 overflow-x-auto">
-                <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
                   Other branches
                 </span>
                 {zoomSiblingBranches.map((branch) => (
@@ -701,7 +702,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             )}
           </div>
         ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
-          <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] group/breadcrumb">
+          <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-secondary)] group/breadcrumb">
             <svg
               width="10"
               height="10"

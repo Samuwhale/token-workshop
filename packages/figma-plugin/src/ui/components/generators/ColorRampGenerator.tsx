@@ -283,7 +283,7 @@ function SwatchCell({
       )}
 
       {/* Edit hint on hover */}
-      <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover/swatch:opacity-100 transition-opacity ${isLight ? 'bg-black/5' : 'bg-white/10'}`} aria-hidden="true">
+      <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover/swatch:opacity-100 transition-opacity ${isLight ? 'bg-[#1a1a1a]/5' : 'bg-white/10'}`} aria-hidden="true">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)'} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8.5 1.5a1.414 1.414 0 0 1 2 2L3.5 10.5 1 11l.5-2.5Z" />
         </svg>
@@ -377,7 +377,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
                     <div key={i} className="flex-1" style={{ background: hex }} />
                   ))}
                 </div>
-                <span className={`text-[10px] font-medium text-center ${
+                <span className={`text-secondary font-medium text-center ${
                   isActive ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
                 }`}>{preset.label}</span>
               </button>
@@ -395,7 +395,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
             onLink={(path, val) => setTokenRef('lightEnd', path, val)}
             onUnlink={() => clearTokenRef('lightEnd')}
           >
-            <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
               <span
                 className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
                 style={{ background: lstarToSwatchHex(config.lightEnd) }}
@@ -414,7 +414,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
             onLink={(path, val) => setTokenRef('darkEnd', path, val)}
             onUnlink={() => clearTokenRef('darkEnd')}
           >
-            <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
               <span
                 className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
                 style={{ background: lstarToSwatchHex(config.darkEnd) }}
@@ -434,7 +434,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
           onLink={(path, val) => setTokenRef('chromaBoost', path, val)}
           onUnlink={() => clearTokenRef('chromaBoost')}
         >
-          <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="flex items-center gap-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
               style={{ background: chromaBoostToSwatchHex(config.chromaBoost) }}
@@ -446,7 +446,7 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
         <button
           type="button"
           onClick={() => setShowFullEditor(v => !v)}
-          className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
+          className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
         >
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showFullEditor ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
           Customize
@@ -455,19 +455,19 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
 
       {showFullEditor && <>
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5 flex-wrap">
           {COLOR_STEP_PRESETS.map((preset, i) => (
             <button key={preset.label} title={preset.description} onClick={() => { onInteractionStart?.(); onChange({ ...config, steps: [...preset.steps] }); }}
-              className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+              className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Light end L*</label>
-          <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Light end L*</label>
+          <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] mb-1">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
               style={{ background: lstarToSwatchHex(config.lightEnd) }}
@@ -478,8 +478,8 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
           <input type="range" min={80} max={99} step={1} value={config.lightEnd} onPointerDown={onInteractionStart} onChange={e => onChange({ ...config, lightEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
         </div>
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Dark end L*</label>
-          <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Dark end L*</label>
+          <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] mb-1">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
               style={{ background: lstarToSwatchHex(config.darkEnd) }}
@@ -501,9 +501,9 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
         chromaBoost={config.chromaBoost}
       />
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Chroma boost</label>
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Chroma boost</label>
         <div>
-          <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+          <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] mb-1">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
               style={{ background: chromaBoostToSwatchHex(config.chromaBoost) }}
@@ -521,13 +521,13 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
       <div>
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <input type="checkbox" checked={config.includeSource} onChange={e => onChange({ ...config, includeSource: e.target.checked })} className="accent-[var(--color-figma-accent)] w-3 h-3" />
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Pin source color to step</span>
+          <span className="text-secondary text-[var(--color-figma-text-secondary)]">Pin source color to step</span>
         </label>
         {config.includeSource && (
           <div className="mt-1.5 ml-5">
-            <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Pin to step</label>
+            <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Pin to step</label>
             <select value={config.sourceStep ?? config.steps[Math.floor(config.steps.length / 2)]} onChange={e => onChange({ ...config, sourceStep: Number(e.target.value) })}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]">
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]">
               {config.steps.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>

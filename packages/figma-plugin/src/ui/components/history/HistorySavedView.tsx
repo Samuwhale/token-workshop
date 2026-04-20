@@ -84,7 +84,7 @@ export function HistorySavedView({
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search checkpoints…"
             aria-label="Search checkpoints"
-            className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            className="flex-1 min-w-0 bg-transparent text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors" aria-label="Clear search">
@@ -121,10 +121,10 @@ export function HistorySavedView({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{snapshot.label}</span>
+                <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate min-w-0">{snapshot.label}</span>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
                 </div>
               </div>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>

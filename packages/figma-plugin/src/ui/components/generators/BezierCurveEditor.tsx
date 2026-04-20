@@ -204,7 +204,7 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
   return (
     <div className="flex flex-col gap-1.5" ref={containerRef}>
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Lightness curve</span>
+        <span className="text-secondary text-[var(--color-figma-text-secondary)]">Lightness curve</span>
         {selectedCP !== null && (
           <span className="text-[8px] text-[var(--color-figma-text-tertiary)]">
             Arrow keys to nudge, Shift for larger steps
@@ -219,7 +219,7 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
               key={p.label}
               onClick={() => { onDragStart?.(); onChange([...p.curve]); }}
               title={`cubic-bezier(${p.curve.join(', ')})`}
-              className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+              className={`px-1.5 py-0.5 rounded text-secondary border transition-colors ${
                 isActive
                   ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                   : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'

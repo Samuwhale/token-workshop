@@ -65,15 +65,16 @@ export function HealthDeprecatedView({
       <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
         <button
           onClick={onBack}
-          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          aria-label="Back"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Deprecated</span>
+        <span className="text-body font-semibold text-[var(--color-figma-text)]">Deprecated</span>
         {!loading && entries.length > 0 && (
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] ml-auto">
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-auto">
             {entries.length} token{entries.length !== 1 ? "s" : ""}
           </span>
         )}
@@ -86,11 +87,11 @@ export function HealthDeprecatedView({
           </div>
         ) : error ? (
           <div className="py-6 text-center">
-            <p className="text-[10px] text-[var(--color-figma-error)]">{error}</p>
+            <p className="text-secondary text-[var(--color-figma-error)]">{error}</p>
           </div>
         ) : entries.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[var(--color-figma-text-secondary)]">
               No deprecated tokens have active references
             </p>
           </div>
@@ -109,14 +110,14 @@ export function HealthDeprecatedView({
                     <div className="flex items-start gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-medium font-mono text-[var(--color-figma-text)] line-through">
+                          <span className="text-secondary font-medium font-mono text-[var(--color-figma-text)] line-through">
                             {entry.deprecatedPath}
                           </span>
-                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                             {entry.type} · {formatCount(entry.activeReferenceCount, "active reference")}
                           </span>
                         </div>
-                        <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                        <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
                           {dependentPreview.map((dep, idx) => (
                             <span key={`${dep.collectionId}:${dep.path}`}>
                               {idx > 0 ? ", " : ""}
@@ -130,7 +131,7 @@ export function HealthDeprecatedView({
                           )}
                         </div>
                         {selectedReplacement && (
-                          <div className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          <div className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
                             Replace with <span className="font-mono text-[var(--color-figma-text)]">{selectedReplacement}</span>
                           </div>
                         )}
@@ -157,14 +158,14 @@ export function HealthDeprecatedView({
                             <button
                               onClick={() => handleReplace(entry)}
                               disabled={isReplacing}
-                              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                             >
                               {isReplacing ? "Replacing…" : "Replace references"}
                             </button>
                             <button
                               onClick={() => setOpenPickerPath(entry.deprecatedPath)}
                               disabled={isReplacing}
-                              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:opacity-40"
+                              className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:opacity-40"
                             >
                               Change
                             </button>
@@ -172,14 +173,14 @@ export function HealthDeprecatedView({
                         ) : isPickerOpen ? (
                           <button
                             onClick={() => setOpenPickerPath(null)}
-                            className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text)] hover:text-[var(--color-figma-text)]"
+                            className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text)] hover:text-[var(--color-figma-text)]"
                           >
                             Cancel
                           </button>
                         ) : (
                           <button
                             onClick={() => setOpenPickerPath(entry.deprecatedPath)}
-                            className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                           >
                             Replace references
                           </button>

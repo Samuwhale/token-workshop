@@ -278,7 +278,7 @@ function TokenSearch({
       <input
         ref={inputRef}
         type="text"
-        className="w-full px-2 py-1.5 text-xs bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded focus-visible:border-[var(--color-figma-accent)]"
+        className="w-full px-2 py-1.5 text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded focus-visible:border-[var(--color-figma-accent)]"
         placeholder="Search token to visualize…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -290,7 +290,7 @@ function TokenSearch({
           {results.map((p) => (
             <button
               key={p}
-              className="w-full text-left px-2 py-1 text-xs hover:bg-[var(--color-figma-bg-hover)] truncate"
+              className="w-full text-left px-2 py-1 text-secondary hover:bg-[var(--color-figma-bg-hover)] truncate"
               onMouseDown={(e) => {
                 e.preventDefault();
                 setQuery("");
@@ -337,7 +337,7 @@ function FlowNodeCard({
   const hasActions = !!(onEdit || onGoToTree);
   return (
     <div
-      className={`group/card absolute rounded border text-xs select-none transition-shadow ${
+      className={`group/card absolute rounded border text-secondary select-none transition-shadow ${
         cyclic
           ? "border-[var(--color-figma-error)]/60 bg-[var(--color-figma-error)]/5"
           : isCenter
@@ -867,8 +867,8 @@ export function TokenFlowPanel({
             <circle cx="19" cy="18" r="3" />
             <path d="M8 12h4m0 0l4-6m-4 6l4 6" />
           </svg>
-          <span className="text-xs font-semibold">Dependencies</span>
-          <span className="ml-auto text-[10px] opacity-40">
+          <span className="text-secondary font-semibold">Dependencies</span>
+          <span className="ml-auto text-secondary opacity-40">
             {stats.totalTokens} tokens · {stats.aliasCount} aliases
           </span>
         </div>
@@ -877,7 +877,7 @@ export function TokenFlowPanel({
 
       {/* Cycle warning banner */}
       {graphData?.hasCycles && (
-        <div className="flex-shrink-0 flex items-start gap-2 px-3 py-2 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 text-[11px] text-[var(--color-figma-error)]">
+        <div className="flex-shrink-0 flex items-start gap-2 px-3 py-2 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 text-body text-[var(--color-figma-error)]">
           <svg
             width="12"
             height="12"
@@ -908,7 +908,7 @@ export function TokenFlowPanel({
         </div>
       )}
       {!loading && !selectedPath && (
-        <div className="flex-1 flex items-center justify-center text-xs opacity-40 px-4 text-center">
+        <div className="flex-1 flex items-center justify-center text-secondary opacity-40 px-4 text-center">
           <div>
             <svg
               width="32"
@@ -932,7 +932,7 @@ export function TokenFlowPanel({
       )}
 
       {!loading && selectedPath && !graphData && (
-        <div className="flex-1 flex items-center justify-center text-xs opacity-40">
+        <div className="flex-1 flex items-center justify-center text-secondary opacity-40">
           Token not found: {selectedPath}
         </div>
       )}
@@ -964,21 +964,21 @@ export function TokenFlowPanel({
               {/* Column labels */}
               {layout.sourceNodes.length > 0 && (
                 <div
-                  className="absolute text-[10px] font-medium uppercase tracking-wider opacity-30"
+                  className="absolute text-secondary font-medium uppercase tracking-wider opacity-30"
                   style={{ left: layout.srcPositions[0]?.x ?? 20, top: 4 }}
                 >
                   References
                 </div>
               )}
               <div
-                className="absolute text-[10px] font-medium uppercase tracking-wider opacity-30"
+                className="absolute text-secondary font-medium uppercase tracking-wider opacity-30"
                 style={{ left: layout.centerPos.x, top: 4 }}
               >
                 Selected
               </div>
               {layout.depNodes.length > 0 && (
                 <div
-                  className="absolute text-[10px] font-medium uppercase tracking-wider opacity-30"
+                  className="absolute text-secondary font-medium uppercase tracking-wider opacity-30"
                   style={{ left: layout.depPositions[0]?.x ?? 0, top: 4 }}
                 >
                   Dependents
@@ -1016,7 +1016,7 @@ export function TokenFlowPanel({
                 layout.sourceNodes.length > 0 && (
                   <button
                     data-flow-node="1"
-                    className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                    className="absolute text-secondary text-[var(--color-figma-accent)] hover:underline"
                     style={{
                       left:
                         layout.srcPositions[layout.srcPositions.length - 1]
@@ -1083,7 +1083,7 @@ export function TokenFlowPanel({
                 layout.depNodes.length > 0 && (
                   <button
                     data-flow-node="1"
-                    className="absolute text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                    className="absolute text-secondary text-[var(--color-figma-accent)] hover:underline"
                     style={{
                       left:
                         layout.depPositions[layout.depPositions.length - 1]
@@ -1109,7 +1109,7 @@ export function TokenFlowPanel({
             {/* Zoom controls (absolute overlay, outside transform) */}
             <div className="absolute bottom-2 right-2 flex items-center gap-1 pointer-events-auto z-10">
               <button
-                className="px-1.5 py-0.5 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] opacity-70 hover:opacity-100 transition-opacity"
+                className="px-1.5 py-0.5 text-secondary rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] opacity-70 hover:opacity-100 transition-opacity"
                 onClick={fitToView}
                 title="Fit to view"
               >
@@ -1117,7 +1117,7 @@ export function TokenFlowPanel({
               </button>
               <div className="flex items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden opacity-70 hover:opacity-100 transition-opacity">
                 <button
-                  className="px-1.5 py-0.5 text-[11px] hover:bg-[var(--color-figma-bg-hover)] leading-none"
+                  className="px-1.5 py-0.5 text-body hover:bg-[var(--color-figma-bg-hover)] leading-none"
                   onClick={() => {
                     setZoom((prev) => {
                       const newZoom = Math.max(MIN_ZOOM, prev / 1.25);
@@ -1135,11 +1135,11 @@ export function TokenFlowPanel({
                 >
                   −
                 </button>
-                <span className="text-[10px] px-1 min-w-[30px] text-center tabular-nums">
+                <span className="text-secondary px-1 min-w-[30px] text-center tabular-nums">
                   {Math.round(zoom * 100)}%
                 </span>
                 <button
-                  className="px-1.5 py-0.5 text-[11px] hover:bg-[var(--color-figma-bg-hover)] leading-none"
+                  className="px-1.5 py-0.5 text-body hover:bg-[var(--color-figma-bg-hover)] leading-none"
                   onClick={() => {
                     setZoom((prev) => {
                       const newZoom = Math.min(MAX_ZOOM, prev * 1.25);
@@ -1163,7 +1163,7 @@ export function TokenFlowPanel({
           {/* Legend / actions below graph — outside the pannable area */}
           {selectedPath && (
             <div className="flex-shrink-0 px-3 pb-3 pt-1 border-t border-[var(--color-figma-border)]">
-              <div className="flex items-center gap-3 text-[10px] opacity-50">
+              <div className="flex items-center gap-3 text-secondary opacity-50">
                 <span>Scroll to zoom · drag to pan</span>
                 <span>·</span>
                 <span>
@@ -1177,17 +1177,17 @@ export function TokenFlowPanel({
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-xs truncate font-medium">
+                <span className="text-secondary truncate font-medium">
                   {selectedPath}
                 </span>
                 {pathToCollectionId[selectedPath] && (
-                  <span className="text-[10px] opacity-40 flex-shrink-0">
+                  <span className="text-secondary opacity-40 flex-shrink-0">
                     in {pathToCollectionId[selectedPath]}
                   </span>
                 )}
                 {onNavigateToToken && (
                   <button
-                    className="ml-auto text-[10px] text-[var(--color-figma-accent)] hover:underline flex-shrink-0"
+                    className="ml-auto text-secondary text-[var(--color-figma-accent)] hover:underline flex-shrink-0"
                     onClick={() => handleNavigate(selectedPath)}
                   >
                     Go to token →

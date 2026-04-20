@@ -65,31 +65,31 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Connect your token project</p>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+        <p className="text-body font-medium text-[var(--color-figma-text)]">Connect your token project</p>
+        <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
           Run this in your token project folder, then come back here:
         </p>
       </div>
 
       <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-2.5 py-1.5">
-        <code className="text-[11px] font-mono text-[var(--color-figma-accent)]">token-manager start</code>
+        <code className="text-body font-mono text-[var(--color-figma-accent)]">token-manager start</code>
       </div>
 
-      <div className="flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+      <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
         <code className="font-mono px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)]">{serverUrl}</code>
       </div>
 
       <div className="flex gap-2">
         <button
           onClick={onClose}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
         >
           Close
         </button>
         <button
           onClick={onRetry}
           disabled={checking}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-60"
+          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-60"
         >
           {checking ? 'Checking…' : 'Retry Connection'}
         </button>
@@ -135,14 +135,14 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Create your first token collection</p>
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+        <p className="text-body font-medium text-[var(--color-figma-text)]">Create your first token collection</p>
+        <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
           This is the container where you will author tokens and modes.
         </p>
       </div>
 
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-collection-name">
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-collection-name">
           Collection name
         </label>
         <input
@@ -153,19 +153,19 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
           onKeyDown={e => e.key === 'Enter' && handleCreate()}
           placeholder="primitives"
           autoFocus
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
         />
-        {error && <p className="mt-1 text-[10px] text-[var(--color-figma-error)]">{error}</p>}
+        {error && <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{error}</p>}
       </div>
 
-      <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+      <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
         Creates <code className="font-mono text-[var(--color-figma-accent)]">{name.trim() || 'primitives'}.tokens.json</code>
       </div>
 
       <button
         onClick={handleCreate}
         disabled={saving || !name.trim()}
-        className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+        className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
       >
         {saving ? 'Creating…' : 'Create Collection'}
       </button>
@@ -219,12 +219,12 @@ function ModeStep({ serverUrl, currentCollectionId, onDone, onSkip }: {
     return (
       <div className="flex flex-col items-center gap-2 py-4 text-center">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">
+        <p className="text-body font-medium text-[var(--color-figma-text)]">
           Added {lightName} / {darkName} to "{currentCollectionId}"
         </p>
         <button
           onClick={onDone}
-          className="px-4 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+          className="px-4 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
         >
           Done
         </button>
@@ -235,47 +235,47 @@ function ModeStep({ serverUrl, currentCollectionId, onDone, onSkip }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-[11px] font-medium text-[var(--color-figma-text)]">Add modes to "{currentCollectionId}"</p>
-        <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <p className="text-body font-medium text-[var(--color-figma-text)]">Add modes to "{currentCollectionId}"</p>
+        <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
           Each collection owns its own modes, just like Figma collections.
         </p>
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-light-option">First mode</label>
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-light-option">First mode</label>
           <input
             id="wizard-light-option"
             type="text"
             value={lightName}
             onChange={e => setLightName(e.target.value)}
             placeholder="Light"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
         <div className="flex-1">
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-dark-option">Second mode</label>
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-dark-option">Second mode</label>
           <input
             id="wizard-dark-option"
             type="text"
             value={darkName}
             onChange={e => setDarkName(e.target.value)}
             placeholder="Dark"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
       </div>
-      {error && <p className="text-[10px] text-[var(--color-figma-error)]">{error}</p>}
+      {error && <p className="text-secondary text-[var(--color-figma-error)]">{error}</p>}
       <div className="flex gap-2">
         <button
           onClick={onSkip}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
         >
           Back
         </button>
         <button
           onClick={handleCreate}
           disabled={saving}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
         >
           {saving ? 'Adding...' : 'Add Modes'}
         </button>
@@ -304,8 +304,8 @@ function CompactTemplatePicker({ templates, connected, onSelect }: {
         >
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</p>
+              <span className="text-body font-medium text-[var(--color-figma-text)]">{template.label}</span>
+              <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</p>
             </div>
             <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
               <path d="M4.5 2.5L8 6l-3.5 3.5" />
@@ -351,8 +351,8 @@ function TaskChecklist({ completedTasks, semanticData, connected, onSelect }: {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <span className={`text-[11px] font-medium ${isCompleted ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{task.label}</span>
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{task.description}</p>
+                <span className={`text-body font-medium ${isCompleted ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{task.label}</span>
+                <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">{task.description}</p>
               </div>
               {!isCompleted && !(isDisabled) && (
                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
@@ -477,7 +477,7 @@ export function QuickStartWizard({
       <>
         {!embedded && (
           <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-            <div className="text-[14px] font-semibold text-[var(--color-figma-text)]">Start a new token system</div>
+            <div className="text-heading font-semibold text-[var(--color-figma-text)]">Start a new token system</div>
             <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
@@ -570,7 +570,7 @@ export function QuickStartWizard({
                 </svg>
               </button>
             )}
-              <div className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+              <div className="text-heading font-semibold text-[var(--color-figma-text)]">
               {viewTitle ?? 'Start a new token system'}
             </div>
           </div>
@@ -591,7 +591,7 @@ export function QuickStartWizard({
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{viewTitle}</span>
+          <span className="text-body font-medium text-[var(--color-figma-text)]">{viewTitle}</span>
         </div>
       )}
 
@@ -608,7 +608,7 @@ export function QuickStartWizard({
               <div className="px-4 py-3">
                 <button
                   onClick={onComplete}
-                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
                 >
                   Finish Setup
                 </button>

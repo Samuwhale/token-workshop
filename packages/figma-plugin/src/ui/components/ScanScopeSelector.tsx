@@ -20,7 +20,7 @@ interface ScanScopeSelectorProps {
  */
 export function ScanScopeSelector({ value, onChange, showLabel = false }: ScanScopeSelectorProps) {
   const buttons = (
-    <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px]">
+    <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-secondary">
       {OPTIONS.map(({ value: s, label }) => (
         <button
           key={s}
@@ -42,7 +42,7 @@ export function ScanScopeSelector({ value, onChange, showLabel = false }: ScanSc
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Scope:</span>
+      <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Scope:</span>
       {buttons}
     </div>
   );

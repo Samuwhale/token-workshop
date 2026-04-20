@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { TokenListImperativeHandle } from "./components/tokenListTypes";
-import type { PublishPanelHandle } from "./components/PublishPanel";
 import { ToastStack } from "./components/ToastStack";
 import { useToastStack } from "./hooks/useToastStack";
 import { useToastBusListener, dispatchToast } from "./shared/toastBus";
@@ -18,6 +17,7 @@ import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Tooltip } from "./shared/Tooltip";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
+import { GroupScopesDialog } from "./components/GroupScopesDialog";
 import { PanelRouter } from "./panels/PanelRouter";
 import { useServerEvents } from "./hooks/useServerEvents";
 import type { CollectionSummary, TokenNode } from "./hooks/useTokens";
@@ -37,10 +37,6 @@ import {
   resolveWorkspaceSummary,
 } from "./shared/navigationTypes";
 import type { SidebarItem, WorkspaceSection } from "./shared/navigationTypes";
-import {
-  DEFAULT_PUBLISH_PREFLIGHT_STATE,
-  type PublishPreflightState,
-} from "./shared/syncWorkflow";
 import { useConnectionContext } from "./contexts/ConnectionContext";
 import {
   useCollectionStateContext,
@@ -57,13 +53,13 @@ import {
 } from "./contexts/InspectContext";
 import { useNavigationContext } from "./contexts/NavigationContext";
 import { useEditorContext } from "./contexts/EditorContext";
-import { useFigmaSync } from "./hooks/useFigmaSync";
+import { useSyncState } from "./hooks/useSyncState";
 import { useCollectionRename } from "./hooks/useCollectionRename";
 import { useCollectionDelete } from "./hooks/useCollectionDelete";
 import { useCollectionDuplicate } from "./hooks/useCollectionDuplicate";
 import { useCollectionMergeSplit } from "./hooks/useCollectionMergeSplit";
 import { useCollectionMetadata } from "./hooks/useCollectionMetadata";
-import { useModalVisibility } from "./hooks/useModalVisibility";
+import { useOverlayManager } from "./hooks/useOverlayManager";
 import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
@@ -84,7 +80,7 @@ import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 import {
   Layers, Frame, Upload, RefreshCw, ChevronRight, Bell, Settings,
-  Undo2, Redo2, ChevronsLeft, ChevronsRight, X, AlertCircle,
+  Undo2, Redo2, ChevronsLeft, ChevronsRight,
 } from "lucide-react";
 
 function formatCount(
@@ -192,21 +188,23 @@ export function App() {
     setShowCommandPalette,
     showQuickApply,
     setShowQuickApply,
-  } = useModalVisibility();
-  const [showCollectionCreateDialog, setShowCollectionCreateDialog] = useState(false);
+    showCollectionCreateDialog,
+    openCollectionCreateDialog,
+    closeCollectionCreateDialog,
+    commandPaletteInitialQuery,
+    setCommandPaletteInitialQuery,
+    paletteDeleteConfirm,
+    setPaletteDeleteConfirm,
+    startHereState,
+    setStartHereState,
+    initialFirstRun,
+    dismissEphemeralOverlays,
+    openStartHere,
+    closeStartHere,
+  } = useOverlayManager();
   const [collectionRailFocusRequestKey, setCollectionRailFocusRequestKey] = useState(0);
-  const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] =
-    useState("");
   const recentlyTouched = useRecentlyTouched();
   const starredTokens = useStarredTokens();
-  const initialFirstRun = !lsGet(STORAGE_KEYS.FIRST_RUN_DONE);
-  const [startHereState, setStartHereState] = useState<{
-    open: boolean;
-    initialBranch: StartHereBranch;
-  }>(() => ({
-    open: initialFirstRun,
-    initialBranch: "root",
-  }));
   // undoMaxHistory is managed by SettingsPanel; App re-reads from localStorage when it changes
   const undoHistoryRev = useSettingsListener(STORAGE_KEYS.UNDO_MAX_HISTORY);
   const undoMaxHistory = useMemo(
@@ -216,13 +214,6 @@ export function App() {
     },
     [undoHistoryRev],
   );
-  const [pendingPublishCount, setPendingPublishCount] = useState(0);
-  const [publishPreflightState, setPublishPreflightState] =
-    useState<PublishPreflightState>(DEFAULT_PUBLISH_PREFLIGHT_STATE);
-  const dismissEphemeralOverlays = useCallback(() => {
-    setShowCommandPalette(false);
-    setShowQuickApply(false);
-  }, [setShowCommandPalette, setShowQuickApply]);
   const handleInspectedCollectionRename = useCallback(
     (oldCollectionId: string, newCollectionId: string) => {
       if (inspectingCollection?.collectionId !== oldCollectionId) {
@@ -310,35 +301,17 @@ export function App() {
     },
     [inspectingCollection, switchContextualSurface],
   );
-  const openStartHere = useCallback(
-    (initialBranch: StartHereBranch = "root") => {
-      dismissEphemeralOverlays();
-      setStartHereState({ open: true, initialBranch });
-    },
-    [dismissEphemeralOverlays],
-  );
-  const closeStartHere = useCallback(() => {
-    lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
-    setStartHereState({ open: false, initialBranch: "root" });
-  }, []);
   const focusCollectionRail = useCallback(() => {
     dismissEphemeralOverlays();
     navigateTo("library", "library");
     setCollectionRailFocusRequestKey((current) => current + 1);
   }, [dismissEphemeralOverlays, navigateTo]);
-  const openCollectionCreateDialog = useCallback(() => {
-    dismissEphemeralOverlays();
-    setShowCollectionCreateDialog(true);
-  }, [dismissEphemeralOverlays]);
-  const closeCollectionCreateDialog = useCallback(() => {
-    setShowCollectionCreateDialog(false);
-  }, []);
   useEffect(() => {
     if (!initialFirstRun || !startHereState.open) return;
     if (Object.keys(allTokensFlat).length === 0) return;
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
     setStartHereState({ open: false, initialBranch: "root" });
-  }, [allTokensFlat, initialFirstRun, startHereState.open]);
+  }, [allTokensFlat, initialFirstRun, setStartHereState, startHereState.open]);
   const handleImportComplete = useCallback(
     (result: ImportCompletionResult) => {
       const failureNote = result.hadFailures ? " Some items still need follow-up." : "";
@@ -357,23 +330,6 @@ export function App() {
     history: notificationHistory,
     clearHistory: clearNotificationHistory,
   } = useToastStack();
-  // Listen for PublishPanel's broadcast of how many changes are pending sync
-  useEffect(() => {
-    const handler = (e: Event) =>
-      setPendingPublishCount(
-        (e as CustomEvent<{ total: number }>).detail.total,
-      );
-    window.addEventListener("publish-pending-count", handler);
-    return () => window.removeEventListener("publish-pending-count", handler);
-  }, []);
-  useEffect(() => {
-    const handler = (e: Event) =>
-      setPublishPreflightState(
-        (e as CustomEvent<PublishPreflightState>).detail,
-      );
-    window.addEventListener("publish-preflight-state", handler);
-    return () => window.removeEventListener("publish-preflight-state", handler);
-  }, []);
   // Wire the alias-not-found toast into EditorContext
   useEffect(() => {
     setAliasNotFoundHandler((p) =>
@@ -670,7 +626,6 @@ export function App() {
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
-  const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
   // Open compare view within the Tokens tab in 'cross-collection' mode for a specific token
   const handleOpenCrossCollectionCompare = useCallback(
     (path: string) => {
@@ -814,12 +769,7 @@ export function App() {
   const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<
     string | null
   >(null);
-  // Command palette batch-delete state
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
-  const [paletteDeleteConfirm, setPaletteDeleteConfirm] = useState<{
-    paths: string[];
-    label: string;
-  } | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => lsGet(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "1",
   );
@@ -837,7 +787,6 @@ export function App() {
 
   const cascadeDiff = null;
 
-  // Group sync + scope state
   const {
     syncGroupPending,
     setSyncGroupPending,
@@ -857,25 +806,19 @@ export function App() {
     groupScopesProgress,
     handleSyncGroup,
     handleSyncGroupStyles,
-    syncGroupStylesError,
-    syncGroupError,
     handleApplyGroupScopes,
-  } = useFigmaSync(
+    pendingPublishCount,
+    publishPreflightState,
+    publishPanelHandleRef,
+  } = useSyncState({
     serverUrl,
     connected,
     pathToCollectionId,
     collectionMap,
     modeMap,
     currentCollectionId,
-  );
-
-  useEffect(() => {
-    if (syncGroupStylesError) setErrorToast(syncGroupStylesError);
-  }, [syncGroupStylesError, setErrorToast]);
-
-  useEffect(() => {
-    if (syncGroupError) setErrorToast(syncGroupError);
-  }, [syncGroupError, setErrorToast]);
+    setErrorToast,
+  });
 
   // Collection structure hooks
   const {
@@ -1258,6 +1201,7 @@ export function App() {
     currentCollectionId,
     pushUndo,
     refreshAll,
+    setPaletteDeleteConfirm,
     setSuccessToast,
     setErrorToast,
   ]);
@@ -1370,7 +1314,7 @@ export function App() {
   // Trigger delete confirm for a single token from the token search row
   const handlePaletteDeleteToken = useCallback((path: string) => {
     setPaletteDeleteConfirm({ paths: [path], label: `Delete "${path}"?` });
-  }, []);
+  }, [setPaletteDeleteConfirm]);
 
   const workspaceControllers = {
     shell: {
@@ -1608,6 +1552,7 @@ export function App() {
                     <Tooltip key={item.id} label={item.label} position="right">
                       <button
                         onClick={() => handleSidebarItemClick(item)}
+                        aria-label={item.label}
                         className={`relative flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
                             ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-accent)]"
@@ -1627,7 +1572,7 @@ export function App() {
                   <div key={item.id} className="mb-0.5">
                     <button
                       onClick={() => handleSidebarItemClick(item)}
-                      className={`relative flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                      className={`relative flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
                         isWorkspaceActive
                           ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
                           : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
@@ -1661,7 +1606,7 @@ export function App() {
                               key={section.id}
                               onClick={() => handleSubTabClick(section)}
                               tabIndex={isSectionExpanded ? 0 : -1}
-                              className={`w-full rounded px-2 py-0.5 text-left text-[10px] outline-none transition-colors ${
+                              className={`w-full rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
                                 activeSubTab === section.subTab && isWorkspaceActive
                                   ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
                                   : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -1769,13 +1714,13 @@ export function App() {
           )}
           {!connected && !sidebarCollapsed && (
             <div className="mt-1 rounded-md bg-[var(--color-figma-error)]/8 px-2.5 py-1.5">
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              <div className="text-secondary text-[var(--color-figma-text-secondary)]">
                 {checking ? "Connecting…" : "Server offline"}
               </div>
               {!checking && (
                 <button
                   onClick={retryConnection}
-                  className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                  className="mt-1 text-secondary text-[var(--color-figma-accent)] hover:underline"
                 >
                   Retry connection
                 </button>
@@ -1886,87 +1831,16 @@ export function App() {
         />
       )}
 
-      {/* Group Scope Editor */}
       {groupScopesPath && (
-        <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
-              <span className="text-[13px] font-semibold text-[var(--color-figma-text)]">
-                Set Figma Scopes
-              </span>
-              <button
-                onClick={() => setGroupScopesPath(null)}
-                title="Close"
-                aria-label="Close"
-                className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-              >
-                <X size={12} strokeWidth={2} aria-hidden />
-              </button>
-            </div>
-            <div className="p-3 flex flex-col gap-1.5">
-              {(
-                [
-                  { label: "Fill Color", value: "FILL_COLOR" },
-                  { label: "Stroke Color", value: "STROKE_COLOR" },
-                  { label: "Text Fill", value: "TEXT_FILL" },
-                  { label: "Effect Color", value: "EFFECT_COLOR" },
-                  { label: "Width & Height", value: "WIDTH_HEIGHT" },
-                  { label: "Gap / Spacing", value: "GAP" },
-                  { label: "Corner Radius", value: "CORNER_RADIUS" },
-                  { label: "Opacity", value: "OPACITY" },
-                  { label: "Font Size", value: "FONT_SIZE" },
-                  { label: "Font Family", value: "FONT_FAMILY" },
-                ] as const
-              ).map((scope) => (
-                <label
-                  key={scope.value}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={groupScopesSelected.includes(scope.value)}
-                    onChange={(e) =>
-                      setGroupScopesSelected((prev) =>
-                        e.target.checked
-                          ? [...prev, scope.value]
-                          : prev.filter((s) => s !== scope.value),
-                      )
-                    }
-                    className="w-3 h-3 rounded"
-                  />
-                  <span className="text-[11px] text-[var(--color-figma-text)]">
-                    {scope.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-            {groupScopesError && (
-              <div className="px-3 py-2 mx-3 mb-2 rounded bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30 text-[10px] text-[var(--color-figma-error)] flex items-center gap-1.5">
-                <AlertCircle size={10} strokeWidth={2.5} className="shrink-0" aria-hidden />
-                <span className="flex-1 min-w-0">{groupScopesError}</span>
-              </div>
-            )}
-            <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <button
-                onClick={() => setGroupScopesPath(null)}
-                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApplyGroupScopes}
-                disabled={groupScopesApplying}
-                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-              >
-                {groupScopesApplying
-                  ? groupScopesProgress && groupScopesProgress.total > 0
-                    ? `Applying… ${groupScopesProgress.done}/${groupScopesProgress.total}`
-                    : "Applying…"
-                  : "Apply to group"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <GroupScopesDialog
+          scopesSelected={groupScopesSelected}
+          setScopesSelected={setGroupScopesSelected}
+          applying={groupScopesApplying}
+          progress={groupScopesProgress}
+          error={groupScopesError}
+          onApply={handleApplyGroupScopes}
+          onClose={() => setGroupScopesPath(null)}
+        />
       )}
 
       <CollectionCreateDialog

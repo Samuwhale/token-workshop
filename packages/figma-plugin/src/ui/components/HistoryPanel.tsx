@@ -79,7 +79,7 @@ export function HistoryPanel({
       {showSaveInput && (
         <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <input
-            className="flex-1 min-w-0 px-2 py-1 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)]"
+            className="flex-1 min-w-0 px-2 py-1 text-secondary rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)]"
             placeholder="Checkpoint label"
             value={saveLabel}
             onChange={e => setSaveLabel(e.target.value)}
@@ -90,13 +90,13 @@ export function HistoryPanel({
           <button
             onClick={handleSaveSnapshot}
             disabled={saving}
-            className="shrink-0 px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
+            className="shrink-0 px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
           <button
             onClick={() => { setShowSaveInput(false); setSaveLabel(''); }}
-            className="shrink-0 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+            className="shrink-0 px-2 py-1 rounded text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
           >
             Cancel
           </button>
@@ -108,7 +108,7 @@ export function HistoryPanel({
           <button
             key={view}
             onClick={() => setActiveView(view)}
-            className={`flex-1 text-center text-[10px] font-medium py-1 rounded transition-colors ${
+            className={`flex-1 text-center text-secondary font-medium py-1 rounded transition-colors ${
               activeView === view
                 ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]'
                 : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'

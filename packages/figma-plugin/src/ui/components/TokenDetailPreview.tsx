@@ -136,7 +136,7 @@ export function TokenDetailPreview({
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-figma-border)]">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate">
+          <span className="text-body font-semibold text-[var(--color-figma-text)] truncate">
             Token not found
           </span>
           <button
@@ -159,7 +159,7 @@ export function TokenDetailPreview({
             </svg>
           </button>
         </div>
-        <div className="flex min-h-0 flex-1 items-center justify-center p-4 text-[10px] text-[var(--color-figma-text-tertiary)]">
+        <div className="flex min-h-0 flex-1 items-center justify-center p-4 text-secondary text-[var(--color-figma-text-tertiary)]">
           Token not found
         </div>
       </div>
@@ -170,7 +170,7 @@ export function TokenDetailPreview({
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
-        <span className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate mr-2">
+        <span className="text-body font-semibold text-[var(--color-figma-text)] truncate mr-2">
           {name}
         </span>
         <button
@@ -201,7 +201,7 @@ export function TokenDetailPreview({
           <div className="flex items-center gap-1.5 mb-1.5">
             <ValuePreview type={type} value={resolvedValue} />
             <div
-              className="text-[10px] text-[var(--color-figma-text-tertiary)] font-mono truncate flex-1 min-w-0"
+              className="text-secondary text-[var(--color-figma-text-tertiary)] font-mono truncate flex-1 min-w-0"
               title={tokenPath}
             >
               {displayPath}
@@ -221,7 +221,7 @@ export function TokenDetailPreview({
             <div className="mt-2 flex flex-wrap gap-1">
               {lintViolations.length > 0 && (
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-secondary font-medium ${
                     lintTone === "error"
                       ? "bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]"
                       : lintTone === "warning"
@@ -248,7 +248,7 @@ export function TokenDetailPreview({
                 </span>
               )}
               {syncChanged && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-warning)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-figma-warning)]/10 px-1.5 py-0.5 text-secondary font-medium text-[var(--color-figma-warning)]">
                   <span
                     className="h-2 w-2 rounded-full bg-current"
                     aria-hidden="true"
@@ -274,11 +274,11 @@ export function TokenDetailPreview({
                         : "bg-[var(--color-figma-bg-secondary)]"
                   }`}
                 >
-                  <div className="text-[10px] text-[var(--color-figma-text)]">
+                  <div className="text-secondary text-[var(--color-figma-text)]">
                     {violation.message}
                   </div>
                   {violation.suggestion && (
-                    <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
                       {violation.suggestion}
                     </div>
                   )}
@@ -329,7 +329,7 @@ export function TokenDetailPreview({
               }
             />
             {entryMeta.$description && (
-              <div className="text-[10px] text-[var(--color-figma-text)] whitespace-pre-wrap break-words">
+              <div className="text-secondary text-[var(--color-figma-text)] whitespace-pre-wrap break-words">
                 {entryMeta.$description}
               </div>
             )}
@@ -338,7 +338,7 @@ export function TokenDetailPreview({
 
         {/* Value section */}
         <div className="px-3 pt-1.5 pb-1">
-          <div className="text-[10px] font-mono text-[var(--color-figma-text)] break-all whitespace-pre-wrap bg-[var(--color-figma-bg-secondary)] rounded px-2 py-1.5 max-h-24 overflow-y-auto">
+          <div className="text-secondary font-mono text-[var(--color-figma-text)] break-all whitespace-pre-wrap bg-[var(--color-figma-bg-secondary)] rounded px-2 py-1.5 max-h-24 overflow-y-auto">
             {valueStr}
           </div>
         </div>
@@ -349,14 +349,14 @@ export function TokenDetailPreview({
           dependencySnapshot?.hasCycles) && (
           <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
             {dependencySnapshot?.hasCycles && (
-              <div className="mb-2 rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
+              <div className="mb-2 rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-secondary text-[var(--color-figma-error)]">
                 Circular alias detected. Open the full graph to debug.
               </div>
             )}
 
             {resolutionSteps && resolutionSteps.length >= 2 && (
               <div className="mb-2">
-                <div className="text-[10px] font-semibold text-[var(--color-figma-text-tertiary)] mb-1">
+                <div className="text-secondary font-semibold text-[var(--color-figma-text-tertiary)] mb-1">
                   Resolves to
                 </div>
                 {(() => {
@@ -368,7 +368,7 @@ export function TokenDetailPreview({
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] shrink-0" />
-                        <span className="text-[10px] font-mono text-[var(--color-figma-accent)] truncate">
+                        <span className="text-secondary font-mono text-[var(--color-figma-accent)] truncate">
                           {first.path}
                         </span>
                       </div>
@@ -377,7 +377,7 @@ export function TokenDetailPreview({
                           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden="true">
                             <path d="M4 0v4M1 4l3 4 3-4" />
                           </svg>
-                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
                             via {middleCount} alias{middleCount !== 1 ? "es" : ""}
                           </span>
                         </div>
@@ -388,7 +388,7 @@ export function TokenDetailPreview({
                         </svg>
                         <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                           <button
-                            className={`text-[10px] font-mono truncate text-left ${last.isError ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline"}`}
+                            className={`text-secondary font-mono truncate text-left ${last.isError ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline"}`}
                             onClick={() => !last.isError && onNavigateToAlias?.(last.path)}
                             title={last.isError ? last.errorMsg : last.path}
                           >
@@ -398,7 +398,7 @@ export function TokenDetailPreview({
                             {isConcrete && (
                               <span className="flex items-center gap-1">
                                 <ValuePreview type={last.$type} value={last.value} />
-                                <span className="text-[10px] font-mono text-[var(--color-figma-text)] font-medium">
+                                <span className="text-secondary font-mono text-[var(--color-figma-text)] font-medium">
                                   {formatValue(last.$type, last.value)}
                                 </span>
                               </span>
@@ -419,7 +419,7 @@ export function TokenDetailPreview({
 
             {dependentNodes.length > 0 && (
               <div className="flex flex-col gap-1">
-                <div className="text-[10px] font-semibold text-[var(--color-figma-text-tertiary)] mb-0.5">
+                <div className="text-secondary font-semibold text-[var(--color-figma-text-tertiary)] mb-0.5">
                   Used by {dependentNodes.length}
                 </div>
                 <div className="flex flex-col gap-1">
@@ -438,7 +438,7 @@ export function TokenDetailPreview({
                           +{node.depth - 1}
                         </span>
                       )}
-                      <span className="min-w-0 flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate">
+                      <span className="min-w-0 flex-1 font-mono text-secondary text-[var(--color-figma-text)] truncate">
                         {formatDisplayPath(
                           node.path,
                           node.path.split(".").pop() ?? node.path,
@@ -453,7 +453,7 @@ export function TokenDetailPreview({
                     </button>
                   ))}
                   {dependentNodes.length > 6 && (
-                    <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                    <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
                       + {dependentNodes.length - 6} more
                     </div>
                   )}
@@ -526,7 +526,7 @@ export function TokenDetailPreview({
       <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] shrink-0 flex gap-1.5">
         <button
           onClick={onEdit}
-          className="flex-1 px-2 py-1.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+          className="flex-1 px-2 py-1.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
         >
           Edit
         </button>
@@ -534,7 +534,7 @@ export function TokenDetailPreview({
           onClick={() => {
             navigator.clipboard.writeText(tokenPath);
           }}
-          className="px-2 py-1.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="px-2 py-1.5 rounded text-secondary font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
           Path
         </button>
@@ -542,7 +542,7 @@ export function TokenDetailPreview({
           onClick={() => {
             navigator.clipboard.writeText(valueStr);
           }}
-          className="px-2 py-1.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="px-2 py-1.5 rounded text-secondary font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
           Value
         </button>

@@ -163,7 +163,7 @@ function CompositionPropertyEditor({
         <button
           type="button"
           onClick={() => onChange(!value)}
-          className={`px-2 py-1 rounded text-[10px] font-medium border ${
+          className={`px-2 py-1 rounded text-secondary font-medium border ${
             value
               ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] border-[var(--color-figma-accent)]/40'
               : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)]'
@@ -174,7 +174,7 @@ function CompositionPropertyEditor({
         <button
           type="button"
           onClick={() => onChange('{')}
-          className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]"
+          className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]"
           title="Use token reference"
         >{'{…}'}</button>
       </div>
@@ -228,7 +228,7 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
   if (!visible) return (
     <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)]">
       <div className={labelClass + ' mb-1'}>Preview</div>
-      <p className="text-[10px] text-[var(--color-figma-text-tertiary)] italic">Hidden (visible = false)</p>
+      <p className="text-secondary text-[var(--color-figma-text-tertiary)] italic">Hidden (visible = false)</p>
     </div>
   );
 
@@ -280,7 +280,7 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
         </div>
       </div>
       {Object.keys(val).some(k => isRef(val[k])) && (
-        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-1 italic">Token references shown with fallback values</p>
+        <p className="text-secondary text-[var(--color-figma-text-tertiary)] mt-1 italic">Token references shown with fallback values</p>
       )}
     </div>
   );
@@ -332,14 +332,14 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
   return (
     <div className="flex flex-col gap-2">
       {usedProps.length === 0 && (
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No properties yet — add one below.</p>
+        <p className="text-secondary text-[var(--color-figma-text-secondary)]">No properties yet — add one below.</p>
       )}
       {usedProps.map(prop => (
         <div key={prop} className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1">
-            <span className={`text-[10px] shrink-0 ${isInherited(prop) ? 'text-[var(--color-figma-text-tertiary)] italic' : 'text-[var(--color-figma-text-secondary)]'}`} title={prop}>
+            <span className={`text-secondary shrink-0 ${isInherited(prop) ? 'text-[var(--color-figma-text-tertiary)] italic' : 'text-[var(--color-figma-text-secondary)]'}`} title={prop}>
               {COMP_PROP_LABELS[prop] || prop}
-              {isInherited(prop) && <span className="text-[10px] ml-0.5">(inherited)</span>}
+              {isInherited(prop) && <span className="text-secondary ml-0.5">(inherited)</span>}
             </span>
             <span className="text-[8px] text-[var(--color-figma-text-tertiary)] opacity-60">{COMP_PROP_TYPE[prop] || 'string'}</span>
             <div className="flex-1" />
@@ -377,7 +377,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
           <button
             type="button"
             onClick={addProp}
-            className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
+            className="px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
           >+ Add</button>
         </div>
       )}

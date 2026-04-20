@@ -44,10 +44,10 @@ export function SelectModeOverflowMenu({
   );
 
   const menuItemClass =
-    "w-full flex items-center gap-2 px-2.5 py-1 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-not-allowed disabled:opacity-40";
+    "w-full flex items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:cursor-not-allowed disabled:opacity-40";
   const sectionBorder = "border-t border-[var(--color-figma-border)] mt-1 pt-1";
   const sectionLabel =
-    "px-2.5 pt-1.5 pb-0.5 text-[10px] font-semibold text-[var(--color-figma-text-tertiary)]";
+    "px-2.5 pt-1.5 pb-0.5 text-secondary font-semibold text-[var(--color-figma-text-tertiary)]";
 
   return (
     <div className="relative shrink-0">

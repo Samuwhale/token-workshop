@@ -72,7 +72,7 @@ function syncFromEntries(
   }
 }
 
-const inputCls = 'flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40';
+const inputCls = 'flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40';
 
 interface JsonErrorInfo {
   message: string;
@@ -202,7 +202,7 @@ function ExtensionsEditor({
       <button
         type="button"
         onClick={onToggleExtensions}
-        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium"
       >
         <span className="flex items-center gap-1.5">
           Extensions
@@ -220,7 +220,7 @@ function ExtensionsEditor({
       {showExtensions && (
         <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-secondary text-[var(--color-figma-text-secondary)]">
               Custom extension data. The <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">scopes</code> sections are managed above.
             </p>
             <button
@@ -228,7 +228,7 @@ function ExtensionsEditor({
               onClick={rawMode ? switchToStructured : switchToRaw}
               disabled={rawMode && !canSwitchToStructured}
               title={rawMode ? 'Switch to structured editor' : 'Switch to raw JSON'}
-              className="shrink-0 ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="shrink-0 ml-2 px-1.5 py-0.5 rounded text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {rawMode ? (
                 <span className="flex items-center gap-1">
@@ -259,16 +259,16 @@ function ExtensionsEditor({
                 placeholder={'{\n  "my.tool": { "category": "brand" }\n}'}
                 rows={5}
                 spellCheck={false}
-                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-secondary font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
               />
               {extensionsJsonError && (
                 <div className="flex flex-col gap-0.5">
-                  <p className="text-[10px] text-[var(--color-figma-error)] flex items-start gap-1">
+                  <p className="text-secondary text-[var(--color-figma-error)] flex items-start gap-1">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-[1px]"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     <span>{extensionsJsonError}</span>
                   </p>
                   {jsonErrorInfo?.errorLine !== undefined && jsonErrorInfo.col !== undefined && (
-                    <div className="font-mono text-[10px] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1.5 py-1 overflow-x-auto">
+                    <div className="font-mono text-secondary bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1.5 py-1 overflow-x-auto">
                       <div className="text-[var(--color-figma-text)] whitespace-pre">{jsonErrorInfo.errorLine}</div>
                       <div className="text-[var(--color-figma-error)] whitespace-pre" aria-hidden="true">{' '.repeat(Math.max(0, jsonErrorInfo.col - 1))}^</div>
                     </div>
@@ -279,7 +279,7 @@ function ExtensionsEditor({
           ) : (
             <>
               {entries.length === 0 && (
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No custom extensions. Click + to add one.</p>
+                <p className="text-secondary text-[var(--color-figma-text-secondary)] italic">No custom extensions. Click + to add one.</p>
               )}
               {entries.map((entry, idx) => {
                 const isObjectValue = entry.value.trim().startsWith('{') || entry.value.trim().startsWith('[');
@@ -327,13 +327,13 @@ function ExtensionsEditor({
               <button
                 type="button"
                 onClick={addEntry}
-                className="self-start flex items-center gap-1 px-2 py-1 rounded text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+                className="self-start flex items-center gap-1 px-2 py-1 rounded text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                 Add extension
               </button>
               {extensionsJsonError && (
-                <p className="text-[10px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
+                <p className="text-secondary text-[var(--color-figma-error)]">{extensionsJsonError}</p>
               )}
             </>
           )}
@@ -380,7 +380,7 @@ export function MetadataEditor({
           type="button"
           onClick={() => setShowScopes(v => !v)}
           title="Scopes control which Figma properties this variable is offered for"
-          className="w-full px-3 py-2 flex flex-col items-start bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+          className="w-full px-3 py-2 flex flex-col items-start bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium"
         >
           <span className="flex w-full items-center justify-between">
             <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : ''}</span>
@@ -388,13 +388,13 @@ export function MetadataEditor({
               <path d="M2 3.5l3 3 3-3"/>
             </svg>
           </span>
-          <span className="mt-0.5 text-[10px] font-normal text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">
+          <span className="mt-0.5 text-secondary font-normal text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">
             Control where this token can be applied in Figma
           </span>
         </button>
         {showScopes && (
           <div className="px-3 py-2 flex flex-col gap-1.5">
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+            <p className="text-secondary text-[var(--color-figma-text-secondary)] mb-1">
               Controls where this variable appears in Figma's variable picker. Empty = All scopes.
             </p>
             {(FIGMA_SCOPE_OPTIONS[tokenType] ?? []).map(scope => (
@@ -408,8 +408,8 @@ export function MetadataEditor({
                   className="w-3 h-3 rounded mt-0.5"
                 />
                 <span className="flex flex-col">
-                  <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
+                  <span className="text-body text-[var(--color-figma-text)]">{scope.label}</span>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
                 </span>
               </label>
             ))}

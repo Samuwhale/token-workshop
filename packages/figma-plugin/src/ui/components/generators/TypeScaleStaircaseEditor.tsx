@@ -126,8 +126,8 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Scale staircase</span>
-        <span className="text-[10px] text-[var(--color-figma-text)] font-medium">
+        <span className="text-secondary text-[var(--color-figma-text-secondary)]">Scale staircase</span>
+        <span className="text-secondary text-[var(--color-figma-text)] font-medium">
           ratio: {ratio}
           {snapLabel && <span className="ml-1 text-[var(--color-figma-accent)]">({snapLabel})</span>}
         </span>

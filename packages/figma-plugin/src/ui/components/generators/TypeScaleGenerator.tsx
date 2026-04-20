@@ -188,7 +188,7 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
     <div className="flex flex-col gap-2">
       {/* Scale ruler */}
       <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">Scale ruler</div>
+        <div className="text-secondary text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">Scale ruler</div>
         <div className="flex flex-col gap-1">
           {sorted.map(({ t, px }, rank) => {
             const barWidth = (px / maxPx) * 100;
@@ -196,11 +196,11 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
             const ratio = prevPx ? (prevPx / px).toFixed(3) : null;
             return (
               <div key={t.stepName} className="flex items-center gap-1.5">
-                <span className="w-8 text-right text-[10px] font-mono text-[var(--color-figma-text-secondary)] shrink-0">{t.stepName}</span>
+                <span className="w-8 text-right text-secondary font-mono text-[var(--color-figma-text-secondary)] shrink-0">{t.stepName}</span>
                 <div className="flex-1 flex items-center min-w-0">
                   <div className="h-2 rounded-sm bg-[var(--color-figma-accent)]/50" style={{ width: `${barWidth}%`, minWidth: 2 }} />
                 </div>
-                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] shrink-0 w-[88px] text-right">
+                <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] shrink-0 w-[88px] text-right">
                   {formatValue(t.value)} → {Math.round(px)}px
                 </span>
                 <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50 shrink-0 w-9 text-right">
@@ -227,7 +227,7 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
               >
                 {label}
               </span>
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono shrink-0 ml-2 whitespace-nowrap">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)] font-mono shrink-0 ml-2 whitespace-nowrap">
                 {formatValue(t.value)} → {Math.round(px)}px
               </span>
             </OverrideRow>
@@ -387,7 +387,7 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
                     );
                   })}
                 </div>
-                <span className={`text-[10px] font-medium text-center ${
+                <span className={`text-secondary font-medium text-center ${
                   isActive ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'
                 }`}>{preset.label}</span>
               </button>
@@ -404,12 +404,12 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
           onLink={setRatioTokenRef}
           onUnlink={clearRatioTokenRef}
         >
-          <div className="mt-3 flex items-center justify-between rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="mt-3 flex items-center justify-between rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
             <span>
               Ratio <span className="font-mono text-[var(--color-figma-text)]">{config.ratio}</span>
             </span>
             {activePresetRatio && (
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                 {activePresetRatio.label}
               </span>
             )}
@@ -418,7 +418,7 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
         <button
           type="button"
           onClick={() => setShowFullEditor(v => !v)}
-          className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
+          className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1"
         >
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showFullEditor ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
           Customize
@@ -427,13 +427,13 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
 
       {showFullEditor && <>
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Scale ratio</label>
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Scale ratio</label>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Current: {config.ratio}</span>
+          <span className="text-secondary text-[var(--color-figma-text-secondary)]">Current: {config.ratio}</span>
           <button
             onClick={() => setCompareMode(v => !v)}
             title="Compare two ratios side by side"
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${compareMode ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded text-secondary font-medium border transition-colors ${compareMode ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
               <rect x="0.5" y="2" width="3.5" height="6" rx="0.5" />
@@ -451,15 +451,15 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
               {/* Config A */}
               <div className="flex flex-col gap-1.5 min-w-0">
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30">A</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono">{config.ratio}</span>
+                  <span className="text-secondary font-bold px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30">A</span>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] font-mono">{config.ratio}</span>
                   {activePresetRatio && <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-60 truncate">{activePresetRatio.label}</span>}
                 </div>
                 <div className="flex flex-col gap-0.5">
                   {TYPE_RATIO_PRESETS.map(preset => (
                     <button key={preset.value} title={`${preset.label} — ${preset.description}`}
                       onClick={() => handleRatioPreset(preset.value)}
-                      className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors text-left truncate ${!isCustomRatio && activePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                      className={`px-1.5 py-0.5 rounded text-secondary border transition-colors text-left truncate ${!isCustomRatio && activePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                     >{preset.label} <span className="font-mono opacity-70">({preset.value})</span></button>
                   ))}
                   <input type="number" min="1.001" max="4" step="0.001"
@@ -468,22 +468,22 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
                     onChange={e => { setIsCustomRatio(true); setCustomRatio(e.target.value); }}
                     onBlur={handleCustomRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomRatioCommit()}
                     aria-label="Custom scale ratio A"
-                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
+                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]" />
                 </div>
               </div>
 
               {/* Config B */}
               <div className="flex flex-col gap-1.5 min-w-0">
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">B</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono">{compareRatio}</span>
+                  <span className="text-secondary font-bold px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">B</span>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] font-mono">{compareRatio}</span>
                   {activeComparePresetRatio && <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-60 truncate">{activeComparePresetRatio.label}</span>}
                 </div>
                 <div className="flex flex-col gap-0.5">
                   {TYPE_RATIO_PRESETS.map(preset => (
                     <button key={preset.value} title={`${preset.label} — ${preset.description}`}
                       onClick={() => handleCompareRatioPreset(preset.value)}
-                      className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors text-left truncate ${!isCustomCompareRatio && activeComparePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                      className={`px-1.5 py-0.5 rounded text-secondary border transition-colors text-left truncate ${!isCustomCompareRatio && activeComparePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                     >{preset.label} <span className="font-mono opacity-70">({preset.value})</span></button>
                   ))}
                   <input type="number" min="1.001" max="4" step="0.001"
@@ -491,7 +491,7 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
                     onChange={e => { setIsCustomCompareRatio(true); setCustomCompareRatio(e.target.value); }}
                     onBlur={handleCustomCompareRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomCompareRatioCommit()}
                     aria-label="Custom scale ratio B"
-                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
+                    className="mt-0.5 w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]" />
                 </div>
               </div>
             </div>
@@ -525,11 +525,12 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
             {/* Action row */}
             <div className="flex items-center gap-1.5">
               <button onClick={applyCompareRatio}
-                className="flex-1 px-2 py-1 rounded text-[10px] font-medium border border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                className="flex-1 px-2 py-1 rounded text-secondary font-medium border border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
               >Use B ({compareRatio})</button>
               <button onClick={swapAB}
                 title="Swap A and B ratios"
-                className="px-2 py-1 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                aria-label="Swap A and B ratios"
+                className="px-2 py-1 rounded text-secondary border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 <svg width="12" height="10" viewBox="0 0 12 10" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M1 3h8M7 1l2 2-2 2" />
@@ -544,17 +545,17 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
             <div className="flex gap-1 flex-wrap">
               {TYPE_RATIO_PRESETS.map(preset => (
                 <button key={preset.value} title={`${preset.label} — ${preset.description}`} onClick={() => handleRatioPreset(preset.value)}
-                  className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!isCustomRatio && activePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${!isCustomRatio && activePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                 >{preset.label.split(' ')[0]} ({preset.value})</button>
               ))}
             </div>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Custom:</span>
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">Custom:</span>
               <input type="number" min="1.001" max="4" step="0.001" value={isCustomRatio ? customRatio : config.ratio}
                 onChange={e => { setIsCustomRatio(true); setCustomRatio(e.target.value); }}
                 onBlur={handleCustomRatioCommit} onKeyDown={e => e.key === 'Enter' && handleCustomRatioCommit()}
                 aria-label="Custom scale ratio"
-                className="w-20 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]" />
+                className="w-20 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]" />
             </div>
           </div>
         )}
@@ -567,15 +568,15 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
         />
       )}
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5">
           {TYPE_STEP_PRESETS.map((preset, i) => (
             <button key={preset.label} title={preset.description} onClick={() => { onInteractionStart?.(); setShowSteps(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })), baseStep: preset.steps.find(s => s.exponent === 0)?.name ?? preset.steps[Math.floor(preset.steps.length / 2)]?.name ?? config.baseStep }); }}
-              className={`flex-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!showSteps && activeStepPresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+              className={`flex-1 px-2 py-1 rounded text-secondary font-medium border transition-colors ${!showSteps && activeStepPresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
         </div>
-        <button onClick={() => setShowSteps(v => !v)} className="mt-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
+        <button onClick={() => setShowSteps(v => !v)} className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${showSteps ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3" /></svg>
           Edit steps ({config.steps.length})
         </button>
@@ -585,38 +586,38 @@ export function TypeScaleConfigEditor({ config, onChange, onInteractionStart, so
               <div key={i} className="flex items-center gap-1.5">
                 <input value={step.name} onChange={e => updateStep(i, { name: e.target.value })}
                   aria-label={`Step ${i + 1} name`}
-                  placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono focus-visible:border-[var(--color-figma-accent)]" />
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">exp</span>
+                  placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)]" />
+                <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">exp</span>
                 <input type="number" step="1" value={step.exponent} onChange={e => updateStep(i, { exponent: Number(e.target.value) })}
                   aria-label={`Step ${step.name} exponent`}
-                  className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]" />
+                  className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]" />
                 <button onClick={() => setBaseStep(step.name)} title={step.name === config.baseStep ? 'Base step (ratio^0)' : 'Set as base step'} aria-label={`Set ${step.name} as base step`}
-                  className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors shrink-0 ${step.name === config.baseStep ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  className={`px-1.5 py-0.5 rounded text-secondary border transition-colors shrink-0 ${step.name === config.baseStep ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                 >base</button>
-                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">&times;</button>
+                <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-secondary">&times;</button>
               </div>
             ))}
-            <button onClick={addStep} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
+            <button onClick={addStep} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">+ Add step</button>
           </div>
         )}
       </div>
       <div className="flex gap-3">
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Unit</label>
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Unit</label>
           <div className="flex gap-1">
             {(['rem', 'px'] as const).map(u => (
               <button key={u} onClick={() => onChange({ ...config, unit: u })}
-                className={`px-3 py-1 rounded text-[10px] font-medium border transition-colors ${config.unit === u ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                className={`px-3 py-1 rounded text-secondary font-medium border transition-colors ${config.unit === u ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
               >{u}</button>
             ))}
           </div>
         </div>
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Round to</label>
+          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Round to</label>
           <div className="flex gap-1">
             {([0, 1, 2, 3] as const).map(n => (
               <button key={n} onClick={() => onChange({ ...config, roundTo: n })}
-                className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${config.roundTo === n ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${config.roundTo === n ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
               >{n}dp</button>
             ))}
           </div>

@@ -225,16 +225,16 @@ export function GeneratorIntentCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)] transition-colors">
+            <span className="text-body font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)] transition-colors">
               {template.label}
             </span>
             {isSuggested && (
-              <span className="text-[10px] font-medium text-[var(--color-figma-accent)]">
+              <span className="text-secondary font-medium text-[var(--color-figma-accent)]">
                 Suggested
               </span>
             )}
           </div>
-          <p className="text-[10px] leading-snug text-[var(--color-figma-text-secondary)]">
+          <p className="text-secondary leading-snug text-[var(--color-figma-text-secondary)]">
             {template.description}
           </p>
         </div>
@@ -290,10 +290,10 @@ export function GeneratorIntentCatalog({
         ))
       ) : (
         <div className="flex flex-col items-center justify-center py-3 text-center">
-          <p className="mb-1 text-[11px] text-[var(--color-figma-text-secondary)]">
+          <p className="mb-1 text-body text-[var(--color-figma-text-secondary)]">
             {emptyStateTitle}
           </p>
-          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
             {emptyStateDescription}
           </p>
         </div>

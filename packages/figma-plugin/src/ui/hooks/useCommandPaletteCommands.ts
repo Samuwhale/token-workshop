@@ -310,6 +310,7 @@ export function useCommandPaletteCommands(): {
     setEditingToken,
     shell,
     closeSecondarySurface,
+    switchContextualSurface,
     tokens,
     sync,
     tokenListViewRev,
@@ -495,6 +496,7 @@ export function useCommandPaletteCommands(): {
     openCompareInTokens,
     pathToCollectionId,
     setHighlightedToken,
+    switchContextualSurface,
     tokens,
   ]);
 

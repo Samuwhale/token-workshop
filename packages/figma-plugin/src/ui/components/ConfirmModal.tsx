@@ -69,28 +69,28 @@ export function ConfirmModal({
     >
       <div ref={dialogRef} className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
         <div className="px-4 pt-4 pb-3">
-          <h3 id="confirm-modal-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <h3 id="confirm-modal-title" className="text-heading font-semibold text-[var(--color-figma-text)]">{title}</h3>
           {description && (
-            <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+            <p className="mt-1.5 text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
               {description}
             </p>
           )}
           {children}
         </div>
         {error && (
-          <p role="alert" className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)] break-words max-h-[80px] overflow-y-auto">{error}</p>
+          <p role="alert" className="px-4 pb-2 text-secondary text-[var(--color-figma-error)] break-words max-h-[80px] overflow-y-auto">{error}</p>
         )}
         <div className="px-4 pb-4 flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             {cancelLabel}
           </button>
           <button
             onClick={handleConfirm}
             disabled={busy || confirmDisabled}
-            className={`flex-1 px-3 py-1.5 rounded text-[11px] font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 ${
+            className={`flex-1 px-3 py-1.5 rounded text-body font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 ${
               danger
                 ? 'bg-[var(--color-figma-error)] text-white hover:opacity-90'
                 : 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]'

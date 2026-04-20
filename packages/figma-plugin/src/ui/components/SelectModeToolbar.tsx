@@ -60,7 +60,7 @@ export function SelectModeToolbar({
         aria-describedby="select-mode-count"
         className="shrink-0 accent-[var(--color-figma-accent)]"
       />
-      <span id="select-mode-count" className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1 truncate">
+      <span id="select-mode-count" className="text-secondary text-[var(--color-figma-text-secondary)] flex-1 truncate">
         {selectedPaths.size}/{displayedLeafPaths.size}
         {searchQuery ? ` matching "${searchQuery}"` : ""}
       </span>
@@ -68,14 +68,14 @@ export function SelectModeToolbar({
         <>
           <button
             onClick={onToggleBatchEditor}
-            className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"
+            className="shrink-0 px-1.5 py-0.5 rounded text-secondary font-medium transition-colors bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]"
           >
             Batch
           </button>
           <button
             onClick={onRequestBulkDelete}
             disabled={!!operationLoading}
-            className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            className="shrink-0 px-1.5 py-0.5 rounded text-secondary font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
           >
             Delete
           </button>

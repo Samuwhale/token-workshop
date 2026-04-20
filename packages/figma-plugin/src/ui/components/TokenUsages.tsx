@@ -285,7 +285,7 @@ export function TokenUsages({
       <button
         type="button"
         onClick={() => setExpanded(v => !v)}
-        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
       >
         <span className="flex items-center gap-1.5">
           Usages
@@ -305,7 +305,7 @@ export function TokenUsages({
           {layersScanned && layersTotal > 0 && (
             <div className="px-3 py-2 flex items-center justify-between gap-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[10px] text-[var(--color-figma-text)]">
+                <span className="text-secondary text-[var(--color-figma-text)]">
                   <span className="font-medium">{layersTotal}</span> layer{layersTotal !== 1 ? 's' : ''}
                   {componentNames.length > 0 && (
                     <>
@@ -322,7 +322,7 @@ export function TokenUsages({
                   )}
                 </span>
                 {showValueDiff && (
-                  <span className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <span className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)]">
                     {tokenType === 'color' && oldColorHex && newColorHex ? (
                       <>
                         <span className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ background: oldColorHex }} title="Before" />
@@ -339,7 +339,7 @@ export function TokenUsages({
                           <path d="M1 3h5M4 1l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                         <span className="font-mono truncate max-w-[80px]" title={newValueStr}>{newValueStr}</span>
-                        <span className="text-[10px] opacity-50">(unsaved)</span>
+                        <span className="text-secondary opacity-50">(unsaved)</span>
                       </>
                     )}
                   </span>
@@ -349,7 +349,7 @@ export function TokenUsages({
                 type="button"
                 onClick={highlightAll}
                 title="Select and zoom to affected layers"
-                className="shrink-0 flex items-center gap-1 px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+                className="shrink-0 flex items-center gap-1 px-1.5 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -362,7 +362,7 @@ export function TokenUsages({
           {showComponentList && componentNames.length > 0 && (
             <div className="px-3 py-1.5 flex flex-wrap gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
               {componentNames.map(name => (
-                <span key={name} className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] truncate max-w-[120px]" title={name}>
+                <span key={name} className="px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] truncate max-w-[120px]" title={name}>
                   {name}
                 </span>
               ))}
@@ -371,19 +371,19 @@ export function TokenUsages({
 
           {/* Incoming aliases (dependent tokens) */}
           {dependentsLoading ? (
-            <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-center gap-1.5 px-3 py-2.5 text-secondary text-[var(--color-figma-text-secondary)]">
               <Spinner />
               Finding references…
             </div>
           ) : dependents.length > 0 ? (
             <>
-              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+              <div className="px-3 py-1 text-secondary uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                 <span>Incoming aliases ({dependents.length})</span>
                 {onShowReferences && (
                   <button
                     type="button"
                     onClick={() => onShowReferences(tokenPath)}
-                    className="text-[10px] normal-case tracking-normal text-[var(--color-figma-accent)] hover:underline opacity-100 transition-colors"
+                    className="text-secondary normal-case tracking-normal text-[var(--color-figma-accent)] hover:underline opacity-100 transition-colors"
                     title="View in dependency graph"
                   >
                     View in graph
@@ -410,7 +410,7 @@ export function TokenUsages({
                       ) : resolvedColor ? (
                         <span className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]" style={{ background: resolvedColor }} />
                       ) : null}
-                      <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={dep.path}>
+                      <span className="flex-1 font-mono text-secondary text-[var(--color-figma-text)] truncate" title={dep.path}>
                         {dep.path}
                       </span>
                       {dep.collectionId !== collectionId && (
@@ -443,24 +443,24 @@ export function TokenUsages({
 
           {/* Layer scan error */}
           {layersScanned && layersScanError && (
-            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
+            <div className="px-3 py-2 text-secondary text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
               <span className="text-[var(--color-figma-warning)]" title={layersScanError}>Layer scan failed — {layersScanError}</span>
             </div>
           )}
 
           {/* Figma variable bindings */}
           {variablesLoading ? (
-            <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-center gap-1.5 px-3 py-2.5 text-secondary text-[var(--color-figma-text-secondary)]">
               <Spinner />
               Scanning variables…
             </div>
           ) : variablesScanned && variablesScanError ? (
-            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
+            <div className="px-3 py-2 text-secondary text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
               <span className="text-[var(--color-figma-warning)]" title={variablesScanError}>Variable scan failed — {variablesScanError}</span>
             </div>
           ) : variablesScanned && variables.length > 0 ? (
             <>
-              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+              <div className="px-3 py-1 text-secondary uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
                 Figma variables ({variables.length})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
@@ -470,7 +470,7 @@ export function TokenUsages({
                       <rect x="3" y="3" width="18" height="18" rx="2"/>
                       <path d="M9 8h6M9 12h6M9 16h4"/>
                     </svg>
-                    <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={`${v.collection} / ${v.name}`}>
+                    <span className="flex-1 font-mono text-secondary text-[var(--color-figma-text)] truncate" title={`${v.collection} / ${v.name}`}>
                       {v.name}
                     </span>
                     <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
@@ -485,7 +485,7 @@ export function TokenUsages({
           {/* Generated group references */}
           {generatorCount > 0 && (
             <>
-              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+              <div className="px-3 py-1 text-secondary uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
                 Generated groups ({generatorCount})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
@@ -494,7 +494,7 @@ export function TokenUsages({
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Managed by</span>
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">Managed by</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
                       GENERATOR_TYPE_STYLES[producingGenerator.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
@@ -503,14 +503,14 @@ export function TokenUsages({
                     {onNavigateToGeneratedGroup ? (
                       <button
                         type="button"
-                        className="flex-1 min-w-0 text-left text-[10px] font-medium text-[var(--color-figma-accent)] hover:underline truncate"
+                        className="flex-1 min-w-0 text-left text-secondary font-medium text-[var(--color-figma-accent)] hover:underline truncate"
                         title={`Open generated group "${producingGenerator.name}"`}
                         onClick={() => onNavigateToGeneratedGroup(producingGenerator.id)}
                       >
                         {producingGenerator.name}
                       </button>
                     ) : (
-                      <span className="flex-1 text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={producingGenerator.name}>
+                      <span className="flex-1 text-secondary font-medium text-[var(--color-figma-text)] truncate" title={producingGenerator.name}>
                         {producingGenerator.name}
                       </span>
                     )}
@@ -521,13 +521,13 @@ export function TokenUsages({
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Source for</span>
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">Source for</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${
                       GENERATOR_TYPE_STYLES[gen.type]?.classes ?? 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'
                     }`}>
                       {getGeneratedGroupTypeLabel(gen.type)}
                     </span>
-                    <span className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={gen.targetGroup}>
+                    <span className="flex-1 font-mono text-secondary text-[var(--color-figma-text)] truncate" title={gen.targetGroup}>
                       {gen.targetGroup}
                     </span>
                   </div>
@@ -539,7 +539,7 @@ export function TokenUsages({
           {/* Collection assignments */}
           {collectionAssignments.length > 0 && (
             <>
-              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+              <div className="px-3 py-1 text-secondary uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
                 Collection modes ({collectionAssignments.length})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
@@ -548,7 +548,7 @@ export function TokenUsages({
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
-                    <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate" title={`${collectionName} / ${optionName}`}>
+                    <span className="flex-1 text-secondary text-[var(--color-figma-text)] truncate" title={`${collectionName} / ${optionName}`}>
                       <span className="opacity-60">{collectionName} / </span>{optionName}
                     </span>
                     <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]">
@@ -563,7 +563,7 @@ export function TokenUsages({
           {/* Resolver configurations */}
           {resolverAssignments.length > 0 && (
             <>
-              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+              <div className="px-3 py-1 text-secondary uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
                 Resolvers ({resolverAssignments.length})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
@@ -573,11 +573,11 @@ export function TokenUsages({
                       <path d="M3 3h7v7H3V3zM14 3h7v7h-7V3zM3 14h7v7H3v-7z"/>
                       <path d="M17.5 17.5l3 3M14 20.5h7"/>
                     </svg>
-                    <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate font-mono" title={resolver.name}>
+                    <span className="flex-1 text-secondary text-[var(--color-figma-text)] truncate font-mono" title={resolver.name}>
                       {resolver.name}
                     </span>
                     {resolver.description && (
-                      <span className="shrink-0 text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 truncate max-w-[80px]" title={resolver.description}>
+                      <span className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)] opacity-60 truncate max-w-[80px]" title={resolver.description}>
                         {resolver.description}
                       </span>
                     )}
@@ -589,17 +589,17 @@ export function TokenUsages({
 
           {/* Bound layers section */}
           {layersLoading ? (
-            <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-center gap-1.5 px-3 py-2.5 text-secondary text-[var(--color-figma-text-secondary)]">
               <Spinner />
               Scanning layers…
             </div>
           ) : layersScanned && layers.length > 0 ? (
             <>
-              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+              <div className="px-3 py-1 text-secondary uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
                 Layers ({layersTotal})
               </div>
               {layersTotal > layers.length && (
-                <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+                <div className="px-3 py-1 text-secondary text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
                   {layers.length} of {layersTotal} shown
                 </div>
               )}
@@ -614,11 +614,11 @@ export function TokenUsages({
                   >
                     {getNodeIcon(layer.type)}
                     <span className="flex-1 min-w-0">
-                      <span className="block text-[10px] text-[var(--color-figma-text)] truncate">
+                      <span className="block text-secondary text-[var(--color-figma-text)] truncate">
                         {layer.name}
                       </span>
                       {layer.componentName && (
-                        <span className="block text-[10px] text-[var(--color-figma-text-secondary)] truncate opacity-70">
+                        <span className="block text-secondary text-[var(--color-figma-text-secondary)] truncate opacity-70">
                           {layer.componentName}
                         </span>
                       )}
@@ -638,8 +638,8 @@ export function TokenUsages({
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-text-secondary)] opacity-40">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No usages found</p>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, generated group, layer, collection mode, or resolver.</p>
+              <p className="text-secondary text-[var(--color-figma-text-secondary)]">No usages found</p>
+              <p className="text-secondary text-[var(--color-figma-text-secondary)] opacity-60">Not referenced by any token, variable, generated group, layer, collection mode, or resolver.</p>
             </div>
           )}
         </div>

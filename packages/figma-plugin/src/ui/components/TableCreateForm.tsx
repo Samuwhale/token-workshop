@@ -87,17 +87,17 @@ export function TableCreateForm({
           >
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg>
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
             Bulk create in:
           </span>
-          <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">
+          <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate">
             {collectionId}
           </span>
         </div>
         {/* Group picker */}
         <div>
           <label
-            className="block text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5"
+            className="block text-secondary text-[var(--color-figma-text-tertiary)] mb-0.5"
             htmlFor="table-create-group"
           >
             Group
@@ -110,7 +110,7 @@ export function TableCreateForm({
             value={tableGroup}
             onChange={(e) => onSetTableGroup(e.target.value)}
             aria-label="Token group for bulk create"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
           />
           <datalist id="table-create-groups-list">
             {allGroupPaths.map((g) => (
@@ -121,7 +121,7 @@ export function TableCreateForm({
         {/* Smart name suggestions for table create */}
         {tableSuggestions.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">
+            <span className="text-secondary text-[var(--color-figma-text-tertiary)] self-center mr-0.5">
               Suggest:
             </span>
             {tableSuggestions.map((s) => {
@@ -154,7 +154,7 @@ export function TableCreateForm({
                       });
                     }
                   }}
-                  className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
+                  className="px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
                 >
                   {s.label}
                 </button>
@@ -171,13 +171,13 @@ export function TableCreateForm({
               gridTemplateColumns: "minmax(0,1fr) 76px minmax(0,1fr) 18px",
             }}
           >
-            <span className="text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
               Name
             </span>
-            <span className="text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
               Type
             </span>
-            <span className="text-[10px] font-medium text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
               Value
             </span>
             <span />
@@ -205,7 +205,7 @@ export function TableCreateForm({
                   data-table-name-input="true"
                   aria-label={`Token ${idx + 1} name`}
                   autoFocus={idx === 0}
-                  className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
+                  className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
                 />
                 <select
                   value={row.type}
@@ -213,7 +213,7 @@ export function TableCreateForm({
                     onUpdateRow(row.id, "type", e.target.value)
                   }
                   aria-label={`Token ${idx + 1} type`}
-                  className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+                  className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                 >
                   <option value="color">Color</option>
                   <option value="dimension">Dimension</option>
@@ -259,7 +259,7 @@ export function TableCreateForm({
                       onCreateAll();
                   }}
                   aria-label={`Token ${idx + 1} value`}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                 />
                 <button
                   type="button"
@@ -295,7 +295,7 @@ export function TableCreateForm({
           <button
             type="button"
             onClick={() => onAddRow()}
-            className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] text-[10px] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+            className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
           >
             + Add Row
           </button>
@@ -318,7 +318,7 @@ export function TableCreateForm({
                 ? "Enter at least one token name"
                 : "Create all tokens (Ctrl+Enter)"
             }
-            className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+            className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
           >
             {busy
               ? "Creating\u2026"
@@ -326,7 +326,7 @@ export function TableCreateForm({
           </button>
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+            className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>

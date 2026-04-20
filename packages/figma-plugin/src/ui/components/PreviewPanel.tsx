@@ -42,7 +42,7 @@ const TEMPLATES: { id: Template; label: string }[] = [
 ];
 
 function previewSectionLabelClassName(darkMode: boolean): string {
-  return `text-[10px] font-medium mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`;
+  return `text-secondary font-medium mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`;
 }
 
 /** Convert a token path to a CSS custom property name */
@@ -457,7 +457,7 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, o
               <button
                 key={t.id}
                 onClick={() => { startTransition(() => setTemplate(t.id)); lsSet(STORAGE_KEY_TEMPLATE, t.id); }}
-                className={`shrink-0 px-2.5 py-1 text-[10px] font-medium rounded transition-colors ${
+                className={`shrink-0 px-2.5 py-1 text-secondary font-medium rounded transition-colors ${
                   effectiveTemplate === t.id
                     ? 'bg-[var(--color-figma-accent)] text-white'
                     : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -470,7 +470,7 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, o
           <button
             onClick={() => setDarkMode(v => { const next = !v; lsSet(STORAGE_KEY_DARK_MODE, String(next)); return next; })}
             title={darkMode ? 'Switch to light' : 'Switch to dark'}
-            className={`shrink-0 flex items-center gap-1 px-2 py-1 text-[10px] rounded transition-colors ${
+            className={`shrink-0 flex items-center gap-1 px-2 py-1 text-secondary rounded transition-colors ${
               darkMode
                 ? 'bg-[var(--color-figma-accent)] text-white'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -493,7 +493,7 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, o
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-figma-bg)]/60 pointer-events-none">
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] shadow-sm">
               <Spinner size="sm" className="text-[var(--color-figma-text-secondary)]" />
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Resolving…</span>
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">Resolving…</span>
             </div>
           </div>
         )}
@@ -504,7 +504,7 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens, onNavigateToToken, o
               <line x1="8" y1="21" x2="16" y2="21"/>
               <line x1="12" y1="17" x2="12" y2="21"/>
             </svg>
-            <p className="text-[11px] text-center">No tokens loaded.</p>
+            <p className="text-body text-center">No tokens loaded.</p>
           </div>
         ) : (
           <div
@@ -547,7 +547,7 @@ function ColorGroup({ group, tokens, darkMode, onNavigateToToken }: { group: str
       {hasMore && (
         <button
           onClick={() => setExpanded(v => !v)}
-          className={`mt-1.5 text-[10px] hover:underline ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}
+          className={`mt-1.5 text-secondary hover:underline ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}
         >
           {expanded ? 'Show less' : `Show all ${tokens.length} colors`}
         </button>
@@ -560,12 +560,12 @@ function ColorsTemplate({ groups, gradients, darkMode, onGoToTokens, onNavigateT
   const groupEntries = Object.entries(groups);
   if (groupEntries.length === 0 && gradients.length === 0) {
     return (
-      <div className={`p-4 flex flex-col gap-2 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+      <div className={`p-4 flex flex-col gap-2 text-body ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
         <span>No color tokens found. Add tokens with <code className="font-mono">$type: &quot;color&quot;</code>.</span>
         {onGoToTokens && (
           <button
             onClick={onGoToTokens}
-            className="self-start text-[11px] text-[var(--color-figma-accent)] hover:underline"
+            className="self-start text-body text-[var(--color-figma-accent)] hover:underline"
           >
             Go to Tokens →
           </button>
@@ -620,7 +620,7 @@ function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(`var(${cssVar})`, 'var'); } }}
       >
         {copied && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/60 text-white text-[8px] font-medium">
+          <div className="absolute inset-0 flex items-center justify-center rounded-md bg-[#1a1a1a]/70 text-white text-[8px] font-medium">
             {copied}
           </div>
         )}
@@ -639,7 +639,7 @@ function SwatchCell({ path, value, darkMode, onNavigateToToken }: { path: string
       </div>
       <button
         type="button"
-        className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer bg-transparent border-0 p-0 ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
+        className={`text-secondary text-center leading-tight truncate w-full cursor-pointer bg-transparent border-0 p-0 ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
         title={`Click to copy value: ${value}`}
         aria-label={`Copy value ${value}`}
         onClick={() => handleCopy(value, 'value')}
@@ -675,7 +675,7 @@ function GradientSwatch({ path, value, darkMode, onNavigateToToken }: { path: st
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(`var(${cssVar})`, 'var'); } }}
       >
         {copied && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/60 text-white text-[8px] font-medium">
+          <div className="absolute inset-0 flex items-center justify-center rounded-md bg-[#1a1a1a]/70 text-white text-[8px] font-medium">
             {copied}
           </div>
         )}
@@ -694,7 +694,7 @@ function GradientSwatch({ path, value, darkMode, onNavigateToToken }: { path: st
       </div>
       <button
         type="button"
-        className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer bg-transparent border-0 p-0 ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
+        className={`text-secondary text-center leading-tight truncate w-full cursor-pointer bg-transparent border-0 p-0 ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
         title={`Click to copy value: ${value}`}
         aria-label={`Copy value ${value}`}
         onClick={() => handleCopy(value, 'value')}
@@ -725,12 +725,12 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens, onNavi
 }) {
   if (typeTokens.length === 0) {
     return (
-      <div className={`p-4 flex flex-col gap-2 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+      <div className={`p-4 flex flex-col gap-2 text-body ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
         <span>No fontSize tokens found. Add tokens with <code className="font-mono">$type: &quot;fontSize&quot;</code>.</span>
         {onGoToTokens && (
           <button
             onClick={onGoToTokens}
-            className="self-start text-[11px] text-[var(--color-figma-accent)] hover:underline"
+            className="self-start text-body text-[var(--color-figma-accent)] hover:underline"
           >
             Go to Tokens →
           </button>
@@ -764,7 +764,7 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens, onNavi
         return (
           <div key={path} className="group flex flex-col gap-0.5 overflow-hidden">
             <div className="flex items-baseline gap-3 overflow-hidden">
-              <span className={`text-[10px] w-24 shrink-0 text-right ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>
+              <span className={`text-secondary w-24 shrink-0 text-right ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>
                 {meta.join(' ')}
               </span>
               <span
@@ -779,7 +779,7 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens, onNavi
                 <button
                   onClick={() => onNavigateToToken(path)}
                   title={`Go to token: ${path}`}
-                  className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] transition-colors ${
+                  className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-secondary transition-colors ${
                     darkMode
                       ? 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800'
                       : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100'
@@ -1040,11 +1040,11 @@ function ShadowSwatch({ path, value, darkMode, onNavigateToToken }: { path: stri
         />
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
-        <div className={`text-[10px] font-medium truncate ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>{leafName}</div>
-        <div className={`text-[10px] font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
+        <div className={`text-secondary font-medium truncate ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>{leafName}</div>
+        <div className={`text-secondary font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
       </div>
       {copied && (
-        <div className="absolute top-1 right-1 text-[10px] text-green-500 font-medium">{copied}</div>
+        <div className="absolute top-1 right-1 text-secondary text-green-500 font-medium">{copied}</div>
       )}
       {onNavigateToToken && (
         <button
@@ -1075,14 +1075,14 @@ function TransitionRow({ path, value, type, darkMode, onNavigateToToken }: { pat
   return (
     <div className="group flex items-center gap-3">
       <div className="w-28 shrink-0">
-        <div className={`text-[10px] font-medium truncate ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>{leafName}</div>
-        <div className={`text-[10px] font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
-        <div className={`text-[10px] ${darkMode ? 'text-neutral-600' : 'text-neutral-400'}`}>{type}</div>
+        <div className={`text-secondary font-medium truncate ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>{leafName}</div>
+        <div className={`text-secondary font-mono truncate ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{value}</div>
+        <div className={`text-secondary ${darkMode ? 'text-neutral-600' : 'text-neutral-400'}`}>{type}</div>
       </div>
       {/* Hover demo: a box that slides on hover using the token's transition */}
       <div className="relative flex-1 h-8 overflow-hidden rounded">
         <div
-          className={`absolute left-0 top-0 h-full w-6 rounded flex items-center justify-center text-[10px] ${
+          className={`absolute left-0 top-0 h-full w-6 rounded flex items-center justify-center text-secondary ${
             darkMode ? 'bg-[var(--color-figma-accent,#0d99ff)]' : 'bg-[var(--color-figma-accent,#0d99ff)]'
           } text-white`}
           style={{ transition: transitionValue }}
@@ -1123,7 +1123,7 @@ function EffectsTemplate({ shadows, timings, darkMode, onGoToTokens, onNavigateT
 
   if (!hasContent) {
     return (
-      <div className={`p-4 flex flex-col gap-2 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+      <div className={`p-4 flex flex-col gap-2 text-body ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
         <span>
           No effect tokens found. Add tokens with{' '}
           <code className="font-mono">$type: &quot;shadow&quot;</code>,{' '}
@@ -1133,7 +1133,7 @@ function EffectsTemplate({ shadows, timings, darkMode, onGoToTokens, onNavigateT
         {onGoToTokens && (
           <button
             onClick={onGoToTokens}
-            className="self-start text-[11px] text-[var(--color-figma-accent)] hover:underline"
+            className="self-start text-body text-[var(--color-figma-accent)] hover:underline"
           >
             Go to Tokens →
           </button>
@@ -1205,7 +1205,7 @@ function CopyButton({ text, label, darkMode }: { text: string; label: string; da
     <button
       onClick={handleCopy}
       title={`Copy ${label}`}
-      className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-mono transition-colors ${
+      className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-secondary font-mono transition-colors ${
         copied
           ? 'text-green-500'
           : darkMode

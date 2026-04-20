@@ -129,7 +129,7 @@ export function DuplicateDetectionPanel({
     }
   };
 
-  const btnBase = 'text-[10px] px-2 py-1 rounded transition-colors';
+  const btnBase = 'text-secondary px-2 py-1 rounded transition-colors';
   const btnAccent = `${btnBase} bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`;
 
   const content = (
@@ -138,7 +138,7 @@ export function DuplicateDetectionPanel({
           <div className="px-3 py-2.5">
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <div className="text-secondary text-[var(--color-figma-text-secondary)]">
                   {configuredCount}/{lintDuplicateGroups.length} selected · {aliasCount} aliases
                 </div>
                 <button
@@ -177,13 +177,13 @@ export function DuplicateDetectionPanel({
                     {group.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: group.colorHex }} />}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{group.tokens.length} matching tokens</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{group.typeLabel}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${isConfigured ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+                        <span className="text-secondary font-medium text-[var(--color-figma-text)]">{group.tokens.length} matching tokens</span>
+                        <span className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{group.typeLabel}</span>
+                        <span className={`text-secondary px-1.5 py-0.5 rounded border ${isConfigured ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
                           {isConfigured ? 'Ready' : 'Choose which to keep'}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate">
+                      <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] font-mono truncate">
                         Shared value: {truncateValue(group.valueLabel)}
                       </p>
                     </div>
@@ -219,19 +219,19 @@ export function DuplicateDetectionPanel({
                                   {isSelected && <span className="w-[7px] h-[7px] rounded-full bg-[var(--color-figma-accent)]" />}
                                 </span>
                                 {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
-                                <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                                <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{token.collectionId}</span>
+                                <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
+                                <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">{token.collectionId}</span>
                                 {onNavigateToToken && (
                                   <button
                                     onClick={(e) => { e.preventDefault(); onNavigateToToken(token.path, token.collectionId); }}
-                                    className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
+                                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
                                   >
                                     Open
                                   </button>
                                 )}
                               </div>
                               {diffLabels.length > 0 && (
-                                <p className="mt-1 pl-5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                                <p className="mt-1 pl-5 text-secondary text-[var(--color-figma-text-secondary)]">
                                   Differs: {diffLabels.join(', ')}
                                 </p>
                               )}
@@ -243,7 +243,7 @@ export function DuplicateDetectionPanel({
                       {/* Resolve action */}
                       {keep && (
                         <div className="flex items-center justify-between gap-2 pt-1">
-                          <p className="text-[10px] text-[var(--color-figma-text-secondary)] min-w-0">
+                          <p className="text-secondary text-[var(--color-figma-text-secondary)] min-w-0">
                             Keep <span className="font-mono text-[var(--color-figma-text)]">{keep.path}</span>, alias {others.length} to it
                           </p>
                           <button
@@ -279,8 +279,8 @@ export function DuplicateDetectionPanel({
         className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
       >
         <span className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Duplicates</span>
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <span className="text-body font-semibold text-[var(--color-figma-text)]">Duplicates</span>
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
             {lintDuplicateGroups.length} group{lintDuplicateGroups.length !== 1 ? 's' : ''} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
           </span>
         </span>

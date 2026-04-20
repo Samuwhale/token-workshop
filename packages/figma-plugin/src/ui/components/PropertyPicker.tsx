@@ -97,7 +97,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
     return (
       <div
         ref={ref}
-        className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 text-[10px] text-[var(--color-figma-text-secondary)]"
+        className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 text-secondary text-[var(--color-figma-text-secondary)]"
         style={anchorRect ? { top: anchorRect.top, left: anchorRect.left } : undefined}
       >
         No applicable properties for this layer
@@ -112,7 +112,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
       style={anchorRect ? { top: anchorRect.top, left: anchorRect.left } : undefined}
       onKeyDown={handleKeyDown}
     >
-      <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+      <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] font-medium">
         Apply to property
       </div>
       {showSearch && (
@@ -124,12 +124,12 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
             onChange={e => setQuery(e.target.value)}
             placeholder="Filter properties\u2026"
             aria-label="Filter properties"
-            className="w-full px-1.5 py-1 text-[11px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
+            className="w-full px-1.5 py-1 text-body bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
       )}
       {filtered.length === 0 ? (
-        <div className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
           No matching properties
         </div>
       ) : (
@@ -137,7 +137,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
           <button
             key={prop}
             onClick={() => onSelect(prop)}
-            className={`w-full text-left px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] transition-colors ${
+            className={`w-full text-left px-2 py-1.5 text-body text-[var(--color-figma-text)] transition-colors ${
               idx === highlightIdx
                 ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text-onselected)]'
                 : 'hover:bg-[var(--color-figma-bg-hover)]'

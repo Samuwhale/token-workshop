@@ -154,7 +154,7 @@ export function NoticeBanner({
     <div
       role={severity === 'error' ? 'alert' : 'status'}
       aria-live={severity === 'error' ? undefined : 'polite'}
-      className={`flex items-center gap-2 px-3 py-1.5 border-b text-[11px] shrink-0 ${BANNER_TONE[severity]}${className ? ` ${className}` : ''}`}
+      className={`flex items-center gap-2 px-3 py-1.5 border-b text-body shrink-0 ${BANNER_TONE[severity]}${className ? ` ${className}` : ''}`}
     >
       {severityIcon(severity)}
       <span className="flex-1 min-w-0 text-[var(--color-figma-text)]">{children}</span>
@@ -189,7 +189,7 @@ export interface NoticePillProps {
 export function NoticePill({ severity, children, title, icon, className }: NoticePillProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${PILL_TONE[severity]}${className ? ` ${className}` : ''}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-secondary font-medium ${PILL_TONE[severity]}${className ? ` ${className}` : ''}`}
       title={title}
     >
       {icon}
@@ -222,7 +222,7 @@ export function NoticeCountBadge({ severity, count, title, className }: NoticeCo
 
   return (
     <span
-      className={`inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[10px] font-bold leading-none ${tone}${className ? ` ${className}` : ''}`}
+      className={`inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-secondary font-bold leading-none ${tone}${className ? ` ${className}` : ''}`}
       title={title}
     >
       {count}
@@ -244,7 +244,7 @@ export function NoticeFieldMessage({ severity, children, className }: NoticeFiel
   return (
     <p
       role={severity === 'error' ? 'alert' : undefined}
-      className={`mt-0.5 text-[10px] leading-tight ${FIELD_TONE[severity]}${className ? ` ${className}` : ''}`}
+      className={`mt-0.5 text-secondary leading-tight ${FIELD_TONE[severity]}${className ? ` ${className}` : ''}`}
     >
       {children}
     </p>
@@ -281,7 +281,7 @@ export function NoticeInlineAlert({ severity, children, onDismiss, className }: 
       className={`flex items-start gap-1.5 px-2 py-1.5 rounded border ${tone}${className ? ` ${className}` : ''}`}
     >
       {severityIcon(severity)}
-      <span className={`text-[10px] flex-1 leading-snug ${textTone}`}>{children}</span>
+      <span className={`text-secondary flex-1 leading-snug ${textTone}`}>{children}</span>
       {onDismiss && (
         <button
           onClick={onDismiss}

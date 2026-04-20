@@ -121,7 +121,7 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
             type="button"
             onClick={() => setFormatMenuOpen(v => !v)}
             title={`Format: ${format.toUpperCase()} — click to change`}
-            className="px-1.5 py-1 rounded text-[10px] font-medium uppercase text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] transition-colors"
+            className="px-1.5 py-1 rounded text-secondary font-medium uppercase text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] transition-colors"
           >
             {format}
           </button>
@@ -135,7 +135,7 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
                   key={f}
                   type="button"
                   onClick={() => selectFormat(f)}
-                  className={`w-full text-left px-2 py-1 text-[10px] font-medium uppercase transition-colors ${
+                  className={`w-full text-left px-2 py-1 text-secondary font-medium uppercase transition-colors ${
                     f === format
                       ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
                       : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'

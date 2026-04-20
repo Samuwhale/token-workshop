@@ -77,14 +77,14 @@ function UndoRow({
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--color-figma-text)] text-[var(--color-figma-bg)] text-[11px] shadow-lg animate-toast-in"
+      className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--color-figma-text)] text-[var(--color-figma-bg)] text-body shadow-lg animate-toast-in"
     >
       <span className="flex-1 truncate min-w-0">{undoLabel}</span>
       <button
         onClick={onUndo}
         disabled={!canUndo}
         title={`Undo (${modKey}Z)`}
-        className="shrink-0 px-2 py-0.5 rounded font-medium text-[10px] transition-colors disabled:opacity-30 disabled:cursor-default bg-white/20 hover:bg-white/30 disabled:hover:bg-white/20"
+        className="shrink-0 px-2 py-0.5 rounded font-medium text-secondary transition-colors disabled:opacity-30 disabled:cursor-default bg-white/20 hover:bg-white/30 disabled:hover:bg-white/20"
       >
         Undo
         <kbd className="ml-1 opacity-50 font-normal">{modKey}Z</kbd>
@@ -97,7 +97,7 @@ function UndoRow({
             ? `Redo: ${redoDescription} (${modKey}${shiftKey}Z)`
             : `Redo (${modKey}${shiftKey}Z)`
         }
-        className="shrink-0 px-2 py-0.5 rounded font-medium text-[10px] transition-colors disabled:opacity-30 disabled:cursor-default bg-white/20 hover:bg-white/30 disabled:hover:bg-white/20"
+        className="shrink-0 px-2 py-0.5 rounded font-medium text-secondary transition-colors disabled:opacity-30 disabled:cursor-default bg-white/20 hover:bg-white/30 disabled:hover:bg-white/20"
       >
         Redo
         <kbd className="ml-1 opacity-50 font-normal">
@@ -191,7 +191,7 @@ function MessageRow({
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--color-figma-text)] text-[var(--color-figma-bg)] text-[11px] shadow-lg animate-toast-in"
+      className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--color-figma-text)] text-[var(--color-figma-bg)] text-body shadow-lg animate-toast-in"
     >
       {iconEl}
       <span className="flex-1 min-w-0 break-words line-clamp-3">
@@ -203,7 +203,7 @@ function MessageRow({
             toast.action!.onClick();
             onDismiss(toast.id);
           }}
-          className="shrink-0 px-2 py-0.5 rounded font-medium text-[10px] transition-colors bg-[var(--color-figma-accent)] text-white hover:brightness-110"
+          className="shrink-0 px-2 py-0.5 rounded font-medium text-secondary transition-colors bg-[var(--color-figma-accent)] text-white hover:brightness-110"
         >
           {toast.action.label}
         </button>

@@ -41,13 +41,13 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
   return (
     <div className="flex flex-col gap-3">
       {/* Description */}
-      <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+      <p className="text-secondary text-[var(--color-figma-text-secondary)] leading-relaxed">
         Inverts CIELAB lightness to produce a dark-mode equivalent while preserving hue.
       </p>
 
       {/* Step name */}
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">
           Step name
         </label>
         <input
@@ -56,9 +56,9 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
           onChange={e => onChange({ ...config, stepName: e.target.value })}
           placeholder="inverted"
           aria-label="Step name"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]"
         />
-        <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+        <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
           Output token name.
         </p>
       </div>
@@ -84,7 +84,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
               step={0.05}
               onChange={e => handleChromaChange(e.target.value)}
               aria-label="Chroma boost value"
-              className="w-16 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono focus-visible:border-[var(--color-figma-accent)] text-right"
+              className="w-16 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)] text-right"
             />
           </div>
           <input
@@ -97,7 +97,7 @@ export function DarkModeInversionConfigEditor({ config, onChange, allTokensFlat,
             aria-label="Chroma boost slider"
             className="w-full accent-[var(--color-figma-accent)]"
           />
-          <div className="flex justify-between text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+          <div className="flex justify-between text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
             <span>0 — gray</span>
             <span>1 — preserve</span>
             <span>2 — boost</span>

@@ -120,10 +120,10 @@ export function RollbackPreviewModal({
       >
         {/* Header */}
         <div className="px-4 pt-4 pb-3 shrink-0 border-b border-[var(--color-figma-border)]">
-          <h3 id="rollback-preview-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">
+          <h3 id="rollback-preview-title" className="text-heading font-semibold text-[var(--color-figma-text)]">
             Preview rollback
           </h3>
-          <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed truncate" title={opDescription}>
+          <p className="mt-1 text-body text-[var(--color-figma-text-secondary)] leading-relaxed truncate" title={opDescription}>
             {opDescription}
           </p>
         </div>
@@ -132,7 +132,7 @@ export function RollbackPreviewModal({
         {!diffLoading && summary && !noChanges && (
           <div className="px-4 py-2 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
             <ChangeSummaryBadges {...summary} />
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
               {metadataChanges.length > 0
                 ? `and ${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''} will change`
                 : 'will change'}
@@ -141,7 +141,7 @@ export function RollbackPreviewModal({
         )}
         {!diffLoading && !summary && metadataChanges.length > 0 && (
           <div className="px-4 py-2 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
               {metadataChanges.length} metadata field{metadataChanges.length !== 1 ? 's' : ''} will change
             </span>
           </div>
@@ -152,14 +152,14 @@ export function RollbackPreviewModal({
           {diffLoading && (
             <div className="flex items-center justify-center h-20 gap-2">
               <Spinner size="sm" />
-              <span className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading preview…</span>
+              <span className="text-body text-[var(--color-figma-text-secondary)]">Loading preview…</span>
             </div>
           )}
 
           {!diffLoading && diffError && (
             <div className="flex flex-col items-center justify-center h-20 gap-1 px-3 text-center">
-              <p className="text-[11px] text-[var(--color-figma-error)]">{diffError}</p>
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">You can still roll back — the operation will restore tokens to their prior state.</p>
+              <p className="text-body text-[var(--color-figma-error)]">{diffError}</p>
+              <p className="text-secondary text-[var(--color-figma-text-tertiary)]">You can still roll back — the operation will restore tokens to their prior state.</p>
             </div>
           )}
 
@@ -168,20 +168,20 @@ export function RollbackPreviewModal({
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No token changes detected.</p>
+              <p className="text-body text-[var(--color-figma-text-secondary)]">No token changes detected.</p>
             </div>
           )}
 
           {!diffLoading && metadataChanges.length > 0 && (
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
               <div className="px-3 py-2 border-b border-[var(--color-figma-border)]">
-                <p className="text-[10px] font-medium text-[var(--color-figma-text)]">Metadata changes</p>
+                <p className="text-secondary font-medium text-[var(--color-figma-text)]">Metadata changes</p>
               </div>
               <div className="p-2 space-y-1">
                 {metadataChanges.map((change) => (
                   <div
                     key={change.field}
-                    className="flex flex-wrap items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]"
+                    className="flex flex-wrap items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)]"
                   >
                     <span className="font-medium text-[var(--color-figma-text)]">{change.label}</span>
                     <span>{formatMetadataValue(change.before)}</span>
@@ -204,7 +204,7 @@ export function RollbackPreviewModal({
 
         {/* Error */}
         {confirmError && (
-          <p className="shrink-0 px-4 py-2 text-[10px] text-[var(--color-figma-error)] break-words">
+          <p className="shrink-0 px-4 py-2 text-secondary text-[var(--color-figma-error)] break-words">
             {confirmError}
           </p>
         )}
@@ -214,14 +214,14 @@ export function RollbackPreviewModal({
           <button
             onClick={onCancel}
             disabled={confirming}
-            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50"
+            className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
             disabled={confirming || diffLoading}
-            className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {confirming && <Spinner size="sm" className="text-white" />}
             {confirming ? 'Rolling back…' : 'Roll Back'}

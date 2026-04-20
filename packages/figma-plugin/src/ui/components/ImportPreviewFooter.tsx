@@ -76,31 +76,31 @@ export function ImportPreviewFooter() {
                 if (e.key === 'Escape') cancelNewCollection();
               }}
               placeholder="New collection name…"
-              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
+              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
             />
             <button
               onClick={commitNewCollection}
               disabled={!newCollectionDraft.trim() || !!newCollectionError}
-              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-[10px] font-medium text-white hover:opacity-90 disabled:opacity-40"
+              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white hover:opacity-90 disabled:opacity-40"
             >
               Create
             </button>
             <button
               onClick={cancelNewCollection}
-              className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               Cancel
             </button>
           </div>
           {newCollectionError && (
-            <p role="alert" className="text-[10px] text-[var(--color-figma-error,#e53935)]">
+            <p role="alert" className="text-secondary text-[var(--color-figma-error,#e53935)]">
               {newCollectionError}
             </p>
           )}
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <label className="shrink-0 text-[10px] text-[var(--color-figma-text-secondary)]">Into</label>
+          <label className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">Into</label>
           <select
             value={targetCollectionId}
             onChange={(e) => {
@@ -111,7 +111,7 @@ export function ImportPreviewFooter() {
                 setTargetCollectionIdAndPersist(e.target.value);
               }
             }}
-            className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+            className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
           >
             {collectionIds.map((id) => (
               <option key={id} value={id}>{id}</option>
@@ -125,7 +125,7 @@ export function ImportPreviewFooter() {
       )}
 
       {collectionsError && (
-        <p className="text-[10px] text-[var(--color-figma-error,#e53935)]">
+        <p className="text-secondary text-[var(--color-figma-error,#e53935)]">
           Could not load collections.{' '}
           <button type="button" onClick={fetchCollections} className="underline hover:opacity-80">Retry</button>
         </p>
@@ -133,7 +133,7 @@ export function ImportPreviewFooter() {
 
       {/* Conflict summary */}
       {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null || existingTokenMapError !== null) && (
-        <div className="flex items-center justify-between gap-2 text-[10px]">
+        <div className="flex items-center justify-between gap-2 text-secondary">
           <div className="flex items-center gap-2">
             {existingPathsFetching ? (
               <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens...</span>
@@ -158,7 +158,7 @@ export function ImportPreviewFooter() {
           {hasPreviewConflicts && (
             <button
               onClick={handleImportStyles}
-              className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+              className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
             >
               Review individually&hellip;
             </button>
@@ -176,7 +176,7 @@ export function ImportPreviewFooter() {
           }
         }}
         disabled={selectedTokens.size === 0 || importing || checkingConflicts}
-        className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+        className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
       >
         {checkingConflicts
           ? 'Checking for conflicts...'

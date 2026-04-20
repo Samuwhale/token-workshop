@@ -23,7 +23,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
       <button
         onClick={() => setShowContrast(v => !v)}
-        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium"
       >
         <span>Check contrast</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showContrast ? 'rotate-180' : ''}`}>
@@ -38,7 +38,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
         return (
           <div className="p-3 flex flex-col gap-3">
             <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Background color token</label>
+              <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1">Background color token</label>
               <div className="relative">
                 <input
                   ref={bgInputRef}
@@ -48,7 +48,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
                   onFocus={() => { setBgQuery(''); setBgSearchOpen(true); }}
                   onBlur={() => setTimeout(() => setBgSearchOpen(false), 150)}
                   placeholder="Search color tokens…"
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
                 />
                 {bgTokenPath && !bgSearchOpen && (
                   <button
@@ -77,14 +77,14 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-3">
                   {fgHex && bgHex && (
-                    <div className="w-10 h-10 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[13px] font-bold" style={{ color: fgHex, background: bgHex }}>Aa</div>
+                    <div className="w-10 h-10 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-subheading font-bold" style={{ color: fgHex, background: bgHex }}>Aa</div>
                   )}
                   <div>
-                    <div className="text-[18px] font-semibold text-[var(--color-figma-text)]">{ratio.toFixed(2)}:1</div>
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Contrast ratio</div>
+                    <div className="text-title font-semibold text-[var(--color-figma-text)]">{ratio.toFixed(2)}:1</div>
+                    <div className="text-secondary text-[var(--color-figma-text-secondary)]">Contrast ratio</div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-1 text-[10px] text-center">
+                <div className="grid grid-cols-3 gap-1 text-secondary text-center">
                   {[
                     { label: 'Normal AA', min: 4.5 },
                     { label: 'Large AA', min: 3 },
@@ -100,7 +100,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
                 </div>
               </div>
             ) : (bgTokenPath ? (
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Could not resolve color values.</div>
+              <div className="text-secondary text-[var(--color-figma-text-secondary)]">Could not resolve color values.</div>
             ) : null)}
           </div>
         );

@@ -58,7 +58,7 @@ export function PanelHelpHint({ panelKey, title, description }: PanelHelpHintPro
 
       {/* Expandable description banner */}
       {expanded && (
-        <div className="px-3 py-2 bg-[var(--color-figma-accent)]/5 border-b border-[var(--color-figma-accent)]/10 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed flex items-start gap-2">
+        <div className="px-3 py-2 bg-[var(--color-figma-accent)]/5 border-b border-[var(--color-figma-accent)]/10 text-secondary text-[var(--color-figma-text-secondary)] leading-relaxed flex items-start gap-2">
           <div className="flex-1">
             <span className="font-semibold text-[var(--color-figma-text)]">{title}</span>
             {' — '}
@@ -114,7 +114,7 @@ export function PanelHelpBanner({ title, description, onDismiss }: {
   onDismiss: () => void;
 }) {
   return (
-    <div className="px-3 py-2 bg-[var(--color-figma-accent)]/5 border-b border-[var(--color-figma-accent)]/10 text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed flex items-start gap-2 shrink-0">
+    <div className="px-3 py-2 bg-[var(--color-figma-accent)]/5 border-b border-[var(--color-figma-accent)]/10 text-secondary text-[var(--color-figma-text-secondary)] leading-relaxed flex items-start gap-2 shrink-0">
       <div className="flex-1">
         <span className="font-semibold text-[var(--color-figma-text)]">{title}</span>
         {' — '}

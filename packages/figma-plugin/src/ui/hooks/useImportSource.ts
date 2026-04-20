@@ -937,7 +937,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       return;
     }
     resetImportFlow();
-  }, [onClearConflictState, resetImportFlow, resetLoadedImportState, sourceFamily, workflowStage]);
+  }, [onClearConflictState, resetImportFlow, resetLoadedImportState, workflowStage]);
 
   const toggleToken = useCallback((path: string) => {
     onClearConflictState();

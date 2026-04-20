@@ -221,7 +221,7 @@ export function PathAutocomplete({
               <span className={`w-1.5 h-1.5 rounded-full bg-current ${isSibling ? 'opacity-20' : 'opacity-40'}`} />
             </span>
           )}
-          <span className={`flex-1 text-[10px] truncate ${isGhost || isSibling ? 'text-[var(--color-figma-text-secondary)] italic' : 'text-[var(--color-figma-text)]'}`}>
+          <span className={`flex-1 text-secondary truncate ${isGhost || isSibling ? 'text-[var(--color-figma-text-secondary)] italic' : 'text-[var(--color-figma-text)]'}`}>
             {label}{isGroup ? '.' : ''}
           </span>
           <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">

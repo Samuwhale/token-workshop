@@ -58,9 +58,9 @@ export function ValueCell({ label, value, type }: { label: string; value: string
   const showSwatch = (type === 'color' || isHexColor(v)) && isHexColor(v);
   return (
     <div className="flex items-center gap-1 min-w-0 flex-1">
-      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{label}</span>
+      <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0">{label}</span>
       {showSwatch && <DiffSwatch hex={v} />}
-      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={v}>{truncateValue(v)}</span>
+      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={v}>{truncateValue(v)}</span>
     </div>
   );
 }
@@ -81,11 +81,11 @@ export function TokenChangeRow({ change }: { change: import('../../hooks/useGitD
   return (
     <div className="px-3 py-1">
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
-        <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
+        <span className={`text-secondary font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
+        <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
       </div>
       {change.status === 'modified' && (
-        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-secondary font-mono">
           <div className="flex items-center gap-1 min-w-0">
             <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
             {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
@@ -99,13 +99,13 @@ export function TokenChangeRow({ change }: { change: import('../../hooks/useGitD
         </div>
       )}
       {change.status === 'added' && afterStr !== undefined && (
-        <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+        <div className="ml-4 mt-0.5 flex items-center gap-1 text-secondary font-mono min-w-0">
           {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
           <span className="text-[var(--color-figma-text-secondary)] truncate" title={afterStr}>{truncateValue(afterStr, 40)}</span>
         </div>
       )}
       {change.status === 'removed' && beforeStr !== undefined && (
-        <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+        <div className="ml-4 mt-0.5 flex items-center gap-1 text-secondary font-mono min-w-0">
           {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
           <span className="text-[var(--color-figma-text-secondary)] line-through truncate" title={beforeStr}>{truncateValue(beforeStr, 40)}</span>
         </div>
@@ -161,7 +161,7 @@ export function FileTokenDiffList({
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
+      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
         <label className="flex items-center gap-1.5 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -178,7 +178,7 @@ export function FileTokenDiffList({
           />
           Uncommitted changes
         </label>
-        <span className="text-[10px] opacity-60">
+        <span className="text-secondary opacity-60">
           {selectedFiles.size}/{allChanges.length} selected
           {tokenPreviewLoading && (
             <span className="ml-1.5 inline-flex items-center gap-1">
@@ -224,7 +224,7 @@ export function FileTokenDiffList({
                     className="w-3 h-3"
                   />
                 </label>
-                <span className={`text-[10px] font-mono font-bold w-3 flex-shrink-0 ${
+                <span className={`text-secondary font-mono font-bold w-3 flex-shrink-0 ${
                   change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
                   change.status === 'A' ? 'text-[var(--color-figma-success)]' :
                   change.status === 'D' ? 'text-[var(--color-figma-error)]' :
@@ -234,20 +234,20 @@ export function FileTokenDiffList({
                 </span>
                 <button
                   onClick={() => hasTokenChanges && toggleExpand(change.file)}
-                  className="text-[10px] text-[var(--color-figma-text)] truncate text-left flex-1 min-w-0"
+                  className="text-secondary text-[var(--color-figma-text)] truncate text-left flex-1 min-w-0"
                   disabled={!hasTokenChanges}
                 >
                   {change.file}
                 </button>
                 {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && hasTokenChanges && (
-                  <span className="flex gap-1.5 text-[10px] font-mono shrink-0 ml-auto">
+                  <span className="flex gap-1.5 text-secondary font-mono shrink-0 ml-auto">
                     {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
                     {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
                     {removedCount > 0 && <span className="text-[var(--color-figma-error)]">&minus;{removedCount}</span>}
                   </span>
                 )}
                 {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && !hasTokenChanges && change.status !== 'D' && (
-                  <span className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
+                  <span className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
@@ -267,7 +267,7 @@ export function FileTokenDiffList({
         })}
       </div>
       {tokenPreview !== null && !tokenPreviewLoading && tokenPreview.length > 0 && (
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-secondary text-[var(--color-figma-text-secondary)]">
           {tokenPreview.filter(c => c.status === 'added').length > 0 && <span className="text-[var(--color-figma-success)]">+{tokenPreview.filter(c => c.status === 'added').length} added</span>}
           {tokenPreview.filter(c => c.status === 'modified').length > 0 && <span className="text-[var(--color-figma-warning)]">~{tokenPreview.filter(c => c.status === 'modified').length} modified</span>}
           {tokenPreview.filter(c => c.status === 'removed').length > 0 && <span className="text-[var(--color-figma-error)]">&minus;{tokenPreview.filter(c => c.status === 'removed').length} removed</span>}
@@ -292,14 +292,14 @@ export function SyncDiffSummary({ rows, dirs }: {
   if (pullRows.length > 0) sections.push({ label: 'Update local', arrow: '\u2193', items: pullRows, direction: 'pull' });
 
   if (sections.length === 0) {
-    return <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)]">No changes to apply (all skipped).</p>;
+    return <p className="mt-1.5 text-body text-[var(--color-figma-text-secondary)]">No changes to apply (all skipped).</p>;
   }
 
   return (
     <div className="mt-2">
       {sections.map(section => (
         <div key={section.label} className="mb-2">
-          <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
+          <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] mb-1">
             {section.arrow} {section.label} ({section.items.length})
           </div>
           <div className="max-h-36 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
@@ -309,14 +309,14 @@ export function SyncDiffSummary({ rows, dirs }: {
               const afterVal = section.direction === 'push' ? r.localValue : r.figmaValue;
               return (
                 <div key={getDiffRowId(r)} className="px-2 py-1">
-                  <div className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</div>
+                  <div className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</div>
                   {r.targetLabel ? (
-                    <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] truncate" title={r.targetLabel}>
+                    <div className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)] truncate" title={r.targetLabel}>
                       {r.targetLabel}
                     </div>
                   ) : null}
                   {r.cat === 'conflict' && (
-                    <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-[10px] font-mono">
+                    <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-secondary font-mono">
                       <div className="flex items-center gap-1 min-w-0">
                         <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
                         {isColor && isHexColor(beforeVal) && <DiffSwatch hex={beforeVal} />}
@@ -330,7 +330,7 @@ export function SyncDiffSummary({ rows, dirs }: {
                     </div>
                   )}
                   {r.cat !== 'conflict' && (r.localValue ?? r.figmaValue) !== undefined && (
-                    <div className="flex items-center gap-1 mt-0.5 ml-1 text-[10px] font-mono min-w-0">
+                    <div className="flex items-center gap-1 mt-0.5 ml-1 text-secondary font-mono min-w-0">
                       {isColor && isHexColor(r.localValue ?? r.figmaValue) && <DiffSwatch hex={(r.localValue ?? r.figmaValue)!} />}
                       <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.localValue ?? r.figmaValue}>{truncateValue((r.localValue ?? r.figmaValue) ?? '', 36)}</span>
                     </div>
@@ -342,7 +342,7 @@ export function SyncDiffSummary({ rows, dirs }: {
         </div>
       ))}
       {skipCount > 0 && (
-        <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{skipCount} item{skipCount !== 1 ? 's' : ''} skipped.</p>
+        <p className="text-secondary text-[var(--color-figma-text-tertiary)]">{skipCount} item{skipCount !== 1 ? 's' : ''} skipped.</p>
       )}
     </div>
   );
@@ -360,22 +360,22 @@ export function VarDiffRowItem({ row, dir, onChange, reviewOnly = false }: {
     <div className="px-3 py-1.5 flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] text-[var(--color-figma-text)] truncate font-mono" title={row.path}>{row.path}</div>
+          <div className="text-secondary text-[var(--color-figma-text)] truncate font-mono" title={row.path}>{row.path}</div>
           {row.targetLabel ? (
-            <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] truncate" title={row.targetLabel}>
+            <div className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)] truncate" title={row.targetLabel}>
               {row.targetLabel}
             </div>
           ) : null}
         </div>
         {reviewOnly ? (
-          <span className="shrink-0 rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <span className="shrink-0 rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
             Review only
           </span>
         ) : (
           <select
             value={dir}
             onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
-            className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5 shrink-0"
+            className="text-secondary border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5 shrink-0"
           >
             <option value="push">{'\u2191'} Update Figma</option>
             <option value="pull">{'\u2193'} Update local</option>
@@ -395,13 +395,13 @@ export function VarDiffRowItem({ row, dir, onChange, reviewOnly = false }: {
       {row.cat === 'local-only' && row.localValue !== undefined && (
         <div className="flex items-center gap-1 pl-0.5">
           {(row.localType === 'color' || isHexColor(row.localValue)) && isHexColor(row.localValue) && <DiffSwatch hex={row.localValue} />}
-          <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.localValue)}</span>
+          <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.localValue)}</span>
         </div>
       )}
       {row.cat === 'figma-only' && row.figmaValue !== undefined && (
         <div className="flex items-center gap-1 pl-0.5">
           {(row.figmaType === 'color' || isHexColor(row.figmaValue)) && isHexColor(row.figmaValue) && <DiffSwatch hex={row.figmaValue} />}
-          <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
+          <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
         </div>
       )}
     </div>

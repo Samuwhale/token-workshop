@@ -28,7 +28,7 @@ export function TokenListStatsBar({
 
   return (
     <div className="shrink-0 border-b border-[var(--color-figma-border)]">
-      <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
+      <div className="flex items-center gap-2 px-3 py-1 text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
         <span className="font-medium text-[var(--color-figma-text)]">
           {statsTotalTokens}
         </span>

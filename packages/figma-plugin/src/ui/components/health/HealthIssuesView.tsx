@@ -187,13 +187,14 @@ export function HealthIssuesView({
       <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
         <button
           onClick={onBack}
-          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          aria-label="Back"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Issues</span>
+        <span className="text-body font-semibold text-[var(--color-figma-text)]">Issues</span>
         <div className="ml-auto flex items-center gap-1.5">
           {lastRefreshedLabel(validationLastRefreshed)}
           {(["all", "error", "warning", "info"] as const).map((f) => {
@@ -203,7 +204,7 @@ export function HealthIssuesView({
               <button
                 key={f}
                 onClick={() => setSeverityFilter(f)}
-                className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+                className={`text-secondary px-1.5 py-0.5 rounded transition-colors ${
                   isActive
                     ? `${severityStyles(filterSeverity).pill} font-medium`
                     : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
@@ -217,7 +218,7 @@ export function HealthIssuesView({
             <button
               ref={exportMenu.triggerRef}
               onClick={exportMenu.toggle}
-              className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               aria-haspopup="true"
               aria-expanded={exportMenu.open}
             >
@@ -229,13 +230,13 @@ export function HealthIssuesView({
                 className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-0.5"
                 role="menu"
               >
-                <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                   Copy as Markdown
                 </button>
-                <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                   Export JSON
                 </button>
-                <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                   Export CSV
                 </button>
               </div>
@@ -247,7 +248,7 @@ export function HealthIssuesView({
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
         {filteredIssues.length === 0 ? (
           <div className="px-3 py-12 text-center">
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[var(--color-figma-text-secondary)]">
               {activeIssues.length === 0 ? "No issues found" : "No issues match this filter"}
             </p>
           </div>
@@ -281,16 +282,16 @@ export function HealthIssuesView({
                   <NoticePill severity={group.severity as NoticeSeverity}>
                     {group.severity === "error" ? "Error" : group.severity === "warning" ? "Warn" : "Info"}
                   </NoticePill>
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 text-left">
+                  <span className="text-secondary font-medium text-[var(--color-figma-text)] flex-1 text-left">
                     {group.label}
                   </span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
                     {group.issues.length}
                   </span>
                 </button>
 
                 {!isCollapsed && group.tip && (
-                  <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]/30 border-b border-[var(--color-figma-border)] flex items-center gap-1">
+                  <div className="px-3 py-1 text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]/30 border-b border-[var(--color-figma-border)] flex items-center gap-1">
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-50">
                       <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
                     </svg>
@@ -320,7 +321,7 @@ export function HealthIssuesView({
                             [group.rule]: visibleLimit + Math.min(remainingCount, ISSUES_PER_PAGE),
                           }))
                         }
-                        className="w-full px-3 py-1.5 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center border-b border-[var(--color-figma-border)]"
+                        className="w-full px-3 py-1.5 text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center border-b border-[var(--color-figma-border)]"
                       >
                         Show {Math.min(remainingCount, ISSUES_PER_PAGE)} more
                         {remainingCount > ISSUES_PER_PAGE ? ` of ${remainingCount} remaining` : ""}
@@ -346,7 +347,7 @@ function lastRefreshedLabel(date: Date | null) {
   else if (diffMin === 1) text = "1 min ago";
   else if (diffMin < 60) text = `${diffMin} min ago`;
   else text = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  return <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Updated {text}</span>;
+  return <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Updated {text}</span>;
 }
 
 function IssueRow({
@@ -372,14 +373,14 @@ function IssueRow({
     <div className="group px-3 py-1.5 flex items-center gap-2 border-b border-[var(--color-figma-border)] last:border-b-0">
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate">
+          <span className="text-secondary text-[var(--color-figma-text)] font-medium font-mono truncate">
             {issue.path}
           </span>
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
+          <span className="text-secondary text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
             {issue.collectionId}
           </span>
         </div>
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+        <div className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
           {issue.message}
         </div>
       </div>
@@ -388,7 +389,7 @@ function IssueRow({
         <button
           onClick={onFix}
           disabled={fixing}
-          className={`text-[10px] px-2 py-0.5 rounded border shrink-0 disabled:opacity-40 disabled:cursor-wait ${
+          className={`text-secondary px-2 py-0.5 rounded border shrink-0 disabled:opacity-40 disabled:cursor-wait ${
             issue.suggestedFix === "delete-token"
               ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/15"
               : "border-[var(--color-figma-success,#34a853)] bg-[var(--color-figma-success,#34a853)]/10 text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/15"
@@ -401,7 +402,7 @@ function IssueRow({
       {onOpen && (
         <button
           onClick={onOpen}
-          className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
+          className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
         >
           Open
         </button>
@@ -411,7 +412,7 @@ function IssueRow({
         <button
           ref={overflowMenu.triggerRef}
           onClick={overflowMenu.toggle}
-          className="text-[10px] px-1 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors opacity-0 group-hover:opacity-100"
+          className="text-secondary px-1 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors opacity-0 group-hover:opacity-100"
           aria-haspopup="true"
           aria-expanded={overflowMenu.open}
           aria-label="More actions"
@@ -429,7 +430,7 @@ function IssueRow({
             <button
               role="menuitem"
               onClick={() => { onIgnore(); overflowMenu.close(); }}
-              className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Ignore this issue
             </button>

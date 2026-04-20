@@ -32,16 +32,16 @@ export function TokenEditorDerivedGroups({
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
             Generated groups
           </span>
           {existingGeneratorsForToken.length > 0 && (
-            <span className="text-[10px] tabular-nums text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary tabular-nums text-[var(--color-figma-text-secondary)]">
               {existingGeneratorsForToken.length}
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-[10px] text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">
+        <p className="mt-0.5 text-secondary text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">
           Build generated groups directly inside this collection.
         </p>
       </div>
@@ -55,10 +55,10 @@ export function TokenEditorDerivedGroups({
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">
+                  <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate">
                     {gen.name}
                   </span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
                     {getGeneratedGroupTypeLabel(gen.type)}
                   </span>
                 </div>
@@ -75,7 +75,7 @@ export function TokenEditorDerivedGroups({
                       id: gen.id,
                     });
                   }}
-                  className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                  className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors"
                 >
                   Edit generator
                 </button>
@@ -84,7 +84,7 @@ export function TokenEditorDerivedGroups({
           ))}
           </div>
         ) : (
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <p className="text-secondary text-[var(--color-figma-text-secondary)]">
             No generated groups yet.
           </p>
         )}
@@ -101,7 +101,7 @@ export function TokenEditorDerivedGroups({
                 : {}),
             });
           }}
-          className="self-start rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+          className="self-start rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
         >
           {obviousType
             ? `Generate ${getGeneratedGroupTypeLabel(obviousType).toLowerCase()}…`

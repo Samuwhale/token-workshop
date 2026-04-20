@@ -216,7 +216,7 @@ export function RemapBindingsPanel({
     >
       {!embedded && (
         <div className="mb-1 flex items-center justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-figma-text)]">
+          <span className="text-secondary font-semibold uppercase tracking-wide text-[var(--color-figma-text)]">
             Remap Bindings
           </span>
           <button
@@ -240,7 +240,7 @@ export function RemapBindingsPanel({
         </div>
       )}
 
-      <p className="mb-1.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+      <p className="mb-1.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
         Find and replace token paths. The left side can search both live tokens
         and stale paths seen in the current bindings or the latest sync result.
       </p>
@@ -318,7 +318,7 @@ export function RemapBindingsPanel({
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => updateRows([...remapRows, { ...EMPTY_REMAP_ROW }])}
-          className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+          className="text-secondary text-[var(--color-figma-accent)] hover:underline"
         >
           + Add row
         </button>
@@ -339,7 +339,7 @@ export function RemapBindingsPanel({
           <button
             onClick={handleRemap}
             disabled={remapDisabled}
-            className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-[10px] text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-secondary text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {remapRunning ? "Remapping…" : "Remap"}
           </button>

@@ -378,13 +378,13 @@ export function NotificationsPanel({
     <div className="flex h-full flex-col overflow-hidden">
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">
+          <h2 className="text-body font-medium text-[var(--color-figma-text)]">
             Notifications
           </h2>
           {history.length > 0 && (
             <button
               onClick={onClear}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             >
               Clear inbox
             </button>
@@ -396,6 +396,7 @@ export function NotificationsPanel({
               options={INBOX_FILTER_OPTIONS}
               value={filter}
               onChange={setFilter}
+              label="Filter notifications"
             />
           </div>
         )}
@@ -443,21 +444,21 @@ function NotificationCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-1.5">
-            <span className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
+            <span className="truncate text-body font-medium text-[var(--color-figma-text)]">
               {item.title}
             </span>
-            <span className="shrink-0 text-[10px] text-[var(--color-figma-text-tertiary)]" title={formatTime(item.latestTimestamp)}>
+            <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]" title={formatTime(item.latestTimestamp)}>
               {timeAgo(item.latestTimestamp)}
             </span>
           </div>
-          <p className="mt-0.5 text-[10px] leading-snug break-words text-[var(--color-figma-text-secondary)]">
+          <p className="mt-0.5 text-secondary leading-snug break-words text-[var(--color-figma-text-secondary)]">
             {item.summary}
           </p>
         </div>
         {item.action && (
           <button
             onClick={() => onOpen(item.action)}
-            className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             {item.action.label}
           </button>

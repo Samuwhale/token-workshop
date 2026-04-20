@@ -72,14 +72,14 @@ export function CommitCompareView({
       <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-[11px] text-[var(--color-figma-accent)] hover:underline shrink-0"
+          className="flex items-center gap-1 text-body text-[var(--color-figma-accent)] hover:underline shrink-0"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           Back
         </button>
-        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate min-w-0">
+        <span className="text-secondary text-[var(--color-figma-text-tertiary)] truncate min-w-0">
           Comparing commits
         </span>
       </div>
@@ -88,19 +88,19 @@ export function CommitCompareView({
       <div className="shrink-0 grid grid-cols-2 gap-px bg-[var(--color-figma-border)] border-b border-[var(--color-figma-border)]">
         <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
-            <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commitA.hash.slice(0, 7)}</span>
+            <span className="text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
+            <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{commitA.hash.slice(0, 7)}</span>
           </div>
-          <p className="text-[10px] font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitA.message}>{commitA.message}</p>
-          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitA.date))}</p>
+          <p className="text-secondary font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitA.message}>{commitA.message}</p>
+          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitA.date))}</p>
         </div>
         <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
-            <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commitB.hash.slice(0, 7)}</span>
+            <span className="text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
+            <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{commitB.hash.slice(0, 7)}</span>
           </div>
-          <p className="text-[10px] font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitB.message}>{commitB.message}</p>
-          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitB.date))}</p>
+          <p className="text-secondary font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitB.message}>{commitB.message}</p>
+          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitB.date))}</p>
         </div>
       </div>
 
@@ -109,17 +109,17 @@ export function CommitCompareView({
         {loading && (
           <div className="flex items-center justify-center py-3 gap-2">
             <Spinner size="md" className="text-[var(--color-figma-accent)]" />
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Computing diff…</p>
+            <p className="text-body text-[var(--color-figma-text-secondary)]">Computing diff…</p>
           </div>
         )}
         {!loading && error && (
           <div className="flex flex-col items-center justify-center py-3 gap-2 text-center">
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{error}</p>
+            <p className="text-body text-[var(--color-figma-text-secondary)]">{error}</p>
           </div>
         )}
         {!loading && !error && changes !== null && changes.length === 0 && (
           <div className="flex items-center justify-center py-3">
-            <p className="text-[11px] text-[var(--color-figma-text-tertiary)]">No token differences between these two commits.</p>
+            <p className="text-body text-[var(--color-figma-text-tertiary)]">No token differences between these two commits.</p>
           </div>
         )}
         {!loading && !error && changes !== null && changes.length > 0 && (

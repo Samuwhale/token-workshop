@@ -50,7 +50,7 @@ export function AliasPicker({
             onClick={() => {
               if (aliasMode) onToggleAlias();
             }}
-            className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${
+            className={`rounded px-2 py-1 text-secondary font-medium transition-colors ${
               !aliasMode
                 ? 'bg-[var(--color-figma-accent)] text-white'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
@@ -64,14 +64,14 @@ export function AliasPicker({
               if (!aliasMode) onToggleAlias();
             }}
             title="Switch to reference mode (⌘L)"
-            className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium transition-colors ${
+            className={`flex items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors ${
               aliasMode
                 ? 'bg-[var(--color-figma-accent)] text-white'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
             }`}
           >
             Reference
-            <kbd className="font-sans text-[10px] opacity-70">⌘L</kbd>
+            <kbd className="font-sans text-secondary opacity-70">⌘L</kbd>
           </button>
         </div>
       </div>
@@ -99,7 +99,7 @@ export function AliasPicker({
               }}
               placeholder="{color.primary.500}"
               aria-label="Token reference"
-              className="w-full rounded-md border border-[var(--color-figma-accent)]/45 bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
+              className="w-full rounded-md border border-[var(--color-figma-accent)]/45 bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
             />
             {showAutocomplete && (
               <AliasAutocomplete
@@ -116,12 +116,12 @@ export function AliasPicker({
             )}
           </div>
           {!showAutocomplete && !reference && (
-            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-secondary text-[var(--color-figma-text-secondary)]">
               Type <code className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-0.5 font-mono">{'{'}</code> to search for a token reference.
             </p>
           )}
           {!showAutocomplete && aliasHasCycle && (
-            <p className="text-[10px] text-[var(--color-figma-error)]">
+            <p className="text-secondary text-[var(--color-figma-error)]">
               Circular reference: <span className="font-mono">{aliasHasCycle.join(' \u2192 ')}</span>
             </p>
           )}
@@ -132,7 +132,7 @@ export function AliasPicker({
               const brokenPath = lastHop.path;
               const priorPaths = chain.slice(0, -1).map(h => h.path);
               return (
-                <p className="text-[10px] text-[var(--color-figma-error)]">
+                <p className="text-secondary text-[var(--color-figma-error)]">
                   Token not found: <span className="font-mono">{brokenPath}</span>
                   {priorPaths.length > 0 && (
                     <span className="opacity-70"> (via {priorPaths.join(' \u2192 ')})</span>
@@ -149,13 +149,13 @@ export function AliasPicker({
         if (chain.length === 0) return null;
         return (
           <div className="mt-2 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 px-2 py-1.5 flex flex-col gap-1">
-            <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Resolves to</span>
+            <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Resolves to</span>
             {chain.map((hop, i) => {
               const resolvedColor = hop.type === 'color' && typeof hop.value === 'string' && !hop.value.startsWith('{') ? hop.value : null;
               const isLast = i === chain.length - 1;
               return (
                 <div key={hop.path} className="flex items-center gap-1.5 min-w-0">
-                  {i > 0 && <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{'\u21b3'}</span>}
+                  {i > 0 && <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">{'\u21b3'}</span>}
                   {resolvedColor && (
                     <div
                       className="w-3 h-3 rounded-sm border border-white/50 ring-1 ring-[var(--color-figma-border)] shrink-0"
@@ -163,14 +163,14 @@ export function AliasPicker({
                       aria-hidden="true"
                     />
                   )}
-                  <span className={`text-[10px] font-mono truncate ${isLast ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                  <span className={`text-secondary font-mono truncate ${isLast ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
                     {hop.path}
                   </span>
                   {isLast && hop.value === undefined && (
-                    <span className="ml-auto shrink-0 text-[10px] text-[var(--color-figma-error)]">not found</span>
+                    <span className="ml-auto shrink-0 text-secondary text-[var(--color-figma-error)]">not found</span>
                   )}
                   {isLast && hop.value !== undefined && typeof hop.value !== 'object' && !String(hop.value).startsWith('{') && !resolvedColor && (
-                    <span className="ml-auto shrink-0 text-[10px] text-[var(--color-figma-text-secondary)] truncate max-w-[80px]" title={String(hop.value)}>
+                    <span className="ml-auto shrink-0 text-secondary text-[var(--color-figma-text-secondary)] truncate max-w-[80px]" title={String(hop.value)}>
                       {String(hop.value)}
                     </span>
                   )}

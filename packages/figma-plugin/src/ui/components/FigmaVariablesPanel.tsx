@@ -301,7 +301,7 @@ export function FigmaVariablesPanel({
     return (
       <div className="flex flex-col items-center justify-center py-3 gap-2">
         <Spinner size="xl" className="text-[var(--color-figma-accent)]" />
-        <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
+        <div className="text-body text-[var(--color-figma-text-secondary)]">
           Reading Figma variables...
         </div>
       </div>
@@ -318,10 +318,10 @@ export function FigmaVariablesPanel({
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
         <div className="text-center">
-          <div className="text-[11px] text-[var(--color-figma-text)] font-medium mb-1">
+          <div className="text-body text-[var(--color-figma-text)] font-medium mb-1">
             Read Variables from this File
           </div>
-          <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[200px]">
+          <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[200px]">
             Reads all local variable collections and references. Then copy as DTCG JSON or save directly to your token server.
           </div>
         </div>
@@ -332,12 +332,12 @@ export function FigmaVariablesPanel({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+        <div className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">
           Showing {filteredCollections.length} / {totalCollections} collection{totalCollections !== 1 ? 's' : ''} &middot; {visibleVariablesCount} / {totalVariables} variable{totalVariables !== 1 ? 's' : ''}
         </div>
         <button
           onClick={onReload}
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M23 4v6h-6M1 20v-6h6" />
@@ -361,14 +361,14 @@ export function FigmaVariablesPanel({
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
                 placeholder="Search collections, variables, aliases, values..."
-                className="w-full min-w-0 bg-transparent text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none"
+                className="w-full min-w-0 bg-transparent text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none"
               />
             </div>
           </label>
           {filtersActive && (
             <button
               onClick={handleClearFilters}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Clear
             </button>
@@ -381,7 +381,7 @@ export function FigmaVariablesPanel({
               value={aliasFilter}
               onChange={event => setAliasFilter(event.target.value as AliasFilter)}
               aria-label="Filter by alias type"
-              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
             >
               <option value="all">All variables</option>
               <option value="aliases">Aliases only</option>
@@ -394,7 +394,7 @@ export function FigmaVariablesPanel({
               value={typeFilter}
               onChange={event => setTypeFilter(event.target.value)}
               aria-label="Filter by variable type"
-              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
             >
               <option value={ALL_FILTER}>All types</option>
               {availableTypes.map(type => (
@@ -410,7 +410,7 @@ export function FigmaVariablesPanel({
               value={scopeFilter}
               onChange={event => setScopeFilter(event.target.value)}
               aria-label="Filter by scope"
-              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
             >
               <option value={ALL_FILTER}>All scopes</option>
               {availableScopes.includesUnscopedVariables && (
@@ -426,28 +426,28 @@ export function FigmaVariablesPanel({
           <button
             onClick={handleExpandCollections}
             disabled={visibleCollectionNames.length === 0}
-            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Expand collections
           </button>
           <button
             onClick={handleCollapseCollections}
             disabled={visibleCollectionNames.length === 0}
-            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Collapse collections
           </button>
           <button
             onClick={handleExpandVariables}
             disabled={visibleVariableKeys.length === 0}
-            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Expand variables
           </button>
           <button
             onClick={handleCollapseVariables}
             disabled={visibleVariableKeys.length === 0}
-            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Collapse variables
           </button>
@@ -456,10 +456,10 @@ export function FigmaVariablesPanel({
 
       {filteredCollections.length === 0 ? (
         <div className="rounded-md border border-dashed border-[var(--color-figma-border)] px-4 py-6 text-center">
-          <div className="text-[11px] font-medium text-[var(--color-figma-text)]">
+          <div className="text-body font-medium text-[var(--color-figma-text)]">
             No variables match the current search and filters.
           </div>
-          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
             Adjust the alias, type, or scope filters to widen the result set.
           </div>
         </div>
@@ -484,12 +484,12 @@ export function FigmaVariablesPanel({
                     >
                       <path d="M2 1l4 3-4 3V1z" />
                     </svg>
-                    <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
+                    <span className="text-body font-medium text-[var(--color-figma-text)] truncate">
                       {collection.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
                       {collection.variables.length} var{collection.variables.length !== 1 ? 's' : ''}
                     </span>
                     {collection.modes.length > 1 && (
@@ -504,7 +504,7 @@ export function FigmaVariablesPanel({
                   <div className="border-t border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
                     {collection.modes.length > 1 && (
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]">
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Modes:</div>
+                        <div className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Modes:</div>
                         {collection.modes.map(modeName => (
                           <span key={modeName} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
                             {modeName}
@@ -532,7 +532,7 @@ export function FigmaVariablesPanel({
                               />
                             )}
                             <div className="flex-1 min-w-0 text-left">
-                              <div className="text-[10px] text-[var(--color-figma-text)] truncate">
+                              <div className="text-secondary text-[var(--color-figma-text)] truncate">
                                 {variable.path}
                               </div>
                             </div>
@@ -549,7 +549,7 @@ export function FigmaVariablesPanel({
                           {isVariableExpanded && (
                             <div className="px-3 py-2 bg-[var(--color-figma-bg)] border-t border-[var(--color-figma-border)]">
                               {variable.description && (
-                                <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5 italic">
+                                <div className="text-secondary text-[var(--color-figma-text-secondary)] mb-1.5 italic">
                                   {variable.description}
                                 </div>
                               )}
@@ -564,11 +564,11 @@ export function FigmaVariablesPanel({
                                         </span>
                                       )}
                                       {modeVal.isAlias ? (
-                                        <span className="text-[10px] font-mono text-[var(--color-figma-warning,#e67e22)]">
+                                        <span className="text-secondary font-mono text-[var(--color-figma-warning,#e67e22)]">
                                           {modeVal.reference}
                                         </span>
                                       ) : (
-                                        <span className="text-[10px] font-mono text-[var(--color-figma-text)]">
+                                        <span className="text-secondary font-mono text-[var(--color-figma-text)]">
                                           {formatModeValue(modeVal)}
                                         </span>
                                       )}

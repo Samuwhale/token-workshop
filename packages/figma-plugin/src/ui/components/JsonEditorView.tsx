@@ -45,7 +45,7 @@ export function JsonEditorView({
           '{\n  "color": {\n    "primary": {\n      "$value": "#3b82f6",\n      "$type": "color"\n    }\n  }\n}'
         }
         spellCheck={false}
-        className="flex-1 p-3 font-mono text-[10px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] resize-none leading-relaxed placeholder:text-[var(--color-figma-text-tertiary)]"
+        className="flex-1 p-3 font-mono text-secondary bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] resize-none leading-relaxed placeholder:text-[var(--color-figma-text-tertiary)]"
         style={{ minHeight: 0 }}
       />
       <div className="shrink-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col gap-1">
@@ -70,7 +70,7 @@ export function JsonEditorView({
           </NoticeFieldMessage>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
             {!hasTokens
               ? "Paste DTCG JSON to import tokens"
               : jsonDirty
@@ -81,7 +81,7 @@ export function JsonEditorView({
             {jsonDirty && hasTokens && (
               <button
                 onClick={onRevert}
-                className="px-2 py-0.5 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="px-2 py-0.5 rounded text-secondary border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Revert
               </button>
@@ -94,7 +94,7 @@ export function JsonEditorView({
                 !connected ||
                 !jsonText.trim()
               }
-              className="px-2 py-0.5 rounded text-[10px] transition-colors bg-[var(--color-figma-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+              className="px-2 py-0.5 rounded text-secondary transition-colors bg-[var(--color-figma-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
             >
               {jsonSaving ? "Saving\u2026" : "Save"}
             </button>

@@ -256,7 +256,7 @@ function RepositoryTimeline({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Versions</span>
+          <span className="text-body font-semibold text-[var(--color-figma-text)]">Versions</span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
@@ -267,7 +267,7 @@ function RepositoryTimeline({
                   return !mode;
                 });
               }}
-              className={`shrink-0 flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded transition-colors ${
+              className={`shrink-0 flex items-center gap-1 text-secondary font-medium px-1.5 py-0.5 rounded transition-colors ${
                 compareMode
                   ? 'bg-[color-mix(in_srgb,var(--color-figma-accent)_14%,transparent)] text-[var(--color-figma-accent)]'
                   : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
@@ -281,8 +281,9 @@ function RepositoryTimeline({
             </button>
             <button
               onClick={() => fetchCommits(debouncedSearch)}
-              className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors px-1.5 py-0.5"
+              className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors px-1.5 py-0.5"
               title="Refresh"
+              aria-label="Refresh"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polyline points="23 4 23 10 17 10" />
@@ -302,7 +303,7 @@ function RepositoryTimeline({
             onChange={e => setSearch(e.target.value)}
             placeholder="Search versions…"
             aria-label="Search versions"
-            className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            className="flex-1 min-w-0 bg-transparent text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
           {search && (
             <button
@@ -324,11 +325,11 @@ function RepositoryTimeline({
             <path d="M18 20V10M12 20V4M6 20v-6" />
           </svg>
           {!compareA ? (
-            <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="flex-1 text-secondary text-[var(--color-figma-text-secondary)]">
               Pick <span className="font-semibold text-[var(--color-figma-accent)]">Set A</span> on the first commit.
             </span>
           ) : !compareB ? (
-            <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <span className="flex-1 text-secondary text-[var(--color-figma-text-secondary)]">
               <span className="font-mono text-[var(--color-figma-text)]">{compareA.hash.slice(0, 7)}</span> is Set A. Choose <span className="font-semibold text-[var(--color-figma-success)]">Set B</span>.
             </span>
           ) : null}
@@ -339,7 +340,7 @@ function RepositoryTimeline({
         {loading && (
           <div className="flex items-center justify-center gap-2 py-6">
             <Spinner size="md" className="text-[var(--color-figma-text-secondary)]" />
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Loading versions…</span>
+            <span className="text-secondary text-[var(--color-figma-text-secondary)]">Loading versions…</span>
           </div>
         )}
 
@@ -381,21 +382,21 @@ function RepositoryTimeline({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {isA && <span className="shrink-0 text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>}
-                    {isB && <span className="shrink-0 text-[10px] font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>}
-                    <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
+                    {isA && <span className="shrink-0 text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>}
+                    {isB && <span className="shrink-0 text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>}
+                    <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-                    <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
+                    <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
                   </div>
                 </div>
                 <div className="shrink-0 flex items-center gap-1">
                   {canSetA && (
                     <button
                       onClick={() => onSetCompareA(commit)}
-                      className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)]"
+                      className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)]"
                     >
                       {compareA === null ? 'Set A' : 'Swap A'}
                     </button>
@@ -403,7 +404,7 @@ function RepositoryTimeline({
                   {canSetB && (
                     <button
                       onClick={() => onSetCompareB(commit)}
-                      className="text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] text-[var(--color-figma-success)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)]"
+                      className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] text-[var(--color-figma-success)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)]"
                     >
                       Set B
                     </button>
@@ -411,8 +412,9 @@ function RepositoryTimeline({
                   {isA && !isB && (
                     <button
                       onClick={onClearCompareA}
-                      className="text-[10px] px-1 py-0.5 rounded transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+                      className="text-secondary px-1 py-0.5 rounded transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
                       title="Clear A"
+                      aria-label="Clear A"
                     >
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M18 6L6 18M6 6l12 12" />
@@ -436,11 +438,11 @@ function RepositoryTimeline({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
+                <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
-                  <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
+                  <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
                 </div>
               </div>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
@@ -455,7 +457,7 @@ function RepositoryTimeline({
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="w-full text-secondary py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {loadingMore ? <><Spinner size="xs" />Loading…</> : 'Load more'}
             </button>
@@ -539,40 +541,40 @@ function GitPreviewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
       <div ref={dialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-preview-dialog-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 id="git-preview-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
-          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">{subtitle}</p>
+          <h3 id="git-preview-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">{subtitle}</p>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           {loading && (
             <div className="flex items-center gap-2 py-4 justify-center">
               <Spinner size="md" className="text-[var(--color-figma-text-secondary)]" />
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Fetching preview…</span>
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">Fetching preview…</span>
             </div>
           )}
           {!loading && preview && (
             <>
               {preview.commits.length > 0 && (
                 <div className="mb-3">
-                  <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
+                  <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] mb-1">
                     {preview.commits.length} version{preview.commits.length !== 1 ? 's' : ''}
                   </div>
                   <div className="space-y-0.5">
                     {preview.commits.map(commit => (
                       <div key={commit.hash} className="flex items-baseline gap-1.5">
-                        <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] shrink-0">{commit.hash.slice(0, 7)}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text)] truncate">{commit.message}</span>
+                        <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] shrink-0">{commit.hash.slice(0, 7)}</span>
+                        <span className="text-secondary text-[var(--color-figma-text)] truncate">{commit.message}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
               {bySet.length === 0 && preview.commits.length === 0 ? (
-                <p className="py-3 text-[10px] text-[var(--color-figma-text-secondary)]">No changes to {confirmLabel.toLowerCase()}.</p>
+                <p className="py-3 text-secondary text-[var(--color-figma-text-secondary)]">No changes to {confirmLabel.toLowerCase()}.</p>
               ) : bySet.length === 0 ? (
-                <p className="py-2 text-[10px] text-[var(--color-figma-text-secondary)]">No token changes.</p>
+                <p className="py-2 text-secondary text-[var(--color-figma-text-secondary)]">No token changes.</p>
               ) : (
                 <>
-                  <div className="flex items-center gap-3 mb-2 text-[10px]">
+                  <div className="flex items-center gap-3 mb-2 text-secondary">
                     {totalAdded > 0 && <span className="text-[var(--color-figma-success)]">+{totalAdded} added</span>}
                     {totalModified > 0 && <span className="text-[var(--color-figma-warning,#e5a000)]">~{totalModified} modified</span>}
                     {totalRemoved > 0 && <span className="text-[var(--color-figma-error)]">−{totalRemoved} removed</span>}
@@ -586,8 +588,8 @@ function GitPreviewModal({
                         <div key={collectionId} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                           <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors" onClick={() => toggleSet(collectionId)}>
                             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`text-[var(--color-figma-text-tertiary)] shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3V1z" /></svg>
-                            <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 truncate">{collectionId}</span>
-                            <span className="flex items-center gap-2 text-[10px] font-mono shrink-0">
+                            <span className="text-secondary font-medium text-[var(--color-figma-text)] flex-1 truncate">{collectionId}</span>
+                            <span className="flex items-center gap-2 text-secondary font-mono shrink-0">
                               {added.length > 0 && <span className="text-[var(--color-figma-success)]">+{added.length}</span>}
                               {modified.length > 0 && <span className="text-[var(--color-figma-warning,#e5a000)]">~{modified.length}</span>}
                               {removed.length > 0 && <span className="text-[var(--color-figma-error)]">−{removed.length}</span>}
@@ -608,8 +610,8 @@ function GitPreviewModal({
           )}
         </div>
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
-          <button onClick={onCancel} className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
-          <button onClick={handleConfirm} disabled={loading || busy} className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+          <button onClick={onCancel} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
+          <button onClick={handleConfirm} disabled={loading || busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
             {busy && <Spinner size="sm" className="text-white" />}
             {busy ? `${confirmLabel}…` : confirmLabel}
           </button>
@@ -683,22 +685,22 @@ function CommitPreviewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
       <div ref={dialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-commit-dialog-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 id="git-commit-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">Save version</h3>
-          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">Review before saving.</p>
+          <h3 id="git-commit-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">Save version</h3>
+          <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">Review before saving.</p>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           <div className="mb-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Message</div>
-            <div className="text-[11px] text-[var(--color-figma-text)] font-medium">{commitMsg}</div>
+            <div className="text-secondary text-[var(--color-figma-text-tertiary)] mb-0.5">Message</div>
+            <div className="text-body text-[var(--color-figma-text)] font-medium">{commitMsg}</div>
           </div>
           <div className="mb-2">
-            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1 flex items-center justify-between">
+            <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] mb-1 flex items-center justify-between">
               <span>
                 {stagedChanges.length} file{stagedChanges.length !== 1 ? 's' : ''} to save
                 {skippedCount > 0 && <span className="text-[var(--color-figma-text-tertiary)]"> ({skippedCount} skipped)</span>}
               </span>
               {!tokenPreviewLoading && relevantTokenChanges.length > 0 && (
-                <span className="flex gap-1.5 text-[10px] font-mono">
+                <span className="flex gap-1.5 text-secondary font-mono">
                   {totalAdded > 0 && <span className="text-[var(--color-figma-success)]">+{totalAdded}</span>}
                   {totalModified > 0 && <span className="text-[var(--color-figma-warning)]">~{totalModified}</span>}
                   {totalRemoved > 0 && <span className="text-[var(--color-figma-error)]">−{totalRemoved}</span>}
@@ -709,7 +711,7 @@ function CommitPreviewModal({
               {tokenPreviewLoading && (
                 <div className="flex items-center gap-2 py-3 justify-center">
                   <Spinner size="md" className="text-[var(--color-figma-text-secondary)]" />
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Loading token changes…</span>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">Loading token changes…</span>
                 </div>
               )}
               {stagedChanges.map(change => {
@@ -725,10 +727,10 @@ function CommitPreviewModal({
                       <span className={`w-3 h-3 flex items-center justify-center shrink-0 ${hasTokenChanges ? '' : 'opacity-0'}`}>
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isExpanded ? 'rotate-90' : ''} text-[var(--color-figma-text-tertiary)]`}><path d="M2 1l4 3-4 3V1z" /></svg>
                       </span>
-                      <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${change.status === 'M' ? 'text-[var(--color-figma-warning)]' : change.status === 'A' ? 'text-[var(--color-figma-success)]' : change.status === 'D' ? 'text-[var(--color-figma-error)]' : 'text-[var(--color-figma-text-secondary)]'}`}>{change.status}</span>
-                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1 min-w-0">{change.file}</span>
+                      <span className={`text-secondary font-mono font-bold w-3 shrink-0 ${change.status === 'M' ? 'text-[var(--color-figma-warning)]' : change.status === 'A' ? 'text-[var(--color-figma-success)]' : change.status === 'D' ? 'text-[var(--color-figma-error)]' : 'text-[var(--color-figma-text-secondary)]'}`}>{change.status}</span>
+                      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1 min-w-0">{change.file}</span>
                       {hasTokenChanges && (
-                        <span className="flex gap-1.5 text-[10px] font-mono shrink-0">
+                        <span className="flex gap-1.5 text-secondary font-mono shrink-0">
                           {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
                           {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
                           {removedCount > 0 && <span className="text-[var(--color-figma-error)]">−{removedCount}</span>}
@@ -746,15 +748,15 @@ function CommitPreviewModal({
             </div>
           </div>
           {!tokenPreviewLoading && tokenPreview !== null && relevantTokenChanges.length === 0 && stagedChanges.some(c => c.file.endsWith('.tokens.json')) && (
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1 flex items-center gap-1.5">
+            <div className="text-secondary text-[var(--color-figma-text-secondary)] py-1 flex items-center gap-1.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
               No token value changes.
             </div>
           )}
         </div>
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
-          <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
-          <button onClick={handleConfirm} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+          <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
+          <button onClick={handleConfirm} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
             {busy && <Spinner size="sm" className="text-white" />}
             {busy ? 'Saving…' : `Save ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
           </button>
@@ -797,29 +799,29 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
       <div ref={dialogRef} className="w-[360px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-apply-dialog-title">
         <div className="px-4 pt-4 pb-2">
-          <h3 id="git-apply-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">Apply changes</h3>
-          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">Review which direction each file should go.</p>
+          <h3 id="git-apply-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">Apply changes</h3>
+          <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">Review which direction each file should go.</p>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           {!hasChanges ? (
-            <p className="py-3 text-[10px] text-[var(--color-figma-text-secondary)]">Nothing to apply.</p>
+            <p className="py-3 text-secondary text-[var(--color-figma-text-secondary)]">Nothing to apply.</p>
           ) : (
             <>
               {sections.map(section => (
                 <div key={section.label} className="mb-3">
-                  <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">{section.arrow} {section.label} ({section.files.length})</div>
+                  <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] mb-1">{section.arrow} {section.label} ({section.files.length})</div>
                   <div className="max-h-28 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
-                    {section.files.map(file => <div key={file} className="px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={file}>{file}</div>)}
+                    {section.files.map(file => <div key={file} className="px-2 py-1 text-secondary font-mono text-[var(--color-figma-text)] truncate" title={file}>{file}</div>)}
                   </div>
                 </div>
               ))}
-              {skipCount > 0 && <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">{skipCount} file{skipCount !== 1 ? 's' : ''} skipped.</p>}
+              {skipCount > 0 && <p className="text-secondary text-[var(--color-figma-text-tertiary)]">{skipCount} file{skipCount !== 1 ? 's' : ''} skipped.</p>}
             </>
           )}
         </div>
         <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
-          <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
-          <button onClick={handleConfirm} disabled={busy || !hasChanges} className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+          <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
+          <button onClick={handleConfirm} disabled={busy || !hasChanges} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
             {busy && <Spinner size="sm" className="text-white" />}
             {busy ? 'Applying…' : 'Apply changes'}
           </button>
@@ -840,11 +842,11 @@ function ModalTokenChangeRow({ change }: { change: TokenChange }) {
   return (
     <div className="px-3 py-1">
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
-        <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
+        <span className={`text-secondary font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
+        <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
       </div>
       {change.status === 'modified' && (
-        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-secondary font-mono">
           <div className="flex items-center gap-1 min-w-0">
             <span className="text-[var(--color-figma-error)] shrink-0 w-3">−</span>
             {isColor && isHexColor(beforeValue) && <DiffSwatch hex={beforeValue} />}
@@ -858,13 +860,13 @@ function ModalTokenChangeRow({ change }: { change: TokenChange }) {
         </div>
       )}
       {change.status === 'added' && afterValue !== undefined && (
-        <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+        <div className="ml-4 mt-0.5 flex items-center gap-1 text-secondary font-mono min-w-0">
           {isColor && isHexColor(afterValue) && <DiffSwatch hex={afterValue} />}
           <span className="text-[var(--color-figma-text-secondary)] truncate" title={afterValue}>{truncateValue(afterValue, 40)}</span>
         </div>
       )}
       {change.status === 'removed' && beforeValue !== undefined && (
-        <div className="ml-4 mt-0.5 flex items-center gap-1 text-[10px] font-mono min-w-0">
+        <div className="ml-4 mt-0.5 flex items-center gap-1 text-secondary font-mono min-w-0">
           {isColor && isHexColor(beforeValue) && <DiffSwatch hex={beforeValue} />}
           <span className="text-[var(--color-figma-text-secondary)] line-through truncate" title={beforeValue}>{truncateValue(beforeValue, 40)}</span>
         </div>

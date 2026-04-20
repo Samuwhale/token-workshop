@@ -192,7 +192,7 @@ export function MultiModeCell({
         canCreate ? (
           <button
             type="button"
-            className={`text-[11px] text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer" : "cursor-text"} hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors`}
+            className={`text-body text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer" : "cursor-text"} hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors`}
             onClick={(e) => {
               e.stopPropagation();
               if (tokenType === "color") {
@@ -209,14 +209,14 @@ export function MultiModeCell({
         ) : onEdit ? (
           <button
             type="button"
-            className="text-[11px] text-[var(--color-figma-text-tertiary)] cursor-pointer hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
+            className="text-body text-[var(--color-figma-text-tertiary)] cursor-pointer hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
             aria-label="Add mode value"
           >
             +
           </button>
         ) : (
-          <span className="text-[11px] text-[var(--color-figma-text-tertiary)]">
+          <span className="text-body text-[var(--color-figma-text-tertiary)]">
             —
           </span>
         )
@@ -289,12 +289,12 @@ export function MultiModeCell({
           onClick={(e) => e.stopPropagation()}
           aria-label="Edit token value"
           autoFocus
-          className="text-[11px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+          className="text-body w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
         />
       ) : isAliasValue ? (
         <>
           <span
-            className={`text-[11px] truncate max-w-full font-mono ${canEditAlias ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
+            className={`text-body truncate max-w-full font-mono ${canEditAlias ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
             onClick={canEditAlias ? openAliasEditor : undefined}
             title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}\nClick to redirect alias`}
           >
@@ -306,7 +306,7 @@ export function MultiModeCell({
               style={{ top: aliasPopoverPos.y, left: aliasPopoverPos.x }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mb-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+              <div className="mb-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
                 Redirect alias ·{" "}
                 <span className="font-mono normal-case text-[var(--color-figma-text)]">
                   {optionName}
@@ -324,7 +324,7 @@ export function MultiModeCell({
                       closeAliasEditor();
                     }
                   }}
-                  className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-[11px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                  className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-body bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
                   placeholder="Search tokens…"
                 />
                 <AliasAutocomplete
@@ -352,7 +352,7 @@ export function MultiModeCell({
         </>
       ) : (
         <span
-          className={`text-[11px] truncate max-w-full ${canEdit ? "cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
+          className={`text-body truncate max-w-full ${canEdit ? "cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
           onClick={
             canEdit
               ? (e) => {

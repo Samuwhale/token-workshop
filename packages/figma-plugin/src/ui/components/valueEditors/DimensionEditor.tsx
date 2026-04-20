@@ -143,18 +143,18 @@ export const DimensionEditor = memo(function DimensionEditor({ value, onChange, 
           type="button"
           onClick={toggleFormulaMode}
           title={formulaMode ? 'Switch to literal value' : 'Enter expression'}
-          className={`shrink-0 px-1.5 py-1 rounded text-[10px] font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
+          className={`shrink-0 px-1.5 py-1 rounded text-secondary font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
         >
           fx
         </button>
       </div>
       {formulaMode && formulaStr && (
-        <div className={`px-2 py-1 rounded text-[10px] font-mono ${preview?.error ? 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-accent)]/5 border border-[var(--color-figma-accent)]/20'}`}>
+        <div className={`px-2 py-1 rounded text-secondary font-mono ${preview?.error ? 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-accent)]/5 border border-[var(--color-figma-accent)]/20'}`}>
           {preview?.error ? preview.error : `= ${preview?.result} ${val.unit}`}
         </div>
       )}
       {conversionWarning && (
-        <div className="px-2 py-1.5 rounded text-[10px] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30">
+        <div className="px-2 py-1.5 rounded text-secondary text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30">
           {conversionWarning}
         </div>
       )}

@@ -58,7 +58,7 @@ function DiffPre({ lines, side, isExpanded }: { lines: DiffLine[]; side: 'ours' 
   const addedBg = side === 'ours' ? 'bg-[var(--color-figma-success)]/25' : 'bg-[var(--color-figma-accent)]/25';
   const addedText = side === 'ours' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-accent)]';
   return (
-    <pre className={`text-[10px] font-mono whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>
+    <pre className={`text-secondary font-mono whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>
       {lines.map((line, idx) => (
         <span
           key={idx}
@@ -80,7 +80,7 @@ function CollapsibleCard({ title, defaultOpen = false, children }: { title: stri
         onClick={() => setOpen(o => !o)}
         className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
       >
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">{title}</span>
+        <span className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">{title}</span>
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`text-[var(--color-figma-text-tertiary)] transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true">
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
@@ -98,7 +98,7 @@ interface GitSubPanelProps {
   onRequestConfirm: (action: 'git-push' | 'git-pull' | 'git-commit' | 'apply-diff') => void;
 }
 
-export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelProps) {
+export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: GitSubPanelProps) {
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
   const [conflictHelpOpen, setConflictHelpOpen] = useState(false);
 
@@ -124,7 +124,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {git.gitError && (
-        <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
+        <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-secondary">
           {git.gitError}
         </div>
       )}
@@ -137,21 +137,21 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
 
       {!git.gitLoading && !git.gitStatus?.isRepo && (
         <div className="flex flex-col items-center justify-center py-3 gap-3 px-3">
-          <p className="text-[13px] text-[var(--color-figma-text-secondary)]">No version history set up</p>
+          <p className="text-subheading text-[var(--color-figma-text-secondary)]">No version history set up</p>
           <div className="w-full flex flex-col gap-2">
-            <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Shared server URL</label>
+            <label className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Shared server URL</label>
             <input
               type="text"
               value={git.remoteUrl}
               onChange={e => git.setRemoteUrl(e.target.value)}
               placeholder="https://github.com/org/repo.git"
-              className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:focus-visible:border-[var(--color-figma-accent)]"
             />
           </div>
           <button
             onClick={() => git.doAction('init', git.remoteUrl ? { remoteUrl: git.remoteUrl } : undefined)}
             disabled={git.actionLoading !== null}
-            className="w-full px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="w-full px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {git.actionLoading === 'init' ? 'Setting up\u2026' : 'Set up version history'}
           </button>
@@ -170,19 +170,19 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   <circle cx="6" cy="18" r="3" />
                   <path d="M18 9a9 9 0 01-9 9" />
                 </svg>
-                <span className="text-[11px] font-medium truncate max-w-[140px]" title={git.gitStatus.branch || 'main'}>{git.gitStatus.branch || 'main'}</span>
+                <span className="text-body font-medium truncate max-w-[140px]" title={git.gitStatus.branch || 'main'}>{git.gitStatus.branch || 'main'}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={`text-[10px] font-medium ${git.allChanges.length > 0 ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-success)]'}`}>
+                <span className={`text-secondary font-medium ${git.allChanges.length > 0 ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-success)]'}`}>
                   {git.allChanges.length > 0 ? `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
                 </span>
                 {git.gitStatus.remote && (git.gitStatus.status?.ahead ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Share`} className="text-[10px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                  <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Share`} className="text-secondary font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
                     ↑{git.gitStatus.status!.ahead}
                   </span>
                 )}
                 {git.gitStatus.remote && (git.gitStatus.status?.behind ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Get updates`} className="text-[10px] font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
+                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Get updates`} className="text-secondary font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]">
                     ↓{git.gitStatus.status!.behind}
                   </span>
                 )}
@@ -210,7 +210,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   onClick={() => onRequestConfirm('git-pull')}
                   disabled={git.actionLoading !== null}
                   title="Get updates from your team"
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                 >
                   {git.actionLoading === 'pull' ? 'Getting updates\u2026' : '\u2193 Get updates'}
                 </button>
@@ -218,13 +218,13 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   onClick={() => onRequestConfirm('git-push')}
                   disabled={git.actionLoading !== null}
                   title="Share changes with your team"
-                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                 >
                   {git.actionLoading === 'push' ? 'Sharing\u2026' : '\u2191 Share'}
                 </button>
               </div>
               {git.lastSynced && (
-                <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-right">
+                <p className="text-secondary text-[var(--color-figma-text-secondary)] text-right">
                   Last synced: {formatRelativeTime(git.lastSynced)}
                 </p>
               )}
@@ -241,14 +241,14 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                     <line x1="12" y1="9" x2="12" y2="13" />
                     <line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
-                  <span className="text-[11px] font-semibold text-[var(--color-figma-warning)]">
+                  <span className="text-body font-semibold text-[var(--color-figma-warning)]">
                     Conflicting edits ({git.mergeConflicts.length} file{git.mergeConflicts.length !== 1 ? 's' : ''})
                   </span>
                 </div>
                 <button
                   onClick={git.abortMerge}
                   disabled={git.actionLoading === 'abort'}
-                  className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
+                  className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
                 >
                   {git.actionLoading === 'abort' ? 'Cancelling\u2026' : 'Cancel'}
                 </button>
@@ -258,7 +258,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
               <div className="border-b border-[var(--color-figma-border)]">
                 <button
                   onClick={() => setConflictHelpOpen(o => !o)}
-                  className="w-full px-3 py-1.5 flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors"
+                  className="w-full px-3 py-1.5 flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors"
                   aria-expanded={conflictHelpOpen}
                 >
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 transition-transform ${conflictHelpOpen ? 'rotate-90' : ''}`} aria-hidden="true">
@@ -267,7 +267,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                   <span>What does this mean?</span>
                 </button>
                 {conflictHelpOpen && (
-                  <div className="px-3 pb-2.5 pt-1 text-[10px] text-[var(--color-figma-text-secondary)] flex flex-col gap-1.5 bg-[var(--color-figma-bg-secondary)]">
+                  <div className="px-3 pb-2.5 pt-1 text-secondary text-[var(--color-figma-text-secondary)] flex flex-col gap-1.5 bg-[var(--color-figma-bg-secondary)]">
                     <p>You and someone else edited the same token file at the same time. The server can&rsquo;t automatically decide which edits to keep, so it&rsquo;s asking you.</p>
                     <p>For each conflicting section, choose:</p>
                     <ul className="flex flex-col gap-1 pl-3">
@@ -285,7 +285,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 )}
               </div>
 
-              <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
+              <div className="px-3 py-2 text-secondary text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
                 <span>For each section, choose which version to keep.</span>
                 <span className="flex items-center gap-1 shrink-0">
                   <button
@@ -297,7 +297,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                       }
                       return next;
                     })}
-                    className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-success)]/40 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/10 transition-colors"
+                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-success)]/40 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/10 transition-colors"
                   >
                     All yours
                   </button>
@@ -310,7 +310,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                       }
                       return next;
                     })}
-                    className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)]/40 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)]/40 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                   >
                     All server&rsquo;s
                   </button>
@@ -320,9 +320,9 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 {git.mergeConflicts.map((conflict) => (
                   <div key={conflict.file} className="flex flex-col">
                     <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] flex items-center gap-1.5">
-                      <span className="text-[10px] font-mono font-bold text-[var(--color-figma-warning)]">!</span>
-                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={conflict.file}>{conflict.file}</span>
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto shrink-0">{conflict.regions.length} section{conflict.regions.length !== 1 ? 's' : ''}</span>
+                      <span className="text-secondary font-mono font-bold text-[var(--color-figma-warning)]">!</span>
+                      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={conflict.file}>{conflict.file}</span>
+                      <span className="text-secondary text-[var(--color-figma-text-secondary)] ml-auto shrink-0">{conflict.regions.length} section{conflict.regions.length !== 1 ? 's' : ''}</span>
                     </div>
                     {conflict.regions.map((region) => {
                       const choice = git.conflictChoices[conflict.file]?.[region.index] ?? 'theirs';
@@ -337,7 +337,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
                                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                               </svg>
-                              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                                 {diff ? diff.aLines.filter(l => l.changed).length : 0} line{diff && diff.aLines.filter(l => l.changed).length !== 1 ? 's' : ''} changed in yours · {diff ? diff.bLines.filter(l => l.changed).length : 0} in server&rsquo;s
                               </span>
                             </div>
@@ -355,7 +355,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                               }`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className={`text-[10px] font-semibold ${choice === 'ours' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Your version</span>
+                                <span className={`text-secondary font-semibold ${choice === 'ours' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Your version</span>
                                 {choice === 'ours' && (
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}
@@ -363,9 +363,9 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                               {diff ? (
                                 region.ours
                                   ? <DiffPre lines={diff.aLines} side="ours" isExpanded={isExpanded} />
-                                  : <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] italic">(empty)</span>
+                                  : <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] italic">(empty)</span>
                               ) : (
-                                <pre className={`text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.ours || '(empty)'}</pre>
+                                <pre className={`text-secondary font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.ours || '(empty)'}</pre>
                               )}
                             </button>
                             <button
@@ -380,7 +380,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                               }`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className={`text-[10px] font-semibold ${choice === 'theirs' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Server version</span>
+                                <span className={`text-secondary font-semibold ${choice === 'theirs' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Server version</span>
                                 {choice === 'theirs' && (
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}
@@ -388,16 +388,16 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                               {diff ? (
                                 region.theirs
                                   ? <DiffPre lines={diff.bLines} side="theirs" isExpanded={isExpanded} />
-                                  : <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] italic">(empty)</span>
+                                  : <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] italic">(empty)</span>
                               ) : (
-                                <pre className={`text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.theirs || '(empty)'}</pre>
+                                <pre className={`text-secondary font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.theirs || '(empty)'}</pre>
                               )}
                             </button>
                           </div>
                           <div className="border-t border-[var(--color-figma-border)] flex justify-center">
                             <button
                               onClick={() => toggleRegionExpand(regionKey)}
-                              className="w-full px-2 py-0.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors text-center"
+                              className="w-full px-2 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors text-center"
                             >
                               {isExpanded ? 'Show less' : 'Show full context'}
                             </button>
@@ -409,13 +409,13 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 ))}
               </div>
               <div className="px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                   {git.mergeConflicts.reduce((sum, c) => sum + c.regions.length, 0)} section{git.mergeConflicts.reduce((sum, c) => sum + c.regions.length, 0) !== 1 ? 's' : ''} to resolve
                 </span>
                 <button
                   onClick={git.resolveConflicts}
                   disabled={git.resolvingConflicts}
-                  className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                  className="text-secondary px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                 >
                   {git.resolvingConflicts ? 'Applying\u2026' : 'Apply my choices'}
                 </button>
@@ -439,12 +439,12 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
           {!git.gitStatus.status?.isClean && (
             <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
               <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Save note</span>
+                <span className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Save note</span>
                 {git.commitMsgUserEdited?.current && (
                   <button
                     onClick={git.regenerateCommitMsg}
                     title="Re-generate from changed files"
-                    className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   >
                     Suggest
                   </button>
@@ -458,19 +458,19 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                     onChange={e => git.setCommitMsg(e.target.value)}
                     placeholder="Describe what you changed\u2026"
                     aria-label="Save note (commit message)"
-                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] focus-visible:border-[var(--color-figma-accent)]"
+                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                     onKeyDown={e => {
                       if (e.key === 'Enter' && git.commitMsg.trim() && git.selectedFiles.size > 0) onRequestConfirm('git-commit');
                     }}
                   />
                   {!git.commitMsgUserEdited?.current && git.commitMsg && (
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--color-figma-text-tertiary)] pointer-events-none select-none">auto</span>
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-secondary text-[var(--color-figma-text-tertiary)] pointer-events-none select-none">auto</span>
                   )}
                 </div>
                 <button
                   onClick={() => onRequestConfirm('git-commit')}
                   disabled={!git.commitMsg.trim() || git.selectedFiles.size === 0 || git.actionLoading !== null}
-                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                 >
                   {git.actionLoading === 'commit' ? 'Saving\u2026' : `Save ${git.selectedFiles.size === git.allChanges.length ? 'all' : git.selectedFiles.size} file${git.selectedFiles.size === 1 ? '' : 's'}`}
                 </button>
@@ -484,11 +484,11 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
               {/* Branch switcher */}
               {git.branches.length > 1 && (
                 <div className="px-3 py-2 flex flex-col gap-1.5">
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Branch</span>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Branch</span>
                   <select
                     value={git.gitStatus.branch || ''}
                     onChange={e => git.doAction('checkout', { branch: e.target.value })}
-                    className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                    className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary outline-none focus-visible:border-[var(--color-figma-accent)]"
                   >
                     {git.branches.map(b => (
                       <option key={b} value={b}>{b}</option>
@@ -499,7 +499,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
 
               {/* Remote URL */}
               <div className="px-3 py-2 flex flex-col gap-1.5">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote URL</span>
+                <span className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Remote URL</span>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -507,12 +507,12 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                     onChange={e => git.setRemoteUrl(e.target.value)}
                     placeholder="https://github.com/user/repo.git"
                     aria-label="Shared server URL"
-                    className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
+                    className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
                   />
                   <button
                     onClick={() => git.doAction('remote', { url: git.remoteUrl })}
                     disabled={!git.remoteUrl || git.actionLoading !== null}
-                    className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-border)] disabled:opacity-40"
+                    className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-secondary hover:bg-[var(--color-figma-border)] disabled:opacity-40"
                   >
                     Save
                   </button>
@@ -523,11 +523,11 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
               {git.gitStatus?.remote && (
                 <div className="px-3 py-2 flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote file differences</span>
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Remote file differences</span>
                     <button
                       onClick={git.computeDiff}
                       disabled={git.diffLoading}
-                      className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                      className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                     >
                       {git.diffLoading ? 'Computing\u2026' : git.diffView ? 'Re-check' : 'Compare'}
                     </button>
@@ -540,7 +540,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                     ];
                     if (allFiles.length === 0) {
                       return (
-                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+                        <div className="text-secondary text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
                             <path d="M20 6L9 17l-5-5" />
                           </svg>
@@ -558,12 +558,12 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                             const catLabel = cat === 'local' ? 'Local' : cat === 'remote' ? 'Remote' : 'Differs';
                             return (
                               <div key={file} className="flex items-center gap-2 px-2 py-1">
-                                <span className={`text-[10px] font-medium shrink-0 w-12 ${catColor}`}>{catLabel}</span>
-                                <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={file}>{file}</span>
+                                <span className={`text-secondary font-medium shrink-0 w-12 ${catColor}`}>{catLabel}</span>
+                                <span className="text-secondary text-[var(--color-figma-text)] flex-1 truncate font-mono" title={file}>{file}</span>
                                 <select
                                   value={choice}
                                   onChange={e => git.setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
-                                  className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
+                                  className="text-secondary border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
                                 >
                                   <option value="push">{'\u2191'} Push</option>
                                   <option value="pull">{'\u2193'} Pull</option>
@@ -576,7 +576,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                         <button
                           onClick={() => onRequestConfirm('apply-diff')}
                           disabled={git.applyingDiff || pendingCount === 0}
-                          className="self-end text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                          className="self-end text-secondary px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                         >
                           {git.applyingDiff ? 'Applying\u2026' : `Apply ${pendingCount} change${pendingCount !== 1 ? 's' : ''}`}
                         </button>
@@ -584,7 +584,7 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                     );
                   })()}
                   {!git.diffLoading && !git.diffView && (
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                       Click Compare to check file differences.
                     </span>
                   )}

@@ -422,7 +422,7 @@ export function GeneratedGroupEditor({
           title={
             <span
               id="generated-group-editor-title"
-              className="text-[14px] font-semibold text-[var(--color-figma-text)]"
+              className="text-heading font-semibold text-[var(--color-figma-text)]"
             >
               {title}
             </span>
@@ -433,7 +433,7 @@ export function GeneratedGroupEditor({
         >
           <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
             <div className={AUTHORING.generatorSectionCard}>
-              <div className="flex flex-wrap items-start gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+              <div className="flex flex-wrap items-start gap-3 text-secondary text-[var(--color-figma-text-secondary)]">
                 <span>
                   Collection{" "}
                   <span className="font-mono text-[var(--color-figma-text)]">
@@ -520,10 +520,10 @@ export function GeneratedGroupEditor({
                     <div className={AUTHORING.generatorSectionCard}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+                          <p className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
                             Outcome
                           </p>
-                          <p className="mt-0.5 text-[12px] font-medium text-[var(--color-figma-text)]">
+                          <p className="mt-0.5 text-subheading font-medium text-[var(--color-figma-text)]">
                             {getGeneratedGroupTypeLabel(dialog.selectedType)}
                           </p>
                         </div>
@@ -531,7 +531,7 @@ export function GeneratedGroupEditor({
                           <button
                             type="button"
                             onClick={() => setOutcomeChooserVisible(true)}
-                            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                           >
                             Change
                           </button>

@@ -114,7 +114,7 @@ export function TokenEditorInfoSection({
             key={key}
             type="button"
             onClick={() => onInfoTabChange(key)}
-            className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+            className={`px-2 py-1 rounded text-secondary font-medium transition-colors ${
               infoTab === key
                 ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -132,7 +132,7 @@ export function TokenEditorInfoSection({
               <button
                 type="button"
                 onClick={() => onShowReferences(tokenPath)}
-                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:underline transition-colors"
+                className="flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:underline transition-colors"
                 title="Open graph"
               >
                 <Network size={10} strokeWidth={2} aria-hidden />
@@ -142,7 +142,7 @@ export function TokenEditorInfoSection({
           </div>
 
           {dependencySnapshot?.hasCycles && (
-            <div className="rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-error)]">
+            <div className="rounded border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-secondary text-[var(--color-figma-error)]">
               Circular reference detected.
             </div>
           )}
@@ -150,7 +150,7 @@ export function TokenEditorInfoSection({
           {/* Outgoing: walk the full reference chain inline */}
           {referenceTrace.length > 0 && (
             <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)] opacity-60">
                 References
               </span>
               {referenceTrace.slice(0, 8).map((node) => {
@@ -229,7 +229,7 @@ export function TokenEditorInfoSection({
                 );
               })}
               {referenceTrace.length > 8 && (
-                <div className="px-1.5 pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                <div className="px-1.5 pt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
                   + {referenceTrace.length - 8} more
                 </div>
               )}
@@ -245,7 +245,7 @@ export function TokenEditorInfoSection({
                 disabled={
                   dependentsLoading ? false : dependentTrace.length === 0
                 }
-                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
+                className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] opacity-60 hover:opacity-100 transition-opacity disabled:cursor-default"
               >
                 {dependentsLoading ? (
                   <span>&larr; Loading…</span>
@@ -345,7 +345,7 @@ export function TokenEditorInfoSection({
                     );
                   })}
                   {dependentTrace.length > 20 && (
-                    <div className="px-1.5 pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                    <div className="px-1.5 pt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
                       + {dependentTrace.length - 20} more
                     </div>
                   )}

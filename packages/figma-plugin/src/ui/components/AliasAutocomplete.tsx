@@ -132,7 +132,7 @@ export function AliasAutocomplete({
 
   if (entries.length === 0) {
     return (
-      <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-2 px-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+      <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-2 px-3 text-secondary text-[var(--color-figma-text-secondary)]">
         No matching tokens
       </div>
     );
@@ -144,7 +144,7 @@ export function AliasAutocomplete({
       className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
     >
       {hasRecent && !query.trim() && (
-        <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
+        <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
           Recent
         </div>
       )}
@@ -171,12 +171,12 @@ export function AliasAutocomplete({
           )}
 
           {/* Path */}
-          <span className={`flex-1 text-[10px] text-[var(--color-figma-text)] truncate ${entry.$lifecycle === 'deprecated' ? 'line-through' : ''}`}>{path}</span>
+          <span className={`flex-1 text-secondary text-[var(--color-figma-text)] truncate ${entry.$lifecycle === 'deprecated' ? 'line-through' : ''}`}>{path}</span>
 
           {/* Resolved value — show final value; if it's an alias show alias source in muted text */}
           {previewValue && (
             <span
-              className="text-[10px] text-[var(--color-figma-text-secondary)] truncate max-w-[120px] shrink-0"
+              className="text-secondary text-[var(--color-figma-text-secondary)] truncate max-w-[120px] shrink-0"
               title={isAliasToken ? `${rawPreview} → ${previewValue}` : previewValue}
             >
               {isAliasToken && rawPreview !== previewValue ? (
@@ -209,7 +209,7 @@ export function AliasAutocomplete({
         );
       })}
       {totalCount > MAX_RESULTS && (
-        <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
+        <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
           Showing {MAX_RESULTS} of {totalCount} matches — refine your search
         </div>
       )}

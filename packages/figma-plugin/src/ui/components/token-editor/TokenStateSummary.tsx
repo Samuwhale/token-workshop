@@ -35,10 +35,10 @@ function SummaryRow({
 }) {
   return (
     <>
-      <dt className="text-[10px] text-[var(--color-figma-text-secondary)]">
+      <dt className="text-secondary text-[var(--color-figma-text-secondary)]">
         {label}
       </dt>
-      <dd className="min-w-0 text-[10px] text-[var(--color-figma-text)]">
+      <dd className="min-w-0 text-secondary text-[var(--color-figma-text)]">
         {children}
       </dd>
     </>
@@ -114,7 +114,7 @@ function TokenReferenceValue({
         </span>
       )}
       {collectionId ? (
-        <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+        <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
           {collectionId}
         </div>
       ) : null}
