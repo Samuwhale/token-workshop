@@ -829,9 +829,9 @@ export function SelectionInspector({
               onClick={() => onSync("selection")}
               disabled={syncing}
               className="rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors disabled:opacity-50"
-              title="Sync selection"
+              title="Apply to selection"
             >
-              Sync
+              Apply
             </button>
           )}
         </div>
@@ -1145,7 +1145,7 @@ export function SelectionInspector({
                 disabled={syncing}
                 className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
               >
-                Sync page
+                Apply to page
               </button>
             )}
           </div>

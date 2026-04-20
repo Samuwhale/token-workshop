@@ -1,10 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TokenCollection, ViewPreset } from "@tokenmanager/core";
-import { apiFetch } from "../shared/apiFetch";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { TokenCollection } from "@tokenmanager/core";
 import {
   buildSelectionLabel,
-  createViewPreset,
-  createViewPresetName,
   normalizeModeSelections,
 } from "../shared/collectionModeUtils";
 
@@ -12,64 +9,20 @@ interface CollectionScenarioControlProps {
   collections: TokenCollection[];
   selectedModes: Record<string, string>;
   setSelectedModes: (selectedModes: Record<string, string>) => void;
-  serverUrl: string;
-  connected: boolean;
-}
-
-function selectionsEqual(
-  left: Record<string, string>,
-  right: Record<string, string>,
-): boolean {
-  const leftEntries = Object.entries(left).sort(([a], [b]) => a.localeCompare(b));
-  const rightEntries = Object.entries(right).sort(([a], [b]) => a.localeCompare(b));
-  return JSON.stringify(leftEntries) === JSON.stringify(rightEntries);
 }
 
 export function CollectionScenarioControl({
   collections,
   selectedModes,
   setSelectedModes,
-  serverUrl,
-  connected,
 }: CollectionScenarioControlProps) {
   const [open, setOpen] = useState(false);
-  const [views, setViews] = useState<ViewPreset[]>([]);
-  const [viewsLoading, setViewsLoading] = useState(false);
-  const [newViewName, setNewViewName] = useState("");
-  const [viewError, setViewError] = useState("");
-  const [savingView, setSavingView] = useState(false);
-  const [deletingViewId, setDeletingViewId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const multiModeCollections = useMemo(
     () => collections.filter((c) => c.modes.length > 1),
     [collections],
   );
-
-  const refreshViews = useCallback(async () => {
-    if (!connected) {
-      setViews([]);
-      setViewError("");
-      return;
-    }
-    setViewsLoading(true);
-    try {
-      const result = await apiFetch<{ views?: ViewPreset[] }>(`${serverUrl}/api/collections`);
-      setViews(result.views ?? []);
-      setViewError("");
-    } catch (error) {
-      setViews([]);
-      setViewError(
-        error instanceof Error ? error.message : "Could not load saved views.",
-      );
-    } finally {
-      setViewsLoading(false);
-    }
-  }, [connected, serverUrl]);
-
-  useEffect(() => {
-    void refreshViews();
-  }, [refreshViews]);
 
   useEffect(() => {
     if (!open) {
@@ -98,74 +51,15 @@ export function CollectionScenarioControl({
     () => normalizeModeSelections(collections, selectedModes),
     [collections, selectedModes],
   );
-  const activeView = useMemo(
-    () =>
-      views.find((view) =>
-        selectionsEqual(
-          normalizeModeSelections(collections, view.selections),
-          normalizedSelections,
-        ),
-      ) ?? null,
-    [collections, normalizedSelections, views],
-  );
 
-  const currentLabel = activeView
-    ? activeView.name
-    : Object.keys(normalizedSelections).length > 0
+  const currentLabel =
+    Object.keys(normalizedSelections).length > 0
       ? buildSelectionLabel(collections, normalizedSelections)
       : "Default";
 
-  const handleSaveView = async () => {
-    if (!connected) {
-      setViewError("Reconnect to save a view.");
-      return;
-    }
-    const name = newViewName.trim() || createViewPresetName(collections, normalizedSelections);
-    setSavingView(true);
-    setViewError("");
-    try {
-      const nextView = createViewPreset({
-        id: `${Date.now()}`,
-        name,
-        collections,
-        selections: normalizedSelections,
-      });
-      await apiFetch(`${serverUrl}/api/views`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextView),
-      });
-      setNewViewName("");
-      await refreshViews();
-    } catch (error) {
-      setViewError(error instanceof Error ? error.message : "Could not save view.");
-    } finally {
-      setSavingView(false);
-    }
-  };
-
-  const handleApplyView = (view: ViewPreset) => {
-    setSelectedModes(normalizeModeSelections(collections, view.selections));
-  };
-
-  const handleDeleteView = async (viewId: string) => {
-    if (!connected) {
-      setViewError("Reconnect to delete a view.");
-      return;
-    }
-    setDeletingViewId(viewId);
-    setViewError("");
-    try {
-      await apiFetch(`${serverUrl}/api/views/${encodeURIComponent(viewId)}`, {
-        method: "DELETE",
-      });
-      await refreshViews();
-    } catch (error) {
-      setViewError(error instanceof Error ? error.message : "Could not delete view.");
-    } finally {
-      setDeletingViewId((current) => (current === viewId ? null : current));
-    }
-  };
+  if (multiModeCollections.length === 0) {
+    return null;
+  }
 
   return (
     <div ref={containerRef} className="relative shrink-0">
@@ -174,7 +68,6 @@ export function CollectionScenarioControl({
         onClick={() => setOpen((value) => !value)}
         className="flex items-center gap-1 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
       >
-        <span className="text-[var(--color-figma-text-tertiary)]">Mode</span>
         <span className="max-w-[180px] truncate font-medium text-[var(--color-figma-text)]">
           {currentLabel}
         </span>
@@ -190,7 +83,7 @@ export function CollectionScenarioControl({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-50 mt-1 w-[320px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-1 w-[240px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
           <div className="flex items-center justify-between pb-3">
             <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
               Active modes
@@ -206,115 +99,34 @@ export function CollectionScenarioControl({
             ) : null}
           </div>
 
-          {multiModeCollections.length === 0 ? (
-            <p className="py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-              No collections with multiple modes.
-            </p>
-          ) : (
-            <div className="space-y-2 border-t border-[var(--color-figma-border)] py-3">
-              {multiModeCollections.map((collection) => (
-                <div key={collection.id} className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-figma-text)]">
-                    {collection.id}
-                  </span>
-                  <select
-                    value={normalizedSelections[collection.id] ?? ""}
-                    onChange={(event) => {
-                      const nextSelections = { ...normalizedSelections };
-                      if (event.target.value) {
-                        nextSelections[collection.id] = event.target.value;
-                      } else {
-                        delete nextSelections[collection.id];
-                      }
-                      setSelectedModes(nextSelections);
-                    }}
-                    className="w-[120px] shrink-0 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                  >
-                    <option value="">Default</option>
-                    {collection.modes.map((mode) => (
-                      <option key={mode.name} value={mode.name}>
-                        {mode.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="space-y-2 border-t border-[var(--color-figma-border)] pt-3">
-            <div className="flex items-center justify-between gap-2">
-              <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                Saved presets
-              </h4>
-              {viewsLoading ? (
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Loading...
+          <div className="space-y-2 border-t border-[var(--color-figma-border)] py-3">
+            {multiModeCollections.map((collection) => (
+              <div key={collection.id} className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-figma-text)]">
+                  {collection.id}
                 </span>
-              ) : null}
-            </div>
-            <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newViewName}
+                <select
+                  value={normalizedSelections[collection.id] ?? ""}
                   onChange={(event) => {
-                    setNewViewName(event.target.value);
-                    setViewError("");
+                    const nextSelections = { ...normalizedSelections };
+                    if (event.target.value) {
+                      nextSelections[collection.id] = event.target.value;
+                    } else {
+                      delete nextSelections[collection.id];
+                    }
+                    setSelectedModes(nextSelections);
                   }}
-                  placeholder={createViewPresetName(collections, normalizedSelections)}
-                  className="flex-1 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                />
-              <button
-                type="button"
-                onClick={() => void handleSaveView()}
-                disabled={!connected || savingView || deletingViewId !== null}
-                className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-[10px] font-medium text-white disabled:opacity-50"
-              >
-                {savingView ? "Saving..." : "Save"}
-              </button>
-            </div>
-            {viewError ? (
-              <p className="text-[10px] text-[var(--color-figma-error)]">{viewError}</p>
-            ) : null}
-            {views.length === 0 && !viewsLoading ? (
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                No saved presets yet.
-              </p>
-            ) : null}
-            <div className="max-h-[220px] space-y-1 overflow-y-auto">
-              {views.map((view) => {
-                const isActive = activeView?.id === view.id;
-                return (
-                  <div
-                    key={view.id}
-                    className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-2 ${
-                      isActive ? "bg-[var(--color-figma-bg-selected)]" : "hover:bg-[var(--color-figma-bg-hover)]"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleApplyView(view)}
-                      className="min-w-0 flex-1 text-left"
-                    >
-                      <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                        {view.name}
-                      </div>
-                      <div className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
-                        {buildSelectionLabel(collections, view.selections)}
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteView(view.id)}
-                      disabled={!connected || savingView || deletingViewId !== null}
-                      className="rounded px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
-                    >
-                      {deletingViewId === view.id ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                  className="w-[100px] shrink-0 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                >
+                  <option value="">Default</option>
+                  {collection.modes.map((mode) => (
+                    <option key={mode.name} value={mode.name}>
+                      {mode.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </div>
         </div>
       ) : null}

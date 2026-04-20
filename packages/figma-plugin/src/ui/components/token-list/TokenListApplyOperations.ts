@@ -211,17 +211,17 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
                 ? ` ${skippedCount} skipped (unsupported type).`
                 : "";
             dispatchToast(
-              `${result.count}/${total} variables synced with issues.`,
+              `${result.count}/${total} variables published with issues.`,
               "warning",
             );
             onError?.(
-              `${result.count}/${total} variables synced. Failed: ${failedPaths}.${skippedNote}`,
+              `${result.count}/${total} variables published. Failed: ${failedPaths}.${skippedNote}`,
             );
             return;
           }
 
           dispatchToast(
-            `${result.count} variable${result.count !== 1 ? "s" : ""} synced${
+            `${result.count} variable${result.count !== 1 ? "s" : ""} published${
               skippedCount > 0
                 ? ` · ${skippedCount} skipped (unsupported type)`
                 : ""

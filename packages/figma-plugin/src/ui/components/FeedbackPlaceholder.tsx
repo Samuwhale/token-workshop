@@ -20,6 +20,7 @@ interface FeedbackPlaceholderProps {
   title: ReactNode;
   description?: ReactNode;
   icon?: ReactNode;
+  actions?: FeedbackPlaceholderAction[];
   primaryAction?: FeedbackPlaceholderAction;
   secondaryAction?: FeedbackPlaceholderAction;
   children?: ReactNode;
@@ -135,6 +136,7 @@ export function FeedbackPlaceholder({
   title,
   description,
   icon,
+  actions,
   primaryAction,
   secondaryAction,
   children,
@@ -143,6 +145,10 @@ export function FeedbackPlaceholder({
   const sizeStyles = SIZE_STYLES[size];
   const iconColor = VARIANT_ICON_COLOR[variant];
   const iconNode = icon === undefined ? defaultIcon(variant) : icon;
+  const resolvedActions = actions ?? [
+    secondaryAction,
+    primaryAction,
+  ].filter((action): action is FeedbackPlaceholderAction => action !== undefined);
 
   return (
     <div className={joinClasses(sizeStyles.container, className)}>
@@ -165,10 +171,15 @@ export function FeedbackPlaceholder({
 
         {children ? <div>{children}</div> : null}
 
-        {(primaryAction || secondaryAction) ? (
+        {resolvedActions.length > 0 ? (
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {secondaryAction ? <FeedbackActionButton action={secondaryAction} defaultTone="secondary" /> : null}
-            {primaryAction ? <FeedbackActionButton action={primaryAction} defaultTone="primary" /> : null}
+            {resolvedActions.map((action, index) => (
+              <FeedbackActionButton
+                key={`${action.label}-${index}`}
+                action={action}
+                defaultTone={action.tone ?? (index === resolvedActions.length - 1 ? 'primary' : 'secondary')}
+              />
+            ))}
           </div>
         ) : null}
       </div>

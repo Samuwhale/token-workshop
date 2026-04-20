@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { STORAGE_KEY_BUILDERS, STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import { useSettingsListener } from "../components/SettingsPanel";
 import { DENSITY_ROW_HEIGHT } from "../components/tokenListTypes";
@@ -23,13 +23,9 @@ export function useTokenListViewState({
   collectionId,
   collections,
 }: UseTokenListViewStateParams) {
-  // --- Recently touched filter ---
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
-
-  // --- Inspect mode ---
   const [inspectMode, setInspectMode] = useState(false);
 
-  // --- View mode (tree/json) ---
   const [viewMode, setViewModeState] = useState<"tree" | "json">("tree");
 
   useEffect(() => {
@@ -46,7 +42,6 @@ export function useTokenListViewState({
     [collectionId],
   );
 
-  // --- Sort order ---
   const [sortOrder, setSortOrderState] = useState<SortOrder>("default");
 
   useEffect(() => {
@@ -66,7 +61,6 @@ export function useTokenListViewState({
     [collectionId],
   );
 
-  // --- Show resolved values ---
   const [showResolvedValues, setShowResolvedValuesState] = useState(false);
 
   useEffect(() => {
@@ -87,7 +81,6 @@ export function useTokenListViewState({
     [collectionId],
   );
 
-  // --- Stats bar ---
   const [statsBarOpen, setStatsBarOpenState] = useState(
     () => lsGet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN) === "true",
   );
@@ -104,7 +97,6 @@ export function useTokenListViewState({
     [collectionId],
   );
 
-  // --- Density ---
   const [density, setDensityState] = useState<Density>(() => {
     const stored = lsGet(STORAGE_KEYS.DENSITY);
     return stored === "compact" ? "compact" : "comfortable";
@@ -115,7 +107,6 @@ export function useTokenListViewState({
     lsSet(STORAGE_KEYS.DENSITY, d);
   }, []);
 
-  // Sync density when changed from Settings panel
   const densityRev = useSettingsListener(STORAGE_KEYS.DENSITY);
   useEffect(() => {
     if (densityRev === 0) return;
@@ -125,7 +116,6 @@ export function useTokenListViewState({
 
   const rowHeight = DENSITY_ROW_HEIGHT[density];
 
-  // --- Condensed view ---
   const [condensedView, setCondensedViewState] = useState<boolean>(
     () => lsGet(STORAGE_KEYS.CONDENSED_VIEW) === "1",
   );
@@ -135,31 +125,24 @@ export function useTokenListViewState({
     lsSet(STORAGE_KEYS.CONDENSED_VIEW, v ? "1" : "0");
   }, []);
 
-  // --- Multi-mode column view ---
-  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(
-    () => lsGet(STORAGE_KEYS.MULTI_MODE) === "1",
-  );
+  // Auto-enabled when active collection has 2+ modes
   const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
 
-  const toggleMultiMode = useCallback(() => {
-    setMultiModeEnabled((prev) => {
-      const next = !prev;
-      lsSet(STORAGE_KEYS.MULTI_MODE, next ? "1" : "0");
-      return next;
-    });
-  }, []);
-
-  // Auto-select first collection when multi-mode is enabled and no collection is selected.
   useEffect(() => {
-    if (
-      multiModeEnabled &&
-      collections.length > 0 &&
-      (!multiModeDimId ||
-        !collections.some((collection) => collection.id === multiModeDimId))
-    ) {
-      setMultiModeDimId(collections[0].id);
+    const activeCollection = collections.find((c) => c.id === collectionId);
+    if (activeCollection && activeCollection.modes.length >= 2) {
+      setMultiModeDimId(collectionId);
+      return;
     }
-  }, [collections, multiModeDimId, multiModeEnabled]);
+    const firstMultiMode = collections.find((c) => c.modes.length >= 2);
+    setMultiModeDimId(firstMultiMode?.id ?? null);
+  }, [collectionId, collections]);
+
+  const showModeColumns = useMemo(() => {
+    if (!multiModeDimId) return false;
+    const collection = collections.find((c) => c.id === multiModeDimId);
+    return !!collection && collection.modes.length >= 2;
+  }, [collections, multiModeDimId]);
 
   return {
     showRecentlyTouched,
@@ -179,9 +162,8 @@ export function useTokenListViewState({
     rowHeight,
     condensedView,
     setCondensedView,
-    multiModeEnabled,
+    showModeColumns,
     multiModeDimId,
     setMultiModeDimId,
-    toggleMultiMode,
   };
 }

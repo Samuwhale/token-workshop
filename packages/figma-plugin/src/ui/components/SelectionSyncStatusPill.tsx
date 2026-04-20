@@ -56,9 +56,9 @@ export function useSelectionSyncStatus({
 
     const label =
       syncing && syncProgress
-        ? `Syncing ${syncProgress.processed}/${syncProgress.total}`
+        ? `Applying ${syncProgress.processed}/${syncProgress.total}`
         : syncError
-          ? "Sync failed"
+          ? "Apply failed"
           : syncResult
             ? syncResult.errors > 0
               ? `${syncResult.errors} failed`
@@ -71,11 +71,11 @@ export function useSelectionSyncStatus({
             : activeMissingCount > 0
               ? `${activeMissingCount} missing`
             : freshSyncResult && freshSyncResult.missingTokens.length === 0
-              ? "Selection in sync"
+              ? "Up to date"
               : totalBindings > 0 && connected
-                ? "Ready to sync"
+                ? "Ready to apply"
                 : connected
-                  ? "No sync pending"
+                  ? "No changes"
                   : "Disconnected";
 
     const visible =
@@ -111,7 +111,7 @@ export function SelectionSyncStatusPill({
   return (
     <div className={`shrink-0 flex items-center gap-1 ${className}`.trim()}>
       <span
-        className={`rounded-full px-2 py-1 text-[10px] font-medium ${status.toneClass}`.trim()}
+        className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${status.toneClass}`.trim()}
       >
         {status.label}
       </span>
@@ -119,7 +119,7 @@ export function SelectionSyncStatusPill({
         <button
           type="button"
           onClick={onRemapClick}
-          className="rounded-full bg-[var(--color-figma-warning,#f5a623)]/12 px-2 py-1 text-[10px] font-medium text-[var(--color-figma-warning,#b45309)] transition-colors hover:bg-[var(--color-figma-warning,#f5a623)]/20"
+          className="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-warning,#b45309)] transition-colors hover:bg-[var(--color-figma-warning,#f5a623)]/15"
           title={`Open Remap with ${status.remapCount} missing token path${status.remapCount !== 1 ? "s" : ""}`}
         >
           Remap

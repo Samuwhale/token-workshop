@@ -845,13 +845,6 @@ export const TokenLeafNode = memo(
         title: `${missingModeCount} mode value${missingModeCount === 1 ? "" : "s"} not yet defined`,
         priority: "detail" as const,
       });
-    } else if (modeVariantPaths?.has(node.path) && !multiModeValues) {
-      leafMetadataSegments.push({
-        label: "Mode overrides",
-        title: "Has per-collection mode overrides",
-        tone: "accent",
-        priority: "detail" as const,
-      });
     }
     if (lifecycleLabel) {
       leafMetadataSegments.push({
@@ -2234,7 +2227,7 @@ export const TokenLeafNode = memo(
                     Choose how this edit should behave before saving.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 px-4 pb-4">
+                <div className="flex flex-col gap-1.5 px-4 pb-4">
                   <button
                     type="button"
                     onClick={() => {
@@ -2250,7 +2243,7 @@ export const TokenLeafNode = memo(
                       });
                     }}
                     disabled={!onOpenGeneratedGroupEditor || generatedTokenChoiceBusy !== null}
-                    className="rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-left text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                    className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-left text-[11px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
                   >
                     Edit generator
                   </button>
@@ -2265,7 +2258,7 @@ export const TokenLeafNode = memo(
                       !getOverrideableGeneratedStepName() ||
                       generatedTokenChoiceBusy !== null
                     }
-                    className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                    className="rounded-md px-3 py-1.5 text-left text-[11px] font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
                   >
                     {generatedTokenChoiceBusy === "manual-exception"
                       ? "Saving manual exception…"
@@ -2285,7 +2278,7 @@ export const TokenLeafNode = memo(
                       void handleDetachAndSaveGeneratedToken();
                     }}
                     disabled={!onDetachFromGenerator || generatedTokenChoiceBusy !== null}
-                    className="rounded-md border border-[var(--color-figma-border)] px-3 py-2 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                    className="rounded-md px-3 py-1.5 text-left text-[11px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
                   >
                     {generatedTokenChoiceBusy === "detach"
                       ? "Detaching…"

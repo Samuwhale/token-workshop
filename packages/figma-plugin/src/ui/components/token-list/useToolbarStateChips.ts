@@ -32,10 +32,6 @@ interface ToolbarStateChipsConfig {
   setInspectMode: (v: boolean) => void;
   crossCollectionSearch: boolean;
   setCrossCollectionSearch: (v: boolean) => void;
-  multiModeEnabled: boolean;
-  multiModeDimensionName: string | null;
-  toggleMultiMode: () => void;
-  onResetViewMode?: () => void;
   condensedView: boolean;
   setCondensedView: (v: boolean) => void;
   showPreviewSplit: boolean;
@@ -51,8 +47,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     showIssuesOnly, onToggleIssuesOnly, lintViolationsLength,
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
-    multiModeEnabled, multiModeDimensionName, toggleMultiMode,
-    onResetViewMode, condensedView, setCondensedView,
+    condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation,
   } = config;
@@ -136,17 +131,6 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         onRemove: () => setCrossCollectionSearch(false),
       });
     }
-    if (multiModeEnabled) {
-      chips.push({
-        key: "view:modes",
-        label:
-          multiModeDimensionName
-            ? `All modes: ${multiModeDimensionName}`
-            : "All modes",
-        tone: "view",
-        onRemove: onResetViewMode ?? toggleMultiMode,
-      });
-    }
     if (condensedView) {
       chips.push({
         key: "view:condensed",
@@ -175,14 +159,14 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     return chips;
   }, [
     condensedView, crossCollectionSearch, inspectMode, lintViolationsLength,
-    multiModeDimensionName, multiModeEnabled, onToggleIssuesOnly,
+    onToggleIssuesOnly,
     onTogglePreviewSplit, refFilter, removeQueryToken, setCondensedView,
     setCrossCollectionSearch, setInspectMode, setRefFilter,
-    setSearchResultPresentation, onResetViewMode, setShowDuplicates,
+    setSearchResultPresentation, setShowDuplicates,
     setShowRecentlyTouched, setSortOrder, setTypeFilter, showDuplicates,
     showFlatSearchResults, showIssuesOnly, showPreviewSplit,
     showRecentlyTouched, sortOrder, structuredFilterChips,
-    toggleMultiMode, typeFilter,
+    typeFilter,
   ]);
 
   return { toolbarStateChips };

@@ -73,7 +73,7 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
           <button
             onClick={primaryAction.onClick}
             disabled={primaryAction.disabled}
-            className="shrink-0 rounded-full bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-[background-color,transform,opacity,box-shadow] duration-150 ease-out outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+            className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {primaryAction.label}
           </button>

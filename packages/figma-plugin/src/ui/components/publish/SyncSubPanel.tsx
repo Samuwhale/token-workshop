@@ -350,7 +350,7 @@ export function SyncSubPanel({
               <div className="mt-2 flex flex-col gap-1">
                 {revertPending ? (
                   <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Revert last sync?</span>
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Revert last publish?</span>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{revertDescription}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <button
@@ -376,7 +376,7 @@ export function SyncSubPanel({
                       disabled={sync.reverting}
                       className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                     >
-                      {sync.reverting ? 'Reverting\u2026' : 'Revert last sync'}
+                      {sync.reverting ? 'Reverting\u2026' : 'Revert last publish'}
                     </button>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{revertDescription}</span>
                   </div>

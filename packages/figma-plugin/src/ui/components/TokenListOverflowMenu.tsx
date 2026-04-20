@@ -4,8 +4,6 @@ import type { Density } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 
-export type LibraryViewMode = "values" | "all-modes";
-
 export interface ViewMenuProps {
   sortOrder: SortOrder;
   onSortOrderChange: (order: SortOrder) => void;
@@ -132,8 +130,6 @@ function MenuLabel({ children }: { children: string }) {
 
 export function ViewMenu(
   props: ViewMenuProps & {
-    currentLibraryViewMode: LibraryViewMode;
-    onActivateViewMode: (mode: LibraryViewMode) => void;
     viewMode: "tree" | "json";
     setViewMode: (mode: "tree" | "json") => void;
   },
@@ -179,11 +175,7 @@ export function ViewMenu(
           <rect x="3" y="14" width="7" height="7" rx="1" />
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
-        <span>
-          {props.currentLibraryViewMode === "all-modes"
-            ? "View: All modes"
-            : "View"}
-        </span>
+        <span>View</span>
       </button>
 
       {open && (
@@ -193,19 +185,6 @@ export function ViewMenu(
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">
-            <MenuItem
-              label="Values"
-              checked={props.currentLibraryViewMode === "values"}
-              onClick={() => runAndClose(() => props.onActivateViewMode("values"))}
-            />
-            {props.hasCollections && (
-              <MenuItem
-                label="All modes"
-                checked={props.currentLibraryViewMode === "all-modes"}
-                onClick={() => runAndClose(() => props.onActivateViewMode("all-modes"))}
-              />
-            )}
-            <div className={MENU_SECTION_BORDER} />
             <MenuItem
               label="JSON editor"
               checked={props.viewMode === "json"}

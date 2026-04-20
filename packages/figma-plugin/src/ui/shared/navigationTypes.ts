@@ -98,7 +98,7 @@ export const TOP_TABS: {
     id: "publish",
     label: "Publish",
     subTabs: [
-      { id: "sync", label: "Publish" },
+      { id: "sync", label: "Figma" },
       { id: "export", label: "Export" },
     ],
   },
@@ -501,12 +501,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     sections: [
       {
         id: "sync",
-        label: "Publish",
+        label: "Figma",
         topTab: "publish",
         subTab: "sync",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Publish tokens and configure sync targets.",
+          "Publish tokens to Figma variables and styles.",
         ),
       },
       {

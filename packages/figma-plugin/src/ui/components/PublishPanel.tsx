@@ -550,11 +550,11 @@ export function PublishPanel({
       if ((result.overwritten ?? 0) > 0) {
         const skippedCount = result.skipped?.length ?? 0;
         const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
-        dispatchToast(`Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}`, 'success');
+        dispatchToast(`Variables published — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}`, 'success');
       }
     },
-    successMessage: 'Variable sync applied', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Apply variable sync',
-    revertSuccessMessage: 'Variable sync reverted', revertErrorMessage: 'Failed to revert variable sync',
+    successMessage: 'Variables published', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Publish variables',
+    revertSuccessMessage: 'Variables reverted', revertErrorMessage: 'Failed to revert variables',
   });
 
   const styleSync = useSyncEntity<
@@ -571,8 +571,8 @@ export function PublishPanel({
     buildPullPayload: buildPublishPullPayload,
     buildApplyPayload: (rows) => ({ tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localRaw })) }),
     buildRevertPayload: (snapshot) => ({ styleSnapshot: snapshot }),
-    successMessage: 'Style sync applied', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Apply style sync',
-    revertSuccessMessage: 'Style sync reverted', revertErrorMessage: 'Failed to revert style sync',
+    successMessage: 'Styles published', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Publish styles',
+    revertSuccessMessage: 'Styles reverted', revertErrorMessage: 'Failed to revert styles',
   });
 
   // ── Shared diff filter ──
@@ -683,7 +683,7 @@ export function PublishPanel({
       }
 
       if (tokens.length === 0) {
-        setResolverPublishError('Resolver sync produced no tokens to publish.');
+        setResolverPublishError('Resolver produced no tokens to publish.');
         return;
       }
 
@@ -694,7 +694,7 @@ export function PublishPanel({
       const skippedCount = result.skipped.length;
       const failureCount = result.failures.length;
       dispatchToast(
-        `Resolver modes synced — ${tokens.length} writes across ${modeMappings.length} mode${modeMappings.length === 1 ? '' : 's'}`
+        `Resolver modes published — ${tokens.length} writes across ${modeMappings.length} mode${modeMappings.length === 1 ? '' : 's'}`
         + (skippedCount > 0 ? ` · ${skippedCount} skipped` : '')
         + (failureCount > 0 ? ` · ${failureCount} failed` : ''),
         failureCount > 0 ? 'error' : 'success',
@@ -1076,7 +1076,7 @@ export function PublishPanel({
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
-        Connect to server to sync with Figma
+        Connect to server to publish to Figma
       </div>
     );
   }
@@ -1088,6 +1088,39 @@ export function PublishPanel({
     <div className="flex h-full flex-col bg-[var(--color-figma-bg)]">
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="mx-auto flex max-w-[1080px] flex-col">
+          {/* Compact publish target summary */}
+          <div className="border-b border-[var(--color-figma-border)] pb-3 mb-1">
+            <button
+              type="button"
+              onClick={() => setStandardRoutingExpanded((current) => !current)}
+              className="flex w-full items-center gap-2 text-left"
+            >
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Publishing to</span>
+              <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{resolvedCollectionName} / {resolvedModeName}</span>
+              {standardRoutingDirty && (
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-figma-warning)]" title="Unsaved changes" />
+              )}
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`ml-auto shrink-0 text-[var(--color-figma-text-tertiary)] ${standardRoutingExpanded ? 'rotate-90' : ''} transition-transform`} aria-hidden="true">
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+            </button>
+
+            {standardRoutingExpanded && (
+              <div className="mt-3">
+                <StandardPublishRoutingCard
+                  currentCollectionId={currentCollectionId}
+                  draft={standardRoutingDraft}
+                  dirty={standardRoutingDirty}
+                  saving={standardRoutingSaving}
+                  error={standardRoutingError}
+                  onFieldChange={updateStandardRoutingDraft}
+                  onReset={resetStandardRoutingDraft}
+                  onSave={() => void saveStandardRouting()}
+                />
+              </div>
+            )}
+          </div>
+
           <div ref={preflightRef}>
             <WorkflowStage
               title="Preflight"
@@ -1119,26 +1152,6 @@ export function PublishPanel({
               />
             </WorkflowStage>
           </div>
-
-          <DisclosureSection
-            title="Figma publish target"
-            summary={standardRoutingSummary}
-            expanded={standardRoutingExpanded}
-            onToggle={() => setStandardRoutingExpanded((current) => !current)}
-            statusLabel={standardRoutingStatusLabel}
-            statusSeverity={standardRoutingDirty ? 'warning' : 'info'}
-          >
-            <StandardPublishRoutingCard
-              currentCollectionId={currentCollectionId}
-              draft={standardRoutingDraft}
-              dirty={standardRoutingDirty}
-              saving={standardRoutingSaving}
-              error={standardRoutingError}
-              onFieldChange={updateStandardRoutingDraft}
-              onReset={resetStandardRoutingDraft}
-              onSave={() => void saveStandardRouting()}
-            />
-          </DisclosureSection>
 
           <div ref={compareRef}>
             <WorkflowStage
@@ -1192,7 +1205,7 @@ export function PublishPanel({
                       notCheckedMessage={isResolverPublishCompareActive
                         ? <>Run compare to review the saved resolver mappings against their target Figma modes.</>
                         : <>Run compare to see which tokens differ between local files and Figma.</>}
-                      revertDescription="Restore Figma variables to their pre-sync state"
+                      revertDescription="Restore Figma variables to their previous state"
                       scopeOverrides={scopeOverrides}
                       onScopesChange={(path, scopes) => setScopeOverrides(prev => ({ ...prev, [path]: scopes }))}
                       getScopeOptions={(type) => FIGMA_SCOPE_OPTIONS[type ?? ''] ?? []}
@@ -1206,7 +1219,7 @@ export function PublishPanel({
                       onRevert={styleSync.revert}
                       inSyncMessage="Local tokens match Figma styles."
                       notCheckedMessage={<>Run compare to see which color, text, and effect styles differ.</>}
-                      revertDescription="Restore Figma styles to their pre-sync state"
+                      revertDescription="Restore Figma styles to their previous state"
                     />
                   )}
                 </div>
@@ -1232,7 +1245,7 @@ export function PublishPanel({
                   disabled={compareAllLoading || publishAllBusy || quickSyncing || !publishAllAvailable}
                   className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {publishAllBusy || quickSyncing ? 'Applying…' : publishAllAvailable ? 'Review sync plan' : 'Nothing to apply'}
+                  {publishAllBusy || quickSyncing ? 'Applying…' : publishAllAvailable ? 'Review changes' : 'Nothing to apply'}
                 </button>
               ) : null}
             >
@@ -1242,8 +1255,8 @@ export function PublishPanel({
                     <Spinner size="sm" className="text-[var(--color-figma-accent)]" />
                     <span>
                       {compareAllLoading && 'Comparing…'}
-                      {!compareAllLoading && publishAllStep === 'variables' && (quickSyncing ? 'Syncing variables…' : 'Applying variables…')}
-                      {!compareAllLoading && publishAllStep === 'styles' && (quickSyncing ? 'Syncing styles…' : 'Applying styles…')}
+                      {!compareAllLoading && publishAllStep === 'variables' && (quickSyncing ? 'Publishing variables…' : 'Publishing variables…')}
+                      {!compareAllLoading && publishAllStep === 'styles' && (quickSyncing ? 'Publishing styles…' : 'Publishing styles…')}
                     </span>
                   </div>
                 )}
@@ -1262,44 +1275,46 @@ export function PublishPanel({
                         title="Apply all changes without review"
                         className="rounded-md border border-[var(--color-figma-accent)]/35 px-3 py-1.5 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
                       >
-                        Sync now
+                        Publish now
                       </button>
                     )}
                   </div>
                 )}
 
                 {publishAllError && (
-                  <NoticeBanner severity="error">Sync failed: {publishAllError}</NoticeBanner>
+                  <NoticeBanner severity="error">Publish failed: {publishAllError}</NoticeBanner>
                 )}
               </div>
             </WorkflowStage>
           </div>
 
-          <DisclosureSection
-            title="Advanced routing"
-            summary={activeResolver && savedResolverPublishCount > 0
-              ? `${savedResolverPublishCount} resolver mode mapping${savedResolverPublishCount === 1 ? '' : 's'}`
-              : 'Multi-mode resolver publish'}
-            expanded={resolverRoutingExpanded}
-            onToggle={() => setResolverRoutingExpanded((current) => !current)}
-            statusLabel={resolverRoutingShouldExpand ? 'Active' : 'Optional'}
-            statusSeverity="info"
-          >
-            <ResolverModePublishCard
-              activeResolver={activeResolver}
-              loading={resolverPublishLoading}
-              saving={resolverPublishSaving}
-              syncing={resolverPublishSyncing}
-              error={resolverPublishError}
-              rows={resolverPublishRows}
-              dirtyCount={resolverPublishDirtyCount}
-              mappedCount={resolverPublishMappedCount}
-              onFieldChange={updateResolverPublishDraft}
-              onReset={resetResolverPublishDrafts}
-              onSave={() => void saveResolverPublishMappings()}
-              onSync={() => void syncResolverPublishModes()}
-            />
-          </DisclosureSection>
+          {activeResolver && (
+            <DisclosureSection
+              title="Advanced routing"
+              summary={savedResolverPublishCount > 0
+                ? `${savedResolverPublishCount} resolver mode mapping${savedResolverPublishCount === 1 ? '' : 's'}`
+                : 'Multi-mode resolver publish'}
+              expanded={resolverRoutingExpanded}
+              onToggle={() => setResolverRoutingExpanded((current) => !current)}
+              statusLabel={resolverRoutingShouldExpand ? 'Active' : 'Optional'}
+              statusSeverity="info"
+            >
+              <ResolverModePublishCard
+                activeResolver={activeResolver}
+                loading={resolverPublishLoading}
+                saving={resolverPublishSaving}
+                syncing={resolverPublishSyncing}
+                error={resolverPublishError}
+                rows={resolverPublishRows}
+                dirtyCount={resolverPublishDirtyCount}
+                mappedCount={resolverPublishMappedCount}
+                onFieldChange={updateResolverPublishDraft}
+                onReset={resetResolverPublishDrafts}
+                onSave={() => void saveResolverPublishMappings()}
+                onSync={() => void syncResolverPublishModes()}
+              />
+            </DisclosureSection>
+          )}
         </div>
       </div>
     </div>
@@ -1511,14 +1526,14 @@ function ResolverModePublishCard({
               disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
               className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
             >
-              {syncing ? 'Syncing…' : 'Sync resolver modes'}
+              {syncing ? 'Publishing…' : 'Publish resolver modes'}
             </button>
           </div>
         ) : null}
       </div>
 
       {!activeResolver ? (
-        <div className="mt-3 rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
+        <div className="mt-3 text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
           Select a resolver to configure context-to-mode mapping.
         </div>
       ) : loading ? (
@@ -1652,10 +1667,10 @@ function PublishAllPreviewModal({
         <div ref={dialogRef} className="w-full max-w-[400px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="publish-all-modal-title">
         <div className="px-4 pt-4 pb-3">
           <h3 id="publish-all-modal-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">
-            Review Figma sync
+            Review changes
           </h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review before syncing.
+            Review before publishing.
           </p>
         </div>
 
@@ -1731,7 +1746,7 @@ function PublishAllPreviewModal({
               className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
-              {busy ? 'Applying\u2026' : !anySelected ? 'Nothing selected' : 'Sync selected'}
+              {busy ? 'Applying\u2026' : !anySelected ? 'Nothing selected' : 'Publish selected'}
             </button>
           ) : (
             <button

@@ -182,7 +182,7 @@ interface LeafStateDeps {
   pendingTabEdit: { path: string; columnId: string | null } | null;
   effectiveRovingPath: string | null;
   showDuplicates: boolean;
-  multiModeEnabled: boolean;
+  showModeColumns: boolean;
   modeVariantPaths: Set<string>;
   tokenModeMissing?: Map<string, number>;
 }

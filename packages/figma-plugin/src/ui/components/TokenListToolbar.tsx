@@ -20,8 +20,6 @@ interface QualifierHint {
   kind: "replacement" | "hint";
 }
 
-import type { LibraryViewMode } from "./TokenListOverflowMenu";
-
 export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
   navHistoryLength?: number;
@@ -54,8 +52,6 @@ export interface TokenListToolbarProps {
   onOpenImportPanel?: () => void;
   onOpenCreateCollection?: () => void;
   scenarioControl?: ReactNode;
-  multiModeEnabled: boolean;
-  onToggleMultiMode: () => void;
   onCreateGeneratedGroup?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
@@ -67,15 +63,6 @@ export interface TokenListToolbarProps {
   tokensExist?: boolean;
   generatedTokenCount?: number;
   overflowMenuProps: TokenListOverflowMenuProps | null;
-}
-
-function getCurrentLibraryViewMode({
-  multiModeEnabled,
-}: {
-  multiModeEnabled: boolean;
-}): LibraryViewMode {
-  if (multiModeEnabled) return "all-modes";
-  return "values";
 }
 
 export function TokenListToolbar({
@@ -110,8 +97,6 @@ export function TokenListToolbar({
   onOpenImportPanel,
   onOpenCreateCollection,
   scenarioControl,
-  multiModeEnabled,
-  onToggleMultiMode,
   onCreateGeneratedGroup,
   onSelectTokens,
   onBulkEdit,
@@ -150,30 +135,10 @@ export function TokenListToolbar({
     closeActionsMenu({ restoreFocus: false });
   }, [closeActionsMenu]);
 
-  const currentLibraryViewMode = getCurrentLibraryViewMode({
-    multiModeEnabled,
-  });
   const filterItems = toolbarStateChips.filter((chip) => chip.tone === "filter");
   const viewItems = toolbarStateChips.filter((chip) => chip.tone === "view");
   const canClearFilters = hasStructuredFilters || filterItems.length > 0;
   const canClearView = viewItems.length > 0;
-
-  const activateViewMode = useCallback(
-    (nextMode: LibraryViewMode) => {
-      if (viewMode !== "tree") {
-        setViewMode("tree");
-      }
-      if (nextMode === "values") {
-        if (multiModeEnabled) onToggleMultiMode();
-        return;
-      }
-      if (nextMode === "all-modes") {
-        if (!multiModeEnabled) onToggleMultiMode();
-        return;
-      }
-    },
-    [multiModeEnabled, onToggleMultiMode, setViewMode, viewMode],
-  );
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -299,8 +264,6 @@ export function TokenListToolbar({
             {overflowMenuProps && (
               <ViewMenu
                 {...overflowMenuProps}
-                currentLibraryViewMode={currentLibraryViewMode}
-                onActivateViewMode={activateViewMode}
                 viewMode={viewMode}
                 setViewMode={setViewMode}
               />

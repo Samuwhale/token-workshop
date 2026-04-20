@@ -145,7 +145,7 @@ export function useFigmaSync(
       if (result.failures.length > 0) {
         const failedPaths = result.failures.map(f => f.path).join(', ');
         const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
-        setError(`${result.count}/${result.total} ${entityName} synced. Failed: ${failedPaths}${skippedNote}`);
+        setError(`${result.count}/${result.total} ${entityName} published. Failed: ${failedPaths}${skippedNote}`);
       } else {
         dispatchToast(successMsg(result.count, skippedCount), 'success');
       }
@@ -170,7 +170,7 @@ export function useFigmaSync(
       setError: setSyncGroupError,
       sendApply: (_, payload) => sendVarApply('apply-variables', payload),
       buildPayload: (tokens) => ({ tokens, collectionMap, modeMap }),
-      successMsg: (count, skipped) => `${count} variable${count !== 1 ? 's' : ''} synced${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
+      successMsg: (count, skipped) => `${count} variable${count !== 1 ? 's' : ''} published${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
       entityName: 'variables',
     });
   }, [

@@ -1,4 +1,5 @@
 import type React from "react";
+import { useCallback, useState } from "react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { LintViolation } from "../../hooks/useLint";
 import type { MultiModeValue } from "../tokenListTypes";
@@ -6,10 +7,15 @@ import { TOKEN_TYPE_BADGE_CLASS } from "../../../shared/types";
 import { highlightMatch } from "../tokenListHelpers";
 import { nodeParentPath } from "../tokenListUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
-import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
+import {
+  FeedbackPlaceholder,
+  type FeedbackPlaceholderAction,
+} from "../FeedbackPlaceholder";
 import { JsonEditorView } from "../JsonEditorView";
 import { TokenListFilteredEmptyState } from "./TokenListStates";
 import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
+import { ModeColumnHeader } from "./ModeColumnHeader";
+import { apiFetch } from "../../shared/apiFetch";
 
 type VisibleTokenRow = {
   node: TokenNode;
@@ -98,6 +104,8 @@ interface TokenListTreeBodyProps {
   collections: { id: string; modes: { name: string }[] }[];
   setMultiModeDimId: (v: string) => void;
   getMultiModeValues: (tokenPath: string) => MultiModeValue[] | undefined;
+  serverUrl: string;
+  onModeMutated?: () => void;
 
   // Selection
   selectedPaths: Set<string>;
@@ -131,6 +139,7 @@ interface TokenListTreeBodyProps {
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
   onCreateNew?: (initialPath?: string) => void;
   onCreateGeneratedGroup?: () => void;
+  onOpenImportPanel?: () => void;
 
   // Filters
   clearFilters: () => void;
@@ -195,8 +204,37 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     onNavigateToCollection,
     onCreateNew,
     onCreateGeneratedGroup,
+    onOpenImportPanel,
     clearFilters,
   } = props;
+  const { serverUrl, onModeMutated } = props;
+
+  const [addingMode, setAddingMode] = useState(false);
+  const [newModeName, setNewModeName] = useState("");
+  const [addingModeSaving, setAddingModeSaving] = useState(false);
+
+  const handleAddMode = useCallback(async () => {
+    const name = newModeName.trim();
+    if (!name || !multiModeDimId) return;
+    setAddingModeSaving(true);
+    try {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(multiModeDimId)}/modes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        },
+      );
+      setNewModeName("");
+      setAddingMode(false);
+      onModeMutated?.();
+    } catch {
+      // keep input open on error
+    } finally {
+      setAddingModeSaving(false);
+    }
+  }, [multiModeDimId, newModeName, onModeMutated, serverUrl]);
 
   // Multi-mode column headers
   const multiModeHeaders = multiModeData && viewMode === "tree" ? (
@@ -221,14 +259,53 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         )}
       </div>
       {multiModeData.results.map((r) => (
-        <div
+        <ModeColumnHeader
           key={r.optionName}
-          className="w-[48px] shrink-0 px-0.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate border-l border-[var(--color-figma-border)]"
-          title={r.optionName}
-        >
-          {r.optionName}
-        </div>
+          modeName={r.optionName}
+          collectionId={r.collectionId}
+          serverUrl={serverUrl}
+          connected={connected}
+          onMutated={() => onModeMutated?.()}
+        />
       ))}
+      {addingMode ? (
+        <div className="w-[48px] shrink-0 px-0.5 py-0.5 border-l border-[var(--color-figma-border)]">
+          <input
+            type="text"
+            value={newModeName}
+            onChange={(e) => setNewModeName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void handleAddMode();
+              if (e.key === "Escape") {
+                setAddingMode(false);
+                setNewModeName("");
+              }
+            }}
+            onBlur={() => {
+              if (!newModeName.trim()) {
+                setAddingMode(false);
+                setNewModeName("");
+              }
+            }}
+            autoFocus
+            disabled={addingModeSaving}
+            placeholder="Name"
+            className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-0.5 py-0.5 text-[9px] text-[var(--color-figma-text)] outline-none"
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAddingMode(true)}
+          disabled={!connected}
+          className="w-[24px] shrink-0 flex items-center justify-center py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
+          title="Add mode"
+        >
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M8 3v10M3 8h10" />
+          </svg>
+        </button>
+      )}
     </div>
   ) : null;
 
@@ -406,6 +483,33 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
   // Empty collection
   if (tokens.length === 0) {
+    const emptyCollectionActions: FeedbackPlaceholderAction[] = [
+      onCreateGeneratedGroup
+        ? {
+            label: "Generate group…",
+            onClick: onCreateGeneratedGroup,
+            disabled: !connected,
+            tone: "secondary",
+          }
+        : null,
+      onOpenImportPanel
+        ? {
+            label: "Import tokens",
+            onClick: onOpenImportPanel,
+            disabled: !connected,
+            tone: "secondary",
+          }
+        : null,
+      onCreateNew
+        ? {
+            label: "New token",
+            onClick: () => onCreateNew(),
+            disabled: !connected,
+            tone: "primary",
+          }
+        : null,
+    ].filter((action): action is FeedbackPlaceholderAction => action !== null);
+
     return (
       <>
         {multiModeHeaders}
@@ -413,7 +517,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           <FeedbackPlaceholder
             variant="empty"
             size="section"
-            className="w-full max-w-[320px]"
+            className="w-full max-w-[360px]"
             icon={
               <svg
                 width="20"
@@ -431,20 +535,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               </svg>
             }
             title="This collection is empty"
-            description="Create tokens or generate a group directly in this collection."
+            description="Create a token, generate a starter group, or import tokens into this collection."
+            actions={emptyCollectionActions}
           />
-          {onCreateGeneratedGroup && (
-            <div className="mt-2 text-center">
-              <button
-                type="button"
-                onClick={onCreateGeneratedGroup}
-                disabled={!connected}
-                className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Generate group…
-              </button>
-            </div>
-          )}
         </div>
       </>
     );

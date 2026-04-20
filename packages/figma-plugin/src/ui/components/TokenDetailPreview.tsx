@@ -253,7 +253,7 @@ export function TokenDetailPreview({
                     className="h-2 w-2 rounded-full bg-current"
                     aria-hidden="true"
                   />
-                  Unsynced
+                  Unpublished
                 </span>
               )}
             </div>

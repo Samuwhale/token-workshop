@@ -91,7 +91,7 @@ export function VariableDiffReviewPanel({
   return (
     <ContextualReviewPanel
       title="Apply as Figma Variables"
-      description="Review sync impact before pushing to Figma."
+      description="Review changes before publishing to Figma."
       onClose={onClose}
       footer={
         <>

@@ -143,6 +143,8 @@ export function CollectionDetailsPanel({
   const [modeDraft, setModeDraft] = useState("");
   const [modeSaving, setModeSaving] = useState(false);
   const [modeDeletingName, setModeDeletingName] = useState<string | null>(null);
+  const [modeRenamingName, setModeRenamingName] = useState<string | null>(null);
+  const [modeRenameValue, setModeRenameValue] = useState("");
   const [modeError, setModeError] = useState("");
 
   useEffect(() => {
@@ -230,6 +232,36 @@ export function CollectionDetailsPanel({
       }
     },
     [collection, refreshCollections, serverUrl],
+  );
+  const handleRenameMode = useCallback(
+    async (oldName: string) => {
+      const newName = modeRenameValue.trim();
+      if (!collection || !newName || newName === oldName) {
+        setModeRenamingName(null);
+        return;
+      }
+      setModeSaving(true);
+      setModeError("");
+      try {
+        await apiFetch(
+          `${serverUrl}/api/collections/${encodeURIComponent(collection.id)}/modes/${encodeURIComponent(oldName)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: newName }),
+          },
+        );
+        setModeRenamingName(null);
+        await refreshCollections();
+      } catch (error) {
+        setModeError(
+          error instanceof Error ? error.message : "Failed to rename mode.",
+        );
+      } finally {
+        setModeSaving(false);
+      }
+    },
+    [collection, modeRenameValue, refreshCollections, serverUrl],
   );
   const modeMutationInFlight = modeSaving || modeDeletingName !== null;
 
@@ -333,9 +365,38 @@ export function CollectionDetailsPanel({
                     key={mode.name}
                     className="flex items-center justify-between gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2"
                   >
-                    <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                      {mode.name}
-                    </span>
+                    {modeRenamingName === mode.name ? (
+                      <input
+                        type="text"
+                        value={modeRenameValue}
+                        onChange={(e) => {
+                          setModeRenameValue(e.target.value);
+                          setModeError("");
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void handleRenameMode(mode.name);
+                          if (e.key === "Escape") setModeRenamingName(null);
+                        }}
+                        onBlur={() => void handleRenameMode(mode.name)}
+                        autoFocus
+                        disabled={modeSaving}
+                        className="flex-1 rounded-md border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (connected && !modeMutationInFlight) {
+                            setModeRenamingName(mode.name);
+                            setModeRenameValue(mode.name);
+                          }
+                        }}
+                        className="text-[11px] font-medium text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] transition-colors"
+                        title="Click to rename"
+                      >
+                        {mode.name}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => void handleDeleteMode(mode.name)}

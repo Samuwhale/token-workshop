@@ -826,6 +826,9 @@ export function App() {
       return next;
     });
   }, []);
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(
+    () => new Set([activeWorkspace.id]),
+  );
   const contextualEditorTransition = CONTEXTUAL_PANEL_TRANSITIONS.fullTakeover;
 
   const cascadeDiff = null;
@@ -1532,16 +1535,43 @@ export function App() {
   const notificationCount = notificationHistory.length;
 
   const handleSidebarItemClick = useCallback((item: SidebarItem) => {
+    const isAlreadyActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
+    if (isAlreadyActive) {
+      setExpandedWorkspaces((prev) => {
+        const next = new Set(prev);
+        if (next.has(item.workspaceId)) {
+          next.delete(item.workspaceId);
+        } else {
+          next.add(item.workspaceId);
+        }
+        return next;
+      });
+      return;
+    }
     guardEditorAction(() => {
       navigateTo(item.topTab, item.subTab);
       closeSecondarySurface();
       closeNotifications();
       clearHandoff();
+      setExpandedWorkspaces((prev) => new Set(prev).add(item.workspaceId));
       if (item.subTab === "canvas-analysis") {
         triggerHeatmapScan();
       }
     });
-  }, [guardEditorAction, navigateTo, closeSecondarySurface, closeNotifications, clearHandoff, triggerHeatmapScan]);
+  }, [activeWorkspace.id, activeSecondarySurface, guardEditorAction, navigateTo, closeSecondarySurface, closeNotifications, clearHandoff, triggerHeatmapScan]);
+
+  const workspaceIcon = (id: string) => {
+    switch (id) {
+      case "tokens":
+        return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 1.5L14 5v6l-6 3.5L2 11V5z" /></svg>;
+      case "canvas":
+        return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 5V2h3" /><path d="M14 5V2h-3" /><path d="M2 11v3h3" /><path d="M14 11v3h-3" /></svg>;
+      case "publish":
+        return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 10V2" /><path d="M4.5 5.5L8 2l3.5 3.5" /><path d="M3 10v3h10v-3" /></svg>;
+      default:
+        return null;
+    }
+  };
 
   const handleSubTabClick = useCallback((section: WorkspaceSection) => {
     guardEditorAction(() => {
@@ -1574,27 +1604,16 @@ export function App() {
                     <Tooltip key={item.id} label={item.label} position="right">
                       <button
                         onClick={() => handleSidebarItemClick(item)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
+                        className={`relative flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
-                            ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                            ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-accent)]"
                             : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
                         }`}
                       >
-                        {item.id === "tokens" && (
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M8 1.5L14 5v6l-6 3.5L2 11V5z" />
-                          </svg>
+                        {isWorkspaceActive && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-[var(--color-figma-accent)]" />
                         )}
-                        {item.id === "canvas" && (
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M2 5V2h3" /><path d="M14 5V2h-3" /><path d="M2 11v3h3" /><path d="M14 11v3h-3" />
-                          </svg>
-                        )}
-                        {item.id === "publish" && (
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M8 10V2" /><path d="M4.5 5.5L8 2l3.5 3.5" /><path d="M3 10v3h10v-3" />
-                          </svg>
-                        )}
+                        {workspaceIcon(item.id)}
                       </button>
                     </Tooltip>
                   );
@@ -1604,31 +1623,56 @@ export function App() {
                   <div key={item.id} className="mb-0.5">
                     <button
                       onClick={() => handleSidebarItemClick(item)}
-                      className={`w-full rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
+                      className={`relative flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-[11px] outline-none transition-colors ${
                         isWorkspaceActive
-                          ? "text-[var(--color-figma-text)] font-medium"
+                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
                           : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
                       }`}
                     >
-                      {item.label}
+                      {isWorkspaceActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-[var(--color-figma-accent)]" />
+                      )}
+                      {sections.length > 0 && (
+                        <svg
+                          width="8"
+                          height="8"
+                          viewBox="0 0 8 8"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          className={`shrink-0 transition-transform duration-150 ${expandedWorkspaces.has(item.workspaceId) ? "rotate-90" : ""}`}
+                        >
+                          <path d="M2 1l4 3-4 3V1z" />
+                        </svg>
+                      )}
+                      <span className="shrink-0">{workspaceIcon(item.id)}</span>
+                      <span className="truncate">{item.label}</span>
                     </button>
-                    {isWorkspaceActive && sections.length > 0 && (
-                      <div className="ml-2 flex flex-col gap-px">
-                        {sections.map((section) => (
-                          <button
-                            key={section.id}
-                            onClick={() => handleSubTabClick(section)}
-                            className={`w-full rounded-md px-2 py-0.5 text-left text-[11px] outline-none transition-colors ${
-                              activeSubTab === section.subTab
-                                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                            }`}
-                          >
-                            {section.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {sections.length > 0 && (() => {
+                      const isSectionExpanded = expandedWorkspaces.has(item.workspaceId);
+                      return (
+                        <div
+                          aria-hidden={!isSectionExpanded}
+                          className={`ml-6 flex flex-col gap-px overflow-hidden transition-[max-height,opacity] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                            isSectionExpanded ? "max-h-40 opacity-100 mt-0.5 mb-1" : "max-h-0 opacity-0"
+                          }`}
+                        >
+                          {sections.map((section) => (
+                            <button
+                              key={section.id}
+                              onClick={() => handleSubTabClick(section)}
+                              tabIndex={isSectionExpanded ? 0 : -1}
+                              className={`w-full rounded px-2 py-0.5 text-left text-[10px] outline-none transition-colors ${
+                                activeSubTab === section.subTab && isWorkspaceActive
+                                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                              }`}
+                            >
+                              {section.label}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -1678,13 +1722,13 @@ export function App() {
               <div className="my-1 w-5 border-t border-[var(--color-figma-border)]" />
               <div className="flex flex-col items-center gap-0.5">
                 <Tooltip label={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"} position="right">
-                  <button onClick={executeUndo} disabled={!canUndo} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo">
-                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
+                  <button onClick={executeUndo} disabled={!canUndo} className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
                   </button>
                 </Tooltip>
                 <Tooltip label={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"} position="right">
-                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo">
-                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
+                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
                   </button>
                 </Tooltip>
               </div>
@@ -1694,39 +1738,39 @@ export function App() {
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={toggleNotifications}
-                  className={`relative flex h-6 w-6 items-center justify-center rounded-md outline-none transition-colors ${
+                  className={`relative flex h-7 w-7 items-center justify-center rounded-md outline-none transition-colors ${
                     notificationsOpen
                       ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
                       : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                   }`}
                   aria-label="Notifications"
                 >
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M4 5.5a4 4 0 0 1 8 0c0 2 1 3.5 1.5 4.5H2.5c.5-1 1.5-2.5 1.5-4.5z" /><path d="M6 10v.5a2 2 0 0 0 4 0V10" />
                   </svg>
                   {notificationCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[7px] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
+                    <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[8px] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
                   )}
                 </button>
                 <button
                   onClick={() => toggleSecondarySurface("settings")}
-                  className={`flex h-6 w-6 items-center justify-center rounded-md outline-none transition-colors ${
+                  className={`flex h-7 w-7 items-center justify-center rounded-md outline-none transition-colors ${
                     activeSecondarySurface === "settings"
                       ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
                       : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                   }`}
                   aria-label="Settings"
                 >
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="8" cy="8" r="2" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.9 2.9l1.4 1.4M11.7 11.7l1.4 1.4M13.1 2.9l-1.4 1.4M4.3 11.7l-1.4 1.4" />
                   </svg>
                 </button>
                 <div className="mx-0.5 h-3.5 w-px bg-[var(--color-figma-border)]" />
-                <button onClick={executeUndo} disabled={!canUndo} className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
-                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
+                <button onClick={executeUndo} disabled={!canUndo} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h7a3 3 0 0 1 0 6H9" /><path d="M6 4L3 7l3 3" /></svg>
                 </button>
-                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
-                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
+                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 7H6a3 3 0 0 0 0 6h1" /><path d="M10 4l3 3-3 3" /></svg>
                 </button>
               </div>
             </>
@@ -1751,11 +1795,12 @@ export function App() {
               <div className="mx-auto h-2 w-2 rounded-full bg-[var(--color-figma-error)]" />
             </Tooltip>
           )}
+          <div className={`${sidebarCollapsed ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--color-figma-border)]`} />
           <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarCollapsed}>
             <button
               onClick={toggleSidebarCollapsed}
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className={`flex items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto h-7 w-7' : 'h-6 w-full'}`}
+              className={`flex items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto h-7 w-7' : 'h-7 w-full'}`}
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 {sidebarCollapsed ? (
@@ -1836,7 +1881,7 @@ export function App() {
       {/* Variable sync progress overlay */}
       {syncGroupApplying && (
         <ProgressOverlay
-          message="Syncing variables…"
+          message="Publishing variables…"
           current={syncGroupProgress?.current}
           total={syncGroupProgress?.total}
         />

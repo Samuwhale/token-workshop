@@ -158,7 +158,7 @@ export function MultiModeCell({
   return (
     <div
       ref={cellRef}
-      className="w-[48px] shrink-0 px-0.5 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
+      className={`w-[48px] shrink-0 px-0.5 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}
       title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}`}
     >
       {/* Hidden color input — rendered for existing color values or creatable empty color cells */}

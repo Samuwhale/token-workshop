@@ -87,7 +87,7 @@ function ClusterGroup({
     : 'border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/8';
 
   return (
-    <div className={`rounded-[16px] border p-3 ${toneClasses}`}>
+    <div className={`rounded-md border p-3 ${toneClasses}`}>
       <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
         {title}
       </div>
@@ -98,7 +98,7 @@ function ClusterGroup({
           const isBusy = actionBusyId !== null && cluster.recommendedActionId === actionBusyId;
 
           return (
-            <div key={cluster.id} className="rounded-[14px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5">
+            <div key={cluster.id} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -120,7 +120,7 @@ function ClusterGroup({
                   <button
                     onClick={action}
                     disabled={isBusy}
-                    className="shrink-0 rounded-full border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/8 px-2.5 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/12 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="shrink-0 rounded-md bg-[var(--color-figma-accent)]/8 px-2 py-1 text-[10px] font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/15 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {isBusy ? 'Working…' : cluster.recommendedActionLabel}
                   </button>
@@ -128,7 +128,7 @@ function ClusterGroup({
               </div>
 
               {!action && cluster.recommendedActionLabel && (
-                <div className="mt-2 rounded-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <div className="mt-2 text-[10px] text-[var(--color-figma-text-secondary)]">
                   Next: <span className="font-medium text-[var(--color-figma-text)]">{cluster.recommendedActionLabel}</span>
                 </div>
               )}

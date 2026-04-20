@@ -280,10 +280,9 @@ export function TokenList({
     rowHeight,
     condensedView,
     setCondensedView,
-    multiModeEnabled,
+    showModeColumns,
     multiModeDimId,
     setMultiModeDimId,
-    toggleMultiMode,
   } = viewState;
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] =
@@ -511,7 +510,7 @@ export function TokenList({
   // Compute per-option resolved token maps for the selected dimension
   const multiModeData = useMemo(() => {
     if (
-      !multiModeEnabled ||
+      !showModeColumns ||
       !multiModeDimId ||
       !unresolvedAllTokensFlat ||
       activeCollections.length === 0
@@ -541,7 +540,7 @@ export function TokenList({
     }
     return { collection, results };
   }, [
-    multiModeEnabled,
+    showModeColumns,
     multiModeDimId,
     unresolvedAllTokensFlat,
     activeCollections,
@@ -553,7 +552,7 @@ export function TokenList({
   // Computed even when mode columns are hidden, for the inline variant indicator.
   const modeVariantPaths = useMemo<Set<string>>(() => {
     if (
-      multiModeEnabled ||
+      showModeColumns ||
       !unresolvedAllTokensFlat ||
       activeCollections.length === 0
     )
@@ -600,7 +599,7 @@ export function TokenList({
     }
     return varies;
   }, [
-    multiModeEnabled,
+    showModeColumns,
     unresolvedAllTokensFlat,
     activeCollections,
     pathToCollectionId,
@@ -1063,12 +1062,6 @@ export function TokenList({
     (inspectMode ? 1 : 0) +
     (crossCollectionSearch ? 1 : 0);
 
-  const resetToAuthoredView = useCallback(() => {
-    if (multiModeEnabled) toggleMultiMode();
-    if (showResolvedValues) setShowResolvedValues(false);
-    if (viewMode !== "tree") setViewMode("tree");
-  }, [multiModeEnabled, showResolvedValues, viewMode, toggleMultiMode, setShowResolvedValues, setViewMode]);
-
   const {
     toolbarStateChips,
   } = useToolbarStateChips({
@@ -1077,8 +1070,6 @@ export function TokenList({
     showIssuesOnly, onToggleIssuesOnly, lintViolationsLength: lintViolations.length,
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
-    multiModeEnabled, multiModeDimensionName, toggleMultiMode,
-    onResetViewMode: resetToAuthoredView,
     condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation,
@@ -1860,7 +1851,6 @@ export function TokenList({
   ]);
 
   const clearViewModes = useCallback(() => {
-    if (multiModeEnabled) toggleMultiMode();
     if (showResolvedValues) setShowResolvedValues(false);
     if (condensedView) setCondensedView(false);
     if (showPreviewSplit) onTogglePreviewSplit?.();
@@ -1868,7 +1858,6 @@ export function TokenList({
     if (sortOrder !== "default") setSortOrder("default");
   }, [
     condensedView,
-    multiModeEnabled,
     onTogglePreviewSplit,
     setCondensedView,
     setSearchResultPresentation,
@@ -1878,7 +1867,6 @@ export function TokenList({
     showResolvedValues,
     showFlatSearchResults,
     sortOrder,
-    toggleMultiMode,
   ]);
 
   const handleOpenNewGroupDialog = useCallback(() => {
@@ -2296,7 +2284,7 @@ export function TokenList({
     collections: activeCollections,
     selectedModes,
     pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
-    multiModeEnabled, modeVariantPaths, tokenModeMissing,
+    showModeColumns, modeVariantPaths, tokenModeMissing,
   });
 
   const tokenTreeLeafActions = useTokenTreeLeafActions({
@@ -2494,8 +2482,6 @@ export function TokenList({
             onOpenCreateCollection={onOpenCreateCollection}
             scenarioControl={toolbarScenarioControl}
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
-            multiModeEnabled={multiModeEnabled}
-            onToggleMultiMode={toggleMultiMode}
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
@@ -2655,7 +2641,10 @@ export function TokenList({
             onNavigateToCollection={onNavigateToCollection}
             onCreateNew={onCreateNew}
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
+            onOpenImportPanel={onOpenImportPanel}
             clearFilters={clearFilters}
+            serverUrl={serverUrl}
+            onModeMutated={onRefresh}
           />
         </TokenTreeProvider>
         </div>

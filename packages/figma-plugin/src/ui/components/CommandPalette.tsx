@@ -982,7 +982,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         {section.header === 'Recently used' && cmd.category && (
-                          <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                          <span className={`text-[10px] ${flatIdx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-tertiary)]'}`}>
                             {cmd.category}
                           </span>
                         )}
@@ -1028,7 +1028,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {cmd.category && (
-                      <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`text-[10px] ${idx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-tertiary)]'}`}>
                         {cmd.category}
                       </span>
                     )}

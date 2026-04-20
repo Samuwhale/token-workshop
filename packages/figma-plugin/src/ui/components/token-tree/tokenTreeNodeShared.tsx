@@ -115,7 +115,7 @@ export function CondensedAncestorBreadcrumb({
   const tooltip = `Hidden ancestors: ${hiddenSegments.join(" › ")}`;
   return (
     <span
-      className={`shrink-0 ${BADGE_TEXT_CLASS} font-medium px-1 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)] leading-none`}
+      className={`shrink-0 ${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] leading-none`}
       title={tooltip}
       aria-label={`In: ${hiddenSegments.join(" › ")}`}
     >
@@ -233,9 +233,9 @@ export function GeneratedGroupSummaryRow({
 
   return (
     <div
-      className="mx-2 mb-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2"
+      className="mb-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
       style={{
-        marginLeft: `${computePaddingLeft(depth, condensedView, 24)}px`,
+        paddingLeft: `${computePaddingLeft(depth, condensedView, 24)}px`,
       }}
       onClick={(event) => event.stopPropagation()}
     >
@@ -291,13 +291,13 @@ export function GeneratedGroupSummaryRow({
             )}
           </div>
           {keepUpdatedDisabledReason && (
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
               {keepUpdatedDisabledReason}
             </div>
           )}
           {shouldNudgeExceptionCleanup && (
-            <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-[10px] text-[var(--color-figma-text)]">
-              Manual exceptions are starting to pile up in this group. Edit the generator or detach tokens that should stay manual.
+            <div className="text-[10px] text-[var(--color-figma-warning)]">
+              Manual exceptions are piling up. Edit the generator or detach tokens that should stay manual.
             </div>
           )}
           {compactPreviewTokens.length > 0 && (
@@ -385,7 +385,7 @@ function SummaryOverflowMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-[24px] w-[24px] items-center justify-center rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        className="flex h-[24px] w-[24px] items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         aria-label="More actions"
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
@@ -446,12 +446,9 @@ function CompactGeneratedPreview({
   totalCount: number;
 }) {
   return (
-    <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
-      <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-        <span>Preview</span>
-        <span>
-          {totalCount} token{totalCount === 1 ? "" : "s"}
-        </span>
+    <div className="mt-0.5">
+      <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-[var(--color-figma-text-tertiary)]">
+        <span>{totalCount} token{totalCount === 1 ? "" : "s"}</span>
       </div>
       {type === "colorRamp" ? (
         <div className="flex items-center gap-1">
@@ -619,12 +616,6 @@ export function TokenRowBrowseMetaBadge({
     "shrink",
     "items-center",
     "gap-1",
-    "rounded",
-    "border",
-    "border-[var(--color-figma-border)]",
-    "bg-[var(--color-figma-bg-secondary)]",
-    "px-1.5",
-    "py-0.5",
     BADGE_TEXT_CLASS,
     meta.toneClass,
   ].join(" ");
@@ -636,7 +627,7 @@ export function TokenRowBrowseMetaBadge({
         onClick={meta.onClick}
         disabled={!meta.interactive}
         title={meta.title}
-        className={`${className} ${meta.interactive ? "transition-colors hover:border-current/40 hover:bg-[var(--color-figma-bg-hover)]" : "cursor-default"}`}
+        className={`${className} ${meta.interactive ? "transition-colors hover:text-[var(--color-figma-accent)]" : "cursor-default"}`}
       >
         {content}
       </button>
@@ -649,7 +640,7 @@ export function TokenRowBrowseMetaBadge({
         type="button"
         onClick={meta.onClick}
         title={meta.title}
-        className={`${className} transition-colors hover:border-current/40 hover:bg-[var(--color-figma-bg-hover)]`}
+        className={`${className} transition-colors hover:text-[var(--color-figma-accent)]`}
       >
         {content}
       </button>
@@ -715,8 +706,8 @@ export function getTokenRowStatus(props: {
   if (syncChanged) {
     return {
       kind: "sync",
-      label: "Unsynced",
-      title: "Changed locally since last sync",
+      label: "Unpublished",
+      title: "Changed since last publish",
       toneClass: "text-[var(--color-figma-warning)]",
     };
   }

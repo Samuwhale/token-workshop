@@ -304,6 +304,7 @@ export function PanelRouter({
     editingToken?.path || previewingToken?.path || highlightedToken;
   const hasTokensLibrarySurface =
     tokens.length > 0 ||
+    Boolean(currentCollectionId) ||
     createFromEmpty ||
     activeTokensContextualSurface !== null;
 
@@ -1036,8 +1037,6 @@ export function PanelRouter({
             collections={collections}
             selectedModes={selectedModes}
             setSelectedModes={setSelectedModes}
-            serverUrl={serverUrl}
-            connected={connected}
           />
         }
       />
@@ -1311,10 +1310,10 @@ export function PanelRouter({
             <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
           </svg>
         )}
-        title="No tokens yet"
-        description="Import an existing token system or create a collection to start authoring."
-        primaryAction={{ label: "Import tokens", onClick: () => controller.onShowImportPanel() }}
-        secondaryAction={{ label: "Create collection", onClick: () => controller.onOpenCollectionCreateDialog() }}
+        title="No collections yet"
+        description="Create your first collection or import an existing token system to start authoring."
+        primaryAction={{ label: "Create collection", onClick: () => controller.onOpenCollectionCreateDialog() }}
+        secondaryAction={{ label: "Import tokens", onClick: () => controller.onShowImportPanel() }}
       />
     );
 
@@ -1360,7 +1359,7 @@ export function PanelRouter({
           </div>
         )}
         {/* Empty state */}
-        {tokens.length === 0 &&
+        {collections.length === 0 &&
           !createFromEmpty &&
           !editingToken &&
           renderTokensStartSurface()}
@@ -1540,7 +1539,7 @@ export function PanelRouter({
         <PanelContentHeader primaryAction={publishAction} />
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Figma Sync"
+            panelName="Figma Publish"
             onReset={() => navigateTo("publish", "sync")}
           >
             <PublishPanel

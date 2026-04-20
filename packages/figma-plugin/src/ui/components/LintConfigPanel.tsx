@@ -281,7 +281,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{preset.label}</span>
                     {isActive && (
-                      <span className="rounded-full bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-[10px] font-medium text-white">
+                      <span className="text-[10px] font-medium text-[var(--color-figma-accent)]">
                         Active
                       </span>
                     )}
@@ -417,7 +417,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                             key={path}
                             onClick={() => handleRemovePathException(rule.id, ruleConfig, path)}
                             disabled={saving}
-                            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] disabled:opacity-40"
+                            className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] disabled:opacity-40"
                             title={`Remove ${path} exception`}
                           >
                             <span>{path}</span>

@@ -218,7 +218,6 @@ export const STORAGE_KEYS = {
   ACTIVE_RESOLVER:          'tm_active_resolver',
   RESOLVER_INPUT:           'tm_resolver_input',
   SIDEBAR_COLLAPSED:        'tm_sidebar_collapsed',
-  MULTI_MODE:               'tm_multi_mode',
   INSPECTOR_SUGGESTIONS_OPEN: 'inspector-suggestions-open',
   LAST_CREATE_GROUP:        'tm_last_create_group',
   LAST_CREATE_TYPE:         'tm_last_token_type',

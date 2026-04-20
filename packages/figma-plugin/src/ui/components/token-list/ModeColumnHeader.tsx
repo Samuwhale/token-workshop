@@ -1,0 +1,179 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { apiFetch } from "../../shared/apiFetch";
+
+interface ModeColumnHeaderProps {
+  modeName: string;
+  collectionId: string;
+  serverUrl: string;
+  connected: boolean;
+  onMutated: () => void;
+}
+
+export function ModeColumnHeader({
+  modeName,
+  collectionId,
+  serverUrl,
+  connected,
+  onMutated,
+}: ModeColumnHeaderProps) {
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(modeName);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [showMenu, setShowMenu] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (renaming) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [renaming]);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleMouseDown = (event: MouseEvent) => {
+      if (menuRef.current?.contains(event.target as Node)) return;
+      setShowMenu(false);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowMenu(false);
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showMenu]);
+
+  const handleRename = useCallback(async () => {
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === modeName) {
+      setRenaming(false);
+      setRenameValue(modeName);
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: trimmed }),
+        },
+      );
+      setRenaming(false);
+      onMutated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Rename failed");
+    } finally {
+      setSaving(false);
+    }
+  }, [collectionId, modeName, onMutated, renameValue, serverUrl]);
+
+  const handleDelete = useCallback(async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
+        { method: "DELETE" },
+      );
+      setShowMenu(false);
+      onMutated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setSaving(false);
+    }
+  }, [collectionId, modeName, onMutated, serverUrl]);
+
+  if (renaming) {
+    return (
+      <div className="relative w-[48px] shrink-0 px-0.5 py-0.5 border-l border-[var(--color-figma-border)]">
+        <input
+          ref={inputRef}
+          type="text"
+          value={renameValue}
+          onChange={(e) => {
+            setRenameValue(e.target.value);
+            setError("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void handleRename();
+            if (e.key === "Escape") {
+              setRenaming(false);
+              setRenameValue(modeName);
+            }
+          }}
+          onBlur={() => void handleRename()}
+          disabled={saving}
+          className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-0.5 py-0.5 text-[9px] text-[var(--color-figma-text)] outline-none"
+        />
+        {error && (
+          <div className="absolute mt-0.5 text-[8px] text-[var(--color-figma-error)] whitespace-nowrap">
+            {error}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-[48px] shrink-0 border-l border-[var(--color-figma-border)]">
+      <button
+        type="button"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (connected) setShowMenu(true);
+        }}
+        onDoubleClick={() => {
+          if (connected) {
+            setRenameValue(modeName);
+            setRenaming(true);
+          }
+        }}
+        className="w-full px-0.5 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate hover:text-[var(--color-figma-text)] transition-colors"
+        title={`${modeName} — double-click to rename, right-click for options`}
+      >
+        {modeName}
+      </button>
+
+      {showMenu && (
+        <div
+          ref={menuRef}
+          className="absolute left-0 top-full z-50 mt-0.5 w-[120px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setShowMenu(false);
+              setRenameValue(modeName);
+              setRenaming(true);
+            }}
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Rename
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleDelete()}
+            disabled={saving}
+            className="flex w-full items-center px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50"
+          >
+            {saving ? "Deleting..." : "Delete mode"}
+          </button>
+          {error && (
+            <div className="px-2.5 py-1 text-[9px] text-[var(--color-figma-error)]">
+              {error}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

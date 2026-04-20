@@ -229,7 +229,7 @@ export function GeneratorIntentCard({
               {template.label}
             </span>
             {isSuggested && (
-              <span className="rounded-full bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-figma-accent)]">
+              <span className="text-[10px] font-medium text-[var(--color-figma-accent)]">
                 Suggested
               </span>
             )}
