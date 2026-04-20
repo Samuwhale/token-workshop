@@ -24,6 +24,7 @@ import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import { SelectionInspector } from "../components/SelectionInspector";
 import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
 import { ExportPanel } from "../components/ExportPanel";
+import { GitRepositoryPanel } from "../components/publish/GitRepositoryPanel";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { HealthPanel } from "../components/HealthPanel";
 import { ColorAnalysisPanel } from "../components/ColorAnalysisPanel";
@@ -1281,6 +1282,7 @@ export function PanelRouter({
     publish: {
       sync: renderSyncPublish,
       export: renderSyncExport,
+      repo: renderSyncRepo,
     },
   };
 
@@ -1548,7 +1550,7 @@ export function PanelRouter({
         <PanelContentHeader primaryAction={publishAction} />
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Figma Publish"
+            panelName="Sync"
             onReset={() => navigateTo("publish", "sync")}
           >
             <PublishPanel
@@ -1579,10 +1581,26 @@ export function PanelRouter({
     );
   }
 
+  function renderSyncRepo(): ReactNode {
+    return (
+      <ErrorBoundary
+        panelName="Repository"
+        onReset={() => navigateTo("publish", "repo")}
+      >
+        <GitRepositoryPanel
+          serverUrl={serverUrl}
+          connected={connected}
+          onPushUndo={controller.pushUndo}
+          onRefreshTokens={controller.refreshAll}
+        />
+      </ErrorBoundary>
+    );
+  }
+
   function renderTokensHistory(): ReactNode {
     return (
       <ErrorBoundary
-        panelName="History"
+        panelName="Changes"
         onReset={() => navigateTo("tokens", "history")}
       >
         <HistoryPanel
@@ -1623,21 +1641,9 @@ export function PanelRouter({
           pathToCollectionId={pathToCollectionId}
           tokenUsageCounts={tokenUsageCounts}
           heatmapResult={heatmapResult}
-          onNavigateTo={(topTab, subTab) =>
-            navigateTo(topTab as TopTab, subTab as SubTab | undefined)
-          }
           onNavigateToToken={(path, collectionId) => {
             setHealthDetailToken({ path, collectionId });
           }}
-          onNavigateToGeneratedGroup={(generatorId) => {
-            beginHandoff({
-              reason:
-                "Inspect the generator behind this audit finding, then return to Audit.",
-            });
-            navigateTo("tokens", "tokens", { preserveHandoff: true });
-            openGeneratedGroupEditor({ mode: "edit", id: generatorId });
-          }}
-          onTriggerHeatmap={triggerHeatmapScan}
           validationIssues={controller.validationIssues}
           validationSummary={controller.validationSummary}
           validationLoading={controller.validationLoading}

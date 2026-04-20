@@ -223,6 +223,8 @@ export const STORAGE_KEYS = {
   EDITOR_DETAILS:           'tm_editor_details',
   EDITOR_INFO_TAB:          'tm_editor_info_tab',
   READINESS_CHANGE_KEY:     'tm_readiness_change_key',
+  CONSISTENCY_REJECTED:     'tm_consistency_rejected',
+  CANVAS_SCAN_TAB:          'tm_canvas_scan_tab',
 } as const;
 
 /** Dynamic key builders for collection-scoped client view state. */

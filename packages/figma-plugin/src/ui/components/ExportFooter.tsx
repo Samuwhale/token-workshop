@@ -1,13 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { Spinner } from './Spinner';
-import type { ExportMode } from './ExportPanel';
 import type { ExportResultFile } from '../hooks/useExportResults';
-import type { ExportedCollection, SavePhase } from '../hooks/useFigmaVariables';
 
-interface ExportFooterProps {
-  mode: ExportMode;
+export interface ExportFooterProps {
+  mode: 'platforms';
   connected: boolean;
-  // Platform mode — diff/scope
   changesOnly: boolean;
   setChangesOnly: Dispatch<SetStateAction<boolean>>;
   diffPaths: string[] | null;
@@ -16,7 +13,6 @@ interface ExportFooterProps {
   lastExportTimestamp: number | null;
   fetchDiff: () => Promise<void>;
   fetchDiffSince: (ts: number) => Promise<void>;
-  // Platform mode — export
   results: ExportResultFile[];
   exporting: boolean;
   selected: Set<string>;
@@ -25,30 +21,14 @@ interface ExportFooterProps {
   handleExport: (showModal?: boolean) => Promise<void>;
   handleCopyAllPlatformResults: () => Promise<void>;
   handleDownloadZip: () => Promise<void>;
-  // Figma variables mode
-  figmaLoading: boolean;
-  figmaCollections: ExportedCollection[];
-  savePhase: SavePhase;
-  copiedAll: boolean;
-  selectedExportMode: string | null;
-  setSelectedExportMode: Dispatch<SetStateAction<string | null>>;
-  savePerMode: boolean;
-  setSavePerMode: Dispatch<SetStateAction<boolean>>;
-  handleExportFigmaVariables: () => void;
-  handleCopyAll: () => Promise<void>;
-  handlePreviewSave: () => Promise<void>;
 }
 
 export function ExportFooter({
-  mode,
   connected,
   changesOnly, setChangesOnly, diffPaths, diffLoading, isGitRepo, lastExportTimestamp,
   fetchDiff, fetchDiffSince,
   results, exporting, selected, selectedCollections, zipProgress,
   handleExport, handleCopyAllPlatformResults, handleDownloadZip,
-  figmaLoading, figmaCollections, savePhase, copiedAll,
-  selectedExportMode, setSelectedExportMode, savePerMode, setSavePerMode,
-  handleExportFigmaVariables, handleCopyAll, handlePreviewSave,
 }: ExportFooterProps) {
   const hasResolvedZeroChanges = changesOnly && diffPaths !== null && !diffLoading && diffPaths.length === 0;
   const exportDisabled = selected.size === 0
@@ -60,7 +40,7 @@ export function ExportFooter({
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
       {/* Changes-only toggle pill */}
-      {mode === 'platforms' && (
+      {(
         <div className="flex items-center gap-2 pb-0.5">
           <button
             onClick={() => {
@@ -145,8 +125,8 @@ export function ExportFooter({
         </div>
       )}
 
-      {/* Platform mode — result summary */}
-      {mode === 'platforms' && results.length > 0 && (
+      {/* Result summary */}
+      {results.length > 0 && (
         <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
           {results.length} file{results.length !== 1 ? 's' : ''} exported
           {selected.size > 0 && ` · ${Array.from(selected).join(', ')}`}
@@ -155,8 +135,8 @@ export function ExportFooter({
         </div>
       )}
 
-      {/* Platform mode — with results */}
-      {mode === 'platforms' && results.length > 0 && (
+      {/* With results */}
+      {results.length > 0 && (
         <>
           <div className="flex gap-1.5">
             <button
@@ -219,8 +199,8 @@ export function ExportFooter({
         </>
       )}
 
-      {/* Platform mode — no results yet */}
-      {mode === 'platforms' && results.length === 0 && (
+      {/* No results yet */}
+      {results.length === 0 && (
         <>
           {selected.size > 0 && !(selectedCollections !== null && selectedCollections.size === 0) && !(changesOnly && isGitRepo === false) && (
             <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
@@ -280,101 +260,6 @@ export function ExportFooter({
         </>
       )}
 
-      {/* Figma variables mode — no collections yet */}
-      {mode === 'figma-variables' && figmaCollections.length === 0 && (
-        <button
-          onClick={handleExportFigmaVariables}
-          disabled={figmaLoading}
-          className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-70 transition-colors flex items-center justify-center gap-1.5"
-        >
-          {figmaLoading ? (
-            <>
-              <Spinner />
-              Reading Variables…
-            </>
-          ) : (
-            'Read Variables from Figma'
-          )}
-        </button>
-      )}
-
-      {/* Figma variables mode — collections loaded */}
-      {mode === 'figma-variables' && figmaCollections.length > 0 && (() => {
-        const allModes = Array.from(new Set(figmaCollections.flatMap(c => c.modes)));
-        const hasMultiModeCols = figmaCollections.some(c => c.modes.length > 1);
-        return (
-          <>
-            {hasMultiModeCols && (
-              <div className="flex items-center gap-2">
-                <label className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
-                  Mode
-                </label>
-                <select
-                  value={selectedExportMode ?? ''}
-                  onChange={e => setSelectedExportMode(e.target.value || null)}
-                  className="flex-1 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] transition-colors"
-                  aria-label="Select mode for DTCG JSON export"
-                >
-                  <option value="">All modes (with $extensions)</option>
-                  {allModes.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <button
-              onClick={handleCopyAll}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
-            >
-              {copiedAll ? (
-                <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  Copied DTCG JSON
-                </>
-              ) : (
-                <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                  </svg>
-                  {selectedExportMode ? `Copy as DTCG JSON (${selectedExportMode})` : 'Copy as DTCG JSON'}
-                </>
-              )}
-            </button>
-            {hasMultiModeCols && (
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={savePerMode}
-                  onChange={e => setSavePerMode(e.target.checked)}
-                  className="w-3 h-3 rounded border border-[var(--color-figma-border)] accent-[var(--color-figma-accent)]"
-                />
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Save one set per mode
-                </span>
-                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-tight">
-                  ({figmaCollections.filter(c => c.modes.length > 1).reduce((n, c) => n + c.modes.length, 0) + figmaCollections.filter(c => c.modes.length === 1).length} sets)
-                </span>
-              </label>
-            )}
-            <button
-              onClick={handlePreviewSave}
-              disabled={savePhase === 'preview-loading' || !connected}
-              className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
-              title={!connected ? 'Connect to server to save tokens' : 'Review destination mapping, merge behavior, and append paths before saving'}
-            >
-              {savePhase === 'preview-loading' ? (
-                <>
-                  <Spinner />
-                  Checking…
-                </>
-              ) : !connected ? 'Save to Token Server (offline)' : 'Review Save Plan…'}
-            </button>
-          </>
-        );
-      })()}
     </div>
   );
 }

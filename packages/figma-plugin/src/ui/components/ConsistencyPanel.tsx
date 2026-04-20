@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TokenMapEntry, ConsistencyMatch, ConsistencySuggestion, ScanScope } from '../../shared/types';
 import { useUsageContext } from '../contexts/InspectContext';
 import { ConfirmModal } from './ConfirmModal';
 import { stableStringify } from '../shared/utils';
+import { lsGetJson, lsSetJson, STORAGE_KEYS } from '../shared/storage';
 interface ConsistencyPanelProps {
   availableTokens: Record<string, TokenMapEntry>;
   onSelectNode: (nodeId: string) => void;
@@ -193,7 +194,13 @@ export function ConsistencyPanel({
 }: ConsistencyPanelProps) {
   // Pending bulk snap: the suggestions array to confirm, or null when modal is closed
   const [snapConfirm, setSnapConfirm] = useState<ConsistencySuggestion[] | null>(null);
-  const [rejectedSuggestionKeys, setRejectedSuggestionKeys] = useState<Set<string>>(new Set());
+  const [rejectedSuggestionKeys, setRejectedSuggestionKeys] = useState<Set<string>>(
+    () => new Set(lsGetJson<string[]>(STORAGE_KEYS.CONSISTENCY_REJECTED, [])),
+  );
+
+  useEffect(() => {
+    lsSetJson(STORAGE_KEYS.CONSISTENCY_REJECTED, [...rejectedSuggestionKeys]);
+  }, [rejectedSuggestionKeys]);
 
   // Scan results and loading state are lifted to InspectContext so they survive
   // tab switches without requiring a re-scan.

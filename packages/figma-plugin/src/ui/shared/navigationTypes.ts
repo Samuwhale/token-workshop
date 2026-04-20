@@ -11,7 +11,7 @@ import type { GeneratorTemplate } from "../hooks/useGenerators";
 export type TopTab = "tokens" | "canvas" | "publish";
 type TokensSubTab = "tokens" | "history" | "health";
 type CanvasSubTab = "inspect" | "canvas-analysis";
-type PublishSubTab = "sync" | "export";
+type PublishSubTab = "sync" | "export" | "repo";
 export type SubTab = TokensSubTab | CanvasSubTab | PublishSubTab;
 export type SecondarySurfaceId =
   | "import"
@@ -84,7 +84,7 @@ export const TOP_TABS: {
     subTabs: [
       { id: "tokens", label: "Library" },
       { id: "health", label: "Health" },
-      { id: "history", label: "History" },
+      { id: "history", label: "Changes" },
     ],
   },
   {
@@ -92,15 +92,16 @@ export const TOP_TABS: {
     label: "Canvas",
     subTabs: [
       { id: "inspect", label: "Selection" },
-      { id: "canvas-analysis", label: "Analysis" },
+      { id: "canvas-analysis", label: "Scan" },
     ],
   },
   {
     id: "publish",
     label: "Publish",
     subTabs: [
-      { id: "sync", label: "Figma" },
+      { id: "sync", label: "Sync" },
       { id: "export", label: "Export" },
+      { id: "repo", label: "Repository" },
     ],
   },
 ];
@@ -448,12 +449,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       },
       {
         id: "history",
-        label: "History",
+        label: "Changes",
         topTab: "tokens",
         subTab: "history",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Review recent operations.",
+          "Review recent edits and restore checkpoints.",
         ),
       },
     ],
@@ -485,12 +486,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       },
       {
         id: "canvas-analysis",
-        label: "Analysis",
+        label: "Scan",
         topTab: "canvas",
         subTab: "canvas-analysis",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Analyze token usage on canvas.",
+          "Scan canvas for token coverage.",
         ),
       },
     ],
@@ -506,7 +507,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     sections: [
       {
         id: "sync",
-        label: "Figma",
+        label: "Sync",
         topTab: "publish",
         subTab: "sync",
         transition: contextualSubScreenTransition(
@@ -521,13 +522,24 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         subTab: "export",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Export the current token system.",
+          "Export platform token files.",
+        ),
+      },
+      {
+        id: "repo",
+        label: "Repository",
+        topTab: "publish",
+        subTab: "repo",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Commit, push, pull, and review version history.",
         ),
       },
     ],
     matchRoutes: [
       route("publish", "sync"),
       route("publish", "export"),
+      route("publish", "repo"),
     ],
   },
 ];

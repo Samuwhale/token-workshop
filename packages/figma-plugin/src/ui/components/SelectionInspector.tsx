@@ -670,11 +670,8 @@ export function SelectionInspector({
     }, 0);
   }, [hasSelection, rootNodes]);
 
-  const [showSuggestions, setShowSuggestions] = useState(
-    () => lsGet(STORAGE_KEYS.INSPECTOR_SUGGESTIONS_OPEN) !== "false",
-  );
-
   const [showExtractPanel, setShowExtractPanel] = useState(false);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [extractFilterProperties, setExtractFilterProperties] = useState<
     BindableProperty[]
   >([]);
@@ -837,8 +834,8 @@ export function SelectionInspector({
         </div>
       </div>
 
-      {/* Inline toolbar: filters + toggles */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 shrink-0">
+      {/* Slim toolbar: search + filter toggle + children toggle */}
+      <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
         <div className="relative min-w-0 flex-1">
           <svg
             width="9" height="9" viewBox="0 0 24 24" fill="none"
@@ -869,7 +866,39 @@ export function SelectionInspector({
             </button>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-1">
+        {/* Filter toggle — shows mode filter row when clicked */}
+        <button
+          onClick={() => setShowFilterPanel((p) => !p)}
+          title="Property filters"
+          aria-label="Toggle property filters"
+          className={`shrink-0 rounded p-1 transition-colors ${
+            showFilterPanel || propFilterMode !== "all"
+              ? "text-[var(--color-figma-accent)]"
+              : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+          }`}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+          </svg>
+        </button>
+        <span className="w-px h-3 bg-[var(--color-figma-border)] shrink-0" />
+        {/* Show children toggle */}
+        <button
+          onClick={handleToggleDeepInspect}
+          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+            deepInspect
+              ? "bg-[var(--color-figma-accent)]/20 font-medium text-[var(--color-figma-accent)]"
+              : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+          }`}
+          title={deepInspect ? "Hide nested layers" : "Show nested layers"}
+        >
+          Children
+        </button>
+      </div>
+
+      {/* Mode filter panel — shown when filter toggle is active */}
+      {showFilterPanel && (
+        <div className="flex flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
           {PROP_FILTER_MODES.map((mode) => (
             <button
               key={mode}
@@ -880,7 +909,7 @@ export function SelectionInspector({
                   : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
               }`}
             >
-              {mode === "bound" ? "Bound" : mode === "unbound" ? "Unbound" : mode === "colors" ? "Colors" : "Dims"}
+              {mode === "bound" ? "Bound" : mode === "unbound" ? "Unbound" : mode === "colors" ? "Colors" : "Dimensions"}
             </button>
           ))}
           {mixedBindings > 0 && (
@@ -903,54 +932,17 @@ export function SelectionInspector({
               Clear
             </button>
           )}
-          <span className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5" />
-          {suggestions.length > 0 && (
-            <button
-              onClick={() => {
-                setShowSuggestions((prev) => {
-                  const next = !prev;
-                  lsSet(STORAGE_KEYS.INSPECTOR_SUGGESTIONS_OPEN, String(next));
-                  return next;
-                });
-              }}
-              className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
-                showSuggestions
-                  ? "bg-[var(--color-figma-accent)]/20 font-medium text-[var(--color-figma-accent)]"
-                  : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-              }`}
-            >
-              {suggestions.length} suggestion{suggestions.length !== 1 ? "s" : ""}
-            </button>
-          )}
-          <button
-            onClick={handleToggleDeepInspect}
-            className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
-              deepInspect
-                ? "bg-[var(--color-figma-accent)]/20 font-medium text-[var(--color-figma-accent)]"
-                : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-            }`}
-            title={deepInspect ? "Deep inspect on" : "Enable deep inspect"}
-          >
-            Nested
-          </button>
         </div>
-      </div>
+      )}
 
-      {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Suggestions (collapsible) */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="border-b border-[var(--color-figma-border)]">
-            <SuggestedTokens
-              suggestions={suggestions}
-              onApply={(tokenPath, property) =>
-                handleBindToken(property, tokenPath)
-              }
-              onNavigateToToken={onNavigateToToken}
-              showHeader={false}
-            />
-          </div>
-        )}
+      {/* Two-column: properties LEFT, token matches RIGHT */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* LEFT: scrollable property list + actions */}
+        <div
+          className="flex flex-col overflow-hidden min-w-0"
+          style={{ flex: suggestions.length > 0 ? '56 0 0%' : '1 0 0%' }}
+        >
+        <div className="flex-1 overflow-y-auto">
 
         {/* Property list */}
         <div className="px-1 py-1">
@@ -1178,7 +1170,32 @@ export function SelectionInspector({
             />
           </div>
         )}
-      </div>
+        </div>{/* closes flex-1 overflow-y-auto */}
+        </div>{/* closes left column */}
+
+        {/* RIGHT column: token matches — always visible when suggestions exist */}
+        {suggestions.length > 0 && (
+          <div
+            className="flex flex-col border-l border-[var(--color-figma-border)] overflow-hidden"
+            style={{ flex: '44 0 0%', minWidth: 0 }}
+          >
+            <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] flex-1">Matches</span>
+              <span className="text-[10px] tabular-nums bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">{suggestions.length}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <SuggestedTokens
+                suggestions={suggestions}
+                onApply={(tokenPath, property) =>
+                  handleBindToken(property, tokenPath)
+                }
+                onNavigateToToken={onNavigateToToken}
+                showHeader={false}
+              />
+            </div>
+          </div>
+        )}
+      </div>{/* closes two-column flex-1 flex */}
 
       {showClearConfirm && (
         <ConfirmModal

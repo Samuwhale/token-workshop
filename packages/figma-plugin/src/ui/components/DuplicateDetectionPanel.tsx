@@ -13,6 +13,7 @@ interface DuplicateDetectionPanelProps {
   onError: (msg: string) => void;
   onMutate: () => void;
   onRefreshValidation: () => void;
+  embedded?: boolean;
 }
 
 function tokenKey(token: { path: string; collectionId: string }): string {
@@ -40,8 +41,9 @@ export function DuplicateDetectionPanel({
   onError,
   onMutate,
   onRefreshValidation,
+  embedded,
 }: DuplicateDetectionPanelProps) {
-  const [showDuplicates, setShowDuplicates] = useState(false);
+  const [showDuplicates, setShowDuplicates] = useState(embedded ?? false);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [selectedKeepKeys, setSelectedKeepKeys] = useState<Record<string, string>>({});
   const [resolvingGroupId, setResolvingGroupId] = useState<string | null>(null);
@@ -130,23 +132,8 @@ export function DuplicateDetectionPanel({
   const btnBase = 'text-[10px] px-2 py-1 rounded transition-colors';
   const btnAccent = `${btnBase} bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`;
 
-  return (
-    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
-      <button
-        onClick={() => setShowDuplicates(v => !v)}
-        className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
-      >
-        <span className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Duplicates</span>
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {lintDuplicateGroups.length} group{lintDuplicateGroups.length !== 1 ? 's' : ''} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
-          </span>
-        </span>
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform text-[var(--color-figma-text-secondary)] ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-      </button>
-
-      {showDuplicates && (
-        <div className="divide-y divide-[var(--color-figma-border)]">
+  const content = (
+    <div className={`divide-y divide-[var(--color-figma-border)] ${embedded ? 'h-full overflow-y-auto' : ''}`}>
           {/* Bulk toolbar */}
           <div className="px-3 py-2.5">
             <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
@@ -280,8 +267,26 @@ export function DuplicateDetectionPanel({
               </div>
             );
           })}
-        </div>
-      )}
+    </div>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
+      <button
+        onClick={() => setShowDuplicates(v => !v)}
+        className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Duplicates</span>
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {lintDuplicateGroups.length} group{lintDuplicateGroups.length !== 1 ? 's' : ''} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
+          </span>
+        </span>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform text-[var(--color-figma-text-secondary)] ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+      </button>
+      {showDuplicates && content}
     </div>
   );
 }

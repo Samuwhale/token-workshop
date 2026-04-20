@@ -10,6 +10,8 @@ export interface UnusedTokensPanelProps {
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
   onMutate: () => void;
+  /** When true, skip the collapsible wrapper and render content directly */
+  embedded?: boolean;
 }
 
 type CleanupAction = 'delete' | 'deprecate';
@@ -27,8 +29,9 @@ export function UnusedTokensPanel({
   onNavigateToToken,
   onError,
   onMutate,
+  embedded,
 }: UnusedTokensPanelProps) {
-  const [showUnused, setShowUnused] = useState(false);
+  const [showUnused, setShowUnused] = useState(embedded ?? false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
   const [expandedCounts, setExpandedCounts] = useState<Record<string, number>>({});
   const [busyKeys, setBusyKeys] = useState<Set<string>>(new Set());
@@ -91,29 +94,12 @@ export function UnusedTokensPanel({
 
   const unusedCount = unusedTokens.length;
 
-  return (
-    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
-      <button
-        onClick={() => setShowUnused(v => !v)}
-        className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
-      >
-        <span className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Unused tokens</span>
-          {unusedCount > 0 && (
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{unusedCount}</span>
-          )}
-        </span>
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showUnused ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-      </button>
-
-      {showUnused && (
-        <div>
-          {unusedCount === 0 ? (
-            <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-              No unused tokens — all tokens are either used in Figma or referenced by other tokens.
-            </div>
-          ) : (
-            <div className="max-h-[32rem] overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+  const content = unusedCount === 0 ? (
+    <div className={`px-3 ${embedded ? 'py-12 text-center' : 'py-3'} text-[10px] text-[var(--color-figma-text-secondary)]`}>
+      No unused tokens — all tokens are either used in Figma or referenced by other tokens.
+    </div>
+  ) : (
+    <div className={`${embedded ? 'h-full overflow-y-auto' : 'max-h-[32rem] overflow-y-auto'} divide-y divide-[var(--color-figma-border)]`}>
               {groups.map(group => {
                 const isCollapsed = collapsedCollections.has(group.collectionId);
                 const visibleLimit = expandedCounts[group.collectionId] ?? ITEMS_PER_PAGE;
@@ -196,9 +182,25 @@ export function UnusedTokensPanel({
                 );
               })}
             </div>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
+      <button
+        onClick={() => setShowUnused(v => !v)}
+        className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Unused tokens</span>
+          {unusedCount > 0 && (
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{unusedCount}</span>
           )}
-        </div>
-      )}
+        </span>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showUnused ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+      </button>
+      {showUnused && <div>{content}</div>}
     </div>
   );
 }

@@ -27,29 +27,14 @@ import {
   type CanvasCreateDraft,
   type CanvasCreateDraftOption,
 } from './CanvasCreateTokenDialog';
+import { lsGet, lsSet, STORAGE_KEYS } from '../shared/storage';
 
 type CanvasTab = 'coverage' | 'suggestions' | 'components';
 
-const CLEANUP_SECTIONS: Array<{
-  id: CanvasTab;
-  label: string;
-  panelHeightClassName: string;
-}> = [
-  {
-    id: 'coverage',
-    label: 'Coverage',
-    panelHeightClassName: 'h-[420px]',
-  },
-  {
-    id: 'suggestions',
-    label: 'Suggestions',
-    panelHeightClassName: 'h-[400px]',
-  },
-  {
-    id: 'components',
-    label: 'Components',
-    panelHeightClassName: 'h-[360px]',
-  },
+const TABS: Array<{ id: CanvasTab; label: string }> = [
+  { id: 'coverage', label: 'Coverage' },
+  { id: 'suggestions', label: 'Suggestions' },
+  { id: 'components', label: 'Components' },
 ];
 
 interface CanvasAnalysisPanelProps {
@@ -116,9 +101,23 @@ export function CanvasAnalysisPanel({
   onSelectNode,
   initialTab = 'coverage',
 }: CanvasAnalysisPanelProps) {
-  const coverageSectionRef = useRef<HTMLDivElement>(null);
-  const suggestionsSectionRef = useRef<HTMLDivElement>(null);
-  const componentsSectionRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<CanvasTab>(
+    () => (lsGet(STORAGE_KEYS.CANVAS_SCAN_TAB) as CanvasTab | null) ?? initialTab,
+  );
+
+  const switchTab = useCallback((tab: CanvasTab) => {
+    setActiveTab(tab);
+    lsSet(STORAGE_KEYS.CANVAS_SCAN_TAB, tab);
+  }, []);
+
+  // Honor initialTab prop changes (e.g. deep-link from another panel)
+  const prevInitialTabRef = useRef(initialTab);
+  useEffect(() => {
+    if (initialTab !== prevInitialTabRef.current) {
+      prevInitialTabRef.current = initialTab;
+      switchTab(initialTab);
+    }
+  }, [initialTab, switchTab]);
 
   const { connected, serverUrl } = useConnectionContext();
   const {
@@ -135,28 +134,6 @@ export function CanvasAnalysisPanel({
   } = useHeatmapContext();
   const [createDraft, setCreateDraft] = useState<CanvasCreateDraft | null>(null);
   const [resolvedConsistencyMatchKeys, setResolvedConsistencyMatchKeys] = useState<Set<string>>(new Set());
-
-  const scrollToSection = useCallback((section: CanvasTab) => {
-    if (section === 'coverage') {
-      coverageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    if (section === 'suggestions') {
-      suggestionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    componentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
-
-  useEffect(() => {
-    if (initialTab === 'coverage') {
-      return;
-    }
-    const timeoutId = window.setTimeout(() => {
-      scrollToSection(initialTab);
-    }, 0);
-    return () => window.clearTimeout(timeoutId);
-  }, [initialTab, scrollToSection]);
 
   const findExactMatchesForBindableValue = useCallback((
     property: BindableProperty,
@@ -274,76 +251,76 @@ export function CanvasAnalysisPanel({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Scan scope — persistent control above tabs, affects all sections */}
       <div className="px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg)] flex items-center gap-2">
-        <div className="flex flex-wrap gap-1.5 flex-1">
-          {CLEANUP_SECTIONS.map(section => (
-            <button
-              key={section.id}
-              onClick={() => scrollToSection(section.id)}
-              className="px-2.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              {section.label}
-            </button>
-          ))}
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Scope</span>
+        <div className="flex-1">
+          <ScanScopeSelector value={heatmapScope} onChange={setHeatmapScope} showLabel={false} />
         </div>
-        <div className="shrink-0">
-          <ScanScopeSelector value={heatmapScope} onChange={setHeatmapScope} showLabel />
-        </div>
+        <button
+          onClick={() => triggerHeatmapScan()}
+          disabled={heatmapLoading}
+          className="shrink-0 px-2.5 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+        >
+          {heatmapLoading ? 'Scanning…' : 'Scan'}
+        </button>
+        {heatmapLoading && (
+          <button
+            onClick={cancelHeatmapScan}
+            className="shrink-0 px-2 py-1 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Cancel
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2" style={{ scrollbarWidth: 'thin' }}>
-        <div className="flex flex-col gap-3">
-          {CLEANUP_SECTIONS.map(section => (
-            <section
-              key={section.id}
-              ref={
-                section.id === 'coverage'
-                  ? coverageSectionRef
-                  : section.id === 'suggestions'
-                    ? suggestionsSectionRef
-                    : componentsSectionRef
-              }
-              className="rounded-xl border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden"
-            >
-              <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                  {section.label}
-                </h3>
-              </div>
+      {/* Tab bar */}
+      <div className="flex border-b border-[var(--color-figma-border)] shrink-0 bg-[var(--color-figma-bg)]">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => switchTab(tab.id)}
+            className={`flex-1 px-2 py-2 text-[10px] font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)] -mb-px'
+                : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-              <div className={`${section.panelHeightClassName} overflow-hidden`}>
-                {section.id === 'coverage' && (
-                  <HeatmapPanel
-                    result={heatmapResult}
-                    loading={heatmapLoading}
-                    progress={heatmapProgress}
-                    error={heatmapError}
-                    scope={heatmapScope}
-                    onRescan={triggerHeatmapScan}
-                    onCancel={cancelHeatmapScan}
-                    onSelectNodes={onSelectNodes}
-                    onBatchBind={onBatchBind}
-                    availableTokens={availableTokens}
-                    canCreateToken={canCreateHeatmapToken}
-                    onCreateToken={handleOpenHeatmapCreate}
-                  />
-                )}
-                {section.id === 'suggestions' && (
-                  <ConsistencyPanel
-                    availableTokens={availableTokens}
-                    onSelectNode={onSelectNode}
-                    onCreateToken={handleOpenConsistencyCreate}
-                    resolvedMatchKeys={resolvedConsistencyMatchKeys}
-                    scope={heatmapScope}
-                  />
-                )}
-                {section.id === 'components' && (
-                  <ComponentCoveragePanel />
-                )}
-              </div>
-            </section>
-          ))}
-        </div>
+      {/* Tab content — flex-1 so it fills remaining height without fixed px */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {activeTab === 'coverage' && (
+          <HeatmapPanel
+            result={heatmapResult}
+            loading={heatmapLoading}
+            progress={heatmapProgress}
+            error={heatmapError}
+            scope={heatmapScope}
+            onRescan={triggerHeatmapScan}
+            onCancel={cancelHeatmapScan}
+            onSelectNodes={onSelectNodes}
+            onBatchBind={onBatchBind}
+            availableTokens={availableTokens}
+            canCreateToken={canCreateHeatmapToken}
+            onCreateToken={handleOpenHeatmapCreate}
+          />
+        )}
+        {activeTab === 'suggestions' && (
+          <ConsistencyPanel
+            availableTokens={availableTokens}
+            onSelectNode={onSelectNode}
+            onCreateToken={handleOpenConsistencyCreate}
+            resolvedMatchKeys={resolvedConsistencyMatchKeys}
+            scope={heatmapScope}
+          />
+        )}
+        {activeTab === 'components' && (
+          <ComponentCoveragePanel />
+        )}
       </div>
 
       {createDraft && (
