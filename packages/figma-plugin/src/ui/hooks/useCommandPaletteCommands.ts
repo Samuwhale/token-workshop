@@ -87,7 +87,7 @@ export function useCommandPaletteCommands(): {
     void tokenListViewRev;
 
     const goToTokens = () => {
-      navigateTo("tokens");
+      navigateTo("library");
       setEditingToken(null);
     };
 
@@ -115,7 +115,7 @@ export function useCommandPaletteCommands(): {
         category: "Tokens",
         shortcut: adaptShortcut("⌘N"),
         handler: () => {
-          navigateTo("tokens");
+          navigateTo("library");
           setEditingToken({ path: "", currentCollectionId, isCreate: true });
         },
       },
@@ -173,7 +173,7 @@ export function useCommandPaletteCommands(): {
         description: "Filter the library down to recently edited tokens",
         category: "Tokens",
         handler: () => {
-          navigateTo("tokens");
+          navigateTo("library");
           setEditingToken(null);
           setTimeout(() => {
             tokens.tokenListCompareRef.current?.showRecentlyTouched();
@@ -232,7 +232,7 @@ export function useCommandPaletteCommands(): {
           "Refresh validation across references, duplicates, and generated output",
         category: "Audit",
         handler: () => {
-          navigateTo("tokens", "health");
+          switchContextualSurface({ surface: "health" });
           void sync.refreshValidation();
         },
       },
@@ -242,7 +242,7 @@ export function useCommandPaletteCommands(): {
         description: "Contrast matrix and lightness scale inspector",
         category: "Audit",
         handler: () => {
-          navigateTo("tokens");
+          navigateTo("library");
           switchContextualSurface({ surface: "color-analysis" });
         },
       },
@@ -263,7 +263,7 @@ export function useCommandPaletteCommands(): {
         description: "Open side-by-side token comparison inside the library",
         category: "Tokens",
         handler: () => {
-          navigateTo("tokens");
+          navigateTo("library");
           tokens.tokenListCompareRef.current?.openCompareMode();
         },
       },
@@ -288,7 +288,7 @@ export function useCommandPaletteCommands(): {
               category: "Audit" as const,
               handler: () => {
                 tokens.setShowIssuesOnly((visible) => !visible);
-                navigateTo("tokens");
+                navigateTo("library");
               },
             },
             {
@@ -317,7 +317,7 @@ export function useCommandPaletteCommands(): {
 
   const collectionCommands = useMemo<Command[]>(() => {
     const goToTokens = () => {
-      navigateTo("tokens");
+      navigateTo("library");
       setEditingToken(null);
     };
 
@@ -341,7 +341,7 @@ export function useCommandPaletteCommands(): {
       setTokensComparePaths(new Set());
       setTokensCompareModeKey((key) => key + 1);
       setShowTokensCompare(true);
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
     },
     [navigateTo, setEditingToken, setShowTokensCompare, setTokensCompareMode, setTokensCompareModeKey, setTokensComparePath, setTokensComparePaths],
   );
@@ -409,7 +409,7 @@ export function useCommandPaletteCommands(): {
               category: "Tokens" as const,
               handler: () => {
                 const entry = allTokensFlat[highlightedToken];
-                navigateTo("tokens");
+                navigateTo("library");
                 setHighlightedToken(highlightedToken);
                 tokens.tokenListCompareRef.current?.triggerExtractToAlias(
                   highlightedToken,
@@ -455,7 +455,7 @@ export function useCommandPaletteCommands(): {
               category: "Audit" as const,
               handler: () => {
                 tokens.setFlowPanelInitialPath(highlightedToken);
-                navigateTo("tokens", "health");
+                switchContextualSurface({ surface: "health" });
               },
             },
           ]
@@ -555,7 +555,7 @@ export function useCommandPaletteCommands(): {
       category: "Export" as const,
       handler: () => {
         lsSet(STORAGE_KEYS.EXPORT_PRESET_APPLY, preset.id);
-        navigateTo("share", "export");
+        navigateTo("export", "export");
         window.dispatchEvent(new CustomEvent("applyExportPreset"));
       },
     }));

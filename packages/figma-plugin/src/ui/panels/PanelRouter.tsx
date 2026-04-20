@@ -115,8 +115,34 @@ function resolveCreateLauncherPath(initialPath?: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Props interface
+// History surface — tabs between Changes and Versions
 // ---------------------------------------------------------------------------
+
+function HistorySurfaceTabs({
+  historyView,
+  setHistoryView,
+}: {
+  historyView: "changes" | "versions";
+  setHistoryView: (v: "changes" | "versions") => void;
+}) {
+  return (
+    <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)]">
+      {(["changes", "versions"] as const).map((view) => (
+        <button
+          key={view}
+          onClick={() => setHistoryView(view)}
+          className={`flex-1 text-center text-[10px] font-medium py-1 rounded transition-colors ${
+            historyView === view
+              ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+              : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          }`}
+        >
+          {view === "changes" ? "Changes" : "Versions"}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -167,7 +193,6 @@ export function PanelRouter({
     activeSubTab,
     activeSecondarySurface,
     navigateTo,
-    beginHandoff,
     closeSecondarySurface,
     notificationsOpen,
     closeNotifications,
@@ -251,13 +276,18 @@ export function PanelRouter({
     cancelHeatmapScan: _cancelHeatmapScan,
   } = useHeatmapContext();
   const { tokenUsageCounts } = useUsageContext();
-  const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(
-    null,
-  );
+  const {
+    showImport,
+    showHealth,
+    showHistory,
+    historyFilterPath,
+    setHistoryFilterPath,
+  } = useEditorContext();
   const [healthDetailToken, setHealthDetailToken] = useState<{
     path: string;
     collectionId: string;
   } | null>(null);
+  const [historyView, setHistoryView] = useState<"changes" | "versions">("changes");
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"
       ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
@@ -441,7 +471,7 @@ export function PanelRouter({
       if (targetCollectionId !== currentCollectionId) {
         setCurrentCollectionId(targetCollectionId);
       }
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
     },
     [
       currentCollectionId,
@@ -590,19 +620,18 @@ export function PanelRouter({
     },
     onCreateGeneratedGroupFromGroup: (groupPath: string, _tokenType: string | null) => {
       openGeneratedGroupFromGroup(groupPath);
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
     },
     onNavigateToNewGeneratedGroup: () => {
       openNewGeneratedGroup();
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
     },
     onRefreshGeneratedGroups: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredCollectionCount,
     onNavigateToCollection: controller.handleNavigateToCollection,
     onViewTokenHistory: (path: string) => {
-      setHistoryFilterPath(path);
-      navigateTo("tokens", "history");
+      switchContextualSurface({ surface: "history", filterPath: path });
     },
     onEditGeneratedGroup: (generatorId: string) =>
       controller.guardEditorAction(() => {
@@ -618,7 +647,7 @@ export function PanelRouter({
     onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
     onShowReferences: (path: string) => {
       controller.setFlowPanelInitialPath(path);
-      navigateTo("tokens", "health");
+      switchContextualSurface({ surface: "health" });
     },
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => {
       controller.displayedLeafNodesRef.current = nodes;
@@ -714,7 +743,7 @@ export function PanelRouter({
         derivedTokenPaths,
         onShowReferences: (path: string) => {
           controller.setFlowPanelInitialPath(path);
-          navigateTo("tokens", "health");
+          switchContextualSurface({ surface: "health" });
         },
         onNavigateToToken: (path: string) =>
           openLinkedTokenSurface({
@@ -1019,6 +1048,156 @@ export function PanelRouter({
         };
       }
 
+      if (activeTokensContextualSurface === "import" && showImport) {
+        return {
+          surface: "import",
+          content: (
+            <div className="h-full min-h-0 overflow-hidden">
+              <ErrorBoundary panelName="Import" onReset={() => switchContextualSurface({ surface: null })}>
+                <ImportPanel
+                  serverUrl={serverUrl}
+                  connected={connected}
+                  onImported={refreshTokens}
+                  onImportComplete={(result) => {
+                    controller.onImportComplete(result);
+                  }}
+                  onOpenImportNextStep={(result, recommendation) =>
+                    openImportNextStep(result, recommendation)
+                  }
+                  onPushUndo={controller.pushUndo}
+                />
+              </ErrorBoundary>
+            </div>
+          ),
+          onDismiss: () => switchContextualSurface({ surface: null }),
+        };
+      }
+
+      if (activeTokensContextualSurface === "health" && showHealth) {
+        const healthPanel = (
+          <ErrorBoundary
+            panelName="Audit"
+            onReset={() => switchContextualSurface({ surface: null })}
+          >
+            <HealthPanel
+              serverUrl={serverUrl}
+              connected={connected}
+              currentCollectionId={currentCollectionId}
+              generators={generators}
+              lintViolations={controller.lintViolations}
+              allTokensFlat={allTokensFlat}
+              pathToCollectionId={pathToCollectionId}
+              tokenUsageCounts={tokenUsageCounts}
+              heatmapResult={heatmapResult}
+              onNavigateToToken={(path, collectionId) => {
+                setHealthDetailToken({ path, collectionId });
+              }}
+              validationIssues={controller.validationIssues}
+              validationSummary={controller.validationSummary}
+              validationLoading={controller.validationLoading}
+              validationError={controller.validationError}
+              validationLastRefreshed={controller.validationLastRefreshed}
+              validationIsStale={controller.validationIsStale}
+              onRefreshValidation={controller.refreshValidation}
+              onPushUndo={controller.pushUndo}
+              onError={controller.setErrorToast}
+            />
+          </ErrorBoundary>
+        );
+
+        return {
+          surface: "health",
+          content: healthDetailToken ? (
+            <div className="flex min-h-0 flex-1 h-full overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden border-r border-[var(--color-figma-border)]">
+                {healthPanel}
+              </div>
+              <div className="w-[320px] min-w-[280px] shrink-0 overflow-hidden panel-slide-in">
+                <TokenDetailPreview
+                  tokenPath={healthDetailToken.path}
+                  storageCollectionId={healthDetailToken.collectionId}
+                  allTokensFlat={allTokensFlat}
+                  pathToCollectionId={pathToCollectionId}
+                  tokenUsageCounts={tokenUsageCounts}
+                  generators={generators}
+                  derivedTokenPaths={derivedTokenPaths}
+                  lintViolations={controller.lintViolations}
+                  serverUrl={serverUrl}
+                  onEdit={() => {
+                    setCurrentCollectionId(healthDetailToken.collectionId);
+                    setPendingHighlight(healthDetailToken.path);
+                    switchContextualSurface({
+                      surface: "token-editor",
+                      token: {
+                        path: healthDetailToken.path,
+                        currentCollectionId: healthDetailToken.collectionId,
+                      },
+                    });
+                  }}
+                  onClose={() => setHealthDetailToken(null)}
+                  onNavigateToAlias={(path) => {
+                    const cid = pathToCollectionId[path];
+                    if (cid) setHealthDetailToken({ path, collectionId: cid });
+                  }}
+                  onNavigateToGeneratedGroup={(generatorId) => {
+                    openGeneratedGroupEditor({ mode: "edit", id: generatorId });
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            healthPanel
+          ),
+          onDismiss: () => switchContextualSurface({ surface: null }),
+        };
+      }
+
+      if (activeTokensContextualSurface === "history" && showHistory) {
+        const onReset = () => switchContextualSurface({ surface: null });
+        return {
+          surface: "history",
+          content: (
+            <div className="flex h-full flex-col overflow-hidden">
+              <HistorySurfaceTabs historyView={historyView} setHistoryView={setHistoryView} />
+              <div className="flex-1 min-h-0 overflow-hidden">
+                {historyView === "changes" ? (
+                  <ErrorBoundary panelName="Changes" onReset={onReset}>
+                    <HistoryPanel
+                      serverUrl={serverUrl}
+                      connected={connected}
+                      onPushUndo={controller.pushUndo}
+                      onRefreshTokens={controller.refreshAll}
+                      filterTokenPath={historyFilterPath}
+                      onClearFilter={() => setHistoryFilterPath(null)}
+                      recentOperations={controller.recentOperations}
+                      totalOperations={controller.totalOperations}
+                      hasMoreOperations={controller.hasMoreOperations}
+                      onLoadMoreOperations={controller.loadMoreOperations}
+                      onRollback={controller.handleRollback}
+                      undoDescriptions={controller.undoDescriptions}
+                      redoableOpIds={controller.redoableOpIds}
+                      onServerRedo={controller.handleServerRedo}
+                      executeUndo={controller.executeUndo}
+                      canUndo={controller.canUndo}
+                    />
+                  </ErrorBoundary>
+                ) : (
+                  <ErrorBoundary panelName="Versions" onReset={onReset}>
+                    <GitRepositoryPanel
+                      serverUrl={serverUrl}
+                      connected={connected}
+                      onPushUndo={controller.pushUndo}
+                      onRefreshTokens={controller.refreshAll}
+                    />
+                  </ErrorBoundary>
+                )}
+              </div>
+            </div>
+          ),
+          onDismiss: onReset,
+        };
+      }
+
       return null;
     };
 
@@ -1139,7 +1318,7 @@ export function PanelRouter({
       <div className="h-full min-h-0 overflow-hidden">
         <ErrorBoundary
           panelName="Canvas selection"
-          onReset={() => navigateTo("tokens", "tokens")}
+          onReset={() => navigateTo("library", "library")}
         >
           <SelectionInspector
             selectedNodes={selectedNodes}
@@ -1156,11 +1335,11 @@ export function PanelRouter({
             onTokenCreated={refreshTokens}
             onNavigateToToken={(path) => {
               setHighlightedToken(path);
-              navigateTo("tokens", "tokens");
+              navigateTo("library", "library");
             }}
             onPushUndo={controller.pushUndo}
             onToast={controller.setSuccessToast}
-            onGoToTokens={() => navigateTo("tokens", "tokens")}
+            onGoToTokens={() => navigateTo("library", "library")}
             triggerCreateToken={controller.triggerCreateToken}
           />
         </ErrorBoundary>
@@ -1218,27 +1397,6 @@ export function PanelRouter({
     );
   }
 
-  function renderImport(): ReactNode {
-    return (
-      <div className="h-full min-h-0 overflow-hidden">
-        <ErrorBoundary panelName="Import" onReset={() => navigateTo("tokens", "tokens")}>
-          <ImportPanel
-            serverUrl={serverUrl}
-            connected={connected}
-            onImported={refreshTokens}
-            onImportComplete={(result) => {
-              controller.onImportComplete(result);
-            }}
-            onOpenImportNextStep={(result, recommendation) =>
-              openImportNextStep(result, recommendation)
-            }
-            onPushUndo={controller.pushUndo}
-          />
-        </ErrorBoundary>
-      </div>
-    );
-  }
-
   // ---------------------------------------------------------------------------
   // Sub-tab panel routing — O(1) lookup, no repeated condition guards
   // ---------------------------------------------------------------------------
@@ -1246,22 +1404,18 @@ export function PanelRouter({
   type PanelRenderer = () => ReactNode;
 
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
-    tokens: {
-      tokens: renderDefineTokens,
-      import: renderImport,
-      health: renderTokensHealth,
-      history: renderTokensHistory,
+    library: {
+      library: renderDefineTokens,
     },
     canvas: {
       inspect: renderCanvasInspect,
       "canvas-analysis": renderCanvasAnalysis,
     },
-    "figma-sync": {
-      "figma-sync": renderSyncPublish,
+    sync: {
+      sync: renderSyncPublish,
     },
-    share: {
+    export: {
       export: renderSyncExport,
-      versions: renderSyncRepo,
     },
   };
 
@@ -1410,11 +1564,11 @@ export function PanelRouter({
             <div className="flex-1 min-h-0 overflow-hidden">
               <ErrorBoundary
                 panelName="Preview"
-                onReset={() => navigateTo("tokens", "tokens")}
+                onReset={() => navigateTo("library", "library")}
               >
                 <PreviewPanel
                   allTokensFlat={modeResolvedTokensFlat}
-                  onGoToTokens={() => navigateTo("tokens", "tokens")}
+                  onGoToTokens={() => navigateTo("library", "library")}
                   onNavigateToToken={(path) => {
                     const name = path.split(".").pop();
                     const targetCollectionId =
@@ -1470,7 +1624,7 @@ export function PanelRouter({
               if (collectionId !== currentCollectionId) {
                 setCurrentCollectionId(collectionId);
               }
-              navigateTo("tokens", "tokens");
+              navigateTo("library", "library");
             }}
             onCreateCollection={async (name) => {
               const createdCollectionId =
@@ -1510,8 +1664,8 @@ export function PanelRouter({
         <PanelContentHeader primaryAction={publishAction} />
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Figma Sync"
-            onReset={() => navigateTo("figma-sync", "figma-sync")}
+            panelName="Sync"
+            onReset={() => navigateTo("sync", "sync")}
           >
             <PublishPanel
               serverUrl={serverUrl}
@@ -1534,146 +1688,11 @@ export function PanelRouter({
     return (
       <ErrorBoundary
         panelName="Export"
-        onReset={() => navigateTo("share", "export")}
+        onReset={() => navigateTo("export", "export")}
       >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );
   }
 
-  function renderSyncRepo(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Versions"
-        onReset={() => navigateTo("share", "versions")}
-      >
-        <GitRepositoryPanel
-          serverUrl={serverUrl}
-          connected={connected}
-          onPushUndo={controller.pushUndo}
-          onRefreshTokens={controller.refreshAll}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  function renderTokensHistory(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Changes"
-        onReset={() => navigateTo("tokens", "history")}
-      >
-        <HistoryPanel
-          serverUrl={serverUrl}
-          connected={connected}
-          onPushUndo={controller.pushUndo}
-          onRefreshTokens={controller.refreshAll}
-          filterTokenPath={historyFilterPath}
-          onClearFilter={() => setHistoryFilterPath(null)}
-          recentOperations={controller.recentOperations}
-          totalOperations={controller.totalOperations}
-          hasMoreOperations={controller.hasMoreOperations}
-          onLoadMoreOperations={controller.loadMoreOperations}
-          onRollback={controller.handleRollback}
-          undoDescriptions={controller.undoDescriptions}
-          redoableOpIds={controller.redoableOpIds}
-          onServerRedo={controller.handleServerRedo}
-          executeUndo={controller.executeUndo}
-          canUndo={controller.canUndo}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  function renderTokensHealth(): ReactNode {
-    const healthPanel = (
-      <ErrorBoundary
-        panelName="Audit"
-        onReset={() => navigateTo("tokens", "health")}
-      >
-        <HealthPanel
-          serverUrl={serverUrl}
-          connected={connected}
-          currentCollectionId={currentCollectionId}
-          generators={generators}
-          lintViolations={controller.lintViolations}
-          allTokensFlat={allTokensFlat}
-          pathToCollectionId={pathToCollectionId}
-          tokenUsageCounts={tokenUsageCounts}
-          heatmapResult={heatmapResult}
-          onNavigateToToken={(path, collectionId) => {
-            setHealthDetailToken({ path, collectionId });
-          }}
-          validationIssues={controller.validationIssues}
-          validationSummary={controller.validationSummary}
-          validationLoading={controller.validationLoading}
-          validationError={controller.validationError}
-          validationLastRefreshed={controller.validationLastRefreshed}
-          validationIsStale={controller.validationIsStale}
-          onRefreshValidation={controller.refreshValidation}
-          onPushUndo={controller.pushUndo}
-          onError={controller.setErrorToast}
-        />
-      </ErrorBoundary>
-    );
-
-    return (
-      <div className="flex h-full flex-col overflow-hidden">
-        <PanelContentHeader
-          primaryAction={{
-            label: "Refresh audit",
-            onClick: controller.refreshValidation,
-          }}
-        />
-        <div className="min-h-0 flex-1 overflow-hidden">
-          {healthDetailToken ? (
-            <div className="flex min-h-0 flex-1 h-full overflow-hidden">
-              <div className="min-w-0 flex-1 overflow-hidden border-r border-[var(--color-figma-border)]">
-                {healthPanel}
-              </div>
-              <div className="w-[320px] min-w-[280px] shrink-0 overflow-hidden panel-slide-in">
-                <TokenDetailPreview
-                  tokenPath={healthDetailToken.path}
-                  storageCollectionId={healthDetailToken.collectionId}
-                  allTokensFlat={allTokensFlat}
-                  pathToCollectionId={pathToCollectionId}
-                  tokenUsageCounts={tokenUsageCounts}
-                  generators={generators}
-                  derivedTokenPaths={derivedTokenPaths}
-                  lintViolations={controller.lintViolations}
-                  serverUrl={serverUrl}
-                  onEdit={() => {
-                    beginHandoff({
-                      reason: "Edit token from Health audit.",
-                    });
-                    setCurrentCollectionId(healthDetailToken.collectionId);
-                    navigateTo("tokens", "tokens", { preserveHandoff: true });
-                    setPendingHighlight(healthDetailToken.path);
-                    setEditingToken({
-                      path: healthDetailToken.path,
-                      currentCollectionId: healthDetailToken.collectionId,
-                    });
-                  }}
-                  onClose={() => setHealthDetailToken(null)}
-                  onNavigateToAlias={(path) => {
-                    const cid = pathToCollectionId[path];
-                    if (cid) setHealthDetailToken({ path, collectionId: cid });
-                  }}
-                  onNavigateToGeneratedGroup={(generatorId) => {
-                    beginHandoff({
-                      reason: "Inspect the generator behind this audit finding, then return to Audit.",
-                    });
-                    navigateTo("tokens", "tokens", { preserveHandoff: true });
-                    openGeneratedGroupEditor({ mode: "edit", id: generatorId });
-                  }}
-                />
-              </div>
-            </div>
-          ) : (
-            healthPanel
-          )}
-        </div>
-      </div>
-    );
-  }
 }

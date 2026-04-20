@@ -101,7 +101,7 @@ export function AppCommandPalette({
       recentTokens={recentPaletteTokens}
       onGoToToken={(path) => {
         const targetCollectionId = pathToCollectionId[path];
-        navigateTo("tokens");
+        navigateTo("library");
         setEditingToken(null);
         if (targetCollectionId && targetCollectionId !== currentCollectionId) {
           setCurrentCollectionId(targetCollectionId);
@@ -111,7 +111,7 @@ export function AppCommandPalette({
         setHighlightedToken(path);
       }}
       onGoToGroup={(groupPath) => {
-        navigateTo("tokens");
+        navigateTo("library");
         setEditingToken(null);
         setHighlightedToken(groupPath);
       }}

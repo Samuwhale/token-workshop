@@ -307,7 +307,7 @@ export function useReadinessChecks({
           detail: missingDescriptions.length > 0
             ? 'Descriptions are optional for publishing, but they make the synced variables much easier to understand inside Figma.'
             : undefined,
-          recommendedActionLabel: missingDescriptions.length > 0 ? 'Add token descriptions in the Tokens workspace' : undefined,
+          recommendedActionLabel: missingDescriptions.length > 0 ? 'Add token descriptions in the Library' : undefined,
           recommendedActionId: missingDescriptions.length > 0 ? 'add-token-descriptions' : undefined,
         },
         {

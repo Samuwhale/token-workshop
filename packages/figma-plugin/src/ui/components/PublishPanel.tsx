@@ -16,6 +16,7 @@ import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import type { ValidationSnapshot } from '../hooks/useValidationCache';
 import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
 import { useNavigationContext } from '../contexts/NavigationContext';
+import { useEditorContext } from '../contexts/EditorContext';
 import { useResolverContext } from '../contexts/CollectionContext';
 import { apiFetch } from '../shared/apiFetch';
 import type { PublishRoutingDraft } from '../hooks/usePublishRouting';
@@ -240,6 +241,7 @@ export function PublishPanel({
   publishPanelHandle,
 }: PublishPanelProps) {
   const { navigateTo, beginHandoff } = useNavigationContext();
+  const { switchContextualSurface } = useEditorContext();
   const {
     activeResolver,
     activeModifiers,
@@ -827,17 +829,18 @@ export function PublishPanel({
             'Review the draft tokens flagged during sync, then return.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('tokens', 'tokens', { preserveHandoff: true });
+        navigateTo('library', 'library', { preserveHandoff: true });
         return;
       }
 
       if (actionId === 'review-audit-findings') {
         beginHandoff({
           reason:
-            'Review the audit findings behind these blockers, then return to Figma Sync.',
+            'Review the audit findings behind these blockers, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('tokens', 'health', { preserveHandoff: true });
+        navigateTo('library', 'library', { preserveHandoff: true });
+        switchContextualSurface({ surface: 'health' });
         return;
       }
 
@@ -849,13 +852,13 @@ export function PublishPanel({
       }
 
       if (actionId === 'add-token-descriptions') {
-        dispatchToast('Add descriptions in Tokens, then re-sync.', 'success');
+        dispatchToast('Add descriptions in Library, then re-sync.', 'success');
         beginHandoff({
           reason:
-            'Add descriptions in Tokens, then return to Figma Sync.',
+            'Add descriptions in Library, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('tokens', 'tokens', { preserveHandoff: true });
+        navigateTo('library', 'library', { preserveHandoff: true });
         return;
       }
 

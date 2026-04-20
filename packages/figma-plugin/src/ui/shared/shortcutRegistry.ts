@@ -239,9 +239,9 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'REDO',                  group: 'Global',          description: 'Redo',                           mac: '⌘⇧Z', altMac: '⌘Y' },
 
   // ── Navigation ──────────────────────────────────────────────────────────
-  { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Tokens workspace',         mac: SHORTCUT_KEYS.GO_TO_DEFINE },
+  { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Library',                  mac: SHORTCUT_KEYS.GO_TO_DEFINE },
   { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Canvas workspace',         mac: SHORTCUT_KEYS.GO_TO_APPLY },
-  { id: 'GO_TO_SYNC',            group: 'Navigation',      description: 'Go to Figma Sync workspace',     mac: SHORTCUT_KEYS.GO_TO_SYNC },
+  { id: 'GO_TO_SYNC',            group: 'Navigation',      description: 'Go to Sync',                     mac: SHORTCUT_KEYS.GO_TO_SYNC },
   { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open collection setup',          mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
   { id: 'QUICK_SWITCH_COLLECTION', group: 'Navigation',      description: 'Focus collection rail',          mac: SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION },
 

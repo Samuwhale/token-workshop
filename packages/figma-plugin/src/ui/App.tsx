@@ -323,7 +323,7 @@ export function App() {
   }, []);
   const focusCollectionRail = useCallback(() => {
     dismissEphemeralOverlays();
-    navigateTo("tokens", "tokens");
+    navigateTo("library", "library");
     setCollectionRailFocusRequestKey((current) => current + 1);
   }, [dismissEphemeralOverlays, navigateTo]);
   const openCollectionCreateDialog = useCallback(() => {
@@ -681,7 +681,7 @@ export function App() {
       setTokensComparePath(path);
       setTokensCompareModeKey((key) => key + 1);
       setShowTokensCompare(true);
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
     },
     [
       navigateTo,
@@ -793,7 +793,7 @@ export function App() {
   );
   const handleNavigateToGeneratedGroup = useCallback(
     (generatorId: string) => {
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
       switchContextualSurface({
         surface: "generated-group-editor",
         generatedGroup: { mode: "edit", id: generatorId },
@@ -1021,8 +1021,8 @@ export function App() {
 
   useEffect(() => {
     if (
-      activeTopTab === "tokens" &&
-      activeSubTab === "tokens" &&
+      activeTopTab === "library" &&
+      activeSubTab === "library" &&
       tokens.length > 0
     ) {
       triggerUsageScan();
@@ -1095,13 +1095,13 @@ export function App() {
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === "n") {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
       setEditingToken({ path: "", currentCollectionId, isCreate: true });
     }
     if (matchesShortcut(e, "GO_TO_DEFINE")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
     }
     if (matchesShortcut(e, "GO_TO_APPLY")) {
       e.preventDefault();
@@ -1111,7 +1111,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_SYNC")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("figma-sync", "figma-sync");
+      navigateTo("sync", "sync");
     }
     if (matchesShortcut(e, "TOGGLE_QUICK_APPLY")) {
       e.preventDefault();
@@ -1124,7 +1124,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_RESOLVER")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
       if (currentCollectionId) {
         switchContextualSurface({
           surface: "collection-details",
@@ -1169,7 +1169,7 @@ export function App() {
     lintIssueIndexRef.current =
       (lintIssueIndexRef.current + 1) % lintViolations.length;
     const violation = lintViolations[lintIssueIndexRef.current];
-    navigateTo("tokens", "tokens");
+    navigateTo("library", "library");
     setEditingToken(null);
     setHighlightedToken(violation.path);
     const n = lintIssueIndexRef.current + 1;
@@ -1291,7 +1291,7 @@ export function App() {
           },
         );
         await refreshTokens();
-        navigateTo("tokens", "tokens");
+        navigateTo("library", "library");
         if (targetCollectionId !== currentCollectionId) {
           setCurrentCollectionId(targetCollectionId);
           setPendingHighlight(newPath);
@@ -1321,7 +1321,7 @@ export function App() {
   const handlePaletteRename = useCallback(
     (path: string) => {
       const targetCollectionId = pathToCollectionId[path];
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
       setEditingToken(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
         setCurrentCollectionId(targetCollectionId);
@@ -1346,7 +1346,7 @@ export function App() {
   const handlePaletteMove = useCallback(
     (path: string) => {
       const targetCollectionId = pathToCollectionId[path];
-      navigateTo("tokens", "tokens");
+      navigateTo("library", "library");
       setEditingToken(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
         setCurrentCollectionId(targetCollectionId);
@@ -1381,10 +1381,13 @@ export function App() {
         setShowCommandPalette(true);
       },
       openPasteModal: () => setShowPasteModal(true),
-      openImportPanel: () => navigateTo("tokens", "import"),
+      openImportPanel: () => {
+        navigateTo("library", "library");
+        switchContextualSurface({ surface: "import" });
+      },
       openCollectionCreateDialog,
       openGeneratedPalette: () => {
-        navigateTo("tokens", "tokens");
+        navigateTo("library", "library");
         switchContextualSurface({
           surface: "generated-group-editor",
           generatedGroup: {
@@ -1403,7 +1406,7 @@ export function App() {
       },
       handleClearAllComplete: () => {
         closeSecondarySurface();
-        navigateTo("tokens", "tokens");
+        navigateTo("library", "library");
         refreshTokens();
         openStartHere("start-new");
       },
@@ -1566,11 +1569,11 @@ export function App() {
 
   const workspaceIcon = (id: string) => {
     switch (id) {
-      case "tokens":     return <Layers size={16} strokeWidth={1.5} aria-hidden />;
-      case "canvas":     return <Frame size={16} strokeWidth={1.5} aria-hidden />;
-      case "figma-sync": return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
-      case "share":      return <Upload size={16} strokeWidth={1.5} aria-hidden />;
-      default:           return null;
+      case "library":  return <Layers size={16} strokeWidth={1.5} aria-hidden />;
+      case "canvas":   return <Frame size={16} strokeWidth={1.5} aria-hidden />;
+      case "sync":     return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
+      case "export":   return <Upload size={16} strokeWidth={1.5} aria-hidden />;
+      default:         return null;
     }
   };
 
@@ -2032,7 +2035,10 @@ export function App() {
           initialBranch={startHereState.initialBranch}
           onClose={closeStartHere}
           onRetryConnection={retryConnection}
-          onImportFigma={() => navigateTo("tokens", "import")}
+          onImportFigma={() => {
+            navigateTo("library", "library");
+            switchContextualSurface({ surface: "import" });
+          }}
           onPasteJSON={() => setShowPasteModal(true)}
           onGuidedSetupComplete={() => {
             closeStartHere();

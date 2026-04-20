@@ -15,19 +15,11 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "tokens" | "canvas" | "figma-sync" | "share";
-      subTab:
-        | "tokens"
-        | "inspect"
-        | "canvas-analysis"
-        | "figma-sync"
-        | "export"
-        | "versions"
-        | "history"
-        | "health";
+      topTab: "library" | "canvas" | "sync" | "export";
+      subTab: "library" | "inspect" | "canvas-analysis" | "sync" | "export";
     }
   | { kind: "surface"; surface: "settings" }
-  | { kind: "tab"; topTab: "tokens"; subTab: "import" };
+  | { kind: "contextual-surface"; surface: "import" | "health" | "history" };
 
 interface NotificationsPanelProps {
   history: NotificationEntry[];
@@ -124,7 +116,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   if (lower.includes("import")) {
     return {
       label: "Open import",
-      target: { kind: "tab", topTab: "tokens", subTab: "import" },
+      target: { kind: "contextual-surface", surface: "import" },
     };
   }
   if (
@@ -133,8 +125,8 @@ function inferWorkspaceAction(message: string): InboxAction {
     lower.includes("generator")
   ) {
     return {
-      label: "Open tokens",
-      target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },
+      label: "Open library",
+      target: { kind: "workspace", topTab: "library", subTab: "library" },
     };
   }
   if (
@@ -143,8 +135,8 @@ function inferWorkspaceAction(message: string): InboxAction {
     lower.includes("layer")
   ) {
     return {
-      label: "Open tokens",
-      target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },
+      label: "Open library",
+      target: { kind: "workspace", topTab: "library", subTab: "library" },
     };
   }
   if (
@@ -155,8 +147,8 @@ function inferWorkspaceAction(message: string): InboxAction {
     lower.includes("sync")
   ) {
     return {
-      label: "Open Figma Sync",
-      target: { kind: "workspace", topTab: "figma-sync", subTab: "figma-sync" },
+      label: "Open Sync",
+      target: { kind: "workspace", topTab: "sync", subTab: "sync" },
     };
   }
   if (
@@ -164,21 +156,14 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open export",
-      target: { kind: "workspace", topTab: "share", subTab: "export" },
+      target: { kind: "workspace", topTab: "export", subTab: "export" },
     };
   }
   if (
     lower.includes("git") ||
     lower.includes("pull") ||
     lower.includes("push") ||
-    lower.includes("version")
-  ) {
-    return {
-      label: "Open versions",
-      target: { kind: "workspace", topTab: "share", subTab: "versions" },
-    };
-  }
-  if (
+    lower.includes("version") ||
     lower.includes("history") ||
     lower.includes("rollback") ||
     lower.includes("redo") ||
@@ -188,7 +173,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   ) {
     return {
       label: "Open history",
-      target: { kind: "workspace", topTab: "tokens", subTab: "history" },
+      target: { kind: "contextual-surface", surface: "history" },
     };
   }
   if (
@@ -204,13 +189,13 @@ function inferWorkspaceAction(message: string): InboxAction {
   }
   if (lower.includes("dependency") || lower.includes("alias")) {
     return {
-      label: "Open dependencies",
-      target: { kind: "workspace", topTab: "tokens", subTab: "health" },
+      label: "Open health",
+      target: { kind: "contextual-surface", surface: "health" },
     };
   }
   return {
-    label: "Open tokens",
-    target: { kind: "workspace", topTab: "tokens", subTab: "tokens" },
+    label: "Open library",
+    target: { kind: "workspace", topTab: "library", subTab: "library" },
   };
 }
 
@@ -297,7 +282,7 @@ export function NotificationsPanel({
     setCurrentCollectionId,
   } = useCollectionStateContext();
   const { pathToCollectionId } = useTokenFlatMapContext();
-  const { setHighlightedToken, setPendingHighlightForCollection } = useEditorContext();
+  const { setHighlightedToken, setPendingHighlightForCollection, switchContextualSurface } = useEditorContext();
 
   const inbox = useMemo(() => {
     const deduped = new Map<string, InboxItem>();
@@ -353,7 +338,7 @@ export function NotificationsPanel({
           "Inspect the token referenced by this notification, then return to Notifications.",
         ...handoffOpts,
       });
-      navigateTo("tokens", "tokens", { preserveHandoff: true });
+      navigateTo("library", "library", { preserveHandoff: true });
       if (targetCollectionId === currentCollectionId) {
         setHighlightedToken(action.target.tokenPath);
       } else {
@@ -368,6 +353,15 @@ export function NotificationsPanel({
         ...handoffOpts,
       });
       openSecondarySurface(action.target.surface);
+      return;
+    }
+    if (action.target.kind === "contextual-surface") {
+      beginHandoff({
+        reason: `Open ${actionName} from this notification, then return to Notifications.`,
+        ...handoffOpts,
+      });
+      navigateTo("library", "library", { preserveHandoff: true });
+      switchContextualSurface({ surface: action.target.surface });
       return;
     }
     const { topTab, subTab } = action.target;

@@ -166,13 +166,13 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [activeTopTab, setActiveTopTabState] = useState<TopTab>(() => {
     const stored = lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB);
     return (
-      stored && TOP_TABS.some((t) => t.id === stored) ? stored : "tokens"
+      stored && TOP_TABS.some((t) => t.id === stored) ? stored : "library"
     ) as TopTab;
   });
 
   const [activeSubTab, setActiveSubTabState] = useState<SubTab>(() => {
-    const topTab = (lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB) || "tokens") as TopTab;
-    const storageKey = SUB_TAB_STORAGE[topTab] || SUB_TAB_STORAGE.tokens;
+    const topTab = (lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB) || "library") as TopTab;
+    const storageKey = SUB_TAB_STORAGE[topTab] || SUB_TAB_STORAGE.library;
     const stored = lsGet(storageKey);
     const topDef = TOP_TABS.find((t) => t.id === topTab);
     return (

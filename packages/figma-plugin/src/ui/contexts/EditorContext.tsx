@@ -43,7 +43,10 @@ export type EditorContextualSurfaceTarget =
   | { surface: 'token-preview'; token: PreviewingToken }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshCompareModeConfig?: boolean }
   | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean }
-  | { surface: 'color-analysis' };
+  | { surface: 'color-analysis' }
+  | { surface: 'import' }
+  | { surface: 'health' }
+  | { surface: 'history'; filterPath?: string };
 
 export interface TokensContextualSurfaceState {
   activeSurface: TokensLibraryContextualSurface | null;
@@ -82,6 +85,14 @@ export interface EditorContextValue {
   setTokensCompareModeKey: Dispatch<SetStateAction<number>>;
   tokensCompareDefaultA: string;
   tokensCompareDefaultB: string;
+  showImport: boolean;
+  setShowImport: Dispatch<SetStateAction<boolean>>;
+  showHealth: boolean;
+  setShowHealth: Dispatch<SetStateAction<boolean>>;
+  showHistory: boolean;
+  setShowHistory: Dispatch<SetStateAction<boolean>>;
+  historyFilterPath: string | null;
+  setHistoryFilterPath: Dispatch<SetStateAction<string | null>>;
   tokensContextualSurfaceState: TokensContextualSurfaceState;
   switchContextualSurface: (target: EditorContextualSurfaceTarget) => void;
   /**
@@ -121,6 +132,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [inspectingCollection, setInspectingCollection] = useState<InspectingCollection | null>(null);
   const [showTokensCompare, setShowTokensCompare] = useState(false);
   const [showColorAnalysis, setShowColorAnalysis] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [showHealth, setShowHealth] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
   const {
     compareMode: tokensCompareMode,
     setCompareMode: setTokensCompareMode,
@@ -159,12 +174,15 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   } = useTokenNavigation(pathToCollectionId, currentCollectionId, setCurrentCollectionId, tokens, handleAliasNotFound);
 
   useEffect(() => {
-    if (!showTokensCompare && !showColorAnalysis) return;
+    if (!showTokensCompare && !showColorAnalysis && !showImport && !showHealth && !showHistory) return;
     if (editingToken || editingGeneratedGroup || previewingToken || inspectingCollection) {
       setShowTokensCompare(false);
       setShowColorAnalysis(false);
+      setShowImport(false);
+      setShowHealth(false);
+      setShowHistory(false);
     }
-  }, [showTokensCompare, showColorAnalysis, editingToken, editingGeneratedGroup, previewingToken, inspectingCollection]);
+  }, [showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory, editingToken, editingGeneratedGroup, previewingToken, inspectingCollection]);
 
   const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
     setEditingToken(null);
@@ -173,6 +191,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setInspectingCollection(null);
     setShowTokensCompare(false);
     setShowColorAnalysis(false);
+    setShowImport(false);
+    setShowHealth(false);
+    setShowHistory(false);
+    setHistoryFilterPath(null);
 
     if (target.surface === null) return;
 
@@ -198,6 +220,24 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     if (target.surface === 'color-analysis') {
       setShowColorAnalysis(true);
+      return;
+    }
+
+    if (target.surface === 'import') {
+      setShowImport(true);
+      return;
+    }
+
+    if (target.surface === 'health') {
+      setShowHealth(true);
+      return;
+    }
+
+    if (target.surface === 'history') {
+      setShowHistory(true);
+      if (target.filterPath) {
+        setHistoryFilterPath(target.filterPath);
+      }
       return;
     }
 
@@ -235,8 +275,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     if (previewingToken) return 'token-preview';
     if (showTokensCompare) return 'compare';
     if (showColorAnalysis) return 'color-analysis';
+    if (showImport) return 'import';
+    if (showHealth) return 'health';
+    if (showHistory) return 'history';
     return null;
-  }, [inspectingCollection, editingToken, editingGeneratedGroup, previewingToken, showTokensCompare, showColorAnalysis]);
+  }, [inspectingCollection, editingToken, editingGeneratedGroup, previewingToken, showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory]);
 
   const tokensContextualSurfaceState = useMemo<TokensContextualSurfaceState>(() => ({
     activeSurface,
@@ -275,6 +318,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setTokensCompareModeKey,
     tokensCompareDefaultA,
     tokensCompareDefaultB,
+    showImport,
+    setShowImport,
+    showHealth,
+    setShowHealth,
+    showHistory,
+    setShowHistory,
+    historyFilterPath,
+    setHistoryFilterPath,
     tokensContextualSurfaceState,
     switchContextualSurface,
     setAliasNotFoundHandler,
@@ -306,6 +357,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setTokensCompareModeKey,
     tokensCompareDefaultA,
     tokensCompareDefaultB,
+    showImport,
+    showHealth,
+    showHistory,
+    historyFilterPath,
     tokensContextualSurfaceState,
     switchContextualSurface,
     setAliasNotFoundHandler,
