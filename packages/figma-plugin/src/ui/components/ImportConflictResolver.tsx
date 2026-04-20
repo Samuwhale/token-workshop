@@ -207,7 +207,7 @@ export function ImportConflictResolver() {
                             : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
                         }`}
                       >
-                        {d === 'accept' ? 'O' : d === 'merge' ? 'M' : 'K'}
+                        {d === 'accept' ? 'Replace' : d === 'merge' ? 'Merge' : 'Skip'}
                       </button>
                     ))}
                   </div>

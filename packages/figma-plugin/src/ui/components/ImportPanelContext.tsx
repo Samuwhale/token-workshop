@@ -112,6 +112,9 @@ type CollectionImportTokenSource = {
   modeKey: string;
   sourceLabel: string;
   token: ImportToken;
+  originalCollectionName: string;
+  originalModeName: string;
+  originalModeIndex: number;
 };
 type CollectionImportPlan = {
   collectionId: string;
@@ -122,6 +125,8 @@ type CollectionImportPlan = {
   }[];
   totalPathCount: number;
   modeKeys: string[];
+  secondaryModeNames: string[];
+  primaryModeName: string | null;
 };
 
 export interface ImportSourceContextValue {
@@ -150,6 +155,8 @@ export interface ImportSourceContextValue {
   handleReadCSS: () => void;
   handleReadTailwind: () => void;
   handleReadTokensStudio: () => void;
+  handleBrowseFile: () => void;
+  handleUnifiedFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleJsonFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleCSSFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleTailwindFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -325,12 +332,15 @@ function buildImportPayload(
     payload.$scopes = token.$scopes;
   }
   const sourceTag = getImportSourceTag(source);
-  if (sourceTag) {
+  const existingExtensions = token.$extensions ?? {};
+  const existingTokenManager =
+    (existingExtensions.tokenmanager as Record<string, unknown>) ?? {};
+  if (sourceTag || Object.keys(existingTokenManager).length > 0) {
     payload.$extensions = {
-      ...(token.$extensions ?? {}),
+      ...existingExtensions,
       tokenmanager: {
-        ...(token.$extensions?.tokenmanager ?? {}),
-        source: sourceTag,
+        ...existingTokenManager,
+        ...(sourceTag ? { source: sourceTag } : {}),
       },
     };
   }
@@ -409,7 +419,8 @@ function buildCollectionImportPlans(
   >();
 
   for (const collection of collectionData) {
-    for (const mode of collection.modes) {
+    for (let modeIndex = 0; modeIndex < collection.modes.length; modeIndex++) {
+      const mode = collection.modes[modeIndex];
       const key = modeKey(collection.name, mode.modeId);
       if (!(modeEnabled[key] ?? true)) {
         continue;
@@ -444,6 +455,9 @@ function buildCollectionImportPlans(
           modeKey: key,
           sourceLabel,
           token,
+          originalCollectionName: collection.name,
+          originalModeName: mode.modeName,
+          originalModeIndex: modeIndex,
         });
         plan.pathSources.set(token.path, pathSources);
       }
@@ -465,25 +479,70 @@ function buildCollectionImportPlans(
 
     const writeTokens: CollectionImportTokenSource[] = [];
     const duplicateConflicts: CollectionImportPlan["duplicateConflicts"] = [];
+    const mergedModeNames = new Set<string>();
+    let primaryModeName: string | null = null;
 
     for (const [path, pathSources] of plan.pathSources) {
       if (pathSources.length === 1) {
         writeTokens.push(pathSources[0]);
+        if (!primaryModeName) {
+          primaryModeName = pathSources[0].originalModeName;
+        }
         continue;
       }
 
-      ambiguousPathCount += 1;
-      duplicateConflicts.push({ path, tokens: pathSources });
-      const conflictingModes = new Set(
-        pathSources.map((source) => source.modeKey),
+      const originCollections = new Set(
+        pathSources.map((s) => s.originalCollectionName),
       );
-      for (const modeKeyValue of conflictingModes) {
-        const currentStatus = modeStatus[modeKeyValue] ?? {
-          sharedDestinationCount: modeKeys.length,
-          ambiguousPathCount: 0,
+      if (originCollections.size === 1) {
+        const sorted = [...pathSources].sort(
+          (a, b) => a.originalModeIndex - b.originalModeIndex,
+        );
+        const primary = sorted[0];
+        const secondaries = sorted.slice(1);
+
+        if (!primaryModeName) {
+          primaryModeName = primary.originalModeName;
+        }
+        for (const s of secondaries) {
+          mergedModeNames.add(s.originalModeName);
+        }
+
+        const modeValues: Record<string, unknown> = {};
+        for (const s of secondaries) {
+          modeValues[s.originalModeName] = s.token.$value;
+        }
+
+        const existingTokenManager =
+          (primary.token.$extensions?.tokenmanager as Record<string, unknown>) ?? {};
+        const mergedToken: ImportToken = {
+          ...primary.token,
+          $extensions: {
+            ...(primary.token.$extensions ?? {}),
+            tokenmanager: {
+              ...existingTokenManager,
+              modes: {
+                [plan.collectionId]: modeValues,
+              },
+            },
+          },
         };
-        currentStatus.ambiguousPathCount += 1;
-        modeStatus[modeKeyValue] = currentStatus;
+
+        writeTokens.push({ ...primary, token: mergedToken });
+      } else {
+        ambiguousPathCount += 1;
+        duplicateConflicts.push({ path, tokens: pathSources });
+        const conflictingModes = new Set(
+          pathSources.map((source) => source.modeKey),
+        );
+        for (const modeKeyValue of conflictingModes) {
+          const currentStatus = modeStatus[modeKeyValue] ?? {
+            sharedDestinationCount: modeKeys.length,
+            ambiguousPathCount: 0,
+          };
+          currentStatus.ambiguousPathCount += 1;
+          modeStatus[modeKeyValue] = currentStatus;
+        }
       }
     }
 
@@ -493,6 +552,8 @@ function buildCollectionImportPlans(
       duplicateConflicts,
       totalPathCount: plan.pathSources.size,
       modeKeys,
+      secondaryModeNames: [...mergedModeNames],
+      primaryModeName,
     });
   }
 
@@ -1036,10 +1097,48 @@ export function ImportPanelProvider({
       try {
         for (const plan of collectionImportPlans) {
           try {
-            const result = await importTokenBatch(
-              plan.collectionId,
-              plan.writeTokens.map((source) => source.token),
-              strategy,
+            // Create/ensure collection exists
+            try {
+              await apiFetch(`${serverUrl}/api/collections`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: plan.collectionId }),
+              });
+            } catch (err) {
+              if (!(err instanceof ApiError && err.status === 409)) throw err;
+            }
+
+            // Create all modes on the collection (must exist before token import)
+            const modeNamesToCreate = plan.primaryModeName
+              ? [plan.primaryModeName, ...plan.secondaryModeNames]
+              : plan.secondaryModeNames;
+            for (const modeName of modeNamesToCreate) {
+              await apiFetch(
+                `${serverUrl}/api/collections/${encodeURIComponent(plan.collectionId)}/modes`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: modeName }),
+                },
+              );
+            }
+
+            // Import tokens (with mode values in extensions)
+            const tokens = plan.writeTokens.map((source) =>
+              buildImportPayload(source.token, activeSource),
+            );
+            const result = await apiFetch<{
+              imported: number;
+              skipped: number;
+              changedPaths?: string[];
+              operationId?: string;
+            }>(
+              `${serverUrl}/api/tokens/${encodeURIComponent(plan.collectionId)}/batch`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tokens, strategy }),
+              },
             );
             importedTokens += result.imported;
             const rollbackOperation = toImportRollbackOperation(
@@ -1144,7 +1243,7 @@ export function ImportPanelProvider({
       collectionImportPlans,
       enabledCollectionCount,
       hasAmbiguousCollectionImport,
-      importTokenBatch,
+      serverUrl,
       publishImportCompletion,
       resetExistingPathsCache,
       setCurrentImportHistory,
@@ -1563,6 +1662,8 @@ export function ImportPanelProvider({
       handleReadCSS: src.handleReadCSS,
       handleReadTailwind: src.handleReadTailwind,
       handleReadTokensStudio: src.handleReadTokensStudio,
+      handleBrowseFile: src.handleBrowseFile,
+      handleUnifiedFileChange: src.handleUnifiedFileChange,
       handleJsonFileChange: src.handleJsonFileChange,
       handleCSSFileChange: src.handleCSSFileChange,
       handleTailwindFileChange: src.handleTailwindFileChange,
@@ -1589,6 +1690,8 @@ export function ImportPanelProvider({
       src.handleDragLeave,
       src.handleDragOver,
       src.handleDrop,
+      src.handleBrowseFile,
+      src.handleUnifiedFileChange,
       src.handleJsonFileChange,
       src.handleReadCSS,
       src.handleReadJson,

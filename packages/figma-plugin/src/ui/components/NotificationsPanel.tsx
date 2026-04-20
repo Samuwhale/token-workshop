@@ -25,7 +25,8 @@ type ActionTarget =
         | "history"
         | "health";
     }
-  | { kind: "surface"; surface: "import" | "settings" };
+  | { kind: "surface"; surface: "settings" }
+  | { kind: "tab"; topTab: "tokens"; subTab: "import" };
 
 interface NotificationsPanelProps {
   history: NotificationEntry[];
@@ -122,7 +123,7 @@ function inferWorkspaceAction(message: string): InboxAction {
   if (lower.includes("import")) {
     return {
       label: "Open import",
-      target: { kind: "surface", surface: "import" },
+      target: { kind: "tab", topTab: "tokens", subTab: "import" },
     };
   }
   if (
@@ -359,11 +360,12 @@ export function NotificationsPanel({
       openSecondarySurface(action.target.surface);
       return;
     }
+    const { topTab, subTab } = action.target;
     beginHandoff({
       reason: `Open ${actionName} from this notification, then return to Notifications.`,
       ...handoffOpts,
     });
-    navigateTo(action.target.topTab, action.target.subTab, {
+    navigateTo(topTab, subTab, {
       preserveHandoff: true,
     });
   };

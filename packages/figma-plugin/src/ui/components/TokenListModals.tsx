@@ -188,7 +188,7 @@ function ExtractToAliasModal() {
     >
       <div ref={dialogRef} className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col" style={{ maxHeight: '80vh' }} role="dialog" aria-modal="true" aria-labelledby="extract-to-alias-dialog-title">
         <div className="p-4 border-b border-[var(--color-figma-border)]">
-          <div id="extract-to-alias-dialog-title" className="text-[13px] font-medium text-[var(--color-figma-text)]">Link to token</div>
+          <div id="extract-to-alias-dialog-title" className="tm-dialog-title">Link to token</div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 truncate">
             <span className="font-mono text-[var(--color-figma-text)]">{extractToken.path}</span>
           </div>
@@ -532,7 +532,7 @@ export function TokenListModals() {
       {newGroupDialogParent !== null && (
         <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50" onMouseDown={(e) => { if (e.target === e.currentTarget) { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); } }}>
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3" role="dialog" aria-modal="true" aria-labelledby="new-group-dialog-title">
-            <div id="new-group-dialog-title" className="text-[13px] font-medium text-[var(--color-figma-text)]">New group</div>
+            <div id="new-group-dialog-title" className="tm-dialog-title">New group</div>
             {newGroupDialogParent && (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 Inside <span className="font-mono text-[var(--color-figma-text)]">{newGroupDialogParent}</span>
@@ -615,7 +615,7 @@ export function TokenListModals() {
       {movingGroup && (
         <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
-            <div className="text-[13px] font-medium text-[var(--color-figma-text)]">Move group to collection</div>
+            <div className="tm-dialog-title">Move group to collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
               <span className="font-mono text-[var(--color-figma-text)]">{movingGroup}</span>
             </div>
@@ -654,7 +654,7 @@ export function TokenListModals() {
       {copyingGroup && (
         <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
-            <div className="text-[13px] font-medium text-[var(--color-figma-text)]">Copy group to collection</div>
+            <div className="tm-dialog-title">Copy group to collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
               <span className="font-mono text-[var(--color-figma-text)]">{copyingGroup}</span>
             </div>
@@ -696,7 +696,7 @@ export function TokenListModals() {
           onMouseDown={e => { if (e.target === e.currentTarget) { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); } }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="text-[13px] font-medium text-[var(--color-figma-text)]">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to group</div>
+            <div className="tm-dialog-title">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to group</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
               Enter the target group path. Token names are preserved.
             </div>
@@ -744,7 +744,7 @@ export function TokenListModals() {
           }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="text-[13px] font-medium text-[var(--color-figma-text)]">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
+            <div className="tm-dialog-title">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
               Tokens will be removed from <span className="font-mono text-[var(--color-figma-text)]">{collectionId}</span> and added to the target collection.
             </div>
@@ -792,7 +792,7 @@ export function TokenListModals() {
           }}
         >
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="text-[13px] font-medium text-[var(--color-figma-text)]">Copy {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
+            <div className="tm-dialog-title">Copy {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
               Tokens will be duplicated into the target collection. Originals in <span className="font-mono text-[var(--color-figma-text)]">{collectionId}</span> are kept.
             </div>

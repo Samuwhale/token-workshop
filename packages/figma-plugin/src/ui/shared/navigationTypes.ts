@@ -9,12 +9,11 @@ import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratedGroupEdit
 import type { GeneratorTemplate } from "../hooks/useGenerators";
 
 export type TopTab = "tokens" | "canvas" | "publish";
-type TokensSubTab = "tokens" | "history" | "health";
+type TokensSubTab = "tokens" | "import" | "history" | "health";
 type CanvasSubTab = "inspect" | "canvas-analysis";
 type PublishSubTab = "sync" | "export" | "versions";
 export type SubTab = TokensSubTab | CanvasSubTab | PublishSubTab;
 export type SecondarySurfaceId =
-  | "import"
   | "shortcuts"
   | "settings";
 export type SurfaceKind =
@@ -83,6 +82,7 @@ export const TOP_TABS: {
     label: "Tokens",
     subTabs: [
       { id: "tokens", label: "Library" },
+      { id: "import", label: "Import" },
       { id: "health", label: "Health" },
       { id: "history", label: "Changes" },
     ],
@@ -438,6 +438,16 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         ),
       },
       {
+        id: "import",
+        label: "Import",
+        topTab: "tokens",
+        subTab: "import",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Import tokens from Figma or files.",
+        ),
+      },
+      {
         id: "health",
         label: "Health",
         topTab: "tokens",
@@ -460,6 +470,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     ],
     matchRoutes: [
       route("tokens", "tokens"),
+      route("tokens", "import"),
       route("tokens", "health"),
       route("tokens", "history"),
     ],
@@ -546,13 +557,6 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
 
 
 export const SECONDARY_SURFACES: SecondarySurface[] = [
-  {
-    id: "import",
-    label: "Import",
-    summaryTitle: "Import",
-    access: "shell-shortcut",
-    transition: secondaryTakeoverTransition("Import external tokens."),
-  },
   {
     id: "shortcuts",
     label: "Shortcuts",
@@ -650,20 +654,6 @@ function createWorkspaceRecommendation(
   };
 }
 
-function createSecondarySurfaceRecommendation(
-  secondarySurfaceId: SecondarySurfaceId,
-  rationale: string,
-): ImportNextStepRecommendation {
-  const surface = resolveSecondarySurface(secondarySurfaceId);
-  return {
-    target: {
-      kind: "secondary-surface",
-      secondarySurfaceId,
-    },
-    label: surface?.label ?? secondarySurfaceId,
-    rationale,
-  };
-}
 
 function isLargeInitialImport(summary: ImportResultSummary): boolean {
   const reviewedExistingCount =
@@ -709,7 +699,8 @@ export function getImportResultNextStepRecommendations(
 
   if (summary.hadFailures) {
     addRecommendation(
-      createSecondarySurfaceRecommendation(
+      createWorkspaceRecommendation(
+        "tokens",
         "import",
         "Retry failed batches.",
       ),

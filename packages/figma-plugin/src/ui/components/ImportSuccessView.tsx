@@ -9,7 +9,6 @@ export function ImportSuccessView() {
     succeededImportCount,
     lastImport,
     lastImportReviewSummary,
-    importNextStepRecommendations,
     undoing,
     retrying,
     copyFeedback,
@@ -18,6 +17,7 @@ export function ImportSuccessView() {
     handleCopyFailedPaths,
     openImportNextStep,
     clearSuccessState,
+    importNextStepRecommendations,
   } = useImportResultContext();
 
   const hasFailedWrites = failedImportPaths.length > 0;
@@ -25,10 +25,13 @@ export function ImportSuccessView() {
     ? "var(--color-figma-warning,#e8a100)"
     : "var(--color-figma-success)";
 
+  const viewTokensRecommendation = importNextStepRecommendations.find(
+    (r) => r.target.kind === "workspace" && r.target.topTab === "tokens" && r.target.subTab === "tokens",
+  );
+
   return (
-    <div className="flex flex-col items-center gap-2 py-3">
-      {/* Status icon */}
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+    <div className="flex flex-col items-center gap-3 py-6">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <circle cx="10" cy="10" r="9" stroke={statusColor} strokeWidth="1.5" />
         {hasFailedWrites ? (
           <>
@@ -40,12 +43,10 @@ export function ImportSuccessView() {
         )}
       </svg>
 
-      {/* Status message */}
       <div role="status" aria-live="polite" className="text-[11px] font-medium text-center" style={{ color: statusColor }}>
         {successMessage}
       </div>
 
-      {/* Review summary */}
       {lastImportReviewSummary && (
         <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center">
           {lastImportReviewSummary.destinationLabel}
@@ -59,28 +60,8 @@ export function ImportSuccessView() {
         </div>
       )}
 
-      {/* Next step recommendations */}
-      {importNextStepRecommendations.length > 0 && (
-        <div className="w-full mt-1 flex flex-col gap-1">
-          {importNextStepRecommendations.slice(0, 2).map((rec, i) => (
-            <button
-              key={`${rec.label}-${i}`}
-              onClick={() => openImportNextStep(rec)}
-              className={`rounded border px-2 py-1.5 text-left text-[10px] font-medium text-[var(--color-figma-text)] transition-colors ${
-                i === 0
-                  ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/8 hover:bg-[var(--color-figma-accent)]/12"
-                  : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-secondary)]"
-              }`}
-            >
-              {i === 0 ? `Continue in ${rec.label}` : rec.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Failed writes */}
       {hasFailedWrites && (
-        <div className="w-full mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+        <div className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="flex items-center gap-2 text-[10px]">
               <span className="text-[var(--color-figma-success)] font-medium">{succeededImportCount} ok</span>
@@ -123,16 +104,23 @@ export function ImportSuccessView() {
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center gap-3 mt-1">
+      <div className="flex items-center gap-3">
+        {viewTokensRecommendation && (
+          <button
+            onClick={() => openImportNextStep(viewTokensRecommendation)}
+            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white hover:opacity-90"
+          >
+            View tokens
+          </button>
+        )}
+        <button onClick={clearSuccessState} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
+          Import more
+        </button>
         {lastImport && (
           <button onClick={handleUndoImport} disabled={undoing} className="text-[10px] text-[var(--color-figma-error)] hover:underline disabled:opacity-50">
             {undoing ? "Undoing..." : "Undo"}
           </button>
         )}
-        <button onClick={clearSuccessState} className="text-[10px] text-[var(--color-figma-accent)] hover:underline">
-          Import more
-        </button>
       </div>
     </div>
   );

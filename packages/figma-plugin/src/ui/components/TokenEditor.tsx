@@ -1,5 +1,5 @@
 import { adaptShortcut, stableStringify } from "../shared/utils";
-import { Network, Copy, Check, ChevronDown, ChevronRight, Clock, Trash2, Link2, X } from "lucide-react";
+import { Network, Copy, Check, ChevronDown, ChevronRight, Clock, Trash2, Link2, X, Plus } from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -85,75 +85,6 @@ interface TokenEditorProps {
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
 }
 
-function AddModeInline({
-  serverUrl,
-  collectionId,
-  onAdded,
-}: {
-  serverUrl: string;
-  collectionId: string;
-  onAdded?: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors"
-      >
-        + Add mode
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={async (e) => {
-          if (e.key === "Enter" && name.trim()) {
-            setSaving(true);
-            try {
-              await apiFetch(
-                `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ name: name.trim() }),
-                },
-              );
-              setOpen(false);
-              setName("");
-              onAdded?.();
-            } catch {} finally {
-              setSaving(false);
-            }
-          }
-          if (e.key === "Escape") {
-            setOpen(false);
-            setName("");
-          }
-        }}
-        onBlur={() => {
-          if (!name.trim()) {
-            setOpen(false);
-            setName("");
-          }
-        }}
-        autoFocus
-        disabled={saving}
-        placeholder="Mode name"
-        className="w-28 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
-      />
-    </div>
-  );
-}
 
 export function TokenEditor({
   tokenPath,
@@ -385,6 +316,44 @@ export function TokenEditor({
     useState<"manual-exception" | "detach" | null>(null);
   const pendingGeneratedSaveArgsRef = useRef<[boolean, boolean] | null>(null);
   const generatedSaveBypassRef = useRef(false);
+
+  const [addingEditorMode, setAddingEditorMode] = useState(false);
+  const [editorNewModeName, setEditorNewModeName] = useState("");
+  const [editorAddModeSaving, setEditorAddModeSaving] = useState(false);
+
+  const editorCollection = useMemo(
+    () => collections.find((c) => c.id === ownerCollectionId),
+    [collections, ownerCollectionId],
+  );
+  const canAddMode = !!editorCollection && editorCollection.modes.length <= 1;
+
+  const handleAddEditorMode = useCallback(async () => {
+    const name = editorNewModeName.trim();
+    if (!name) {
+      setAddingEditorMode(false);
+      setEditorNewModeName("");
+      return;
+    }
+    setEditorAddModeSaving(true);
+    try {
+      await apiFetch(
+        `${serverUrl}/api/collections/${encodeURIComponent(ownerCollectionId)}/modes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        },
+      );
+      setEditorNewModeName("");
+      setAddingEditorMode(false);
+      onRefresh?.();
+    } catch {
+      // keep input open on error
+    } finally {
+      setEditorAddModeSaving(false);
+    }
+  }, [editorNewModeName, ownerCollectionId, onRefresh, serverUrl]);
+
   const initialFieldsSnapshot = initialRef.current;
   const hasGeneratedValueChanges = useMemo(() => {
     if (!initialFieldsSnapshot) {
@@ -998,24 +967,42 @@ export function TokenEditor({
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}>
-            {tokenPath}
-          </div>
-          {isDirty && (
-            <span
-              className="shrink-0 px-1 py-px rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
-              title="Unsaved changes"
-              aria-label="Unsaved changes"
-            >
-              Unsaved
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="truncate font-mono text-[11px] text-[var(--color-figma-text)]" title={tokenPath}>
+              {tokenPath}
             </span>
-          )}
-        </div>
-      )}
-      {!isCreateMode && (
-        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-          in {ownerCollectionId}
+            {isDirty && (
+              <span
+                className="shrink-0 px-1 py-px rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]/30 leading-none"
+                title="Unsaved changes"
+                aria-label="Unsaved changes"
+              >
+                Unsaved
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="truncate text-[10px] text-[var(--color-figma-text-secondary)]">
+              in {ownerCollectionId}
+            </span>
+            <span className="relative inline-flex items-center shrink-0">
+              <select
+                value={tokenType}
+                onChange={(e) => handleTypeChange(e.target.value)}
+                title="Change token type"
+                className={`pr-4 pl-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
+                style={{ backgroundImage: "none" }}
+              >
+                {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={8} strokeWidth={2} className="pointer-events-none absolute right-1 opacity-60" aria-hidden />
+            </span>
+          </div>
         </div>
       )}
     </>
@@ -1071,24 +1058,6 @@ export function TokenEditor({
             />
           );
         })()}
-      {!isCreateMode && (
-        <span className="relative inline-flex items-center">
-          <select
-            value={tokenType}
-            onChange={(e) => handleTypeChange(e.target.value)}
-            title="Change token type"
-            className={`pr-4 pl-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
-            style={{ backgroundImage: "none" }}
-          >
-            {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={8} strokeWidth={2} className="pointer-events-none absolute right-1 opacity-60" aria-hidden />
-        </span>
-      )}
     </>
   );
 
@@ -1582,6 +1551,41 @@ export function TokenEditor({
                   </div>
                 </div>
               ))}
+              {addingEditorMode ? (
+                <div className="flex items-center gap-2 px-2.5 py-1.5">
+                  <input
+                    type="text"
+                    value={editorNewModeName}
+                    onChange={(e) => setEditorNewModeName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void handleAddEditorMode();
+                      if (e.key === "Escape") {
+                        setAddingEditorMode(false);
+                        setEditorNewModeName("");
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!editorNewModeName.trim()) {
+                        setAddingEditorMode(false);
+                        setEditorNewModeName("");
+                      }
+                    }}
+                    autoFocus
+                    disabled={editorAddModeSaving}
+                    placeholder="Mode name"
+                    className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingEditorMode(true)}
+                  className="flex w-full items-center gap-1 px-2.5 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+                >
+                  <Plus size={10} strokeWidth={2} aria-hidden />
+                  Add mode
+                </button>
+              )}
             </div>
           </div>
         ) : aliasMode ? (
@@ -1617,12 +1621,42 @@ export function TokenEditor({
           />
         )}
 
-        {!modeValue.hasMultipleModes && !aliasMode && (
-          <AddModeInline
-            serverUrl={serverUrl}
-            collectionId={ownerCollectionId}
-            onAdded={onRefresh}
-          />
+        {!modeValue.hasMultipleModes && canAddMode && (
+          addingEditorMode ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={editorNewModeName}
+                onChange={(e) => setEditorNewModeName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleAddEditorMode();
+                  if (e.key === "Escape") {
+                    setAddingEditorMode(false);
+                    setEditorNewModeName("");
+                  }
+                }}
+                onBlur={() => {
+                  if (!editorNewModeName.trim()) {
+                    setAddingEditorMode(false);
+                    setEditorNewModeName("");
+                  }
+                }}
+                autoFocus
+                disabled={editorAddModeSaving}
+                placeholder="Mode name"
+                className="w-32 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-[11px] text-[var(--color-figma-text)] outline-none"
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingEditorMode(true)}
+              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+            >
+              <Plus size={10} strokeWidth={2} aria-hidden />
+              Add mode
+            </button>
+          )
         )}
 
         {tokenType === "color" &&
@@ -1700,58 +1734,58 @@ export function TokenEditor({
           </div>
         )}
 
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            Description
+          </label>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Optional description"
+            rows={2}
+            className="min-h-[48px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            Lifecycle
+          </label>
+          <div className="flex gap-1">
+            {(["draft", "published", "deprecated"] as const).map((lc) => (
+              <button
+                key={lc}
+                type="button"
+                onClick={() => setLifecycle(lc)}
+                className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                  lifecycle === lc
+                    ? lc === "draft"
+                      ? "bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ring-1 ring-[var(--color-figma-warning)]/40"
+                      : lc === "deprecated"
+                        ? "bg-[var(--color-figma-text-tertiary)]/20 text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-text-tertiary)]/40"
+                        : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
+                    : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                }`}
+              >
+                {lc}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {lifecycle === "draft"
+              ? "Token is a work in progress and may change."
+              : lifecycle === "deprecated"
+                ? "Token is no longer recommended for use."
+                : "Token is stable and ready for production."}
+          </p>
+        </div>
+
         <Collapsible
           open={detailsOpen}
           onToggle={toggleDetails}
-          label={<span>Details</span>}
+          label={<span>Advanced</span>}
         >
           <div className="mt-2 flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Optional description"
-                rows={2}
-                className="min-h-[48px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
-                Lifecycle
-              </label>
-              <div className="flex gap-1">
-                {(["draft", "published", "deprecated"] as const).map((lc) => (
-                  <button
-                    key={lc}
-                    type="button"
-                    onClick={() => setLifecycle(lc)}
-                    className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                      lifecycle === lc
-                        ? lc === "draft"
-                          ? "bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ring-1 ring-[var(--color-figma-warning)]/40"
-                          : lc === "deprecated"
-                            ? "bg-[var(--color-figma-text-tertiary)]/20 text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-text-tertiary)]/40"
-                            : "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40"
-                        : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                    }`}
-                  >
-                    {lc}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                {lifecycle === "draft"
-                  ? "Token is a work in progress and may change."
-                  : lifecycle === "deprecated"
-                    ? "Token is no longer recommended for use."
-                    : "Token is stable and ready for production."}
-              </p>
-            </div>
-
             <details className="mt-1">
               <summary className="cursor-pointer text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
                 Developer metadata

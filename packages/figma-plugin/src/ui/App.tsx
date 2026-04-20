@@ -1381,7 +1381,7 @@ export function App() {
         setShowCommandPalette(true);
       },
       openPasteModal: () => setShowPasteModal(true),
-      openImportPanel: () => openSecondaryPanel("import"),
+      openImportPanel: () => navigateTo("tokens", "import"),
       openCollectionCreateDialog,
       openGeneratedPalette: () => {
         navigateTo("tokens", "tokens");
@@ -2031,7 +2031,7 @@ export function App() {
           initialBranch={startHereState.initialBranch}
           onClose={closeStartHere}
           onRetryConnection={retryConnection}
-          onImportFigma={() => openSecondaryPanel("import")}
+          onImportFigma={() => navigateTo("tokens", "import")}
           onPasteJSON={() => setShowPasteModal(true)}
           onGuidedSetupComplete={() => {
             closeStartHere();

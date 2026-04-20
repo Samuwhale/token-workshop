@@ -15,29 +15,15 @@ function resolveAlias(token: ImportToken, tokensByPath: Map<string, ImportToken>
   return String(target.$value);
 }
 
-function TokenRowWithAlias({ token, tokensByPath }: { token: ImportToken; tokensByPath: Map<string, ImportToken> }) {
-  const { selectedTokens, toggleToken } = useImportSourceContext();
-
+function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: Map<string, ImportToken> }) {
   const isAlias = typeof token.$value === 'string' && /^\{.+\}$/.test(token.$value);
   const aliasTarget = isAlias ? (token.$value as string).slice(1, -1) : null;
   const resolvedValue = isAlias ? resolveAlias(token, tokensByPath) : null;
   const isChained = resolvedValue !== null && resolvedValue !== aliasTarget;
-
-  // For color alias: resolved value may be a hex color
   const resolvedIsColor = resolvedValue !== null && /^#[0-9a-fA-F]{3,8}$/.test(resolvedValue);
 
   return (
-    <label
-      className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${
-        selectedTokens.has(token.path) ? 'bg-[var(--color-figma-accent)]/5' : 'hover:bg-[var(--color-figma-bg-hover)]'
-      }`}
-    >
-      <input
-        type="checkbox"
-        checked={selectedTokens.has(token.path)}
-        onChange={() => toggleToken(token.path)}
-        className="accent-[var(--color-figma-accent)]"
-      />
+    <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
       {token.$type === 'color' && typeof token.$value === 'string' && !isAlias && (
         <div
           className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
@@ -65,19 +51,18 @@ function TokenRowWithAlias({ token, tokensByPath }: { token: ImportToken; tokens
         )}
         {token._warning && (
           <div className="text-[10px] text-[var(--color-figma-warning,#e8a100)] truncate" title={token._warning}>
-            ⚠ {token._warning}
+            {token._warning}
           </div>
         )}
       </div>
       <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[token.$type ?? ''] ?? 'token-type-string'}`}>
         {token.$type}
       </span>
-    </label>
+    </div>
   );
 }
 
-// Re-export for use in test or direct imports if needed
-export { TokenRowWithAlias as TokenRow };
+export { TokenRow };
 
 export function ImportTokenListView() {
   const {
@@ -88,7 +73,6 @@ export function ImportTokenListView() {
     fileImportValidation,
     source,
     handleBack,
-    toggleAll,
     setTypeFilter,
   } = useImportSourceContext();
 
@@ -114,10 +98,9 @@ export function ImportTokenListView() {
 
   return (
     <>
-      {/* Back button */}
       <button
         onClick={handleBack}
-        className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors pb-1 border-b border-[var(--color-figma-border)]"
+        className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors self-start"
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 2L3 5l3 3" />
@@ -125,31 +108,23 @@ export function ImportTokenListView() {
         Back
       </button>
 
-      {/* Skipped count line */}
       {skippedCount > 0 && (
         <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
           <span className="text-[var(--color-figma-warning,#e8a100)]">{skippedCount} skipped</span> during parse
         </div>
       )}
 
-      {/* Path conflict warning */}
-      {tokens.some(t => t._warning?.startsWith('Path conflict')) && (
+      {tokens.some(t => t._warning?.startsWith('Duplicate path')) && (
         <div className="px-2 py-1 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 border border-[var(--color-figma-warning,#e8a100)]/30 text-[10px] text-[var(--color-figma-warning,#e8a100)]">
           Duplicate paths found — only the last per path will be saved.
         </div>
       )}
 
-      {/* Toolbar: select all + type filter + search */}
+      {/* Toolbar: count + type filter + search */}
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] cursor-pointer shrink-0">
-          <input
-            type="checkbox"
-            checked={selectedTokens.size === tokens.length && tokens.length > 0}
-            onChange={toggleAll}
-            className="accent-[var(--color-figma-accent)]"
-          />
-          {selectedTokens.size}/{tokens.length}
-        </label>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
+          {selectedTokens.size} token{selectedTokens.size !== 1 ? 's' : ''}
+        </span>
 
         {types.length > 1 && (
           <select
@@ -186,7 +161,7 @@ export function ImportTokenListView() {
           </div>
         ) : (
           filteredTokens.map(token => (
-            <TokenRowWithAlias key={token.path} token={token} tokensByPath={tokensByPath} />
+            <TokenRow key={token.path} token={token} tokensByPath={tokensByPath} />
           ))
         )}
       </div>

@@ -72,7 +72,6 @@ import type {
   TokensLibraryGeneratedGroupEditorTarget,
 } from "../shared/navigationTypes";
 import {
-  getImportResultNextStepRecommendations,
   getMostRelevantImportDestinationCollection,
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
@@ -1093,7 +1092,6 @@ export function PanelRouter({
     (
       result: ImportCompletionResult,
       recommendation: ImportNextStepRecommendation,
-      options?: { preserveSecondarySurface?: boolean },
     ) => {
       if (recommendation.target.kind !== "workspace") {
         return;
@@ -1105,16 +1103,9 @@ export function PanelRouter({
         setCurrentCollectionId(targetCollectionId);
       }
 
-      beginHandoff({
-        reason: recommendation.rationale,
-        returnSecondarySurfaceId: "import",
-      });
-      navigateTo(recommendation.target.topTab, recommendation.target.subTab, {
-        preserveSecondarySurface: options?.preserveSecondarySurface,
-        preserveHandoff: true,
-      });
+      navigateTo(recommendation.target.topTab, recommendation.target.subTab);
     },
-    [beginHandoff, navigateTo, setCurrentCollectionId],
+    [navigateTo, setCurrentCollectionId],
   );
 
   type SecondaryPanelRenderer = () => ReactNode;
@@ -1124,46 +1115,6 @@ export function PanelRouter({
   const SECONDARY_PANEL_MAP: Partial<
     Record<SecondarySurfaceId, SecondaryPanelRenderer>
   > = {
-    import: () => (
-      <ErrorBoundary panelName="Import" onReset={closeSecondarySurface}>
-        <div className="flex h-full min-h-0 flex-col overflow-hidden">
-          <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-            <h2 className="text-[11px] font-medium text-[var(--color-figma-text)]">
-              Import tokens
-            </h2>
-          </div>
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <ImportPanel
-              serverUrl={serverUrl}
-              connected={connected}
-              onImported={refreshTokens}
-              onImportComplete={(result) => {
-                controller.onImportComplete(result);
-                const nextWorkspaceStep = getImportResultNextStepRecommendations(
-                  result,
-                ).find(
-                  (recommendation) => recommendation.target.kind === "workspace",
-                );
-                if (nextWorkspaceStep) {
-                  openImportNextStep(result, nextWorkspaceStep, {
-                    preserveSecondarySurface: true,
-                  });
-                  return;
-                }
-
-                navigateTo("tokens", "tokens", {
-                  preserveSecondarySurface: true,
-                });
-              }}
-              onOpenImportNextStep={(result, recommendation) =>
-                openImportNextStep(result, recommendation)
-              }
-              onPushUndo={controller.pushUndo}
-            />
-          </div>
-        </div>
-      </ErrorBoundary>
-    ),
     shortcuts: () => <KeyboardShortcutsPanel />,
     settings: () => (
       <SettingsPanel
@@ -1267,6 +1218,27 @@ export function PanelRouter({
     );
   }
 
+  function renderImport(): ReactNode {
+    return (
+      <div className="h-full min-h-0 overflow-hidden">
+        <ErrorBoundary panelName="Import" onReset={() => navigateTo("tokens", "tokens")}>
+          <ImportPanel
+            serverUrl={serverUrl}
+            connected={connected}
+            onImported={refreshTokens}
+            onImportComplete={(result) => {
+              controller.onImportComplete(result);
+            }}
+            onOpenImportNextStep={(result, recommendation) =>
+              openImportNextStep(result, recommendation)
+            }
+            onPushUndo={controller.pushUndo}
+          />
+        </ErrorBoundary>
+      </div>
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Sub-tab panel routing — O(1) lookup, no repeated condition guards
   // ---------------------------------------------------------------------------
@@ -1276,6 +1248,7 @@ export function PanelRouter({
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     tokens: {
       tokens: renderDefineTokens,
+      import: renderImport,
       health: renderTokensHealth,
       history: renderTokensHistory,
     },

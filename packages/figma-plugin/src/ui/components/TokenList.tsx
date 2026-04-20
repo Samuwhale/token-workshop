@@ -252,9 +252,9 @@ export function TokenList({
   const activeCollections = useMemo(
     () =>
       collections.filter((collection) =>
-        activeCollectionIds.has(collection.id),
+        activeCollectionIds.has(collection.id) || collection.id === collectionId,
       ),
-    [activeCollectionIds, collections],
+    [activeCollectionIds, collections, collectionId],
   );
   const viewState = useTokenListViewState({
     collectionId,

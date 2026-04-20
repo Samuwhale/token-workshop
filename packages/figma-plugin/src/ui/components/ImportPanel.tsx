@@ -8,13 +8,11 @@ import {
   useImportSourceContext,
   type ImportPanelProps,
 } from './ImportPanelContext';
-import { ImportSourceSelector } from './ImportSourceSelector';
+import { ImportSourceHome } from './ImportSourceHome';
 import { ImportSuccessView } from './ImportSuccessView';
-import { ImportVariablesView } from './ImportVariablesView';
-import { ImportVariablesFooter } from './ImportVariablesFooter';
+import { ImportVariablesSummary } from './ImportVariablesSummary';
 import { ImportTokenListView } from './ImportTokenListView';
-import { ImportStylesFooter } from './ImportStylesFooter';
-import { ImportFileDestinationRules } from './ImportFileDestinationRules';
+import { ImportPreviewFooter } from './ImportPreviewFooter';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 
 function ImportPanelRoot({ connected }: { connected: boolean }) {
@@ -25,37 +23,22 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
     error,
     source,
     workflowStage,
-    handleDragEnter,
-    handleDragLeave,
-    handleDragOver,
-    handleDrop,
     handleBack,
   } = useImportSourceContext();
   const { usesCollectionDestination } = useImportDestinationContext();
   const { conflictPaths } = useImportReviewContext();
   const { successMessage, clearSuccessState } = useImportResultContext();
 
-  const showSuccess = collectionData.length === 0 && tokens.length === 0 && !loading && !!successMessage;
-  const showSourceSelector = !showSuccess && !loading && (workflowStage === 'family' || workflowStage === 'format');
-  const showDestinationRules = !showSuccess && !loading && workflowStage === 'destination' && !usesCollectionDestination && tokens.length > 0;
-  const showVariables = !showSuccess && !loading && workflowStage === 'destination' && usesCollectionDestination;
-  const showTokenList = !showSuccess && !loading && workflowStage === 'preview' && tokens.length > 0;
-  const intakeDragHandlers = showSourceSelector
-    ? {
-      onDragEnter: handleDragEnter,
-      onDragLeave: handleDragLeave,
-      onDragOver: handleDragOver,
-      onDrop: handleDrop,
-    }
-    : {};
+  const showSuccess = workflowStage === 'success' || (collectionData.length === 0 && tokens.length === 0 && !loading && !!successMessage);
+  const showHome = !showSuccess && !loading && workflowStage === 'home';
+  const showVariables = !showSuccess && !loading && workflowStage === 'preview' && usesCollectionDestination;
+  const showTokenList = !showSuccess && !loading && workflowStage === 'preview' && !usesCollectionDestination && tokens.length > 0;
 
-  // Escape key: go back from data views or dismiss success screen.
-  // Let ImportConflictResolver handle Escape when conflicts are active.
   const escapeRef = useRef<(() => void) | null>(null);
   escapeRef.current = null;
   if (showSuccess) {
     escapeRef.current = clearSuccessState;
-  } else if ((showVariables || showTokenList || showDestinationRules) && (!conflictPaths || conflictPaths.length === 0)) {
+  } else if ((showVariables || showTokenList) && (!conflictPaths || conflictPaths.length === 0)) {
     escapeRef.current = handleBack;
   }
 
@@ -78,10 +61,7 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
   }
 
   return (
-    <div
-      className="relative flex h-full min-h-0 flex-col overflow-hidden"
-      {...intakeDragHandlers}
-    >
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
         {error && (
           <FeedbackPlaceholder
@@ -92,7 +72,7 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
           />
         )}
 
-        {showSourceSelector && <ImportSourceSelector />}
+        {showHome && <ImportSourceHome />}
         {showSuccess && <ImportSuccessView />}
 
         {loading && (
@@ -106,13 +86,11 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
           </div>
         )}
 
-        {showVariables && <ImportVariablesView />}
-        {showDestinationRules && <ImportFileDestinationRules />}
+        {showVariables && <ImportVariablesSummary />}
         {showTokenList && <ImportTokenListView />}
       </div>
 
-      {showVariables && <div className="shrink-0"><ImportVariablesFooter /></div>}
-      {showTokenList && <div className="shrink-0"><ImportStylesFooter /></div>}
+      {showTokenList && <div className="shrink-0"><ImportPreviewFooter /></div>}
     </div>
   );
 }

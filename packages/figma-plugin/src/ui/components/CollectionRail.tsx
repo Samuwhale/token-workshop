@@ -176,22 +176,15 @@ export function CollectionRail({
           onClick={() => onSelectCollection(collectionId)}
           className="min-w-0 flex-1 px-2.5 py-1.5 text-left"
         >
-          <div className="flex items-center gap-2">
-            <span
-              className={`truncate text-[11px] font-medium ${
-                isActive
-                  ? "text-[var(--color-figma-text)]"
-                  : "text-[var(--color-figma-text-secondary)]"
-              }`}
-            >
-              {indented ? leafName(collectionId) : collectionId}
-            </span>
-            {isActive ? (
-              <span className="shrink-0 text-[10px] text-[var(--color-figma-accent)]">
-                Active
-              </span>
-            ) : null}
-          </div>
+          <span
+            className={`truncate text-[11px] font-medium ${
+              isActive
+                ? "text-[var(--color-figma-text)]"
+                : "text-[var(--color-figma-text-secondary)]"
+            }`}
+          >
+            {indented ? leafName(collectionId) : collectionId}
+          </span>
           <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
             {collectionTokenCounts[collectionId] ?? 0} token
             {(collectionTokenCounts[collectionId] ?? 0) === 1 ? "" : "s"}
@@ -223,9 +216,6 @@ export function CollectionRail({
             <h2 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
               Collections
             </h2>
-            <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-              Choose where you are editing tokens.
-            </p>
           </div>
           <button
             type="button"

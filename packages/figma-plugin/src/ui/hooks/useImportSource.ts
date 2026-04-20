@@ -96,7 +96,7 @@ function getParserLimitsForSource(source: FileImportSource | null): string[] {
 export function useImportSource({ onClearConflictState, onResetExistingPathsCache }: UseImportSourceParams) {
   const [source, setSource] = useState<'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio' | null>(null);
   const [sourceFamily, setSourceFamily] = useState<SourceFamily | null>(null);
-  const [workflowStage, setWorkflowStage] = useState<ImportWorkflowStage>('family');
+  const [workflowStage, setWorkflowStage] = useState<ImportWorkflowStage>('home');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tokens, setTokens] = useState<ImportToken[]>([]);
@@ -141,7 +141,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const resetImportFlow = useCallback(() => {
     resetLoadedImportState();
     setSourceFamily(null);
-    setWorkflowStage('family');
+    setWorkflowStage('home');
     setError(null);
     setFileImportValidation(null);
     onClearConflictState();
@@ -162,7 +162,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     }
     setError(null);
     setSourceFamily(family);
-    setWorkflowStage('format');
+    setWorkflowStage('home');
   }, [collectionData.length, onClearConflictState, resetLoadedImportState, source, sourceFamily, tokens.length]);
 
   const continueToPreview = useCallback(() => {
@@ -226,7 +226,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setModeCollectionNames(names);
         setModeEnabled(enabled);
         setSourceFamily('figma');
-        setWorkflowStage('destination');
+        setWorkflowStage('preview');
         setLoading(false);
       }
       if (msg.type === 'styles-read-error' && pendingSourceRef.current === 'styles' && msg.correlationId === correlationIdRef.current) {
@@ -245,7 +245,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setSelectedTokens(new Set((msg.tokens || []).map((t: ImportToken) => t.path)));
         setTypeFilter(null);
         setSourceFamily('figma');
-        setWorkflowStage('destination');
+        setWorkflowStage('preview');
         setLoading(false);
         onResetExistingPathsCache();
       }
@@ -320,7 +320,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     onResetExistingPathsCache();
     setCollectionData([]);
     setSourceFamily('migration');
-    setWorkflowStage('destination');
+    setWorkflowStage('preview');
     setSkippedEntries([]);
     setSkippedExpanded(false);
 
@@ -485,7 +485,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setError(null);
         setCollectionData([]);
         setSourceFamily('token-files');
-        setWorkflowStage('destination');
+        setWorkflowStage('preview');
         setSkippedEntries([]);
         setSkippedExpanded(false);
         onResetExistingPathsCache();
@@ -601,7 +601,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setError(null);
         setCollectionData([]);
         setSourceFamily('code');
-        setWorkflowStage('destination');
+        setWorkflowStage('preview');
         onResetExistingPathsCache();
         updateFileImportValidation({
           fileName: file.name,
@@ -711,7 +711,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setError(null);
         setCollectionData([]);
         setSourceFamily('code');
-        setWorkflowStage('destination');
+        setWorkflowStage('preview');
         onResetExistingPathsCache();
         updateFileImportValidation({
           fileName: file.name,
@@ -829,6 +829,18 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const handleReadTailwind = useCallback(() => { tailwindFileInputRef.current?.click(); }, []);
   const handleReadTokensStudio = useCallback(() => { tokensStudioFileInputRef.current?.click(); }, []);
 
+  const handleBrowseFile = useCallback(() => { fileInputRef.current?.click(); }, []);
+
+  const handleUnifiedFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.css')) { processCSSFile(file); return; }
+    if (/\.(js|ts|mjs|cjs)$/.test(name)) { processTailwindFile(file); return; }
+    processJsonFile(file);
+  }, [processCSSFile, processTailwindFile, processJsonFile]);
+
   const handleJsonFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -906,23 +918,10 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
 
   const handleBack = useCallback(() => {
     if (workflowStage === 'preview') {
-      onClearConflictState();
-      setWorkflowStage('destination');
-      return;
-    }
-    if (workflowStage === 'destination') {
       resetLoadedImportState();
       setError(null);
       onClearConflictState();
-      setWorkflowStage(sourceFamily ? 'format' : 'family');
-      return;
-    }
-    if (workflowStage === 'format') {
-      resetLoadedImportState();
-      setSourceFamily(null);
-      setError(null);
-      onClearConflictState();
-      setWorkflowStage('family');
+      setWorkflowStage('home');
       return;
     }
     resetImportFlow();
@@ -948,7 +947,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const resetAfterImport = useCallback(() => {
     resetLoadedImportState();
     setSourceFamily(null);
-    setWorkflowStage('family');
+    setWorkflowStage('home');
   }, [resetLoadedImportState]);
 
   return {
@@ -989,6 +988,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     handleReadCSS,
     handleReadTailwind,
     handleReadTokensStudio,
+    handleBrowseFile,
+    handleUnifiedFileChange,
     handleJsonFileChange,
     handleCSSFileChange,
     handleTailwindFileChange,

@@ -24,7 +24,7 @@ export interface CollectionData {
 
 export type ImportSource = 'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio';
 export type SourceFamily = 'figma' | 'token-files' | 'code' | 'migration';
-export type ImportWorkflowStage = 'family' | 'format' | 'destination' | 'preview';
+export type ImportWorkflowStage = 'home' | 'preview' | 'success';
 
 export interface ImportFamilyDefinition {
   family: SourceFamily;
@@ -211,12 +211,10 @@ export function markDuplicatePaths(importTokens: ImportToken[]): ImportToken[] {
 
 export function defaultCollectionName(
   collectionName: string,
-  modeName: string,
-  totalModes: number,
+  _modeName: string,
+  _totalModes: number,
 ): string {
-  const base = slugify(collectionName);
-  if (totalModes <= 1) return base;
-  return `${base}/${slugify(modeName)}`;
+  return slugify(collectionName);
 }
 
 export function modeKey(collectionName: string, modeId: string): string {

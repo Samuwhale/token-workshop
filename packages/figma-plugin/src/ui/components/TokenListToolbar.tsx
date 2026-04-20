@@ -219,6 +219,34 @@ export function TokenListToolbar({
                       </button>
                     </>
                   )}
+                  <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                  {onFoundationTemplates && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(onFoundationTemplates)}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      Templates
+                    </button>
+                  )}
+                  {onShowPasteModal && (
+                    <button
+                      role="menuitem"
+                      onClick={() => runCreateToolsAction(() => onShowPasteModal())}
+                      disabled={!connected}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Paste JSON
+                    </button>
+                  )}
+                  <button
+                    role="menuitem"
+                    onClick={() => runCreateToolsAction(openTableCreate)}
+                    disabled={!connected}
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Token table
+                  </button>
                 </div>
               )}
             </div>
@@ -235,102 +263,63 @@ export function TokenListToolbar({
               <FilterMenu {...overflowMenuProps} />
             )}
 
-            <div className="relative shrink-0">
-              <button
-                ref={actionsMenuButtonRef}
-                type="button"
-                onClick={toggleActionsMenu}
-                disabled={!connected}
-                aria-expanded={actionsMenuOpen}
-                aria-haspopup="menu"
-                aria-label="Actions"
-                className={`inline-flex h-[24px] w-[24px] items-center justify-center rounded transition-colors ${
-                  actionsMenuOpen
-                    ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                } disabled:cursor-not-allowed disabled:opacity-40`}
-                title="Actions"
-              >
-                <MoreVertical size={12} strokeWidth={2} aria-hidden />
-              </button>
-              {actionsMenuOpen && (
-                <div
-                  ref={actionsMenuRef}
-                  className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
-                  role="menu"
+            {(onSelectTokens || onBulkEdit || onFindReplace) && (
+              <div className="relative shrink-0">
+                <button
+                  ref={actionsMenuButtonRef}
+                  type="button"
+                  onClick={toggleActionsMenu}
+                  disabled={!connected}
+                  aria-expanded={actionsMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Edit actions"
+                  className={`inline-flex h-[24px] w-[24px] items-center justify-center rounded transition-colors ${
+                    actionsMenuOpen
+                      ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+                  title="Edit actions"
                 >
-                  {onOpenImportPanel && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runActionsAction(onOpenImportPanel)}
-                      disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Import
-                    </button>
-                  )}
-                  {onFoundationTemplates && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runActionsAction(onFoundationTemplates)}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                    >
-                      Templates
-                    </button>
-                  )}
-                  {onShowPasteModal && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runActionsAction(() => onShowPasteModal())}
-                      disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Paste JSON
-                    </button>
-                  )}
-                  {(onOpenImportPanel || onFoundationTemplates || onShowPasteModal) && (onSelectTokens || onBulkEdit || onFindReplace) && (
-                    <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  )}
-                  {onSelectTokens && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runActionsAction(onSelectTokens)}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                    >
-                      Select tokens
-                    </button>
-                  )}
-                  {onBulkEdit && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runActionsAction(onBulkEdit)}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
-                    >
-                      Bulk edit
-                    </button>
-                  )}
-                  {onFindReplace && (
-                    <button
-                      role="menuitem"
-                      onClick={() => runActionsAction(onFindReplace)}
-                      disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Find and replace
-                    </button>
-                  )}
-                  <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                  <button
-                    role="menuitem"
-                    onClick={() => runActionsAction(openTableCreate)}
-                    disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                  <MoreVertical size={12} strokeWidth={2} aria-hidden />
+                </button>
+                {actionsMenuOpen && (
+                  <div
+                    ref={actionsMenuRef}
+                    className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
+                    role="menu"
                   >
-                    Token table
-                  </button>
-                </div>
-              )}
-            </div>
+                    {onSelectTokens && (
+                      <button
+                        role="menuitem"
+                        onClick={() => runActionsAction(onSelectTokens)}
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                      >
+                        Select tokens
+                      </button>
+                    )}
+                    {onBulkEdit && (
+                      <button
+                        role="menuitem"
+                        onClick={() => runActionsAction(onBulkEdit)}
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)]"
+                      >
+                        Bulk edit
+                      </button>
+                    )}
+                    {onFindReplace && (
+                      <button
+                        role="menuitem"
+                        onClick={() => runActionsAction(onFindReplace)}
+                        disabled={!connected}
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Find and replace
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

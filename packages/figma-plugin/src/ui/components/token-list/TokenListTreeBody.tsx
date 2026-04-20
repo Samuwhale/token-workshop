@@ -283,16 +283,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           </span>
         )}
       </div>
-      {multiModeData.results.map((r, i) => (
+      {multiModeData.results.map((r) => (
         <ModeColumnHeader
           key={r.optionName}
           modeName={r.optionName}
-          collectionId={r.collectionId}
-          serverUrl={serverUrl}
-          connected={connected}
-          onMutated={() => onModeMutated?.()}
-          allModeNames={multiModeData.results.map((m) => m.optionName)}
-          modeIndex={i}
         />
       ))}
       {addingMode ? (
@@ -336,7 +330,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     </div>
   ) : null;
 
-  const singleModeAddHeader = !multiModeData && viewMode === "tree" && connected && addModeTargetId && collections.length > 0 && collections[0]?.modes?.length === 1 ? (
+  const addModeTargetCollection = collections.find((c) => c.id === addModeTargetId);
+  const singleModeAddHeader = !multiModeData && viewMode === "tree" && connected && addModeTargetId && addModeTargetCollection && addModeTargetCollection.modes.length <= 1 ? (
     <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
       {addingMode ? (
         <div className="flex items-center gap-1.5">
