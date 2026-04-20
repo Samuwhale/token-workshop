@@ -1782,7 +1782,7 @@ export const TokenLeafNode = memo(
                 aria-label="More token actions"
                 aria-haspopup="menu"
                 aria-expanded={!!contextMenuPos}
-                className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                className="p-2 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 <svg
                   width="12"

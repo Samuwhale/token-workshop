@@ -190,7 +190,8 @@ export function MultiModeCell({
       )}
       {!value ? (
         canCreate ? (
-          <span
+          <button
+            type="button"
             className={`text-[11px] text-[var(--color-figma-text-tertiary)] ${tokenType === "color" ? "cursor-pointer" : "cursor-text"} hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors`}
             onClick={(e) => {
               e.stopPropagation();
@@ -201,16 +202,19 @@ export function MultiModeCell({
                 setEditing(true);
               }
             }}
+            aria-label="Add mode value"
           >
             +
-          </span>
+          </button>
         ) : onEdit ? (
-          <span
+          <button
+            type="button"
             className="text-[11px] text-[var(--color-figma-text-tertiary)] cursor-pointer hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            aria-label="Add mode value"
           >
             +
-          </span>
+          </button>
         ) : (
           <span className="text-[11px] text-[var(--color-figma-text-tertiary)]">
             —

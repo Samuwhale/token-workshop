@@ -609,7 +609,7 @@ export const TokenGroupNode = memo(
                 onClick={(e) => { e.stopPropagation(); onCreateSibling?.(node.path, inferGroupTokenType(node.children)); }}
                 title="Add token to group"
                 aria-label="Add token to group"
-                className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                className="p-2 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
               </button>
@@ -623,7 +623,7 @@ export const TokenGroupNode = memo(
                 aria-label="Group actions"
                 aria-haspopup="menu"
                 aria-expanded={!!groupMenuPos}
-                className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                className="p-2 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
                 </button>

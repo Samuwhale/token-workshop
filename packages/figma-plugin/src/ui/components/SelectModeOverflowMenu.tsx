@@ -63,6 +63,7 @@ export function SelectModeOverflowMenu({
             : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
         }`}
         title="More actions"
+        aria-label="More actions"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="12" cy="5" r="2" />

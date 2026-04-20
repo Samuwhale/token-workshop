@@ -503,7 +503,7 @@ export function HeatmapPanel({
                 className="w-full text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
               />
               <datalist id="heatmap-quick-bind-tokens">
-                {tokenPaths.slice(0, 300).map(p => (
+                {tokenPaths.slice(0, 100).map(p => (
                   <option key={p} value={p} />
                 ))}
               </datalist>

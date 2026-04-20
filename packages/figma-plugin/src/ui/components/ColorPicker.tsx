@@ -747,7 +747,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               type="button"
               title={contrastBg ? `Background: ${contrastBg} (click to change)` : 'Pick a background color'}
               onClick={() => contrastBgInputRef.current?.click()}
-              className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer shrink-0 transition-colors"
+              className="w-6 h-6 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer shrink-0 transition-colors"
               style={{ backgroundColor: contrastBg || 'transparent', backgroundImage: contrastBg ? undefined : 'linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%)', backgroundSize: contrastBg ? undefined : '6px 6px', backgroundPosition: contrastBg ? undefined : '0 0, 3px 3px' }}
               aria-label="Select contrast background color"
             />
@@ -771,7 +771,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
             />
             {contrastBg && ratio !== null ? (
               <>
-                <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[8px] font-bold" style={{ color: hex6, backgroundColor: contrastBg }}>A</div>
+                <div className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[8px] font-bold" style={{ color: hex6, backgroundColor: contrastBg }}>A</div>
                 <span className="text-[10px] text-[var(--color-figma-text)] tabular-nums font-medium">{ratio.toFixed(1)}:1</span>
                 <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
                   level === 'AAA' ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]' :
@@ -817,7 +817,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                   title={swatchHex}
                   onClick={() => { if (i !== baseIndex) applyHarmonyColor(swatchHex); }}
                   aria-label={i === baseIndex ? `Current color ${swatchHex}` : `Apply ${label} harmony color ${swatchHex}`}
-                  className={`w-5 h-5 rounded border transition-colors ${
+                  className={`w-6 h-6 rounded border transition-colors ${
                     i === baseIndex
                       ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)] cursor-default'
                       : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer'
@@ -915,7 +915,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                   const hsl = hexToHsl(c);
                   if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); setAlpha(parseAlpha(c)); }
                 }}
-                className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors"
+                className="w-6 h-6 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors"
                 style={{ backgroundColor: c }}
                 aria-label={`Recent color ${c}`}
               />
@@ -957,7 +957,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                       const hsl = hexToHsl(t.hex);
                       if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); setAlpha(parseAlpha(t.hex)); }
                     }}
-                    className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors shrink-0"
+                    className="w-6 h-6 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors shrink-0"
                     style={{ backgroundColor: t.cssColor }}
                     aria-label={`Token ${t.path}: ${t.cssColor}`}
                   />
