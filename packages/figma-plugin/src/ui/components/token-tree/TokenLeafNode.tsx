@@ -2348,6 +2348,7 @@ export const TokenLeafNode = memo(
                   targetCollectionId={mv.targetCollectionId}
                   collectionId={mv.collectionId}
                   optionName={mv.optionName}
+                  modeCount={multiModeValues.length}
                   onSave={(
                     _path,
                     _type,

@@ -16,7 +16,7 @@ import { JsonEditorView } from "../JsonEditorView";
 import { TokenListFilteredEmptyState } from "./TokenListStates";
 import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
-import { MODE_COLUMN_WIDTH } from "../tokenListTypes";
+import { getModeColumnWidth } from "../tokenListTypes";
 import { apiFetch } from "../../shared/apiFetch";
 
 type VisibleTokenRow = {
@@ -287,10 +287,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         <ModeColumnHeader
           key={r.optionName}
           modeName={r.optionName}
+          modeCount={multiModeData.results.length}
         />
       ))}
       {addingMode ? (
-        <div className={`${MODE_COLUMN_WIDTH} shrink-0 px-1 py-0.5 border-l border-[var(--color-figma-border)]`}>
+        <div className={`${getModeColumnWidth(multiModeData.results.length)} shrink-0 px-1 py-0.5 border-l border-[var(--color-figma-border)]`}>
           <input
             type="text"
             value={newModeName}

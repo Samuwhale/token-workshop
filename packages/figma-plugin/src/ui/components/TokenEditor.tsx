@@ -16,6 +16,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { AliasPicker } from "./AliasPicker";
+import { AliasAutocomplete } from "./AliasAutocomplete";
 import { isAlias, extractAliasPath, buildResolutionChain } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
@@ -48,6 +49,7 @@ import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 
 import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS, buildTypographyPreviewStyle, getTypographyPreviewValue } from "./token-editor/tokenEditorHelpers";
+import { valueFormatHint } from "./tokenListHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
 import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
 import { TokenEditorInfoSection } from "./token-editor/TokenEditorInfoSection";
@@ -325,6 +327,10 @@ export function TokenEditor({
   const [addingEditorMode, setAddingEditorMode] = useState(false);
   const [editorNewModeName, setEditorNewModeName] = useState("");
   const [editorAddModeSaving, setEditorAddModeSaving] = useState(false);
+
+  const [perModeAlias, setPerModeAlias] = useState<Set<string>>(new Set());
+  const [perModeAliasQuery, setPerModeAliasQuery] = useState<Record<string, string>>({});
+  const [perModeAutocompleteOpen, setPerModeAutocompleteOpen] = useState<Set<string>>(new Set());
 
   const editorCollection = useMemo(
     () => collections.find((c) => c.id === ownerCollectionId),
@@ -878,6 +884,21 @@ export function TokenEditor({
       setReferenceOpen(true);
     }
   }, [hasReferenceValues]);
+
+  useEffect(() => {
+    if (loading || modeValue.modes.length < 2) return;
+    const aliasSet = new Set<string>();
+    const queries: Record<string, string> = {};
+    for (const mode of modeValue.modes) {
+      if (typeof mode.value === "string" && isAlias(mode.value)) {
+        aliasSet.add(mode.name);
+        queries[mode.name] = extractAliasPath(mode.value) ?? "";
+      }
+    }
+    setPerModeAlias(aliasSet);
+    setPerModeAliasQuery(queries);
+    setPerModeAutocompleteOpen(new Set());
+  }, [loading, tokenPath]);
 
   const rawJsonPreview = useMemo(() => {
     const extensions: Record<string, unknown> = {};
@@ -1553,6 +1574,11 @@ export function TokenEditor({
           referenceSection
         ) : (
           <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePaste}>
+            {modeValue.modes.length >= 2 && valueFormatHint(tokenType) && (
+              <span className="text-secondary text-[var(--color-figma-text-tertiary)] italic">
+                {valueFormatHint(tokenType)}
+              </span>
+            )}
             {modeValue.modes.length >= 2 ? (
               <div className="divide-y divide-[var(--color-figma-border)]/50 overflow-hidden rounded-md border border-[var(--color-figma-border)]/65">
                 {modeValue.modes.map((mode, modeIdx) => {
@@ -1572,6 +1598,7 @@ export function TokenEditor({
                     ? getTypographyPreviewValue(modeVal ?? "")
                     : null;
                   const isModeEmpty = modeVal === undefined || modeVal === null || modeVal === "";
+                  const isModeInAliasMode = perModeAlias.has(mode.name) || (typeof modeVal === "string" && isAlias(modeVal));
 
                   return (
                     <div key={mode.name} className={`group/mode flex flex-col${isModeEmpty ? " bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}>
@@ -1590,7 +1617,40 @@ export function TokenEditor({
                           >
                             {mode.name}
                           </span>
-                          {modeValue.modes.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPerModeAlias((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(mode.name)) {
+                                  next.delete(mode.name);
+                                  if (typeof modeVal === "string" && isAlias(modeVal)) {
+                                    mode.setValue("");
+                                  }
+                                } else {
+                                  next.add(mode.name);
+                                  setPerModeAliasQuery((prev) => ({
+                                    ...prev,
+                                    [mode.name]: typeof modeVal === "string" && isAlias(modeVal)
+                                      ? (extractAliasPath(modeVal) ?? "")
+                                      : "",
+                                  }));
+                                  setPerModeAutocompleteOpen((prev) => {
+                                    const next = new Set(prev);
+                                    next.add(mode.name);
+                                    return next;
+                                  });
+                                }
+                                return next;
+                              });
+                            }}
+                            className={`shrink-0 rounded p-0.5 transition-all ${isModeInAliasMode ? "text-[var(--color-figma-accent)]" : "opacity-30 group-hover/mode:opacity-100 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"} hover:bg-[var(--color-figma-bg-hover)]`}
+                            title={isModeInAliasMode ? "Switch to direct value" : "Switch to reference"}
+                            aria-label={isModeInAliasMode ? "Switch to direct value" : "Switch to reference"}
+                          >
+                            <Link2 size={10} strokeWidth={2} aria-hidden />
+                          </button>
+                          {modeValue.modes.length > 1 && !isModeInAliasMode && (
                             <button
                               type="button"
                               onClick={() => {
@@ -1604,7 +1664,7 @@ export function TokenEditor({
                                   );
                                 }
                               }}
-                              className="opacity-0 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                              className="opacity-30 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
                               title={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
                               aria-label={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
                             >
@@ -1613,19 +1673,80 @@ export function TokenEditor({
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <ModeValueEditor
-                            tokenType={tokenType}
-                            value={modeVal}
-                            onChange={mode.setValue}
-                            allTokensFlat={allTokensFlat}
-                            pathToCollectionId={pathToCollectionId}
-                            autoFocus={modeIdx === 0 && !isCreateMode}
-                            baseValue={baseVal}
-                            availableFonts={availableFonts}
-                            fontWeightsByFamily={fontWeightsByFamily}
-                            fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
-                            fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
-                          />
+                          {isModeInAliasMode ? (
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={perModeAliasQuery[mode.name] ?? (typeof modeVal === "string" && isAlias(modeVal) ? (extractAliasPath(modeVal) ?? "") : "")}
+                                onChange={(e) => {
+                                  const q = e.target.value;
+                                  setPerModeAliasQuery((prev) => ({ ...prev, [mode.name]: q }));
+                                  setPerModeAutocompleteOpen((prev) => {
+                                    const next = new Set(prev);
+                                    next.add(mode.name);
+                                    return next;
+                                  });
+                                }}
+                                onFocus={() => {
+                                  setPerModeAutocompleteOpen((prev) => {
+                                    const next = new Set(prev);
+                                    next.add(mode.name);
+                                    return next;
+                                  });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Escape") {
+                                    setPerModeAutocompleteOpen((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(mode.name);
+                                      return next;
+                                    });
+                                  }
+                                }}
+                                autoFocus={modeIdx === 0 && !isCreateMode}
+                                placeholder="Search tokens…"
+                                className="w-full font-mono border border-[var(--color-figma-border)] rounded px-2 py-0.5 text-body bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
+                              />
+                              {perModeAutocompleteOpen.has(mode.name) && (
+                                <AliasAutocomplete
+                                  query={perModeAliasQuery[mode.name] ?? ""}
+                                  allTokensFlat={allTokensFlat}
+                                  pathToCollectionId={pathToCollectionId}
+                                  filterType={tokenType}
+                                  onSelect={(path) => {
+                                    mode.setValue(`{${path}}`);
+                                    setPerModeAliasQuery((prev) => ({ ...prev, [mode.name]: path }));
+                                    setPerModeAutocompleteOpen((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(mode.name);
+                                      return next;
+                                    });
+                                  }}
+                                  onClose={() => {
+                                    setPerModeAutocompleteOpen((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(mode.name);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <ModeValueEditor
+                              tokenType={tokenType}
+                              value={modeVal}
+                              onChange={mode.setValue}
+                              allTokensFlat={allTokensFlat}
+                              pathToCollectionId={pathToCollectionId}
+                              autoFocus={modeIdx === 0 && !isCreateMode}
+                              baseValue={baseVal}
+                              availableFonts={availableFonts}
+                              fontWeightsByFamily={fontWeightsByFamily}
+                              fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
+                              fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
+                            />
+                          )}
                         </div>
                         {modeColorSwatch && (
                           <div

@@ -10,7 +10,7 @@ import {
   getEditableString,
   parseInlineValue,
 } from "../tokenListHelpers";
-import { INLINE_SIMPLE_TYPES, MODE_COLUMN_WIDTH } from "../tokenListTypes";
+import { INLINE_SIMPLE_TYPES, getModeColumnWidth } from "../tokenListTypes";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { useTokenTreeSharedData } from "../TokenTreeContext";
 
@@ -21,6 +21,7 @@ export function MultiModeCell({
   targetCollectionId,
   collectionId,
   optionName,
+  modeCount,
   onSave,
   isTabPending,
   onTabActivated,
@@ -33,6 +34,7 @@ export function MultiModeCell({
   targetCollectionId: string | null;
   collectionId: string;
   optionName: string;
+  modeCount: number;
   onSave?: (
     path: string,
     type: string,
@@ -158,7 +160,7 @@ export function MultiModeCell({
   return (
     <div
       ref={cellRef}
-      className={`${MODE_COLUMN_WIDTH} shrink-0 px-1 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}
+      className={`${getModeColumnWidth(modeCount)} shrink-0 px-1 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}
       title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}`}
     >
       {/* Hidden color input — rendered for existing color values or creatable empty color cells */}

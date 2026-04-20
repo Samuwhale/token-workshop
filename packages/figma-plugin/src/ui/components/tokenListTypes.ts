@@ -72,7 +72,13 @@ export const DEPTH_COLORS: readonly string[] = [
 // Mode column sizing
 // ---------------------------------------------------------------------------
 export const MODE_COLUMN_WIDTH = "w-[80px]";
+export const MODE_COLUMN_WIDTH_WIDE = "w-[100px]";
 export const MODE_COLUMN_WIDTH_PX = 80;
+export const MODE_COLUMN_WIDTH_WIDE_PX = 100;
+
+export function getModeColumnWidth(modeCount: number): string {
+  return modeCount === 2 ? MODE_COLUMN_WIDTH_WIDE : MODE_COLUMN_WIDTH;
+}
 
 // ---------------------------------------------------------------------------
 // Virtual scroll constants
