@@ -5,7 +5,7 @@ import type { TokenCollection } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { computeGeneratorImpacts, computeModeImpacts } from '../shared/tokenImpact';
-import type { GeneratorImpact, ModeImpact } from '../components/tokenListTypes';
+import type { RenameTokenConfirmState } from '../shared/tokenListModalTypes';
 
 export interface UseTokenRenameParams {
   connected: boolean;
@@ -36,14 +36,7 @@ export function useTokenRename({
   onSetOperationLoading,
   onError,
 }: UseTokenRenameParams) {
-  const [renameTokenConfirm, setRenameTokenConfirm] = useState<{
-    oldPath: string;
-    newPath: string;
-    depCount: number;
-    deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>;
-    generatorImpacts: GeneratorImpact[];
-    modeImpacts: ModeImpact[];
-  } | null>(null);
+  const [renameTokenConfirm, setRenameTokenConfirm] = useState<RenameTokenConfirmState | null>(null);
   const [pendingRenameToken, setPendingRenameToken] = useState<string | null>(null);
 
   const collectionIdRef = useRef(collectionId);

@@ -53,6 +53,12 @@ export function useServerEvents(
     // we must pass it explicitly as a query parameter.
     let lastEventId: string | null = null;
 
+    function closeEventSource() {
+      if (!es) return;
+      es.close();
+      es = null;
+    }
+
     function scheduleRefresh() {
       if (disposed || refreshTimer !== null) return;
       refreshTimer = setTimeout(() => {
@@ -63,6 +69,7 @@ export function useServerEvents(
 
     function connect() {
       if (disposed) return;
+      closeEventSource();
 
       const url = lastEventId
         ? `${serverUrl}/api/events?lastEventId=${encodeURIComponent(lastEventId)}`
@@ -136,8 +143,7 @@ export function useServerEvents(
         // EventSource moves to CLOSED when it gives up reconnecting.
         // In that state we must manually create a new instance.
         if (es && es.readyState === EventSource.CLOSED) {
-          es.close();
-          es = null;
+          closeEventSource();
           scheduleRetry();
         }
         // If readyState is CONNECTING, the browser is already retrying
@@ -146,7 +152,7 @@ export function useServerEvents(
     }
 
     function scheduleRetry() {
-      if (disposed) return;
+      if (disposed || retryTimer !== null) return;
       retryTimer = setTimeout(() => {
         retryTimer = null;
         connect();
@@ -160,7 +166,7 @@ export function useServerEvents(
       disposed = true;
       if (retryTimer !== null) clearTimeout(retryTimer);
       if (refreshTimer !== null) clearTimeout(refreshTimer);
-      if (es) es.close();
+      closeEventSource();
     };
   }, [serverUrl, connected]);
 }

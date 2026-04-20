@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { nodeParentPath } from '../components/tokenListUtils';
+import type { RenameGroupConfirmState } from '../shared/tokenListModalTypes';
 
 export interface UseGroupOperationsParams {
   connected: boolean;
@@ -26,12 +27,7 @@ export function useGroupOperations({
   onSetOperationLoading,
   onError,
 }: UseGroupOperationsParams) {
-  const [renameGroupConfirm, setRenameGroupConfirm] = useState<{
-    oldPath: string;
-    newPath: string;
-    depCount: number;
-    deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>;
-  } | null>(null);
+  const [renameGroupConfirm, setRenameGroupConfirm] = useState<RenameGroupConfirmState | null>(null);
 
   const [newGroupDialogParent, setNewGroupDialogParent] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState('');

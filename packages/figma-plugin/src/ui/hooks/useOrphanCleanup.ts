@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { OrphanVariableDeleteTarget } from '../../shared/types';
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 import { describeError } from '../shared/utils';
 
 interface UseOrphanCleanupParams {
@@ -23,30 +24,58 @@ export interface UseOrphanCleanupReturn {
   executeOrphanDeletion: () => Promise<void>;
 }
 
+interface OrphanDeletionResult {
+  count: number;
+  failures?: string[];
+}
+
+interface PendingOrphanDeletion {
+  resolve: (result: OrphanDeletionResult) => void;
+  reject: (error: Error) => void;
+  timeoutId: ReturnType<typeof setTimeout>;
+}
+
 export function useOrphanCleanup({
   collectionMap,
   onDeletionComplete,
   setReadinessError,
 }: UseOrphanCleanupParams): UseOrphanCleanupReturn {
   const [orphansDeleting, setOrphansDeleting] = useState(false);
-  const orphansPendingRef = useRef<Map<string, (result: { count: number; failures?: string[] }) => void>>(new Map());
+  const orphansPendingRef = useRef<Map<string, PendingOrphanDeletion>>(new Map());
   const [orphanConfirm, setOrphanConfirm] = useState<OrphanConfirmState | null>(null);
+
+  const clearPendingRequests = useCallback((reason: string) => {
+    for (const [correlationId, pending] of orphansPendingRef.current) {
+      clearTimeout(pending.timeoutId);
+      pending.reject(new Error(reason));
+      orphansPendingRef.current.delete(correlationId);
+    }
+  }, []);
 
   // ── Orphan deletion message handler ──
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{
+        type?: string;
+        correlationId?: string;
+        count?: number;
+        failures?: string[];
+      }>(ev);
       if (msg?.type === 'orphans-deleted' && msg.correlationId) {
-        const resolve = orphansPendingRef.current.get(msg.correlationId);
-        if (resolve) {
+        const pending = orphansPendingRef.current.get(msg.correlationId);
+        if (pending) {
           orphansPendingRef.current.delete(msg.correlationId);
-          resolve({ count: msg.count ?? 0, failures: msg.failures });
+          clearTimeout(pending.timeoutId);
+          pending.resolve({ count: msg.count ?? 0, failures: msg.failures });
         }
       }
     };
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+    return () => {
+      window.removeEventListener('message', handler);
+      clearPendingRequests('Orphan deletion listener disposed');
+    };
+  }, [clearPendingRequests]);
 
   const executeOrphanDeletion = useCallback(async () => {
     if (!orphanConfirm) return;
@@ -56,25 +85,34 @@ export function useOrphanCleanup({
     setReadinessError(null);
     // Clear any stale handlers from a previous invocation so a late plugin response
     // from an earlier timed-out attempt cannot interfere with this new run.
-    orphansPendingRef.current.clear();
+    clearPendingRequests('Orphan deletion restarted');
     const MAX_RETRIES = 2;
     const TIMEOUTS = [10000, 20000, 30000];
-    let deleteResult: { count: number; failures?: string[] } | null = null;
+    let deleteResult: OrphanDeletionResult | null = null;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        deleteResult = await new Promise<{ count: number; failures?: string[] }>((resolve, reject) => {
+        deleteResult = await new Promise<OrphanDeletionResult>((resolve, reject) => {
           const cid = `orphans-${Date.now()}-${Math.random()}`;
-          const timeout = setTimeout(() => { orphansPendingRef.current.delete(cid); reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
-          orphansPendingRef.current.set(cid, (result) => { clearTimeout(timeout); resolve(result); });
-          parent.postMessage({
-            pluginMessage: {
-              type: 'delete-orphan-variables',
-              knownPaths: [...localPaths],
-              collectionMap,
-              ...(targets && targets.length > 0 ? { targets } : {}),
-              correlationId: cid,
-            },
-          }, '*');
+          const timeoutId = setTimeout(() => {
+            orphansPendingRef.current.delete(cid);
+            reject(new Error('Timeout'));
+          }, TIMEOUTS[attempt]);
+          orphansPendingRef.current.set(cid, { resolve, reject, timeoutId });
+          const didPost = postPluginMessage({
+            type: 'delete-orphan-variables',
+            knownPaths: [...localPaths],
+            collectionMap,
+            ...(targets && targets.length > 0 ? { targets } : {}),
+            correlationId: cid,
+          });
+          if (!didPost) {
+            const pending = orphansPendingRef.current.get(cid);
+            orphansPendingRef.current.delete(cid);
+            if (pending) {
+              clearTimeout(pending.timeoutId);
+            }
+            reject(new Error('Plugin host is unavailable'));
+          }
         });
         break;
       } catch (err) {
@@ -97,7 +135,7 @@ export function useOrphanCleanup({
     } else {
       setReadinessError('Orphan deletion timed out after multiple attempts — the plugin did not respond. Click the button to try again.');
     }
-  }, [orphanConfirm, collectionMap, onDeletionComplete, setReadinessError]);
+  }, [orphanConfirm, collectionMap, onDeletionComplete, setReadinessError, clearPendingRequests]);
 
   return { orphansDeleting, orphanConfirm, setOrphanConfirm, executeOrphanDeletion };
 }

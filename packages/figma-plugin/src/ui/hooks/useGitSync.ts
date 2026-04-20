@@ -12,6 +12,11 @@ interface UseGitSyncOptions {
   connected: boolean;
 }
 
+function getConflictCount(result: Record<string, unknown>): number {
+  const conflicts = result.conflicts;
+  return Array.isArray(conflicts) ? conflicts.length : 0;
+}
+
 /** Generate a human-readable commit message from the list of changed files. */
 export function generateCommitMessage(changes: Array<{ file: string; status: string }>): string {
   const collectionId = (file: string) => file.replace(/\.tokens\.json$/, '').replace(/^.*\//, '');
@@ -106,12 +111,16 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
   }, [allChanges]);
 
   // Wrap doAction to handle pull-specific conflict & notification logic
-  const doAction = useCallback(async (action: string, body?: any) => {
+  const doAction = useCallback(async (action: string, body?: unknown) => {
     try {
       const result = await doActionRaw(action, body);
-      if (action === 'pull' && result.conflicts && result.conflicts.length > 0) {
+      if (result === null) {
+        return;
+      }
+      const conflictCount = getConflictCount(result);
+      if (action === 'pull' && conflictCount > 0) {
         await fetchConflicts();
-        dispatchToast(`Pull completed with ${result.conflicts.length} conflict(s)`, 'success');
+        dispatchToast(`Pull completed with ${conflictCount} conflict(s)`, 'success');
       } else {
         dispatchToast(`Git ${action} completed`, 'success');
       }

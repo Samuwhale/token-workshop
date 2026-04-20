@@ -137,14 +137,14 @@ export function useTokenListViewState({
 
   // --- Multi-mode column view ---
   const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(
-    () => lsGet("tm_multi_mode") === "1",
+    () => lsGet(STORAGE_KEYS.MULTI_MODE) === "1",
   );
   const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
 
   const toggleMultiMode = useCallback(() => {
     setMultiModeEnabled((prev) => {
       const next = !prev;
-      lsSet("tm_multi_mode", next ? "1" : "0");
+      lsSet(STORAGE_KEYS.MULTI_MODE, next ? "1" : "0");
       return next;
     });
   }, []);
@@ -160,23 +160,6 @@ export function useTokenListViewState({
       setMultiModeDimId(collections[0].id);
     }
   }, [collections, multiModeDimId, multiModeEnabled]);
-
-  // --- Mode lens (show mode-resolved values instead of base values) ---
-  const [modeLensEnabled, setModeLensEnabledState] = useState<boolean>(
-    () => lsGet("tm_mode_lens") === "1",
-  );
-
-  const setModeLensEnabled = useCallback(
-    (v: boolean | ((current: boolean) => boolean)) => {
-      setModeLensEnabledState((current) => {
-        const next = typeof v === "function" ? v(current) : v;
-        lsSet("tm_mode_lens", next ? "1" : "0");
-        dispatchTokenListViewChanged(collectionId);
-        return next;
-      });
-    },
-    [collectionId],
-  );
 
   return {
     showRecentlyTouched,
@@ -200,7 +183,5 @@ export function useTokenListViewState({
     multiModeDimId,
     setMultiModeDimId,
     toggleMultiMode,
-    modeLensEnabled,
-    setModeLensEnabled,
   };
 }

@@ -10,7 +10,7 @@ import type {
   VariableSyncToken,
 } from '../../shared/types';
 import { apiFetch, createFetchSignal } from './apiFetch';
-import { stableStringify } from './utils';
+import { coerceBooleanValue, stableStringify } from './utils';
 import type {
   WorkflowStageIndicatorItem,
   WorkflowStageTone,
@@ -119,6 +119,12 @@ export interface PublishSyncEntry extends SyncEntry {
   token?: DTCGToken;
 }
 
+export interface VariableCompareToken {
+  path: string;
+  $type: string;
+  $value: unknown;
+}
+
 export interface SyncDiffConfig<TLocal, TFigma, TRow extends DiffRowBase> {
   buildFigmaMap: (tokens: unknown[]) => Map<string, TFigma>;
   buildLocalMap: (tokens: Map<string, DTCGToken>) => Map<string, TLocal>;
@@ -211,12 +217,22 @@ function scopesEqual(a: string[] | undefined, b: string[] | undefined): boolean 
 
 function withOptionalTimeout<T>(promise: Promise<T>, timeoutMs?: number, timeoutMessage?: string): Promise<T> {
   if (!timeoutMs) return promise;
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(timeoutMessage ?? `Timed out after ${timeoutMs} ms.`)), timeoutMs);
-    }),
-  ]);
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(timeoutMessage ?? `Timed out after ${timeoutMs} ms.`));
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      },
+    );
+  });
 }
 
 function summarizeStyleValue(value: unknown, type: string): string {
@@ -525,6 +541,80 @@ export function selectVariableCollectionTokens(
   const desiredCollectionName = collectionMap[currentCollectionId] ?? DEFAULT_VARIABLE_COLLECTION_NAME;
   const desiredModeName = modeMap[currentCollectionId];
   return selectVariableModeTokens(collections, desiredCollectionName, desiredModeName);
+}
+
+function normalizeVariableComparableValue(
+  value: unknown,
+  type: string,
+): unknown {
+  switch (type) {
+    case 'dimension': {
+      const raw =
+        value !== null &&
+        typeof value === 'object' &&
+        'value' in value
+          ? (value as { value: unknown }).value
+          : value;
+      if (typeof raw === 'number') {
+        return raw;
+      }
+      const parsed = Number.parseFloat(String(raw));
+      return Number.isNaN(parsed) ? raw : parsed;
+    }
+    case 'number':
+    case 'fontWeight':
+    case 'lineHeight':
+    case 'letterSpacing':
+    case 'percentage': {
+      if (typeof value === 'number') {
+        return value;
+      }
+      const parsed = Number.parseFloat(String(value));
+      return Number.isNaN(parsed) ? value : parsed;
+    }
+    case 'boolean':
+      return coerceBooleanValue(value);
+    case 'string':
+    case 'fontFamily':
+      return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '');
+    default:
+      return value;
+  }
+}
+
+export function summarizeVariableDiff(
+  localTokens: VariableCompareToken[],
+  figmaTokens: ReadVariableToken[],
+): { added: number; modified: number; unchanged: number } {
+  const figmaValueByPath = new Map(
+    figmaTokens.map((token) => [
+      token.path,
+      stableStringify(
+        normalizeVariableComparableValue(token.reference ?? token.$value, token.$type),
+      ),
+    ]),
+  );
+
+  let added = 0;
+  let modified = 0;
+  let unchanged = 0;
+
+  for (const token of localTokens) {
+    const localValue = stableStringify(
+      normalizeVariableComparableValue(token.$value, token.$type),
+    );
+    const figmaValue = figmaValueByPath.get(token.path);
+
+    if (figmaValue === undefined) {
+      added += 1;
+    } else if (figmaValue === localValue) {
+      unchanged += 1;
+    } else {
+      modified += 1;
+    }
+  }
+
+  return { added, modified, unchanged };
 }
 
 export function buildVariablePublishFigmaMap(

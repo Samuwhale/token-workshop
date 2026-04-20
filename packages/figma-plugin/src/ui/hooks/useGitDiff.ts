@@ -8,13 +8,21 @@ interface UseGitDiffOptions {
   setGitError: (v: string | null) => void;
 }
 
+type DiffChoice = 'push' | 'pull' | 'skip';
+
+export interface DiffView {
+  localOnly: string[];
+  remoteOnly: string[];
+  conflicts: string[];
+}
+
 export interface TokenChange {
   path: string;
   collectionId: string;
   type: string;
   status: 'added' | 'modified' | 'removed';
-  before?: any;
-  after?: any;
+  before?: unknown;
+  after?: unknown;
 }
 
 export interface GitPreviewCommit {
@@ -35,8 +43,8 @@ interface ServerTokenChange {
   collectionId: string;
   type: string;
   status: "added" | "modified" | "removed";
-  before?: any;
-  after?: any;
+  before?: unknown;
+  after?: unknown;
 }
 
 interface ServerGitPreview {
@@ -58,10 +66,10 @@ interface ApplyDiffResponse {
 }
 
 export interface UseGitDiffReturn {
-  diffView: { localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null;
+  diffView: DiffView | null;
   diffLoading: boolean;
-  diffChoices: Record<string, 'push' | 'pull' | 'skip'>;
-  setDiffChoices: Dispatch<SetStateAction<Record<string, 'push' | 'pull' | 'skip'>>>;
+  diffChoices: Record<string, DiffChoice>;
+  setDiffChoices: Dispatch<SetStateAction<Record<string, DiffChoice>>>;
   applyingDiff: boolean;
   tokenPreview: TokenChange[] | null;
   tokenPreviewLoading: boolean;
@@ -84,9 +92,9 @@ export function useGitDiff({
   fetchStatus,
   setGitError,
 }: UseGitDiffOptions): UseGitDiffReturn {
-  const [diffView, setDiffView] = useState<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null>(null);
+  const [diffView, setDiffView] = useState<DiffView | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
-  const [diffChoices, setDiffChoices] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
+  const [diffChoices, setDiffChoices] = useState<Record<string, DiffChoice>>({});
   const [applyingDiff, setApplyingDiff] = useState(false);
   const [tokenPreview, setTokenPreview] = useState<TokenChange[] | null>(null);
   const [tokenPreviewLoading, setTokenPreviewLoading] = useState(false);
@@ -95,12 +103,18 @@ export function useGitDiff({
   const [pullPreview, setPullPreview] = useState<GitPreview | null>(null);
   const [pullPreviewLoading, setPullPreviewLoading] = useState(false);
 
-  const unmountRef = useRef<AbortController>(new AbortController());
-  // Create a fresh controller on each mount so remounts don't inherit a permanently-aborted signal.
-  useEffect(() => {
-    unmountRef.current = new AbortController();
-    const controller = unmountRef.current;
-    return () => controller.abort();
+  const diffAbortRef = useRef<AbortController | null>(null);
+  const applyAbortRef = useRef<AbortController | null>(null);
+  const tokenPreviewAbortRef = useRef<AbortController | null>(null);
+  const pushPreviewAbortRef = useRef<AbortController | null>(null);
+  const pullPreviewAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    diffAbortRef.current?.abort();
+    applyAbortRef.current?.abort();
+    tokenPreviewAbortRef.current?.abort();
+    pushPreviewAbortRef.current?.abort();
+    pullPreviewAbortRef.current?.abort();
   }, []);
 
   const mapServerChange = useCallback(
@@ -116,25 +130,34 @@ export function useGitDiff({
   );
 
   const computeDiff = useCallback(async () => {
+    diffAbortRef.current?.abort();
+    const controller = new AbortController();
+    diffAbortRef.current = controller;
+    const { signal } = controller;
     setDiffLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] }>(`${serverUrl}/api/sync/diff`, { signal: unmountRef.current.signal });
+      const data = await apiFetch<DiffView>(`${serverUrl}/api/sync/diff`, { signal });
+      if (signal.aborted) return;
       setDiffView(data);
-      const choices: Record<string, 'push' | 'pull' | 'skip'> = {};
+      const choices: Record<string, DiffChoice> = {};
       for (const f of data.localOnly) choices[f] = 'push';
       for (const f of data.remoteOnly) choices[f] = 'pull';
       for (const f of data.conflicts) choices[f] = 'skip';
       setDiffChoices(choices);
     } catch (err) {
-      if (isAbortError(err)) return;
+      if (isAbortError(err) || signal.aborted) return;
       setGitError(describeError(err, 'Compute diff'));
     } finally {
-      if (!unmountRef.current.signal.aborted) setDiffLoading(false);
+      if (!signal.aborted) setDiffLoading(false);
     }
   }, [serverUrl, setGitError]);
 
   const applyDiff = useCallback(async () => {
+    applyAbortRef.current?.abort();
+    const controller = new AbortController();
+    applyAbortRef.current = controller;
+    const { signal } = controller;
     setApplyingDiff(true);
     setGitError(null);
     try {
@@ -142,7 +165,9 @@ export function useGitDiff({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choices: diffChoices }),
+        signal,
       });
+      if (signal.aborted) return;
       const errors: string[] = [];
       if (result.pullFailedFiles.length > 0) {
         errors.push(`Failed to pull ${result.pullFailedFiles.length} file(s): ${result.pullFailedFiles.join(', ')}`);
@@ -159,29 +184,37 @@ export function useGitDiff({
       if (errors.length > 0) {
         setGitError(errors.join('; '));
         // Refresh the diff view to reflect what was actually applied vs what remains
-        computeDiff();
+        await computeDiff();
       } else {
         setDiffView(null);
-        fetchStatus();
+        await fetchStatus();
       }
     } catch (err) {
+      if (isAbortError(err) || signal.aborted) return;
       setGitError(describeError(err, 'Apply diff'));
     } finally {
-      setApplyingDiff(false);
+      if (!signal.aborted) {
+        setApplyingDiff(false);
+      }
     }
   }, [serverUrl, diffChoices, fetchStatus, setGitError, computeDiff]);
 
   const fetchTokenPreview = useCallback(async () => {
+    tokenPreviewAbortRef.current?.abort();
+    const controller = new AbortController();
+    tokenPreviewAbortRef.current = controller;
+    const { signal } = controller;
     setTokenPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<{ changes: ServerTokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`, { signal: unmountRef.current.signal });
+      const data = await apiFetch<{ changes: ServerTokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`, { signal });
+      if (signal.aborted) return;
       setTokenPreview((data.changes ?? []).map(mapServerChange));
     } catch (err) {
-      if (isAbortError(err)) return;
+      if (isAbortError(err) || signal.aborted) return;
       setGitError(describeError(err, 'Token preview'));
     } finally {
-      if (!unmountRef.current.signal.aborted) setTokenPreviewLoading(false);
+      if (!signal.aborted) setTokenPreviewLoading(false);
     }
   }, [mapServerChange, serverUrl, setGitError]);
 
@@ -190,19 +223,24 @@ export function useGitDiff({
   }, []);
 
   const fetchPushPreview = useCallback(async () => {
+    pushPreviewAbortRef.current?.abort();
+    const controller = new AbortController();
+    pushPreviewAbortRef.current = controller;
+    const { signal } = controller;
     setPushPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<ServerGitPreview>(`${serverUrl}/api/sync/push/preview`, { signal: unmountRef.current.signal });
+      const data = await apiFetch<ServerGitPreview>(`${serverUrl}/api/sync/push/preview`, { signal });
+      if (signal.aborted) return;
       setPushPreview({
         ...data,
         changes: (data.changes ?? []).map(mapServerChange),
       });
     } catch (err) {
-      if (isAbortError(err)) return;
+      if (isAbortError(err) || signal.aborted) return;
       setGitError(describeError(err, 'Push preview'));
     } finally {
-      if (!unmountRef.current.signal.aborted) setPushPreviewLoading(false);
+      if (!signal.aborted) setPushPreviewLoading(false);
     }
   }, [mapServerChange, serverUrl, setGitError]);
 
@@ -211,19 +249,24 @@ export function useGitDiff({
   }, []);
 
   const fetchPullPreview = useCallback(async () => {
+    pullPreviewAbortRef.current?.abort();
+    const controller = new AbortController();
+    pullPreviewAbortRef.current = controller;
+    const { signal } = controller;
     setPullPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<ServerGitPreview>(`${serverUrl}/api/sync/pull/preview`, { signal: unmountRef.current.signal });
+      const data = await apiFetch<ServerGitPreview>(`${serverUrl}/api/sync/pull/preview`, { signal });
+      if (signal.aborted) return;
       setPullPreview({
         ...data,
         changes: (data.changes ?? []).map(mapServerChange),
       });
     } catch (err) {
-      if (isAbortError(err)) return;
+      if (isAbortError(err) || signal.aborted) return;
       setGitError(describeError(err, 'Pull preview'));
     } finally {
-      if (!unmountRef.current.signal.aborted) setPullPreviewLoading(false);
+      if (!signal.aborted) setPullPreviewLoading(false);
     }
   }, [mapServerChange, serverUrl, setGitError]);
 

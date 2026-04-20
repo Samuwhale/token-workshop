@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { getTokenLifecycle } from '@tokenmanager/core';
-import type { OrphanVariableDeleteTarget } from '../../shared/types';
+import type { OrphanVariableDeleteTarget, VariableSyncToken } from '../../shared/types';
+import { postPluginMessage } from '../../shared/utils';
 import { describeError } from '../shared/utils';
-import { lsGet, lsSet } from '../shared/storage';
+import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import {
   getSyncRowsByCategory,
   getDiffRowId,
@@ -17,8 +18,6 @@ import type {
 } from '../shared/syncWorkflow';
 import type { ValidationSnapshot } from './useValidationCache';
 import type { OrphanConfirmState } from './useOrphanCleanup';
-
-export const LAST_READINESS_CHANGE_KEY = 'tm_readiness_change_key';
 
 const READINESS_TIMEOUT_MS = 15_000;
 const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
@@ -360,7 +359,7 @@ export function useReadinessChecks({
       const runKey = tokenChangeKey ?? 0;
       setChecksRunAtKey(runKey);
       setChecksStale(false);
-      lsSet(LAST_READINESS_CHANGE_KEY, String(runKey));
+      lsSet(STORAGE_KEYS.READINESS_CHANGE_KEY, String(runKey));
     } catch (err) {
       setReadinessError(describeError(err, 'Readiness checks'));
     } finally {
@@ -400,13 +399,13 @@ export function useReadinessChecks({
           resolverName,
           resolverPublishMappings,
         );
-        const tokens = getSyncRowsByCategory(snapshot.rows).localOnly.map((row) => {
+        const tokens: VariableSyncToken[] = getSyncRowsByCategory(snapshot.rows).localOnly.map((row) => {
           const local = snapshot.localMap.get(getDiffRowId(row));
           const scopes = local?.scopes;
           return {
             path: row.path,
             $type: row.localType ?? local?.type ?? 'string',
-            $value: row.localRaw ?? local?.raw ?? '',
+            $value: (row.localRaw ?? local?.raw ?? '') as VariableSyncToken['$value'],
             $extensions: scopes?.length ? { 'com.figma.scopes': scopes } : undefined,
             collectionId: currentCollectionId,
           };
@@ -414,7 +413,9 @@ export function useReadinessChecks({
 
         if (tokens.length === 0) return;
 
-        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
+        if (!postPluginMessage({ type: 'apply-variables', tokens, collectionMap, modeMap })) {
+          setReadinessError('Could not reach the Figma plugin host.');
+        }
         return;
       }
 
@@ -477,7 +478,7 @@ export function useReadinessChecks({
     if (restoredReadinessRef.current) return;
     if (!connected || !currentCollectionId || tokenChangeKey === undefined) return;
     restoredReadinessRef.current = true;
-    const stored = lsGet(LAST_READINESS_CHANGE_KEY);
+    const stored = lsGet(STORAGE_KEYS.READINESS_CHANGE_KEY);
     if (stored !== null && tokenChangeKey > parseInt(stored, 10)) {
       runReadinessChecksRef.current();
     }

@@ -461,8 +461,6 @@ export interface TokenTreeLeafStateContextType {
   modeVariantPaths?: Set<string>;
   /** Per-token missing mode value count — tokenPath → number of missing mode values */
   tokenModeMissing?: Map<string, number>;
-  /** When true, the token list is showing collection-mode-resolved values instead of base values */
-  modeLensEnabled?: boolean;
 }
 
 export interface TokenTreeLeafActionsContextType {

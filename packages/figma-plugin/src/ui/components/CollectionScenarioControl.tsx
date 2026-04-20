@@ -41,6 +41,11 @@ export function CollectionScenarioControl({
   const [deletingViewId, setDeletingViewId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const multiModeCollections = useMemo(
+    () => collections.filter((c) => c.modes.length > 1),
+    [collections],
+  );
+
   const refreshViews = useCallback(async () => {
     if (!connected) {
       setViews([]);
@@ -108,7 +113,7 @@ export function CollectionScenarioControl({
     ? activeView.name
     : Object.keys(normalizedSelections).length > 0
       ? buildSelectionLabel(collections, normalizedSelections)
-      : "Base values";
+      : "Default";
 
   const handleSaveView = async () => {
     if (!connected) {
@@ -169,7 +174,7 @@ export function CollectionScenarioControl({
         onClick={() => setOpen((value) => !value)}
         className="flex items-center gap-1 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
       >
-        <span className="text-[var(--color-figma-text-tertiary)]">View</span>
+        <span className="text-[var(--color-figma-text-tertiary)]">Mode</span>
         <span className="max-w-[180px] truncate font-medium text-[var(--color-figma-text)]">
           {currentLabel}
         </span>
@@ -186,70 +191,61 @@ export function CollectionScenarioControl({
 
       {open ? (
         <div className="absolute left-0 top-full z-50 mt-1 w-[320px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
-          <div className="pb-3">
+          <div className="flex items-center justify-between pb-3">
             <h3 className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-              View
+              Active modes
             </h3>
-            <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-              Choose how token values are currently resolved.
-            </p>
+            {Object.keys(normalizedSelections).length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSelectedModes({})}
+                className="text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+              >
+                Reset
+              </button>
+            ) : null}
           </div>
 
-          <div className="space-y-2 border-t border-[var(--color-figma-border)] py-3">
-            <button
-              type="button"
-              onClick={() => setSelectedModes({})}
-              className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[11px] transition-colors ${
-                Object.keys(normalizedSelections).length === 0
-                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                  : "hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-              }`}
-            >
-              <span className="font-medium">Base values</span>
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                No mode overrides
-              </span>
-            </button>
-            {collections.map((collection) => (
-              <div key={collection.id} className="rounded-md border border-[var(--color-figma-border)] p-2.5">
-                <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                      {collection.id}
-                    </div>
-                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                      Edit scenario
-                    </div>
-                  </div>
+          {multiModeCollections.length === 0 ? (
+            <p className="py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+              No collections with multiple modes.
+            </p>
+          ) : (
+            <div className="space-y-2 border-t border-[var(--color-figma-border)] py-3">
+              {multiModeCollections.map((collection) => (
+                <div key={collection.id} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-figma-text)]">
+                    {collection.id}
+                  </span>
+                  <select
+                    value={normalizedSelections[collection.id] ?? ""}
+                    onChange={(event) => {
+                      const nextSelections = { ...normalizedSelections };
+                      if (event.target.value) {
+                        nextSelections[collection.id] = event.target.value;
+                      } else {
+                        delete nextSelections[collection.id];
+                      }
+                      setSelectedModes(nextSelections);
+                    }}
+                    className="w-[120px] shrink-0 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                  >
+                    <option value="">Default</option>
+                    {collection.modes.map((mode) => (
+                      <option key={mode.name} value={mode.name}>
+                        {mode.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <select
-                  value={normalizedSelections[collection.id] ?? ""}
-                  onChange={(event) => {
-                    const nextSelections = { ...normalizedSelections };
-                    if (event.target.value) {
-                      nextSelections[collection.id] = event.target.value;
-                    } else {
-                      delete nextSelections[collection.id];
-                    }
-                    setSelectedModes(nextSelections);
-                  }}
-                  className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                >
-                  <option value="">Base value</option>
-                  {collection.modes.map((mode) => (
-                    <option key={mode.name} value={mode.name}>
-                      {mode.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-2 border-t border-[var(--color-figma-border)] pt-3">
             <div className="flex items-center justify-between gap-2">
               <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
-                Saved views
+                Saved presets
               </h4>
               {viewsLoading ? (
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -282,7 +278,7 @@ export function CollectionScenarioControl({
             ) : null}
             {views.length === 0 && !viewsLoading ? (
               <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                No saved views yet.
+                No saved presets yet.
               </p>
             ) : null}
             <div className="max-h-[220px] space-y-1 overflow-y-auto">

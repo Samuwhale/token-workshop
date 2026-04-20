@@ -94,10 +94,20 @@ export function useFigmaMessage<
           reject(new Error('Figma message timed out \u2014 is the plugin running?'));
         }, timeout);
         pendingRef.current.set(cid, { resolve, reject, timer });
-        host.postMessage(
-          { pluginMessage: { type: sendType, correlationId: cid, ...payload } },
-          '*',
-        );
+        try {
+          host.postMessage(
+            { pluginMessage: { type: sendType, correlationId: cid, ...payload } },
+            '*',
+          );
+        } catch (error) {
+          pendingRef.current.delete(cid);
+          clearTimeout(timer);
+          reject(
+            error instanceof Error
+              ? error
+              : new Error('Failed to post message to the plugin host'),
+          );
+        }
       });
     },
     [timeout],

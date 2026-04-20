@@ -13,8 +13,10 @@ import type { ReactNode } from 'react';
 import { useServerConnection } from '../hooks/useServerConnection';
 import { fetchAllTokensFlat } from '../hooks/useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 import { isNetworkError } from '../shared/apiFetch';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 import type { SyncCompleteMessage } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
@@ -71,7 +73,10 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<
+        | { type: 'sync-progress'; processed: number; total: number }
+        | SyncCompleteMessage
+      >(e);
       if (!msg) return;
       if (msg.type === 'sync-progress') {
         setProgress({ processed: msg.processed, total: msg.total });
@@ -99,14 +104,18 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const tokenMap = resolveAllAliases(rawMap);
-      parent.postMessage({ pluginMessage: { type: 'sync-bindings', tokenMap, scope } }, '*');
+      if (!postPluginMessage({ type: 'sync-bindings', tokenMap, scope })) {
+        throw new Error('Figma plugin host is unavailable');
+      }
     } catch (err) {
       console.error('Failed to fetch tokens for sync:', err);
       const isNetworkErr = isNetworkError(err);
       if (isNetworkErr) onNetworkError?.();
       const friendly = isNetworkErr
         ? 'Could not reach the token server. Check that it is running.'
-        : 'Could not load tokens. Restart the server and try again.';
+        : err instanceof Error && err.message === 'Figma plugin host is unavailable'
+          ? 'Could not reach the Figma plugin host.'
+          : 'Could not load tokens. Restart the server and try again.';
       setSyncError(friendly);
       syncingRef.current = false;
       setSyncing(false);
@@ -149,17 +158,22 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       try {
         const data = await apiFetch<{ status?: { isClean?: boolean } }>(
           `${serverUrl}/api/sync/status`,
-          { signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]) },
+          { signal: createFetchSignal(getDisconnectSignal()) },
         );
         if (!cancelled) setGitHasChanges(data.status != null && !data.status.isClean);
       } catch (err) {
+        if (isAbortError(err)) return;
+        if (isNetworkError(err)) {
+          markDisconnected();
+          return;
+        }
         console.warn('[ConnectionProvider] git status check failed:', err);
       }
     };
     check();
     const interval = setInterval(check, 30_000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [connected, serverUrl, getDisconnectSignal]);
+  }, [connected, serverUrl, getDisconnectSignal, markDisconnected]);
 
   const connectionValue = useMemo<ConnectionContextValue>(
     () => ({

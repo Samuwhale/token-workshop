@@ -75,15 +75,19 @@ function getParentPage(node: BaseNode | null): PageNode | null {
   return null;
 }
 
+function isSceneNode(node: BaseNode | null): node is SceneNode {
+  return Boolean(node && 'visible' in node);
+}
+
 function getSelectableSceneNode(node: BaseNode | null): { node: SceneNode; page: PageNode } | null {
-  if (!node || !('parent' in node)) {
+  if (!isSceneNode(node)) {
     return null;
   }
   const page = getParentPage(node);
   if (!page) {
     return null;
   }
-  return { node: node as SceneNode, page };
+  return { node, page };
 }
 
 async function setCurrentPageIfNeeded(page: PageNode): Promise<void> {
@@ -231,7 +235,11 @@ function readHeatmapTokenValue(node: SceneNode, property: BindableProperty): Res
 }
 
 // Scan visual nodes for token/variable binding coverage
-export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { aborted: boolean }) {
+export async function scanCanvasHeatmap(
+  scope: ScanScope = 'page',
+  signal?: { aborted: boolean },
+  requestId?: string,
+) {
   // Abort if the user navigates to a different page mid-scan (only relevant for
   // page/selection scopes where figma.currentPage is captured at scan start).
   let pageChangeHandler: (() => void) | null = null;
@@ -264,7 +272,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
     }
 
     if (signal?.aborted) {
-      figma.ui.postMessage({ type: 'canvas-heatmap-cancelled' });
+      figma.ui.postMessage({ type: 'canvas-heatmap-cancelled', requestId });
       return;
     }
 
@@ -284,7 +292,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
 
     for (let i = 0; i < nodes.length; i++) {
       if (signal?.aborted) {
-        figma.ui.postMessage({ type: 'canvas-heatmap-cancelled' });
+        figma.ui.postMessage({ type: 'canvas-heatmap-cancelled', requestId });
         return;
       }
 
@@ -338,6 +346,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
       if ((i + 1) % BATCH_SIZE === 0) {
         figma.ui.postMessage({
           type: 'canvas-heatmap-progress',
+          requestId,
           processed: i + 1,
           total: nodes.length,
         });
@@ -347,6 +356,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
 
     figma.ui.postMessage({
       type: 'canvas-heatmap-result',
+      requestId,
       total: nodes.length,
       green: greenCount,
       yellow: yellowCount,
@@ -354,7 +364,7 @@ export async function scanCanvasHeatmap(scope: ScanScope = 'page', signal?: { ab
       nodes: result.slice(0, 300),
     });
   } catch (error) {
-    figma.ui.postMessage({ type: 'canvas-heatmap-error', error: String(error) });
+    figma.ui.postMessage({ type: 'canvas-heatmap-error', requestId, error: String(error) });
   } finally {
     if (pageChangeHandler) figma.off('currentpagechange', pageChangeHandler);
   }

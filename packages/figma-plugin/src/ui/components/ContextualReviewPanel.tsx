@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { TokenMapEntry } from "../../shared/types";
 import type { PromoteRow } from "./tokenListTypes";
+import type { VariableDiffPendingState } from "../shared/tokenListModalTypes";
 import { ValuePreview } from "./ValuePreview";
 import { NoticeFieldMessage } from "../shared/noticeSystem";
 
@@ -83,7 +84,7 @@ export function VariableDiffReviewPanel({
   onApply,
   onClose,
 }: {
-  pending: { added: number; modified: number; unchanged: number; flat: any[] };
+  pending: VariableDiffPendingState;
   onApply: () => void;
   onClose: () => void;
 }) {
@@ -288,6 +289,8 @@ export function RelocateTokenReviewPanel({
   const isMove = mode === "move";
   const confirmLabel =
     conflict && conflictAction === "skip" ? "Skip" : isMove ? "Move" : "Copy";
+  const renameConflicts = conflictAction === "rename" && Boolean(conflict);
+  const showConflictSection = Boolean(conflict) || conflictAction === "rename";
 
   return (
     <ContextualReviewPanel
@@ -308,7 +311,10 @@ export function RelocateTokenReviewPanel({
             onClick={onConfirm}
             disabled={
               !targetCollectionId ||
-              (conflictAction === "rename" && !conflictNewPath.trim())
+              (conflictAction === "rename" &&
+                (!conflictNewPath.trim() ||
+                  conflictNewPath.trim() === tokenPath ||
+                  renameConflicts))
             }
             className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
@@ -349,38 +355,46 @@ export function RelocateTokenReviewPanel({
           </select>
         </div>
 
-        {conflict ? (
+        {showConflictSection ? (
           <div className="space-y-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
-            <NoticeFieldMessage severity="warning" className="font-medium">
-              Conflict: a token already exists at this path in {targetCollectionId}
-            </NoticeFieldMessage>
-            <div className="grid grid-cols-2 gap-2 text-[10px]">
-              <div>
-                <div className="text-[var(--color-figma-text-secondary)]">
-                  Existing
+            {conflict ? (
+              <>
+                <NoticeFieldMessage severity="warning" className="font-medium">
+                  Conflict: a token already exists at this path in {targetCollectionId}
+                </NoticeFieldMessage>
+                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  <div>
+                    <div className="text-[var(--color-figma-text-secondary)]">
+                      Existing
+                    </div>
+                    <div className="mt-1">
+                      <ValuePreview value={conflict.$value} type={conflict.$type} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[var(--color-figma-text-secondary)]">
+                      Incoming
+                    </div>
+                    <div className="mt-1">
+                      {sourceToken ? (
+                        <ValuePreview
+                          value={sourceToken.$value}
+                          type={sourceToken.$type}
+                        />
+                      ) : (
+                        <span className="text-[var(--color-figma-text-secondary)]">
+                          —
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-1">
-                  <ValuePreview value={conflict.$value} type={conflict.$type} />
-                </div>
-              </div>
-              <div>
-                <div className="text-[var(--color-figma-text-secondary)]">
-                  Incoming
-                </div>
-                <div className="mt-1">
-                  {sourceToken ? (
-                    <ValuePreview
-                      value={sourceToken.$value}
-                      type={sourceToken.$type}
-                    />
-                  ) : (
-                    <span className="text-[var(--color-figma-text-secondary)]">
-                      —
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+              </>
+            ) : (
+              <NoticeFieldMessage severity="info" className="font-medium">
+                Rename will create the token at a new path in {targetCollectionId}.
+              </NoticeFieldMessage>
+            )}
             <div className="flex gap-1">
               {(["overwrite", "skip", "rename"] as const).map((action) => (
                 <button
@@ -411,6 +425,16 @@ export function RelocateTokenReviewPanel({
                   placeholder="e.g. color.primary.new"
                   className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                 />
+                {conflictNewPath.trim() === tokenPath ? (
+                  <NoticeFieldMessage severity="warning">
+                    Enter a different path to avoid reusing the original name.
+                  </NoticeFieldMessage>
+                ) : null}
+                {renameConflicts ? (
+                  <NoticeFieldMessage severity="warning">
+                    That renamed path already exists in {targetCollectionId}.
+                  </NoticeFieldMessage>
+                ) : null}
               </div>
             ) : null}
           </div>

@@ -25,6 +25,7 @@ export interface UseTokenRelocateParams {
 export interface UseTokenRelocateReturn {
   relocatingToken: string | null;
   setRelocatingToken: (v: string | null) => void;
+  dismiss: () => void;
   targetCollectionId: string;
   setTargetCollectionId: (v: string) => void;
   sourceCollectionId: string;
@@ -59,10 +60,25 @@ export function useTokenRelocate({
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
+  const dismiss = useCallback(() => {
+    setRelocatingToken(null);
+    setTargetCollectionId('');
+    setSourceCollectionId('');
+    setConflictAction('overwrite');
+    setConflictNewPath('');
+  }, []);
+
+  const effectiveTargetPath = useMemo(() => {
+    if (!relocatingToken) return '';
+    if (conflictAction !== 'rename') return relocatingToken;
+    const trimmedPath = conflictNewPath.trim();
+    return trimmedPath || relocatingToken;
+  }, [conflictAction, conflictNewPath, relocatingToken]);
+
   const conflict = useMemo<TokenMapEntry | null>(() => {
-    if (!relocatingToken || !targetCollectionId) return null;
-    return perCollectionFlat?.[targetCollectionId]?.[relocatingToken] ?? null;
-  }, [relocatingToken, targetCollectionId, perCollectionFlat]);
+    if (!targetCollectionId || !effectiveTargetPath) return null;
+    return perCollectionFlat?.[targetCollectionId]?.[effectiveTargetPath] ?? null;
+  }, [effectiveTargetPath, targetCollectionId, perCollectionFlat]);
 
   const handleRequest = useCallback((tokenPath: string) => {
     const otherCollectionIds = collectionIds.filter(s => s !== collectionId);
@@ -84,16 +100,20 @@ export function useTokenRelocate({
 
   const handleConfirm = useCallback(async () => {
     if (!relocatingToken || !targetCollectionId || !connected) {
-      setRelocatingToken(null);
+      dismiss();
       return;
     }
     if (conflictAction === 'skip') {
-      setRelocatingToken(null);
+      dismiss();
       return;
     }
     const trimmedTargetPath = conflictNewPath.trim();
     if (conflictAction === 'rename' && (!trimmedTargetPath || trimmedTargetPath === relocatingToken)) {
       onError?.('Choose a different target path.');
+      return;
+    }
+    if (conflictAction === 'rename' && conflict) {
+      onError?.('Choose a path that does not already exist in the target collection.');
       return;
     }
     const targetPath = conflictAction === 'rename' ? trimmedTargetPath : relocatingToken;
@@ -118,14 +138,15 @@ export function useTokenRelocate({
     if (mode === 'move') {
       onMovePath?.(relocatingToken, targetPath, sourceCollectionId, targetCollectionId);
     }
-    setRelocatingToken(null);
+    dismiss();
     onRefresh();
     if (mode === 'move') onSetOperationLoading?.(null);
-  }, [mode, relocatingToken, targetCollectionId, sourceCollectionId, conflictAction, conflictNewPath, connected, onRefresh, onMovePath, onSetOperationLoading, onError]);
+  }, [mode, relocatingToken, targetCollectionId, sourceCollectionId, conflictAction, conflictNewPath, connected, conflict, onRefresh, onMovePath, onSetOperationLoading, onError, dismiss]);
 
   return {
     relocatingToken,
     setRelocatingToken,
+    dismiss,
     targetCollectionId,
     setTargetCollectionId,
     sourceCollectionId,

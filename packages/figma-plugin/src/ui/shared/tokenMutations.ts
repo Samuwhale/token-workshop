@@ -51,10 +51,6 @@ export function normalizeTokenMutationType(type: string | null | undefined): str
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-export function normalizeTokenMutationValue<T>(value: T): T {
-  return value;
-}
-
 export function normalizeTokenScopes(
   scopes?: readonly string[] | null,
   defaultScopes?: readonly string[] | null,
@@ -90,7 +86,7 @@ export function createTokenValueBody({
 }: TokenValueDraftInput): TokenMutationBody {
   return createTokenBody({
     $type: normalizeTokenMutationType(type),
-    $value: normalizeTokenMutationValue(value),
+    $value: value,
     $description: description,
     $extensions: createTokenExtensions({ extensions, scopes, defaultScopes }),
   });

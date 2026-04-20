@@ -13,6 +13,7 @@ export function useDropdownMenu(options?: UseDropdownMenuOptions) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const focusFrameRef = useRef<number | null>(null);
   const onClose = options?.onClose;
 
   const close = useCallback((closeOptions?: CloseMenuOptions) => {
@@ -44,10 +45,15 @@ export function useDropdownMenu(options?: UseDropdownMenuOptions) {
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKeyDown);
     // Auto-focus first menu item
-    requestAnimationFrame(() => {
+    focusFrameRef.current = requestAnimationFrame(() => {
+      focusFrameRef.current = null;
       if (menuRef.current) getMenuItems(menuRef.current)[0]?.focus();
     });
     return () => {
+      if (focusFrameRef.current !== null) {
+        cancelAnimationFrame(focusFrameRef.current);
+        focusFrameRef.current = null;
+      }
       document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onKeyDown);
     };

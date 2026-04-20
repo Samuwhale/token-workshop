@@ -1,25 +1,58 @@
 import { useCallback, type MutableRefObject } from "react";
+import type { TokenReference, TokenValue } from "@tokenmanager/core";
 import type { TokenNode } from "../../hooks/useTokens";
-import type { TokenMapEntry } from "../../../shared/types";
+import type {
+  ApplyVariablesErrorMessage,
+  TokenMapEntry,
+  VariablesAppliedMessage,
+  VariablesReadMessage,
+} from "../../../shared/types";
 import type { VariableDiffPendingState } from "../../shared/tokenListModalTypes";
 import {
   isAlias,
   extractAliasPath,
   resolveTokenValue,
 } from "../../../shared/resolveAlias";
+import {
+  selectVariableCollectionTokens,
+  summarizeVariableDiff,
+} from "../../shared/syncWorkflow";
 import { getErrorMessage } from "../../shared/utils";
 import { dispatchToast } from "../../shared/toastBus";
+import {
+  getPluginMessageFromEvent,
+  postPluginMessage,
+} from "../../../shared/utils";
 
-function flattenTokens(nodes: TokenNode[], collectionId: string): any[] {
-  const result: any[] = [];
+type VariablePreviewToken = Pick<
+  VariableDiffPendingState["flat"][number],
+  "path" | "$type" | "$value" | "collectionId" | "$extensions" | "$scopes"
+>;
+
+type RawVariablePreviewToken = Omit<VariablePreviewToken, "$value"> & {
+  $value: TokenValue | TokenReference;
+};
+
+type PendingVariableRead = {
+  resolve: (collections: VariablesReadMessage["collections"]) => void;
+  reject: (error: Error) => void;
+};
+
+function flattenTokens(
+  nodes: TokenNode[],
+  collectionId: string,
+): RawVariablePreviewToken[] {
+  const result: RawVariablePreviewToken[] = [];
   const walk = (list: TokenNode[]) => {
     for (const node of list) {
-      if (!node.isGroup) {
+      if (!node.isGroup && node.$type && node.$value !== undefined) {
         result.push({
           path: node.path,
           $type: node.$type,
           $value: node.$value,
           collectionId,
+          $extensions: node.$extensions,
+          $scopes: node.$scopes,
         });
       }
       if (node.children) walk(node.children);
@@ -30,13 +63,16 @@ function flattenTokens(nodes: TokenNode[], collectionId: string): any[] {
 }
 
 function resolveFlat(
-  flat: any[],
+  flat: RawVariablePreviewToken[],
   allTokensFlat: Record<string, TokenMapEntry>,
-): any[] {
+): VariablePreviewToken[] {
   return flat.map((t) => {
     if (t.$type === "gradient" && Array.isArray(t.$value)) {
-      const resolvedStops = t.$value.map(
-        (stop: { color: string; position: number }) => {
+      const gradientStops = t.$value as unknown as Array<{
+        color: string;
+        position: number;
+      }>;
+      const resolvedStops = gradientStops.map((stop) => {
           if (isAlias(stop.color)) {
             const refPath = extractAliasPath(stop.color)!;
             const refEntry = allTokensFlat[refPath];
@@ -46,12 +82,17 @@ function resolveFlat(
                 refEntry.$type,
                 allTokensFlat,
               );
-              return { ...stop, color: inner.value ?? refEntry.$value };
+              const resolvedColor =
+                typeof inner.value === "string"
+                  ? inner.value
+                  : typeof refEntry.$value === "string"
+                    ? refEntry.$value
+                    : stop.color;
+              return { ...stop, color: resolvedColor };
             }
           }
           return stop;
-        },
-      );
+        });
       return { ...t, $value: resolvedStops };
     }
     const resolved = resolveTokenValue(t.$value, t.$type, allTokensFlat);
@@ -69,10 +110,7 @@ interface ApplyOperationsConfig {
   collectionId: string;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
-  varReadPendingRef: MutableRefObject<
-    Map<string, (tokens: any[]) => void>
-  >;
-  onRefresh: () => void;
+  varReadPendingRef: MutableRefObject<Map<string, PendingVariableRead>>;
   onError?: (msg: string) => void;
   setApplying: (v: boolean) => void;
   setVarDiffLoading: (v: boolean) => void;
@@ -80,7 +118,7 @@ interface ApplyOperationsConfig {
   closeLongLivedReviewSurfaces: () => void;
   sendStyleApply: (
     type: string,
-    payload: { tokens: any[] },
+    payload: { tokens: VariablePreviewToken[] },
   ) => Promise<{
     count: number;
     total: number;
@@ -106,21 +144,98 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
   } = config;
 
   const doApplyVariables = useCallback(
-    (flat: any[]) => {
-      parent.postMessage(
-        {
-          pluginMessage: {
-            type: "apply-variables",
-            tokens: flat,
-            collectionMap,
-            modeMap,
-          },
-        },
-        "*",
-      );
-      dispatchToast(`Applied ${flat.length} variables`, "success");
+    (flat: VariableDiffPendingState["flat"]) => {
+      void (async () => {
+        const correlationId = `tl-apply-vars-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        setApplying(true);
+
+        try {
+          const result = await new Promise<VariablesAppliedMessage>(
+            (resolve, reject) => {
+              let timeoutId = 0;
+
+              const cleanup = () => {
+                window.clearTimeout(timeoutId);
+                window.removeEventListener("message", handleMessage);
+              };
+
+              const handleMessage = (event: MessageEvent) => {
+                const msg = getPluginMessageFromEvent<
+                  VariablesAppliedMessage | ApplyVariablesErrorMessage
+                >(event);
+                if (!msg || msg.correlationId !== correlationId) {
+                  return;
+                }
+
+                cleanup();
+
+                if (msg.type === "variables-applied") {
+                  resolve(msg);
+                  return;
+                }
+
+                reject(
+                  new Error(msg.error || "Failed to apply Figma variables"),
+                );
+              };
+
+              timeoutId = window.setTimeout(() => {
+                cleanup();
+                reject(new Error("Timed out applying Figma variables"));
+              }, 30000);
+
+              window.addEventListener("message", handleMessage);
+
+              if (
+                !postPluginMessage({
+                  type: "apply-variables",
+                  tokens: flat,
+                  collectionMap,
+                  modeMap,
+                  correlationId,
+                })
+              ) {
+                cleanup();
+                reject(new Error("Figma plugin host unavailable"));
+              }
+            },
+          );
+
+          const total = result.total ?? flat.length;
+          const skippedCount = result.skipped?.length ?? 0;
+
+          if ((result.failures?.length ?? 0) > 0) {
+            const failedPaths = result.failures!.map((failure) => failure.path).join(", ");
+            const skippedNote =
+              skippedCount > 0
+                ? ` ${skippedCount} skipped (unsupported type).`
+                : "";
+            dispatchToast(
+              `${result.count}/${total} variables synced with issues.`,
+              "warning",
+            );
+            onError?.(
+              `${result.count}/${total} variables synced. Failed: ${failedPaths}.${skippedNote}`,
+            );
+            return;
+          }
+
+          dispatchToast(
+            `${result.count} variable${result.count !== 1 ? "s" : ""} synced${
+              skippedCount > 0
+                ? ` · ${skippedCount} skipped (unsupported type)`
+                : ""
+            }`,
+            "success",
+          );
+        } catch (err) {
+          onError?.(getErrorMessage(err, "Failed to apply variables"));
+        } finally {
+          setApplying(false);
+        }
+      })();
     },
-    [collectionMap, modeMap],
+    [collectionMap, modeMap, onError, setApplying],
   );
 
   const handleApplyVariables = useCallback(async () => {
@@ -128,36 +243,41 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     const flat = resolveFlat(
       flattenTokens(tokens, collectionId),
       allTokensFlat,
-    ).map((t: any) => ({ ...t, collectionId }));
+    ).map((token) => ({ ...token, collectionId }));
     setVarDiffLoading(true);
     try {
-      const figmaTokens: any[] = await new Promise((resolve, reject) => {
-        const cid = `tl-vars-${Date.now()}-${Math.random()}`;
-        const timeout = setTimeout(() => {
-          varReadPendingRef.current.delete(cid);
-          reject(new Error("timeout"));
-        }, 8000);
-        varReadPendingRef.current.set(cid, (toks) => {
-          clearTimeout(timeout);
-          resolve(toks);
-        });
-        parent.postMessage(
-          { pluginMessage: { type: "read-variables", correlationId: cid } },
-          "*",
-        );
-      });
-      const figmaMap = new Map(
-        figmaTokens.map((t: any) => [t.path, String(t.$value ?? "")]),
+      const figmaCollections = await new Promise<VariablesReadMessage["collections"]>(
+        (resolve, reject) => {
+          const cid = `tl-vars-${Date.now()}-${Math.random()}`;
+          const timeout = setTimeout(() => {
+            varReadPendingRef.current.delete(cid);
+            reject(new Error("Timed out reading Figma variables"));
+          }, 8000);
+          varReadPendingRef.current.set(cid, {
+            resolve: (collections) => {
+              clearTimeout(timeout);
+              resolve(collections);
+            },
+            reject: (error) => {
+              clearTimeout(timeout);
+              reject(error);
+            },
+          });
+          if (!postPluginMessage({ type: "read-variables", correlationId: cid })) {
+            clearTimeout(timeout);
+            varReadPendingRef.current.delete(cid);
+            reject(new Error("Figma plugin host unavailable"));
+          }
+        },
       );
-      let added = 0,
-        modified = 0,
-        unchanged = 0;
-      for (const t of flat) {
-        if (!figmaMap.has(t.path)) added++;
-        else if (figmaMap.get(t.path) !== String(t.$value ?? "")) modified++;
-        else unchanged++;
-      }
-      setVarDiffPending({ added, modified, unchanged, flat });
+      const figmaTokens = selectVariableCollectionTokens(
+        figmaCollections,
+        collectionId,
+        collectionMap,
+        modeMap,
+      );
+      const summary = summarizeVariableDiff(flat, figmaTokens);
+      setVarDiffPending({ ...summary, flat });
     } catch (err) {
       console.warn("[TokenList] Figma variable diff failed:", err);
       setVarDiffPending({
@@ -166,6 +286,9 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
         unchanged: 0,
         flat,
       });
+      onError?.(
+        "Could not compare against current Figma variables. Review is using local tokens only.",
+      );
     } finally {
       setVarDiffLoading(false);
     }
@@ -174,9 +297,12 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     tokens,
     allTokensFlat,
     collectionId,
+    collectionMap,
+    modeMap,
     setVarDiffLoading,
     setVarDiffPending,
     varReadPendingRef,
+    onError,
   ]);
 
   const handleApplyStyles = useCallback(async () => {

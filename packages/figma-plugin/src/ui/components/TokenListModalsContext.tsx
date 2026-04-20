@@ -1,8 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
-import type { TokenListModalsProps } from './TokenListModals';
-
-export type TokenListModalsState = TokenListModalsProps;
+import type { TokenListModalsState } from '../shared/tokenListModalTypes';
 
 const TokenListModalsContext = createContext<TokenListModalsState | null>(null);
 
@@ -25,4 +23,3 @@ export function useTokenListModals(): TokenListModalsState {
   if (!ctx) throw new Error('useTokenListModals must be used within TokenListModalsProvider');
   return ctx;
 }
-

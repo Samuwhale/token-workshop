@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiFetch, ApiError, isNetworkError } from '../shared/apiFetch';
+import { apiFetch, ApiError, createFetchSignal, isNetworkError } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 import type { UndoSlot } from './useUndo';
 
@@ -46,7 +46,7 @@ export function useCollectionDelete({
         `${serverUrl}/api/collections/${encodeURIComponent(deletingCollectionId)}`,
         {
           method: 'DELETE',
-          signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
+          signal: createFetchSignal(getDisconnectSignal()),
         },
       );
       const wasActive = currentCollectionId === deletingCollectionId;

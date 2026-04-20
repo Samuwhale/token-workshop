@@ -1,10 +1,10 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import type { SortOrder } from "./tokenListTypes";
 import type { Density } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 
-export type LibraryViewMode = "library" | "mode-options" | "active-mode" | "json";
+export type LibraryViewMode = "values" | "all-modes";
 
 export interface ViewMenuProps {
   sortOrder: SortOrder;
@@ -12,6 +12,7 @@ export interface ViewMenuProps {
   onExpandAll: () => void;
   onCollapseAll: () => void;
   hasGroups: boolean;
+  allGroupsExpanded: boolean;
   density: Density;
   onDensityChange: (d: Density) => void;
   condensedView: boolean;
@@ -133,6 +134,8 @@ export function ViewMenu(
   props: ViewMenuProps & {
     currentLibraryViewMode: LibraryViewMode;
     onActivateViewMode: (mode: LibraryViewMode) => void;
+    viewMode: "tree" | "json";
+    setViewMode: (mode: "tree" | "json") => void;
   },
 ) {
   const { open, menuRef, triggerRef, toggle, close } = useDropdownMenu();
@@ -143,7 +146,6 @@ export function ViewMenu(
     },
     [close],
   );
-  const [groupsExpanded, setGroupsExpanded] = useState(true);
 
   return (
     <div className="relative shrink-0">
@@ -178,13 +180,9 @@ export function ViewMenu(
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
         <span>
-          {props.currentLibraryViewMode === "library"
-            ? "View"
-            : props.currentLibraryViewMode === "active-mode"
-              ? "View: Active mode"
-              : props.currentLibraryViewMode === "mode-options"
-                ? "View: All modes"
-                : "View: JSON"}
+          {props.currentLibraryViewMode === "all-modes"
+            ? "View: All modes"
+            : "View"}
         </span>
       </button>
 
@@ -196,28 +194,22 @@ export function ViewMenu(
         >
           <div className="max-h-[420px] overflow-y-auto">
             <MenuItem
-              label="Authored"
-              checked={props.currentLibraryViewMode === "library"}
-              onClick={() => runAndClose(() => props.onActivateViewMode("library"))}
+              label="Values"
+              checked={props.currentLibraryViewMode === "values"}
+              onClick={() => runAndClose(() => props.onActivateViewMode("values"))}
             />
             {props.hasCollections && (
               <MenuItem
-                label="Active mode"
-                checked={props.currentLibraryViewMode === "active-mode"}
-                onClick={() => runAndClose(() => props.onActivateViewMode("active-mode"))}
-              />
-            )}
-            {props.hasCollections && (
-              <MenuItem
                 label="All modes"
-                checked={props.currentLibraryViewMode === "mode-options"}
-                onClick={() => runAndClose(() => props.onActivateViewMode("mode-options"))}
+                checked={props.currentLibraryViewMode === "all-modes"}
+                onClick={() => runAndClose(() => props.onActivateViewMode("all-modes"))}
               />
             )}
+            <div className={MENU_SECTION_BORDER} />
             <MenuItem
-              label="JSON"
-              checked={props.currentLibraryViewMode === "json"}
-              onClick={() => runAndClose(() => props.onActivateViewMode("json"))}
+              label="JSON editor"
+              checked={props.viewMode === "json"}
+              onClick={() => runAndClose(() => props.setViewMode(props.viewMode === "json" ? "tree" : "json"))}
             />
             <div className={MENU_SECTION_BORDER} />
             <MenuItem
@@ -242,15 +234,14 @@ export function ViewMenu(
             />
             {props.hasGroups && (
               <MenuItem
-                label={groupsExpanded ? "Collapse groups" : "Expand groups"}
+                label={props.allGroupsExpanded ? "Collapse groups" : "Expand groups"}
                 onClick={() =>
                   runAndClose(() => {
-                    if (groupsExpanded) {
+                    if (props.allGroupsExpanded) {
                       props.onCollapseAll();
                     } else {
                       props.onExpandAll();
                     }
-                    setGroupsExpanded((v) => !v);
                   })
                 }
               />

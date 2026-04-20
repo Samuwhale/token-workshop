@@ -35,8 +35,6 @@ interface ToolbarStateChipsConfig {
   multiModeEnabled: boolean;
   multiModeDimensionName: string | null;
   toggleMultiMode: () => void;
-  modeLensEnabled: boolean;
-  setModeLensEnabled: (v: boolean) => void;
   onResetViewMode?: () => void;
   condensedView: boolean;
   setCondensedView: (v: boolean) => void;
@@ -54,7 +52,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
-    modeLensEnabled, setModeLensEnabled, onResetViewMode, condensedView, setCondensedView,
+    onResetViewMode, condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation,
   } = config;
@@ -149,14 +147,6 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         onRemove: onResetViewMode ?? toggleMultiMode,
       });
     }
-    if (modeLensEnabled) {
-      chips.push({
-        key: "view:mode-values",
-        label: "Active mode",
-        tone: "view",
-        onRemove: onResetViewMode ?? (() => setModeLensEnabled(false)),
-      });
-    }
     if (condensedView) {
       chips.push({
         key: "view:condensed",
@@ -188,10 +178,10 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     multiModeDimensionName, multiModeEnabled, onToggleIssuesOnly,
     onTogglePreviewSplit, refFilter, removeQueryToken, setCondensedView,
     setCrossCollectionSearch, setInspectMode, setRefFilter,
-    setSearchResultPresentation, setModeLensEnabled, onResetViewMode, setShowDuplicates,
+    setSearchResultPresentation, onResetViewMode, setShowDuplicates,
     setShowRecentlyTouched, setSortOrder, setTypeFilter, showDuplicates,
     showFlatSearchResults, showIssuesOnly, showPreviewSplit,
-    showRecentlyTouched, sortOrder, structuredFilterChips, modeLensEnabled,
+    showRecentlyTouched, sortOrder, structuredFilterChips,
     toggleMultiMode, typeFilter,
   ]);
 

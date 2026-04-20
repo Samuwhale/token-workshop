@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Spinner } from './Spinner';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
+import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import { useResolverContext } from '../contexts/CollectionContext';
 import { useCollectionStateContext } from '../contexts/TokenDataContext';
@@ -151,7 +152,14 @@ export function TokenUsages({
     setLayersLoading(true);
 
     const handleMessage = (event: MessageEvent) => {
-      const msg = event.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{
+        type?: string;
+        tokenPath?: string;
+        layers?: BoundLayer[];
+        total?: number;
+        componentNames?: string[];
+        error?: string | null;
+      }>(event);
       if (!msg || msg.type !== 'token-usage-result' || msg.tokenPath !== tokenPath) return;
       setLayers(msg.layers ?? []);
       setLayersTotal(msg.total ?? 0);
@@ -162,7 +170,13 @@ export function TokenUsages({
     };
 
     window.addEventListener('message', handleMessage);
-    parent.postMessage({ pluginMessage: { type: 'scan-single-token-usage', tokenPath } }, '*');
+    if (!postPluginMessage({ type: 'scan-single-token-usage', tokenPath })) {
+      setLayersLoading(false);
+      setLayersScanned(true);
+      setLayersScanError('Could not reach the Figma plugin host.');
+      window.removeEventListener('message', handleMessage);
+      return;
+    }
 
     // Timeout: if no response after 5s, mark scan as complete with no results
     const timeout = setTimeout(() => {
@@ -183,7 +197,12 @@ export function TokenUsages({
     setVariablesLoading(true);
 
     const handleMessage = (event: MessageEvent) => {
-      const msg = event.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<{
+        type?: string;
+        tokenPath?: string;
+        variables?: BoundVariable[];
+        error?: string | null;
+      }>(event);
       if (!msg || msg.type !== 'token-variable-bindings-result' || msg.tokenPath !== tokenPath) return;
       setVariables(msg.variables ?? []);
       setVariablesScanError(msg.error ?? null);
@@ -192,7 +211,13 @@ export function TokenUsages({
     };
 
     window.addEventListener('message', handleMessage);
-    parent.postMessage({ pluginMessage: { type: 'scan-token-variable-bindings', tokenPath } }, '*');
+    if (!postPluginMessage({ type: 'scan-token-variable-bindings', tokenPath })) {
+      setVariablesLoading(false);
+      setVariablesScanned(true);
+      setVariablesScanError('Could not reach the Figma plugin host.');
+      window.removeEventListener('message', handleMessage);
+      return;
+    }
 
     // Timeout: if no response after 5s, mark scan as complete with no results
     const timeout = setTimeout(() => {
@@ -220,11 +245,11 @@ export function TokenUsages({
   }, [tokenPath]);
 
   const selectLayer = useCallback((nodeId: string) => {
-    parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*');
+    postPluginMessage({ type: 'select-node', nodeId });
   }, []);
 
   const highlightAll = useCallback(() => {
-    parent.postMessage({ pluginMessage: { type: 'highlight-layer-by-token', tokenPath } }, '*');
+    postPluginMessage({ type: 'highlight-layer-by-token', tokenPath });
   }, [tokenPath]);
 
   // Count

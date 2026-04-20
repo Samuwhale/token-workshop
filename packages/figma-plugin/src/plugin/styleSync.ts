@@ -1,4 +1,4 @@
-import type { ColorValue, GradientValue, TypographyValue, ShadowValue, DimensionValue } from '@tokenmanager/core';
+import type { ColorValue, GradientStop, GradientValue, TypographyValue, ShadowValue, DimensionValue } from '@tokenmanager/core';
 import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
 import { fontStyleToWeight, resolveFontStyle } from './fontLoading.js';
 import { getErrorMessage } from '../shared/utils.js';
@@ -20,7 +20,7 @@ interface ColorStyleToken extends BaseStyleToken {
 
 interface GradientStyleToken extends BaseStyleToken {
   $type: 'gradient';
-  $value: GradientValue;
+  $value: GradientStyleValue;
 }
 
 interface TypographyStyleToken extends BaseStyleToken {
@@ -34,6 +34,13 @@ interface ShadowStyleToken extends BaseStyleToken {
 }
 
 export type StyleToken = ColorStyleToken | GradientStyleToken | TypographyStyleToken | ShadowStyleToken;
+
+type LegacyGradientValue = {
+  type?: unknown;
+  stops?: unknown;
+};
+
+type GradientStyleValue = GradientValue | LegacyGradientValue;
 
 function isStyleToken(token: BaseStyleToken & { $type: string }): token is StyleToken {
   return token.$type === 'color'
@@ -241,32 +248,65 @@ const TOKEN_TO_FIGMA_GRADIENT: Record<string, GradientPaint['type']> = {
   diamond: 'GRADIENT_DIAMOND',
 };
 
-function applyGradientPaintStyle(token: GradientStyleToken, cache: StyleCache): void {
-  // Support both { type, stops } object format (from GradientEditor) and legacy flat GradientStop[]
-  const rawValue = token.$value as any;
-  const stops = Array.isArray(rawValue)
-    ? rawValue
-    : (rawValue && typeof rawValue === 'object' && Array.isArray(rawValue.stops))
-      ? rawValue.stops
-      : [];
-  const gradientTypeName: string = (!Array.isArray(rawValue) && rawValue && typeof rawValue === 'object' && rawValue.type)
-    ? String(rawValue.type)
-    : 'linear';
+function isGradientStop(value: unknown): value is GradientStop {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    typeof (value as { color?: unknown }).color === 'string' &&
+    typeof (value as { position?: unknown }).position === 'number' &&
+    Number.isFinite((value as { position: number }).position)
+  );
+}
 
+function normalizeGradientValue(value: GradientStyleValue): {
+  type: GradientPaint['type'];
+  stops: GradientStop[];
+} {
+  if (Array.isArray(value)) {
+    if (!value.every(isGradientStop)) {
+      throw new Error('Gradient stop list contains invalid stop data.');
+    }
+    return {
+      type: 'GRADIENT_LINEAR',
+      stops: [...value].sort((left, right) => left.position - right.position),
+    };
+  }
+
+  const gradientTypeName =
+    typeof value.type === 'string' ? value.type : 'linear';
+  const rawStops = value.stops;
+  if (!Array.isArray(rawStops)) {
+    throw new Error('Gradient object payload is missing a stops array.');
+  }
+  if (!rawStops.every(isGradientStop)) {
+    throw new Error('Gradient object payload contains invalid stop data.');
+  }
+
+  return {
+    type: TOKEN_TO_FIGMA_GRADIENT[gradientTypeName] ?? 'GRADIENT_LINEAR',
+    stops: [...rawStops].sort((left, right) => left.position - right.position),
+  };
+}
+
+function applyGradientPaintStyle(token: GradientStyleToken, cache: StyleCache): void {
+  const { type, stops } = normalizeGradientValue(token.$value);
   if (stops.length < 2) {
     throw new Error(`Gradient requires at least 2 stops, got ${stops.length}`);
   }
-  const parseResults = stops.map((stop: { color: string; position: number }, i: number) => ({ stop, color: parseColor(stop.color as string), index: i }));
+  const parseResults = stops.map((stop, i) => ({ stop, color: parseColor(stop.color), index: i }));
   const failedStops = parseResults.filter((r: { color: ReturnType<typeof parseColor> }) => !r.color);
   if (failedStops.length > 0) {
     const indices = (failedStops as Array<{ index: number; stop: { color: string } }>).map(r => `stop ${r.index} ("${r.stop.color}")`).join(', ');
     throw new Error(`${failedStops.length} of ${stops.length} gradient stop${failedStops.length > 1 ? 's' : ''} could not be parsed: ${indices}`);
   }
+  const outOfRangeStop = stops.find((stop) => stop.position < 0 || stop.position > 1);
+  if (outOfRangeStop) {
+    throw new Error(`Gradient stop position must be between 0 and 1. Received ${outOfRangeStop.position}.`);
+  }
   const gradientStops: ColorStop[] = (parseResults as Array<{ stop: { position: number }; color: NonNullable<ReturnType<typeof parseColor>> }>).map(r => ({
     position: r.stop.position,
     color: { ...r.color.rgb, a: r.color.a },
   } as ColorStop));
-  const figmaGradientType: GradientPaint['type'] = TOKEN_TO_FIGMA_GRADIENT[gradientTypeName] ?? 'GRADIENT_LINEAR';
   const name = tokenPathToStyleName(token.path);
   let style = cache.paintStyles.find(s => s.name === name);
   if (!style) {
@@ -275,7 +315,7 @@ function applyGradientPaintStyle(token: GradientStyleToken, cache: StyleCache): 
     cache.paintStyles.push(style);
   }
   style.paints = [{
-    type: figmaGradientType,
+    type,
     gradientTransform: [[1, 0, 0], [0, 1, 0]],
     gradientStops,
     opacity: 1,

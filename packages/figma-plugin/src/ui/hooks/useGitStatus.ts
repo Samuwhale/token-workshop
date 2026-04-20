@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { describeError, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 
+type GitActionResponse = Record<string, unknown>;
+type GitActionResult = GitActionResponse | null;
+
 export interface GitStatus {
   isRepo: boolean;
   branch: string | null;
@@ -40,7 +43,7 @@ export interface UseGitStatusReturn {
   setSelectedFiles: (v: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
   allChanges: Array<{ file: string; status: string }>;
   fetchStatus: () => Promise<void>;
-  doAction: (action: string, body?: any) => Promise<Record<string, any>>;
+  doAction: (action: string, body?: unknown) => Promise<GitActionResult>;
 }
 
 export function useGitStatus({ serverUrl, connected }: UseGitStatusOptions): UseGitStatusReturn {
@@ -55,41 +58,72 @@ export function useGitStatus({ serverUrl, connected }: UseGitStatusOptions): Use
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const knownFilesRef = useRef<Set<string>>(new Set());
   const fetchAbortRef = useRef<AbortController | null>(null);
+  const actionAbortRef = useRef<AbortController | null>(null);
+
+  const resetGitState = useCallback(() => {
+    setGitStatus(null);
+    setGitError(null);
+    setRemoteUrl('');
+    setBranches([]);
+    setActionLoading(null);
+    setSelectedFiles(new Set());
+    knownFilesRef.current = new Set();
+  }, []);
 
   const fetchStatus = useCallback(async () => {
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     const { signal } = controller;
-    if (!connected) { setGitLoading(false); return; }
+    if (!connected) {
+      resetGitState();
+      setGitLoading(false);
+      return;
+    }
+
+    setGitLoading(true);
+    setGitError(null);
     try {
       try {
         const data = await apiFetch<GitStatus>(`${serverUrl}/api/sync/status`, { signal: createFetchSignal(signal) });
+        if (signal.aborted) return;
         setGitStatus(data);
         if (data.remote) setRemoteUrl(data.remote);
+        else setRemoteUrl('');
       } catch (err) {
         if (isAbortError(err)) throw err;
+        if (signal.aborted) return;
         setGitError(describeError(err, 'Fetch git status'));
         setGitStatus({ isRepo: false, branch: null, remote: null, status: null });
+        setRemoteUrl('');
+        setBranches([]);
       }
       try {
         const branchData = await apiFetch<{ branches: string[] }>(`${serverUrl}/api/sync/branches`, { signal: createFetchSignal(signal) });
+        if (signal.aborted) return;
         setBranches(branchData.branches || []);
       } catch (err) {
         if (isAbortError(err)) throw err;
+        if (signal.aborted) return;
         console.warn('[useGitStatus] branch fetch failed (non-fatal):', err);
       }
     } catch (err) {
       if (isAbortError(err)) return;
+      if (signal.aborted) return;
       setGitError(describeError(err, 'Fetch git status'));
     } finally {
-      setGitLoading(false);
+      if (!signal.aborted) {
+        setGitLoading(false);
+      }
     }
-  }, [serverUrl, connected]);
+  }, [connected, resetGitState, serverUrl]);
 
   useEffect(() => {
     fetchStatus();
-    return () => { fetchAbortRef.current?.abort(); };
+    return () => {
+      fetchAbortRef.current?.abort();
+      actionAbortRef.current?.abort();
+    };
   }, [fetchStatus]);
 
   // Relative time ticker for lastSynced display
@@ -99,23 +133,36 @@ export function useGitStatus({ serverUrl, connected }: UseGitStatusOptions): Use
     return () => clearInterval(id);
   }, [lastSynced]);
 
-  const doAction = useCallback(async (action: string, body?: any): Promise<Record<string, any>> => {
+  const doAction = useCallback(async (action: string, body?: unknown): Promise<GitActionResult> => {
+    actionAbortRef.current?.abort();
+    const controller = new AbortController();
+    actionAbortRef.current = controller;
+    const { signal } = controller;
     setActionLoading(action);
     setGitError(null);
     try {
-      const result = await apiFetch<Record<string, any>>(`${serverUrl}/api/sync/${action}`, {
+      const result = await apiFetch<GitActionResponse>(`${serverUrl}/api/sync/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined,
+        signal,
       }) ?? {};
+      if (signal.aborted) {
+        return null;
+      }
       if (action === 'push' || action === 'pull') setLastSynced(new Date());
-      fetchStatus();
+      await fetchStatus();
       return result;
     } catch (err) {
+      if (isAbortError(err) || signal.aborted) {
+        return null;
+      }
       setGitError(describeError(err, `Git ${action}`));
       throw err;
     } finally {
-      setActionLoading(null);
+      if (!signal.aborted) {
+        setActionLoading(null);
+      }
     }
   }, [serverUrl, fetchStatus]);
 

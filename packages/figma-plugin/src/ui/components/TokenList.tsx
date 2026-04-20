@@ -75,8 +75,10 @@ import type {
 } from "../shared/tokenListModalTypes";
 import type {
   StylesAppliedMessage,
+  VariablesReadErrorMessage,
   VariablesReadMessage,
 } from "../../shared/types";
+import { getPluginMessageFromEvent } from "../../shared/utils";
 import { useTokenListModalContext } from "./token-list/useTokenListModalContext";
 import { useToolbarStateChips } from "./token-list/useToolbarStateChips";
 import { TokenListStaleGeneratedBanner } from "./token-list/TokenListStaleGeneratedBanner";
@@ -214,9 +216,15 @@ export function TokenList({
     new Set(),
   );
   // selectMode/selectedPaths/showBatchEditor/lastSelectedPathRef managed by useTokenSelection (called below)
-  const varReadPendingRef = useRef<Map<string, (tokens: VariablesReadMessage["collections"]) => void>>(
-    new Map(),
-  );
+  const varReadPendingRef = useRef<
+    Map<
+      string,
+      {
+        resolve: (collections: VariablesReadMessage["collections"]) => void;
+        reject: (error: Error) => void;
+      }
+    >
+  >(new Map());
   // Drag/drop state is managed by useDragDrop hook (called below after dependencies)
   // Find/replace state is managed by useFindReplace hook (called below after dependencies)
   const [copyFeedback, setCopyFeedback] = useState(false);
@@ -276,8 +284,6 @@ export function TokenList({
     multiModeDimId,
     setMultiModeDimId,
     toggleMultiMode,
-    modeLensEnabled,
-    setModeLensEnabled,
   } = viewState;
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
   const [activeBulkEditScope, setActiveBulkEditScope] =
@@ -378,18 +384,43 @@ export function TokenList({
 
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<
+        | VariablesReadMessage
+        | VariablesReadErrorMessage
+      >(ev);
       if (msg?.type === "variables-read" && msg.correlationId) {
-        const resolve = varReadPendingRef.current.get(msg.correlationId);
-        if (resolve) {
+        const entry = varReadPendingRef.current.get(msg.correlationId);
+        if (entry) {
           varReadPendingRef.current.delete(msg.correlationId);
-          resolve(msg.tokens ?? []);
+          entry.resolve(msg.collections ?? []);
+        }
+      } else if (msg?.type === "variables-read-error" && msg.correlationId) {
+        const entry = varReadPendingRef.current.get(msg.correlationId);
+        if (entry) {
+          varReadPendingRef.current.delete(msg.correlationId);
+          entry.reject(
+            new Error(msg.error || "Failed to read Figma variables"),
+          );
         }
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, []);
+
+  useEffect(
+    () => () => {
+      for (const [correlationId, entry] of varReadPendingRef.current) {
+        entry.reject(
+          new Error(
+            `Variable read request was cancelled before completion (${correlationId})`,
+          ),
+        );
+      }
+      varReadPendingRef.current.clear();
+    },
+    [],
+  );
 
   // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
 
@@ -1024,6 +1055,9 @@ export function TokenList({
   );
 
   const hasStructuredFilters = structuredFilterChips.length > 0;
+  const allGroupsExpanded =
+    allGroupPaths.length > 0 &&
+    allGroupPaths.every((path) => expandedPaths.has(path));
   const filterMenuActiveCount =
     activeFilterCount +
     (inspectMode ? 1 : 0) +
@@ -1031,10 +1065,9 @@ export function TokenList({
 
   const resetToAuthoredView = useCallback(() => {
     if (multiModeEnabled) toggleMultiMode();
-    if (modeLensEnabled) setModeLensEnabled(false);
     if (showResolvedValues) setShowResolvedValues(false);
     if (viewMode !== "tree") setViewMode("tree");
-  }, [multiModeEnabled, modeLensEnabled, showResolvedValues, viewMode, toggleMultiMode, setModeLensEnabled, setShowResolvedValues, setViewMode]);
+  }, [multiModeEnabled, showResolvedValues, viewMode, toggleMultiMode, setShowResolvedValues, setViewMode]);
 
   const {
     toolbarStateChips,
@@ -1045,7 +1078,7 @@ export function TokenList({
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
     multiModeEnabled, multiModeDimensionName, toggleMultiMode,
-    modeLensEnabled, setModeLensEnabled, onResetViewMode: resetToAuthoredView,
+    onResetViewMode: resetToAuthoredView,
     condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation,
@@ -1379,8 +1412,10 @@ export function TokenList({
     setPendingRenameToken,
     movingToken,
     setMovingToken,
+    dismissMoveToken,
     copyingToken,
     setCopyingToken,
+    dismissCopyToken,
     moveTokenTargetCollectionId,
     setMoveTokenTargetCollectionId: _setMoveTokenTargetCollectionId,
     copyTokenTargetCollectionId,
@@ -1645,14 +1680,14 @@ export function TokenList({
   const closeLongLivedReviewSurfaces = useCallback(() => {
     setVarDiffPending(null);
     setPromoteRows(null);
-    setMovingToken(null);
-    setCopyingToken(null);
+    dismissMoveToken();
+    dismissCopyToken();
     setShowFindReplace(false);
     setShowBatchEditor(false);
     setPendingBatchEditorFocus(null);
   }, [
-    setCopyingToken,
-    setMovingToken,
+    dismissCopyToken,
+    dismissMoveToken,
     setPromoteRows,
     setShowBatchEditor,
     setShowFindReplace,
@@ -1826,7 +1861,6 @@ export function TokenList({
 
   const clearViewModes = useCallback(() => {
     if (multiModeEnabled) toggleMultiMode();
-    if (modeLensEnabled) setModeLensEnabled(false);
     if (showResolvedValues) setShowResolvedValues(false);
     if (condensedView) setCondensedView(false);
     if (showPreviewSplit) onTogglePreviewSplit?.();
@@ -1839,13 +1873,11 @@ export function TokenList({
     setCondensedView,
     setSearchResultPresentation,
     setSortOrder,
-    setModeLensEnabled,
     setShowResolvedValues,
     showPreviewSplit,
     showResolvedValues,
     showFlatSearchResults,
     sortOrder,
-    modeLensEnabled,
     toggleMultiMode,
   ]);
 
@@ -1960,7 +1992,6 @@ export function TokenList({
     collectionMap,
     modeMap,
     varReadPendingRef,
-    onRefresh,
     onError,
     setApplying,
     setVarDiffLoading,
@@ -2214,9 +2245,7 @@ export function TokenList({
   const effectiveRovingPath =
     rovingFocusPath ?? flatItems[0]?.node.path ?? null;
 
-  const effectiveAllTokensFlat = modeLensEnabled || !unresolvedAllTokensFlat
-    ? allTokensFlat
-    : unresolvedAllTokensFlat;
+  const effectiveAllTokensFlat = allTokensFlat;
 
   const tokenTreeSharedData = useTokenTreeSharedData({
     effectiveAllTokensFlat,
@@ -2267,7 +2296,7 @@ export function TokenList({
     collections: activeCollections,
     selectedModes,
     pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
-    multiModeEnabled, modeVariantPaths, modeLensEnabled, tokenModeMissing,
+    multiModeEnabled, modeVariantPaths, tokenModeMissing,
   });
 
   const tokenTreeLeafActions = useTokenTreeLeafActions({
@@ -2338,8 +2367,8 @@ export function TokenList({
     }
   }, [varDiffPending, doApplyVariables]);
   const handleClosePromote = useCallback(() => setPromoteRows(null), [setPromoteRows]);
-  const handleCloseMove = useCallback(() => setMovingToken(null), [setMovingToken]);
-  const handleCloseCopy = useCallback(() => setCopyingToken(null), [setCopyingToken]);
+  const handleCloseMove = useCallback(() => dismissMoveToken(), [dismissMoveToken]);
+  const handleCloseCopy = useCallback(() => dismissCopyToken(), [dismissCopyToken]);
   const moveSourceToken = movingToken ? (allTokensFlat[movingToken] ?? null) : null;
   const copySourceToken = copyingToken ? (allTokensFlat[copyingToken] ?? null) : null;
 
@@ -2467,9 +2496,6 @@ export function TokenList({
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
             multiModeEnabled={multiModeEnabled}
             onToggleMultiMode={toggleMultiMode}
-            modeLensEnabled={modeLensEnabled}
-            onToggleModeLens={() => setModeLensEnabled((value) => !value)}
-            setShowResolvedValues={setShowResolvedValues}
             onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
@@ -2484,6 +2510,7 @@ export function TokenList({
               onExpandAll: handleExpandAll,
               onCollapseAll: handleCollapseAll,
               hasGroups: tokens.some((n) => n.isGroup),
+              allGroupsExpanded,
               density,
               onDensityChange: setDensity,
               condensedView,

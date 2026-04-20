@@ -87,6 +87,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     // Move state + callbacks
     movingToken: relocate.move.relocatingToken,
     setMovingToken: relocate.move.setRelocatingToken,
+    dismissMoveToken: relocate.move.dismiss,
     moveTokenTargetCollectionId: relocate.move.targetCollectionId,
     setMoveTokenTargetCollectionId: relocate.move.setTargetCollectionId,
     moveFromCollectionId: relocate.move.sourceCollectionId,
@@ -101,6 +102,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     // Copy state + callbacks
     copyingToken: relocate.copy.relocatingToken,
     setCopyingToken: relocate.copy.setRelocatingToken,
+    dismissCopyToken: relocate.copy.dismiss,
     copyTokenTargetCollectionId: relocate.copy.targetCollectionId,
     setCopyTokenTargetCollectionId: relocate.copy.setTargetCollectionId,
     copyFromCollectionId: relocate.copy.sourceCollectionId,

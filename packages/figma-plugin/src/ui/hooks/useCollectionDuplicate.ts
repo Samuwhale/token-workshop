@@ -1,4 +1,5 @@
-import { apiFetch, isNetworkError } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal, isNetworkError } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 import type { CollectionSummary } from './useTokens';
 import type { UndoSlot } from './useUndo';
 
@@ -24,7 +25,6 @@ export function useCollectionDuplicate({
     if (!connected) return;
     let newName: string;
     try {
-      const signal = AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]);
       const result = await apiFetch<{
         ok: true;
         id: string;
@@ -32,11 +32,12 @@ export function useCollectionDuplicate({
         collections: CollectionSummary[];
       }>(
         `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/duplicate`,
-        { method: 'POST', signal },
+        { method: 'POST', signal: createFetchSignal(getDisconnectSignal()) },
       );
       newName = result.id;
       syncCollectionSummariesToState(result.collections);
     } catch (err) {
+      if (isAbortError(err)) return;
       if (isNetworkError(err)) markDisconnected();
       else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
       return;

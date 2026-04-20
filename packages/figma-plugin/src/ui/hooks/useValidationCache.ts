@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 
 export interface ValidationIssue {
   rule: string;
@@ -74,16 +75,38 @@ export function useValidationCache({
   const lastValidateKey = useRef(0);
   const autoRevalidateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasResultsRef = useRef(false);
+  const mountedRef = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      fetchAbortRef.current?.abort();
+      if (autoRevalidateTimer.current !== null) {
+        clearTimeout(autoRevalidateTimer.current);
+        autoRevalidateTimer.current = null;
+      }
+    };
+  }, []);
 
   const runValidation = useCallback(async (): Promise<ValidationSnapshot | null> => {
     if (!connected) return null;
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    const { signal } = controller;
+    const requestSignal = createFetchSignal(signal, 15000);
     setLoading(true);
     setError(null);
     try {
       const data = await apiFetch<{ issues: ValidationIssue[]; summary: ValidationSummary }>(
         `${serverUrl}/api/tokens/validate`,
-        { method: 'POST', signal: AbortSignal.timeout(15000) },
+        { method: 'POST', signal: requestSignal },
       );
+      if (requestSignal.aborted || !mountedRef.current) {
+        return null;
+      }
       const fetched = data.issues ?? [];
       const nextSummary = data.summary ?? null;
       setIssues(fetched);
@@ -96,19 +119,38 @@ export function useValidationCache({
         summary: nextSummary,
       };
     } catch (err) {
+      if (isAbortError(err) || requestSignal.aborted || !mountedRef.current) {
+        return null;
+      }
       console.warn('[useValidationCache] validation fetch failed:', err);
       setError('Validation failed — check server connection');
       return null;
     } finally {
-      setLoading(false);
+      if (!requestSignal.aborted && mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [serverUrl, connected]);
+
+  useEffect(() => {
+    if (connected) {
+      return;
+    }
+    hasAutoValidated.current = false;
+    fetchAbortRef.current?.abort();
+    if (autoRevalidateTimer.current !== null) {
+      clearTimeout(autoRevalidateTimer.current);
+      autoRevalidateTimer.current = null;
+    }
+    setLoading(false);
+    setIsStale(false);
+  }, [connected]);
 
   // Auto-validate on first connection
   useEffect(() => {
     if (connected && !hasAutoValidated.current) {
       hasAutoValidated.current = true;
-      runValidation();
+      void runValidation();
     }
   }, [connected, runValidation]);
 
@@ -116,7 +158,7 @@ export function useValidationCache({
   useEffect(() => {
     if (validateKey != null && validateKey > 0 && validateKey !== lastValidateKey.current) {
       lastValidateKey.current = validateKey;
-      runValidation();
+      void runValidation();
     }
   }, [validateKey, runValidation]);
 
@@ -128,7 +170,7 @@ export function useValidationCache({
     if (autoRevalidateTimer.current !== null) clearTimeout(autoRevalidateTimer.current);
     autoRevalidateTimer.current = setTimeout(() => {
       autoRevalidateTimer.current = null;
-      runValidation();
+      void runValidation();
     }, 2000);
     return () => {
       if (autoRevalidateTimer.current !== null) {

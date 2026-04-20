@@ -3,165 +3,13 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
 import { ValuePreview } from './ValuePreview';
 import { isAlias } from '../../shared/resolveAlias';
-import type { TokenMapEntry } from '../../shared/types';
-import type { DeleteConfirm, PromoteRow, AffectedRef, GeneratorImpact, ModeImpact } from './tokenListTypes';
+import type { AffectedRef, GeneratorImpact, ModeImpact } from './tokenListTypes';
 import { useTokenListModals } from './TokenListModalsContext';
 import { FieldMessage } from '../shared/FieldMessage';
 import { NoticePill } from '../shared/noticeSystem';
 import { fieldBorderClass } from '../shared/editorClasses';
-import type {
-  ExtractAliasTokenDraft,
-  VariableDiffPendingState,
-} from '../shared/tokenListModalTypes';
 
-export interface TokenListModalsProps {
-  collectionId: string;
-  collectionIds: string[];
-  allTokensFlat: Record<string, TokenMapEntry>;
-  connected: boolean;
-
-  // Delete confirmation modal
-  deleteConfirm: DeleteConfirm | null;
-  modalProps: { title: string; description?: string; confirmLabel: string; pathList?: string[]; affectedRefs?: AffectedRef[]; generatorImpacts?: GeneratorImpact[]; modeImpacts?: ModeImpact[] } | null;
-  executeDelete: () => void;
-  onSetDeleteConfirm: (v: DeleteConfirm | null) => void;
-
-  // New group dialog
-  newGroupDialogParent: string | null;
-  newGroupName: string;
-  newGroupError: string;
-  onSetNewGroupName: (v: string) => void;
-  onSetNewGroupError: (v: string) => void;
-  handleCreateGroup: (parent: string, name: string) => void;
-  onSetNewGroupDialogParent: (v: string | null) => void;
-
-  // Rename token confirmation modal
-  renameTokenConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>; generatorImpacts: GeneratorImpact[]; modeImpacts: ModeImpact[] } | null;
-  executeTokenRename: (oldPath: string, newPath: string, updateAliases?: boolean) => void;
-  onSetRenameTokenConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>; generatorImpacts: GeneratorImpact[]; modeImpacts: ModeImpact[] } | null) => void;
-
-  // Rename group confirmation modal
-  renameGroupConfirm: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }> } | null;
-  executeGroupRename: (oldPath: string, newPath: string, updateAliases?: boolean) => void;
-  onSetRenameGroupConfirm: (v: { oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }> } | null) => void;
-
-  // Apply as Variables diff preview
-  varDiffPending: VariableDiffPendingState | null;
-  doApplyVariables: (flat: VariableDiffPendingState['flat']) => void;
-  onSetVarDiffPending: (v: VariableDiffPendingState | null) => void;
-
-  // Extract to reference modal
-  extractToken: ExtractAliasTokenDraft | null;
-  extractMode: 'new' | 'existing';
-  onSetExtractMode: (v: 'new' | 'existing') => void;
-  newPrimitivePath: string;
-  onSetNewPrimitivePath: (v: string) => void;
-  newPrimitiveCollectionId: string;
-  onSetNewPrimitiveCollectionId: (v: string) => void;
-  existingAlias: string;
-  onSetExistingAlias: (v: string) => void;
-  existingAliasSearch: string;
-  onSetExistingAliasSearch: (v: string) => void;
-  extractError: string;
-  onSetExtractError: (v: string) => void;
-  handleConfirmExtractToAlias: () => void;
-  onSetExtractToken: (v: ExtractAliasTokenDraft | null) => void;
-
-  // Find & Replace modal
-  showFindReplace: boolean;
-  frFind: string;
-  frReplace: string;
-  frIsRegex: boolean;
-  frScope: 'active' | 'all';
-  frTarget: 'names' | 'values';
-  frError: string;
-  frBusy: boolean;
-  frRegexError: string | null;
-  frPreview: Array<{ oldPath: string; newPath: string; conflict: boolean; collectionId: string }>;
-  frValuePreview: Array<{ path: string; collectionId: string; oldValue: string; newValue: string }>;
-  frConflictCount: number;
-  frRenameCount: number;
-  frValueCount: number;
-  frAliasImpact: { tokenCount: number };
-  onSetFrFind: (v: string) => void;
-  onSetFrReplace: (v: string) => void;
-  onSetFrIsRegex: (v: boolean) => void;
-  frTypeFilter: string;
-  frAvailableTypes: string[];
-  onSetFrScope: (v: 'active' | 'all') => void;
-  onSetFrTarget: (v: 'names' | 'values') => void;
-  onSetFrTypeFilter: (v: string) => void;
-  onSetFrError: (v: string) => void;
-  onSetShowFindReplace: (v: boolean) => void;
-  handleFindReplace: () => void;
-  cancelFindReplace: () => void;
-
-  // Promote to Semantic modal
-  promoteRows: PromoteRow[] | null;
-  promoteBusy: boolean;
-  onSetPromoteRows: (v: PromoteRow[] | null) => void;
-  handleConfirmPromote: () => void;
-
-  // Move token to collection modal
-  movingToken: string | null;
-  movingGroup: string | null;
-  moveTargetCollectionId: string;
-  onSetMoveTargetCollectionId: (v: string) => void;
-  onSetMovingToken: (v: string | null) => void;
-  onSetMovingGroup: (v: string | null) => void;
-  handleConfirmMoveToken: () => void;
-  handleConfirmMoveGroup: () => void;
-  moveConflict?: TokenMapEntry | null;
-  moveConflictAction?: 'overwrite' | 'skip' | 'rename';
-  onSetMoveConflictAction?: (v: 'overwrite' | 'skip' | 'rename') => void;
-  moveConflictNewPath?: string;
-  onSetMoveConflictNewPath?: (v: string) => void;
-  // Source token value for conflict diff (incoming value)
-  moveSourceToken?: TokenMapEntry | null;
-
-  // Copy token to collection modal
-  copyingToken: string | null;
-  copyingGroup: string | null;
-  copyTargetCollectionId: string;
-  onSetCopyTargetCollectionId: (v: string) => void;
-  onSetCopyingToken: (v: string | null) => void;
-  onSetCopyingGroup: (v: string | null) => void;
-  handleConfirmCopyToken: () => void;
-  handleConfirmCopyGroup: () => void;
-  copyConflict?: TokenMapEntry | null;
-  copyConflictAction?: 'overwrite' | 'skip' | 'rename';
-  onSetCopyConflictAction?: (v: 'overwrite' | 'skip' | 'rename') => void;
-  copyConflictNewPath?: string;
-  onSetCopyConflictNewPath?: (v: string) => void;
-  // Source token value for conflict diff (incoming value)
-  copySourceToken?: TokenMapEntry | null;
-
-  // Move selected tokens to group modal
-  showMoveToGroup: boolean;
-  moveToGroupTarget: string;
-  moveToGroupError: string;
-  selectedMoveCount: number;
-  onSetShowMoveToGroup: (v: boolean) => void;
-  onSetMoveToGroupTarget: (v: string) => void;
-  onSetMoveToGroupError: (v: string) => void;
-  handleBatchMoveToGroup: () => void;
-
-  // Batch move selected tokens to another collection
-  showBatchMoveToCollection: boolean;
-  batchMoveToCollectionTarget: string;
-  onSetBatchMoveToCollectionTarget: (v: string) => void;
-  onSetShowBatchMoveToCollection: (v: boolean) => void;
-  handleBatchMoveToCollection: () => void;
-
-  // Batch copy selected tokens to another collection
-  showBatchCopyToCollection: boolean;
-  batchCopyToCollectionTarget: string;
-  onSetBatchCopyToCollectionTarget: (v: string) => void;
-  onSetShowBatchCopyToCollection: (v: boolean) => void;
-  handleBatchCopyToCollection: () => void;
-}
-
-function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, generatorImpacts, modeImpacts, onConfirm, onCancel }: {
+function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorImpacts, modeImpacts, onConfirm, onCancel }: {
   kind: 'token' | 'group';
   oldPath: string;
   newPath: string;
@@ -196,8 +44,13 @@ function RenameConfirmModal({ kind, oldPath, newPath: _newPath, depCount, deps, 
           <h3 id="rename-confirm-dialog-title" className="text-[14px] font-semibold text-[var(--color-figma-text)]">
             Rename {kind} &ldquo;{label}&rdquo;?
           </h3>
+          <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+            <span className="font-mono text-[var(--color-figma-text)]">{oldPath}</span>
+            <span className="mx-1 text-[var(--color-figma-text-tertiary)]">&rarr;</span>
+            <span className="font-mono text-[var(--color-figma-text)]">{newPath}</span>
+          </p>
           {depCount > 0 && (
-            <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+            <p className="mt-1 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               {depCount} {noun} will be updated across all collections:
             </p>
           )}

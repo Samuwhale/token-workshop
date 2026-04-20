@@ -1,6 +1,6 @@
 import { useState, useRef, useLayoutEffect } from 'react';
-import { apiFetch, isNetworkError } from '../shared/apiFetch';
-import { COLLECTION_NAME_RE } from '../shared/utils';
+import { apiFetch, createFetchSignal, isNetworkError } from '../shared/apiFetch';
+import { COLLECTION_NAME_RE, isAbortError } from '../shared/utils';
 import type { UndoSlot } from './useUndo';
 
 interface UseCollectionRenameParams {
@@ -62,11 +62,11 @@ export function useCollectionRename({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newName }),
-        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
+        signal: createFetchSignal(getDisconnectSignal()),
       });
       const oldName = renamingCollectionId;
       renameCollectionInState(oldName, newName);
-      if (currentCollectionId === renamingCollectionId) setCurrentCollectionId(newName);
+      if (currentCollectionIdRef.current === renamingCollectionId) setCurrentCollectionId(newName);
       onRenameComplete?.(oldName, newName);
       cancelRename();
       setSuccessToast(`Renamed collection "${oldName}" → "${newName}"`);
@@ -92,6 +92,7 @@ export function useCollectionRename({
         },
       });
     } catch (err) {
+      if (isAbortError(err)) return;
       if (isNetworkError(err)) markDisconnected();
       setRenameError(err instanceof Error ? err.message : 'Rename failed');
     }

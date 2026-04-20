@@ -5,6 +5,28 @@ export function getErrorMessage(err: unknown, fallback?: string): string {
   return err instanceof Error ? err.message : (fallback ?? String(err));
 }
 
+export function coerceBooleanValue(value: unknown): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === '') {
+      return false;
+    }
+  }
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) {
+      return false;
+    }
+    return value !== 0;
+  }
+  return Boolean(value);
+}
+
 function isWindowLike(value: unknown): value is Window {
   return value !== null && typeof value === 'object' && 'postMessage' in value;
 }
@@ -38,6 +60,10 @@ export function postPluginMessage(msg: PluginMessage): boolean {
   if (!host) {
     return false;
   }
-  host.postMessage({ pluginMessage: msg }, '*');
-  return true;
+  try {
+    host.postMessage({ pluginMessage: msg }, '*');
+    return true;
+  } catch {
+    return false;
+  }
 }

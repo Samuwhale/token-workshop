@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import { postPluginMessage } from '../../shared/utils';
 
 const DEFAULT_WIDTH = 960;
 const DEFAULT_HEIGHT = 760;
@@ -22,11 +23,12 @@ function persistSize(width: number, height: number): void {
 }
 
 function sendResize(width: number, height: number): void {
-  parent.postMessage({ pluginMessage: { type: 'resize', width: Math.round(width), height: Math.round(height) } }, '*');
+  postPluginMessage({ type: 'resize', width: Math.round(width), height: Math.round(height) });
 }
 
 export function useWindowExpand() {
   const [isExpanded, setIsExpanded] = useState(() => lsGet(STORAGE_KEYS.EXPANDED) === '1');
+  const initialExpandedRef = useRef(isExpanded);
 
   const toggleExpand = useCallback(() => {
     const next = !isExpanded;
@@ -44,8 +46,10 @@ export function useWindowExpand() {
     if (persisted) {
       sendResize(persisted.width, persisted.height);
     } else {
-      persistSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-      sendResize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+      const width = initialExpandedRef.current ? WIDE_WIDTH : DEFAULT_WIDTH;
+      const height = initialExpandedRef.current ? WIDE_HEIGHT : DEFAULT_HEIGHT;
+      persistSize(width, height);
+      sendResize(width, height);
     }
   }, []);
 

@@ -1,8 +1,12 @@
 import { useState, useRef } from "react";
 import type { UndoSlot } from "./useUndo";
-import { apiFetch } from "../shared/apiFetch";
+import {
+  apiFetch,
+  createFetchSignal,
+  isNetworkError,
+} from "../shared/apiFetch";
 import type { CollectionStructuralPreflight } from "../shared/collectionStructuralPreflight";
-import { stableStringify } from "../shared/utils";
+import { isAbortError, stableStringify } from "../shared/utils";
 
 interface MergeCollectionResponse {
   ok: true;
@@ -22,12 +26,14 @@ interface SplitCollectionResponse {
 interface UseCollectionMergeSplitParams {
   serverUrl: string;
   connected: boolean;
+  getDisconnectSignal: () => AbortSignal;
   collectionIds: string[];
   currentCollectionId: string;
   setCurrentCollectionId: (collectionId: string) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
   setErrorToast: (msg: string) => void;
+  markDisconnected: () => void;
   pushUndo: (slot: UndoSlot) => void;
   onMergeComplete?: (sourceCollectionId: string, targetCollectionId: string) => void;
   onSplitComplete?: (result: {
@@ -60,6 +66,7 @@ async function fetchCollectionStructuralPreflight(
     targetCollection?: string;
     deleteOriginal?: boolean;
   },
+  signal: AbortSignal,
 ): Promise<CollectionStructuralPreflight> {
   return apiFetch<CollectionStructuralPreflight>(
     `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/preflight`,
@@ -67,6 +74,7 @@ async function fetchCollectionStructuralPreflight(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal,
     },
   );
 }
@@ -74,12 +82,14 @@ async function fetchCollectionStructuralPreflight(
 export function useCollectionMergeSplit({
   serverUrl,
   connected,
+  getDisconnectSignal,
   collectionIds,
   currentCollectionId,
   setCurrentCollectionId,
   refreshTokens,
   setSuccessToast,
   setErrorToast,
+  markDisconnected,
   pushUndo,
   onMergeComplete,
   onSplitComplete,
@@ -98,6 +108,8 @@ export function useCollectionMergeSplit({
   // Tracks the target that was used for the most recent conflict check,
   // so we can discard stale async results if the user changes target mid-check.
   const mergeCheckTargetRef = useRef<string>("");
+  const mergeCheckRequestIdRef = useRef(0);
+  const mergeConfirmRequestIdRef = useRef(0);
 
   // Split state
   const [splittingCollectionId, setSplittingCollectionId] = useState<string | null>(null);
@@ -106,23 +118,39 @@ export function useCollectionMergeSplit({
   >([]);
   const [splitDeleteOriginal, setSplitDeleteOriginal] = useState(false);
   const [splitLoading, setSplitLoading] = useState(false);
+  const splitOpenRequestIdRef = useRef(0);
+  const splitConfirmRequestIdRef = useRef(0);
+
+  const createCollectionOperationSignal = () => createFetchSignal(getDisconnectSignal());
 
   // --- Merge ---
 
   const openMergeDialog = (collectionId: string) => {
+    mergeCheckRequestIdRef.current += 1;
+    mergeConfirmRequestIdRef.current += 1;
+    mergeCheckTargetRef.current = "";
     setMergingCollectionId(collectionId);
     setMergeTargetCollectionId(collectionIds.find((candidate) => candidate !== collectionId) || "");
     setMergeConflicts([]);
     setMergeResolutions({});
     setMergeChecked(false);
+    setMergeLoading(false);
   };
 
   const closeMergeDialog = () => {
+    mergeCheckRequestIdRef.current += 1;
+    mergeConfirmRequestIdRef.current += 1;
+    mergeCheckTargetRef.current = "";
     setMergingCollectionId(null);
+    setMergeTargetCollectionId("");
+    setMergeConflicts([]);
+    setMergeResolutions({});
     setMergeChecked(false);
+    setMergeLoading(false);
   };
 
   const changeMergeTarget = (target: string) => {
+    mergeCheckRequestIdRef.current += 1;
     setMergeTargetCollectionId(target);
     setMergeChecked(false);
     setMergeConflicts([]);
@@ -131,6 +159,7 @@ export function useCollectionMergeSplit({
 
   const handleCheckMergeConflicts = async () => {
     if (!mergingCollectionId || !mergeTargetCollectionId || !connected) return;
+    const requestId = ++mergeCheckRequestIdRef.current;
     const checkTarget = mergeTargetCollectionId;
     mergeCheckTargetRef.current = checkTarget;
     setMergeLoading(true);
@@ -142,9 +171,15 @@ export function useCollectionMergeSplit({
           operation: "merge",
           targetCollection: checkTarget,
         },
+        createCollectionOperationSignal(),
       );
       // Discard results if the target changed while the check was in flight
-      if (mergeCheckTargetRef.current !== checkTarget) return;
+      if (
+        mergeCheckRequestIdRef.current !== requestId ||
+        mergeCheckTargetRef.current !== checkTarget
+      ) {
+        return;
+      }
       const conflicts = preflight.mergeConflicts ?? [];
       setMergeConflicts(conflicts);
       const res: Record<string, "source" | "target"> = {};
@@ -153,27 +188,44 @@ export function useCollectionMergeSplit({
       setMergeChecked(true);
     } catch (err) {
       // Don't show error toast for stale checks
-      if (mergeCheckTargetRef.current !== checkTarget) return;
+      if (
+        mergeCheckRequestIdRef.current !== requestId ||
+        mergeCheckTargetRef.current !== checkTarget
+      ) {
+        return;
+      }
+      if (isAbortError(err)) return;
+      if (isNetworkError(err)) {
+        markDisconnected();
+        return;
+      }
       setErrorToast(
         `Failed to check merge conflicts: ${err instanceof Error ? err.message : String(err)}`,
       );
     } finally {
-      setMergeLoading(false);
+      if (mergeCheckRequestIdRef.current === requestId) {
+        setMergeLoading(false);
+      }
     }
   };
 
   const handleConfirmMerge = async () => {
     if (!mergingCollectionId || !mergeTargetCollectionId || !connected || !mergeChecked) return;
+    const requestId = ++mergeConfirmRequestIdRef.current;
+    const sourceCollectionId = mergingCollectionId;
+    const targetCollectionId = mergeTargetCollectionId;
     setMergeLoading(true);
     try {
       const preflight = await fetchCollectionStructuralPreflight(
         serverUrl,
-        mergingCollectionId,
+        sourceCollectionId,
         {
           operation: "merge",
-          targetCollection: mergeTargetCollectionId,
+          targetCollection: targetCollectionId,
         },
+        createCollectionOperationSignal(),
       );
+      if (mergeConfirmRequestIdRef.current !== requestId) return;
       if ((preflight.blockers?.length ?? 0) > 0) {
         const message =
           preflight.blockers[0]?.message ??
@@ -197,16 +249,18 @@ export function useCollectionMergeSplit({
         return;
       }
       const result = await apiFetch<MergeCollectionResponse>(
-        `${serverUrl}/api/collections/${encodeURIComponent(mergingCollectionId)}/merge`,
+        `${serverUrl}/api/collections/${encodeURIComponent(sourceCollectionId)}/merge`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            targetCollection: mergeTargetCollectionId,
+            targetCollection: targetCollectionId,
             resolutions: mergeResolutions,
           }),
+          signal: createCollectionOperationSignal(),
         },
       );
+      if (mergeConfirmRequestIdRef.current !== requestId) return;
       const srcName = result.sourceCollection;
       const targetName = result.targetCollection;
       setMergingCollectionId(null);
@@ -228,11 +282,19 @@ export function useCollectionMergeSplit({
         },
       });
     } catch (err) {
+      if (mergeConfirmRequestIdRef.current !== requestId) return;
+      if (isAbortError(err)) return;
+      if (isNetworkError(err)) {
+        markDisconnected();
+        return;
+      }
       setErrorToast(
         `Merge failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     } finally {
-      setMergeLoading(false);
+      if (mergeConfirmRequestIdRef.current === requestId) {
+        setMergeLoading(false);
+      }
     }
   };
 
@@ -240,15 +302,27 @@ export function useCollectionMergeSplit({
 
   const openSplitDialog = async (collectionId: string) => {
     if (!connected) return;
+    const requestId = ++splitOpenRequestIdRef.current;
+    splitConfirmRequestIdRef.current += 1;
+    setSplittingCollectionId(collectionId);
+    setSplitPreview([]);
+    setSplitDeleteOriginal(false);
     try {
       const preflight = await fetchCollectionStructuralPreflight(serverUrl, collectionId, {
         operation: "split",
         deleteOriginal: false,
-      });
-      setSplittingCollectionId(collectionId);
+      }, createCollectionOperationSignal());
+      if (splitOpenRequestIdRef.current !== requestId) return;
       setSplitPreview(preflight.splitPreview ?? []);
       setSplitDeleteOriginal(false);
     } catch (err) {
+      if (splitOpenRequestIdRef.current !== requestId) return;
+      if (isAbortError(err)) return;
+      if (isNetworkError(err)) {
+        markDisconnected();
+        return;
+      }
+      setSplittingCollectionId(null);
       setErrorToast(
         `Failed to load collection for splitting: ${err instanceof Error ? err.message : String(err)}`,
       );
@@ -256,21 +330,30 @@ export function useCollectionMergeSplit({
   };
 
   const closeSplitDialog = () => {
+    splitOpenRequestIdRef.current += 1;
+    splitConfirmRequestIdRef.current += 1;
     setSplittingCollectionId(null);
+    setSplitPreview([]);
+    setSplitDeleteOriginal(false);
+    setSplitLoading(false);
   };
 
   const handleConfirmSplit = async () => {
     if (!splittingCollectionId || !connected) return;
+    const requestId = ++splitConfirmRequestIdRef.current;
+    const sourceCollectionId = splittingCollectionId;
     setSplitLoading(true);
     try {
       const preflight = await fetchCollectionStructuralPreflight(
         serverUrl,
-        splittingCollectionId,
+        sourceCollectionId,
         {
           operation: "split",
           deleteOriginal: splitDeleteOriginal,
         },
+        createCollectionOperationSignal(),
       );
+      if (splitConfirmRequestIdRef.current !== requestId) return;
       if ((preflight.blockers?.length ?? 0) > 0) {
         const message =
           preflight.blockers[0]?.message ??
@@ -287,13 +370,15 @@ export function useCollectionMergeSplit({
         return;
       }
       const result = await apiFetch<SplitCollectionResponse>(
-        `${serverUrl}/api/collections/${encodeURIComponent(splittingCollectionId)}/split`,
+        `${serverUrl}/api/collections/${encodeURIComponent(sourceCollectionId)}/split`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ deleteOriginal: splitDeleteOriginal }),
+          signal: createCollectionOperationSignal(),
         },
       );
+      if (splitConfirmRequestIdRef.current !== requestId) return;
       const name = result.sourceCollection;
       const createdNames = result.createdCollections;
       const count = createdNames.length;
@@ -322,11 +407,19 @@ export function useCollectionMergeSplit({
         },
       });
     } catch (err) {
+      if (splitConfirmRequestIdRef.current !== requestId) return;
+      if (isAbortError(err)) return;
+      if (isNetworkError(err)) {
+        markDisconnected();
+        return;
+      }
       setErrorToast(
         `Split failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     } finally {
-      setSplitLoading(false);
+      if (splitConfirmRequestIdRef.current === requestId) {
+        setSplitLoading(false);
+      }
     }
   };
 

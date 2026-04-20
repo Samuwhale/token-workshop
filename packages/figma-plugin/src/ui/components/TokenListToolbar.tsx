@@ -56,9 +56,6 @@ export interface TokenListToolbarProps {
   scenarioControl?: ReactNode;
   multiModeEnabled: boolean;
   onToggleMultiMode: () => void;
-  modeLensEnabled: boolean;
-  onToggleModeLens: () => void;
-  setShowResolvedValues: (v: boolean) => void;
   onCreateGeneratedGroup?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
@@ -73,18 +70,12 @@ export interface TokenListToolbarProps {
 }
 
 function getCurrentLibraryViewMode({
-  viewMode,
   multiModeEnabled,
-  modeLensEnabled,
 }: {
-  viewMode: "tree" | "json";
   multiModeEnabled: boolean;
-  modeLensEnabled: boolean;
 }): LibraryViewMode {
-  if (viewMode === "json") return "json";
-  if (multiModeEnabled) return "mode-options";
-  if (modeLensEnabled) return "active-mode";
-  return "library";
+  if (multiModeEnabled) return "all-modes";
+  return "values";
 }
 
 export function TokenListToolbar({
@@ -121,9 +112,6 @@ export function TokenListToolbar({
   scenarioControl,
   multiModeEnabled,
   onToggleMultiMode,
-  modeLensEnabled,
-  onToggleModeLens,
-  setShowResolvedValues,
   onCreateGeneratedGroup,
   onSelectTokens,
   onBulkEdit,
@@ -163,9 +151,7 @@ export function TokenListToolbar({
   }, [closeActionsMenu]);
 
   const currentLibraryViewMode = getCurrentLibraryViewMode({
-    viewMode,
     multiModeEnabled,
-    modeLensEnabled,
   });
   const filterItems = toolbarStateChips.filter((chip) => chip.tone === "filter");
   const viewItems = toolbarStateChips.filter((chip) => chip.tone === "view");
@@ -174,43 +160,19 @@ export function TokenListToolbar({
 
   const activateViewMode = useCallback(
     (nextMode: LibraryViewMode) => {
-      if (nextMode === "json") {
-        setViewMode("json");
-        setShowResolvedValues(false);
-        return;
-      }
-
       if (viewMode !== "tree") {
         setViewMode("tree");
       }
-
-      if (nextMode === "library") {
+      if (nextMode === "values") {
         if (multiModeEnabled) onToggleMultiMode();
-        if (modeLensEnabled) onToggleModeLens();
-        setShowResolvedValues(false);
         return;
       }
-
-      if (nextMode === "mode-options") {
-        if (modeLensEnabled) onToggleModeLens();
+      if (nextMode === "all-modes") {
         if (!multiModeEnabled) onToggleMultiMode();
-        setShowResolvedValues(false);
         return;
       }
-
-      if (multiModeEnabled) onToggleMultiMode();
-      if (!modeLensEnabled) onToggleModeLens();
-      setShowResolvedValues(true);
     },
-    [
-      multiModeEnabled,
-      onToggleMultiMode,
-      onToggleModeLens,
-      setViewMode,
-      setShowResolvedValues,
-      modeLensEnabled,
-      viewMode,
-    ],
+    [multiModeEnabled, onToggleMultiMode, setViewMode, viewMode],
   );
 
   return (
@@ -258,31 +220,6 @@ export function TokenListToolbar({
 
           <div className="flex shrink-0 items-center gap-1">
             {scenarioControl}
-
-            {onOpenImportPanel && (
-              <button
-                type="button"
-                onClick={onOpenImportPanel}
-                disabled={!connected}
-                className="inline-flex h-[24px] items-center gap-1 rounded px-2 text-[10px] font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
-                title="Import tokens from files, Figma variables, or other sources"
-              >
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                </svg>
-                Import
-              </button>
-            )}
 
             <div className="relative shrink-0">
               <button
@@ -364,6 +301,8 @@ export function TokenListToolbar({
                 {...overflowMenuProps}
                 currentLibraryViewMode={currentLibraryViewMode}
                 onActivateViewMode={activateViewMode}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
               />
             )}
 
@@ -405,6 +344,19 @@ export function TokenListToolbar({
                   className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-lg"
                   role="menu"
                 >
+                  {onOpenImportPanel && (
+                    <>
+                      <button
+                        role="menuitem"
+                        onClick={() => runActionsAction(onOpenImportPanel)}
+                        disabled={!connected}
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Import
+                      </button>
+                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+                    </>
+                  )}
                   <button
                     role="menuitem"
                     onClick={() => runActionsAction(openTableCreate)}

@@ -100,10 +100,10 @@ export function ModeValuesEditor({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Collection modes
+            Mode values
           </p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-            Author values for this collection&apos;s modes directly on the token.
+            Set a different value for each of this collection&apos;s modes.
           </p>
         </div>
         {collectionCoverage ? (
@@ -121,7 +121,7 @@ export function ModeValuesEditor({
       {collectionCoverage && collectionCoverage.missingCount > 0 ? (
         <div className="rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2 py-1 text-[10px] text-[var(--color-figma-text)]">
           {collectionCoverage.missingCount} mode value
-          {collectionCoverage.missingCount === 1 ? "" : "s"} still need authoring
+          {collectionCoverage.missingCount === 1 ? "" : "s"} not yet defined
           in {collectionDefinition.id}.
         </div>
       ) : null}

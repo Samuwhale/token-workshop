@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type React from 'react';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
@@ -26,21 +26,44 @@ export function usePreviewSplit() {
   });
   const splitRatioRef = useRef(splitRatio);
   const splitContainerRef = useRef<HTMLDivElement>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    splitRatioRef.current = splitRatio;
+  }, [splitRatio]);
+
+  useEffect(() => {
+    return () => {
+      dragCleanupRef.current?.();
+    };
+  }, []);
+
   const handleSplitDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const container = splitContainerRef.current;
     if (!container) return;
+    dragCleanupRef.current?.();
     const onMove = (me: MouseEvent) => {
       const rect = container.getBoundingClientRect();
+      if (rect.height <= 0) {
+        return;
+      }
       const ratio = clampRatio((me.clientY - rect.top) / rect.height);
       splitRatioRef.current = ratio;
       setSplitRatioState(ratio);
     };
-    const onUp = () => {
+    const detach = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      if (dragCleanupRef.current === detach) {
+        dragCleanupRef.current = null;
+      }
+    };
+    const onUp = () => {
+      detach();
       lsSet(STORAGE_KEYS.PREVIEW_SPLIT_RATIO, String(splitRatioRef.current));
     };
+    dragCleanupRef.current = detach;
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   }, []);

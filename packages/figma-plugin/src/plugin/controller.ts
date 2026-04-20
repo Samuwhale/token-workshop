@@ -44,27 +44,46 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
 // posts a *-cancelled message before returning early.
 // ---------------------------------------------------------------------------
 
-let _activeScanSignal: { aborted: boolean } | null = null;
+type ActiveScanState = {
+  signal: { aborted: boolean };
+  requestId?: string;
+};
+
+let _activeScan: ActiveScanState | null = null;
 
 /** Abort any in-flight scan and return a fresh signal for the next one. */
-function createScanSignal(): { aborted: boolean } {
-  if (_activeScanSignal) _activeScanSignal.aborted = true;
+function createScanSignal(requestId?: string): { aborted: boolean } {
+  if (_activeScan) {
+    _activeScan.signal.aborted = true;
+  }
   const signal = { aborted: false };
-  _activeScanSignal = signal;
+  _activeScan = { signal, requestId };
   return signal;
 }
 
 /** Abort the in-flight scan without starting a new one. */
-function cancelActiveScan(): void {
-  if (_activeScanSignal) {
-    _activeScanSignal.aborted = true;
-    _activeScanSignal = null;
+function cancelActiveScan(requestId?: string): void {
+  if (!_activeScan) {
+    return;
   }
+
+  if (requestId && _activeScan.requestId && _activeScan.requestId !== requestId) {
+    return;
+  }
+
+  _activeScan.signal.aborted = true;
+  _activeScan = null;
 }
 
 /** Clear the active signal after a scan completes, but only if it's still ours. */
 function clearScanSignal(signal: { aborted: boolean }): void {
-  if (_activeScanSignal === signal) _activeScanSignal = null;
+  if (_activeScan?.signal === signal) {
+    _activeScan = null;
+  }
+}
+
+function normalizeScanScope(scope: unknown): 'page' | 'selection' | 'all-pages' {
+  return scope === 'selection' || scope === 'all-pages' ? scope : 'page';
 }
 
 /** Extract a human-readable message from an unknown thrown value. */
@@ -445,7 +464,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       break;
     case 'cancel-scan':
-      cancelActiveScan();
+      cancelActiveScan(msg.requestId);
       figma.ui.postMessage({ type: 'scan-cancelled' });
       break;
     case 'scan-token-usage': {
@@ -481,9 +500,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       selectNextSibling();
       break;
     case 'scan-canvas-heatmap': {
-      const signal = createScanSignal();
+      const signal = createScanSignal(msg.requestId);
       try {
-        await scanCanvasHeatmap(msg.scope ?? 'page', signal);
+        await scanCanvasHeatmap(normalizeScanScope(msg.scope), signal, msg.requestId);
       } catch (e) {
         reportError('scan-canvas-heatmap', e);
       } finally {

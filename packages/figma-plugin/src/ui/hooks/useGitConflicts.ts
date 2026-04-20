@@ -88,7 +88,7 @@ export function useGitConflicts({
       setMergeConflicts([]);
       setConflictChoices({});
       dispatchToast('Merge conflicts resolved', 'success');
-      fetchStatus();
+      await fetchStatus();
     } catch (err) {
       setGitError(describeError(err, 'Resolve conflicts'));
     } finally {
@@ -104,7 +104,7 @@ export function useGitConflicts({
       setMergeConflicts([]);
       setConflictChoices({});
       dispatchToast('Merge aborted', 'success');
-      fetchStatus();
+      await fetchStatus();
     } catch (err) {
       setGitError(describeError(err, 'Abort merge'));
     } finally {

@@ -36,13 +36,20 @@ import { useSelection } from "../hooks/useSelection";
 import { useHeatmap } from "../hooks/useHeatmap";
 import type { HeatmapResult } from "../components/HeatmapPanel";
 import type {
+  ConsistencyScanErrorMessage,
+  ConsistencyScanProgressMessage,
+  ConsistencyScanResultMessage,
+  ConsistencyScope,
   SelectionNodeInfo,
   ScanScope,
   ConsistencySuggestion,
+  TokenMapEntry,
+  TokenUsageMapMessage,
 } from "../../shared/types";
 import type { HeatmapProgress } from "../hooks/useHeatmap";
 import { matchesShortcut } from "../shared/shortcutRegistry";
 import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
+import { getPluginMessageFromEvent, postPluginMessage } from "../../shared/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -235,9 +242,9 @@ function UsageProvider({ children }: { children: ReactNode }) {
   // Listen for token-usage-map results; re-scan after apply/sync/remap changes.
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<TokenUsageMapMessage | { type?: string }>(e);
       if (msg?.type === "token-usage-map") {
-        setTokenUsageCounts(msg.usageMap ?? {});
+        setTokenUsageCounts((msg as TokenUsageMapMessage).usageMap ?? {});
       } else if (
         msg?.type === "applied-to-selection" ||
         msg?.type === "sync-complete" ||
@@ -245,10 +252,7 @@ function UsageProvider({ children }: { children: ReactNode }) {
       ) {
         if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
         scanDebounceRef.current = setTimeout(() => {
-          parent.postMessage(
-            { pluginMessage: { type: "scan-token-usage" } },
-            "*",
-          );
+          postPluginMessage({ type: "scan-token-usage" });
         }, 300);
       }
     };
@@ -262,7 +266,12 @@ function UsageProvider({ children }: { children: ReactNode }) {
   // Listen for consistency scan messages
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      const msg = e.data?.pluginMessage;
+      const msg = getPluginMessageFromEvent<
+        | ConsistencyScanProgressMessage
+        | ConsistencyScanResultMessage
+        | ConsistencyScanErrorMessage
+        | { type?: "consistency-scan-cancelled" }
+      >(e);
       if (!msg) return;
       if (msg.type === "consistency-scan-progress") {
         setConsistencyProgress({ processed: msg.processed, total: msg.total });
@@ -292,7 +301,7 @@ function UsageProvider({ children }: { children: ReactNode }) {
   }, [clearConsistencyTimeout]);
 
   const triggerUsageScan = useCallback(() => {
-    parent.postMessage({ pluginMessage: { type: "scan-token-usage" } }, "*");
+    postPluginMessage({ type: "scan-token-usage" });
   }, []);
 
   const triggerConsistencyScan = useCallback(
@@ -309,7 +318,7 @@ function UsageProvider({ children }: { children: ReactNode }) {
 
       consistencyTimeoutRef.current = setTimeout(() => {
         consistencyTimeoutRef.current = null;
-        parent.postMessage({ pluginMessage: { type: "cancel-scan" } }, "*");
+        postPluginMessage({ type: "cancel-scan" });
         setConsistencyLoading(false);
         setConsistencyProgress(null);
         setConsistencyError(
@@ -317,19 +326,18 @@ function UsageProvider({ children }: { children: ReactNode }) {
         );
       }, CONSISTENCY_SCAN_TIMEOUT_MS);
 
-      parent.postMessage(
-        {
-          pluginMessage: { type: "scan-consistency", tokenMap, scope },
-        },
-        "*",
-      );
+      postPluginMessage({
+        type: "scan-consistency",
+        tokenMap: tokenMap as Record<string, TokenMapEntry>,
+        scope: scope as ConsistencyScope,
+      });
     },
     [clearConsistencyTimeout],
   );
 
   const cancelConsistencyScan = useCallback(() => {
     clearConsistencyTimeout();
-    parent.postMessage({ pluginMessage: { type: "cancel-scan" } }, "*");
+    postPluginMessage({ type: "cancel-scan" });
     setConsistencyLoading(false);
     setConsistencyProgress(null);
   }, [clearConsistencyTimeout]);
@@ -384,10 +392,7 @@ function InspectPreferencesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     lsSet(STORAGE_KEYS.DEEP_INSPECT, String(deepInspect));
-    parent.postMessage(
-      { pluginMessage: { type: "set-deep-inspect", enabled: deepInspect } },
-      "*",
-    );
+    postPluginMessage({ type: "set-deep-inspect", enabled: deepInspect });
   }, [deepInspect]);
 
   useEffect(() => {

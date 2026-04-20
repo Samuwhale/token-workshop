@@ -1,6 +1,7 @@
 import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { ReadVariableCollection, ReadVariableToken } from '../../shared/types';
+import { postPluginMessage } from '../../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage } from '../shared/utils';
@@ -725,7 +726,15 @@ export function useFigmaVariables({
       setFigmaLoading(false);
       setError('No response from Figma — make sure a Figma document is open and the plugin is running.');
     }, 10000);
-    parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId } }, '*');
+    if (!postPluginMessage({ type: 'read-variables', correlationId })) {
+      if (figmaLoadingTimeoutRef.current !== null) {
+        clearTimeout(figmaLoadingTimeoutRef.current);
+        figmaLoadingTimeoutRef.current = null;
+      }
+      figmaReadCorrelationIdRef.current = null;
+      setFigmaLoading(false);
+      setError('Could not reach the Figma plugin host.');
+    }
   };
 
   const buildDTCGJson = (modeOverride?: string | null): string => {

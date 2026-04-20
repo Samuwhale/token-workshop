@@ -1,6 +1,7 @@
+import type { TokenReference, TokenValue } from '@tokenmanager/core';
 import { parseColor } from './colorUtils.js';
 import { rgbToHex } from './colorUtils.js';
-import type { ResolvedTokenValue } from '../shared/types.js';
+import { coerceBooleanValue } from '../shared/utils.js';
 
 export function mapTokenTypeToVariableType(tokenType: string): VariableResolvedDataType | null {
   switch (tokenType) {
@@ -32,7 +33,10 @@ export function mapVariableTypeToTokenType(variableType: VariableResolvedDataTyp
   }
 }
 
-export function convertToFigmaValue(value: ResolvedTokenValue, tokenType: string): VariableValue | null {
+export function convertToFigmaValue(
+  value: TokenValue | TokenReference | null,
+  tokenType: string,
+): VariableValue | null {
   switch (tokenType) {
     case 'color': {
       const color = parseColor(typeof value === 'string' ? value : String(value));
@@ -56,7 +60,7 @@ export function convertToFigmaValue(value: ResolvedTokenValue, tokenType: string
       return isNaN(parsed) ? null : parsed;
     }
     case 'boolean':
-      return Boolean(value);
+      return coerceBooleanValue(value);
     case 'string':
     case 'fontFamily':
       return Array.isArray(value) ? String(value[0]) : String(value);

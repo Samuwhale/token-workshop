@@ -319,101 +319,13 @@ export function CollectionDetailsPanel({
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <Section
-            title="Collection"
-            description="Name and description for this collection."
-          >
-            {renamingCollectionId === collection.id ? (
-              <div className="space-y-2">
-                <input
-                  ref={renameInputRef}
-                  type="text"
-                  value={renameValue}
-                  onChange={(event) => setRenameValue?.(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      void onRenameConfirm?.();
-                    }
-                    if (event.key === "Escape") {
-                      onRenameCancel?.();
-                    }
-                  }}
-                  className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                />
-                {renameError ? (
-                  <p className="text-[10px] text-[var(--color-figma-error)]">{renameError}</p>
-                ) : null}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void onRenameConfirm?.()}
-                    className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white"
-                  >
-                    Save name
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onRenameCancel}
-                    className="rounded-md px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate text-[11px] font-medium text-[var(--color-figma-text)]">
-                    {collection.id}
-                  </div>
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    Collection name
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRename?.(collection.id)}
-                  className="shrink-0 rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  Rename
-                </button>
-              </div>
-            )}
-
-            <div className="mt-3 space-y-2">
-              <textarea
-                value={
-                  editingMetadataCollectionId === collection.id
-                    ? metadataDescription
-                    : collectionDescriptions[collection.id] ?? ""
-                }
-                onChange={(event) => setMetadataDescription?.(event.target.value)}
-                rows={4}
-                placeholder="What is this collection for?"
-                className="w-full resize-none rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-              />
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Description
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void onMetadataSave?.()}
-                  className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </Section>
-
-          <Section
             title="Modes"
             description="Add or remove modes for this collection."
           >
             <div className="space-y-2">
               {collection.modes.length === 0 ? (
                 <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  No modes yet. Add them here before authoring scenario-specific values.
+                  No modes yet. Add them here before authoring mode-specific values.
                 </p>
               ) : (
                 collection.modes.map((mode) => (
@@ -466,47 +378,121 @@ export function CollectionDetailsPanel({
             </div>
           </Section>
 
-          <Section
-            title="Actions"
-            description="Operations that affect the entire collection."
-          >
+          <Section title="Description">
             <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => onDuplicate?.(collection.id)}
-                className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-border)] px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                <span className="font-medium">Duplicate collection</span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Create a copy</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onMerge?.(collection.id)}
-                disabled={!canMerge}
-                className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-border)] px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
-              >
-                <span className="font-medium">Merge into another collection</span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  {canMerge ? "Resolve conflicts first" : "Create another collection first"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onSplit?.(collection.id)}
-                className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-border)] px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                <span className="font-medium">Split collection</span>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Promote top-level groups</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete?.(collection.id)}
-                className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-error)]/30 px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
-              >
-                <span className="font-medium">Delete collection</span>
-                <span className="text-[10px] text-[var(--color-figma-error)]/80">Remove permanently</span>
-              </button>
+              <textarea
+                value={
+                  editingMetadataCollectionId === collection.id
+                    ? metadataDescription
+                    : collectionDescriptions[collection.id] ?? ""
+                }
+                onChange={(event) => setMetadataDescription?.(event.target.value)}
+                rows={4}
+                placeholder="What is this collection for?"
+                className="w-full resize-none rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+              />
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => void onMetadataSave?.()}
+                  className="shrink-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white"
+                >
+                  Save
+                </button>
+              </div>
             </div>
+          </Section>
+
+          <Section title="Organize" description="Structural changes to this collection.">
+            <details className="group">
+              <summary className="cursor-pointer text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] select-none">
+                Rename, merge, split, or delete…
+              </summary>
+              <div className="mt-2 flex flex-col gap-2">
+                {renamingCollectionId === collection.id ? (
+                  <div className="space-y-2">
+                    <input
+                      ref={renameInputRef}
+                      type="text"
+                      value={renameValue}
+                      onChange={(event) => setRenameValue?.(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          void onRenameConfirm?.();
+                        }
+                        if (event.key === "Escape") {
+                          onRenameCancel?.();
+                        }
+                      }}
+                      className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-[11px] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                    />
+                    {renameError ? (
+                      <p className="text-[10px] text-[var(--color-figma-error)]">{renameError}</p>
+                    ) : null}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void onRenameConfirm?.()}
+                        className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white"
+                      >
+                        Save name
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onRenameCancel}
+                        className="rounded-md px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onRename?.(collection.id)}
+                    className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-border)] px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                  >
+                    <span className="font-medium">Rename collection</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{collection.id}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onDuplicate?.(collection.id)}
+                  className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-border)] px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span className="font-medium">Duplicate collection</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Create a copy</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onMerge?.(collection.id)}
+                  disabled={!canMerge}
+                  className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-border)] px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                >
+                  <span className="font-medium">Merge into another collection</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {canMerge ? "Resolve conflicts first" : "Create another collection first"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSplit?.(collection.id)}
+                  className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-border)] px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span className="font-medium">Split collection</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Promote top-level groups</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete?.(collection.id)}
+                  className="flex w-full items-center justify-between rounded-md border border-[var(--color-figma-error)]/30 px-2.5 py-2 text-left text-[11px] text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
+                >
+                  <span className="font-medium">Delete collection</span>
+                  <span className="text-[10px] text-[var(--color-figma-error)]/80">Remove permanently</span>
+                </button>
+              </div>
+            </details>
           </Section>
         </div>
       </aside>

@@ -233,6 +233,7 @@ export interface ResolvedTokenObject {
  */
 export type ResolvedTokenValue =
   | string
+  | string[]
   | number
   | boolean
   | DimensionValue
@@ -252,7 +253,7 @@ export type ResolvedTokenValue =
 export interface VariableSyncToken {
   path: string;
   $type: string;
-  $value: ResolvedTokenValue;
+  $value: TokenValue | TokenReference | null;
   collectionId?: string;
   figmaCollection?: string;
   figmaMode?: string;
@@ -515,6 +516,7 @@ export type ScanScope = 'page' | 'selection' | 'all-pages';
 export interface ScanCanvasHeatmapMessage {
   type: 'scan-canvas-heatmap';
   scope?: ScanScope;
+  requestId?: string;
 }
 
 export interface SelectHeatmapNodesMessage {
@@ -640,6 +642,7 @@ export interface GetAvailableFontsMessage {
 
 export interface CancelScanMessage {
   type: 'cancel-scan';
+  requestId?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

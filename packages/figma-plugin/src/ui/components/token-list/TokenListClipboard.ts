@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { TokenNode } from "../../hooks/useTokens";
 import { STORAGE_KEYS, lsGet } from "../../shared/storage";
 import type { PreferredCopyFormat } from "../SettingsPanel";
@@ -36,19 +36,63 @@ export function useTokenListClipboard(callbacks: {
     setCopyPreferredFeedback,
     setCopyAliasFeedback,
   } = callbacks;
+  const feedbackTimersRef = useRef<{
+    json: ReturnType<typeof setTimeout> | null;
+    css: ReturnType<typeof setTimeout> | null;
+    preferred: ReturnType<typeof setTimeout> | null;
+    alias: ReturnType<typeof setTimeout> | null;
+  }>({
+    json: null,
+    css: null,
+    preferred: null,
+    alias: null,
+  });
+
+  useEffect(() => {
+    const feedbackTimers = feedbackTimersRef.current;
+    return () => {
+      for (const timer of Object.values(feedbackTimers)) {
+        if (timer !== null) {
+          clearTimeout(timer);
+        }
+      }
+    };
+  }, []);
+
+  const flashFeedback = useCallback((
+    key: keyof typeof feedbackTimersRef.current,
+    setter: (value: boolean) => void,
+  ) => {
+    const existing = feedbackTimersRef.current[key];
+    if (existing !== null) {
+      clearTimeout(existing);
+    }
+    setter(true);
+    feedbackTimersRef.current[key] = setTimeout(() => {
+      feedbackTimersRef.current[key] = null;
+      setter(false);
+    }, 1500);
+  }, []);
+
+  const writeToClipboard = useCallback(async (
+    text: string,
+    key: keyof typeof feedbackTimersRef.current,
+    setter: (value: boolean) => void,
+  ) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      flashFeedback(key, setter);
+    } catch (err) {
+      console.warn("[TokenList] clipboard write failed:", err);
+    }
+  }, [flashFeedback]);
 
   /** Build nested DTCG JSON from a list of token nodes and copy to clipboard. */
   const copyTokensAsJson = useCallback((nodes: TokenNode[]) => {
     if (nodes.length === 0) return;
     const json = buildDtcgJson(nodes);
-    navigator.clipboard
-      .writeText(json)
-      .then(() => {
-        setCopyFeedback(true);
-        setTimeout(() => setCopyFeedback(false), 1500);
-      })
-      .catch((err) => console.warn("[TokenList] clipboard write failed:", err));
-  }, [setCopyFeedback]);
+    void writeToClipboard(json, "json", setCopyFeedback);
+  }, [setCopyFeedback, writeToClipboard]);
 
   /** Convert token paths to CSS custom property references and copy to clipboard. */
   const copyTokensAsCssVar = useCallback((nodes: TokenNode[]) => {
@@ -57,28 +101,16 @@ export function useTokenListClipboard(callbacks: {
     const text = leafNodes
       .map((n) => `var(--${n.path.replace(/\./g, "-")})`)
       .join("\n");
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopyCssFeedback(true);
-        setTimeout(() => setCopyCssFeedback(false), 1500);
-      })
-      .catch((err) => console.warn("[TokenList] clipboard write failed:", err));
-  }, [setCopyCssFeedback]);
+    void writeToClipboard(text, "css", setCopyCssFeedback);
+  }, [setCopyCssFeedback, writeToClipboard]);
 
   /** Copy token paths as DTCG alias reference syntax ({path.to.token}). */
   const copyTokensAsDtcgRef = useCallback((nodes: TokenNode[]) => {
     const leafNodes = nodes.filter((n) => !n.isGroup);
     if (leafNodes.length === 0) return;
     const text = leafNodes.map((n) => `{${n.path}}`).join("\n");
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopyAliasFeedback(true);
-        setTimeout(() => setCopyAliasFeedback(false), 1500);
-      })
-      .catch((err) => console.warn("[TokenList] clipboard write failed:", err));
-  }, [setCopyAliasFeedback]);
+    void writeToClipboard(text, "alias", setCopyAliasFeedback);
+  }, [setCopyAliasFeedback, writeToClipboard]);
 
   /** Copy the focused/selected token(s) in the user's preferred format. */
   const copyTokensAsPreferred = useCallback((nodes: TokenNode[]) => {
@@ -108,14 +140,8 @@ export function useTokenListClipboard(callbacks: {
         .join("\n");
     }
 
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopyPreferredFeedback(true);
-        setTimeout(() => setCopyPreferredFeedback(false), 1500);
-      })
-      .catch((err) => console.warn("[TokenList] clipboard write failed:", err));
-  }, [setCopyPreferredFeedback]);
+    void writeToClipboard(text, "preferred", setCopyPreferredFeedback);
+  }, [setCopyPreferredFeedback, writeToClipboard]);
 
   return {
     copyTokensAsJson,

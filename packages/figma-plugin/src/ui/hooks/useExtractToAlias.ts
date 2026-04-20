@@ -4,7 +4,10 @@ import {
   createTokenBody,
   updateToken,
 } from '../shared/tokenMutations';
-import type { ExtractAliasTokenDraft } from '../shared/tokenListModalTypes';
+import type {
+  ExtractAliasMode,
+  ExtractAliasTokenDraft,
+} from '../shared/tokenListModalTypes';
 
 export interface UseExtractToAliasParams {
   connected: boolean;
@@ -121,7 +124,7 @@ export function useExtractToAlias({
   onRefresh,
 }: UseExtractToAliasParams) {
   const [extractToken, setExtractToken] = useState<ExtractAliasTokenDraft | null>(null);
-  const [extractMode, setExtractMode] = useState<'new' | 'existing'>('new');
+  const [extractMode, setExtractMode] = useState<ExtractAliasMode>('new');
   const [newPrimitivePath, setNewPrimitivePath] = useState('');
   const [newPrimitiveCollectionId, setNewPrimitiveCollectionId] = useState('');
   const [existingAlias, setExistingAlias] = useState('');

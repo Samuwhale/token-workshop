@@ -218,6 +218,13 @@ export const STORAGE_KEYS = {
   ACTIVE_RESOLVER:          'tm_active_resolver',
   RESOLVER_INPUT:           'tm_resolver_input',
   SIDEBAR_COLLAPSED:        'tm_sidebar_collapsed',
+  MULTI_MODE:               'tm_multi_mode',
+  INSPECTOR_SUGGESTIONS_OPEN: 'inspector-suggestions-open',
+  LAST_CREATE_GROUP:        'tm_last_create_group',
+  LAST_CREATE_TYPE:         'tm_last_token_type',
+  EDITOR_DETAILS:           'tm_editor_details',
+  EDITOR_INFO_TAB:          'tm_editor_info_tab',
+  READINESS_CHANGE_KEY:     'tm_readiness_change_key',
 } as const;
 
 /** Dynamic key builders for collection-scoped client view state. */
@@ -237,7 +244,13 @@ export const STORAGE_KEY_BUILDERS = {
 export const STORAGE_PREFIXES = {
   TOKEN_SORT:        'token-sort:',
   TOKEN_TYPE_FILTER: 'token-type-filter:',
+  PINNED_TOKENS: 'tm_pinned:',
+  TOKEN_VIEW_MODE: 'tm_view-mode:',
   TOKEN_SHOW_RESOLVED_VALUES: 'tm_show_resolved_values:',
+  STALE_GENERATED_BANNER_DISMISSED: 'tm_stale_generated_banner_dismissed:',
+  TOKEN_EXPANSION: 'token-expand:',
+  EDITOR_DRAFT: 'tm_editor_draft:',
+  TABLE_CREATE_DRAFT: 'tokenmanager:table-create-draft:',
 } as const;
 
 const WORKSPACE_RECOVERY_RESET_KEYS = [
@@ -253,6 +266,9 @@ const WORKSPACE_RECOVERY_RESET_KEYS = [
   STORAGE_KEYS.ACTIVE_RESOLVER,
   STORAGE_KEYS.RESOLVER_INPUT,
   STORAGE_KEYS.FIRST_RUN_DONE,
+  STORAGE_KEYS.LAST_CREATE_GROUP,
+  STORAGE_KEYS.LAST_CREATE_TYPE,
+  STORAGE_KEYS.READINESS_CHANGE_KEY,
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -332,10 +348,10 @@ export function lsEntries(): Array<[string, string]> {
  * Remove all keys that start with any of the given prefixes.
  * Iterates localStorage in a single pass.
  */
-function lsClearByPrefix(...prefixes: string[]): void {
-  for (const [key] of lsEntries()) {
+function clearStorageByPrefix(kind: BrowserStorageKind, ...prefixes: string[]): void {
+  for (const [key] of storageEntries(kind)) {
     if (prefixes.some((prefix) => key.startsWith(prefix))) {
-      lsRemove(key);
+      storageRemove(kind, key);
     }
   }
 }
@@ -348,9 +364,21 @@ export function resetWorkspaceStateForRecovery(): void {
   for (const key of WORKSPACE_RECOVERY_RESET_KEYS) {
     lsRemove(key);
   }
-  lsClearByPrefix(
+
+  clearStorageByPrefix(
+    "local",
     STORAGE_PREFIXES.TOKEN_SORT,
     STORAGE_PREFIXES.TOKEN_TYPE_FILTER,
+    STORAGE_PREFIXES.PINNED_TOKENS,
+    STORAGE_PREFIXES.TOKEN_VIEW_MODE,
     STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES,
+    STORAGE_PREFIXES.STALE_GENERATED_BANNER_DISMISSED,
+    STORAGE_PREFIXES.TOKEN_EXPANSION,
+    STORAGE_PREFIXES.TABLE_CREATE_DRAFT,
+  );
+
+  clearStorageByPrefix(
+    "session",
+    STORAGE_PREFIXES.EDITOR_DRAFT,
   );
 }

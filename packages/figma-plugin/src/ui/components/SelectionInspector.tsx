@@ -51,7 +51,7 @@ import {
 import { ExtractTokensPanel } from "./ExtractTokensPanel";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
-import { lsGet, lsSet } from "../shared/storage";
+import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -671,7 +671,7 @@ export function SelectionInspector({
   }, [hasSelection, rootNodes]);
 
   const [showSuggestions, setShowSuggestions] = useState(
-    () => lsGet("inspector-suggestions-open") !== "false",
+    () => lsGet(STORAGE_KEYS.INSPECTOR_SUGGESTIONS_OPEN) !== "false",
   );
 
   const [showExtractPanel, setShowExtractPanel] = useState(false);
@@ -909,7 +909,7 @@ export function SelectionInspector({
               onClick={() => {
                 setShowSuggestions((prev) => {
                   const next = !prev;
-                  lsSet("inspector-suggestions-open", String(next));
+                  lsSet(STORAGE_KEYS.INSPECTOR_SUGGESTIONS_OPEN, String(next));
                   return next;
                 });
               }}

@@ -50,7 +50,7 @@ import {
 } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
-import { lsGet, lsSet } from "../shared/storage";
+import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import {
   useApplyWorkspaceController,
   useEditorShellController,
@@ -77,21 +77,19 @@ import {
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import type { ToastAction } from "../shared/toastBus";
 
-const LAST_CREATE_GROUP_STORAGE_KEY = "tm_last_create_group";
-const LAST_CREATE_TYPE_STORAGE_KEY = "tm_last_token_type";
 const DEFAULT_CREATE_TYPE = "color";
 
 function readLastCreateGroup(): string {
-  return lsGet(LAST_CREATE_GROUP_STORAGE_KEY, "");
+  return lsGet(STORAGE_KEYS.LAST_CREATE_GROUP, "");
 }
 
 function readLastCreateType(): string {
-  const savedType = lsGet(LAST_CREATE_TYPE_STORAGE_KEY, DEFAULT_CREATE_TYPE);
+  const savedType = lsGet(STORAGE_KEYS.LAST_CREATE_TYPE, DEFAULT_CREATE_TYPE);
   const normalizedType = normalizeTokenType(savedType, DEFAULT_CREATE_TYPE);
   if (normalizedType === savedType) {
     return savedType;
   }
-  lsSet(LAST_CREATE_TYPE_STORAGE_KEY, normalizedType);
+  lsSet(STORAGE_KEYS.LAST_CREATE_TYPE, normalizedType);
   return normalizedType;
 }
 
@@ -99,12 +97,12 @@ function persistLastCreateGroup(tokenPath: string): void {
   const groupPath = tokenPath.includes(".")
     ? tokenPath.split(".").slice(0, -1).join(".")
     : "";
-  lsSet(LAST_CREATE_GROUP_STORAGE_KEY, groupPath);
+  lsSet(STORAGE_KEYS.LAST_CREATE_GROUP, groupPath);
 }
 
 function persistLastCreateType(tokenType: string): void {
   lsSet(
-    LAST_CREATE_TYPE_STORAGE_KEY,
+    STORAGE_KEYS.LAST_CREATE_TYPE,
     normalizeTokenType(tokenType, DEFAULT_CREATE_TYPE),
   );
 }

@@ -1,7 +1,7 @@
 import { ALL_BINDABLE_PROPERTIES } from '../shared/types.js';
 import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo, TokenMapEntry, ResolvedTokenValue, TypographyValue, DimensionValue, BorderValue, ShadowTokenValue } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
-import { getErrorMessage } from '../shared/utils.js';
+import { coerceBooleanValue, getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
 import { resolveFontStyle, fontStyleToWeight } from './fontLoading.js';
@@ -179,7 +179,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
       break;
 
     case 'visible':
-      node.visible = Boolean(value);
+      node.visible = coerceBooleanValue(value);
       break;
 
     case 'composition': {

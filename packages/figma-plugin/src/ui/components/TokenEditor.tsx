@@ -41,7 +41,7 @@ import {
 } from "../hooks/useTokenEditorUtils";
 import { buildTokenDependencySnapshot } from "./TokenFlowPanel";
 import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigationTypes";
-import { lsGet, lsSet } from "../shared/storage";
+import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
@@ -473,7 +473,7 @@ export function TokenEditor({
 
   useEffect(() => {
     if (!isCreateMode) return;
-    lsSet('tm_last_token_type', normalizeTokenType(tokenType));
+    lsSet(STORAGE_KEYS.LAST_CREATE_TYPE, normalizeTokenType(tokenType));
   }, [isCreateMode, tokenType]);
 
   const openGeneratedGroupEditor = useCallback((target: TokensLibraryGeneratedGroupEditorTarget) => {
@@ -777,25 +777,25 @@ export function TokenEditor({
   );
 
   const [detailsOpen, setDetailsOpen] = useState(() => {
-    return lsGet('tm_editor_details') === '1';
+    return lsGet(STORAGE_KEYS.EDITOR_DETAILS) === '1';
   });
   const [referenceOpen, setReferenceOpen] = useState(false);
   const toggleDetails = useCallback(() => {
     setDetailsOpen((v) => {
       const next = !v;
-      lsSet('tm_editor_details', next ? '1' : '0');
+      lsSet(STORAGE_KEYS.EDITOR_DETAILS, next ? '1' : '0');
       return next;
     });
   }, []);
   const [infoTab, setInfoTab] = useState<'dependencies' | 'usage' | 'history' | null>(() => {
-    const saved = lsGet('tm_editor_info_tab');
+    const saved = lsGet(STORAGE_KEYS.EDITOR_INFO_TAB);
     if (saved === 'dependencies' || saved === 'usage' || saved === 'history') return saved;
     return null;
   });
   const handleInfoTab = useCallback((tab: 'dependencies' | 'usage' | 'history') => {
     setInfoTab((prev) => {
       const next = prev === tab ? null : tab;
-      lsSet('tm_editor_info_tab', next ?? '');
+      lsSet(STORAGE_KEYS.EDITOR_INFO_TAB, next ?? '');
       return next;
     });
   }, []);
@@ -1356,82 +1356,6 @@ export function TokenEditor({
     </Collapsible>
   );
 
-  const dependentsSection = !isCreateMode && dependentTrace.length > 0 && (
-    <Collapsible
-      open={refsExpanded}
-      onToggle={() => setRefsExpanded((open) => !open)}
-      label={<span>Dependents ({dependentTrace.length})</span>}
-      className="flex flex-col gap-2"
-    >
-      <div className="mt-2 flex flex-col gap-0.5 rounded-md border border-[var(--color-figma-border)]/65 bg-[var(--color-figma-bg-secondary)]/20 p-2">
-        {dependentTrace.slice(0, 20).map((dependent) => {
-          const dependentColor =
-            dependent.$type === "color"
-              ? resolveRefValue(dependent.path, colorFlatMap)
-              : null;
-          return (
-            <button
-              key={dependent.path}
-              type="button"
-              onClick={() => onNavigateToToken?.(dependent.path, tokenPath)}
-              disabled={!onNavigateToToken}
-              className="group flex items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-default"
-              title={
-                onNavigateToToken
-                  ? `Navigate to ${dependent.path}`
-                  : dependent.path
-              }
-              style={{
-                paddingLeft: `${6 + Math.max(0, dependent.depth - 1) * 12}px`,
-              }}
-            >
-              <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-0.5 text-[8px] text-[var(--color-figma-text-secondary)]">
-                {dependent.depth === 1 ? "Direct" : `+${dependent.depth - 1}`}
-              </span>
-              {dependentColor ? (
-                <span
-                  className="h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
-                  style={{ backgroundColor: dependentColor }}
-                />
-              ) : (
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  className="shrink-0 opacity-40"
-                >
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                </svg>
-              )}
-              <span
-                className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1 group-hover:underline`}
-              >
-                {dependent.path}
-              </span>
-              {dependent.collectionId && dependent.collectionId !== ownerCollectionId && (
-                <span className="shrink-0 rounded bg-[var(--color-figma-bg-hover)] px-1 py-0.5 text-[8px] text-[var(--color-figma-text-secondary)]">
-                  {dependent.collectionId}
-                </span>
-              )}
-            </button>
-          );
-        })}
-        {dependentTrace.length > 20 && (
-          <div className="px-1.5 pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
-            + {dependentTrace.length - 20} more
-          </div>
-        )}
-      </div>
-    </Collapsible>
-  );
-
   return (
     <div className="flex h-full min-h-0 flex-col">
       <EditorShell
@@ -1715,6 +1639,31 @@ export function TokenEditor({
           />
         )}
 
+        {/* Color tools — right after value editor for color tokens */}
+        {tokenType === "color" &&
+          (aliasMode
+            ? isAlias(reference)
+            : typeof value === "string" && value.length > 0) && (
+            <ColorModifiersEditor
+              reference={aliasMode ? reference : undefined}
+              colorFlatMap={aliasMode ? colorFlatMap : undefined}
+              directColor={
+                !aliasMode && typeof value === "string" ? value : undefined
+              }
+              colorModifiers={colorModifiers}
+              onColorModifiersChange={setColorModifiers}
+            />
+          )}
+        {tokenType === "color" && !isCreateMode && (
+          <ContrastChecker
+            tokenPath={tokenPath}
+            value={value}
+            allTokensFlat={allTokensFlat}
+            pathToCollectionId={pathToCollectionId}
+            colorFlatMap={colorFlatMap}
+          />
+        )}
+
         <ModeValuesEditor
           collectionId={ownerCollectionId}
           collections={collections}
@@ -1780,39 +1729,12 @@ export function TokenEditor({
           </div>
         )}
 
-        {dependentsSection}
-
         <Collapsible
           open={detailsOpen}
           onToggle={toggleDetails}
           label={<span>Details</span>}
         >
           <div className="mt-2 flex flex-col gap-3">
-            {tokenType === "color" &&
-              (aliasMode
-                ? isAlias(reference)
-                : typeof value === "string" && value.length > 0) && (
-                <ColorModifiersEditor
-                  reference={aliasMode ? reference : undefined}
-                  colorFlatMap={aliasMode ? colorFlatMap : undefined}
-                  directColor={
-                    !aliasMode && typeof value === "string" ? value : undefined
-                  }
-                  colorModifiers={colorModifiers}
-                  onColorModifiersChange={setColorModifiers}
-                />
-              )}
-
-            {tokenType === "color" && (
-              <ContrastChecker
-                tokenPath={tokenPath}
-                value={value}
-                allTokensFlat={allTokensFlat}
-                pathToCollectionId={pathToCollectionId}
-                colorFlatMap={colorFlatMap}
-              />
-            )}
-
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                 Description
@@ -1850,18 +1772,32 @@ export function TokenEditor({
                   </button>
                 ))}
               </div>
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                {lifecycle === "draft"
+                  ? "Token is a work in progress and may change."
+                  : lifecycle === "deprecated"
+                    ? "Token is no longer recommended for use."
+                    : "Token is stable and ready for production."}
+              </p>
             </div>
 
-            <MetadataEditor
-              tokenType={tokenType}
-              scopes={scopes}
-              onScopesChange={setScopes}
-              extensionsJsonText={extensionsJsonText}
-              onExtensionsJsonTextChange={setExtensionsJsonText}
-              extensionsJsonError={extensionsJsonError}
-              onExtensionsJsonErrorChange={setExtensionsJsonError}
-              isCreateMode={isCreateMode}
-            />
+            <details className="mt-1">
+              <summary className="cursor-pointer text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
+                Developer metadata
+              </summary>
+              <div className="mt-2">
+                <MetadataEditor
+                  tokenType={tokenType}
+                  scopes={scopes}
+                  onScopesChange={setScopes}
+                  extensionsJsonText={extensionsJsonText}
+                  onExtensionsJsonTextChange={setExtensionsJsonText}
+                  extensionsJsonError={extensionsJsonError}
+                  onExtensionsJsonErrorChange={setExtensionsJsonError}
+                  isCreateMode={isCreateMode}
+                />
+              </div>
+            </details>
 
             {canBeGeneratorSource && !aliasMode && (
               <TokenEditorDerivedGroups
@@ -1874,19 +1810,21 @@ export function TokenEditor({
               />
             )}
 
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
+            <details className="mt-1">
+              <summary className="cursor-pointer text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
                 Raw JSON
-              </label>
-              <pre className="max-h-56 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                {rawJsonPreview}
-              </pre>
-              {extensionsJsonError && (
-                <p className="text-[10px] text-[var(--color-figma-error)]">
-                  Extensions JSON is invalid. The preview excludes that invalid block until it parses.
-                </p>
-              )}
-            </div>
+              </summary>
+              <div className="mt-2">
+                <pre className="max-h-56 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {rawJsonPreview}
+                </pre>
+                {extensionsJsonError && (
+                  <p className="text-[10px] text-[var(--color-figma-error)]">
+                    Extensions JSON is invalid. The preview excludes that invalid block until it parses.
+                  </p>
+                )}
+              </div>
+            </details>
 
             {!isCreateMode && (
               <TokenEditorInfoSection

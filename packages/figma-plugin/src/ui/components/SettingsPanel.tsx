@@ -157,6 +157,40 @@ type ImportDiffEntry = {
   status: "added" | "changed";
 };
 
+const IMPORTABLE_PREFIXES = [
+  STORAGE_PREFIXES.TOKEN_SORT,
+  STORAGE_PREFIXES.TOKEN_TYPE_FILTER,
+  STORAGE_PREFIXES.PINNED_TOKENS,
+  STORAGE_PREFIXES.TOKEN_VIEW_MODE,
+  STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES,
+] as const;
+
+const PREFIX_LABELS: Array<{ prefix: string; label: string }> = [
+  { prefix: STORAGE_PREFIXES.TOKEN_SORT, label: "Sort" },
+  { prefix: STORAGE_PREFIXES.TOKEN_TYPE_FILTER, label: "Filter" },
+  { prefix: STORAGE_PREFIXES.PINNED_TOKENS, label: "Pinned" },
+  { prefix: STORAGE_PREFIXES.TOKEN_VIEW_MODE, label: "View mode" },
+  { prefix: STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES, label: "Resolved values" },
+];
+
+function matchesAnyPrefix(key: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => key.startsWith(prefix));
+}
+
+function labelForImportKey(key: string): string {
+  const staticLabel = IMPORT_KEY_LABELS[key];
+  if (staticLabel) {
+    return staticLabel;
+  }
+
+  const prefixLabel = PREFIX_LABELS.find(({ prefix }) => key.startsWith(prefix));
+  if (prefixLabel) {
+    return `${prefixLabel.label}: ${key.slice(prefixLabel.prefix.length)}`;
+  }
+
+  return key;
+}
+
 /** Exact localStorage keys that are allowed to be imported. */
 const IMPORTABLE_EXACT_KEYS = new Set<string>([
   STORAGE_KEYS.DENSITY,
@@ -180,12 +214,7 @@ const IMPORTABLE_EXACT_KEYS = new Set<string>([
 /** Returns true only for keys that the export produces and safe to import. */
 function isAllowedImportKey(key: string): boolean {
   if (IMPORTABLE_EXACT_KEYS.has(key)) return true;
-  if (key.startsWith(STORAGE_PREFIXES.TOKEN_SORT)) return true;
-  if (key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER)) return true;
-  if (key.startsWith("tm_pinned:")) return true;
-  if (key.startsWith("tm_view-mode:")) return true;
-  if (key.startsWith(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES)) return true;
-  return false;
+  return matchesAnyPrefix(key, IMPORTABLE_PREFIXES);
 }
 
 const IMPORT_KEY_LABELS: Record<string, string> = {
@@ -248,14 +277,16 @@ export function SettingsPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirm: "DELETE" }),
       });
+      resetWorkspaceStateForRecovery();
+      setShowClearConfirm(false);
+      setClearConfirmText("");
+      onClearAllComplete?.();
     } catch (err) {
       console.warn("[SettingsPanel] clear all data request failed:", err);
+      dispatchToast("Clear all failed. Server data was not deleted.", "error");
+    } finally {
+      setClearing(false);
     }
-    resetWorkspaceStateForRecovery();
-    setClearing(false);
-    setShowClearConfirm(false);
-    setClearConfirmText("");
-    onClearAllComplete?.();
   };
   // ---- Lint / Validation config ----
   const {
@@ -337,13 +368,7 @@ export function SettingsPanel({
       if (value !== null) out[key] = value;
     }
     for (const [key, value] of lsEntries()) {
-      if (
-        key.startsWith(STORAGE_PREFIXES.TOKEN_SORT) ||
-        key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER) ||
-        key.startsWith("tm_pinned:") ||
-        key.startsWith("tm_view-mode:") ||
-        key.startsWith(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES)
-      ) {
+      if (matchesAnyPrefix(key, IMPORTABLE_PREFIXES)) {
         out[key] = value;
       }
     }
@@ -399,22 +424,7 @@ export function SettingsPanel({
         for (const [key, newValue] of Object.entries(data)) {
           const oldValue = lsGet(key);
           if (oldValue === newValue) continue;
-          let label = IMPORT_KEY_LABELS[key];
-          if (!label) {
-            if (key.startsWith(STORAGE_PREFIXES.TOKEN_SORT))
-              label = `Sort: ${key.slice(STORAGE_PREFIXES.TOKEN_SORT.length)}`;
-            else if (key.startsWith(STORAGE_PREFIXES.TOKEN_TYPE_FILTER))
-              label = `Filter: ${key.slice(STORAGE_PREFIXES.TOKEN_TYPE_FILTER.length)}`;
-            else if (key.startsWith("tm_pinned:"))
-              label = `Pinned: ${key.slice("tm_pinned:".length)}`;
-            else if (key.startsWith("tm_view-mode:"))
-              label = `View mode: ${key.slice("tm_view-mode:".length)}`;
-            else if (
-              key.startsWith(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES)
-            )
-              label = `Resolved values: ${key.slice(STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES.length)}`;
-            else label = key;
-          }
+          const label = labelForImportKey(key);
           let displayOld = oldValue;
           let displayNew = newValue;
           if (key === STORAGE_KEYS.EXPORT_PRESETS) {

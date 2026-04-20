@@ -571,26 +571,23 @@ export const TokenGroupNode = memo(
                 {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
               </span>
             )}
-        {!renamingGroup && isGroupActive && targetGenerator && (
+        {!renamingGroup && targetGenerator && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (targetGenerator.id) onNavigateToGeneratedGroup?.(targetGenerator.id);
+                if (targetGenerator.id) onEditGeneratedGroup?.(targetGenerator.id);
               }}
-              disabled={!targetGenerator.id || !onNavigateToGeneratedGroup}
-              className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${
+              disabled={!targetGenerator.id || !onEditGeneratedGroup}
+              className={`inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[9px] ${
                 targetGenerator.isStale
-                  ? "bg-amber-500/10 text-amber-600"
-                  : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-              } disabled:cursor-default disabled:opacity-100`}
-              title={`${managedGeneratorLeafCount} managed token${managedGeneratorLeafCount === 1 ? "" : "s"}`}
+                  ? "text-amber-600"
+                  : "text-[var(--color-figma-text-tertiary)]"
+              } transition-colors hover:bg-[var(--color-figma-accent)]/10 hover:text-[var(--color-figma-accent)] disabled:cursor-default disabled:opacity-60`}
+              title="Edit generator"
             >
-              <GeneratedGlyph size={6} className="shrink-0" />
+              <GeneratedGlyph size={7} className="shrink-0" />
               <span>Generated</span>
-              <span className="text-[var(--color-figma-text-tertiary)]">
-                {managedGeneratorLeafCount}
-              </span>
             </button>
           )}
           {!selectMode && !renamingGroup && (

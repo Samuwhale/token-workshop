@@ -3,12 +3,14 @@ import type { TokenNode } from './useTokens';
 import type { UndoSlot } from './useUndo';
 import { getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
+import type {
+  FindReplaceScope,
+  FindReplaceTarget,
+} from '../shared/tokenListModalTypes';
 
 /** Default timeout for bulk-rename requests (ms). */
 const BULK_RENAME_TIMEOUT_MS = 30_000;
 
-export type FindReplaceScope = 'active' | 'all';
-export type FindReplaceTarget = 'names' | 'values';
 export type FindReplaceTypeFilter = 'all' | string;
 
 export interface UseFindReplaceParams {
