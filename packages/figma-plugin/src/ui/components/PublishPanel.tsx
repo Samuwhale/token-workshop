@@ -7,9 +7,8 @@ import { ConfirmModal } from './ConfirmModal';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useFigmaMessage } from '../hooks/useFigmaMessage';
-import { SyncSubPanel } from './publish/SyncSubPanel';
 import { SyncPreflightStep } from './publish/SyncPreflightStep';
-import { SyncDiffSummary } from './publish/PublishShared';
+import { SyncDiffSummary, VarDiffRowItem } from './publish/PublishShared';
 import type { PreviewRow } from './publish/PublishShared';
 import { NoticeBanner, type NoticeSeverity } from '../shared/noticeSystem';
 import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
@@ -35,6 +34,7 @@ import {
   buildVariablePublishFigmaMap,
   buildPublishPullPayload,
   loadVariablePublishSnapshot,
+  getDiffRowId,
   type ResolverPublishSyncMapping,
   stylePublishDiffConfig,
   variablePublishDiffConfig,
@@ -492,7 +492,7 @@ export function PublishPanel({
         collectionName: standardRoutingDraft.collectionName?.trim() || undefined,
         modeName: standardRoutingDraft.modeName?.trim() || undefined,
       });
-      dispatchToast('Saved Figma publish target', 'success');
+      dispatchToast('Saved Figma sync target', 'success');
     } catch (error) {
       setStandardRoutingError(describeError(error));
     } finally {
@@ -545,10 +545,10 @@ export function PublishPanel({
       if ((result.overwritten ?? 0) > 0) {
         const skippedCount = result.skipped?.length ?? 0;
         const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
-        dispatchToast(`Variables published — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}`, 'success');
+        dispatchToast(`Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}`, 'success');
       }
     },
-    successMessage: 'Variables published', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Publish variables',
+    successMessage: 'Variables synced', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Sync variables',
     revertSuccessMessage: 'Variables reverted', revertErrorMessage: 'Failed to revert variables',
   });
 
@@ -566,12 +566,11 @@ export function PublishPanel({
     buildPullPayload: buildPublishPullPayload,
     buildApplyPayload: (rows) => ({ tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localRaw })) }),
     buildRevertPayload: (snapshot) => ({ styleSnapshot: snapshot }),
-    successMessage: 'Styles published', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Publish styles',
+    successMessage: 'Styles synced', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Sync styles',
     revertSuccessMessage: 'Styles reverted', revertErrorMessage: 'Failed to revert styles',
   });
 
   // ── Shared diff filter ──
-  const [diffFilter] = useState('');
   const [activeCompareTarget, setActiveCompareTarget] = useState<CompareTarget>('variables');
 
   // ── Confirmation modal state ──
@@ -624,7 +623,7 @@ export function PublishPanel({
   const compareLockedMessage = !readinessChecks.length
     ? 'Click Sync with Figma to run readiness checks first.'
     : standardRoutingDirty
-      ? 'Save the publish target before comparing or applying changes.'
+      ? 'Save the sync target before comparing or applying changes.'
     : isReadinessOutdated
       ? 'Token data changed. Re-sync to compare differences.'
       : readinessBlockingFails > 0
@@ -688,7 +687,7 @@ export function PublishPanel({
       const skippedCount = result.skipped.length;
       const failureCount = result.failures.length;
       dispatchToast(
-        `Resolver modes published — ${tokens.length} writes across ${modeMappings.length} mode${modeMappings.length === 1 ? '' : 's'}`
+        `Resolver modes synced — ${tokens.length} writes across ${modeMappings.length} mode${modeMappings.length === 1 ? '' : 's'}`
         + (skippedCount > 0 ? ` · ${skippedCount} skipped` : '')
         + (failureCount > 0 ? ` · ${failureCount} failed` : ''),
         failureCount > 0 ? 'error' : 'success',
@@ -770,46 +769,7 @@ export function PublishPanel({
     (hasVarChanges ? varSync.syncCount : 0) +
     (hasStyleChanges ? styleSync.syncCount : 0);
 
-  const compareTargets = useMemo(() => [
-    {
-      id: 'variables' as const,
-      label: isResolverPublishCompareActive ? 'Mapped variables' : 'Variables',
-      sync: varSync,
-      badge: !canProceedToSync
-        ? 'Locked'
-        : varSync.loading
-          ? 'Comparing…'
-          : varSync.checked
-            ? varSync.rows.length === 0
-              ? 'In sync'
-              : `${varSync.rows.length} differ`
-            : 'Not compared',
-    },
-    {
-      id: 'styles' as const,
-      label: 'Styles',
-      sync: styleSync,
-      badge: !canProceedToSync
-        ? 'Locked'
-        : styleSync.loading
-          ? 'Comparing…'
-          : styleSync.checked
-            ? styleSync.rows.length === 0
-              ? 'In sync'
-              : `${styleSync.rows.length} differ`
-            : 'Not compared',
-    },
-  ], [
-    canProceedToSync,
-    isResolverPublishCompareActive,
-    styleSync,
-    varSync,
-  ]);
 
-  const activeCompareConfig = useMemo(
-    () => compareTargets.find((target) => target.id === activeCompareTarget) ?? compareTargets[0],
-    [activeCompareTarget, compareTargets],
-  );
 
   const savedResolverPublishCount = useMemo(
     () => resolverPublishRows.filter((row) => row.sourceModeName.trim().length > 0).length,
@@ -874,7 +834,7 @@ export function PublishPanel({
       if (actionId === 'review-audit-findings') {
         beginHandoff({
           reason:
-            'Review the audit findings behind these blockers, then return to Publish.',
+            'Review the audit findings behind these blockers, then return to Figma Sync.',
           onReturn: () => focusStage('preflight'),
         });
         navigateTo('tokens', 'health', { preserveHandoff: true });
@@ -892,7 +852,7 @@ export function PublishPanel({
         dispatchToast('Add descriptions in Tokens, then re-sync.', 'success');
         beginHandoff({
           reason:
-            'Add descriptions in Tokens, then return to Sync.',
+            'Add descriptions in Tokens, then return to Figma Sync.',
           onReturn: () => focusStage('preflight'),
         });
         navigateTo('tokens', 'tokens', { preserveHandoff: true });
@@ -933,9 +893,6 @@ export function PublishPanel({
     }
   }, [canProceedToSync, varSync.checked, styleSync.checked, varSync.loading, styleSync.loading, compareAll]);
 
-  const handleSelectCompareTarget = useCallback((target: CompareTarget) => {
-    setActiveCompareTarget(target);
-  }, []);
 
   useEffect(() => {
     if (!publishPanelHandle) return;
@@ -984,13 +941,18 @@ export function PublishPanel({
   const hasBlockers = preflightStage === 'blocked';
   const hasIssues = preflightStage === 'blocked' || preflightStage === 'advisory';
   const showChanges = hasComparedAnything && totalDiffCount > 0 && !isSyncing;
+  const allConflictRows = useMemo(() => [
+    ...varSync.rows.filter(r => r.cat === 'conflict').map(r => ({ ...r, _source: 'variable' as const })),
+    ...styleSync.rows.filter(r => r.cat === 'conflict').map(r => ({ ...r, _source: 'style' as const })),
+  ], [varSync.rows, styleSync.rows]);
+  const nonConflictCount = totalDiffCount - allConflictRows.length;
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-3 text-[var(--color-figma-text-secondary)] text-[11px]">
-        Connect to server to publish to Figma
+        Connect to server to sync with Figma
       </div>
     );
   }
@@ -1006,7 +968,7 @@ export function PublishPanel({
           {/* ── Publish target ──────────────────────────────────────── */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Publishing to</span>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Target</span>
               <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
                 {resolvedCollectionName} / {resolvedModeName}
               </span>
@@ -1014,7 +976,7 @@ export function PublishPanel({
                 type="button"
                 onClick={() => setStandardRoutingExpanded((c) => !c)}
                 className="ml-0.5 flex items-center justify-center rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                title="Edit publish target"
+                title="Edit sync target"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -1045,8 +1007,8 @@ export function PublishPanel({
               <span>
                 {readinessLoading && 'Checking readiness…'}
                 {!readinessLoading && (compareAllLoading || varSync.loading || styleSync.loading) && 'Comparing with Figma…'}
-                {isApplying && publishAllStep === 'variables' && 'Publishing variables…'}
-                {isApplying && publishAllStep === 'styles' && 'Publishing styles…'}
+                {isApplying && publishAllStep === 'variables' && 'Updating variables…'}
+                {isApplying && publishAllStep === 'styles' && 'Updating styles…'}
               </span>
             </div>
           )}
@@ -1073,8 +1035,7 @@ export function PublishPanel({
           {!hasComparedAnything && !isSyncing && !isApplying && !hasIssues && preflightStage === 'idle' && !readinessError && (
             <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-3">
               <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                Sync keeps your token files and Figma variables in alignment. Click{' '}
-                <strong className="text-[var(--color-figma-text)]">Sync with Figma</strong> above to compare and apply changes.
+                Click <strong className="text-[var(--color-figma-text)]">Check for changes</strong> to compare your tokens with Figma variables and styles.
               </p>
             </div>
           )}
@@ -1099,82 +1060,74 @@ export function PublishPanel({
             <NoticeBanner severity="error">{readinessError}</NoticeBanner>
           )}
 
-          {/* ── Changes section ────────────────────────────────────────── */}
+          {/* ── Changes found ─────────────────────────────────────────── */}
           {showChanges && (
-            <div ref={compareRef} className="flex flex-col gap-3">
-              {/* Summary + apply actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-3">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
-                    {totalDiffCount} difference{totalDiffCount !== 1 ? 's' : ''} found
-                  </span>
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                    {[
-                      (varSync.pushCount + styleSync.pushCount) > 0 ? `${varSync.pushCount + styleSync.pushCount} to update in Figma` : null,
-                      (varSync.pullCount + styleSync.pullCount) > 0 ? `${varSync.pullCount + styleSync.pullCount} to update locally` : null,
-                      totalConflictCount > 0 ? `${totalConflictCount} conflict${totalConflictCount !== 1 ? 's' : ''}` : null,
-                    ].filter(Boolean).join(' · ')}
-                  </span>
+              <div ref={compareRef} className="flex flex-col gap-3">
+                {/* Summary card + apply button */}
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                      {totalDiffCount} change{totalDiffCount !== 1 ? 's' : ''} found
+                    </span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      {[
+                        (varSync.pushCount + styleSync.pushCount) > 0 ? `${varSync.pushCount + styleSync.pushCount} to update in Figma` : null,
+                        (varSync.pullCount + styleSync.pullCount) > 0 ? `${varSync.pullCount + styleSync.pullCount} to update locally` : null,
+                        totalConflictCount > 0 ? `${totalConflictCount} conflict${totalConflictCount !== 1 ? 's' : ''}` : null,
+                      ].filter(Boolean).join(' \u00b7 ')}
+                    </span>
+                  </div>
+                  {publishAllAvailable && (
+                    <button
+                      onClick={() => void handleOpenPublishAll()}
+                      disabled={isApplying}
+                      className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                    >
+                      {totalConflictCount > 0 ? 'Review & apply' : 'Apply all'}
+                    </button>
+                  )}
                 </div>
-                {publishAllAvailable && (
-                  <button
-                    onClick={() => void handleOpenPublishAll()}
-                    disabled={isApplying}
-                    className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                  >
-                    Review &amp; apply
-                  </button>
+
+                {publishAllError && (
+                  <NoticeBanner severity="error">Apply failed: {publishAllError}</NoticeBanner>
+                )}
+
+                {/* Conflict rows only — direction must be chosen */}
+                {allConflictRows.length > 0 && (
+                  <div className="rounded-md border border-[var(--color-figma-border)] overflow-hidden">
+                    <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-warning)] shrink-0" aria-hidden="true">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                        {allConflictRows.length} conflict{allConflictRows.length !== 1 ? 's' : ''} — choose direction
+                      </span>
+                    </div>
+                    <div className="divide-y divide-[var(--color-figma-border)]">
+                      {allConflictRows.map(row => (
+                        <VarDiffRowItem
+                          key={getDiffRowId(row)}
+                          row={row}
+                          dir={(row._source === 'variable' ? varSync.dirs : styleSync.dirs)[getDiffRowId(row)] ?? 'push'}
+                          onChange={d => {
+                            const setDirs = row._source === 'variable' ? varSync.setDirs : styleSync.setDirs;
+                            setDirs(prev => ({ ...prev, [getDiffRowId(row)]: d }));
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Non-conflict summary */}
+                {nonConflictCount > 0 && (
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] px-1">
+                    {nonConflictCount} non-conflicting change{nonConflictCount !== 1 ? 's' : ''} will be applied automatically.
+                  </div>
                 )}
               </div>
-
-              {publishAllError && (
-                <NoticeBanner severity="error">Publish failed: {publishAllError}</NoticeBanner>
-              )}
-
-              {/* Compare target tabs + detail */}
-              <div className="flex flex-wrap items-center gap-2">
-                {compareTargets.map((target) => (
-                  <button
-                    key={target.id}
-                    type="button"
-                    onClick={() => handleSelectCompareTarget(target.id)}
-                    className={[
-                      'rounded-md border px-3 py-1.5 text-[10px] font-medium transition-colors',
-                      activeCompareTarget === target.id
-                        ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                        : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/25 hover:text-[var(--color-figma-text)]',
-                    ].join(' ')}
-                  >
-                    {target.label}
-                    <span className="ml-1.5 text-[10px] opacity-75">{target.badge}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="overflow-hidden rounded-md border border-[var(--color-figma-border)]">
-                {activeCompareConfig.id === 'variables' ? (
-                  <SyncSubPanel
-                    sync={varSync}
-                    diffFilter={diffFilter}
-                    onRevert={varSync.revert}
-                    inSyncMessage={isResolverPublishCompareActive ? 'Mapped resolver outputs match their target Figma modes.' : 'Local tokens match Figma variables.'}
-                    notCheckedMessage={<>Comparing…</>}
-                    revertDescription="Restore Figma variables to their previous state"
-                    reviewOnly={isResolverPublishCompareActive}
-                    reviewOnlyMessage="Resolver-mode differences are managed via Advanced routing below."
-                  />
-                ) : (
-                  <SyncSubPanel
-                    sync={styleSync}
-                    diffFilter={diffFilter}
-                    onRevert={styleSync.revert}
-                    inSyncMessage="Local tokens match Figma styles."
-                    notCheckedMessage={<>Comparing…</>}
-                    revertDescription="Restore Figma styles to their previous state"
-                  />
-                )}
-              </div>
-            </div>
           )}
 
           {activeResolver && (
@@ -1278,9 +1231,8 @@ function StandardPublishRoutingCard({
             {currentCollectionId}
           </div>
           <p className="mt-1 max-w-[520px] text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-            Choose where this collection publishes in Figma variables. This only
-            changes the Figma destination, never the authored modes in your token
-            files.
+            Choose where this collection syncs in Figma. This only changes the
+            Figma destination, not the authored modes in your token files.
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -1336,7 +1288,7 @@ function StandardPublishRoutingCard({
       </div>
 
       <div className="text-[10px] leading-relaxed text-[var(--color-figma-text-secondary)]">
-        Leave the collection blank to publish into{' '}
+        Leave the collection blank to sync into{' '}
         <span className="text-[var(--color-figma-text)]">
           {DEFAULT_VARIABLE_COLLECTION_NAME}
         </span>
@@ -1415,7 +1367,7 @@ function ResolverModePublishCard({
               disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
               className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
             >
-              {syncing ? 'Publishing…' : 'Publish resolver modes'}
+              {syncing ? 'Syncing…' : 'Sync resolver modes'}
             </button>
           </div>
         ) : null}
@@ -1559,7 +1511,7 @@ function PublishAllPreviewModal({
             Review changes
           </h3>
           <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
-            Review before publishing.
+            Review before applying.
           </p>
         </div>
 
@@ -1635,7 +1587,7 @@ function PublishAllPreviewModal({
               className="flex-1 px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
-              {busy ? 'Applying\u2026' : !anySelected ? 'Nothing selected' : 'Publish selected'}
+              {busy ? 'Applying\u2026' : !anySelected ? 'Nothing selected' : 'Apply selected'}
             </button>
           ) : (
             <button

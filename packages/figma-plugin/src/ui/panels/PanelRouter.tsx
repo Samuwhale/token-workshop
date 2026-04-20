@@ -1256,8 +1256,10 @@ export function PanelRouter({
       inspect: renderCanvasInspect,
       "canvas-analysis": renderCanvasAnalysis,
     },
-    publish: {
-      sync: renderSyncPublish,
+    "figma-sync": {
+      "figma-sync": renderSyncPublish,
+    },
+    share: {
       export: renderSyncExport,
       versions: renderSyncRepo,
     },
@@ -1494,13 +1496,13 @@ export function PanelRouter({
     const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;
     let publishAction: { label: string; onClick: () => void; disabled?: boolean } | null = null;
     if (publishPreflightState.stage === "running") {
-      publishAction = { label: "Syncing\u2026", onClick: () => {}, disabled: true };
+      publishAction = { label: "Checking\u2026", onClick: () => {}, disabled: true };
     } else if (publishPreflightState.stage === "blocked") {
       publishAction = { label: "Resolve issues", onClick: () => publishPanelHandleRef.current?.focusStage("preflight") };
     } else if (pendingPublishCount > 0) {
-      publishAction = { label: "Review & apply", onClick: () => publishPanelHandleRef.current?.focusStage("compare") };
+      publishAction = { label: "Apply changes", onClick: () => publishPanelHandleRef.current?.focusStage("compare") };
     } else {
-      publishAction = { label: "Sync with Figma", onClick: () => publishPanelHandleRef.current?.runReadinessChecks() };
+      publishAction = { label: "Check for changes", onClick: () => publishPanelHandleRef.current?.runReadinessChecks() };
     }
 
     return (
@@ -1508,8 +1510,8 @@ export function PanelRouter({
         <PanelContentHeader primaryAction={publishAction} />
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
-            panelName="Sync"
-            onReset={() => navigateTo("publish", "sync")}
+            panelName="Figma Sync"
+            onReset={() => navigateTo("figma-sync", "figma-sync")}
           >
             <PublishPanel
               serverUrl={serverUrl}
@@ -1532,7 +1534,7 @@ export function PanelRouter({
     return (
       <ErrorBoundary
         panelName="Export"
-        onReset={() => navigateTo("publish", "export")}
+        onReset={() => navigateTo("share", "export")}
       >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
@@ -1543,7 +1545,7 @@ export function PanelRouter({
     return (
       <ErrorBoundary
         panelName="Versions"
-        onReset={() => navigateTo("publish", "versions")}
+        onReset={() => navigateTo("share", "versions")}
       >
         <GitRepositoryPanel
           serverUrl={serverUrl}

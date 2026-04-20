@@ -200,19 +200,6 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
                 </button>
               </div>
             </div>
-            {git.branches.length > 1 && (
-              <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
-                <select
-                  value={git.gitStatus.branch || ''}
-                  onChange={e => git.doAction('checkout', { branch: e.target.value })}
-                  className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                >
-                  {git.branches.map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
 
           {/* Get updates / Share */}
@@ -491,115 +478,118 @@ export function GitSubPanel({ git, diffFilter, onRequestConfirm }: GitSubPanelPr
             </div>
           )}
 
-          {/* Remote diff */}
-          {git.gitStatus?.remote && (
-            <CollapsibleCard title="Remote differences">
-              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between border-t border-[var(--color-figma-border)]">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Shared server differences</span>
-                  {git.diffView && git.diffView.localOnly.length + git.diffView.remoteOnly.length + git.diffView.conflicts.length === 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
-                  )}
-                </div>
-                <button
-                  onClick={git.computeDiff}
-                  disabled={git.diffLoading}
-                  className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-                >
-                  {git.diffLoading ? 'Computing\u2026' : git.diffView ? 'Re-check' : 'Compare'}
-                </button>
-              </div>
-              {git.diffView && (() => {
-                const allFiles = [
-                  ...git.diffView.localOnly.map(f => ({ file: f, cat: 'local' as const })),
-                  ...git.diffView.remoteOnly.map(f => ({ file: f, cat: 'remote' as const })),
-                  ...git.diffView.conflicts.map(f => ({ file: f, cat: 'conflict' as const })),
-                ];
-                if (allFiles.length === 0) {
-                  return (
-                    <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                      Local and remote are in sync.
-                    </div>
-                  );
-                }
-                const filterLower = diffFilter.toLowerCase();
-                const filteredFiles = filterLower
-                  ? allFiles.filter(({ file }) => file.toLowerCase().includes(filterLower))
-                  : allFiles;
-                const pendingCount = Object.values(git.diffChoices).filter(c => c !== 'skip').length;
-                return (
-                  <>
-                    {filterLower && filteredFiles.length !== allFiles.length && (
-                      <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
-                        {filteredFiles.length} of {allFiles.length} file{allFiles.length !== 1 ? 's' : ''} match filter
-                      </div>
-                    )}
-                    <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
-                      {filteredFiles.map(({ file, cat }) => {
-                        const choice = git.diffChoices[file] ?? 'skip';
-                        const catLabel = cat === 'local' ? 'Local only' : cat === 'remote' ? 'Remote only' : 'Values differ';
-                        const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-warning)]';
-                        return (
-                          <div key={file} className="flex items-center gap-2 px-3 py-1.5">
-                            <span className={`text-[10px] font-medium shrink-0 w-20 ${catColor}`}>{catLabel}</span>
-                            <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={file}>{file}</span>
-                            <select
-                              value={choice}
-                              onChange={e => git.setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
-                              className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5"
-                            >
-                              <option value="push">{'\u2191'} Update remote</option>
-                              <option value="pull">{'\u2193'} Update local</option>
-                              <option value="skip">Skip</option>
-                            </select>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                        {pendingCount > 0 ? `${pendingCount} file${pendingCount !== 1 ? 's' : ''} will be updated` : 'All skipped'}
-                      </span>
-                      <button
-                        onClick={() => onRequestConfirm('apply-diff')}
-                        disabled={git.applyingDiff || pendingCount === 0}
-                        className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                      >
-                        {git.applyingDiff ? 'Applying\u2026' : `Apply ${pendingCount > 0 ? pendingCount + ' change' + (pendingCount !== 1 ? 's' : '') : ''}`}
-                      </button>
-                    </div>
-                  </>
-                );
-              })()}
-              {!git.diffLoading && !git.diffView && (
-                <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which files differ between local and remote.
+          {/* Advanced section */}
+          <CollapsibleCard title="Advanced">
+            <div className="border-t border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+              {/* Branch switcher */}
+              {git.branches.length > 1 && (
+                <div className="px-3 py-2 flex flex-col gap-1.5">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Branch</span>
+                  <select
+                    value={git.gitStatus.branch || ''}
+                    onChange={e => git.doAction('checkout', { branch: e.target.value })}
+                    className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                  >
+                    {git.branches.map(b => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
                 </div>
               )}
-            </CollapsibleCard>
-          )}
 
-          {/* Shared server URL */}
-          <CollapsibleCard title="Remote server">
-            <div className="px-3 py-2 flex gap-2">
-              <input
-                type="text"
-                value={git.remoteUrl}
-                onChange={e => git.setRemoteUrl(e.target.value)}
-                placeholder="https://github.com/user/repo.git"
-                aria-label="Shared server URL"
-                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
-              />
-              <button
-                onClick={() => git.doAction('remote', { url: git.remoteUrl })}
-                disabled={!git.remoteUrl || git.actionLoading !== null}
-                className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-border)] disabled:opacity-40"
-              >
-                Save
-              </button>
+              {/* Remote URL */}
+              <div className="px-3 py-2 flex flex-col gap-1.5">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote URL</span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={git.remoteUrl}
+                    onChange={e => git.setRemoteUrl(e.target.value)}
+                    placeholder="https://github.com/user/repo.git"
+                    aria-label="Shared server URL"
+                    className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] focus-visible:border-[var(--color-figma-accent)]"
+                  />
+                  <button
+                    onClick={() => git.doAction('remote', { url: git.remoteUrl })}
+                    disabled={!git.remoteUrl || git.actionLoading !== null}
+                    className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-border)] disabled:opacity-40"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              {/* Remote file diff */}
+              {git.gitStatus?.remote && (
+                <div className="px-3 py-2 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote file differences</span>
+                    <button
+                      onClick={git.computeDiff}
+                      disabled={git.diffLoading}
+                      className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                    >
+                      {git.diffLoading ? 'Computing\u2026' : git.diffView ? 'Re-check' : 'Compare'}
+                    </button>
+                  </div>
+                  {git.diffView && (() => {
+                    const allFiles = [
+                      ...git.diffView.localOnly.map(f => ({ file: f, cat: 'local' as const })),
+                      ...git.diffView.remoteOnly.map(f => ({ file: f, cat: 'remote' as const })),
+                      ...git.diffView.conflicts.map(f => ({ file: f, cat: 'conflict' as const })),
+                    ];
+                    if (allFiles.length === 0) {
+                      return (
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                          In sync.
+                        </div>
+                      );
+                    }
+                    const pendingCount = Object.values(git.diffChoices).filter(c => c !== 'skip').length;
+                    return (
+                      <>
+                        <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto rounded border border-[var(--color-figma-border)]">
+                          {allFiles.map(({ file, cat }) => {
+                            const choice = git.diffChoices[file] ?? 'skip';
+                            const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-warning)]';
+                            const catLabel = cat === 'local' ? 'Local' : cat === 'remote' ? 'Remote' : 'Differs';
+                            return (
+                              <div key={file} className="flex items-center gap-2 px-2 py-1">
+                                <span className={`text-[10px] font-medium shrink-0 w-12 ${catColor}`}>{catLabel}</span>
+                                <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={file}>{file}</span>
+                                <select
+                                  value={choice}
+                                  onChange={e => git.setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
+                                  className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
+                                >
+                                  <option value="push">{'\u2191'} Push</option>
+                                  <option value="pull">{'\u2193'} Pull</option>
+                                  <option value="skip">Skip</option>
+                                </select>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={() => onRequestConfirm('apply-diff')}
+                          disabled={git.applyingDiff || pendingCount === 0}
+                          className="self-end text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                        >
+                          {git.applyingDiff ? 'Applying\u2026' : `Apply ${pendingCount} change${pendingCount !== 1 ? 's' : ''}`}
+                        </button>
+                      </>
+                    );
+                  })()}
+                  {!git.diffLoading && !git.diffView && (
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                      Click Compare to check file differences.
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </CollapsibleCard>
         </div>

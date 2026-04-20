@@ -15,13 +15,14 @@ type ActionTarget =
   | { kind: "token"; tokenPath: string }
   | {
       kind: "workspace";
-      topTab: "tokens" | "canvas" | "publish";
+      topTab: "tokens" | "canvas" | "figma-sync" | "share";
       subTab:
         | "tokens"
         | "inspect"
         | "canvas-analysis"
-        | "sync"
+        | "figma-sync"
         | "export"
+        | "versions"
         | "history"
         | "health";
     }
@@ -154,18 +155,27 @@ function inferWorkspaceAction(message: string): InboxAction {
     lower.includes("sync")
   ) {
     return {
-      label: "Open publish",
-      target: { kind: "workspace", topTab: "publish", subTab: "sync" },
+      label: "Open Figma Sync",
+      target: { kind: "workspace", topTab: "figma-sync", subTab: "figma-sync" },
     };
   }
   if (
-    lower.includes("export") ||
-    lower.includes("git") ||
-    lower.includes("pull")
+    lower.includes("export")
   ) {
     return {
       label: "Open export",
-      target: { kind: "workspace", topTab: "publish", subTab: "export" },
+      target: { kind: "workspace", topTab: "share", subTab: "export" },
+    };
+  }
+  if (
+    lower.includes("git") ||
+    lower.includes("pull") ||
+    lower.includes("push") ||
+    lower.includes("version")
+  ) {
+    return {
+      label: "Open versions",
+      target: { kind: "workspace", topTab: "share", subTab: "versions" },
     };
   }
   if (

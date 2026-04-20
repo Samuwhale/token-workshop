@@ -53,7 +53,7 @@ export function GitRepositoryPanel({ serverUrl, connected, onPushUndo, onRefresh
       <FeedbackPlaceholder
         variant="disconnected"
         title="Connect to the token server"
-        description="Connect to access the repository workflow."
+        description="Connect to save and share versions."
       />
     );
   }
@@ -102,14 +102,9 @@ export function GitRepositoryPanel({ serverUrl, connected, onPushUndo, onRefresh
 
   return (
     <>
-      <div className="flex h-full min-h-0 overflow-hidden">
-        {/* Left column: git operations */}
-        <div className="min-w-0 flex-1 overflow-y-auto border-r border-[var(--color-figma-border)]">
-          <GitSubPanel git={git} diffFilter="" onRequestConfirm={setConfirmAction} />
-        </div>
-
-        {/* Right column: commit history */}
-        <div className="w-[320px] min-w-[280px] shrink-0 overflow-hidden flex flex-col">
+      <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+        <GitSubPanel git={git} diffFilter="" onRequestConfirm={setConfirmAction} />
+        <div className="border-t border-[var(--color-figma-border)] flex-1 min-h-[200px]">
           {rightColumn}
         </div>
       </div>
@@ -261,7 +256,7 @@ function RepositoryTimeline({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">History</span>
+          <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">Versions</span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
@@ -277,7 +272,7 @@ function RepositoryTimeline({
                   ? 'bg-[color-mix(in_srgb,var(--color-figma-accent)_14%,transparent)] text-[var(--color-figma-accent)]'
                   : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
               }`}
-              title={compareMode ? 'Exit compare mode' : 'Compare two commits'}
+              title={compareMode ? 'Exit compare mode' : 'Compare two versions'}
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 20V10M12 20V4M6 20v-6" />
@@ -305,8 +300,8 @@ function RepositoryTimeline({
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search commits…"
-            aria-label="Search commits"
+            placeholder="Search versions…"
+            aria-label="Search versions"
             className="flex-1 min-w-0 bg-transparent text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
           {search && (
@@ -344,7 +339,7 @@ function RepositoryTimeline({
         {loading && (
           <div className="flex items-center justify-center gap-2 py-6">
             <Spinner size="md" className="text-[var(--color-figma-text-secondary)]" />
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Loading commits…</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Loading versions…</span>
           </div>
         )}
 
@@ -352,7 +347,7 @@ function RepositoryTimeline({
           <FeedbackPlaceholder
             variant="error"
             size="section"
-            title="Failed to load commits"
+            title="Failed to load versions"
             description={error}
             primaryAction={{ label: 'Retry', onClick: () => fetchCommits(debouncedSearch) }}
           />
@@ -363,7 +358,7 @@ function RepositoryTimeline({
             variant="empty"
             size="section"
             title="No versions yet"
-            description="Save your changes to start tracking version history."
+            description="Save your changes to start tracking versions."
           />
         )}
 
@@ -462,7 +457,7 @@ function RepositoryTimeline({
               disabled={loadingMore}
               className="w-full text-[10px] py-1.5 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              {loadingMore ? <><Spinner size="xs" />Loading…</> : 'Load more commits'}
+              {loadingMore ? <><Spinner size="xs" />Loading…</> : 'Load more'}
             </button>
           </div>
         )}
@@ -559,7 +554,7 @@ function GitPreviewModal({
               {preview.commits.length > 0 && (
                 <div className="mb-3">
                   <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1">
-                    {preview.commits.length} commit{preview.commits.length !== 1 ? 's' : ''}
+                    {preview.commits.length} version{preview.commits.length !== 1 ? 's' : ''}
                   </div>
                   <div className="space-y-0.5">
                     {preview.commits.map(commit => (

@@ -83,7 +83,7 @@ import { apiFetch } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 import {
-  Layers, Frame, Upload, ChevronRight, Bell, Settings,
+  Layers, Frame, Upload, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight, X, AlertCircle,
 } from "lucide-react";
 
@@ -1111,7 +1111,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_SYNC")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("publish", "sync");
+      navigateTo("figma-sync", "figma-sync");
     }
     if (matchesShortcut(e, "TOGGLE_QUICK_APPLY")) {
       e.preventDefault();
@@ -1566,10 +1566,11 @@ export function App() {
 
   const workspaceIcon = (id: string) => {
     switch (id) {
-      case "tokens":  return <Layers size={16} strokeWidth={1.5} aria-hidden />;
-      case "canvas":  return <Frame size={16} strokeWidth={1.5} aria-hidden />;
-      case "publish": return <Upload size={16} strokeWidth={1.5} aria-hidden />;
-      default:        return null;
+      case "tokens":     return <Layers size={16} strokeWidth={1.5} aria-hidden />;
+      case "canvas":     return <Frame size={16} strokeWidth={1.5} aria-hidden />;
+      case "figma-sync": return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
+      case "share":      return <Upload size={16} strokeWidth={1.5} aria-hidden />;
+      default:           return null;
     }
   };
 
