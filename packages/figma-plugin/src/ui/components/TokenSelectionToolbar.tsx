@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useDropdownMenu } from '../hooks/useDropdownMenu';
 import type { BatchActionType } from './batch-actions/types';
 
-export interface SelectModeToolbarProps {
+export interface TokenSelectionToolbarProps {
   selectedPaths: Set<string>;
   displayedLeafPaths: Set<string>;
   collectionIds: string[];
@@ -75,7 +75,7 @@ function ToolbarDropdown({
   );
 }
 
-export function SelectModeToolbar({
+export function TokenSelectionToolbar({
   selectedPaths,
   displayedLeafPaths,
   collectionIds,
@@ -100,7 +100,7 @@ export function SelectModeToolbar({
   onCompare,
   onLinkToTokens,
   searchQuery,
-}: SelectModeToolbarProps) {
+}: TokenSelectionToolbarProps) {
   const hasSelection = selectedPaths.size > 0;
 
   const openAction = useCallback(

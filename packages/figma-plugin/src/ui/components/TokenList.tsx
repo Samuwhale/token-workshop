@@ -61,7 +61,7 @@ import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { getGeneratedGroupKeepUpdatedAvailability, getGeneratedGroupTypeLabel } from "../shared/generatedGroupUtils";
 import { TokenListToolbar } from "./TokenListToolbar";
-import { SelectModeToolbar } from "./SelectModeToolbar";
+import { TokenSelectionToolbar } from "./TokenSelectionToolbar";
 import { TableCreateForm } from "./TableCreateForm";
 import { WhereIsOverlay } from "./WhereIsOverlay";
 import {
@@ -2289,9 +2289,9 @@ export function TokenList({
       )}
       {/* Toolbars — fixed above the scrollable token list */}
       <div className="flex-shrink-0">
-        {/* Select mode toolbar */}
+        {/* Selection toolbar */}
         {selectMode && (
-          <SelectModeToolbar
+          <TokenSelectionToolbar
             selectedPaths={selectedPaths}
             displayedLeafPaths={displayedLeafPaths}
             collectionIds={collectionIds}

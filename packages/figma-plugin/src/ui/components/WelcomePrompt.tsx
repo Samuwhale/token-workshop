@@ -28,11 +28,6 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   },
 };
 
-export const TOKENS_START_HERE_BRANCHES = [
-  "start-new",
-  "import",
-] as const satisfies readonly StartHereBranch[];
-
 export function getStartHereBranchCopy(
   branch: StartHereBranch,
 ): StartHereBranchCopy {

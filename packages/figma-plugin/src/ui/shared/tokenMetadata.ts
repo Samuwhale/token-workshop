@@ -172,19 +172,6 @@ export function readTokenPresentationMetadata(
   };
 }
 
-export function getTokenProvenanceLabel(source: string | null): string | null {
-  if (!source) return null;
-  return (
-    {
-      "figma-variables": "Imported from Figma variables",
-      "figma-styles": "Imported from Figma styles",
-      json: "Imported from JSON",
-      css: "Imported from CSS",
-      tailwind: "Imported from Tailwind",
-    }[source] ?? source
-  );
-}
-
 export function getScopeLabels(tokenType: string, scopes: string[]): string[] {
   const definitions = FIGMA_SCOPE_OPTIONS[tokenType] ?? [];
   const byValue = new Map(definitions.map((scope) => [scope.value, scope.label]));

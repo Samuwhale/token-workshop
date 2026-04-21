@@ -311,14 +311,3 @@ export function cloneStarterConfigForGeneratorType(
   if (!template) return undefined;
   return JSON.parse(JSON.stringify(template.config)) as GeneratorConfig;
 }
-
-/** Map a DTCG token $type to the best-fit intent id. */
-export function templateIdForTokenType(
-  tokenType: string | null | undefined,
-): string {
-  if (tokenType === "color") return "brand-color-palette";
-  if (tokenType === "fontSize") return "type-scale";
-  if (tokenType === "dimension") return "spacing-foundation";
-  if (tokenType === "number") return "custom-formula";
-  return "brand-color-palette";
-}

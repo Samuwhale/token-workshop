@@ -1,70 +1,8 @@
-import { swatchBgColor } from '../shared/colorUtils';
 
 interface ValueDiffProps {
   type: string;
   before: any;
   after: any;
-}
-
-/** Always-visible preview of the original (saved) value for the token being edited. */
-export function OriginalValuePreview({ type, value }: { type: string; value: any }) {
-  if (value == null || value === '') return null;
-
-  return (
-    <div className="flex items-start gap-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
-      <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0 pt-0.5">Current</span>
-      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-        {type === 'color' && typeof value === 'string' && (
-          <>
-            <div
-              className="w-4 h-4 rounded-sm border border-white/30 ring-1 ring-[var(--color-figma-border)] shrink-0"
-              style={{ backgroundColor: swatchBgColor(value) }}
-              aria-hidden="true"
-            />
-            <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{value}</span>
-          </>
-        )}
-        {type === 'typography' && typeof value === 'object' && value !== null && (
-          <>
-            <TypoPreviewSwatch value={value} />
-            <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{formatTypo(value)}</span>
-          </>
-        )}
-        {type === 'shadow' && typeof value === 'object' && value !== null && (
-          <>
-            <ShadowPreviewSwatch value={value} />
-            <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{formatShadow(value)}</span>
-          </>
-        )}
-        {type === 'border' && typeof value === 'object' && value !== null && (
-          <>
-            <BorderPreviewSwatch value={value} />
-            <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{formatBorder(value)}</span>
-          </>
-        )}
-        {type === 'gradient' && (
-          <>
-            <GradientPreviewSwatch value={value} />
-            <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{formatGradient(value)}</span>
-          </>
-        )}
-        {type === 'dimension' && (
-          <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{formatDim(value)}</span>
-        )}
-        {type === 'number' && (
-          <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{String(value)}</span>
-        )}
-        {type === 'duration' && (
-          <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{formatDim(value)}</span>
-        )}
-        {!['color', 'typography', 'shadow', 'border', 'gradient', 'dimension', 'number', 'duration'].includes(type) && (
-          <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] truncate" title={typeof value === 'object' ? JSON.stringify(value) : String(value)}>
-            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-          </span>
-        )}
-      </div>
-    </div>
-  );
 }
 
 const ArrowRight = () => (

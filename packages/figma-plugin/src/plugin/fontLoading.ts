@@ -53,16 +53,6 @@ function getAvailableFonts(): Promise<Font[]> {
   return cachedFontsPromise!;
 }
 
-/** Returns deduplicated sorted list of font family names available in Figma. */
-export async function getAvailableFontFamilies(): Promise<string[]> {
-  const fonts = await getAvailableFonts();
-  const seen = new Set<string>();
-  for (const f of fonts) {
-    seen.add(f.fontName.family);
-  }
-  return Array.from(seen).sort((a, b) => a.localeCompare(b));
-}
-
 /**
  * Returns font families and the numeric weights available for each family.
  * Weights are derived from font style names via fontStyleToWeight.
@@ -139,8 +129,4 @@ export async function resolveFontStyle(
     }
     return weightToFontStyleFallback(targetWeight, preferItalic);
   }
-}
-
-export async function resolveStyleForWeight(family: string, weight: number | string): Promise<string> {
-  return resolveFontStyle(family, { weight });
 }

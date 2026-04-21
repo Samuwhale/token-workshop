@@ -3,12 +3,11 @@ import {
   type TokenCollection,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
-import type { TokenGenerator, GeneratorType } from "../hooks/useGenerators";
+import type { GeneratorType } from "../hooks/useGenerators";
 import { getGeneratorDashboardStatus } from "../hooks/useGenerators";
 import { stableStringify } from "./utils";
 
 export type DashboardStatus = ReturnType<typeof getGeneratorDashboardStatus>;
-export type SimplifiedStatus = "ready" | "needsRun" | "error";
 
 export interface GeneratedGroupKeepUpdatedAvailability {
   supported: boolean;
@@ -102,46 +101,6 @@ export function getGeneratedGroupTypeLabel(type: GeneratorType): string {
       return "Dark mode variant";
     default:
       return type;
-  }
-}
-
-export function getGeneratedGroupStatusDetail(generator: TokenGenerator, status: DashboardStatus): string {
-  if (status === "blocked") {
-    const blockedBy = generator.blockedByGenerators?.filter((dependency) => dependency.name) ?? [];
-    if (blockedBy.length > 0) {
-      return `${blockedBy.length} blocked`;
-    }
-  }
-  if (generator.lastRunError?.message) return generator.lastRunError.message;
-  if (generator.lastRunSummary?.message) return generator.lastRunSummary.message;
-  if (generator.staleReason) return generator.staleReason;
-  return "";
-}
-
-export function getSimplifiedStatus(status: DashboardStatus): SimplifiedStatus {
-  switch (status) {
-    case "upToDate":
-      return "ready";
-    case "stale":
-    case "neverRun":
-      return "needsRun";
-    case "failed":
-    case "blocked":
-      return "error";
-    default:
-      return "needsRun";
-  }
-}
-
-export function getStatusDotClass(simpleStatus: SimplifiedStatus, isPaused: boolean): string {
-  if (isPaused) return "border-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-text-tertiary)]/20";
-  switch (simpleStatus) {
-    case "ready":
-      return "border-[var(--color-figma-success,#22c55e)] bg-[var(--color-figma-success,#22c55e)]";
-    case "needsRun":
-      return "border-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning,#f59e0b)]";
-    case "error":
-      return "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]";
   }
 }
 
