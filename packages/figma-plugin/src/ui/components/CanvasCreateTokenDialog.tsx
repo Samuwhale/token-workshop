@@ -148,6 +148,13 @@ export function CanvasCreateTokenDialog({
       dispatchToast(
         `Created ${tokenPath.trim()} and bound ${selectedOption.nodeIds.length} layer${selectedOption.nodeIds.length !== 1 ? 's' : ''}.`,
         'success',
+        {
+          destination: {
+            kind: 'token',
+            tokenPath: tokenPath.trim(),
+            collectionId: targetCollectionId,
+          },
+        },
       );
       onClose();
     } catch (err) {

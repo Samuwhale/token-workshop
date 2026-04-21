@@ -188,7 +188,9 @@ export function useExportResults({
       const changesLabel = changesOnly && resolvedDiffPaths
         ? ` (${resolvedDiffPaths.length} changed token${resolvedDiffPaths.length !== 1 ? 's' : ''})`
         : '';
-      dispatchToast(`Exported ${flatFiles.length} file(s)${changesLabel}`, 'success');
+      dispatchToast(`Exported ${flatFiles.length} file(s)${changesLabel}`, 'success', {
+        destination: { kind: "workspace", topTab: "sync", subTab: "export" },
+      });
       if (changesOnly && isGitRepo === false) {
         const now = Date.now();
         setLastExportTimestamp(now);
@@ -219,7 +221,9 @@ export function useExportResults({
       a.download = `${safeName}.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      dispatchToast(`Downloaded ${results.length} file(s) as ZIP`, 'success');
+      dispatchToast(`Downloaded ${results.length} file(s) as ZIP`, 'success', {
+        destination: { kind: "workspace", topTab: "sync", subTab: "export" },
+      });
     } finally {
       setZipProgress(null);
     }

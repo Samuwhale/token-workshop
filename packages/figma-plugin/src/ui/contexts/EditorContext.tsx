@@ -8,16 +8,13 @@
  * App.tsx can wire in its toast callback after useToastStack initialises.
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
 import type { ReactNode, Dispatch, SetStateAction } from 'react';
 import type { CompareMode } from '../components/UnifiedComparePanel';
 import { useCollectionStateContext, useTokenFlatMapContext } from './TokenDataContext';
 import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
-import type {
-  TokensLibraryContextualSurface,
-  TokensLibraryGeneratedGroupEditorTarget,
-} from '../shared/navigationTypes';
+import type { TokensLibraryGeneratedGroupEditorTarget } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,9 +43,21 @@ export type EditorContextualSurfaceTarget =
   | { surface: 'health' }
   | { surface: 'history'; filterPath?: string };
 
+export type TokensLibraryEditorSurface =
+  | "collection-details"
+  | "token-editor"
+  | "generated-group-editor";
+
+export type TokensLibraryMaintenanceSurface =
+  | "compare"
+  | "color-analysis"
+  | "import"
+  | "health"
+  | "history";
+
 export interface TokensContextualSurfaceState {
-  activeSurface: TokensLibraryContextualSurface | null;
-  preservesLibraryBrowseContext: boolean;
+  editorSurface: TokensLibraryEditorSurface | null;
+  maintenanceSurface: TokensLibraryMaintenanceSurface | null;
 }
 
 export interface EditorContextValue {
@@ -91,6 +100,8 @@ export interface EditorContextValue {
   setHistoryFilterPath: Dispatch<SetStateAction<string | null>>;
   tokensContextualSurfaceState: TokensContextualSurfaceState;
   switchContextualSurface: (target: EditorContextualSurfaceTarget) => void;
+  /** Close only the maintenance surface (compare, color-analysis, import, health, history). Leaves the pinned editor intact. */
+  closeMaintenanceSurface: () => void;
   /**
    * Wire in the alias-not-found toast handler after the provider mounts.
    * App.tsx calls this once inside a useEffect after useToastStack is ready.
@@ -168,29 +179,41 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     navHistory,
   } = useTokenNavigation(pathToCollectionId, currentCollectionId, setCurrentCollectionId, tokens, handleAliasNotFound);
 
-  useEffect(() => {
-    if (!showTokensCompare && !showColorAnalysis && !showImport && !showHealth && !showHistory) return;
-    if (editingToken || editingGeneratedGroup || inspectingCollection) {
-      setShowTokensCompare(false);
-      setShowColorAnalysis(false);
-      setShowImport(false);
-      setShowHealth(false);
-      setShowHistory(false);
-    }
-  }, [showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory, editingToken, editingGeneratedGroup, inspectingCollection]);
-
-  const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
+  const clearEditorFamily = useCallback(() => {
     setEditingToken(null);
     setEditingGeneratedGroup(null);
     setInspectingCollection(null);
+  }, []);
+
+  const clearMaintenanceFamily = useCallback(() => {
     setShowTokensCompare(false);
     setShowColorAnalysis(false);
     setShowImport(false);
     setShowHealth(false);
     setShowHistory(false);
     setHistoryFilterPath(null);
+  }, []);
 
-    if (target.surface === null) return;
+  const closeMaintenanceSurface = useCallback(() => {
+    clearMaintenanceFamily();
+  }, [clearMaintenanceFamily]);
+
+  const switchContextualSurface = useCallback((target: EditorContextualSurfaceTarget) => {
+    if (target.surface === null) {
+      clearEditorFamily();
+      clearMaintenanceFamily();
+      return;
+    }
+
+    if (
+      target.surface === "collection-details" ||
+      target.surface === "token-editor" ||
+      target.surface === "generated-group-editor"
+    ) {
+      clearEditorFamily();
+    } else {
+      clearMaintenanceFamily();
+    }
 
     if (target.surface === "collection-details") {
       setInspectingCollection(target.collection);
@@ -246,32 +269,34 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     setShowTokensCompare(true);
   }, [
-    setEditingGeneratedGroup,
-    setEditingToken,
-    setInspectingCollection,
-    setShowTokensCompare,
+    clearEditorFamily,
+    clearMaintenanceFamily,
     setTokensCompareMode,
     setTokensComparePath,
     setTokensComparePaths,
     setTokensCompareModeKey,
   ]);
 
-  const activeSurface = useMemo<TokensLibraryContextualSurface | null>(() => {
+  const editorSurface = useMemo<TokensLibraryEditorSurface | null>(() => {
     if (inspectingCollection) return "collection-details";
-    if (editingToken) return 'token-editor';
-    if (editingGeneratedGroup) return 'generated-group-editor';
-    if (showTokensCompare) return 'compare';
-    if (showColorAnalysis) return 'color-analysis';
-    if (showImport) return 'import';
-    if (showHealth) return 'health';
-    if (showHistory) return 'history';
+    if (editingToken) return "token-editor";
+    if (editingGeneratedGroup) return "generated-group-editor";
     return null;
-  }, [inspectingCollection, editingToken, editingGeneratedGroup, showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory]);
+  }, [inspectingCollection, editingToken, editingGeneratedGroup]);
+
+  const maintenanceSurface = useMemo<TokensLibraryMaintenanceSurface | null>(() => {
+    if (showTokensCompare) return "compare";
+    if (showColorAnalysis) return "color-analysis";
+    if (showImport) return "import";
+    if (showHealth) return "health";
+    if (showHistory) return "history";
+    return null;
+  }, [showTokensCompare, showColorAnalysis, showImport, showHealth, showHistory]);
 
   const tokensContextualSurfaceState = useMemo<TokensContextualSurfaceState>(() => ({
-    activeSurface,
-    preservesLibraryBrowseContext: activeSurface !== null,
-  }), [activeSurface]);
+    editorSurface,
+    maintenanceSurface,
+  }), [editorSurface, maintenanceSurface]);
 
   const value = useMemo<EditorContextValue>(() => ({
     editingToken,
@@ -313,6 +338,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setHistoryFilterPath,
     tokensContextualSurfaceState,
     switchContextualSurface,
+    closeMaintenanceSurface,
     setAliasNotFoundHandler,
   }), [
     editingToken,
@@ -347,6 +373,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     historyFilterPath,
     tokensContextualSurfaceState,
     switchContextualSurface,
+    closeMaintenanceSurface,
     setAliasNotFoundHandler,
   ]);
 

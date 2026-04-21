@@ -87,7 +87,9 @@ export function useGitConflicts({
       });
       setMergeConflicts([]);
       setConflictChoices({});
-      dispatchToast('Merge conflicts resolved', 'success');
+      dispatchToast('Merge conflicts resolved', 'success', {
+        destination: { kind: "workspace", topTab: "sync", subTab: "versions" },
+      });
       await fetchStatus();
     } catch (err) {
       setGitError(describeError(err, 'Resolve conflicts'));
@@ -103,7 +105,9 @@ export function useGitConflicts({
       await apiFetch(`${serverUrl}/api/sync/conflicts/abort`, { method: 'POST' });
       setMergeConflicts([]);
       setConflictChoices({});
-      dispatchToast('Merge aborted', 'success');
+      dispatchToast('Merge aborted', 'success', {
+        destination: { kind: "workspace", topTab: "sync", subTab: "versions" },
+      });
       await fetchStatus();
     } catch (err) {
       setGitError(describeError(err, 'Abort merge'));

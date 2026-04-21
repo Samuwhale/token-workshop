@@ -337,7 +337,14 @@ export function useGeneratedGroupSave({
             ? `Generated group "${displayName}" updated`
             : `Generated group "${displayName}" created`,
           "success",
-          getToastAction(targetGroupAtSave, targetCollectionAtSave),
+          {
+            action: getToastAction(targetGroupAtSave, targetCollectionAtSave),
+            destination: {
+              kind: "workspace",
+              topTab: "library",
+              subTab: "library",
+            },
+          },
         );
         onSaved({
           targetGroup: targetGroupAtSave,

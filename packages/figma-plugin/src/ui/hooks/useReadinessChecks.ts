@@ -52,7 +52,7 @@ function summarizeValidationIssues(
     counts.otherErrors > 0 ? formatCount(counts.otherErrors, 'other error') : null,
   ].filter(Boolean);
 
-  return parts.length > 0 ? parts.join(' · ') : 'No active error-level audit findings.';
+  return parts.length > 0 ? parts.join(' · ') : 'No active error-level health findings.';
 }
 
 interface UseReadinessChecksParams {
@@ -316,21 +316,21 @@ export function useReadinessChecks({
           severity: 'blocking',
           affectedCount: blockingValidationIssues.length || undefined,
           detail: blockingValidationIssues.length > 0
-            ? `${summarizeValidationIssues(blockingValidationIssues)} would publish invalid Figma variable references. Fix these Audit findings before compare/apply unlocks.`
+            ? `${summarizeValidationIssues(blockingValidationIssues)} would publish invalid Figma variable references. Fix these Health findings before compare/apply unlocks.`
             : undefined,
-          recommendedActionLabel: blockingValidationIssues.length > 0 ? 'Review in Audit' : undefined,
-          recommendedActionId: blockingValidationIssues.length > 0 ? 'review-audit-findings' : undefined,
+          recommendedActionLabel: blockingValidationIssues.length > 0 ? 'Review in Health' : undefined,
+          recommendedActionId: blockingValidationIssues.length > 0 ? 'review-health-findings' : undefined,
         },
         {
           id: 'lint-errors',
-          label: 'Active audit errors',
+          label: 'Active health errors',
           severity: 'advisory',
           affectedCount: activeValidationIssues.length || undefined,
           detail: activeValidationIssues.length > 0
-            ? `${summarizeValidationIssues(activeValidationIssues)} still need review in Audit before shipping this library.`
+            ? `${summarizeValidationIssues(activeValidationIssues)} still need review in Health before shipping this library.`
             : undefined,
-          recommendedActionLabel: activeValidationIssues.length > 0 ? 'Review in Audit' : undefined,
-          recommendedActionId: activeValidationIssues.length > 0 ? 'review-audit-findings' : undefined,
+          recommendedActionLabel: activeValidationIssues.length > 0 ? 'Review in Health' : undefined,
+          recommendedActionId: activeValidationIssues.length > 0 ? 'review-health-findings' : undefined,
         },
         {
           id: 'draft-tokens',

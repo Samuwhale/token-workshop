@@ -54,7 +54,7 @@ export function HealthIgnoredView({
         ) : (
           <div className="px-3 py-1.5">
             <p className="text-secondary text-[var(--color-figma-text-secondary)] mb-3">
-              These issues are hidden from the audit. Click <strong>Show again</strong> to restore.
+              These issues are hidden from Health. Click <strong>Show again</strong> to restore.
             </p>
             {keys.map((key) => {
               const [rule, collectionId, ...pathParts] = key.split(":");

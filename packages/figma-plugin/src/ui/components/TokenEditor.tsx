@@ -540,6 +540,13 @@ export function TokenEditor({
       dispatchToast(
         `Detached "${tokenPath}" from "${producingGenerator.name}"`,
         "success",
+        {
+          destination: {
+            kind: "token",
+            tokenPath,
+            collectionId: currentCollectionId,
+          },
+        },
       );
       return true;
     } catch (err) {
@@ -600,6 +607,13 @@ export function TokenEditor({
       dispatchToast(
         `Saved manual exception for "${tokenPath}"`,
         "success",
+        {
+          destination: {
+            kind: "token",
+            tokenPath,
+            collectionId: ownerCollectionId,
+          },
+        },
       );
       setGeneratedTokenChoiceOpen(false);
       pendingGeneratedSaveArgsRef.current = null;

@@ -450,6 +450,9 @@ export function PublishPanel({
           ? `Saved ${modeMappings.length} resolver mode mapping${modeMappings.length === 1 ? '' : 's'}`
           : 'Cleared resolver mode mappings',
         'success',
+        {
+          destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+        },
       );
     } catch (error) {
       setResolverPublishError(describeError(error));
@@ -491,7 +494,9 @@ export function PublishPanel({
         collectionName: standardRoutingDraft.collectionName?.trim() || undefined,
         modeName: standardRoutingDraft.modeName?.trim() || undefined,
       });
-      dispatchToast('Saved Figma sync target', 'success');
+      dispatchToast('Saved Figma sync target', 'success', {
+        destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+      });
     } catch (error) {
       setStandardRoutingError(describeError(error));
     } finally {
@@ -544,7 +549,13 @@ export function PublishPanel({
       if ((result.overwritten ?? 0) > 0) {
         const skippedCount = result.skipped?.length ?? 0;
         const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
-        dispatchToast(`Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}`, 'success');
+        dispatchToast(
+          `Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}`,
+          'success',
+          {
+            destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+          },
+        );
       }
     },
     successMessage: 'Variables synced', compareErrorLabel: 'Compare variables', applyErrorLabel: 'Sync variables',
@@ -690,6 +701,9 @@ export function PublishPanel({
         + (skippedCount > 0 ? ` · ${skippedCount} skipped` : '')
         + (failureCount > 0 ? ` · ${failureCount} failed` : ''),
         failureCount > 0 ? 'error' : 'success',
+        {
+          destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+        },
       );
       setChecksStale(true);
     } catch (error) {
@@ -823,10 +837,10 @@ export function PublishPanel({
         return;
       }
 
-      if (actionId === 'review-audit-findings') {
+      if (actionId === 'review-health-findings') {
         beginHandoff({
           reason:
-            'Review the audit findings behind these blockers, then return to Sync.',
+            'Review the health findings behind these blockers, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
         navigateTo('library', 'library', { preserveHandoff: true });
@@ -842,7 +856,9 @@ export function PublishPanel({
       }
 
       if (actionId === 'add-token-descriptions') {
-        dispatchToast('Add descriptions in Library, then re-sync.', 'success');
+        dispatchToast('Add descriptions in Library, then re-sync.', 'success', {
+          destination: { kind: "workspace", topTab: "library", subTab: "library" },
+        });
         beginHandoff({
           reason:
             'Add descriptions in Library, then return to Sync.',
@@ -874,7 +890,7 @@ export function PublishPanel({
     'review-variable-scopes': () => void handlePreflightAction('review-variable-scopes'),
     'add-token-descriptions': () => void handlePreflightAction('add-token-descriptions'),
     'review-draft-tokens': () => void handlePreflightAction('review-draft-tokens'),
-    'review-audit-findings': () => void handlePreflightAction('review-audit-findings'),
+    'review-health-findings': () => void handlePreflightAction('review-health-findings'),
   }), [handlePreflightAction]);
 
   const handleSync = useCallback(async () => {

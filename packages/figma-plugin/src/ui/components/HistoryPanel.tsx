@@ -44,9 +44,13 @@ export function HistoryPanel({
       });
       setSaveLabel('');
       setShowSaveInput(false);
-      dispatchToast(`Checkpoint "${label}" saved`, 'success');
+      dispatchToast(`Checkpoint "${label}" saved`, 'success', {
+        destination: { kind: "contextual-surface", surface: "history" },
+      });
     } catch (err) {
-      dispatchToast((err as Error).message || 'Failed to save checkpoint', 'error');
+      dispatchToast((err as Error).message || 'Failed to save checkpoint', 'error', {
+        destination: { kind: "contextual-surface", surface: "history" },
+      });
     } finally {
       setSaving(false);
     }

@@ -118,11 +118,23 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
         return;
       }
       const conflictCount = getConflictCount(result);
+      const versionsDestination = {
+        action: undefined,
+        destination: {
+          kind: "workspace",
+          topTab: "sync",
+          subTab: "versions",
+        },
+      } as const;
       if (action === 'pull' && conflictCount > 0) {
         await fetchConflicts();
-        dispatchToast(`Pull completed with ${conflictCount} conflict(s)`, 'success');
+        dispatchToast(
+          `Pull completed with ${conflictCount} conflict(s)`,
+          'success',
+          versionsDestination,
+        );
       } else {
-        dispatchToast(`Git ${action} completed`, 'success');
+        dispatchToast(`Git ${action} completed`, 'success', versionsDestination);
       }
     } catch (err) {
       console.warn('[useGitSync] git action failed:', err);

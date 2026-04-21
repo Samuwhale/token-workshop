@@ -31,7 +31,7 @@ export type PublishPreflightActionId =
   | 'review-variable-scopes'
   | 'add-token-descriptions'
   | 'review-draft-tokens'
-  | 'review-audit-findings';
+  | 'review-health-findings';
 
 export interface PublishPreflightCluster {
   id: string;

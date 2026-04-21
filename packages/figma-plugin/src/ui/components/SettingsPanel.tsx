@@ -283,7 +283,9 @@ export function SettingsPanel({
       onClearAllComplete?.();
     } catch (err) {
       console.warn("[SettingsPanel] clear all data request failed:", err);
-      dispatchToast("Clear all failed. Server data was not deleted.", "error");
+      dispatchToast("Clear all failed. Server data was not deleted.", "error", {
+        destination: { kind: "surface", surface: "settings" },
+      });
     } finally {
       setClearing(false);
     }
@@ -385,10 +387,9 @@ export function SettingsPanel({
     a.download = "tokenmanager-settings.json";
     a.click();
     URL.revokeObjectURL(url);
-    dispatchToast(
-      "Settings backup exported",
-      "success",
-    );
+    dispatchToast("Settings backup exported", "success", {
+      destination: { kind: "surface", surface: "settings" },
+    });
   }, []);
 
   const handleImportFile = useCallback((file: File) => {
@@ -490,6 +491,7 @@ export function SettingsPanel({
     dispatchToast(
       `Preferences restored — ${applied} setting${applied !== 1 ? "s" : ""} applied`,
       "success",
+      { destination: { kind: "surface", surface: "settings" } },
     );
     setTimeout(() => {
       window.location.reload();

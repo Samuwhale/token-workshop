@@ -53,7 +53,7 @@ import { ExtractTokensPanel } from "./ExtractTokensPanel";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
 
-type CanvasView = "selection" | "coverage";
+type CanvasView = "selection" | "usage";
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -73,7 +73,7 @@ interface SelectionInspectorProps {
   onToast?: (message: string) => void;
   onGoToTokens?: () => void;
   triggerCreateToken?: number;
-  coverageContent?: ReactNode;
+  usageContent?: ReactNode;
   triggerHeatmapScan?: () => void;
   heatmapLoading?: boolean;
   heatmapResult?: unknown;
@@ -100,7 +100,7 @@ export function SelectionInspector({
   onToast,
   onGoToTokens,
   triggerCreateToken,
-  coverageContent,
+  usageContent,
   triggerHeatmapScan,
   heatmapLoading,
   heatmapResult,
@@ -847,14 +847,14 @@ export function SelectionInspector({
         </div>
       </div>
 
-      {coverageContent && (
+      {usageContent && (
         <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)]">
-          {(["selection", "coverage"] as const).map((view) => (
+          {(["selection", "usage"] as const).map((view) => (
             <button
               key={view}
               onClick={() => {
                 setCanvasView(view);
-                if (view === "coverage" && triggerHeatmapScan && !heatmapLoading && !heatmapResult && !heatmapError) {
+                if (view === "usage" && triggerHeatmapScan && !heatmapLoading && !heatmapResult && !heatmapError) {
                   triggerHeatmapScan();
                 }
               }}
@@ -864,15 +864,15 @@ export function SelectionInspector({
                   : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               }`}
             >
-              {view === "selection" ? "Selection" : "Coverage"}
+              {view === "selection" ? "Selection" : "Usage"}
             </button>
           ))}
         </div>
       )}
 
-      {canvasView === "coverage" && coverageContent ? (
+      {canvasView === "usage" && usageContent ? (
         <div className="flex-1 min-h-0 overflow-hidden">
-          {coverageContent}
+          {usageContent}
         </div>
       ) : (
         <>

@@ -1131,6 +1131,7 @@ export function ImportPanelProvider({
             ? "Duplicate token paths in one collection. Change the mapping or disable a mode."
             : `${ambiguousCollectionImportCount} duplicate paths across modes. Change mappings or disable conflicting modes.`,
           "error",
+          { destination: { kind: "contextual-surface", surface: "import" } },
         );
         return;
       }
@@ -1233,7 +1234,9 @@ export function ImportPanelProvider({
             ? `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} collection${importedSets !== 1 ? "s" : ""} — ${failedCount} failed`
             : `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} collection${importedSets !== 1 ? "s" : ""}`;
 
-        dispatchToast(toastMessage, failedCount > 0 ? "error" : "success");
+        dispatchToast(toastMessage, failedCount > 0 ? "error" : "success", {
+          destination: { kind: "contextual-surface", surface: "import" },
+        });
         onImportedRef.current();
         publishImportCompletion({
           destinationCollectionIds: collectionImportPlans.map(
@@ -1374,6 +1377,7 @@ export function ImportPanelProvider({
         dispatchToast(
           `Imported ${imported} tokens to "${collectionsHook.targetCollectionId}"`,
           "success",
+          { destination: { kind: "contextual-surface", surface: "import" } },
         );
         onImportedRef.current();
         resetExistingPathsCache();
@@ -1491,7 +1495,9 @@ export function ImportPanelProvider({
     setUndoing(true);
     try {
       await rollbackImportHistory(history);
-      dispatchToast("Import undone", "success");
+      dispatchToast("Import undone", "success", {
+        destination: { kind: "contextual-surface", surface: "import" },
+      });
       onImportedRef.current();
       setCurrentImportHistory(null);
       setLastImportResult(null);
@@ -1571,7 +1577,9 @@ export function ImportPanelProvider({
             ? `${prev} (${retried} recovered on retry)`
             : `Recovered ${retried} token${retried !== 1 ? "s" : ""} on retry`,
         );
-        dispatchToast(`Retried: ${retried} tokens imported`, "success");
+        dispatchToast(`Retried: ${retried} tokens imported`, "success", {
+          destination: { kind: "contextual-surface", surface: "import" },
+        });
       } else {
         setFailedImportPaths(stillFailedPaths);
         setFailedImportBatches(stillFailedBatches);
@@ -1579,6 +1587,7 @@ export function ImportPanelProvider({
         dispatchToast(
           `Retry: ${retried} recovered, ${stillFailedPaths.length} still failed`,
           "error",
+          { destination: { kind: "contextual-surface", surface: "import" } },
         );
       }
       onImportedRef.current();

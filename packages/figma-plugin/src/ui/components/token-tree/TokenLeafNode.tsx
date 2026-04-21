@@ -468,7 +468,9 @@ export const TokenLeafNode = memo(
         pendingGeneratedSave.afterSave?.();
         setGeneratedTokenChoiceOpen(false);
         setPendingGeneratedSave(null);
-        dispatchToast(`Saved manual exception for "${node.path}"`, "success");
+        dispatchToast(`Saved manual exception for "${node.path}"`, "success", {
+          destination: { kind: "token", tokenPath: node.path },
+        });
       } finally {
         setGeneratedTokenChoiceBusy(null);
       }
@@ -487,7 +489,9 @@ export const TokenLeafNode = memo(
         await pendingGeneratedSave.commit();
         setGeneratedTokenChoiceOpen(false);
         setPendingGeneratedSave(null);
-        dispatchToast(`Detached "${node.path}" from its generator`, "success");
+        dispatchToast(`Detached "${node.path}" from its generator`, "success", {
+          destination: { kind: "token", tokenPath: node.path },
+        });
       } finally {
         setGeneratedTokenChoiceBusy(null);
       }

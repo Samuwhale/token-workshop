@@ -267,7 +267,11 @@ export function HealthPanel({
       }
       setReloadKey((k) => k + 1);
       await onRefreshValidation();
-      dispatchToast(`Replaced ${result.updated} reference${result.updated !== 1 ? "s" : ""}`, "success");
+      dispatchToast(
+        `Replaced ${result.updated} reference${result.updated !== 1 ? "s" : ""}`,
+        "success",
+        { destination: { kind: "contextual-surface", surface: "health" } },
+      );
     } catch (err) {
       onError(err instanceof Error ? err.message : "Failed to replace deprecated references.");
     }

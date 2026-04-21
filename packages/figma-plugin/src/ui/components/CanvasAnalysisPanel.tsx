@@ -29,10 +29,10 @@ import {
 } from './CanvasCreateTokenDialog';
 import { lsGet, lsSet, STORAGE_KEYS } from '../shared/storage';
 
-type CanvasTab = 'coverage' | 'suggestions' | 'components';
+type CanvasTab = 'usage' | 'suggestions' | 'components';
 
 const TABS: Array<{ id: CanvasTab; label: string }> = [
-  { id: 'coverage', label: 'Coverage' },
+  { id: 'usage', label: 'Usage' },
   { id: 'suggestions', label: 'Suggestions' },
   { id: 'components', label: 'Components' },
 ];
@@ -46,7 +46,7 @@ interface CanvasAnalysisPanelProps {
   onSelectNodes: (ids: string[]) => void;
   onBatchBind: (nodeIds: string[], tokenPath: string, property: BindableProperty) => void;
   onSelectNode: (nodeId: string) => void;
-  /** Initial sub-tab to show. Defaults to 'coverage'. */
+  /** Initial sub-tab to show. Defaults to 'usage'. */
   initialTab?: CanvasTab;
 }
 
@@ -99,7 +99,7 @@ export function CanvasAnalysisPanel({
   onSelectNodes,
   onBatchBind,
   onSelectNode,
-  initialTab = 'coverage',
+  initialTab = 'usage',
 }: CanvasAnalysisPanelProps) {
   const [activeTab, setActiveTab] = useState<CanvasTab>(
     () => (lsGet(STORAGE_KEYS.CANVAS_SCAN_TAB) as CanvasTab | null) ?? initialTab,
@@ -291,7 +291,7 @@ export function CanvasAnalysisPanel({
 
       {/* Tab content — flex-1 so it fills remaining height without fixed px */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {activeTab === 'coverage' && (
+        {activeTab === 'usage' && (
           <HeatmapPanel
             result={heatmapResult}
             loading={heatmapLoading}

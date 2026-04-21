@@ -147,7 +147,9 @@ export function useFigmaSync(
         const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
         setError(`${result.count}/${result.total} ${entityName} published. Failed: ${failedPaths}${skippedNote}`);
       } else {
-        dispatchToast(successMsg(result.count, skippedCount), 'success');
+        dispatchToast(successMsg(result.count, skippedCount), 'success', {
+          destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+        });
       }
     } catch (err) {
       if (abortRef.current.signal.aborted) return;

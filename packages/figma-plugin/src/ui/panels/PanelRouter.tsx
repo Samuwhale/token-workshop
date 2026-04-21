@@ -226,9 +226,10 @@ export function PanelRouter({
     tokensCompareDefaultB,
     tokensContextualSurfaceState,
     switchContextualSurface,
+    closeMaintenanceSurface,
   } = useEditorContext();
-  const activeTokensContextualSurface =
-    tokensContextualSurfaceState.activeSurface;
+  const activeEditorSurface = tokensContextualSurfaceState.editorSurface;
+  const activeMaintenanceSurface = tokensContextualSurfaceState.maintenanceSurface;
 
   // Read all four contexts — these cover ~40% of the data that panels need.
   const { serverUrl, connected, checking, updateServerUrlAndConnect } =
@@ -307,11 +308,11 @@ export function PanelRouter({
 
   useEffect(() => {
     if (!showPreviewSplit) return;
-    if (activeTokensContextualSurface !== null) {
+    if (activeEditorSurface !== null || activeMaintenanceSurface !== null) {
       setShowPreviewSplit(false);
       setSplitPreviewToken(null);
     }
-  }, [activeTokensContextualSurface, setShowPreviewSplit, showPreviewSplit]);
+  }, [activeEditorSurface, activeMaintenanceSurface, setShowPreviewSplit, showPreviewSplit]);
 
 
   const tokenListHighlightedPath =
@@ -320,7 +321,8 @@ export function PanelRouter({
     tokens.length > 0 ||
     Boolean(currentCollectionId) ||
     createFromEmpty ||
-    activeTokensContextualSurface !== null;
+    activeEditorSurface !== null ||
+    activeMaintenanceSurface !== null;
 
   const openCreateLauncher = useCallback(
     (options?: {
@@ -850,10 +852,10 @@ export function PanelRouter({
     onDismiss: () => void;
   };
 
-  const getTokensContextualSurfaceRenderState =
+  const getEditorSurfaceRenderState =
     (): TokensContextualSurfaceRenderState | null => {
       if (
-        activeTokensContextualSurface === "collection-details" &&
+        activeEditorSurface === "collection-details" &&
         inspectingCollection
       ) {
         return {
@@ -917,7 +919,7 @@ export function PanelRouter({
       }
 
       if (
-        activeTokensContextualSurface === "token-editor" &&
+        activeEditorSurface === "token-editor" &&
         editingToken &&
         tokenEditorProps
       ) {
@@ -929,7 +931,7 @@ export function PanelRouter({
       }
 
       if (
-        activeTokensContextualSurface === "generated-group-editor" &&
+        activeEditorSurface === "generated-group-editor" &&
         editingGeneratedGroup &&
         generatedGroupEditorProps
       ) {
@@ -945,7 +947,12 @@ export function PanelRouter({
         };
       }
 
-      if (activeTokensContextualSurface === "compare" && showTokensCompare) {
+      return null;
+    };
+
+  const getMaintenanceSurfaceRenderState =
+    (): TokensContextualSurfaceRenderState | null => {
+      if (activeMaintenanceSurface === "compare" && showTokensCompare) {
         return {
           surface: "compare",
           content: renderTokensComparePanel(),
@@ -953,7 +960,7 @@ export function PanelRouter({
         };
       }
 
-      if (activeTokensContextualSurface === "color-analysis") {
+      if (activeMaintenanceSurface === "color-analysis") {
         return {
           surface: "color-analysis",
           content: (
@@ -965,21 +972,21 @@ export function PanelRouter({
               onNavigateToToken={(path, collectionId) => {
                 setCurrentCollectionId(collectionId);
                 setPendingHighlight(path);
-                switchContextualSurface({ surface: null });
+                closeMaintenanceSurface();
               }}
-              onClose={() => switchContextualSurface({ surface: null })}
+              onClose={closeMaintenanceSurface}
             />
           ),
-          onDismiss: () => switchContextualSurface({ surface: null }),
+          onDismiss: closeMaintenanceSurface,
         };
       }
 
-      if (activeTokensContextualSurface === "import" && showImport) {
+      if (activeMaintenanceSurface === "import" && showImport) {
         return {
           surface: "import",
           content: (
             <div className="h-full min-h-0 overflow-hidden">
-              <ErrorBoundary panelName="Import" onReset={() => switchContextualSurface({ surface: null })}>
+              <ErrorBoundary panelName="Import" onReset={closeMaintenanceSurface}>
                 <ImportPanel
                   serverUrl={serverUrl}
                   connected={connected}
@@ -995,15 +1002,15 @@ export function PanelRouter({
               </ErrorBoundary>
             </div>
           ),
-          onDismiss: () => switchContextualSurface({ surface: null }),
+          onDismiss: closeMaintenanceSurface,
         };
       }
 
-      if (activeTokensContextualSurface === "health" && showHealth) {
+      if (activeMaintenanceSurface === "health" && showHealth) {
         const healthPanel = (
           <ErrorBoundary
-            panelName="Audit"
-            onReset={() => switchContextualSurface({ surface: null })}
+            panelName="Health"
+            onReset={closeMaintenanceSurface}
           >
             <HealthPanel
               serverUrl={serverUrl}
@@ -1079,12 +1086,12 @@ export function PanelRouter({
           ) : (
             healthPanel
           ),
-          onDismiss: () => switchContextualSurface({ surface: null }),
+          onDismiss: closeMaintenanceSurface,
         };
       }
 
-      if (activeTokensContextualSurface === "history" && showHistory) {
-        const onReset = () => switchContextualSurface({ surface: null });
+      if (activeMaintenanceSurface === "history" && showHistory) {
+        const onReset = closeMaintenanceSurface;
         return {
           surface: "history",
           content: (
@@ -1259,7 +1266,7 @@ export function PanelRouter({
             onToast={controller.setSuccessToast}
             onGoToTokens={() => navigateTo("library", "library")}
             triggerCreateToken={controller.triggerCreateToken}
-            coverageContent={renderCanvasAnalysisContent()}
+            usageContent={renderCanvasAnalysisContent()}
             triggerHeatmapScan={triggerHeatmapScan}
             heatmapLoading={heatmapLoading}
             heatmapResult={heatmapResult}
@@ -1326,10 +1333,10 @@ export function PanelRouter({
     canvas: {
       inspect: renderCanvasInspect,
     },
-    share: {
-      "figma-sync": renderShareFigmaSync,
-      "export": renderShareExport,
-      "versions": renderShareVersions,
+    sync: {
+      "figma-sync": renderSyncFigmaSync,
+      "export": renderSyncExport,
+      "versions": renderSyncVersions,
     },
   };
 
@@ -1375,14 +1382,31 @@ export function PanelRouter({
       />
     );
 
-    const contextualSurface =
-      !controller.showPreviewSplit
-        ? getTokensContextualSurfaceRenderState()
+    const editorSurfaceState = !controller.showPreviewSplit
+      ? getEditorSurfaceRenderState()
+      : null;
+    const maintenanceSurfaceState = !controller.showPreviewSplit
+      ? getMaintenanceSurfaceRenderState()
+      : null;
+
+    const sideEditorState =
+      editorSurfaceState &&
+      (editorSurfaceState.surface === "token-editor" ||
+        editorSurfaceState.surface === "collection-details")
+        ? editorSurfaceState
+        : null;
+    const fullEditorState =
+      editorSurfaceState && editorSurfaceState.surface === "generated-group-editor"
+        ? editorSurfaceState
         : null;
 
-    const isSidePanelSurface =
-      contextualSurface?.surface === "token-editor" ||
-      contextualSurface?.surface === "collection-details";
+    // Left-pane precedence: maintenance surface > full-takeover editor > token list.
+    const leftPaneTakeoverState = maintenanceSurfaceState ?? fullEditorState;
+
+    const renderLeftPane = () =>
+      leftPaneTakeoverState
+        ? renderFullContextualSurface(leftPaneTakeoverState)
+        : renderTokensLibraryBody();
 
     const renderLibrarySection = () => (
       <>
@@ -1406,11 +1430,11 @@ export function PanelRouter({
           !createFromEmpty &&
           !editingToken &&
           renderTokensStartSurface()}
-        {/* Side panel layout: library + editor/preview side by side */}
-        {hasTokensLibrarySurface && !controller.showPreviewSplit && contextualSurface && isSidePanelSurface && (
+        {/* With pinned side editor: left pane + ResizeDivider + right pane */}
+        {hasTokensLibrarySurface && !controller.showPreviewSplit && sideEditorState && (
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <div className="min-w-0 flex-1 overflow-hidden">
-              {renderTokensLibraryBody()}
+              {renderLeftPane()}
             </div>
             <ResizeDivider
               axis="x"
@@ -1423,7 +1447,7 @@ export function PanelRouter({
               className="shrink-0 overflow-hidden panel-slide-in"
               style={{ width: sideEditorBoundary.size }}
               data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
-              data-tokens-library-contextual-surface={contextualSurface.surface}
+              data-tokens-library-contextual-surface={sideEditorState.surface}
               onKeyDown={(e) => {
                 if (
                   (e.key === "]" || e.key === "[") &&
@@ -1436,17 +1460,13 @@ export function PanelRouter({
                 }
               }}
             >
-              {contextualSurface.content}
+              {sideEditorState.content}
             </div>
           </div>
         )}
-        {/* Full takeover: compare, generated-group-editor */}
-        {hasTokensLibrarySurface && !controller.showPreviewSplit && contextualSurface && !isSidePanelSurface && (
-          renderFullContextualSurface(contextualSurface)
-        )}
-        {/* Default: library body only */}
-        {hasTokensLibrarySurface && !controller.showPreviewSplit && !contextualSurface && (
-          renderTokensLibraryBody()
+        {/* No pinned side editor: just the left pane (token list or full takeover). */}
+        {hasTokensLibrarySurface && !controller.showPreviewSplit && !sideEditorState && (
+          renderLeftPane()
         )}
         {/* Preview split view */}
         {hasTokensLibrarySurface && controller.showPreviewSplit && (
@@ -1573,7 +1593,7 @@ export function PanelRouter({
         </div>
     );
   }
-  function renderShareFigmaSync(): ReactNode {
+  function renderSyncFigmaSync(): ReactNode {
     const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;
     let publishAction: { label: string; onClick: () => void; disabled?: boolean } | null = null;
     if (publishPreflightState.stage === "running") {
@@ -1592,7 +1612,7 @@ export function PanelRouter({
         <div className="min-h-0 flex-1 overflow-hidden">
           <ErrorBoundary
             panelName="Figma Sync"
-            onReset={() => navigateTo("share", "figma-sync")}
+            onReset={() => navigateTo("sync", "figma-sync")}
           >
             <PublishPanel
               serverUrl={serverUrl}
@@ -1611,22 +1631,22 @@ export function PanelRouter({
     );
   }
 
-  function renderShareExport(): ReactNode {
+  function renderSyncExport(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Export"
-        onReset={() => navigateTo("share", "export")}
+        onReset={() => navigateTo("sync", "export")}
       >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );
   }
 
-  function renderShareVersions(): ReactNode {
+  function renderSyncVersions(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Versions"
-        onReset={() => navigateTo("share", "versions")}
+        onReset={() => navigateTo("sync", "versions")}
       >
         <GitRepositoryPanel
           serverUrl={serverUrl}

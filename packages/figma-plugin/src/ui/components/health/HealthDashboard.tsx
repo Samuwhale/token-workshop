@@ -97,7 +97,7 @@ export function HealthDashboard({
           <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
         <p className="text-body text-[var(--color-figma-text-secondary)]">
-          Connect to run audit
+          Connect to check health
         </p>
       </div>
     );
@@ -127,10 +127,10 @@ export function HealthDashboard({
           </span>
           <div className="flex items-center gap-1.5 mt-0.5">
             {validationLoading && (
-              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Auditing…</span>
+              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Checking…</span>
             )}
             {validationError && !validationLoading && (
-              <span className="text-secondary text-[var(--color-figma-error)]">Audit failed</span>
+              <span className="text-secondary text-[var(--color-figma-error)]">Health check failed</span>
             )}
             {validationIsStale && !validationLoading && !validationError && (
               <span className="text-secondary text-[var(--color-figma-warning)]">Outdated</span>

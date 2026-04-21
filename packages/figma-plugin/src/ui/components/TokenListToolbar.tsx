@@ -175,7 +175,7 @@ export function TokenListToolbar({
                     : "text-[var(--color-figma-warning,#f5a623)] hover:bg-[var(--color-figma-warning,#f5a623)]/10"
                 }`}
                 title={`${validationSummary.errors} error${validationSummary.errors !== 1 ? "s" : ""}, ${validationSummary.warnings} warning${validationSummary.warnings !== 1 ? "s" : ""}`}
-                aria-label="Open health audit"
+                aria-label="Open Health"
               >
                 <AlertTriangle size={10} strokeWidth={2} aria-hidden />
                 <span>{validationSummary.errors + validationSummary.warnings}</span>

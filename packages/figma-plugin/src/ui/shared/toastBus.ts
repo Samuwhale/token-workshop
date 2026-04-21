@@ -1,5 +1,19 @@
 import { useEffect } from "react";
 import type { NoticeSeverity } from "./noticeSystem";
+import type {
+  SecondarySurfaceId,
+  SubTab,
+  WorkspaceId,
+} from "./navigationTypes";
+/**
+ * Maintenance surfaces that are safe to open from a notification click without
+ * carrying extra payload. `compare` is excluded because it requires token paths.
+ */
+type NotificationMaintenanceSurface =
+  | "color-analysis"
+  | "import"
+  | "health"
+  | "history";
 
 const EVENT_NAME = "tm-toast";
 
@@ -15,10 +29,22 @@ export interface ToastAction {
   onClick: () => void;
 }
 
+/**
+ * Where the inbox should navigate when the user opens a notification entry.
+ * Producers declare this explicitly; the inbox never infers destinations from
+ * message text.
+ */
+export type NotificationDestination =
+  | { kind: "token"; tokenPath: string; collectionId?: string }
+  | { kind: "workspace"; topTab: WorkspaceId; subTab?: SubTab }
+  | { kind: "surface"; surface: SecondarySurfaceId }
+  | { kind: "contextual-surface"; surface: NotificationMaintenanceSurface };
+
 interface ToastBusDetail {
   message: string;
   variant: ToastVariant;
   action?: ToastAction;
+  destination?: NotificationDestination;
 }
 
 /**
@@ -32,11 +58,19 @@ interface ToastBusDetail {
 export function dispatchToast(
   message: string,
   variant: ToastVariant,
-  action?: ToastAction,
+  options?: {
+    action?: ToastAction;
+    destination?: NotificationDestination;
+  },
 ): void {
   window.dispatchEvent(
     new CustomEvent<ToastBusDetail>(EVENT_NAME, {
-      detail: { message, variant, action },
+      detail: {
+        message,
+        variant,
+        action: options?.action,
+        destination: options?.destination,
+      },
     }),
   );
 }
@@ -46,32 +80,34 @@ export function dispatchToast(
  * Toast push handlers must be stable references (from useToastStack).
  */
 export function useToastBusListener(
-  pushSuccess: (message: string) => void,
-  pushWarning: (message: string) => void,
-  pushError: (message: string) => void,
+  pushSuccess: (message: string, destination?: NotificationDestination) => void,
+  pushWarning: (message: string, destination?: NotificationDestination) => void,
+  pushError: (message: string, destination?: NotificationDestination) => void,
   pushAction?: (
     message: string,
     action: ToastAction,
     variant?: ToastVariant,
+    destination?: NotificationDestination,
   ) => void,
 ): void {
   useEffect(() => {
     const handler = (e: Event) => {
-      const { message, variant, action } = (e as CustomEvent<ToastBusDetail>)
-        .detail;
+      const { message, variant, action, destination } = (
+        e as CustomEvent<ToastBusDetail>
+      ).detail;
       if (action && pushAction) {
-        pushAction(message, action, variant);
+        pushAction(message, action, variant, destination);
         return;
       }
       if (variant === "error") {
-        pushError(message);
+        pushError(message, destination);
         return;
       }
       if (variant === "warning") {
-        pushWarning(message);
+        pushWarning(message, destination);
         return;
       }
-      pushSuccess(message);
+      pushSuccess(message, destination);
     };
     window.addEventListener(EVENT_NAME, handler);
     return () => window.removeEventListener(EVENT_NAME, handler);

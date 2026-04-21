@@ -2,7 +2,7 @@
 
 ## Target user
 
-The primary users are Figma UI designers, UX designers, and design system creators/maintainers. They use the plugin to create, edit, and manage design tokens, as well as to use those tokens in Figma to design and prototype interfaces. Developers are a secondary but important audience — designers and developers use this tool together for design-token handoff, collaboration, and shared governance. Design the UI primarily for designers (Figma-native mental models, minimal jargon), but don't cut or hide developer-facing features like audit reports, git history, or export formats. Instead, give developer features a clear home that doesn't clutter the designer's primary workflow.
+The primary users are Figma UI designers, UX designers, and design system creators/maintainers. They use the plugin to create, edit, and manage design tokens, as well as to use those tokens in Figma to design and prototype interfaces. Developers are a secondary but important audience — designers and developers use this tool together for design-token handoff, collaboration, and shared governance. Design the UI primarily for designers (Figma-native mental models, minimal jargon), but don't cut or hide developer-facing features. Instead, give developer features a clear home that doesn't clutter the designer's primary workflow.
 
 ## Development Status
 

@@ -80,7 +80,7 @@ import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 import {
-  Layers, Frame, Share2, ChevronRight, Bell, Settings,
+  Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
 } from "lucide-react";
 
@@ -1029,7 +1029,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_SYNC")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("share", "figma-sync");
+      navigateTo("sync", "figma-sync");
     }
     if (matchesShortcut(e, "TOGGLE_QUICK_APPLY")) {
       e.preventDefault();
@@ -1482,7 +1482,7 @@ export function App() {
     switch (id) {
       case "library":  return <Layers size={16} strokeWidth={1.5} aria-hidden />;
       case "canvas":   return <Frame size={16} strokeWidth={1.5} aria-hidden />;
-      case "share":    return <Share2 size={16} strokeWidth={1.5} aria-hidden />;
+      case "sync":     return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
       default:         return null;
     }
   };

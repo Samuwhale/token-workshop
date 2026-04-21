@@ -98,7 +98,7 @@ export function HealthIssuesView({
 
   const copyMarkdown = () => {
     const lines: string[] = [
-      `# Audit Report — ${validationIssues.length} issue${validationIssues.length !== 1 ? "s" : ""}\n`,
+      `# Health Report — ${validationIssues.length} issue${validationIssues.length !== 1 ? "s" : ""}\n`,
     ];
     for (const sev of ["error", "warning", "info"] as const) {
       const group = validationIssues.filter((i) => i.severity === sev);
@@ -130,7 +130,7 @@ export function HealthIssuesView({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "audit-report.json";
+    a.download = "health-report.json";
     a.click();
     URL.revokeObjectURL(url);
     dispatchToast("Exported JSON", "success");
@@ -147,7 +147,7 @@ export function HealthIssuesView({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "audit-report.csv";
+    a.download = "health-report.csv";
     a.click();
     URL.revokeObjectURL(url);
     dispatchToast("Exported CSV", "success");

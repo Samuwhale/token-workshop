@@ -227,10 +227,10 @@ export function useCommandPaletteCommands(): {
       },
       {
         id: "validate",
-        label: "Run audit now",
+        label: "Check health now",
         description:
           "Refresh validation across references, duplicates, and generated output",
-        category: "Audit",
+        category: "Health",
         handler: () => {
           switchContextualSurface({ surface: "health" });
           void sync.refreshValidation();
@@ -240,7 +240,7 @@ export function useCommandPaletteCommands(): {
         id: "color-analysis",
         label: "Color analysis",
         description: "Contrast matrix and lightness scale inspector",
-        category: "Audit",
+        category: "Health",
         handler: () => {
           navigateTo("library");
           switchContextualSurface({ surface: "color-analysis" });
@@ -285,7 +285,7 @@ export function useCommandPaletteCommands(): {
               id: "analytics",
               label: "Toggle issue-only filter",
               description: `Focus the ${tokens.lintViolations.length} token${tokens.lintViolations.length === 1 ? "" : "s"} with validation issues`,
-              category: "Audit" as const,
+              category: "Health" as const,
               handler: () => {
                 tokens.setShowIssuesOnly((visible) => !visible);
                 navigateTo("library");
@@ -295,7 +295,7 @@ export function useCommandPaletteCommands(): {
               id: "next-issue",
               label: "Jump to next issue",
               description: `Cycle through ${tokens.lintViolations.length} validation issue${tokens.lintViolations.length === 1 ? "" : "s"} in the current collection`,
-              category: "Audit" as const,
+              category: "Health" as const,
               shortcut: SHORTCUT_KEYS.NEXT_LINT_ISSUE,
               handler: tokens.jumpToNextIssue,
             },
@@ -542,7 +542,7 @@ export function useCommandPaletteCommands(): {
       category: "Export" as const,
       handler: () => {
         lsSet(STORAGE_KEYS.EXPORT_PRESET_APPLY, preset.id);
-        navigateTo("share", "export");
+        navigateTo("sync", "export");
         window.dispatchEvent(new CustomEvent("applyExportPreset"));
       },
     }));
