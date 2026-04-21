@@ -232,7 +232,7 @@ export function useCommandPaletteCommands(): {
           "Refresh validation across references, duplicates, and generated output",
         category: "Health",
         handler: () => {
-          switchContextualSurface({ surface: "health" });
+          navigateTo("library", "health");
           void sync.refreshValidation();
         },
       },
@@ -342,7 +342,7 @@ export function useCommandPaletteCommands(): {
       setTokensComparePaths(new Set());
       setTokensCompareModeKey((key) => key + 1);
       setShowTokensCompare(true);
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
     },
     [navigateTo, setEditingToken, setShowTokensCompare, setTokensCompareMode, setTokensCompareModeKey, setTokensComparePath, setTokensComparePaths],
   );

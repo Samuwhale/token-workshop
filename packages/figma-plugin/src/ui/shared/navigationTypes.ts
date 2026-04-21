@@ -9,8 +9,9 @@ import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratedGroupEdit
 import type { GeneratorTemplate } from "../hooks/useGenerators";
 
 export type TopTab = "library" | "canvas" | "sync";
+export type LibrarySubTab = "tokens" | "health" | "history";
 type SyncSubTab = "figma-sync" | "export" | "versions";
-export type SubTab = "library" | "inspect" | SyncSubTab;
+export type SubTab = LibrarySubTab | "inspect" | SyncSubTab;
 export type SecondarySurfaceId =
   | "shortcuts"
   | "settings";
@@ -37,9 +38,7 @@ export type TokensLibraryContextualSurface =
   | "token-editor"
   | "generated-group-editor"
   | "color-analysis"
-  | "import"
-  | "health"
-  | "history";
+  | "import";
 export type TokensLibrarySurfaceSlot =
   | "library-body"
   | "contextual-panel"
@@ -80,7 +79,11 @@ export const TOP_TABS: {
   {
     id: "library",
     label: "Library",
-    subTabs: [{ id: "library", label: "Library" }],
+    subTabs: [
+      { id: "tokens", label: "Tokens" },
+      { id: "health", label: "Health" },
+      { id: "history", label: "History" },
+    ],
   },
   {
     id: "canvas",
@@ -99,7 +102,7 @@ export const TOP_TABS: {
 ];
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
-  library: "library",
+  library: "tokens",
   canvas: "inspect",
   sync: "figma-sync",
 };
@@ -345,14 +348,6 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         label: "Import",
         usage: "Import tokens from Figma or files.",
       },
-      health: {
-        label: "Health",
-        usage: "Review issues, dependencies, and token quality.",
-      },
-      history: {
-        label: "History",
-        usage: "Review recent edits and checkpoints.",
-      },
     } satisfies Record<
       TokensLibraryContextualSurface,
       { label: string; usage: string }
@@ -411,7 +406,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     id: "primary",
     label: "Primary",
     items: [
-      { id: "library", label: "Library", railCode: "Li", topTab: "library", subTab: "library", workspaceId: "library" },
+      { id: "library", label: "Library", railCode: "Li", topTab: "library", subTab: "tokens", workspaceId: "library" },
       { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "canvas", subTab: "inspect", workspaceId: "canvas" },
       { id: "sync", label: "Sync", railCode: "Sy", topTab: "sync", subTab: "figma-sync", workspaceId: "sync" },
     ],
@@ -424,9 +419,45 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     label: "Library",
     summaryTitle: "Library",
     topTab: "library",
-    subTab: "library",
+    subTab: "tokens",
     transition: workspaceTransition("Browse and edit tokens."),
-    matchRoutes: [route("library", "library")],
+    sections: [
+      {
+        id: "tokens",
+        label: "Tokens",
+        topTab: "library",
+        subTab: "tokens",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Browse, search, and edit tokens.",
+        ),
+      },
+      {
+        id: "health",
+        label: "Health",
+        topTab: "library",
+        subTab: "health",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Review issues, dependencies, and token quality.",
+        ),
+      },
+      {
+        id: "history",
+        label: "History",
+        topTab: "library",
+        subTab: "history",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Review recent edits and checkpoints.",
+        ),
+      },
+    ],
+    matchRoutes: [
+      route("library", "tokens"),
+      route("library", "health"),
+      route("library", "history"),
+    ],
   },
   {
     id: "canvas",
@@ -634,7 +665,7 @@ export function getImportResultNextStepRecommendations(
     addRecommendation(
       createWorkspaceRecommendation(
         "library",
-        "library",
+        "tokens",
         "Retry failed batches.",
       ),
     );
@@ -644,7 +675,7 @@ export function getImportResultNextStepRecommendations(
     addRecommendation(
       createWorkspaceRecommendation(
         "library",
-        "library",
+        "tokens",
         "Multiple collections imported — review the new collections.",
       ),
     );
@@ -664,7 +695,7 @@ export function getImportResultNextStepRecommendations(
     addRecommendation(
       createWorkspaceRecommendation(
         "library",
-        "library",
+        "tokens",
         "Review naming and grouping in the library.",
       ),
     );
@@ -674,7 +705,7 @@ export function getImportResultNextStepRecommendations(
     addRecommendation(
       createWorkspaceRecommendation(
         "library",
-        "library",
+        "tokens",
         "Review imported tokens.",
       ),
     );

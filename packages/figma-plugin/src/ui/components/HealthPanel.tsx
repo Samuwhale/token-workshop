@@ -270,7 +270,7 @@ export function HealthPanel({
       dispatchToast(
         `Replaced ${result.updated} reference${result.updated !== 1 ? "s" : ""}`,
         "success",
-        { destination: { kind: "contextual-surface", surface: "health" } },
+        { destination: { kind: "workspace", topTab: "library", subTab: "health" } },
       );
     } catch (err) {
       onError(err instanceof Error ? err.message : "Failed to replace deprecated references.");

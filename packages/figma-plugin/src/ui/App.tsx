@@ -31,6 +31,8 @@ import { useWindowExpand } from "./hooks/useWindowExpand";
 import { useWindowResize } from "./hooks/useWindowResize";
 import type {
   SecondarySurfaceId,
+  SubTab,
+  TopTab,
 } from "./shared/navigationTypes";
 import {
   CONTEXTUAL_PANEL_TRANSITIONS,
@@ -121,6 +123,7 @@ export function App() {
     setTokensComparePath,
     setTokensCompareModeKey,
     switchContextualSurface,
+    dismissContextualTools,
   } = useEditorContext();
   const {
     showPreviewSplit,
@@ -301,7 +304,7 @@ export function App() {
   );
   const focusCollectionRail = useCallback(() => {
     dismissEphemeralOverlays();
-    navigateTo("library", "library");
+    navigateTo("library", "tokens");
     setCollectionRailFocusRequestKey((current) => current + 1);
   }, [dismissEphemeralOverlays, navigateTo]);
   useEffect(() => {
@@ -617,7 +620,7 @@ export function App() {
       setTokensComparePath(path);
       setTokensCompareModeKey((key) => key + 1);
       setShowTokensCompare(true);
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
     },
     [
       navigateTo,
@@ -728,7 +731,7 @@ export function App() {
   );
   const handleNavigateToGeneratedGroup = useCallback(
     (generatorId: string) => {
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
       switchContextualSurface({
         surface: "generated-group-editor",
         generatedGroup: { mode: "edit", id: generatorId },
@@ -940,12 +943,37 @@ export function App() {
   useEffect(() => {
     if (
       activeTopTab === "library" &&
-      activeSubTab === "library" &&
+      activeSubTab === "tokens" &&
       tokens.length > 0
     ) {
       triggerUsageScan();
     }
   }, [activeTopTab, activeSubTab, tokens.length, triggerUsageScan]);
+
+  // Moving between Library sections dismisses contextual tools (compare,
+  // color-analysis, import, generated-group editor, collection-details) so they
+  // don't leak into Tokens/Health/History. Only fires when both the previous
+  // and next routes are inside the Library workspace — entering Library from
+  // another workspace must not clobber a tool that was just opened alongside
+  // the navigation (e.g. command palette "Color analysis"). The pinned token
+  // editor is preserved deliberately so authors keep context.
+  const previousLibraryRouteRef = useRef<{ topTab: TopTab; subTab: SubTab }>({
+    topTab: activeTopTab,
+    subTab: activeSubTab,
+  });
+  useEffect(() => {
+    const prev = previousLibraryRouteRef.current;
+    const prevInLibrary = prev.topTab === "library";
+    const nowInLibrary = activeTopTab === "library";
+    const sectionChanged = prev.subTab !== activeSubTab;
+    if (prevInLibrary && nowInLibrary && sectionChanged) {
+      dismissContextualTools();
+    }
+    previousLibraryRouteRef.current = {
+      topTab: activeTopTab,
+      subTab: activeSubTab,
+    };
+  }, [activeTopTab, activeSubTab, dismissContextualTools]);
 
   const openSecondaryPanel = useCallback(
     (panel: SecondarySurfaceId) => {
@@ -1013,13 +1041,13 @@ export function App() {
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === "n") {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
       setEditingToken({ path: "", currentCollectionId, isCreate: true });
     }
     if (matchesShortcut(e, "GO_TO_DEFINE")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
     }
     if (matchesShortcut(e, "GO_TO_APPLY")) {
       e.preventDefault();
@@ -1042,7 +1070,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_RESOLVER")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
       if (currentCollectionId) {
         switchContextualSurface({
           surface: "collection-details",
@@ -1087,7 +1115,7 @@ export function App() {
     lintIssueIndexRef.current =
       (lintIssueIndexRef.current + 1) % lintViolations.length;
     const violation = lintViolations[lintIssueIndexRef.current];
-    navigateTo("library", "library");
+    navigateTo("library", "tokens");
     setEditingToken(null);
     setHighlightedToken(violation.path);
     const n = lintIssueIndexRef.current + 1;
@@ -1210,7 +1238,7 @@ export function App() {
           },
         );
         await refreshTokens();
-        navigateTo("library", "library");
+        navigateTo("library", "tokens");
         if (targetCollectionId !== currentCollectionId) {
           setCurrentCollectionId(targetCollectionId);
           setPendingHighlight(newPath);
@@ -1240,7 +1268,7 @@ export function App() {
   const handlePaletteRename = useCallback(
     (path: string) => {
       const targetCollectionId = pathToCollectionId[path];
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
       setEditingToken(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
         setCurrentCollectionId(targetCollectionId);
@@ -1265,7 +1293,7 @@ export function App() {
   const handlePaletteMove = useCallback(
     (path: string) => {
       const targetCollectionId = pathToCollectionId[path];
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
       setEditingToken(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
         setCurrentCollectionId(targetCollectionId);
@@ -1301,12 +1329,12 @@ export function App() {
       },
       openPasteModal: () => setShowPasteModal(true),
       openImportPanel: () => {
-        navigateTo("library", "library");
+        navigateTo("library", "tokens");
         switchContextualSurface({ surface: "import" });
       },
       openCollectionCreateDialog,
       openGeneratedPalette: () => {
-        navigateTo("library", "library");
+        navigateTo("library", "tokens");
         switchContextualSurface({
           surface: "generated-group-editor",
           generatedGroup: {
@@ -1325,7 +1353,7 @@ export function App() {
       },
       handleClearAllComplete: () => {
         closeSecondarySurface();
-        navigateTo("library", "library");
+        navigateTo("library", "tokens");
         refreshTokens();
         openStartHere("start-new");
       },
@@ -1881,7 +1909,7 @@ export function App() {
           onClose={closeStartHere}
           onRetryConnection={retryConnection}
           onImportFigma={() => {
-            navigateTo("library", "library");
+            navigateTo("library", "tokens");
             switchContextualSurface({ surface: "import" });
           }}
           onPasteJSON={() => setShowPasteModal(true)}

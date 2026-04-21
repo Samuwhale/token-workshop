@@ -8,12 +8,11 @@ import type {
 /**
  * Maintenance surfaces that are safe to open from a notification click without
  * carrying extra payload. `compare` is excluded because it requires token paths.
+ * Health and History are Library sections now — route via `workspace` instead.
  */
 type NotificationMaintenanceSurface =
   | "color-analysis"
-  | "import"
-  | "health"
-  | "history";
+  | "import";
 
 const EVENT_NAME = "tm-toast";
 

@@ -342,7 +342,7 @@ export function useGeneratedGroupSave({
             destination: {
               kind: "workspace",
               topTab: "library",
-              subTab: "library",
+              subTab: "tokens",
             },
           },
         );

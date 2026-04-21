@@ -16,7 +16,6 @@ import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import type { ValidationSnapshot } from '../hooks/useValidationCache';
 import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
 import { useNavigationContext } from '../contexts/NavigationContext';
-import { useEditorContext } from '../contexts/EditorContext';
 import { useResolverContext } from '../contexts/CollectionContext';
 import { apiFetch } from '../shared/apiFetch';
 import type { PublishRoutingDraft } from '../hooks/usePublishRouting';
@@ -241,7 +240,6 @@ export function PublishPanel({
   publishPanelHandle,
 }: PublishPanelProps) {
   const { navigateTo, beginHandoff } = useNavigationContext();
-  const { switchContextualSurface } = useEditorContext();
   const {
     activeResolver,
     activeModifiers,
@@ -833,7 +831,7 @@ export function PublishPanel({
             'Review the draft tokens flagged during sync, then return.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('library', 'library', { preserveHandoff: true });
+        navigateTo('library', 'tokens', { preserveHandoff: true });
         return;
       }
 
@@ -843,8 +841,7 @@ export function PublishPanel({
             'Review the health findings behind these blockers, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('library', 'library', { preserveHandoff: true });
-        switchContextualSurface({ surface: 'health' });
+        navigateTo('library', 'health', { preserveHandoff: true });
         return;
       }
 
@@ -857,14 +854,14 @@ export function PublishPanel({
 
       if (actionId === 'add-token-descriptions') {
         dispatchToast('Add descriptions in Library, then re-sync.', 'success', {
-          destination: { kind: "workspace", topTab: "library", subTab: "library" },
+          destination: { kind: "workspace", topTab: "library", subTab: "tokens" },
         });
         beginHandoff({
           reason:
             'Add descriptions in Library, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
-        navigateTo('library', 'library', { preserveHandoff: true });
+        navigateTo('library', 'tokens', { preserveHandoff: true });
         return;
       }
 
@@ -878,7 +875,6 @@ export function PublishPanel({
     beginHandoff,
     isResolverPublishCompareActive,
     navigateTo,
-    switchContextualSurface,
     syncResolverPublishModes,
     triggerReadinessAction,
     varSync,

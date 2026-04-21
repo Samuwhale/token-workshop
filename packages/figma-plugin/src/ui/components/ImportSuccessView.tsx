@@ -26,7 +26,7 @@ export function ImportSuccessView() {
     : "var(--color-figma-success)";
 
   const viewTokensRecommendation = importNextStepRecommendations.find(
-    (r) => r.target.kind === "workspace" && r.target.topTab === "library" && r.target.subTab === "library",
+    (r) => r.target.kind === "workspace" && r.target.topTab === "library" && r.target.subTab === "tokens",
   );
 
   return (

@@ -40,8 +40,8 @@ export function ColorAnalysisPanel({
         >
           &larr; Back
         </button>
-        <span className="ml-auto text-body font-semibold text-[var(--color-figma-text)]">
-          Color Analysis
+        <span className="ml-auto text-body font-medium text-[var(--color-figma-text)]">
+          Color analysis
         </span>
       </div>
 

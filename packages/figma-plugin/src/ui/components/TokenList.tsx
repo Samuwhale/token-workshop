@@ -55,6 +55,8 @@ import { useTokenSearch } from "../hooks/useTokenSearch";
 import { useTokenSelection } from "../hooks/useTokenSelection";
 import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
+import { useBoundTokenPaths } from "../hooks/useBoundTokenPaths";
+import { LibrarySelectionStrip } from "./library/LibrarySelectionStrip";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { getGeneratedGroupKeepUpdatedAvailability, getGeneratedGroupTypeLabel } from "../shared/generatedGroupUtils";
@@ -667,15 +669,7 @@ export function TokenList({
     onRefresh,
   });
 
-  const boundTokenPaths = useMemo(() => {
-    const paths = new Set<string>();
-    for (const node of selectedNodes) {
-      for (const tokenPath of Object.values(node.bindings)) {
-        if (tokenPath) paths.add(tokenPath);
-      }
-    }
-    return paths;
-  }, [selectedNodes]);
+  const boundTokenPaths = useBoundTokenPaths(selectedNodes);
 
   const handleHoverToken = useCallback((tokenPath: string) => {
     parent.postMessage(
@@ -2418,6 +2412,16 @@ export function TokenList({
           </div>
         )}
 
+
+        {/* Proactive selection strip — visible only when Figma layers are selected. */}
+        {!selectMode && (
+          <LibrarySelectionStrip
+            selectedNodeCount={selectedNodes.length}
+            boundTokenCount={boundTokenPaths.size}
+            inspectMode={inspectMode}
+            onToggleInspectMode={() => setInspectMode((v) => !v)}
+          />
+        )}
 
         {/* Toolbar — row 1: [set name] [create] [tools] [view] [filter], row 2: [search] */}
         {!selectMode && (

@@ -51,7 +51,7 @@ export function UnifiedComparePanel({
   return (
     <>
       {/* Back button bar */}
-      <div className="shrink-0 flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+      <div className="shrink-0 flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
         <button
           onClick={onBack}
           className="flex items-center gap-1 px-1.5 py-0.5 rounded text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"

@@ -275,8 +275,6 @@ export function PanelRouter({
   const { tokenUsageCounts } = useUsageContext();
   const {
     showImport,
-    showHealth,
-    showHistory,
     historyFilterPath,
     setHistoryFilterPath,
   } = useEditorContext();
@@ -437,7 +435,7 @@ export function PanelRouter({
       if (targetCollectionId !== currentCollectionId) {
         setCurrentCollectionId(targetCollectionId);
       }
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
     },
     [
       currentCollectionId,
@@ -593,18 +591,19 @@ export function PanelRouter({
     },
     onCreateGeneratedGroupFromGroup: (groupPath: string, _tokenType: string | null) => {
       openGeneratedGroupFromGroup(groupPath);
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
     },
     onNavigateToNewGeneratedGroup: () => {
       openNewGeneratedGroup();
-      navigateTo("library", "library");
+      navigateTo("library", "tokens");
     },
     onRefreshGeneratedGroups: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredCollectionCount,
     onNavigateToCollection: controller.handleNavigateToCollection,
     onViewTokenHistory: (path: string) => {
-      switchContextualSurface({ surface: "history", filterPath: path });
+      setHistoryFilterPath(path);
+      navigateTo("library", "history");
     },
     onEditGeneratedGroup: (generatorId: string) =>
       controller.guardEditorAction(() => {
@@ -1006,122 +1005,6 @@ export function PanelRouter({
         };
       }
 
-      if (activeMaintenanceSurface === "health" && showHealth) {
-        const healthPanel = (
-          <ErrorBoundary
-            panelName="Health"
-            onReset={closeMaintenanceSurface}
-          >
-            <HealthPanel
-              serverUrl={serverUrl}
-              connected={connected}
-              currentCollectionId={currentCollectionId}
-              generators={generators}
-              lintViolations={controller.lintViolations}
-              allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToCollectionId}
-              tokenUsageCounts={tokenUsageCounts}
-              heatmapResult={heatmapResult}
-              onNavigateToToken={(path, collectionId) => {
-                setHealthDetailToken({ path, collectionId });
-              }}
-              validationIssues={controller.validationIssues}
-              validationSummary={controller.validationSummary}
-              validationLoading={controller.validationLoading}
-              validationError={controller.validationError}
-              validationLastRefreshed={controller.validationLastRefreshed}
-              validationIsStale={controller.validationIsStale}
-              onRefreshValidation={controller.refreshValidation}
-              onPushUndo={controller.pushUndo}
-              onError={controller.setErrorToast}
-            />
-          </ErrorBoundary>
-        );
-
-        return {
-          surface: "health",
-          content: healthDetailToken ? (
-            <div className="flex min-h-0 flex-1 h-full overflow-hidden">
-              <div className="min-w-0 flex-1 overflow-hidden">
-                {healthPanel}
-              </div>
-              <ResizeDivider
-                axis="x"
-                ariaLabel="Resize token detail panel"
-                ariaValueNow={healthDetailBoundary.ariaValueNow}
-                onMouseDown={healthDetailBoundary.onMouseDown}
-                onKeyDown={healthDetailBoundary.onKeyDown}
-              />
-              <div
-                className="shrink-0 overflow-hidden panel-slide-in"
-                style={{ width: healthDetailBoundary.size }}
-              >
-                <TokenCompactPreview
-                  tokenPath={healthDetailToken.path}
-                  storageCollectionId={healthDetailToken.collectionId}
-                  allTokensFlat={allTokensFlat}
-                  pathToCollectionId={pathToCollectionId}
-                  lintViolations={controller.lintViolations.filter(
-                    (v) => v.path === healthDetailToken.path,
-                  )}
-                  onEdit={() => {
-                    setCurrentCollectionId(healthDetailToken.collectionId);
-                    setPendingHighlight(healthDetailToken.path);
-                    switchContextualSurface({
-                      surface: "token-editor",
-                      token: {
-                        path: healthDetailToken.path,
-                        currentCollectionId: healthDetailToken.collectionId,
-                      },
-                    });
-                  }}
-                  onClose={() => setHealthDetailToken(null)}
-                  onNavigateToAlias={(path) => {
-                    const cid = pathToCollectionId[path];
-                    if (cid) setHealthDetailToken({ path, collectionId: cid });
-                  }}
-                />
-              </div>
-            </div>
-          ) : (
-            healthPanel
-          ),
-          onDismiss: closeMaintenanceSurface,
-        };
-      }
-
-      if (activeMaintenanceSurface === "history" && showHistory) {
-        const onReset = closeMaintenanceSurface;
-        return {
-          surface: "history",
-          content: (
-            <div className="h-full min-h-0 overflow-hidden">
-              <ErrorBoundary panelName="Changes" onReset={onReset}>
-                <HistoryPanel
-                  serverUrl={serverUrl}
-                  connected={connected}
-                  onPushUndo={controller.pushUndo}
-                  onRefreshTokens={controller.refreshAll}
-                  filterTokenPath={historyFilterPath}
-                  onClearFilter={() => setHistoryFilterPath(null)}
-                  recentOperations={controller.recentOperations}
-                  totalOperations={controller.totalOperations}
-                  hasMoreOperations={controller.hasMoreOperations}
-                  onLoadMoreOperations={controller.loadMoreOperations}
-                  onRollback={controller.handleRollback}
-                  undoDescriptions={controller.undoDescriptions}
-                  redoableOpIds={controller.redoableOpIds}
-                  onServerRedo={controller.handleServerRedo}
-                  executeUndo={controller.executeUndo}
-                  canUndo={controller.canUndo}
-                />
-              </ErrorBoundary>
-            </div>
-          ),
-          onDismiss: onReset,
-        };
-      }
-
       return null;
     };
 
@@ -1158,7 +1041,7 @@ export function PanelRouter({
         editingTokenPath={editingToken?.path}
         compareHandle={controller.tokenListCompareRef}
         validationSummary={controller.validationSummary}
-        onOpenHealth={() => switchContextualSurface({ surface: "health" })}
+        onOpenHealth={() => navigateTo("library", "health")}
       />
     </div>
   );
@@ -1243,7 +1126,7 @@ export function PanelRouter({
       <div className="h-full min-h-0 overflow-hidden">
         <ErrorBoundary
           panelName="Canvas selection"
-          onReset={() => navigateTo("library", "library")}
+          onReset={() => navigateTo("library", "tokens")}
         >
           <SelectionInspector
             selectedNodes={selectedNodes}
@@ -1260,11 +1143,11 @@ export function PanelRouter({
             onTokenCreated={refreshTokens}
             onNavigateToToken={(path) => {
               setHighlightedToken(path);
-              navigateTo("library", "library");
+              navigateTo("library", "tokens");
             }}
             onPushUndo={controller.pushUndo}
             onToast={controller.setSuccessToast}
-            onGoToTokens={() => navigateTo("library", "library")}
+            onGoToTokens={() => navigateTo("library", "tokens")}
             triggerCreateToken={controller.triggerCreateToken}
             usageContent={renderCanvasAnalysisContent()}
             triggerHeatmapScan={triggerHeatmapScan}
@@ -1328,7 +1211,9 @@ export function PanelRouter({
 
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     library: {
-      library: renderDefineTokens,
+      tokens: renderLibraryTokens,
+      health: renderLibraryHealth,
+      history: renderLibraryHistory,
     },
     canvas: {
       inspect: renderCanvasInspect,
@@ -1367,25 +1252,68 @@ export function PanelRouter({
   // Panel render functions — each closes over context + props
   // ---------------------------------------------------------------------------
 
-  function renderDefineTokens(): ReactNode {
-    const renderTokensStartSurface = () => (
-      <FeedbackPlaceholder
-        variant="empty"
-        size="full"
-        icon={(
-          <Layers size={20} strokeWidth={1.5} aria-hidden />
-        )}
-        title="No collections yet"
-        description="Create your first collection or import an existing token system to start authoring."
-        primaryAction={{ label: "Create collection", onClick: () => controller.onOpenCollectionCreateDialog() }}
-        secondaryAction={{ label: "Import tokens", onClick: () => controller.onShowImportPanel() }}
-      />
+  function renderCollectionRail(): ReactNode {
+    return (
+      <>
+        <CollectionRail
+          collections={collections}
+          currentCollectionId={currentCollectionId}
+          collectionTokenCounts={collectionTokenCounts}
+          focusRequestKey={shell.collectionRailFocusRequestKey}
+          widthPx={collectionRailBoundary.size}
+          onSelectCollection={(collectionId) => {
+            if (collectionId !== currentCollectionId) {
+              setCurrentCollectionId(collectionId);
+            }
+            navigateTo("library", "tokens");
+          }}
+          onCreateCollection={async (name) => {
+            const createdCollectionId =
+              await collectionStructureController.onCreateCollectionByName(name);
+            setCurrentCollectionId(createdCollectionId);
+            return createdCollectionId;
+          }}
+          onOpenCollectionDetails={(collectionId) =>
+            switchContextualSurface({
+              surface: "collection-details",
+              collection: { collectionId },
+            })
+          }
+          onRenameCollection={collectionStructureController.onRename}
+          onDuplicateCollection={collectionStructureController.onDuplicate}
+          onMergeCollection={collectionStructureController.onMerge}
+          onSplitCollection={collectionStructureController.onSplit}
+          onDeleteCollection={collectionStructureController.onDelete}
+        />
+        <ResizeDivider
+          axis="x"
+          ariaLabel="Resize collection rail"
+          ariaValueNow={collectionRailBoundary.ariaValueNow}
+          onMouseDown={collectionRailBoundary.onMouseDown}
+          onKeyDown={collectionRailBoundary.onKeyDown}
+        />
+      </>
     );
+  }
 
-    const editorSurfaceState = !controller.showPreviewSplit
+  /**
+   * Shared scaffold for every Library section (Tokens, Health, History).
+   * Renders CollectionRail + main body and pins the side editor whenever a
+   * token is open so authoring context survives section switches. The Tokens
+   * section additionally opts into the preview-split layout.
+   */
+  function renderLibraryScaffold({
+    body,
+    allowPreviewSplit,
+  }: {
+    body: ReactNode;
+    allowPreviewSplit: boolean;
+  }): ReactNode {
+    const showPreviewSplitLayout = allowPreviewSplit && controller.showPreviewSplit;
+    const editorSurfaceState = !showPreviewSplitLayout
       ? getEditorSurfaceRenderState()
       : null;
-    const maintenanceSurfaceState = !controller.showPreviewSplit
+    const maintenanceSurfaceState = !showPreviewSplitLayout
       ? getMaintenanceSurfaceRenderState()
       : null;
 
@@ -1400,198 +1328,289 @@ export function PanelRouter({
         ? editorSurfaceState
         : null;
 
-    // Left-pane precedence: maintenance surface > full-takeover editor > token list.
+    // Left-pane precedence: maintenance surface > full-takeover editor > section body.
     const leftPaneTakeoverState = maintenanceSurfaceState ?? fullEditorState;
 
     const renderLeftPane = () =>
       leftPaneTakeoverState
         ? renderFullContextualSurface(leftPaneTakeoverState)
-        : renderTokensLibraryBody();
+        : body;
 
-    const renderLibrarySection = () => (
-      <>
-        {/* Fetch error banner */}
-        {(fetchError || tokensError) && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 shrink-0">
-            <AlertCircle size={10} strokeWidth={2} className="text-[var(--color-figma-error)] shrink-0" aria-hidden />
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] flex-1 truncate">
-              Failed to load tokens: {fetchError || tokensError}
-            </span>
-            <button
-              onClick={refreshTokens}
-              className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors shrink-0"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-        {/* Empty state */}
-        {collections.length === 0 &&
-          !createFromEmpty &&
-          !editingToken &&
-          renderTokensStartSurface()}
-        {/* With pinned side editor: left pane + ResizeDivider + right pane */}
-        {hasTokensLibrarySurface && !controller.showPreviewSplit && sideEditorState && (
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            <div className="min-w-0 flex-1 overflow-hidden">
-              {renderLeftPane()}
+    return (
+      <div className="flex h-full min-h-0 overflow-hidden">
+        {renderCollectionRail()}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {(fetchError || tokensError) && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 shrink-0">
+              <AlertCircle size={10} strokeWidth={2} className="text-[var(--color-figma-error)] shrink-0" aria-hidden />
+              <span className="text-secondary text-[var(--color-figma-text-secondary)] flex-1 truncate">
+                Failed to load tokens: {fetchError || tokensError}
+              </span>
+              <button
+                onClick={refreshTokens}
+                className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors shrink-0"
+              >
+                Retry
+              </button>
             </div>
+          )}
+
+          {!showPreviewSplitLayout && sideEditorState && (
+            <div className="flex min-h-0 flex-1 overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                {renderLeftPane()}
+              </div>
+              <ResizeDivider
+                axis="x"
+                ariaLabel="Resize side editor"
+                ariaValueNow={sideEditorBoundary.ariaValueNow}
+                onMouseDown={sideEditorBoundary.onMouseDown}
+                onKeyDown={sideEditorBoundary.onKeyDown}
+              />
+              <div
+                className="shrink-0 overflow-hidden panel-slide-in"
+                style={{ width: sideEditorBoundary.size }}
+                data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
+                data-tokens-library-contextual-surface={sideEditorState.surface}
+                onKeyDown={(e) => {
+                  if (
+                    (e.key === "]" || e.key === "[") &&
+                    (e.metaKey || e.ctrlKey) &&
+                    !e.shiftKey &&
+                    !e.altKey
+                  ) {
+                    e.preventDefault();
+                    controller.handleEditorNavigate(e.key === "]" ? 1 : -1);
+                  }
+                }}
+              >
+                {sideEditorState.content}
+              </div>
+            </div>
+          )}
+
+          {!showPreviewSplitLayout && !sideEditorState && renderLeftPane()}
+
+          {showPreviewSplitLayout && (
+            <div
+              ref={controller.splitContainerRef}
+              className="flex flex-col h-full overflow-hidden"
+              data-surface-kind={controller.splitPreviewTransition.kind}
+              data-surface-presentation={
+                controller.splitPreviewTransition.presentation
+              }
+              data-tokens-library-surface-slot={
+                TOKENS_LIBRARY_SURFACE_CONTRACT.splitPreview.id
+              }
+            >
+              <div
+                style={{
+                  height: `${controller.splitRatio * 100}%`,
+                  flexShrink: 0,
+                  overflow: "hidden",
+                }}
+              >
+                {body}
+              </div>
+              <div
+                role="separator"
+                aria-orientation="horizontal"
+                aria-valuenow={controller.splitValueNow}
+                aria-valuemin={20}
+                aria-valuemax={80}
+                aria-label="Resize token list and preview"
+                tabIndex={0}
+                className="h-1 flex-shrink-0 cursor-row-resize bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
+                onMouseDown={controller.handleSplitDragStart}
+                onKeyDown={controller.handleSplitKeyDown}
+              />
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <ErrorBoundary
+                  panelName="Preview"
+                  onReset={() => navigateTo("library", "tokens")}
+                >
+                  <PreviewPanel
+                    allTokensFlat={modeResolvedTokensFlat}
+                    onGoToTokens={() => navigateTo("library", "tokens")}
+                    onNavigateToToken={(path) => {
+                      const name = path.split(".").pop();
+                      const targetCollectionId =
+                        pathToCollectionId[path] ?? currentCollectionId;
+                      setSplitPreviewToken({
+                        path,
+                        name,
+                        currentCollectionId: targetCollectionId,
+                      });
+                      setHighlightedToken(path);
+                    }}
+                    focusedToken={splitPreviewToken}
+                    pathToCollectionId={pathToCollectionId}
+                    onClearFocus={() => setSplitPreviewToken(null)}
+                    lintViolations={controller.lintViolations}
+                    syncSnapshot={
+                      Object.keys(syncSnapshot).length > 0
+                        ? syncSnapshot
+                        : undefined
+                    }
+                    onEditToken={(path, name, collectionId) => {
+                      controller.guardEditorAction(() => {
+                        openTokenEditor({
+                          path,
+                          name,
+                          currentCollectionId:
+                            collectionId ?? currentCollectionId,
+                        });
+                      });
+                    }}
+                  />
+                </ErrorBoundary>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderLibraryTokens(): ReactNode {
+    const tokensEmpty =
+      collections.length === 0 &&
+      !createFromEmpty &&
+      !editingToken;
+
+    const body = tokensEmpty ? (
+      <FeedbackPlaceholder
+        variant="empty"
+        size="full"
+        icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
+        title="No collections yet"
+        description="Create your first collection or import an existing token system to start authoring."
+        primaryAction={{
+          label: "Create collection",
+          onClick: () => controller.onOpenCollectionCreateDialog(),
+        }}
+        secondaryAction={{
+          label: "Import tokens",
+          onClick: () => controller.onShowImportPanel(),
+        }}
+      />
+    ) : hasTokensLibrarySurface ? (
+      renderTokensLibraryBody()
+    ) : null;
+
+    return renderLibraryScaffold({ body, allowPreviewSplit: true });
+  }
+
+  function renderLibraryHealth(): ReactNode {
+    const body = (
+      <div className="flex h-full min-h-0 overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <ErrorBoundary
+            panelName="Health"
+            onReset={() => navigateTo("library", "tokens")}
+          >
+            <HealthPanel
+              serverUrl={serverUrl}
+              connected={connected}
+              currentCollectionId={currentCollectionId}
+              generators={generators}
+              lintViolations={controller.lintViolations}
+              allTokensFlat={allTokensFlat}
+              pathToCollectionId={pathToCollectionId}
+              tokenUsageCounts={tokenUsageCounts}
+              heatmapResult={heatmapResult}
+              onNavigateToToken={(path, collectionId) => {
+                setHealthDetailToken({ path, collectionId });
+              }}
+              validationIssues={controller.validationIssues}
+              validationSummary={controller.validationSummary}
+              validationLoading={controller.validationLoading}
+              validationError={controller.validationError}
+              validationLastRefreshed={controller.validationLastRefreshed}
+              validationIsStale={controller.validationIsStale}
+              onRefreshValidation={controller.refreshValidation}
+              onPushUndo={controller.pushUndo}
+              onError={controller.setErrorToast}
+            />
+          </ErrorBoundary>
+        </div>
+        {healthDetailToken && (
+          <>
             <ResizeDivider
               axis="x"
-              ariaLabel="Resize side editor"
-              ariaValueNow={sideEditorBoundary.ariaValueNow}
-              onMouseDown={sideEditorBoundary.onMouseDown}
-              onKeyDown={sideEditorBoundary.onKeyDown}
+              ariaLabel="Resize token detail panel"
+              ariaValueNow={healthDetailBoundary.ariaValueNow}
+              onMouseDown={healthDetailBoundary.onMouseDown}
+              onKeyDown={healthDetailBoundary.onKeyDown}
             />
             <div
               className="shrink-0 overflow-hidden panel-slide-in"
-              style={{ width: sideEditorBoundary.size }}
-              data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
-              data-tokens-library-contextual-surface={sideEditorState.surface}
-              onKeyDown={(e) => {
-                if (
-                  (e.key === "]" || e.key === "[") &&
-                  (e.metaKey || e.ctrlKey) &&
-                  !e.shiftKey &&
-                  !e.altKey
-                ) {
-                  e.preventDefault();
-                  controller.handleEditorNavigate(e.key === "]" ? 1 : -1);
-                }
-              }}
+              style={{ width: healthDetailBoundary.size }}
             >
-              {sideEditorState.content}
+              <TokenCompactPreview
+                tokenPath={healthDetailToken.path}
+                storageCollectionId={healthDetailToken.collectionId}
+                allTokensFlat={allTokensFlat}
+                pathToCollectionId={pathToCollectionId}
+                lintViolations={controller.lintViolations.filter(
+                  (v) => v.path === healthDetailToken.path,
+                )}
+                onEdit={() => {
+                  setCurrentCollectionId(healthDetailToken.collectionId);
+                  setPendingHighlight(healthDetailToken.path);
+                  switchContextualSurface({
+                    surface: "token-editor",
+                    token: {
+                      path: healthDetailToken.path,
+                      currentCollectionId: healthDetailToken.collectionId,
+                    },
+                  });
+                }}
+                onClose={() => setHealthDetailToken(null)}
+                onNavigateToAlias={(path) => {
+                  const cid = pathToCollectionId[path];
+                  if (cid) setHealthDetailToken({ path, collectionId: cid });
+                }}
+              />
             </div>
-          </div>
+          </>
         )}
-        {/* No pinned side editor: just the left pane (token list or full takeover). */}
-        {hasTokensLibrarySurface && !controller.showPreviewSplit && !sideEditorState && (
-          renderLeftPane()
-        )}
-        {/* Preview split view */}
-        {hasTokensLibrarySurface && controller.showPreviewSplit && (
-          <div
-            ref={controller.splitContainerRef}
-            className="flex flex-col h-full overflow-hidden"
-            data-surface-kind={controller.splitPreviewTransition.kind}
-            data-surface-presentation={
-              controller.splitPreviewTransition.presentation
-            }
-            data-tokens-library-surface-slot={
-              TOKENS_LIBRARY_SURFACE_CONTRACT.splitPreview.id
-            }
-          >
-            <div
-              style={{
-                height: `${controller.splitRatio * 100}%`,
-                flexShrink: 0,
-                overflow: "hidden",
-              }}
-            >
-              {renderTokensLibraryBody()}
-            </div>
-            <div
-              role="separator"
-              aria-orientation="horizontal"
-              aria-valuenow={controller.splitValueNow}
-              aria-valuemin={20}
-              aria-valuemax={80}
-              aria-label="Resize token list and preview"
-              tabIndex={0}
-              className="h-1 flex-shrink-0 cursor-row-resize bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
-              onMouseDown={controller.handleSplitDragStart}
-              onKeyDown={controller.handleSplitKeyDown}
-            />
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <ErrorBoundary
-                panelName="Preview"
-                onReset={() => navigateTo("library", "library")}
-              >
-                <PreviewPanel
-                  allTokensFlat={modeResolvedTokensFlat}
-                  onGoToTokens={() => navigateTo("library", "library")}
-                  onNavigateToToken={(path) => {
-                    const name = path.split(".").pop();
-                    const targetCollectionId =
-                      pathToCollectionId[path] ?? currentCollectionId;
-                    setSplitPreviewToken({
-                      path,
-                      name,
-                      currentCollectionId: targetCollectionId,
-                    });
-                    setHighlightedToken(path);
-                  }}
-                  focusedToken={splitPreviewToken}
-                  pathToCollectionId={pathToCollectionId}
-                  onClearFocus={() => setSplitPreviewToken(null)}
-                  lintViolations={controller.lintViolations}
-                  syncSnapshot={
-                    Object.keys(syncSnapshot).length > 0
-                      ? syncSnapshot
-                      : undefined
-                  }
-                  onEditToken={(path, name, collectionId) => {
-                    controller.guardEditorAction(() => {
-                      openTokenEditor({
-                        path,
-                        name,
-                        currentCollectionId:
-                          collectionId ?? currentCollectionId,
-                      });
-                    });
-                  }}
-                />
-              </ErrorBoundary>
-            </div>
-          </div>
-        )}
-      </>
+      </div>
     );
 
-    return (
-        <div className="flex h-full min-h-0 overflow-hidden">
-          <CollectionRail
-            collections={collections}
-            currentCollectionId={currentCollectionId}
-            collectionTokenCounts={collectionTokenCounts}
-            focusRequestKey={shell.collectionRailFocusRequestKey}
-            widthPx={collectionRailBoundary.size}
-            onSelectCollection={(collectionId) => {
-              if (collectionId !== currentCollectionId) {
-                setCurrentCollectionId(collectionId);
-              }
-              navigateTo("library", "library");
-            }}
-            onCreateCollection={async (name) => {
-              const createdCollectionId =
-                await collectionStructureController.onCreateCollectionByName(name);
-              setCurrentCollectionId(createdCollectionId);
-              return createdCollectionId;
-            }}
-            onOpenCollectionDetails={(collectionId) =>
-              switchContextualSurface({
-                surface: "collection-details",
-                collection: { collectionId },
-              })
-            }
-            onRenameCollection={collectionStructureController.onRename}
-            onDuplicateCollection={collectionStructureController.onDuplicate}
-            onMergeCollection={collectionStructureController.onMerge}
-            onSplitCollection={collectionStructureController.onSplit}
-            onDeleteCollection={collectionStructureController.onDelete}
+    return renderLibraryScaffold({ body, allowPreviewSplit: false });
+  }
+
+  function renderLibraryHistory(): ReactNode {
+    const body = (
+      <div className="h-full min-h-0 overflow-hidden">
+        <ErrorBoundary
+          panelName="Changes"
+          onReset={() => navigateTo("library", "tokens")}
+        >
+          <HistoryPanel
+            serverUrl={serverUrl}
+            connected={connected}
+            onPushUndo={controller.pushUndo}
+            onRefreshTokens={controller.refreshAll}
+            filterTokenPath={historyFilterPath}
+            onClearFilter={() => setHistoryFilterPath(null)}
+            recentOperations={controller.recentOperations}
+            totalOperations={controller.totalOperations}
+            hasMoreOperations={controller.hasMoreOperations}
+            onLoadMoreOperations={controller.loadMoreOperations}
+            onRollback={controller.handleRollback}
+            undoDescriptions={controller.undoDescriptions}
+            redoableOpIds={controller.redoableOpIds}
+            onServerRedo={controller.handleServerRedo}
+            executeUndo={controller.executeUndo}
+            canUndo={controller.canUndo}
           />
-          <ResizeDivider
-            axis="x"
-            ariaLabel="Resize collection rail"
-            ariaValueNow={collectionRailBoundary.ariaValueNow}
-            onMouseDown={collectionRailBoundary.onMouseDown}
-            onKeyDown={collectionRailBoundary.onKeyDown}
-          />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            {renderLibrarySection()}
-          </div>
-        </div>
+        </ErrorBoundary>
+      </div>
     );
+
+    return renderLibraryScaffold({ body, allowPreviewSplit: false });
   }
   function renderSyncFigmaSync(): ReactNode {
     const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;

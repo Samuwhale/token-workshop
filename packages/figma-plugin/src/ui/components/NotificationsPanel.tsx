@@ -100,10 +100,6 @@ function contextualSurfaceName(
   >["surface"],
 ): string {
   switch (surface) {
-    case "health":
-      return "Health";
-    case "history":
-      return "History";
     case "import":
       return "Import";
     case "color-analysis":
@@ -209,7 +205,7 @@ export function NotificationsPanel({
       const targetCollectionId =
         destination.collectionId ?? currentCollectionId;
       beginHandoff({ reason: handoffReason, ...handoffOpts });
-      navigateTo("library", "library", { preserveHandoff: true });
+      navigateTo("library", "tokens", { preserveHandoff: true });
       if (targetCollectionId === currentCollectionId) {
         setHighlightedToken(destination.tokenPath);
       } else {
@@ -228,7 +224,7 @@ export function NotificationsPanel({
     }
     if (destination.kind === "contextual-surface") {
       beginHandoff({ reason: handoffReason, ...handoffOpts });
-      navigateTo("library", "library", { preserveHandoff: true });
+      navigateTo("library", "tokens", { preserveHandoff: true });
       switchContextualSurface({ surface: destination.surface });
       return;
     }
