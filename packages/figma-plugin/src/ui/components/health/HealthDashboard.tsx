@@ -158,7 +158,7 @@ export function HealthDashboard({
             <button
               key={cat.id}
               onClick={cat.onOpen}
-              className="flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] group"
+              className="flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             >
               <span className={`shrink-0 ${isZero ? "text-[var(--color-figma-text-tertiary)]" : statusColor(cat.severity)}`}>
                 <svg width="7" height="7" viewBox="0 0 8 8" aria-hidden="true">
@@ -171,9 +171,6 @@ export function HealthDashboard({
               <span className={`text-body tabular-nums ${isZero ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"}`}>
                 {isZero ? "All clear" : cat.count}
               </span>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
             </button>
           );
         })}

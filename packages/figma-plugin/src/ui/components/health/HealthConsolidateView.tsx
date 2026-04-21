@@ -34,7 +34,7 @@ export function HealthConsolidateView({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "thin" }}>
+      <div className="flex-1 overflow-y-auto px-3" style={{ scrollbarWidth: "thin" }}>
         {aliasOpportunityGroups.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-body text-[var(--color-figma-text-secondary)]">
@@ -42,53 +42,49 @@ export function HealthConsolidateView({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {aliasOpportunityGroups.map((group) => {
-              const isPromoting = promotingGroupId === group.id;
-              return (
-                <div
-                  key={group.id}
-                  className="rounded border border-[var(--color-figma-border)] overflow-hidden"
-                >
-                  <div className="flex items-start gap-2 px-3 py-2.5">
-                    {group.colorHex && (
-                      <div
-                        className="mt-0.5 h-4 w-4 shrink-0 rounded border border-[var(--color-figma-border)]"
-                        style={{ background: group.colorHex }}
-                      />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-secondary font-medium font-mono text-[var(--color-figma-text)]">
-                          {group.valueLabel}
-                        </span>
-                        <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                          {group.typeLabel} · {group.tokens.length} tokens
-                        </span>
-                      </div>
-                      <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
-                        Promote to{" "}
-                        <span className="font-mono text-[var(--color-figma-text)]">
-                          {group.suggestedPrimitivePath}
-                        </span>
-                        {" "}in{" "}
-                        <span className="font-mono text-[var(--color-figma-text)]">
-                          {group.suggestedPrimitiveCollectionId}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => onPromote(group)}
-                      disabled={isPromoting}
-                      className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                    >
-                      {isPromoting ? <Spinner size="xs" /> : "Promote"}
-                    </button>
+          aliasOpportunityGroups.map((group) => {
+            const isPromoting = promotingGroupId === group.id;
+            return (
+              <div
+                key={group.id}
+                className="flex items-start gap-2 py-2 border-b border-[var(--color-figma-border)] last:border-b-0"
+              >
+                {group.colorHex && (
+                  <div
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border border-[var(--color-figma-border)]"
+                    style={{ background: group.colorHex }}
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-secondary font-medium font-mono text-[var(--color-figma-text)]">
+                      {group.valueLabel}
+                    </span>
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                      {group.typeLabel} · {group.tokens.length} tokens
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                    Promote to{" "}
+                    <span className="font-mono text-[var(--color-figma-text)]">
+                      {group.suggestedPrimitivePath}
+                    </span>
+                    {" "}in{" "}
+                    <span className="font-mono text-[var(--color-figma-text)]">
+                      {group.suggestedPrimitiveCollectionId}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                <button
+                  onClick={() => onPromote(group)}
+                  disabled={isPromoting}
+                  className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                >
+                  {isPromoting ? <Spinner size="xs" /> : "Promote"}
+                </button>
+              </div>
+            );
+          })
         )}
       </div>
     </div>

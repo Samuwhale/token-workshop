@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ValidationIssue } from "../../hooks/useValidationCache";
-import { NoticePill, severityStyles } from "../../shared/noticeSystem";
+import { severityStyles } from "../../shared/noticeSystem";
 import type { NoticeSeverity } from "../../shared/noticeSystem";
 import { LINT_RULE_BY_ID } from "../../shared/lintRules";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
@@ -250,6 +250,13 @@ export function HealthIssuesView({
             const visibleIssues = group.issues.slice(0, visibleLimit);
             const remainingCount = group.issues.length - visibleLimit;
 
+            const severityColor =
+              group.severity === "error"
+                ? "text-[var(--color-figma-error)]"
+                : group.severity === "warning"
+                  ? "text-[var(--color-figma-warning)]"
+                  : "text-[var(--color-figma-text-secondary)]";
+
             return (
               <div key={group.rule}>
                 <button
@@ -261,34 +268,23 @@ export function HealthIssuesView({
                       return next;
                     })
                   }
-                  className="w-full flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]/50 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  title={group.tip || undefined}
                 >
                   <svg
                     width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-                    className={`transition-transform shrink-0 ${isCollapsed ? "" : "rotate-90"}`}
+                    className={`transition-transform shrink-0 opacity-60 ${isCollapsed ? "" : "rotate-90"}`}
                     aria-hidden="true"
                   >
                     <path d="M2 1l4 3-4 3V1z" />
                   </svg>
-                  <NoticePill severity={group.severity as NoticeSeverity}>
-                    {group.severity === "error" ? "Error" : group.severity === "warning" ? "Warn" : "Info"}
-                  </NoticePill>
-                  <span className="text-secondary font-medium text-[var(--color-figma-text)] flex-1 text-left">
+                  <span className={`text-secondary font-medium flex-1 text-left truncate ${severityColor}`}>
                     {group.label}
                   </span>
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)] tabular-nums shrink-0">
                     {group.issues.length}
                   </span>
                 </button>
-
-                {!isCollapsed && group.tip && (
-                  <div className="px-3 py-1 text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]/30 border-b border-[var(--color-figma-border)] flex items-center gap-1">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-50">
-                      <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
-                    </svg>
-                    {group.tip}
-                  </div>
-                )}
 
                 {!isCollapsed && (
                   <>
@@ -380,10 +376,10 @@ function IssueRow({
         <button
           onClick={onFix}
           disabled={fixing}
-          className={`text-secondary px-2 py-0.5 rounded border shrink-0 disabled:opacity-40 disabled:cursor-wait ${
+          className={`text-secondary shrink-0 disabled:opacity-40 disabled:cursor-wait hover:underline ${
             issue.suggestedFix === "delete-token"
-              ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/15"
-              : "border-[var(--color-figma-success,#34a853)] bg-[var(--color-figma-success,#34a853)]/10 text-[var(--color-figma-success,#34a853)] hover:bg-[var(--color-figma-success,#34a853)]/15"
+              ? "text-[var(--color-figma-error)]"
+              : "text-[var(--color-figma-accent)]"
           }`}
         >
           {fixing ? <Spinner size="xs" /> : fixLabelText}
@@ -393,7 +389,7 @@ function IssueRow({
       {onOpen && (
         <button
           onClick={onOpen}
-          className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
+          className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
         >
           Open
         </button>

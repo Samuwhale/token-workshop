@@ -130,12 +130,26 @@ export function HealthPanel({
 
   const tokenLevelSignals = healthSignals.signals.filter(
     (s) =>
+      s.collectionId === currentCollectionId &&
       s.source !== "generator" &&
       s.severity !== "info" &&
       s.rule !== "no-duplicate-values" &&
       s.rule !== "alias-opportunity",
   );
-  const generatorIssueCount = healthSignals.signals.filter((s) => s.source === "generator").length;
+  const generatorIssueCount = healthSignals.signals.filter(
+    (s) => s.collectionId === currentCollectionId && s.source === "generator",
+  ).length;
+
+  const deprecatedUsageEntriesForCurrent = deprecatedUsageEntries.filter(
+    (e) => e.collectionId === currentCollectionId,
+  );
+
+  const suppressedKeysForCurrent = new Set<string>(
+    [...suppressedKeys].filter((key) => {
+      const parts = key.split(":");
+      return parts[1] === currentCollectionId;
+    }),
+  );
 
   const unifiedIssuesForView: ValidationIssue[] = tokenLevelSignals.map((s) => ({
     rule: s.rule,
@@ -148,12 +162,12 @@ export function HealthPanel({
     group: s.group,
   }));
 
-  const totalIssueCount = healthSignals.totals.actionable;
+  const totalIssueCount = healthSignals.currentCollection.actionable;
   const heatmapSignalsPresent = (heatmapResult?.red ?? 0) > 0;
   const overallStatus: HealthStatus =
-    healthSignals.totals.severity === "error"
+    healthSignals.currentCollection.severity === "error"
       ? "critical"
-      : healthSignals.totals.severity === "warning" ||
+      : healthSignals.currentCollection.severity === "warning" ||
           totalDuplicateAliases > 0 ||
           heatmapSignalsPresent
         ? "warning"
@@ -288,7 +302,7 @@ export function HealthPanel({
         <HealthIssuesView
           validationIssues={unifiedIssuesForView}
           validationLastRefreshed={validationLastRefreshed}
-          suppressedKeys={suppressedKeys}
+          suppressedKeys={suppressedKeysForCurrent}
           fixingKeys={fixingKeys}
           onFix={applyIssueFix}
           onIgnore={handleSuppress}
@@ -300,7 +314,7 @@ export function HealthPanel({
     case "ignored":
       return (
         <HealthIgnoredView
-          suppressedKeys={suppressedKeys}
+          suppressedKeys={suppressedKeysForCurrent}
           suppressingKey={suppressingKey}
           onUnsuppress={handleUnsuppress}
           onBack={goBack}
@@ -322,7 +336,7 @@ export function HealthPanel({
     case "deprecated":
       return (
         <HealthDeprecatedView
-          entries={deprecatedUsageEntries}
+          entries={deprecatedUsageEntriesForCurrent}
           loading={deprecatedUsageLoading}
           error={deprecatedUsageError}
           allTokensFlat={allTokensFlat}
@@ -369,10 +383,10 @@ export function HealthPanel({
           issueCount={tokenLevelSignals.length}
           generatorIssueCount={generatorIssueCount}
           unusedCount={unusedTokens.length}
-          deprecatedCount={deprecatedUsageEntries.length}
+          deprecatedCount={deprecatedUsageEntriesForCurrent.length}
           consolidateCount={aliasOpportunityGroups.length}
           duplicateCount={totalDuplicateAliases}
-          ignoredCount={suppressedKeys.size}
+          ignoredCount={suppressedKeysForCurrent.size}
           onNavigateToView={setActiveView}
           onNavigateToGenerators={onNavigateToGenerators}
         />

@@ -240,6 +240,7 @@ export const STORAGE_KEY_BUILDERS = {
   tokenExpansion: (collectionId: string) => `token-expand:${collectionId}`,
   editorDraft: (collectionId: string, tokenPath: string) => `tm_editor_draft:${collectionId}:${tokenPath}`,
   tableCreateDraft: (collectionId: string) => `tokenmanager:table-create-draft:${collectionId || '__default__'}`,
+  modeColumnWidth: (collectionId: string, modeName: string) => `tm_mode_col_width:${collectionId}:${modeName}`,
 };
 
 /** Key prefix strings used for bulk-delete operations */

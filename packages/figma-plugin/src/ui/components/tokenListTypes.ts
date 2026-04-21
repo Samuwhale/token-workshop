@@ -43,14 +43,16 @@ export const DEPTH_GUIDE_COLOR = "var(--color-figma-border)";
 /** Width of the trailing add-mode slot in the header (matches header + button). */
 export const ADD_MODE_SLOT_PX = 28;
 
-/**
- * Grid template for the token table. Shared between header and every row so
- * columns always align regardless of content (single-mode collections get one
- * value column; multi-mode collections get one column per mode).
- */
-export function getGridTemplate(modeCount: number): string {
-  const count = Math.max(1, modeCount);
-  return `minmax(200px, 2fr) repeat(${count}, minmax(96px, 1fr)) ${ADD_MODE_SLOT_PX}px`;
+/** Default / min / max widths for individual mode columns (px). */
+export const DEFAULT_MODE_COL_PX = 160;
+export const MIN_MODE_COL_PX = 96;
+export const MAX_MODE_COL_PX = 640;
+
+/** Shared by the table header and every row so columns always align. */
+export function getGridTemplate(modeWidths: number[]): string {
+  const widths = modeWidths.length > 0 ? modeWidths : [DEFAULT_MODE_COL_PX];
+  const modeCols = widths.map((w) => `${w}px`).join(" ");
+  return `minmax(200px, 2fr) ${modeCols} ${ADD_MODE_SLOT_PX}px`;
 }
 
 // ---------------------------------------------------------------------------

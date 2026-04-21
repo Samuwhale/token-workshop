@@ -16,7 +16,7 @@ import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
 import { GeneratedGroupEditor } from "../components/GeneratedGroupEditor";
-import { TokenCompactPreview } from "../components/TokenCompactPreview";
+import { TokenInspector } from "../components/TokenInspector";
 import { CollectionRail } from "../components/CollectionRail";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
 import { PublishPanel } from "../components/PublishPanel";
@@ -1450,7 +1450,6 @@ export function PanelRouter({
                 >
                   <PreviewPanel
                     allTokensFlat={modeResolvedTokensFlat}
-                    onGoToTokens={() => navigateTo("library", "tokens")}
                     onNavigateToToken={(path) => {
                       const name = path.split(".").pop();
                       const targetCollectionId =
@@ -1464,6 +1463,7 @@ export function PanelRouter({
                     }}
                     focusedToken={splitPreviewToken}
                     pathToCollectionId={pathToCollectionId}
+                    collections={collections}
                     onClearFocus={() => setSplitPreviewToken(null)}
                     lintViolations={healthSignals.lintViolationsForCurrent}
                     syncSnapshot={
@@ -1479,6 +1479,11 @@ export function PanelRouter({
                           currentCollectionId:
                             collectionId ?? currentCollectionId,
                         });
+                      });
+                    }}
+                    onDuplicateToken={(path) => {
+                      controller.guardEditorAction(() => {
+                        void controller.handlePaletteDuplicate(path);
                       });
                     }}
                   />
@@ -1578,11 +1583,12 @@ export function PanelRouter({
               className="shrink-0 overflow-hidden panel-slide-in"
               style={{ width: healthDetailBoundary.size }}
             >
-              <TokenCompactPreview
+              <TokenInspector
                 tokenPath={healthDetailToken.path}
                 storageCollectionId={healthDetailToken.collectionId}
                 allTokensFlat={allTokensFlat}
                 pathToCollectionId={pathToCollectionId}
+                collections={collections}
                 lintViolations={healthSignals.lintViolationsForCurrent.filter(
                   (v) => v.path === healthDetailToken.path,
                 )}
@@ -1597,8 +1603,13 @@ export function PanelRouter({
                     },
                   });
                 }}
+                onDuplicate={() =>
+                  controller.guardEditorAction(() => {
+                    void controller.handlePaletteDuplicate(healthDetailToken.path);
+                  })
+                }
                 onClose={() => setHealthDetailToken(null)}
-                onNavigateToAlias={(path) => {
+                onNavigateToToken={(path) => {
                   const cid = pathToCollectionId[path];
                   if (cid) setHealthDetailToken({ path, collectionId: cid });
                 }}

@@ -192,6 +192,9 @@ export function useHealthData({
     }
     return [...byGroup.entries()]
       .filter(([, g]) => g.tokens.length > 1)
+      .filter(([, g]) =>
+        g.tokens.some((t) => t.collectionId === currentCollectionId),
+      )
       .map(([id, { tokens }]) => {
         const sampleToken = tokens[0];
         const tokenEntry = sampleToken
@@ -233,7 +236,7 @@ export function useHealthData({
         };
       })
       .sort((a, b) => b.tokens.length - a.tokens.length);
-  }, [validationIssues, allTokensUnified]);
+  }, [validationIssues, allTokensUnified, currentCollectionId]);
 
   const aliasOpportunityGroups = useMemo((): AliasOpportunityGroup[] => {
     if (!validationIssues) return [];
@@ -260,6 +263,9 @@ export function useHealthData({
 
     return [...groups.entries()]
       .filter(([, tokens]) => tokens.length > 1)
+      .filter(([, tokens]) =>
+        tokens.some((t) => t.collectionId === currentCollectionId),
+      )
       .map(([id, tokens]) => {
         const sortedTokens = [...tokens].sort(
           (a, b) =>
@@ -348,7 +354,8 @@ export function useHealthData({
       collectRefs(entry.$value);
     return Object.entries(allTokensUnified)
       .filter(
-        ([path]) =>
+        ([path, entry]) =>
+          entry.collectionId === currentCollectionId &&
           (tokenUsageCounts[path] ?? 0) === 0 &&
           !referencedPaths.has(path) &&
           allTokensUnified[path]?.$lifecycle !== "deprecated",
@@ -360,7 +367,7 @@ export function useHealthData({
         $lifecycle: entry.$lifecycle,
       }))
       .sort((a, b) => a.path.localeCompare(b.path));
-  }, [tokenUsageCounts, allTokensUnified]);
+  }, [tokenUsageCounts, allTokensUnified, currentCollectionId]);
 
   return {
     allTokensUnified,

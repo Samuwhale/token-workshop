@@ -80,7 +80,7 @@ export function HealthDeprecatedView({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "thin" }}>
+      <div className="flex-1 overflow-y-auto px-3" style={{ scrollbarWidth: "thin" }}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Spinner size="sm" />
@@ -96,102 +96,99 @@ export function HealthDeprecatedView({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {entries.map((entry) => {
-              const selectedReplacement = replacementPaths[entry.deprecatedPath];
-              const isPickerOpen = openPickerPath === entry.deprecatedPath;
-              const isReplacing = replacingPath === entry.deprecatedPath;
-              const dependentPreview = entry.dependents.slice(0, 3);
-              const remainingDependents = entry.dependents.length - dependentPreview.length;
+          entries.map((entry) => {
+            const selectedReplacement = replacementPaths[entry.deprecatedPath];
+            const isPickerOpen = openPickerPath === entry.deprecatedPath;
+            const isReplacing = replacingPath === entry.deprecatedPath;
+            const dependentPreview = entry.dependents.slice(0, 3);
+            const remainingDependents = entry.dependents.length - dependentPreview.length;
 
-              return (
-                <div key={entry.deprecatedPath} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                  <div className="px-3 py-2.5">
-                    <div className="flex items-start gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline gap-1.5 flex-wrap">
-                          <span className="text-secondary font-medium font-mono text-[var(--color-figma-text)] line-through">
-                            {entry.deprecatedPath}
-                          </span>
-                          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                            {entry.type} · {formatCount(entry.activeReferenceCount, "active reference")}
-                          </span>
-                        </div>
-                        <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
-                          {dependentPreview.map((dep, idx) => (
-                            <span key={`${dep.collectionId}:${dep.path}`}>
-                              {idx > 0 ? ", " : ""}
-                              <span className="font-mono text-[var(--color-figma-text)]">{dep.path}</span>
-                              {" "}
-                              <span className="opacity-70">({dep.collectionId})</span>
-                            </span>
-                          ))}
-                          {remainingDependents > 0 && (
-                            <span>{dependentPreview.length > 0 ? ", " : ""}and {remainingDependents} more</span>
-                          )}
-                        </div>
-                        {selectedReplacement && (
-                          <div className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
-                            Replace with <span className="font-mono text-[var(--color-figma-text)]">{selectedReplacement}</span>
-                          </div>
-                        )}
-                        {isPickerOpen && (
-                          <div className="mt-2 max-w-xl">
-                            <TokenPickerDropdown
-                              allTokensFlat={allTokensFlat}
-                              pathToCollectionId={pathToCollectionId}
-                              filterType={entry.type === "unknown" ? undefined : entry.type}
-                              excludePaths={[entry.deprecatedPath]}
-                              placeholder="Search replacement token…"
-                              onSelect={(path) => {
-                                setReplacementPaths((prev) => ({ ...prev, [entry.deprecatedPath]: path }));
-                                setOpenPickerPath(null);
-                              }}
-                              onClose={() => setOpenPickerPath(null)}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <div className="shrink-0 flex flex-col items-end gap-1.5">
-                        {selectedReplacement ? (
-                          <>
-                            <button
-                              onClick={() => handleReplace(entry)}
-                              disabled={isReplacing}
-                              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                            >
-                              {isReplacing ? "Replacing…" : "Replace references"}
-                            </button>
-                            <button
-                              onClick={() => setOpenPickerPath(entry.deprecatedPath)}
-                              disabled={isReplacing}
-                              className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:opacity-40"
-                            >
-                              Change
-                            </button>
-                          </>
-                        ) : isPickerOpen ? (
-                          <button
-                            onClick={() => setOpenPickerPath(null)}
-                            className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text)] hover:text-[var(--color-figma-text)]"
-                          >
-                            Cancel
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setOpenPickerPath(entry.deprecatedPath)}
-                            className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-                          >
-                            Replace references
-                          </button>
-                        )}
-                      </div>
-                    </div>
+            return (
+              <div
+                key={entry.deprecatedPath}
+                className="flex items-start gap-3 py-2 border-b border-[var(--color-figma-border)] last:border-b-0"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                    <span className="text-secondary font-medium font-mono text-[var(--color-figma-text)] line-through">
+                      {entry.deprecatedPath}
+                    </span>
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                      {entry.type} · {formatCount(entry.activeReferenceCount, "active reference")}
+                    </span>
                   </div>
+                  <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                    {dependentPreview.map((dep, idx) => (
+                      <span key={`${dep.collectionId}:${dep.path}`}>
+                        {idx > 0 ? ", " : ""}
+                        <span className="font-mono text-[var(--color-figma-text)]">{dep.path}</span>
+                        {" "}
+                        <span className="opacity-70">({dep.collectionId})</span>
+                      </span>
+                    ))}
+                    {remainingDependents > 0 && (
+                      <span>{dependentPreview.length > 0 ? ", " : ""}and {remainingDependents} more</span>
+                    )}
+                  </div>
+                  {selectedReplacement && (
+                    <div className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+                      Replace with <span className="font-mono text-[var(--color-figma-text)]">{selectedReplacement}</span>
+                    </div>
+                  )}
+                  {isPickerOpen && (
+                    <div className="mt-1.5 max-w-xl">
+                      <TokenPickerDropdown
+                        allTokensFlat={allTokensFlat}
+                        pathToCollectionId={pathToCollectionId}
+                        filterType={entry.type === "unknown" ? undefined : entry.type}
+                        excludePaths={[entry.deprecatedPath]}
+                        placeholder="Search replacement token…"
+                        onSelect={(path) => {
+                          setReplacementPaths((prev) => ({ ...prev, [entry.deprecatedPath]: path }));
+                          setOpenPickerPath(null);
+                        }}
+                        onClose={() => setOpenPickerPath(null)}
+                      />
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+                <div className="shrink-0 flex items-center gap-1.5">
+                  {selectedReplacement ? (
+                    <>
+                      <button
+                        onClick={() => setOpenPickerPath(entry.deprecatedPath)}
+                        disabled={isReplacing}
+                        className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-40"
+                      >
+                        Change
+                      </button>
+                      <button
+                        onClick={() => handleReplace(entry)}
+                        disabled={isReplacing}
+                        className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      >
+                        {isReplacing ? "Replacing…" : "Replace"}
+                      </button>
+                    </>
+                  ) : isPickerOpen ? (
+                    <button
+                      onClick={() => setOpenPickerPath(null)}
+                      className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                    >
+                      Cancel
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setOpenPickerPath(entry.deprecatedPath)}
+                      className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+                    >
+                      Replace
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </div>

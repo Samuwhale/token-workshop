@@ -133,140 +133,125 @@ export function DuplicateDetectionPanel({
   const btnAccent = `${btnBase} bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`;
 
   const content = (
-    <div className={`divide-y divide-[var(--color-figma-border)] ${embedded ? 'h-full overflow-y-auto' : ''}`}>
-          {/* Bulk toolbar */}
-          <div className="px-3 py-2.5">
-            <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/35 px-2.5 py-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-                  {configuredCount}/{lintDuplicateGroups.length} selected · {aliasCount} aliases
+    <div className={embedded ? 'h-full overflow-y-auto' : ''}>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-[var(--color-figma-border)]">
+        <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          {configuredCount}/{lintDuplicateGroups.length} selected · {aliasCount} aliases
+        </div>
+        <button
+          disabled={bulkResolving || !allConfigured}
+          onClick={() => bulkConfirm.trigger('bulk', handleBulkResolve)}
+          className={btnAccent}
+        >
+          {bulkResolving
+            ? 'Resolving\u2026'
+            : bulkConfirm.isPending('bulk')
+              ? `Confirm? ${aliasCount} token${aliasCount !== 1 ? 's' : ''} will become aliases`
+              : `Apply all selections (${aliasCount})`}
+        </button>
+      </div>
+
+      {lintDuplicateGroups.map(group => {
+        const keep = keptTokens.get(group.id) ?? null;
+        const others = keep ? group.tokens.filter(t => tokenKey(t) !== tokenKey(keep)) : [];
+        const isResolving = resolvingGroupId === group.id;
+        const isExpanded = expandedGroupId === group.id;
+
+        return (
+          <div key={group.id} className="border-b border-[var(--color-figma-border)]">
+            <button
+              onClick={() => setExpandedGroupId(cur => cur === group.id ? null : group.id)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              aria-expanded={isExpanded}
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 opacity-60 ${isExpanded ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+              {group.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: group.colorHex }} />}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-secondary font-medium text-[var(--color-figma-text)]">
+                    {group.tokens.length} matching {group.typeLabel}
+                  </span>
+                  <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate">
+                    {truncateValue(group.valueLabel)}
+                  </span>
                 </div>
-                <button
-                  disabled={bulkResolving || !allConfigured}
-                  onClick={() => bulkConfirm.trigger('bulk', handleBulkResolve)}
-                  className={btnAccent}
-                >
-                  {bulkResolving
-                    ? 'Resolving\u2026'
-                    : bulkConfirm.isPending('bulk')
-                      ? `Confirm? ${aliasCount} token${aliasCount !== 1 ? 's' : ''} will become aliases`
-                      : `Apply all selections (${aliasCount})`}
-                </button>
               </div>
-            </div>
-          </div>
+            </button>
 
-          {/* Groups */}
-          {lintDuplicateGroups.map(group => {
-            const keep = keptTokens.get(group.id) ?? null;
-            const others = keep ? group.tokens.filter(t => tokenKey(t) !== tokenKey(keep)) : [];
-            const isResolving = resolvingGroupId === group.id;
-            const isExpanded = expandedGroupId === group.id;
-            const isConfigured = Boolean(keep);
+            {isExpanded && (
+              <div className="px-3 py-2 flex flex-col gap-2 bg-[var(--color-figma-bg-secondary)]/20">
+                <fieldset className="flex flex-col">
+                  <legend className="sr-only">Choose which token to keep</legend>
+                  {group.tokens.map(token => {
+                    const isSelected = keep ? tokenKey(token) === tokenKey(keep) : false;
+                    const radioId = `keep-${group.id}-${tokenKey(token)}`;
+                    const diffLabels = keep && !isSelected ? getDiffLabels(keep, token) : [];
 
-            return (
-              <div key={group.id} className="px-3 py-2.5">
-                <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                  {/* Group header */}
-                  <button
-                    onClick={() => setExpandedGroupId(cur => cur === group.id ? null : group.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    aria-expanded={isExpanded}
-                  >
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                    {group.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: group.colorHex }} />}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-secondary font-medium text-[var(--color-figma-text)]">{group.tokens.length} matching tokens</span>
-                        <span className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">{group.typeLabel}</span>
-                        <span className={`text-secondary px-1.5 py-0.5 rounded border ${isConfigured ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
-                          {isConfigured ? 'Ready' : 'Choose which to keep'}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] font-mono truncate">
-                        Shared value: {truncateValue(group.valueLabel)}
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Expanded body */}
-                  {isExpanded && (
-                    <div className="border-t border-[var(--color-figma-border)] p-3 flex flex-col gap-2">
-                      {/* Token radios */}
-                      <fieldset className="flex flex-col gap-1.5">
-                        <legend className="sr-only">Choose which token to keep</legend>
-                        {group.tokens.map(token => {
-                          const isSelected = keep ? tokenKey(token) === tokenKey(keep) : false;
-                          const radioId = `keep-${group.id}-${tokenKey(token)}`;
-                          const diffLabels = keep && !isSelected ? getDiffLabels(keep, token) : [];
-
-                          return (
-                            <label
-                              key={tokenKey(token)}
-                              htmlFor={radioId}
-                              className={`rounded border p-2 cursor-pointer ${isSelected ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/20 hover:border-[var(--color-figma-text-secondary)]/40'} transition-colors`}
+                    return (
+                      <label
+                        key={tokenKey(token)}
+                        htmlFor={radioId}
+                        className={`cursor-pointer py-1 ${isSelected ? '' : 'opacity-70 hover:opacity-100'}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            id={radioId}
+                            name={`keep-${group.id}`}
+                            checked={isSelected}
+                            onChange={() => setSelectedKeepKeys(prev => ({ ...prev, [group.id]: tokenKey(token) }))}
+                            className="sr-only peer"
+                          />
+                          <span className={`w-3 h-3 rounded-full border-[1.5px] shrink-0 flex items-center justify-center ${isSelected ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'}`}>
+                            {isSelected && <span className="w-[7px] h-[7px] rounded-full bg-[var(--color-figma-accent)]" />}
+                          </span>
+                          {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
+                          <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
+                          <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0">{token.collectionId}</span>
+                          {onNavigateToToken && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); onNavigateToToken(token.path, token.collectionId); }}
+                              className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
                             >
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="radio"
-                                  id={radioId}
-                                  name={`keep-${group.id}`}
-                                  checked={isSelected}
-                                  onChange={() => setSelectedKeepKeys(prev => ({ ...prev, [group.id]: tokenKey(token) }))}
-                                  className="sr-only peer"
-                                />
-                                <span className={`w-3 h-3 rounded-full border-[1.5px] shrink-0 flex items-center justify-center ${isSelected ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'}`}>
-                                  {isSelected && <span className="w-[7px] h-[7px] rounded-full bg-[var(--color-figma-accent)]" />}
-                                </span>
-                                {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
-                                <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                                <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">{token.collectionId}</span>
-                                {onNavigateToToken && (
-                                  <button
-                                    onClick={(e) => { e.preventDefault(); onNavigateToToken(token.path, token.collectionId); }}
-                                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
-                                  >
-                                    Open
-                                  </button>
-                                )}
-                              </div>
-                              {diffLabels.length > 0 && (
-                                <p className="mt-1 pl-5 text-secondary text-[var(--color-figma-text-secondary)]">
-                                  Differs: {diffLabels.join(', ')}
-                                </p>
-                              )}
-                            </label>
-                          );
-                        })}
-                      </fieldset>
-
-                      {/* Resolve action */}
-                      {keep && (
-                        <div className="flex items-center justify-between gap-2 pt-1">
-                          <p className="text-secondary text-[var(--color-figma-text-secondary)] min-w-0">
-                            Keep <span className="font-mono text-[var(--color-figma-text)]">{keep.path}</span>, alias {others.length} to it
-                          </p>
-                          <button
-                            disabled={isResolving}
-                            onClick={() => {
-                              groupConfirm.trigger(group.id, () => handleResolve(group, keep));
-                            }}
-                            className={`${btnAccent} shrink-0`}
-                          >
-                            {isResolving
-                              ? 'Resolving\u2026'
-                              : groupConfirm.isPending(group.id)
-                                ? `Confirm? ${others.length} token${others.length !== 1 ? 's' : ''} will become alias${others.length !== 1 ? 'es' : ''}`
-                                : `Keep & alias others (${others.length})`}
-                          </button>
+                              Open
+                            </button>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                        {diffLabels.length > 0 && (
+                          <p className="mt-0.5 pl-5 text-secondary text-[var(--color-figma-text-tertiary)]">
+                            Differs: {diffLabels.join(', ')}
+                          </p>
+                        )}
+                      </label>
+                    );
+                  })}
+                </fieldset>
+
+                {keep && (
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <p className="text-secondary text-[var(--color-figma-text-secondary)] min-w-0">
+                      Keep <span className="font-mono text-[var(--color-figma-text)]">{keep.path}</span>, alias {others.length} to it
+                    </p>
+                    <button
+                      disabled={isResolving}
+                      onClick={() => {
+                        groupConfirm.trigger(group.id, () => handleResolve(group, keep));
+                      }}
+                      className={`${btnAccent} shrink-0`}
+                    >
+                      {isResolving
+                        ? 'Resolving\u2026'
+                        : groupConfirm.isPending(group.id)
+                          ? `Confirm? ${others.length} token${others.length !== 1 ? 's' : ''} will become alias${others.length !== 1 ? 'es' : ''}`
+                          : `Keep & alias others (${others.length})`}
+                    </button>
+                  </div>
+                )}
               </div>
-            );
-          })}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 

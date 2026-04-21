@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { apiFetch } from "../../shared/apiFetch";
+import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
   modeName: string;
@@ -9,6 +10,8 @@ interface ModeColumnHeaderProps {
   serverUrl: string;
   onMutated?: () => void;
   connected: boolean;
+  width: number;
+  onResize: (width: number) => void;
 }
 
 export function ModeColumnHeader({
@@ -19,6 +22,8 @@ export function ModeColumnHeader({
   serverUrl,
   onMutated,
   connected,
+  width,
+  onResize,
 }: ModeColumnHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -126,12 +131,68 @@ export function ModeColumnHeader({
   const canMoveDown = modeIndex < allModeNames.length - 1 && allModeNames.length > 1;
   const canDelete = allModeNames.length > 1;
 
+  const widthRef = useRef(width);
+  useEffect(() => {
+    widthRef.current = width;
+  }, [width]);
+
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startWidth = widthRef.current;
+      const onMove = (me: MouseEvent) => {
+        const delta = me.clientX - startX;
+        onResize(startWidth + delta);
+      };
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [onResize],
+  );
+
+  const handleResizeKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const step = 16;
+      let next = widthRef.current;
+      if (e.key === "ArrowRight") next = widthRef.current + step;
+      else if (e.key === "ArrowLeft") next = widthRef.current - step;
+      else if (e.key === "Home") next = MIN_MODE_COL_PX;
+      else if (e.key === "End") next = MAX_MODE_COL_PX;
+      else return;
+      e.preventDefault();
+      onResize(next);
+    },
+    [onResize],
+  );
+
+  const widthAriaPct = Math.round(
+    ((width - MIN_MODE_COL_PX) / (MAX_MODE_COL_PX - MIN_MODE_COL_PX)) * 100,
+  );
+
   return (
     <div
       ref={cellRef}
-      className="min-w-0 border-l border-[var(--color-figma-border)]"
+      className="relative min-w-0 border-l border-[var(--color-figma-border)]"
       onContextMenu={openMenu}
     >
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={`Resize ${modeName} column`}
+        aria-valuenow={widthAriaPct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        tabIndex={0}
+        onMouseDown={handleResizeMouseDown}
+        onKeyDown={handleResizeKeyDown}
+        className="absolute top-0 right-0 bottom-0 z-10 w-1 translate-x-1/2 cursor-col-resize bg-transparent hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
+      />
       {renaming ? (
         <input
           ref={inputRef}

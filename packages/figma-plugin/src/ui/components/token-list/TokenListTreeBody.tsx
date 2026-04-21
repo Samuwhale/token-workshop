@@ -18,6 +18,7 @@ import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
 import { getGridTemplate } from "../tokenListTypes";
 import { apiFetch } from "../../shared/apiFetch";
+import { useModeColumnWidths } from "../../hooks/useModeColumnWidths";
 
 type VisibleTokenRow = {
   node: TokenNode;
@@ -261,8 +262,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     }
   }, [addModeTargetId, onModeMutated, serverUrl]);
 
-  const modeCount = multiModeData?.results.length ?? 1;
-  const gridTemplate = getGridTemplate(modeCount);
+  const modeNames = multiModeData?.results.map((r) => r.optionName) ?? [];
+  const widthsCollectionId = multiModeData?.collection.id ?? null;
+  const { widths: modeColumnWidths, setWidth: setModeColumnWidth } =
+    useModeColumnWidths(widthsCollectionId, modeNames);
+  const gridTemplate = getGridTemplate(modeColumnWidths);
   const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
   const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
 
@@ -324,16 +328,18 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           key={r.optionName}
           modeName={r.optionName}
           modeIndex={idx}
-          allModeNames={multiModeData.results.map((x) => x.optionName)}
+          allModeNames={modeNames}
           collectionId={multiModeData.collection.id}
           serverUrl={serverUrl}
           onMutated={onModeMutated}
           connected={connected}
+          width={modeColumnWidths[idx] ?? 0}
+          onResize={(w) => setModeColumnWidth(idx, w)}
         />
       ))}
       <div
         ref={addModeMenuContainerRef}
-        className="relative border-l border-[var(--color-figma-border)] flex items-stretch"
+        className="sticky right-0 z-20 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-stretch"
       >
         <button
           type="button"
