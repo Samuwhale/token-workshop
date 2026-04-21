@@ -27,6 +27,8 @@ interface CollectionRailProps {
   onMergeCollection?: (collectionId: string) => void;
   onSplitCollection: (collectionId: string) => void;
   onDeleteCollection: (collectionId: string) => void;
+  onSyncCollection?: (collectionId: string, tokenCount: number) => void;
+  onSyncCollectionStyles?: (collectionId: string, tokenCount: number) => void;
 }
 
 const MENU_WIDTH = 220;
@@ -104,6 +106,8 @@ export function CollectionRail({
   onMergeCollection,
   onSplitCollection,
   onDeleteCollection,
+  onSyncCollection,
+  onSyncCollectionStyles,
 }: CollectionRailProps) {
   const [query, setQuery] = useState("");
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -276,9 +280,20 @@ export function CollectionRail({
     });
   };
 
+  const collectionsById = useMemo(() => {
+    const map = new Map<string, TokenCollection>();
+    for (const collection of collections) {
+      map.set(collection.id, collection);
+    }
+    return map;
+  }, [collections]);
+
   const renderCollectionRow = (collectionId: string, indented: boolean) => {
     const isActive = collectionId === currentCollectionId;
     const isMenuOpen = menuState?.collectionId === collectionId;
+    const collection = collectionsById.get(collectionId);
+    const modeCount = collection?.modes.length ?? 0;
+    const tokenCount = collectionTokenCounts[collectionId] ?? 0;
     const health = collectionHealth?.get(collectionId);
     const healthTone =
       health && health.actionable > 0
@@ -318,8 +333,13 @@ export function CollectionRail({
             {indented ? leafName(collectionId) : collectionId}
           </span>
           <div className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
-            {collectionTokenCounts[collectionId] ?? 0} token
-            {(collectionTokenCounts[collectionId] ?? 0) === 1 ? "" : "s"}
+            {tokenCount} token{tokenCount === 1 ? "" : "s"}
+            {modeCount > 1 && (
+              <>
+                {" · "}
+                {modeCount} modes
+              </>
+            )}
             {healthTone && (
               <>
                 {" · "}
@@ -407,7 +427,7 @@ export function CollectionRail({
           onClick={() => runMenuAction(collectionId, onDuplicateCollection)}
           className={MENU_ITEM_CLASS}
         >
-          Duplicate
+          Create from this collection
         </button>
         <div className={MENU_SEPARATOR_CLASS} role="separator" />
         <button
@@ -427,6 +447,37 @@ export function CollectionRail({
         >
           Split by top-level groups…
         </button>
+        {(onSyncCollection || onSyncCollectionStyles) && (
+          <div className={MENU_SEPARATOR_CLASS} role="separator" />
+        )}
+        {onSyncCollection && (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const count = collectionTokenCounts[collectionId] ?? 0;
+              closeMenu();
+              onSyncCollection(collectionId, count);
+            }}
+            className={MENU_ITEM_CLASS}
+          >
+            Sync to Figma variables
+          </button>
+        )}
+        {onSyncCollectionStyles && (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const count = collectionTokenCounts[collectionId] ?? 0;
+              closeMenu();
+              onSyncCollectionStyles(collectionId, count);
+            }}
+            className={MENU_ITEM_CLASS}
+          >
+            Sync to Figma styles
+          </button>
+        )}
         <div className={MENU_SEPARATOR_CLASS} role="separator" />
         <button
           type="button"

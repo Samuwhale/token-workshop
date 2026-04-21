@@ -1,5 +1,5 @@
 import { adaptShortcut, stableStringify } from "../shared/utils";
-import { Network, Copy, Check, ChevronDown, ChevronRight, Clock, Trash2, Link2, X, Plus } from "lucide-react";
+import { Network, Copy, Rows3, Check, ChevronDown, ChevronRight, Clock, Trash2, Link2, X, Plus } from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -1552,6 +1552,28 @@ export function TokenEditor({
                           aria-label={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
                         >
                           <Copy size={10} strokeWidth={2} aria-hidden />
+                        </button>
+                      )}
+                      {modeValue.modes.length > 1 && !isModeInAliasMode && modeVal !== "" && modeVal != null && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const sourceValue = mode.value;
+                            if (sourceValue === "" || sourceValue == null) return;
+                            modeValue.modes.forEach((destMode, destIdx) => {
+                              if (destIdx === modeIdx) return;
+                              destMode.setValue(
+                                typeof sourceValue === "object"
+                                  ? JSON.parse(JSON.stringify(sourceValue))
+                                  : sourceValue
+                              );
+                            });
+                          }}
+                          className="opacity-30 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                          title="Copy to all other modes"
+                          aria-label="Copy to all other modes"
+                        >
+                          <Rows3 size={10} strokeWidth={2} aria-hidden />
                         </button>
                       )}
                     </div>

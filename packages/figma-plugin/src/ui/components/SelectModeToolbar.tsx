@@ -126,6 +126,11 @@ export function SelectModeToolbar({
         {selectedPaths.size}/{displayedLeafPaths.size}
         {searchQuery ? ` matching "${searchQuery}"` : ''}
       </span>
+      {selectedPaths.size === 1 && (
+        <span className="text-secondary text-[var(--color-figma-text-tertiary)] pl-1 truncate">
+          Shift-click to add a range
+        </span>
+      )}
 
       <div className="flex-1" />
 

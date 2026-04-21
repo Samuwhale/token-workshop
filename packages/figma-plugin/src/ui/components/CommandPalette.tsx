@@ -809,13 +809,13 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                   {onDuplicateToken && (
                     <button
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Duplicate token: ${token.path}`}
+                      title={`Create from this token: ${token.path}`}
                       className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onDuplicateToken(token.path); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
                     >
-                      Dup
+                      New
                     </button>
                   )}
                   {onRenameToken && (

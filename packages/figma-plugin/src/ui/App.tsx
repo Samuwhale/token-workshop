@@ -11,6 +11,7 @@ import {
   WelcomePrompt,
   type StartHereBranch,
 } from "./components/WelcomePrompt";
+import { POST_SETUP_HINT_EVENT } from "./components/LibraryPostSetupHint";
 import { AppCommandPalette } from "./components/AppCommandPalette";
 import { CollectionCreateDialog } from "./components/CollectionCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
@@ -79,11 +80,12 @@ import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { tokenPathToUrlSegment } from "./shared/utils";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
-import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
+import { STORAGE_KEYS, lsGet, lsSet, lsRemove, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 import {
   Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
+  FileDown, GitBranch,
 } from "lucide-react";
 
 function formatCount(
@@ -311,8 +313,25 @@ export function App() {
     if (!initialFirstRun || !startHereState.open) return;
     if (Object.keys(allTokensFlat).length === 0) return;
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
+    if (startHereState.initialBranch === "start-new") {
+      lsSet(STORAGE_KEYS.POST_SETUP_HINT_PENDING, "1");
+      window.dispatchEvent(new CustomEvent(POST_SETUP_HINT_EVENT));
+    }
     setStartHereState({ open: false, initialBranch: "root" });
-  }, [allTokensFlat, initialFirstRun, setStartHereState, startHereState.open]);
+  }, [
+    allTokensFlat,
+    initialFirstRun,
+    setStartHereState,
+    startHereState.open,
+    startHereState.initialBranch,
+  ]);
+
+  useEffect(() => {
+    if (activeTopTab === "library") return;
+    if (lsGet(STORAGE_KEYS.POST_SETUP_HINT_PENDING) !== "1") return;
+    lsRemove(STORAGE_KEYS.POST_SETUP_HINT_PENDING);
+    window.dispatchEvent(new CustomEvent(POST_SETUP_HINT_EVENT));
+  }, [activeTopTab]);
   const handleImportComplete = useCallback(
     (result: ImportCompletionResult) => {
       const failureNote = result.hadFailures ? " Some items still need follow-up." : "";
@@ -776,6 +795,14 @@ export function App() {
     setSyncGroupStylesPending,
     syncGroupStylesApplying,
     syncGroupStylesProgress,
+    syncCollectionPending,
+    setSyncCollectionPending,
+    syncCollectionApplying,
+    syncCollectionProgress,
+    syncCollectionStylesPending,
+    setSyncCollectionStylesPending,
+    syncCollectionStylesApplying,
+    syncCollectionStylesProgress,
     groupScopesPath,
     setGroupScopesPath,
     groupScopesSelected,
@@ -786,6 +813,8 @@ export function App() {
     groupScopesProgress,
     handleSyncGroup,
     handleSyncGroupStyles,
+    handleSyncCollection,
+    handleSyncCollectionStyles,
     handleApplyGroupScopes,
     pendingPublishCount,
     publishPreflightState,
@@ -1428,6 +1457,8 @@ export function App() {
       executeRedo,
       setSyncGroupPending,
       setSyncGroupStylesPending,
+      setSyncCollectionPending,
+      setSyncCollectionStylesPending,
       setGroupScopesPath,
       setGroupScopesSelected,
       setGroupScopesError,
@@ -1509,6 +1540,8 @@ export function App() {
       case "library":  return <Layers size={16} strokeWidth={1.5} aria-hidden />;
       case "canvas":   return <Frame size={16} strokeWidth={1.5} aria-hidden />;
       case "sync":     return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
+      case "export":   return <FileDown size={16} strokeWidth={1.5} aria-hidden />;
+      case "versions": return <GitBranch size={16} strokeWidth={1.5} aria-hidden />;
       default:         return null;
     }
   };
@@ -1530,8 +1563,15 @@ export function App() {
       >
         {/* Accordion navigation */}
         <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-1 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
-          {SIDEBAR_GROUPS.map((group) => (
-            <div key={group.id} className="flex flex-col gap-px">
+          {SIDEBAR_GROUPS.map((group, groupIndex) => (
+            <div
+              key={group.id}
+              className={`flex flex-col gap-px ${
+                groupIndex > 0
+                  ? `mt-2 border-t border-[var(--color-figma-border)] ${sidebarCollapsed ? 'pt-1.5' : 'pt-2'}`
+                  : ''
+              }`}
+            >
               {group.items.map((item) => {
                 const isWorkspaceActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
                 const workspace = WORKSPACE_TABS.find((w) => w.id === item.workspaceId);
@@ -1810,21 +1850,43 @@ export function App() {
         />
       )}
 
+      {/* Sync whole collection to Figma variables confirmation */}
+      {syncCollectionPending && (
+        <ConfirmModal
+          title={`Create variables from "${syncCollectionPending.collectionId}"?`}
+          description={`Create or update ${syncCollectionPending.tokenCount} Figma variables from every token in this collection?`}
+          confirmLabel="Create variables"
+          onConfirm={handleSyncCollection}
+          onCancel={() => setSyncCollectionPending(null)}
+        />
+      )}
+
+      {/* Sync whole collection to Figma styles confirmation */}
+      {syncCollectionStylesPending && (
+        <ConfirmModal
+          title={`Create styles from "${syncCollectionStylesPending.collectionId}"?`}
+          description={`Create or update ${syncCollectionStylesPending.tokenCount} Figma styles from every token in this collection?`}
+          confirmLabel="Create styles"
+          onConfirm={handleSyncCollectionStyles}
+          onCancel={() => setSyncCollectionStylesPending(null)}
+        />
+      )}
+
       {/* Variable sync progress overlay */}
-      {syncGroupApplying && (
+      {(syncGroupApplying || syncCollectionApplying) && (
         <ProgressOverlay
           message="Publishing variables…"
-          current={syncGroupProgress?.current}
-          total={syncGroupProgress?.total}
+          current={(syncGroupApplying ? syncGroupProgress : syncCollectionProgress)?.current}
+          total={(syncGroupApplying ? syncGroupProgress : syncCollectionProgress)?.total}
         />
       )}
 
       {/* Style sync progress overlay */}
-      {syncGroupStylesApplying && (
+      {(syncGroupStylesApplying || syncCollectionStylesApplying) && (
         <ProgressOverlay
           message="Creating styles…"
-          current={syncGroupStylesProgress?.current}
-          total={syncGroupStylesProgress?.total}
+          current={(syncGroupStylesApplying ? syncGroupStylesProgress : syncCollectionStylesProgress)?.current}
+          total={(syncGroupStylesApplying ? syncGroupStylesProgress : syncCollectionStylesProgress)?.total}
         />
       )}
 

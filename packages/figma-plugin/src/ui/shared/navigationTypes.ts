@@ -8,10 +8,20 @@ import { STORAGE_KEYS } from "./storage";
 import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratedGroupEditor";
 import type { GeneratorTemplate } from "../hooks/useGenerators";
 
-export type TopTab = "library" | "canvas" | "sync";
+// User-facing workspace names live on WORKSPACE_TABS[].label / SIDEBAR_GROUPS[].items[].label — guidance copy should reference those, not re-spell them.
+export type TopTab =
+  | "library"
+  | "canvas"
+  | "sync"
+  | "export"
+  | "versions";
 export type LibrarySubTab = "tokens" | "health" | "history";
-type SyncSubTab = "figma-sync" | "export" | "versions";
-export type SubTab = LibrarySubTab | "inspect" | SyncSubTab;
+export type SubTab =
+  | LibrarySubTab
+  | "inspect"
+  | "figma-sync"
+  | "export"
+  | "versions";
 export type SecondarySurfaceId =
   | "shortcuts"
   | "settings";
@@ -93,11 +103,17 @@ export const TOP_TABS: {
   {
     id: "sync",
     label: "Sync",
-    subTabs: [
-      { id: "figma-sync", label: "Figma Sync" },
-      { id: "export", label: "Export" },
-      { id: "versions", label: "Versions" },
-    ],
+    subTabs: [{ id: "figma-sync", label: "Figma Sync" }],
+  },
+  {
+    id: "export",
+    label: "Export",
+    subTabs: [{ id: "export", label: "Export" }],
+  },
+  {
+    id: "versions",
+    label: "Versions",
+    subTabs: [{ id: "versions", label: "Versions" }],
   },
 ];
 
@@ -105,19 +121,28 @@ export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   library: "tokens",
   canvas: "inspect",
   sync: "figma-sync",
+  export: "export",
+  versions: "versions",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   library: STORAGE_KEYS.ACTIVE_SUB_TAB_LIBRARY,
   canvas: STORAGE_KEYS.ACTIVE_SUB_TAB_CANVAS,
   sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
+  export: STORAGE_KEYS.ACTIVE_SUB_TAB_EXPORT,
+  versions: STORAGE_KEYS.ACTIVE_SUB_TAB_VERSIONS,
 };
 
 // ---------------------------------------------------------------------------
 // Workspace navigation — the primary visual structure
 // ---------------------------------------------------------------------------
 
-export type WorkspaceId = "library" | "canvas" | "sync";
+export type WorkspaceId =
+  | "library"
+  | "canvas"
+  | "sync"
+  | "export"
+  | "versions";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -411,6 +436,14 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
       { id: "sync", label: "Sync", railCode: "Sy", topTab: "sync", subTab: "figma-sync", workspaceId: "sync" },
     ],
   },
+  {
+    id: "secondary",
+    label: "Secondary",
+    items: [
+      { id: "export", label: "Export", railCode: "Ex", topTab: "export", subTab: "export", workspaceId: "export" },
+      { id: "versions", label: "Versions", railCode: "Ve", topTab: "versions", subTab: "versions", workspaceId: "versions" },
+    ],
+  },
 ];
 
 export const WORKSPACE_TABS: WorkspaceTab[] = [
@@ -477,45 +510,27 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "sync",
     subTab: "figma-sync",
     transition: workspaceTransition(
-      "Sync with Figma, export platform files, and manage versions.",
+      "Sync tokens with Figma variables and styles.",
     ),
-    sections: [
-      {
-        id: "figma-sync",
-        label: "Figma Sync",
-        topTab: "sync",
-        subTab: "figma-sync",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Sync tokens with Figma variables and styles.",
-        ),
-      },
-      {
-        id: "export",
-        label: "Export",
-        topTab: "sync",
-        subTab: "export",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Generate platform token files.",
-        ),
-      },
-      {
-        id: "versions",
-        label: "Versions",
-        topTab: "sync",
-        subTab: "versions",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Version history and team sharing.",
-        ),
-      },
-    ],
-    matchRoutes: [
-      route("sync", "figma-sync"),
-      route("sync", "export"),
-      route("sync", "versions"),
-    ],
+    matchRoutes: [route("sync", "figma-sync")],
+  },
+  {
+    id: "export",
+    label: "Export",
+    summaryTitle: "Export",
+    topTab: "export",
+    subTab: "export",
+    transition: workspaceTransition("Generate platform token files."),
+    matchRoutes: [route("export", "export")],
+  },
+  {
+    id: "versions",
+    label: "Versions",
+    summaryTitle: "Versions",
+    topTab: "versions",
+    subTab: "versions",
+    transition: workspaceTransition("Version history and team sharing."),
+    matchRoutes: [route("versions", "versions")],
   },
 ];
 

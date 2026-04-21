@@ -411,7 +411,7 @@ function SummaryOverflowMenu({
             disabled={!onDuplicate}
             className="flex w-full items-center px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Duplicate
+            Create from this generator
           </button>
           <button
             type="button"

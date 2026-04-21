@@ -122,7 +122,7 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
         action: undefined,
         destination: {
           kind: "workspace",
-          topTab: "sync",
+          topTab: "versions",
           subTab: "versions",
         },
       } as const;

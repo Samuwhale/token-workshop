@@ -131,6 +131,12 @@ export interface SyncWorkspaceController {
   setSyncGroupStylesPending: (
     value: { groupPath: string; tokenCount: number } | null,
   ) => void;
+  setSyncCollectionPending: (
+    value: { collectionId: string; tokenCount: number } | null,
+  ) => void;
+  setSyncCollectionStylesPending: (
+    value: { collectionId: string; tokenCount: number } | null,
+  ) => void;
   setGroupScopesPath: (path: string | null) => void;
   setGroupScopesSelected: Dispatch<SetStateAction<string[]>>;
   setGroupScopesError: (error: string | null) => void;

@@ -70,7 +70,7 @@ function destinationActionLabel(
     case "token":
       return "Open token";
     case "workspace":
-      return `Open ${workspaceActionName(destination.topTab, destination.subTab)}`;
+      return `Open ${workspaceActionName(destination.topTab)}`;
     case "surface":
       return destination.surface === "settings"
         ? "Open settings"
@@ -82,13 +82,10 @@ function destinationActionLabel(
 
 function workspaceActionName(
   topTab: Extract<NotificationDestination, { kind: "workspace" }>["topTab"],
-  subTab: Extract<NotificationDestination, { kind: "workspace" }>["subTab"],
 ): string {
-  if (topTab === "sync") {
-    if (subTab === "export") return "Export";
-    if (subTab === "versions") return "Versions";
-    return "Figma Sync";
-  }
+  if (topTab === "sync") return "Sync";
+  if (topTab === "export") return "Export";
+  if (topTab === "versions") return "Versions";
   if (topTab === "canvas") return "Canvas";
   return "Library";
 }

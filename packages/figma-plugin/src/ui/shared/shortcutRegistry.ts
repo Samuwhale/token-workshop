@@ -276,6 +276,8 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'TOKEN_DBLCLICK',        group: 'Token List',      description: 'Edit token',                     mac: 'Double-click', displayOnly: true },
   { id: 'TOKEN_SEARCH',          group: 'Token List',      description: 'Focus search',                   mac: SHORTCUT_KEYS.TOKEN_SEARCH },
   { id: 'TOKEN_MULTI_SELECT',    group: 'Token List',      description: 'Toggle multi-select mode',       mac: SHORTCUT_KEYS.TOKEN_MULTI_SELECT },
+  { id: 'TOKEN_SELECT_ALL',      group: 'Token List',      description: 'Select all displayed tokens',    mac: 'Cmd+A', displayOnly: true },
+  { id: 'TOKEN_RANGE_SELECT',    group: 'Token List',      description: 'Extend range selection',         mac: 'Shift+click', displayOnly: true },
   { id: 'TOKEN_NAV_ROWS',        group: 'Token List',      description: 'Navigate rows',                  mac: '↑↓',    displayOnly: true },
   { id: 'TOKEN_EXPAND_GROUP',    group: 'Token List',      description: 'Collapse / expand group',        mac: '←→',    displayOnly: true },
   { id: 'TOKEN_ESC',             group: 'Token List',      description: 'Exit multi-select / close form', mac: 'Esc',   displayOnly: true },
@@ -285,7 +287,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'TOKEN_COLLAPSE_ALL',    group: 'Token List',      description: 'Collapse all groups',            mac: SHORTCUT_KEYS.TOKEN_COLLAPSE_ALL },
   { id: 'TOKEN_RENAME',            group: 'Token List',      description: 'Rename token',                              mac: SHORTCUT_KEYS.TOKEN_RENAME,    displayOnly: true },
   { id: 'TOKEN_DELETE',            group: 'Token List',      description: 'Delete token / delete selected (batch)',    mac: SHORTCUT_KEYS.TOKEN_DELETE,    altMac: 'Del' },
-  { id: 'TOKEN_DUPLICATE',         group: 'Token List',      description: 'Duplicate token',                           mac: SHORTCUT_KEYS.TOKEN_DUPLICATE, displayOnly: true },
+  { id: 'TOKEN_DUPLICATE',         group: 'Token List',      description: 'Create from this token',                    mac: SHORTCUT_KEYS.TOKEN_DUPLICATE, displayOnly: true },
   { id: 'TOKEN_BATCH_MOVE_TO_COLLECTION', group: 'Token List',      description: 'Move selected tokens to another collection', mac: SHORTCUT_KEYS.TOKEN_BATCH_MOVE_TO_COLLECTION },
   { id: 'TOKEN_BATCH_COPY_TO_COLLECTION', group: 'Token List',      description: 'Copy selected tokens to another collection', mac: SHORTCUT_KEYS.TOKEN_BATCH_COPY_TO_COLLECTION },
 

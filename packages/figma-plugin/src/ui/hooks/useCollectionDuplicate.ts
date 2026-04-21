@@ -39,14 +39,14 @@ export function useCollectionDuplicate({
     } catch (err) {
       if (isAbortError(err)) return;
       if (isNetworkError(err)) markDisconnected();
-      else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      else setErrorToast(`Couldn't create copy: ${err instanceof Error ? err.message : 'Unknown error'}`);
       return;
     }
-    setSuccessToast(`Duplicated collection "${collectionId}" → "${newName}"`);
+    setSuccessToast(`Created "${newName}" from "${collectionId}"`);
     const url = serverUrl;
     const dupName = newName;
     pushUndo({
-      description: `Duplicated collection "${collectionId}" → "${dupName}"`,
+      description: `Created "${dupName}" from "${collectionId}"`,
       restore: async () => {
         await apiFetch(`${url}/api/collections/${encodeURIComponent(dupName)}`, { method: 'DELETE' });
         refreshTokens();

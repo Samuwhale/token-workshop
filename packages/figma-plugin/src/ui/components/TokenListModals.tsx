@@ -21,8 +21,8 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorI
   onCancel: () => void;
 }) {
   const label = oldPath.split('.').pop() ?? oldPath;
-  const noun = depCount !== 1 ? 'aliases' : 'alias';
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   useFocusTrap(dialogRef);
 
   useEffect(() => {
@@ -31,8 +31,23 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorI
     return () => document.removeEventListener('keydown', handler);
   }, [onCancel]);
 
-  const hasGeneratorImpacts = generatorImpacts && generatorImpacts.length > 0;
-  const hasModeImpacts = modeImpacts && modeImpacts.length > 0;
+  const generatorCount = generatorImpacts?.length ?? 0;
+  const modeCount = modeImpacts?.length ?? 0;
+  const hasImpacts = depCount > 0 || generatorCount > 0 || modeCount > 0;
+
+  const summary = (() => {
+    if (!hasImpacts) return `No references found. The ${kind} will be renamed.`;
+    const parts: string[] = [];
+    if (depCount > 0) parts.push(`${depCount} ${depCount === 1 ? 'alias reference' : 'alias references'}`);
+    if (modeCount > 0) parts.push(`${modeCount} ${modeCount === 1 ? 'mode value' : 'mode values'}`);
+    const main = parts.length > 0
+      ? `Updates ${parts.join(' and ')}.`
+      : `Renames this ${kind}.`;
+    const trailing = generatorCount > 0
+      ? ` ${generatorCount} generated ${generatorCount === 1 ? 'group' : 'groups'} reference this ${kind} and won't auto-update.`
+      : '';
+    return main + trailing;
+  })();
 
   return (
     <div
@@ -49,95 +64,89 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorI
             <span className="mx-1 text-[var(--color-figma-text-tertiary)]">&rarr;</span>
             <span className="font-mono text-[var(--color-figma-text)]">{newPath}</span>
           </p>
-          {depCount > 0 && (
-            <p className="mt-1 text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
-              {depCount} {noun} will be updated across all collections:
-            </p>
-          )}
-          {deps.length > 0 && (
-            <div className="mt-2 max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              {deps.map((dep, i) => (
-                <div key={i} className="px-2 py-1.5 text-secondary font-mono border-b border-[var(--color-figma-border)] last:border-b-0" title={`${dep.collectionId}: ${dep.tokenPath}`}>
-                  <div className="text-[var(--color-figma-text-secondary)] truncate">
-                    <span className="text-[var(--color-figma-text-tertiary)]">{dep.collectionId}/</span>{dep.tokenPath}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-1 text-secondary">
-                    <span className="text-[var(--color-figma-text-danger)] line-through truncate max-w-[45%]">{dep.oldValue}</span>
-                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">&rarr;</span>
-                    <span className="text-[var(--color-figma-text-success)] truncate max-w-[45%]">{dep.newValue}</span>
-                  </div>
+          <p className="mt-2 text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
+            {summary}
+          </p>
+          {hasImpacts && (
+            <>
+              <button
+                type="button"
+                onClick={() => setDetailsOpen((v) => !v)}
+                className="mt-1.5 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] underline-offset-2 hover:underline transition-colors"
+                aria-expanded={detailsOpen}
+              >
+                {detailsOpen ? 'Hide details' : 'View details'}
+              </button>
+              {detailsOpen && (
+                <div className="mt-2 flex flex-col gap-2 text-secondary">
+                  {deps.length > 0 && (
+                    <div>
+                      <div className="mb-1 text-[var(--color-figma-text-secondary)]">Alias references</div>
+                      <ul className="max-h-[120px] overflow-y-auto flex flex-col gap-1 font-mono">
+                        {deps.map((dep, i) => (
+                          <li key={i} className="text-[var(--color-figma-text-secondary)] truncate" title={`${dep.collectionId}: ${dep.tokenPath}`}>
+                            <span className="text-[var(--color-figma-text-tertiary)]">{dep.collectionId}/</span>{dep.tokenPath}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {modeCount > 0 && (
+                    <div>
+                      <div className="mb-1 text-[var(--color-figma-text-secondary)]">Mode values</div>
+                      <ul className="max-h-[80px] overflow-y-auto flex flex-col gap-0.5 font-mono">
+                        {modeImpacts!.map((impact, i) => (
+                          <li key={i} className="truncate" title={`${impact.collectionName} / ${impact.optionName}`}>
+                            <span className="text-[var(--color-figma-text-tertiary)]">{impact.collectionName} / </span>
+                            <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {generatorCount > 0 && (
+                    <div>
+                      <div className="mb-1 text-[var(--color-figma-text-secondary)]">Generated groups (won&rsquo;t auto-update)</div>
+                      <ul className="max-h-[80px] overflow-y-auto flex flex-col gap-0.5">
+                        {generatorImpacts!.map((impact, i) => (
+                          <li key={i} className="truncate" title={`${impact.generatorName} (${impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})`}>
+                            <span className="text-[var(--color-figma-text)]">{impact.generatorName}</span>
+                            <span className="text-[var(--color-figma-text-tertiary)] ml-1">
+                              ({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-          {hasGeneratorImpacts && (
-            <div className="mt-2">
-              <div className="mb-1 text-secondary text-[var(--color-figma-text-secondary)]">
-                Affected generated groups ({generatorImpacts.length}) — references will not be auto-updated:
-              </div>
-              <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {generatorImpacts.map((impact, i) => (
-                  <div key={i} className="px-2 py-0.5 text-secondary border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.generatorName} (${impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})`}>
-                    <span className="font-medium text-[var(--color-figma-text)]">{impact.generatorName}</span>
-                    <span className="text-[var(--color-figma-text-tertiary)] ml-1">
-                      ({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {hasModeImpacts && (
-            <div className="mt-2">
-              <div className="mb-1 text-secondary text-[var(--color-figma-text-secondary)]">
-                Affected mode values ({modeImpacts.length}):
-              </div>
-              <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {modeImpacts.map((impact, i) => (
-                  <div key={i} className="px-2 py-0.5 text-secondary font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${impact.collectionName} / ${impact.optionName}`}>
-                    <span className="text-[var(--color-figma-text-tertiary)]">{impact.collectionName} / </span>
-                    <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {depCount === 0 && !hasGeneratorImpacts && !hasModeImpacts && (
-            <p className="mt-1.5 text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
-              No alias references found. The token will be renamed.
-            </p>
+              )}
+            </>
           )}
         </div>
         <div className="px-4 pb-4 flex flex-col gap-2">
-          {depCount > 0 ? (
-            <>
-              <button
-                onClick={() => onConfirm(true)}
-                className="w-full px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-              >
-                Update {depCount} {noun} and rename
-              </button>
+          <button
+            onClick={() => onConfirm(true)}
+            className="w-full px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+          >
+            Rename
+          </button>
+          <div className="flex items-center justify-between gap-2 text-secondary">
+            <button
+              onClick={onCancel}
+              className="px-2 py-1 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+            >
+              Cancel
+            </button>
+            {depCount > 0 && (
               <button
                 onClick={() => onConfirm(false)}
-                className="w-full px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="px-2 py-1 rounded text-[var(--color-figma-text-danger)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Rename only (break references)
+                Rename without updating references
               </button>
-            </>
-          ) : (
-            <button
-              onClick={() => onConfirm(true)}
-              className="w-full px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-            >
-              Rename
-            </button>
-          )}
-          <button
-            onClick={onCancel}
-            className="w-full px-3 py-1.5 rounded text-body font-medium text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
-          >
-            Cancel
-          </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

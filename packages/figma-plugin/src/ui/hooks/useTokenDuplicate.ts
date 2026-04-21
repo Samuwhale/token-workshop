@@ -42,7 +42,7 @@ export function useTokenDuplicate({
     while (allTokensFlat[newPath]) {
       newPath = `${baseCopy}-${i++}`;
     }
-    onSetOperationLoading('Duplicating token…');
+    onSetOperationLoading('Creating copy…');
     try {
       const body: Record<string, unknown> = { $type: token.$type, $value: token.$value };
       if (tokenNode?.$description) body.$description = tokenNode.$description;
@@ -52,7 +52,7 @@ export function useTokenDuplicate({
       onRecordTouch(newPath);
       onNewPath(newPath);
     } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Duplicate failed: network error');
+      onError?.(err instanceof ApiError ? err.message : "Couldn't create copy: network error");
     } finally {
       onSetOperationLoading(null);
     }

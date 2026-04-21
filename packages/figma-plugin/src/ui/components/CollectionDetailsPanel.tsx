@@ -689,7 +689,7 @@ export function CollectionDetailsPanel({
               onClick={() => onDuplicate?.(collection.id)}
               className="w-full px-5 py-2 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             >
-              Duplicate
+              Create from this collection
             </button>
             <button
               type="button"

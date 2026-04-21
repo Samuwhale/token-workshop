@@ -189,7 +189,7 @@ export function useExportResults({
         ? ` (${resolvedDiffPaths.length} changed token${resolvedDiffPaths.length !== 1 ? 's' : ''})`
         : '';
       dispatchToast(`Exported ${flatFiles.length} file(s)${changesLabel}`, 'success', {
-        destination: { kind: "workspace", topTab: "sync", subTab: "export" },
+        destination: { kind: "workspace", topTab: "export", subTab: "export" },
       });
       if (changesOnly && isGitRepo === false) {
         const now = Date.now();
@@ -222,7 +222,7 @@ export function useExportResults({
       a.click();
       URL.revokeObjectURL(url);
       dispatchToast(`Downloaded ${results.length} file(s) as ZIP`, 'success', {
-        destination: { kind: "workspace", topTab: "sync", subTab: "export" },
+        destination: { kind: "workspace", topTab: "export", subTab: "export" },
       });
     } finally {
       setZipProgress(null);

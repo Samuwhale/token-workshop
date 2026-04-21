@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
+import { LibraryPostSetupHint } from "../components/LibraryPostSetupHint";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
@@ -1228,8 +1229,12 @@ export function PanelRouter({
     },
     sync: {
       "figma-sync": renderSyncFigmaSync,
-      "export": renderSyncExport,
-      "versions": renderSyncVersions,
+    },
+    export: {
+      export: renderExport,
+    },
+    versions: {
+      versions: renderVersions,
     },
   };
 
@@ -1293,6 +1298,12 @@ export function PanelRouter({
           onMergeCollection={collectionStructureController.onMerge}
           onSplitCollection={collectionStructureController.onSplit}
           onDeleteCollection={collectionStructureController.onDelete}
+          onSyncCollection={(collectionId, tokenCount) =>
+            controller.setSyncCollectionPending({ collectionId, tokenCount })
+          }
+          onSyncCollectionStyles={(collectionId, tokenCount) =>
+            controller.setSyncCollectionStylesPending({ collectionId, tokenCount })
+          }
         />
         <ResizeDivider
           axis="x"
@@ -1487,7 +1498,7 @@ export function PanelRouter({
       !createFromEmpty &&
       !editingToken;
 
-    const body = tokensEmpty ? (
+    const inner = tokensEmpty ? (
       <FeedbackPlaceholder
         variant="empty"
         size="full"
@@ -1506,6 +1517,19 @@ export function PanelRouter({
     ) : hasTokensLibrarySurface ? (
       renderTokensLibraryBody()
     ) : null;
+
+    const body =
+      collections.length > 0 ? (
+        <div className="flex h-full min-h-0 flex-col">
+          <LibraryPostSetupHint
+            onGoToCanvas={() => navigateTo("canvas", "inspect")}
+            onGoToSync={() => navigateTo("sync", "figma-sync")}
+          />
+          <div className="min-h-0 flex-1 overflow-hidden">{inner}</div>
+        </div>
+      ) : (
+        inner
+      );
 
     return renderLibraryScaffold({ body, allowPreviewSplit: true });
   }
@@ -1658,22 +1682,22 @@ export function PanelRouter({
     );
   }
 
-  function renderSyncExport(): ReactNode {
+  function renderExport(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Export"
-        onReset={() => navigateTo("sync", "export")}
+        onReset={() => navigateTo("export", "export")}
       >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
       </ErrorBoundary>
     );
   }
 
-  function renderSyncVersions(): ReactNode {
+  function renderVersions(): ReactNode {
     return (
       <ErrorBoundary
         panelName="Versions"
-        onReset={() => navigateTo("sync", "versions")}
+        onReset={() => navigateTo("versions", "versions")}
       >
         <GitRepositoryPanel
           serverUrl={serverUrl}

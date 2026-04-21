@@ -178,7 +178,7 @@ export function useGroupOperations({
 
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
-    onSetOperationLoading('Duplicating group…');
+    onSetOperationLoading('Creating copy…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/duplicate`, {
         method: 'POST',
@@ -186,7 +186,7 @@ export function useGroupOperations({
         body: JSON.stringify({ groupPath }),
       });
     } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Duplicate group failed: network error');
+      onError?.(err instanceof ApiError ? err.message : "Couldn't create copy: network error");
       onSetOperationLoading(null);
       return;
     }

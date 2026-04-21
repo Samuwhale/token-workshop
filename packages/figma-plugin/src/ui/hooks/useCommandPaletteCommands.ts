@@ -388,7 +388,7 @@ export function useCommandPaletteCommands(): {
             },
             {
               id: "duplicate-highlighted-token",
-              label: `Duplicate: ${highlightedToken}`,
+              label: `Create from this token: ${highlightedToken}`,
               description: "Create a copy of this token with a new path",
               category: "Tokens" as const,
               handler: () => {
@@ -542,7 +542,7 @@ export function useCommandPaletteCommands(): {
       category: "Export" as const,
       handler: () => {
         lsSet(STORAGE_KEYS.EXPORT_PRESET_APPLY, preset.id);
-        navigateTo("sync", "export");
+        navigateTo("export", "export");
         window.dispatchEvent(new CustomEvent("applyExportPreset"));
       },
     }));
