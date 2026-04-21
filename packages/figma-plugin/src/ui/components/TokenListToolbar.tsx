@@ -9,6 +9,7 @@ import {
   type TokenListOverflowMenuProps,
 } from "./TokenListOverflowMenu";
 import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
+import type { CollectionHealthSummary } from "../hooks/useHealthSignals";
 import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { SearchQualifierMenu } from "./SearchQualifierMenu";
@@ -58,7 +59,7 @@ export interface TokenListToolbarProps {
   onFindReplace?: () => void;
   onFoundationTemplates?: () => void;
   overflowMenuProps: TokenListOverflowMenuProps | null;
-  validationSummary?: { errors: number; warnings: number } | null;
+  collectionHealthSummary?: CollectionHealthSummary;
   onOpenHealth?: () => void;
 }
 
@@ -99,7 +100,7 @@ export function TokenListToolbar({
   onFindReplace,
   onFoundationTemplates,
   overflowMenuProps,
-  validationSummary,
+  collectionHealthSummary,
   onOpenHealth,
 }: TokenListToolbarProps) {
   const {
@@ -165,20 +166,20 @@ export function TokenListToolbar({
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {onOpenHealth && validationSummary && (validationSummary.errors > 0 || validationSummary.warnings > 0) && (
+            {onOpenHealth && collectionHealthSummary && collectionHealthSummary.actionable > 0 && (
               <button
                 type="button"
                 onClick={onOpenHealth}
                 className={`shrink-0 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-secondary transition-colors ${
-                  validationSummary.errors > 0
+                  collectionHealthSummary.severity === "error"
                     ? "text-[var(--color-figma-error,#f24822)] hover:bg-[var(--color-figma-error,#f24822)]/10"
                     : "text-[var(--color-figma-warning,#f5a623)] hover:bg-[var(--color-figma-warning,#f5a623)]/10"
                 }`}
-                title={`${validationSummary.errors} error${validationSummary.errors !== 1 ? "s" : ""}, ${validationSummary.warnings} warning${validationSummary.warnings !== 1 ? "s" : ""}`}
+                title={`${collectionHealthSummary.errors} error${collectionHealthSummary.errors !== 1 ? "s" : ""}, ${collectionHealthSummary.warnings} warning${collectionHealthSummary.warnings !== 1 ? "s" : ""}`}
                 aria-label="Open Health"
               >
                 <AlertTriangle size={10} strokeWidth={2} aria-hidden />
-                <span>{validationSummary.errors + validationSummary.warnings}</span>
+                <span>{collectionHealthSummary.actionable}</span>
               </button>
             )}
             <div className="relative shrink-0">

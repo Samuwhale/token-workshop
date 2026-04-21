@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
-import type { LintViolation } from "../hooks/useLint";
-import type { TokenGenerator } from "../hooks/useGenerators";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { HeatmapResult } from "./HeatmapPanel";
 import type { TokenMapEntry } from "../../shared/types";
-import type {
-  ValidationIssue,
-  ValidationSummary,
-} from "../hooks/useValidationCache";
+import type { HealthSignalsResult } from "../hooks/useHealthSignals";
+import type { ValidationIssue } from "../hooks/useValidationCache";
 import { apiFetch } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
 import {
@@ -34,15 +30,13 @@ export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
   currentCollectionId: string;
-  generators: TokenGenerator[];
-  lintViolations: LintViolation[];
+  healthSignals: HealthSignalsResult;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   tokenUsageCounts: Record<string, number>;
   heatmapResult: HeatmapResult | null;
   onNavigateToToken?: (path: string, collectionId: string) => void;
   validationIssues: ValidationIssue[] | null;
-  validationSummary: ValidationSummary | null;
   validationLoading: boolean;
   validationError: string | null;
   validationLastRefreshed: Date | null;
@@ -50,6 +44,7 @@ export interface HealthPanelProps {
   onRefreshValidation: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
+  onNavigateToGenerators?: () => void;
 }
 
 function suppressKey(issue: ValidationIssue): string {
@@ -60,15 +55,13 @@ export function HealthPanel({
   serverUrl,
   connected,
   currentCollectionId,
-  generators,
-  lintViolations,
+  healthSignals,
   allTokensFlat,
   pathToCollectionId,
   tokenUsageCounts,
   heatmapResult,
   onNavigateToToken,
   validationIssues: validationIssuesProp,
-  validationSummary,
   validationLoading,
   validationError,
   validationLastRefreshed,
@@ -76,6 +69,7 @@ export function HealthPanel({
   onRefreshValidation,
   onPushUndo,
   onError,
+  onNavigateToGenerators,
 }: HealthPanelProps) {
   const [activeView, setActiveView] = useState<HealthView>("dashboard");
 
@@ -134,27 +128,36 @@ export function HealthPanel({
 
   const totalDuplicateAliases = lintDuplicateGroups.reduce((sum, g) => sum + g.tokens.length - 1, 0);
 
-  const lintErrors = lintViolations.filter((v) => v.severity === "error").length;
-  const lintWarnings = lintViolations.filter((v) => v.severity === "warning").length;
-  const validationErrors = validationSummary?.errors ?? 0;
-  const validationWarnings = validationSummary?.warnings ?? 0;
-  const errorGenerators = generators.filter((g) => g.lastRunError && !g.lastRunError.blockedBy);
-  const staleGenerators = generators.filter((g) => g.isStale);
+  const tokenLevelSignals = healthSignals.signals.filter(
+    (s) =>
+      s.source !== "generator" &&
+      s.severity !== "info" &&
+      s.rule !== "no-duplicate-values" &&
+      s.rule !== "alias-opportunity",
+  );
+  const generatorIssueCount = healthSignals.signals.filter((s) => s.source === "generator").length;
 
+  const unifiedIssuesForView: ValidationIssue[] = tokenLevelSignals.map((s) => ({
+    rule: s.rule,
+    path: s.path,
+    collectionId: s.collectionId,
+    severity: s.severity,
+    message: s.message,
+    suggestedFix: s.suggestedFix,
+    suggestion: s.suggestion,
+    group: s.group,
+  }));
+
+  const totalIssueCount = healthSignals.totals.actionable;
+  const heatmapSignalsPresent = (heatmapResult?.red ?? 0) > 0;
   const overallStatus: HealthStatus =
-    lintErrors > 0 || validationErrors > 0 || errorGenerators.length > 0
+    healthSignals.totals.severity === "error"
       ? "critical"
-      : lintWarnings > 0 || validationWarnings > 0 || staleGenerators.length > 0 || totalDuplicateAliases > 0 || (heatmapResult?.red ?? 0) > 0
+      : healthSignals.totals.severity === "warning" ||
+          totalDuplicateAliases > 0 ||
+          heatmapSignalsPresent
         ? "warning"
         : "healthy";
-
-  const activeIssueCount = validationIssuesProp
-    ? validationIssuesProp.filter(
-        (i) => i.rule !== "no-duplicate-values" && i.rule !== "alias-opportunity" && !suppressedKeys.has(suppressKey(i)),
-      ).filter((i) => i.severity !== "info").length
-    : 0;
-
-  const totalIssueCount = activeIssueCount + lintErrors + lintWarnings;
 
   const handleSuppress = async (issue: ValidationIssue) => {
     const key = suppressKey(issue);
@@ -283,7 +286,7 @@ export function HealthPanel({
     case "issues":
       return (
         <HealthIssuesView
-          validationIssues={validationIssuesProp ?? []}
+          validationIssues={unifiedIssuesForView}
           validationLastRefreshed={validationLastRefreshed}
           suppressedKeys={suppressedKeys}
           fixingKeys={fixingKeys}
@@ -363,16 +366,17 @@ export function HealthPanel({
           validationLastRefreshed={validationLastRefreshed}
           validationIsStale={validationIsStale}
           validationError={validationError}
-          issueCount={activeIssueCount}
+          issueCount={tokenLevelSignals.length}
+          generatorIssueCount={generatorIssueCount}
           unusedCount={unusedTokens.length}
           deprecatedCount={deprecatedUsageEntries.length}
           consolidateCount={aliasOpportunityGroups.length}
           duplicateCount={totalDuplicateAliases}
           ignoredCount={suppressedKeys.size}
           onNavigateToView={setActiveView}
+          onNavigateToGenerators={onNavigateToGenerators}
         />
       );
   }
 }
 
-export { computeHealthIssueCount } from "../hooks/useHealthData";

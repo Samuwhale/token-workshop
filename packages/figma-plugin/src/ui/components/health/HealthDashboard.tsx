@@ -3,10 +3,11 @@ import type { HealthView } from "./types";
 type HealthStatus = "healthy" | "warning" | "critical";
 
 interface CategoryRow {
-  id: HealthView;
+  id: string;
   label: string;
   count: number;
   severity: HealthStatus;
+  onOpen: () => void;
 }
 
 export interface HealthDashboardProps {
@@ -19,6 +20,7 @@ export interface HealthDashboardProps {
   validationError: string | null;
 
   issueCount: number;
+  generatorIssueCount: number;
   unusedCount: number;
   deprecatedCount: number;
   consolidateCount: number;
@@ -26,6 +28,7 @@ export interface HealthDashboardProps {
   ignoredCount: number;
 
   onNavigateToView: (view: HealthView) => void;
+  onNavigateToGenerators?: () => void;
 }
 
 function StatusIcon({ status }: { status: HealthStatus }) {
@@ -81,12 +84,14 @@ export function HealthDashboard({
   validationIsStale,
   validationError,
   issueCount,
+  generatorIssueCount,
   unusedCount,
   deprecatedCount,
   consolidateCount,
   duplicateCount,
   ignoredCount,
   onNavigateToView,
+  onNavigateToGenerators,
 }: HealthDashboardProps) {
   if (!connected) {
     return (
@@ -103,16 +108,18 @@ export function HealthDashboard({
     );
   }
 
+  const openView = (view: HealthView) => () => onNavigateToView(view);
   const categories: CategoryRow[] = [
-    { id: "issues", label: "Issues", count: issueCount, severity: categorySeverity(issueCount, true) },
-    { id: "unused", label: "Unused", count: unusedCount, severity: categorySeverity(unusedCount, false) },
-    { id: "deprecated", label: "Deprecated", count: deprecatedCount, severity: categorySeverity(deprecatedCount, false) },
-    { id: "consolidate", label: "Consolidate", count: consolidateCount, severity: categorySeverity(consolidateCount, false) },
-    { id: "duplicates", label: "Duplicates", count: duplicateCount, severity: categorySeverity(duplicateCount, false) },
+    { id: "issues", label: "Issues", count: issueCount, severity: categorySeverity(issueCount, true), onOpen: openView("issues") },
+    { id: "generators", label: "Generators", count: generatorIssueCount, severity: categorySeverity(generatorIssueCount, false), onOpen: () => onNavigateToGenerators?.() },
+    { id: "unused", label: "Unused", count: unusedCount, severity: categorySeverity(unusedCount, false), onOpen: openView("unused") },
+    { id: "deprecated", label: "Deprecated", count: deprecatedCount, severity: categorySeverity(deprecatedCount, false), onOpen: openView("deprecated") },
+    { id: "consolidate", label: "Consolidate", count: consolidateCount, severity: categorySeverity(consolidateCount, false), onOpen: openView("consolidate") },
+    { id: "duplicates", label: "Duplicates", count: duplicateCount, severity: categorySeverity(duplicateCount, false), onOpen: openView("duplicates") },
   ];
 
   if (ignoredCount > 0) {
-    categories.push({ id: "ignored", label: "Ignored", count: ignoredCount, severity: "healthy" });
+    categories.push({ id: "ignored", label: "Ignored", count: ignoredCount, severity: "healthy", onOpen: openView("ignored") });
   }
 
   return (
@@ -150,7 +157,7 @@ export function HealthDashboard({
           return (
             <button
               key={cat.id}
-              onClick={() => onNavigateToView(cat.id)}
+              onClick={cat.onOpen}
               className="flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] group"
             >
               <span className={`shrink-0 ${isZero ? "text-[var(--color-figma-text-tertiary)]" : statusColor(cat.severity)}`}>

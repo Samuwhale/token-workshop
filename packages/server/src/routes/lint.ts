@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { lintTokens, validateAllTokens, DEFAULT_LINT_CONFIG } from '../services/lint.js';
+import { lintAllCollections, validateAllTokens, DEFAULT_LINT_CONFIG } from '../services/lint.js';
 import type { LintConfig, LintRuleConfig, LintRuleCollectionOverride } from '../services/lint.js';
 import { handleRouteError } from '../errors.js';
 
@@ -307,21 +307,12 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
     }
   });
 
-  fastify.post<{ Body: { collectionId: string } }>('/tokens/lint', async (request, reply) => {
-    const { collectionId } = request.body ?? {};
-    if (!collectionId) {
-      return reply.status(400).send({ error: 'collectionId is required' });
-    }
-
-    const tokenCollection = await fastify.tokenStore.getCollection(collectionId);
-    if (!tokenCollection) {
-      return reply.status(404).send({ error: `Collection "${collectionId}" not found` });
-    }
-
+  fastify.post('/tokens/lint', async (_request, reply) => {
     try {
+      await fastify.collectionService.loadState();
       const config = await lintConfigStore.get();
-      const violations = await lintTokens(collectionId, fastify.tokenStore, config);
-      return { collectionId, violations, count: violations.length };
+      const violations = await lintAllCollections(fastify.tokenStore, config);
+      return { violations, count: violations.length };
     } catch (err) {
       return handleRouteError(reply, err, 'Lint failed');
     }

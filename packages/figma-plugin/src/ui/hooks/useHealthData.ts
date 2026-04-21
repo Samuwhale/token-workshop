@@ -1,9 +1,6 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
 import type { ValidationIssue } from "./useValidationCache";
-import type { LintViolation } from "./useLint";
-import type { TokenGenerator } from "./useGenerators";
-import type { ValidationSummary } from "./useValidationCache";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { hexToLuminance } from "../shared/colorUtils";
 import { normalizeHex } from "@tokenmanager/core";
@@ -377,19 +374,3 @@ export function useHealthData({
   };
 }
 
-export function computeHealthIssueCount(
-  lintViolations: LintViolation[],
-  generators: TokenGenerator[],
-  validationSummary?: ValidationSummary | null,
-): number {
-  const lintCount = lintViolations.filter(
-    (v) => v.severity === "error" || v.severity === "warning",
-  ).length;
-  const validationCount = validationSummary
-    ? validationSummary.errors + validationSummary.warnings
-    : 0;
-  const genIssues = generators.filter(
-    (g) => g.isStale || g.lastRunError,
-  ).length;
-  return lintCount + validationCount + genIssues;
-}

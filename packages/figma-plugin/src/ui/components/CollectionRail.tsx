@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { COLLECTION_NAME_RE } from "../shared/utils";
+import type { CollectionHealthSummary } from "../hooks/useHealthSignals";
 import {
   MENU_DANGER_ITEM_CLASS,
   MENU_ITEM_CLASS,
@@ -15,6 +16,7 @@ interface CollectionRailProps {
   collections: TokenCollection[];
   currentCollectionId: string;
   collectionTokenCounts?: Record<string, number>;
+  collectionHealth?: Map<string, CollectionHealthSummary>;
   focusRequestKey: number;
   widthPx: number;
   onSelectCollection: (collectionId: string) => void;
@@ -91,6 +93,7 @@ export function CollectionRail({
   collections,
   currentCollectionId,
   collectionTokenCounts = {},
+  collectionHealth,
   focusRequestKey,
   widthPx,
   onSelectCollection,
@@ -276,6 +279,22 @@ export function CollectionRail({
   const renderCollectionRow = (collectionId: string, indented: boolean) => {
     const isActive = collectionId === currentCollectionId;
     const isMenuOpen = menuState?.collectionId === collectionId;
+    const health = collectionHealth?.get(collectionId);
+    const healthTone =
+      health && health.actionable > 0
+        ? health.severity === "error"
+          ? "error"
+          : "warning"
+        : null;
+    const healthTitle =
+      health && health.actionable > 0
+        ? [
+            health.errors > 0 ? `${health.errors} error${health.errors === 1 ? "" : "s"}` : null,
+            health.warnings > 0 ? `${health.warnings} warning${health.warnings === 1 ? "" : "s"}` : null,
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : undefined;
     return (
       <div
         key={collectionId}
@@ -301,6 +320,21 @@ export function CollectionRail({
           <div className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
             {collectionTokenCounts[collectionId] ?? 0} token
             {(collectionTokenCounts[collectionId] ?? 0) === 1 ? "" : "s"}
+            {healthTone && (
+              <>
+                {" · "}
+                <span
+                  title={healthTitle}
+                  className={
+                    healthTone === "error"
+                      ? "text-[var(--color-figma-error)]"
+                      : "text-[var(--color-figma-warning)]"
+                  }
+                >
+                  {health!.actionable} issue{health!.actionable === 1 ? "" : "s"}
+                </span>
+              </>
+            )}
           </div>
         </button>
         <button

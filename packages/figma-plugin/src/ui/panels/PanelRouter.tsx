@@ -64,6 +64,7 @@ import {
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
+import { useHealthSignals } from "../hooks/useHealthSignals";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
 import type {
   ImportNextStepRecommendation,
@@ -282,6 +283,13 @@ export function PanelRouter({
     path: string;
     collectionId: string;
   } | null>(null);
+
+  const healthSignals = useHealthSignals({
+    validationIssues: controller.validationIssues,
+    lintViolations: controller.lintViolations,
+    generators,
+    currentCollectionId,
+  });
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"
       ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
@@ -716,7 +724,7 @@ export function PanelRouter({
           }),
         onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
         onOpenGeneratedGroupEditor: openGeneratedGroupEditor,
-        lintViolations: controller.lintViolations,
+        lintViolations: healthSignals.lintViolationsForCurrent,
         syncSnapshot:
           Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
       }
@@ -1018,7 +1026,7 @@ export function PanelRouter({
         data={{
           tokens,
           allTokensFlat: modeResolvedTokensFlat,
-          lintViolations: controller.lintViolations,
+          lintViolations: healthSignals.lintViolationsForCurrent,
           syncSnapshot:
             Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
           generators,
@@ -1040,7 +1048,7 @@ export function PanelRouter({
         showPreviewSplit={controller.showPreviewSplit}
         editingTokenPath={editingToken?.path}
         compareHandle={controller.tokenListCompareRef}
-        validationSummary={controller.validationSummary}
+        collectionHealthSummary={healthSignals.currentCollection}
         onOpenHealth={() => navigateTo("library", "health")}
       />
     </div>
@@ -1259,6 +1267,7 @@ export function PanelRouter({
           collections={collections}
           currentCollectionId={currentCollectionId}
           collectionTokenCounts={collectionTokenCounts}
+          collectionHealth={healthSignals.byCollection}
           focusRequestKey={shell.collectionRailFocusRequestKey}
           widthPx={collectionRailBoundary.size}
           onSelectCollection={(collectionId) => {
@@ -1446,7 +1455,7 @@ export function PanelRouter({
                     focusedToken={splitPreviewToken}
                     pathToCollectionId={pathToCollectionId}
                     onClearFocus={() => setSplitPreviewToken(null)}
-                    lintViolations={controller.lintViolations}
+                    lintViolations={healthSignals.lintViolationsForCurrent}
                     syncSnapshot={
                       Object.keys(syncSnapshot).length > 0
                         ? syncSnapshot
@@ -1513,8 +1522,7 @@ export function PanelRouter({
               serverUrl={serverUrl}
               connected={connected}
               currentCollectionId={currentCollectionId}
-              generators={generators}
-              lintViolations={controller.lintViolations}
+              healthSignals={healthSignals}
               allTokensFlat={allTokensFlat}
               pathToCollectionId={pathToCollectionId}
               tokenUsageCounts={tokenUsageCounts}
@@ -1523,7 +1531,6 @@ export function PanelRouter({
                 setHealthDetailToken({ path, collectionId });
               }}
               validationIssues={controller.validationIssues}
-              validationSummary={controller.validationSummary}
               validationLoading={controller.validationLoading}
               validationError={controller.validationError}
               validationLastRefreshed={controller.validationLastRefreshed}
@@ -1531,6 +1538,7 @@ export function PanelRouter({
               onRefreshValidation={controller.refreshValidation}
               onPushUndo={controller.pushUndo}
               onError={controller.setErrorToast}
+              onNavigateToGenerators={() => navigateTo("library", "tokens")}
             />
           </ErrorBoundary>
         </div>
@@ -1552,7 +1560,7 @@ export function PanelRouter({
                 storageCollectionId={healthDetailToken.collectionId}
                 allTokensFlat={allTokensFlat}
                 pathToCollectionId={pathToCollectionId}
-                lintViolations={controller.lintViolations.filter(
+                lintViolations={healthSignals.lintViolationsForCurrent.filter(
                   (v) => v.path === healthDetailToken.path,
                 )}
                 onEdit={() => {

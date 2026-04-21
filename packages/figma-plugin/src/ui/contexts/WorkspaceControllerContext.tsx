@@ -14,7 +14,6 @@ import type { LintViolation } from "../hooks/useLint";
 import type {
   ValidationIssue,
   ValidationSnapshot,
-  ValidationSummary,
 } from "../hooks/useValidationCache";
 import type { OperationEntry } from "../hooks/useRecentOperations";
 import type { UndoSlot } from "../hooks/useUndo";
@@ -107,7 +106,6 @@ export interface ApplyWorkspaceController {
 
 export interface SyncWorkspaceController {
   validationIssues: ValidationIssue[] | null;
-  validationSummary: ValidationSummary | null;
   validationLoading: boolean;
   validationError: string | null;
   validationLastRefreshed: Date | null;

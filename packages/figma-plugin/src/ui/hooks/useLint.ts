@@ -4,25 +4,26 @@ import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 export interface LintViolation {
   rule: string;
   path: string;
+  collectionId: string;
   severity: 'error' | 'warning' | 'info';
   message: string;
   suggestedFix?: string;
   /** Concrete suggestion — e.g. the alias path to use, or a corrected name. */
   suggestion?: string;
+  group?: string;
 }
 
 const DEBOUNCE_MS = 800;
 
 export function useLint(
   serverUrl: string,
-  collectionId: string,
   connected: boolean,
   refreshKey: number,
 ): LintViolation[] {
   const [violations, setViolations] = useState<LintViolation[]>([]);
 
   useEffect(() => {
-    if (!connected || !collectionId) {
+    if (!connected) {
       setViolations([]);
       return;
     }
@@ -31,9 +32,7 @@ export function useLint(
       try {
         const data = await apiFetch<{ violations: LintViolation[] }>(`${serverUrl}/api/tokens/lint`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ collectionId: collectionId }),
-          signal: createFetchSignal(controller.signal, 5000),
+          signal: createFetchSignal(controller.signal, 8000),
         });
         setViolations(data.violations ?? []);
       } catch (err) {
@@ -43,7 +42,7 @@ export function useLint(
     }, DEBOUNCE_MS);
 
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [serverUrl, collectionId, connected, refreshKey]);
+  }, [serverUrl, connected, refreshKey]);
 
   return violations;
 }

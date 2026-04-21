@@ -15,16 +15,9 @@ export interface ValidationIssue {
   group?: string;
 }
 
-export interface ValidationSummary {
-  total: number;
-  errors: number;
-  warnings: number;
-}
-
 export interface ValidationCacheResult {
   /** null = validation has never run; [] = ran with no issues */
   validationIssues: ValidationIssue[] | null;
-  validationSummary: ValidationSummary | null;
   validationLoading: boolean;
   validationError: string | null;
   validationLastRefreshed: Date | null;
@@ -34,7 +27,6 @@ export interface ValidationCacheResult {
 
 export interface ValidationSnapshot {
   issues: ValidationIssue[];
-  summary: ValidationSummary | null;
 }
 
 interface UseValidationCacheOptions {
@@ -65,7 +57,6 @@ export function useValidationCache({
   validateKey,
 }: UseValidationCacheOptions): ValidationCacheResult {
   const [issues, setIssues] = useState<ValidationIssue[] | null>(null);
-  const [summary, setSummary] = useState<ValidationSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -100,7 +91,7 @@ export function useValidationCache({
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<{ issues: ValidationIssue[]; summary: ValidationSummary }>(
+      const data = await apiFetch<{ issues: ValidationIssue[] }>(
         `${serverUrl}/api/tokens/validate`,
         { method: 'POST', signal: requestSignal },
       );
@@ -108,16 +99,11 @@ export function useValidationCache({
         return null;
       }
       const fetched = data.issues ?? [];
-      const nextSummary = data.summary ?? null;
       setIssues(fetched);
-      setSummary(nextSummary);
       setLastRefreshed(new Date());
       setIsStale(false);
       hasResultsRef.current = true;
-      return {
-        issues: fetched,
-        summary: nextSummary,
-      };
+      return { issues: fetched };
     } catch (err) {
       if (isAbortError(err) || requestSignal.aborted || !mountedRef.current) {
         return null;
@@ -182,7 +168,6 @@ export function useValidationCache({
 
   return {
     validationIssues: issues,
-    validationSummary: summary,
     validationLoading: loading,
     validationError: error,
     validationLastRefreshed: lastRefreshed,

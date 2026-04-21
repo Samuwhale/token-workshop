@@ -8,6 +8,7 @@ import type {
 import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
+import type { CollectionHealthSummary } from "../hooks/useHealthSignals";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigationTypes";
 import type { StartHereBranch } from "./WelcomePrompt";
@@ -239,7 +240,7 @@ export interface TokenListProps {
   editingTokenPath?: string | null;
   /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */
   compareHandle?: React.MutableRefObject<TokenListImperativeHandle | null>;
-  validationSummary?: { errors: number; warnings: number } | null;
+  collectionHealthSummary?: CollectionHealthSummary;
   onOpenHealth?: () => void;
 }
 

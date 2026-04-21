@@ -204,7 +204,7 @@ export function TokenList({
   showPreviewSplit = false,
   editingTokenPath,
   compareHandle,
-  validationSummary,
+  collectionHealthSummary,
   onOpenHealth,
 }: TokenListProps) {
   const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
@@ -2479,7 +2479,7 @@ export function TokenList({
               onSearchResultPresentationChange: setSearchResultPresentation,
               showIssuesOnly: showIssuesOnly ?? false,
               onToggleIssuesOnly,
-              lintCount: lintViolations.length,
+              lintCount: collectionHealthSummary?.actionable ?? 0,
               recentlyTouchedCount: recentlyTouched.count,
               showRecentlyTouched,
               onToggleRecentlyTouched: () => setShowRecentlyTouched((v) => !v),
@@ -2497,7 +2497,7 @@ export function TokenList({
               onDeleteFilterPreset: deleteFilterPreset,
               activeCount: filterMenuActiveCount,
             } : null}
-            validationSummary={validationSummary}
+            collectionHealthSummary={collectionHealthSummary}
             onOpenHealth={onOpenHealth}
           />
         )}

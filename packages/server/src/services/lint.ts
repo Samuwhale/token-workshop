@@ -56,6 +56,7 @@ export interface LintConfig {
 export interface LintViolation {
   rule: string;
   path: string;
+  collectionId: string;
   severity: Severity;
   message: string;
   suggestedFix?: string;
@@ -380,7 +381,7 @@ function collectWorkspaceRawValueGroups(
   return [...groups.values()].filter(entries => entries.length > 1);
 }
 
-export async function lintTokens(
+async function lintTokens(
   collectionId: string,
   tokenStore: TokenStore,
   lintConfig: LintConfig,
@@ -397,7 +398,7 @@ export async function lintTokens(
     }
   }
 
-  const violations: LintViolation[] = [];
+  const violations: Omit<LintViolation, 'collectionId'>[] = [];
   const rules = lintConfig.lintRules;
 
   // --- no-raw-color ---
@@ -716,7 +717,25 @@ export async function lintTokens(
     }
   }
 
-  return violations;
+  return violations.map(v => ({ ...v, collectionId }));
+}
+
+export async function lintAllCollections(
+  tokenStore: TokenStore,
+  lintConfig: LintConfig,
+): Promise<LintViolation[]> {
+  const collectionIds = new Set<string>();
+  for (const entry of tokenStore.getAllFlatTokens()) {
+    collectionIds.add(entry.collectionId);
+  }
+  const results: LintViolation[] = [];
+  for (const cid of collectionIds) {
+    const perCollection = await lintTokens(cid, tokenStore, lintConfig);
+    results.push(...perCollection);
+  }
+  const suppressionSet = new Set(lintConfig.suppressions ?? []);
+  if (suppressionSet.size === 0) return results;
+  return results.filter(v => !suppressionSet.has(`${v.rule}:${v.collectionId}:${v.path}`));
 }
 
 // ---------------------------------------------------------------------------

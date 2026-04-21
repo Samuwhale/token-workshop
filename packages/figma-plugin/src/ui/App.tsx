@@ -384,7 +384,7 @@ export function App() {
   useWindowExpand();
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
-  const lintViolations = useLint(serverUrl, currentCollectionId, connected, lintKey);
+  const lintViolations = useLint(serverUrl, connected, lintKey);
   // Tracks the current position for "next issue" cycling — reset when set changes
   const lintIssueIndexRef = useRef(-1);
   useEffect(() => {
@@ -742,7 +742,6 @@ export function App() {
   const { showIssuesOnly, setShowIssuesOnly } = useAnalyticsState();
   const {
     validationIssues,
-    validationSummary,
     validationLoading,
     validationError,
     validationLastRefreshed,
@@ -1408,7 +1407,6 @@ export function App() {
     },
     sync: {
       validationIssues,
-      validationSummary,
       validationLoading,
       validationError,
       validationLastRefreshed,
