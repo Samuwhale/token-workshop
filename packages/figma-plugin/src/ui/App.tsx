@@ -787,22 +787,11 @@ export function App() {
   const contextualEditorTransition = CONTEXTUAL_PANEL_TRANSITIONS.fullTakeover;
 
   const {
-    syncGroupPending,
-    setSyncGroupPending,
-    syncGroupApplying,
-    syncGroupProgress,
-    syncGroupStylesPending,
-    setSyncGroupStylesPending,
-    syncGroupStylesApplying,
-    syncGroupStylesProgress,
-    syncCollectionPending,
-    setSyncCollectionPending,
-    syncCollectionApplying,
-    syncCollectionProgress,
-    syncCollectionStylesPending,
-    setSyncCollectionStylesPending,
-    syncCollectionStylesApplying,
-    syncCollectionStylesProgress,
+    publishPending,
+    setPublishPending,
+    publishApplying,
+    publishProgress,
+    handlePublish,
     groupScopesPath,
     setGroupScopesPath,
     groupScopesSelected,
@@ -811,10 +800,6 @@ export function App() {
     groupScopesError,
     setGroupScopesError,
     groupScopesProgress,
-    handleSyncGroup,
-    handleSyncGroupStyles,
-    handleSyncCollection,
-    handleSyncCollectionStyles,
     handleApplyGroupScopes,
     pendingPublishCount,
     publishPreflightState,
@@ -1455,10 +1440,7 @@ export function App() {
       canRedo,
       redoSlot,
       executeRedo,
-      setSyncGroupPending,
-      setSyncGroupStylesPending,
-      setSyncCollectionPending,
-      setSyncCollectionStylesPending,
+      setPublishPending,
       setGroupScopesPath,
       setGroupScopesSelected,
       setGroupScopesError,
@@ -1828,65 +1810,29 @@ export function App() {
         />
       )}
 
-      {/* Sync group to Figma confirmation */}
-      {syncGroupPending && (
+      {publishPending && (
         <ConfirmModal
-          title={`Create variables from "${syncGroupPending.groupPath}"?`}
-          description={`Create or update ${syncGroupPending.tokenCount} Figma variables?`}
-          confirmLabel="Create variables"
-          onConfirm={handleSyncGroup}
-          onCancel={() => setSyncGroupPending(null)}
+          title={
+            publishPending.scope === 'group'
+              ? `Publish "${publishPending.groupPath}" to Figma?`
+              : `Publish "${publishPending.collectionId}" to Figma?`
+          }
+          description={
+            publishPending.scope === 'group'
+              ? `Create or update ${publishPending.tokenCount} token${publishPending.tokenCount !== 1 ? 's' : ''} in Figma.`
+              : `Create or update ${publishPending.tokenCount} token${publishPending.tokenCount !== 1 ? 's' : ''} from every token in this collection.`
+          }
+          confirmLabel="Publish to Figma"
+          onConfirm={handlePublish}
+          onCancel={() => setPublishPending(null)}
         />
       )}
 
-      {/* Create styles from group confirmation */}
-      {syncGroupStylesPending && (
-        <ConfirmModal
-          title={`Create styles from "${syncGroupStylesPending.groupPath}"?`}
-          description={`Create or update ${syncGroupStylesPending.tokenCount} Figma styles?`}
-          confirmLabel="Create styles"
-          onConfirm={handleSyncGroupStyles}
-          onCancel={() => setSyncGroupStylesPending(null)}
-        />
-      )}
-
-      {/* Sync whole collection to Figma variables confirmation */}
-      {syncCollectionPending && (
-        <ConfirmModal
-          title={`Create variables from "${syncCollectionPending.collectionId}"?`}
-          description={`Create or update ${syncCollectionPending.tokenCount} Figma variables from every token in this collection?`}
-          confirmLabel="Create variables"
-          onConfirm={handleSyncCollection}
-          onCancel={() => setSyncCollectionPending(null)}
-        />
-      )}
-
-      {/* Sync whole collection to Figma styles confirmation */}
-      {syncCollectionStylesPending && (
-        <ConfirmModal
-          title={`Create styles from "${syncCollectionStylesPending.collectionId}"?`}
-          description={`Create or update ${syncCollectionStylesPending.tokenCount} Figma styles from every token in this collection?`}
-          confirmLabel="Create styles"
-          onConfirm={handleSyncCollectionStyles}
-          onCancel={() => setSyncCollectionStylesPending(null)}
-        />
-      )}
-
-      {/* Variable sync progress overlay */}
-      {(syncGroupApplying || syncCollectionApplying) && (
+      {publishApplying && (
         <ProgressOverlay
-          message="Publishing variables…"
-          current={(syncGroupApplying ? syncGroupProgress : syncCollectionProgress)?.current}
-          total={(syncGroupApplying ? syncGroupProgress : syncCollectionProgress)?.total}
-        />
-      )}
-
-      {/* Style sync progress overlay */}
-      {(syncGroupStylesApplying || syncCollectionStylesApplying) && (
-        <ProgressOverlay
-          message="Creating styles…"
-          current={(syncGroupStylesApplying ? syncGroupStylesProgress : syncCollectionStylesProgress)?.current}
-          total={(syncGroupStylesApplying ? syncGroupStylesProgress : syncCollectionStylesProgress)?.total}
+          message="Publishing to Figma…"
+          current={publishProgress?.current}
+          total={publishProgress?.total}
         />
       )}
 

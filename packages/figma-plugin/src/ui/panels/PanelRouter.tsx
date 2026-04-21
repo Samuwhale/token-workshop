@@ -589,10 +589,8 @@ export function PanelRouter({
     onNavigateBack: handleNavigateBack,
     navHistoryLength: navHistoryLength,
     onClearHighlight: () => setHighlightedToken(null),
-    onSyncGroup: (groupPath: string, tokenCount: number) =>
-      controller.setSyncGroupPending({ groupPath, tokenCount }),
-    onSyncGroupStyles: (groupPath: string, tokenCount: number) =>
-      controller.setSyncGroupStylesPending({ groupPath, tokenCount }),
+    onPublishGroup: (groupPath: string, tokenCount: number) =>
+      controller.setPublishPending({ scope: 'group', groupPath, tokenCount }),
     onSetGroupScopes: (groupPath: string) => {
       controller.setGroupScopesPath(groupPath);
       controller.setGroupScopesSelected([]);
@@ -1297,11 +1295,8 @@ export function PanelRouter({
           onMergeCollection={collectionStructureController.onMerge}
           onSplitCollection={collectionStructureController.onSplit}
           onDeleteCollection={collectionStructureController.onDelete}
-          onSyncCollection={(collectionId, tokenCount) =>
-            controller.setSyncCollectionPending({ collectionId, tokenCount })
-          }
-          onSyncCollectionStyles={(collectionId, tokenCount) =>
-            controller.setSyncCollectionStylesPending({ collectionId, tokenCount })
+          onPublishCollection={(collectionId, tokenCount) =>
+            controller.setPublishPending({ scope: 'collection', collectionId, tokenCount })
           }
         />
         <ResizeDivider

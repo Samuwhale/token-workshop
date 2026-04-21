@@ -26,6 +26,7 @@ import type {
   SurfaceTransition,
 } from "../shared/navigationTypes";
 import type { PublishPreflightState } from "../shared/syncWorkflow";
+import type { PublishPending } from "../hooks/useFigmaSync";
 
 export interface ShellWorkspaceController {
   showPreviewSplit: boolean;
@@ -125,18 +126,7 @@ export interface SyncWorkspaceController {
   canRedo: boolean;
   redoSlot: UndoSlot | null;
   executeRedo: () => void;
-  setSyncGroupPending: (
-    value: { groupPath: string; tokenCount: number } | null,
-  ) => void;
-  setSyncGroupStylesPending: (
-    value: { groupPath: string; tokenCount: number } | null,
-  ) => void;
-  setSyncCollectionPending: (
-    value: { collectionId: string; tokenCount: number } | null,
-  ) => void;
-  setSyncCollectionStylesPending: (
-    value: { collectionId: string; tokenCount: number } | null,
-  ) => void;
+  setPublishPending: (value: PublishPending | null) => void;
   setGroupScopesPath: (path: string | null) => void;
   setGroupScopesSelected: Dispatch<SetStateAction<string[]>>;
   setGroupScopesError: (error: string | null) => void;

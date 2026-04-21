@@ -27,8 +27,7 @@ interface CollectionRailProps {
   onMergeCollection?: (collectionId: string) => void;
   onSplitCollection: (collectionId: string) => void;
   onDeleteCollection: (collectionId: string) => void;
-  onSyncCollection?: (collectionId: string, tokenCount: number) => void;
-  onSyncCollectionStyles?: (collectionId: string, tokenCount: number) => void;
+  onPublishCollection?: (collectionId: string, tokenCount: number) => void;
 }
 
 const MENU_WIDTH = 220;
@@ -106,8 +105,7 @@ export function CollectionRail({
   onMergeCollection,
   onSplitCollection,
   onDeleteCollection,
-  onSyncCollection,
-  onSyncCollectionStyles,
+  onPublishCollection,
 }: CollectionRailProps) {
   const [query, setQuery] = useState("");
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -447,36 +445,22 @@ export function CollectionRail({
         >
           Split by top-level groups…
         </button>
-        {(onSyncCollection || onSyncCollectionStyles) && (
-          <div className={MENU_SEPARATOR_CLASS} role="separator" />
-        )}
-        {onSyncCollection && (
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const count = collectionTokenCounts[collectionId] ?? 0;
-              closeMenu();
-              onSyncCollection(collectionId, count);
-            }}
-            className={MENU_ITEM_CLASS}
-          >
-            Sync to Figma variables
-          </button>
-        )}
-        {onSyncCollectionStyles && (
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const count = collectionTokenCounts[collectionId] ?? 0;
-              closeMenu();
-              onSyncCollectionStyles(collectionId, count);
-            }}
-            className={MENU_ITEM_CLASS}
-          >
-            Sync to Figma styles
-          </button>
+        {onPublishCollection && (
+          <>
+            <div className={MENU_SEPARATOR_CLASS} role="separator" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                const count = collectionTokenCounts[collectionId] ?? 0;
+                closeMenu();
+                onPublishCollection(collectionId, count);
+              }}
+              className={MENU_ITEM_CLASS}
+            >
+              Publish to Figma
+            </button>
+          </>
         )}
         <div className={MENU_SEPARATOR_CLASS} role="separator" />
         <button

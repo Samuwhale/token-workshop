@@ -109,8 +109,7 @@ export const TokenGroupNode = memo(
       onRequestMoveGroup,
       onRequestCopyGroup,
       onDuplicateGroup,
-      onSyncGroup,
-      onSyncGroupStyles,
+      onPublishGroup,
       onSetGroupScopes,
       onCreateGeneratedGroupFromGroup,
       onZoomIntoGroup,
@@ -867,32 +866,18 @@ export const TokenGroupNode = memo(
                     <span className={MENU_SHORTCUT_CLASS}>G</span>
                   </button>
                 )}
-                {onSyncGroup && (
+                {onPublishGroup && (
                   <button
                     role="menuitem"
                     tabIndex={-1}
-                    data-accel="v"
+                    data-accel="p"
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { closeGroupMenus(); const count = node.children ? countTokensInGroup(node) : 0; onSyncGroup(node.path, count); }}
+                    onClick={() => { closeGroupMenus(); const count = node.children ? countTokensInGroup(node) : 0; onPublishGroup(node.path, count); }}
                     className={MENU_ITEM_CLASS}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>
-                    <span className="flex-1">Sync to Figma variables</span>
-                    <span className={MENU_SHORTCUT_CLASS}>V</span>
-                  </button>
-                )}
-                {onSyncGroupStyles && (
-                  <button
-                    role="menuitem"
-                    tabIndex={-1}
-                    data-accel="y"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { closeGroupMenus(); const count = node.children ? countTokensInGroup(node) : 0; onSyncGroupStyles(node.path, count); }}
-                    className={MENU_ITEM_CLASS}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>
-                    <span className="flex-1">Sync to Figma styles</span>
-                    <span className={MENU_SHORTCUT_CLASS}>Y</span>
+                    <span className="flex-1">Publish to Figma</span>
+                    <span className={MENU_SHORTCUT_CLASS}>P</span>
                   </button>
                 )}
               </>

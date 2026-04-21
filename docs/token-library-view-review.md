@@ -1,18 +1,28 @@
-# Token Library Product Review
+# TokenManager Product Review
 
 ## Purpose
 
-This document reviews the plugin’s screens, flows, information architecture, and product priorities from a UX and product-design perspective.
+This document reviews TokenManager as a product experience.
 
-It is intentionally not a code review.
+It focuses on:
 
-The goal is to answer a simple question:
+- screens
+- flows
+- information architecture
+- prioritization
+- clarity
+- user confidence
+- day-to-day usability
 
-Does TokenManager currently feel easy to understand, trustworthy, empowering, and well-shaped for the people it is meant to serve?
+It does not review code quality or implementation structure.
+
+The goal is simple:
+
+Does TokenManager feel easy to understand, trustworthy, empowering, and well-shaped for the people it is built for?
 
 ## Audience
 
-The primary users are:
+The primary audience is:
 
 - Figma UI designers
 - UX designers
@@ -20,525 +30,459 @@ The primary users are:
 
 The secondary audience is:
 
-- developers participating in token governance, handoff, export, sync, and versioning
+- developers involved in export, sync, governance, and versioning
 
-The product should primarily feel native to designers.
+The product should feel like a design tool first.
 
-That does not mean hiding developer-facing capability.
+That does not mean hiding developer-facing power.
 
-It means ranking capability correctly so the product’s primary experience feels like a design tool first, and a delivery/governance system second.
+It means ranking that power correctly so designers can work fluently without feeling like they are operating internal infrastructure.
 
-## Context
+## Product Context
 
 TokenManager lives inside a Figma-centered workflow.
 
-That should shape almost every product decision.
+That matters.
 
-The strongest mental anchors are:
+Users are already inside a design environment with limited space, strong expectations, and a clear mental model. They do not want to learn an abstract product map before they can do useful work.
+
+The most important anchors in this product are:
 
 - collections
 - modes
 - token browsing
-- value comparison
 - token editing
-- application to actual design work
+- token comparison
+- token application in actual design work
+
+These should dominate the product’s shape.
 
 This project is also in active development with no legacy user base to protect.
 
-That is an advantage.
+That is a major advantage.
 
-It means the product can be simplified aggressively.
+It means the product can be simplified aggressively. It does not need compatibility-driven complexity, soft transitions, or product architecture that preserves every prior concept.
 
-It does not need compatibility-driven complexity, legacy concepts, or polite half-measures.
-
-If a structure is confusing, bloated, or split across too many paradigms, it should be replaced rather than rationalized.
-
-## Scope
-
-This review focuses on the token library as the core authoring workspace, but it also includes the adjacent areas that shape how the library is understood:
-
-- onboarding and setup
-- connection and system state
-- canvas application and inspection
-- health and review workflows
-- sync and publish flows
-- export and versions
-
-These areas matter because users do not experience the library in isolation.
+If something is bloated, confusing, or over-promoted, it should be consolidated, demoted, or removed.
 
 ## Executive Verdict
 
 TokenManager is already functionally strong.
 
-It is not a weak product because it lacks capability.
+It is not underpowered.
 
-It is a confusing product because it gives too many concerns equal importance.
+It is over-exposed.
 
-The main issue is not aesthetics.
+The product currently presents too many concerns as first-class, too many expert tools as ambient, and too much methodology as implied default behavior.
 
-The main issue is product shape.
-
-Right now the plugin feels broader than it feels coherent.
-
-It often behaves like several powerful tools sharing a shell rather than one clear authoring product with supporting workflows around it.
-
-The result is a product that feels:
+The result is a tool that feels:
 
 - capable
 - serious
-- custom
 - technically rich
+- unusually useful in some areas
 
 But also:
 
-- over-segmented
-- too mode-heavy
-- too eager to expose advanced states
-- unevenly prioritized
+- fragmented
+- over-instrumented
 - more operational than design-native
+- harder to parse than it should be
+- less calm than the underlying product idea deserves
 
-This is not a case where the answer is “add more features.”
+The main issue is not styling.
 
-The product needs better ranking, better consolidation, and more ruthless progressive disclosure.
+The main issue is product shape.
+
+This is not a feature gap problem.
+
+The next leap in quality will come from consolidation, clearer ranking, stronger progressive disclosure, and more confidence about what should be primary versus advanced.
 
 ## Overall Assessment
 
-The plugin has a strong engine and a partially strong product model.
+The product has a strong engine and a mostly correct core model.
 
-The core model is correct:
+What is right:
 
-- collections are the right primary container
-- modes are the right variation model
-- showing modes together is the right authoring behavior
-- table-based authoring is the right center of gravity
-- canvas inspection and application are genuinely useful
+- collections are the correct primary container
+- modes are the correct variation model
+- showing a collection’s modes together is correct
+- the library should be table-centered
+- canvas inspection and application add real value
+- governance and delivery workflows are worth supporting
 
-The problem is that the product does not consistently protect that model.
+What is wrong:
 
-Instead, it frequently asks the user to understand:
+- too many jobs are given equal visual and structural weight
+- the shell communicates product architecture too early
+- advanced capabilities leak into the default experience
+- onboarding teaches a methodology instead of simply helping users begin
+- the everyday authoring loop does not dominate strongly enough
 
-- product architecture
-- advanced workflows
-- multiple browsing modes
-- multiple review modes
-- multiple delivery surfaces
-- multiple setup concepts
+The product is closest to excellent when it helps a designer:
 
-before the primary job feels settled.
+1. choose a collection
+2. scan tokens and mode values
+3. edit confidently
+4. apply tokens in Figma
+5. fix issues when needed
 
-That is backwards.
-
-The primary job should feel obvious first.
-
-Depth should become visible later.
+Whenever the experience moves away from that core loop, it becomes less calm and less legible.
 
 ## What Is Working
 
-Several important directions are already right and should be preserved.
+Several decisions are already strong and should be preserved.
 
-### 1. The canonical authoring model is fundamentally strong
+### 1. The canonical authoring model is correct
 
-The product is built around collections and modes rather than around a muddled mix of sets, themes, and alternate abstractions.
+Collections and modes are the right backbone.
 
-That is the right foundation.
+The product is strongest when it stays faithful to that model and avoids introducing parallel abstractions.
 
-### 2. The library is correctly table-centered
+### 2. The library is correctly centered on token scanning
 
-A token tool for serious work should let users scan names and values at scale.
+A serious token tool should not hide the system behind oversized cards or wizard-only flows.
 
-The table is the right primary interaction surface.
+A scan-friendly table is the right center of gravity.
 
-### 3. Canvas workflows add real value
+### 3. Canvas workflows are a genuine differentiator
 
-The plugin is strongest when it helps designers move from authored tokens into actual design work:
+The product is unusually strong when it helps users connect token authoring to actual design work.
 
-- inspecting current properties
-- suggesting likely matches
+Especially valuable:
+
+- seeing bindable properties
+- surfacing likely token matches
 - extracting unbound values
 - remapping stale references
 
-Those are not decorative features.
+These are not side features.
 
-They are genuinely empowering.
+They are some of the most empowering parts of the product.
 
-### 4. The product is not trying to be simplistic
+### 4. The product takes sophisticated work seriously
 
-It is correct to support health, sync, export, history, and versions.
+Health, export, sync, history, and versioning are all legitimate capabilities.
 
-The issue is not that these areas exist.
+The problem is not their existence.
 
-The issue is how prominently and separately they are presented.
+The problem is how close they currently sit to the everyday authoring path.
 
-## The Core Product Problem
+### 5. The overall visual tone is mostly disciplined
 
-The plugin currently has too many first-class surfaces for one primary job.
+The product does not feel like generic AI-generated SaaS.
 
-That is the clearest diagnosis.
+It is relatively restrained, dense, and tool-like in a credible way.
 
-The user’s main task is:
+The problem is not decorative excess.
 
-1. choose a collection
-2. browse tokens
-3. compare values across modes
-4. edit confidently
-5. apply and validate in design work
+The problem is cognitive and structural excess.
 
-Instead, the product often feels like it is asking the user to choose between:
+## Core Diagnosis
 
-- authoring
-- inspection
-- review
-- sync
-- export
-- versioning
-- setup
-- advanced maintenance
+The clearest product diagnosis is this:
 
-before the authoring loop has fully taken ownership.
+TokenManager currently feels like several good tools sharing one shell rather than one clear product with supporting capabilities around it.
 
-That splits attention and weakens fluency.
+That creates interpretation cost.
+
+Users are repeatedly asked to understand:
+
+- workspace structure
+- advanced search behavior
+- alternate views
+- maintenance surfaces
+- review surfaces
+- delivery surfaces
+- setup logic
+- system state
+
+before the core authoring job fully takes ownership.
+
+That is backwards.
+
+The product should feel obvious first.
+
+Depth should emerge later.
 
 ## Main Problem Areas
 
 ## 1. The shell is too fragmented
 
-The product currently gives too many areas top-level identity.
+Too many top-level destinations have independent identity.
 
-This makes the architecture feel more important than the work.
+This makes the product map feel important in itself.
 
 Why this matters:
 
-- users have to learn the product map early
-- primary and secondary jobs feel equally weighted
-- the plugin feels broader than it feels purposeful
+- users learn navigation before they learn the work
+- primary and secondary jobs feel too equal
+- the product feels broader than it feels coherent
 
-The result is not “power.”
+This is the single biggest structural problem.
 
-The result is interpretation cost.
+## 2. The library header behaves like a control deck
 
-## 2. The library header behaves like a control surface
+The library header currently behaves more like an operations surface than a workspace header.
 
-The main library view currently tries to carry too much of the product’s control model at once.
+It asks users to parse too much at once:
 
-The user is asked to parse:
-
-- creation entry points
-- view modes
-- filter entry points
-- edit actions
+- creation choices
 - health cues
-- search modes
-- state chips
-
-before the table can become the focal point.
+- view changes
+- filters
+- structured search behavior
+- edit actions
+- active state indicators
 
 Why this matters:
 
-- the user’s eye lands on controls before content
-- the core job feels more instrumented than natural
-- even experienced users pay a small but constant cognitive tax
+- the user’s eye lands on machinery before content
+- the table loses dominance
+- the everyday experience feels instrumented instead of natural
 
-The library should feel like a workspace header, not an operations toolbar.
+The library should feel like a place to work, not a cockpit.
 
-## 3. The token table has too many alternate modes
+## 3. The token workspace has too many global modes
 
-The table is the correct center of the product, but it currently supports too many global states and alternate ways of behaving.
+The main library area supports too many alternate personalities.
 
-This includes things like:
+Examples of the pattern:
 
-- alternate browsing or presentation modes
+- alternate browsing modes
+- alternate presentation modes
+- expert query behavior
 - cross-collection search behavior
-- structured query behavior
-- preview states
 - review overlays
-- batch workflows
+- batch editing states
+- preview states
 - inspection-related filters
 
-Any one of these can be valid.
+Any one of these may be reasonable.
 
-Taken together, they make the main workspace feel unstable.
-
-Why this matters:
-
-- users cannot build one strong mental model of “how the library works”
-- basic browsing is mixed with expert workflows
-- the table feels less trustworthy as a default workspace
-
-## 4. The product overuses global power instead of local context
-
-Too many actions are available at the workspace level when they should be contextual.
-
-The product often exposes capability globally rather than revealing it when the user has selected a collection, a token, a mode, or a specific problem.
+Together they make the workspace feel unstable.
 
 Why this matters:
 
-- users see decisions before they have enough context to make them
-- advanced actions feel noisy instead of powerful
-- progressive disclosure is weakened
+- users cannot form one strong mental model of the library
+- the default surface feels less trustworthy
+- basic browsing and expert workflows blur together
 
-The product should rely more on:
+## 4. Search is too power-shaped by default
 
-- contextual inspectors
-- row actions
-- collection setup
-- task-specific panels
+Advanced search is useful.
 
-and less on globally visible controls.
+It should not define the emotional default of the product.
 
-## 5. The collection rail is slightly too informative, but that is not the main issue
-
-The collection rail could be calmer.
-
-It currently includes counts and issue metadata that make it heavier than pure navigation.
-
-That said, this is not the biggest problem in the product.
-
-The rail is comparatively restrained.
-
-Why this matters:
-
-- it still adds to the information load
-- it pushes the rail toward inspection rather than orientation
-- it participates in the general feeling of “everything is visible at once”
-
-But the larger source of complexity is still the workspace header and the number of primary surfaces.
-
-## 6. Search leans too far toward power-user behavior in the default experience
-
-Advanced search and filtering are useful.
-
-They are not the right emotional default for most designers.
-
-Most users primarily want to:
+Most designers primarily want to:
 
 - find a token by name
 - narrow to a familiar area
-- scan a small relevant subset
+- scan a relevant subset
 
-They do not want the product’s default voice to feel query-driven.
+They do not want the default behavior to feel query-driven or syntax-driven.
 
 Why this matters:
 
 - the product leans toward recall instead of recognition
-- it feels more tool-like than design-like
-- simple findability inherits unnecessary abstraction
+- simple findability inherits too much complexity
+- the tool feels more technical than it needs to
 
-The right model is plain search first, advanced filtering second.
+Search should be plain first and advanced second.
 
-## 7. The library still carries too much detail that should live in an inspector
+## 5. The product overuses global power instead of contextual power
 
-The product has the right instinct in using contextual detail surfaces.
+Too many actions are available at the workspace level rather than surfacing when the user has enough context to need them.
 
-It just does not rely on them heavily enough.
-
-The library still exposes too much state, too many hints, and too many secondary interpretations directly in the default browsing surface.
+That reduces the value of progressive disclosure.
 
 Why this matters:
 
-- the main table becomes harder to scan
-- hierarchy weakens
-- users read status before they read values
+- users see decisions too early
+- advanced actions feel noisy instead of empowering
+- everyday work inherits expert complexity
 
-The product should make the inspector do more of the explanatory work.
+More power should live in:
 
-## 8. Onboarding is directionally right, but still too opinionated
+- the selected collection
+- the selected token
+- the selected group
+- the current canvas selection
+- the current issue or review task
 
-The first-run fork between “start new” and “import existing” is correct.
+Less power should be ambient.
 
-That is the right high-level split.
+## 6. Onboarding is too methodological
 
-The problem is the next layer.
+The current first-run split between starting fresh and importing is directionally correct.
 
-The “start new” path leans too quickly into a specific authored recipe:
+The next step is where the product gets too opinionated.
+
+The “start new” path quickly implies a preferred authored sequence:
 
 - create a collection
 - add modes
 - generate foundations
 - create semantics
 
-That path will fit some teams.
+That may be a useful accelerator.
 
-It should not feel like the implied universal path.
+It should not feel like the product’s implied definition of getting started.
 
 Why this matters:
 
-- the product feels more prescriptive than it needs to
-- generators become over-emphasized
-- the first-run experience can feel like a methodology choice rather than a simple beginning
+- the tool feels prescriptive too early
+- generation workflows get over-ranked
+- the product starts to feel like a system for implementing a doctrine instead of helping users author tokens
 
-The better default is:
+The best onboarding is simpler:
 
+- connect if needed
 - create or import
 - land in the library
-- start authoring
+- begin authoring
 
-with optional guided accelerators layered on top.
+Accelerators should stay optional.
 
-## 9. The relationship between Library and Canvas is valuable but under-shaped
+## 7. Canvas is valuable, but still too dense
 
-The plugin is at its best when it supports two connected activities:
+Canvas is one of the strongest areas in the product.
 
-- authoring token systems
-- applying and validating them in design work
+It solves real problems.
 
-That relationship is real product value.
-
-But it does not yet feel like one coherent workflow.
+But it still stacks too many controls and task paths in one narrow surface.
 
 Why this matters:
 
-- the two areas can feel like sibling tools instead of adjacent steps
-- library-specific and canvas-specific modes can bleed into each other conceptually
-- the product narrative becomes less clear
+- the area is helpful, but not yet calm
+- valuable features compete for attention instead of reinforcing one another
+- the strongest application workflow still feels busier than it should
 
-Library should feel like the source of truth.
+Canvas should feel immediate and focused.
 
-Canvas should feel like the place where authored tokens meet actual design decisions.
+It should present:
 
-## 10. Canvas is empowering, but still too control-dense
+- what is selected
+- what can be bound
+- the best likely matches
+- the next best action
 
-Canvas is one of the product’s strongest areas.
+Everything else should feel secondary.
 
-It provides tangible help:
+## 8. Review and delivery work are not grouped strongly enough
 
-- matching likely tokens
-- extracting unbound values
-- remapping stale bindings
-- applying to selection or page
-
-That is excellent.
-
-The problem is presentation.
-
-The surface still stacks too many controls, bands, and parallel actions at once.
-
-Why this matters:
-
-- the user gets value, but through a relatively dense surface
-- the strongest flow in the product still feels more technical than necessary
-- some of its good ideas do not translate into a calm experience
-
-Canvas should become the benchmark for usefulness, with less visible machinery.
-
-## 11. Review and delivery work need clearer grouping
-
-Health, history, sync, export, and versions are all legitimate.
+Health, history, sync, export, and versions all matter.
 
 They are not equally close to the primary job.
 
-Right now they are not grouped in a way that makes their relationship obvious.
+Right now they still feel flatter than they should.
 
 Why this matters:
 
-- nearby review work and downstream delivery work blur together
-- the product feels flatter than it should
-- some secondary areas feel too empty while others feel too exposed
+- nearby quality work and downstream delivery work blur together
+- secondary areas feel too exposed
+- the shell communicates breadth more strongly than flow
 
-In particular:
+The relationship should be clearer:
 
-- health is close to authoring
-- history is less close than health
-- sync, export, and versions belong to a delivery and governance cluster
+- health is quality work close to authoring
+- canvas is application work adjacent to authoring
+- sync, export, and versions are delivery and governance work
+- history belongs more with governance than with daily authoring
 
-The current shape does not make that distinction strongly enough.
+## 9. Too much system state is ambient
 
-## 12. Density amplifies every other problem
+Connection, counts, issues, sync status, and operational cues are important.
 
-The issue is not simply that the UI is compact.
+The problem is not visibility itself.
 
-Plugins often need compactness.
+The problem is visible state that appears before the user knows whether they should care.
 
-The issue is compactness combined with too many visible concepts.
+Why this matters:
+
+- passive warnings create anxiety
+- the product feels more operational than creative
+- informational state can crowd out the primary task
+
+Trust comes from relevant state, not maximum state.
+
+## 10. The product voice is precise, but still slightly infrastructural
+
+The voice is mostly disciplined, which is good.
+
+But it still sometimes sounds like internal tooling or workflow software rather than a design-native product.
+
+Why this matters:
+
+- advanced tasks feel heavier than necessary
+- designer-facing flows feel more technical than they should
+- the overall tone drifts away from the quiet confidence described in the design context
+
+The product should sound:
+
+- precise
+- capable
+- calm
+- design-literate
+
+It should sound less like operational software.
+
+## 11. Some secondary areas feel more present than useful
+
+There are places where the structure of a destination is clear before the everyday value of that destination is clear.
+
+Why this matters:
+
+- the product feels broad even when parts of it are only occasionally relevant
+- sparse states can feel like exposed infrastructure instead of purposeful tools
+- users spend attention on understanding areas they may not yet need
+
+Secondary spaces should feel intentionally invoked, not permanently awaiting justification.
+
+## 12. Density amplifies every other issue
+
+The problem is not that the product is compact.
+
+A Figma plugin should be compact.
+
+The problem is compactness combined with too many simultaneously visible concepts.
 
 Why this matters:
 
 - scanning becomes tiring
-- secondary information competes too easily with primary information
-- the product feels more technical and less confident
+- status and controls compete too easily with values
+- the interface feels busier than the model really is
 
-The answer is not decoration.
+The answer is not more decoration or larger surfaces.
 
-The answer is stronger hierarchy and fewer simultaneously visible concerns.
+The answer is stronger hierarchy and fewer visible concerns at one time.
 
-## 13. System state is visible, but not always well-ranked
+## Strategic Implication
 
-Connection, issue counts, sync readiness, and status signals are important.
+This is not mainly a question of what to add.
 
-But the product sometimes shows state before it is clear whether the user should care about it right now.
-
-Why this matters:
-
-- status can create anxiety instead of trust
-- warnings can feel ambient rather than actionable
-- the interface can feel more operational than design-oriented
-
-The product should show the most important current state, not the maximum available state.
-
-## 14. The voice is precise, but sometimes too infrastructural
-
-The product generally avoids fluffy language, which is good.
-
-But it sometimes speaks like a system console rather than a design tool.
-
-Why this matters:
-
-- terminology becomes heavier than necessary
-- advanced actions feel more intimidating
-- the emotional tone skews toward internal software
-
-Designer-facing products should feel precise and capable without sounding infrastructural.
-
-## What This Means Strategically
-
-This is not mainly a feature gap problem.
-
-This is a ranking problem.
+It is a question of what to rank, what to merge, what to hide until invited, and what to cut.
 
 The product already does a lot.
 
-The next leap in quality will come from deciding:
+The next phase should be about making that capability legible.
 
-- what should be primary
-- what should be secondary
-- what should be contextual
-- what should be hidden until invited
-- what should be merged
-- what should be removed
+The highest-value move is simplification before expansion.
 
-The biggest improvement would come from consolidation, not expansion.
+## Recommended Product Direction
 
-## What Should Be Preserved
+## 1. Reframe the product around three jobs
 
-Not everything needs to change.
-
-These directions are strong and should remain:
-
-- collections as the primary container
-- modes as first-class values
-- simultaneous visibility of a collection’s mode values
-- table-centered authoring
-- contextual detail surfaces
-- canvas application and inspection workflows
-- advanced delivery and governance capability
-
-The goal is not to make the product smaller in ambition.
-
-The goal is to make the ambition readable.
-
-## Recommended Overhaul Direction
-
-## 1. Reframe the product around three jobs, not many workspaces
-
-The product should be structured around three clear domains:
+The product should be organized around three clear domains:
 
 ### Authoring
 
 Where users:
 
-- browse collections
-- read tokens
+- choose collections
+- browse tokens
 - compare mode values
-- create and edit tokens
+- edit tokens
 - manage collection structure
 
 This is the center of the product.
@@ -551,56 +495,54 @@ Where users:
 - bind tokens
 - extract values
 - remap references
-- validate token usage in design work
+- validate token usage in real design work
 
-This is the bridge between token authoring and actual design execution.
+This is the bridge between the system and the canvas.
 
 ### Delivery
 
 Where users:
 
-- review health and issues
-- publish and sync
+- review issues
+- sync and publish
 - export outputs
-- inspect history and versions
-- participate in governance
+- inspect history
+- work with versions and governance
 
-This is important, but secondary to day-to-day authoring.
+This is important, but secondary.
 
 The shell should communicate that ranking clearly.
 
 ## 2. Make Library the unmistakable home base
 
-The library should feel like the product’s default home, not one major area among many equal peers.
+The library should feel like the product’s natural home, not one peer destination among many.
 
-It should feel calm, stable, and immediately understandable.
-
-The user should not need to “decode the product” before editing tokens.
-
-The library should answer, at a glance:
+It should answer immediately:
 
 - where am I
-- which collection is selected
+- which collection is active
 - what modes exist here
-- what values am I looking at
-- how do I edit this
+- what values am I editing
+- how do I make a change
 
-## 3. Rebuild the library around one default workspace shape
+Users should not need to decode the product before they can work.
 
-The ideal default workspace is:
+## 3. Rebuild the library around one stable default shape
+
+The normal library experience should be:
 
 ### Collections rail
 
 - lightweight
-- clearly navigational
-- focused on names first
+- navigational
+- names first
 
-### Compact header
+### Compact workspace header
 
 - current collection
 - one create entry point
 - search
-- one advanced menu entry point
+- one advanced entry point
 
 ### Token table
 
@@ -613,223 +555,197 @@ The ideal default workspace is:
 
 - token or group detail
 - metadata
+- alias context
 - advanced actions
-- related review context
-- history or usage when relevant
+- related review context when relevant
 
-This should be the normal authoring experience.
+This should be the normal authoring experience, not a special mode.
 
-Not an edge case.
-
-## 4. Reduce alternate global modes in the library
-
-The library should have fewer global personality shifts.
-
-A user should not feel like the main table keeps changing what kind of tool it is.
-
-Suggested direction:
-
-- keep one main browsing mode
-- treat JSON editing as advanced, not peer to the main table
-- treat cross-collection searching as an advanced task, not a common default
-- move some expert filters behind a clear advanced entry point
-- avoid making batch and review states part of the default visual rhythm
+## 4. Keep one primary browsing mode
 
 The table should feel stable.
 
-## 5. Make search plain by default
-
-Search should start simple.
-
-The advanced model should still exist, but it should not define the default experience.
+The product should avoid letting the default authoring area constantly change character.
 
 Suggested direction:
 
-- default to text search by token name or path
-- let users refine after they have already found their area
-- expose advanced filters as explicit “narrow further” behavior
+- keep one primary token browsing mode
+- treat alternate representations as advanced tools
+- reduce the number of global state shifts in the main workspace
 
-Power users will still find advanced behavior.
+The goal is not less power.
 
-Everyone else will get a calmer starting point.
+The goal is a stronger default.
 
-## 6. Put more intelligence into the inspector
+## 5. Make search plain by default
 
-The inspector should carry more of the explanatory burden.
+Search should start as:
+
+- name
+- path
+- maybe description
+
+Then allow refinement.
+
+Advanced filtering should still exist, but it should feel explicitly invited rather than ambiently implied.
+
+Suggested direction:
+
+- plain search first
+- advanced filters second
+- saved filters as expert tooling
+- cross-collection search as advanced behavior, not common default behavior
+
+## 6. Put more explanatory weight into the inspector
+
+The inspector is the best place to reconcile power and calmness.
+
+It should absorb more of what currently clutters the default authoring surface.
 
 It should be the home for:
 
 - metadata
 - alias chains
+- usage context
+- dependency context
 - lifecycle state
-- related references
-- advanced edits
+- advanced editing
 - review context
-- usage or dependency context
 
-This frees the table to stay focused on:
+That frees the table to remain focused on:
 
 - identity
 - structure
 - values
 
-That is the right split.
+## 7. Keep Canvas separate, but simplify its visible choices
 
-## 7. Keep Canvas separate, but simplify its visible controls
+Canvas should remain a dedicated area.
 
-Canvas should remain its own area.
+That separation is good.
 
-That separation is useful.
-
-But it should feel like a focused application workspace, not a dense utility panel.
+But it should feel like a focused application workspace rather than a dense utility panel.
 
 Suggested direction:
 
-- prioritize the selected object and its bindable properties
-- present likely matches and actions more cleanly
+- prioritize the selected object and its properties
+- surface the best likely token matches more clearly
 - collapse secondary filters until requested
-- make extract, remap, and apply feel like clear task paths rather than parallel toolbar actions
+- make extract, remap, and apply feel like distinct task paths instead of parallel controls
 
-Canvas should feel empowering, immediate, and less busy.
+Canvas should feel empowering and immediate.
 
-## 8. Consolidate review and delivery work
+## 8. Consolidate delivery work more aggressively
 
 Health, sync, export, history, and versions should remain.
 
-They should feel more deliberately grouped.
+But their grouping should be more deliberate.
 
 Suggested direction:
 
-- keep health adjacent to authoring because it directly improves token quality
-- move history closer to versions and broader governance work
-- treat sync, export, and versions as one delivery cluster rather than separate peer products
+- keep lightweight issue awareness near authoring
+- keep full quality review inside the broader delivery space
+- group sync, export, history, and versions as governance and delivery work
+- avoid making each one feel like a separate product
 
-This makes the product feel better ranked without cutting important capability.
+This would reduce fragmentation without cutting important capability.
 
-## 9. Make onboarding less methodological
+## 9. Make onboarding momentum-based, not curriculum-based
 
-The first-run experience should feel confident and low-friction.
-
-The right first fork is:
-
-- start a new token system
-- import an existing token system
-
-After that, the product should help the user get into real work quickly.
+The product should not imply that users need to complete a methodology before they can begin.
 
 Suggested direction:
 
-- connection help should be precise and short
-- creating a first collection should be the first authored step
-- generating foundations and semantics should be optional guided accelerators
-- the user should land in the library quickly
+- help users connect if needed
+- let them import or create
+- land them in the library quickly
+- offer optional accelerators for modes, foundations, and semantics
 
-The product should invite momentum, not curriculum.
+The product should encourage motion, not coursework.
 
-## 10. Clarify what is “everyday” versus “advanced”
+## 10. Clarify everyday work versus advanced work
 
 This distinction should shape the whole experience.
 
-Everyday work includes:
+Everyday work:
 
 - choosing a collection
 - finding tokens
 - editing values
+- adding groups
 - adding modes
-- creating groups
-- applying tokens in Figma
+- binding tokens in Figma
 
-Advanced work includes:
+Advanced work:
 
 - generators
-- large-scale bulk actions
 - structured search
-- specialized review flows
+- large-scale batch changes
 - publish routing
 - export presets
-- git and versioning operations
+- versioning and rollback
+- governance workflows
 
-Both categories matter.
+Both matter.
 
 They should not look equally central.
 
-## 11. Improve trust through actionability, not volume
+## 11. Improve trust through actionability
 
-Important system state should be obvious.
+Important state should be clear.
 
-But not every possible signal should be ambiently visible.
+But the product should avoid ambient operational noise.
 
 Suggested direction:
 
-- make warnings more directly tied to next steps
-- keep informational state quiet when it does not affect the current task
+- show only the most relevant status for the current task
+- tie warnings to obvious next steps
+- keep informational state quiet when it does not affect the current flow
 - make destructive actions explicit and calm
-- reduce passive anxiety-inducing counters unless they are actionable now
 
-Trust comes from clarity, not from constant state emission.
+Trust comes from clarity and recoverability, not constant signaling.
 
-## 12. Tighten the product voice
+## 12. Tighten the designer-facing voice
 
-The product should sound:
+The product should consistently sound:
 
 - precise
-- capable
 - calm
+- confident
 - design-literate
 
-It should sound less like:
+It should reduce moments where the language feels infrastructural, procedural, or system-admin-like.
 
-- internal tooling
-- infrastructure
-- engineering workflow software
+## What To Preserve
 
-This is mostly a matter of wording, emphasis, and where advanced concepts are introduced.
+The review is not arguing for simplification through reductionism.
 
-## Areas Especially Worth Working On Next
+These directions are strong and should be preserved:
 
-Beyond the broad structural overhaul, these are especially high-value areas to improve.
+- collections as the primary container
+- modes as first-class authored values
+- simultaneous visibility of collection modes
+- table-centered authoring
+- canvas application workflows
+- issue review capability
+- delivery and governance depth
 
-## A. A real persistent inspector
+The goal is not to make the product smaller in ambition.
 
-This is likely the single most valuable addition to the day-to-day authoring experience.
+The goal is to make the ambition readable.
 
-The inspector is how the product can become both calmer and more powerful at the same time.
+## What To Simplify Or Cut Back
 
-## B. Better distinction between overview and task mode
+These areas should be questioned aggressively:
 
-The user should feel a difference between:
+- top-level destinations that compete with the core loop
+- global controls that could become contextual
+- alternate global library modes
+- onboarding steps that imply a preferred doctrine
+- operational status that is visible before it is useful
+- expert search behavior in the default flow
 
-- browsing and scanning
-- editing deeply
-- reviewing issues
-- performing delivery work
-
-Those states currently blur together too often.
-
-## C. Better empty, sparse, and low-data states
-
-Several secondary screens feel structurally present before they feel productively useful.
-
-The product should make sparse states feel intentional and directed, not simply empty.
-
-## D. Better prioritization of advanced generation workflows
-
-Generators are useful.
-
-They should not dominate the implied authoring model.
-
-They should feel like accelerators layered on top of authored token work.
-
-## E. Better mobility between related work
-
-The user should be able to move clearly between:
-
-- token authoring
-- token quality review
-- token application on canvas
-- final publishing and export
-
-That movement should feel like one coherent workflow rather than moving between neighboring tools.
+If a capability remains valuable but does not need to be visible all the time, it should move down a level.
 
 ## What Not To Do
 
@@ -837,50 +753,106 @@ The wrong next move would be:
 
 - adding more top-level areas
 - adding more persistent controls
-- adding more always-visible status surfaces
-- keeping every current capability equally promoted
-- treating this as mainly a styling pass
+- adding more always-visible status
+- preserving every current capability at the same prominence
+- treating this as mainly a visual refresh
 
-That would preserve the underlying problem.
+That would leave the core problem intact.
+
+## High-Value Areas To Work On Next
+
+## A. A real everyday authoring workspace
+
+The library should become calmer, more stable, and more obviously primary.
+
+This is the single highest-value product move.
+
+## B. A persistent contextual inspector
+
+This is likely the best way to make the product both simpler and more powerful.
+
+It allows advanced context without overloading the table.
+
+## C. A stronger distinction between authoring, applying, and delivering
+
+Users should feel a clear difference between:
+
+- browsing and editing tokens
+- applying them in Figma
+- reviewing and shipping them
+
+That structure should become self-evident.
+
+## D. Less methodological onboarding
+
+The start experience should help users begin real work quickly rather than implicitly teaching an authored philosophy.
+
+## E. Cleaner transitions between related jobs
+
+Movement between:
+
+- authoring
+- issue review
+- canvas application
+- delivery
+
+should feel like one coherent product, not travel between neighboring tools.
+
+## F. Better sparse and low-data states
+
+Secondary areas should feel purposeful when empty or lightly used.
+
+They should not feel like exposed product infrastructure waiting for justification.
+
+## G. More ruthless ranking of generators
+
+Generators are valuable accelerators.
+
+They should not dominate the implied definition of authoring.
 
 ## Product Decision
 
 The strongest recommendation is:
 
-Simplify and consolidate before adding significant new functionality.
+Simplify and consolidate before adding meaningful new breadth.
 
-The product does not currently need a major expansion of breadth.
+TokenManager does not currently need more major surface area.
 
-It needs a clearer center.
+It needs:
 
-If new functionality is added, it should be in service of the central model.
+- a clearer center
+- fewer equally promoted concerns
+- better contextualization of advanced capability
+- a calmer everyday experience
 
-The highest-value additions are likely to be:
+If new functionality is added, it should support the core flow rather than widen the shell.
+
+The best additions are likely to be:
 
 - a better inspector
-- clearer contextual review
-- stronger transitions between authoring and application
+- stronger transitions between authoring and canvas application
+- more contextual review
+- better prioritization of advanced tools
 
-not more major sections.
+not more major destinations.
 
 ## Desired Outcome
 
 A successful overhaul should make TokenManager feel:
 
-- easier to understand on first glance
+- easier to understand at first glance
 - calmer during everyday work
-- more aligned with how designers already think in Figma
-- more trustworthy in setup and state handling
-- more empowering in actual design workflows
+- more aligned with how designers think inside Figma
+- more trustworthy in setup and status handling
+- more empowering in real design workflows
 - more deliberate about where advanced work lives
 
-The end state should not feel like “the same complexity arranged more neatly.”
+The final product should not feel like the same complexity arranged more neatly.
 
 It should feel like:
 
-- the right core workflow
+- one strong core workflow
 - clearly ranked
-- with supporting power around it
-- instead of on top of it
+- with surrounding power in the right places
 
 That is the opportunity.

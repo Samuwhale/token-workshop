@@ -58,20 +58,8 @@ export function useSyncState({
   }, []);
 
   useEffect(() => {
-    if (figmaSync.syncGroupStylesError) setErrorToast(figmaSync.syncGroupStylesError);
-  }, [figmaSync.syncGroupStylesError, setErrorToast]);
-
-  useEffect(() => {
-    if (figmaSync.syncGroupError) setErrorToast(figmaSync.syncGroupError);
-  }, [figmaSync.syncGroupError, setErrorToast]);
-
-  useEffect(() => {
-    if (figmaSync.syncCollectionError) setErrorToast(figmaSync.syncCollectionError);
-  }, [figmaSync.syncCollectionError, setErrorToast]);
-
-  useEffect(() => {
-    if (figmaSync.syncCollectionStylesError) setErrorToast(figmaSync.syncCollectionStylesError);
-  }, [figmaSync.syncCollectionStylesError, setErrorToast]);
+    if (figmaSync.publishError) setErrorToast(figmaSync.publishError);
+  }, [figmaSync.publishError, setErrorToast]);
 
   return {
     ...figmaSync,

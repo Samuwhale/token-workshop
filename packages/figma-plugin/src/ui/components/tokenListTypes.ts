@@ -111,8 +111,7 @@ export interface TokenListActions {
   onNavigateBack?: () => void;
   navHistoryLength?: number;
   onClearHighlight?: () => void;
-  onSyncGroup?: (groupPath: string, tokenCount: number) => void;
-  onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
+  onPublishGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   onCreateGeneratedGroupFromGroup?: (
     groupPath: string,
@@ -365,8 +364,7 @@ export interface TokenTreeGroupActionsContextType {
   onRequestMoveGroup?: (groupPath: string) => void;
   onRequestCopyGroup?: (groupPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
-  onSyncGroup?: (groupPath: string, tokenCount: number) => void;
-  onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
+  onPublishGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   onCreateGeneratedGroupFromGroup?: (
     groupPath: string,

@@ -510,7 +510,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "sync",
     subTab: "figma-sync",
     transition: workspaceTransition(
-      "Sync tokens with Figma variables and styles.",
+      "Publish tokens to Figma.",
     ),
     matchRoutes: [route("sync", "figma-sync")],
   },

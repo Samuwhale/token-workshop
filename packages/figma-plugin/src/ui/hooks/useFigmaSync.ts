@@ -12,21 +12,22 @@ import type {
 } from '../../shared/types';
 import { useFigmaMessage } from './useFigmaMessage';
 import { extractSyncApplyResult } from './useTokenSyncBase';
+import { usePersistedJsonState } from './usePersistedState';
+import { STORAGE_KEYS } from '../shared/storage';
 
-// ── Per-flow state ────────────────────────────────────────────────────────
-// Encapsulates the repeated (pending / applying / progress / error) pattern
-// that appears once per sync entity (variables, styles).
+// Publish-time target. Variables carry every token type; Styles carry only the
+// four DTCG types Figma exposes as native styles. The user does not pick — we
+// always fan out to whichever primitives each token needs.
+type ApplyResult = {
+  count: number;
+  total: number;
+  failures: { path: string; error: string }[];
+  skipped: Array<{ path: string; $type: string }>;
+};
 
-function useSyncFlow<TPending>() {
-  const [pending, setPending] = useState<TPending | null>(null);
-  const [applying, setApplying] = useState(false);
-  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  return { pending, setPending, applying, setApplying, progress, setProgress, error, setError };
-}
-
-type GroupPending = { groupPath: string; tokenCount: number };
-type CollectionPending = { collectionId: string; tokenCount: number };
+export type PublishPending =
+  | { scope: 'group'; groupPath: string; tokenCount: number }
+  | { scope: 'collection'; collectionId: string; tokenCount: number };
 
 export function useFigmaSync(
   serverUrl: string,
@@ -36,50 +37,12 @@ export function useFigmaSync(
   modeMap: Record<string, string>,
   currentCollectionId: string,
 ) {
-  const varFlow = useSyncFlow<GroupPending>();
-  const styleFlow = useSyncFlow<GroupPending>();
-  const collectionVarFlow = useSyncFlow<CollectionPending>();
-  const collectionStyleFlow = useSyncFlow<CollectionPending>();
-  const {
-    pending: syncGroupPending,
-    setPending: setSyncGroupPending,
-    applying: syncGroupApplying,
-    setApplying: setSyncGroupApplying,
-    progress: syncGroupProgress,
-    setProgress: setSyncGroupProgress,
-    error: syncGroupError,
-    setError: setSyncGroupError,
-  } = varFlow;
-  const {
-    pending: syncGroupStylesPending,
-    setPending: setSyncGroupStylesPending,
-    applying: syncGroupStylesApplying,
-    setApplying: setSyncGroupStylesApplying,
-    progress: syncGroupStylesProgress,
-    setProgress: setSyncGroupStylesProgress,
-    error: syncGroupStylesError,
-    setError: setSyncGroupStylesError,
-  } = styleFlow;
-  const {
-    pending: syncCollectionPending,
-    setPending: setSyncCollectionPending,
-    applying: syncCollectionApplying,
-    setApplying: setSyncCollectionApplying,
-    progress: syncCollectionProgress,
-    setProgress: setSyncCollectionProgress,
-    error: syncCollectionError,
-    setError: setSyncCollectionError,
-  } = collectionVarFlow;
-  const {
-    pending: syncCollectionStylesPending,
-    setPending: setSyncCollectionStylesPending,
-    applying: syncCollectionStylesApplying,
-    setApplying: setSyncCollectionStylesApplying,
-    progress: syncCollectionStylesProgress,
-    setProgress: setSyncCollectionStylesProgress,
-    error: syncCollectionStylesError,
-    setError: setSyncCollectionStylesError,
-  } = collectionStyleFlow;
+  const [publishPending, setPublishPending] = useState<PublishPending | null>(null);
+  const [publishApplying, setPublishApplying] = useState(false);
+  const [publishProgress, setPublishProgress] = useState<{ current: number; total: number } | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
+
+  const [createStyles] = usePersistedJsonState<boolean>(STORAGE_KEYS.PUBLISH_CREATE_STYLES, true);
 
   const [groupScopesPath, setGroupScopesPath] = useState<string | null>(null);
   const [groupScopesSelected, setGroupScopesSelected] = useState<string[]>([]);
@@ -93,74 +56,48 @@ export function useFigmaSync(
     return () => { controller.abort(); };
   }, []);
 
-  // Listen for incremental progress messages from the plugin sandbox.
-  // Route to whichever scope is currently applying (group or collection).
+  // Both variable- and style-sync progress messages map onto the single publish
+  // progress indicator. The user sees one ongoing operation, not two.
   useEffect(() => {
     const signal = abortRef.current.signal;
     const handler = (ev: MessageEvent) => {
       if (signal.aborted) return;
       const msg = getPluginMessageFromEvent<{ type?: string; current?: number; total?: number }>(ev);
-      if (msg?.type === 'variable-sync-progress') {
-        const progress = { current: msg.current as number, total: msg.total as number };
-        setSyncGroupProgress(progress);
-        setSyncCollectionProgress(progress);
-      } else if (msg?.type === 'style-sync-progress') {
-        const progress = { current: msg.current as number, total: msg.total as number };
-        setSyncGroupStylesProgress(progress);
-        setSyncCollectionStylesProgress(progress);
+      if (msg?.type === 'variable-sync-progress' || msg?.type === 'style-sync-progress') {
+        setPublishProgress({ current: msg.current as number, total: msg.total as number });
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [setSyncGroupProgress, setSyncGroupStylesProgress, setSyncCollectionProgress, setSyncCollectionStylesProgress]);
+  }, []);
 
-  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }, StylesAppliedMessage>({
+  const sendStyleApply = useFigmaMessage<ApplyResult, StylesAppliedMessage>({
     responseType: 'styles-applied',
     errorType: 'styles-apply-error',
     timeout: 15000,
     extractResponse: extractSyncApplyResult,
   });
 
-  const sendVarApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }, VariablesAppliedMessage>({
+  const sendVarApply = useFigmaMessage<ApplyResult, VariablesAppliedMessage>({
     responseType: 'variables-applied',
     errorType: 'apply-variables-error',
     timeout: 30000,
     extractResponse: extractSyncApplyResult,
   });
 
-  // ── Shared scoped-sync helper ──────────────────────────────────────────────
-  // Fetches all resolved tokens, filters by caller-supplied predicate, and sends them.
-
-  const syncScopeBase = useCallback(async <TPending extends { tokenCount: number }>({
-    pending,
-    matchPath,
-    scopeLabel,
-    setPending,
-    setApplying,
-    setProgress,
-    setError,
-    sendApply,
-    buildPayload,
-    successMsg,
-    entityName,
-  }: {
-    pending: TPending | null;
-    matchPath: (path: string) => boolean;
-    scopeLabel: string;
-    setPending: (v: null) => void;
-    setApplying: (v: boolean) => void;
-    setProgress: (v: { current: number; total: number } | null) => void;
-    setError: (v: string | null) => void;
-    sendApply: (type: string, payload: Record<string, any>) => Promise<{ count: number; total: number; failures: { path: string; error: string }[]; skipped: Array<{ path: string; $type: string }> }>;
-    buildPayload: (tokens: { path: string; $type: string; $value: any; collectionId?: string }[]) => Record<string, any>;
-    successMsg: (count: number, skippedCount: number) => string;
-    entityName: string;
-  }) => {
+  const handlePublish = useCallback(async () => {
+    const pending = publishPending;
     if (!pending || !connected) return;
-    setPending(null);
-    setApplying(true);
-    setProgress(null);
-    setError(null);
+
+    const matchPath = pending.scope === 'group'
+      ? ((path: string) => path === pending.groupPath || path.startsWith(pending.groupPath + '.'))
+      : ((path: string) => pathToCollectionId[path] === pending.collectionId);
+
+    setPublishPending(null);
+    setPublishApplying(true);
+    setPublishProgress(null);
+    setPublishError(null);
+
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
@@ -170,139 +107,50 @@ export function useFigmaSync(
           tokens.push({ path, $type: entry.$type, $value: entry.$value, collectionId: pathToCollectionId[path] });
         }
       }
-      const result = await sendApply('', buildPayload(tokens));
-      const skippedCount = result.skipped?.length ?? 0;
-      if (result.failures.length > 0) {
-        const failedPaths = result.failures.map(f => f.path).join(', ');
-        const skippedNote = skippedCount > 0 ? ` · ${skippedCount} skipped (unsupported type)` : '';
-        setError(`${result.count}/${result.total} ${entityName} published. Failed: ${failedPaths}${skippedNote}`);
+
+      const varResult = await sendVarApply('apply-variables', { tokens, collectionMap, modeMap });
+      const styleResult = createStyles
+        ? await sendStyleApply('apply-styles', { tokens })
+        : null;
+
+      const allFailures = [
+        ...varResult.failures,
+        ...(styleResult?.failures ?? []),
+      ];
+      const varCount = varResult.count;
+      const styleCount = styleResult?.count ?? 0;
+
+      if (allFailures.length > 0) {
+        const failedPaths = allFailures.map(f => f.path).join(', ');
+        setPublishError(`Published ${varCount} variable${varCount !== 1 ? 's' : ''}${styleResult ? ` and ${styleCount} style${styleCount !== 1 ? 's' : ''}` : ''}. Failed: ${failedPaths}`);
       } else {
-        dispatchToast(successMsg(result.count, skippedCount), 'success', {
-          destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+        const parts: string[] = [];
+        parts.push(`${varCount} variable${varCount !== 1 ? 's' : ''}`);
+        if (styleResult) parts.push(`${styleCount} style${styleCount !== 1 ? 's' : ''}`);
+        dispatchToast(`Published ${parts.join(' · ')} to Figma`, 'success', {
+          destination: { kind: 'workspace', topTab: 'sync', subTab: 'figma-sync' },
         });
       }
     } catch (err) {
       if (abortRef.current.signal.aborted) return;
-      console.error(`Failed to sync ${scopeLabel} (${entityName}):`, err);
-      setError(getErrorMessage(err, `Failed to sync ${scopeLabel} to Figma`));
+      console.error(`Failed to publish ${pending.scope} to Figma:`, err);
+      setPublishError(getErrorMessage(err, `Failed to publish ${pending.scope} to Figma`));
     } finally {
       if (!abortRef.current.signal.aborted) {
-        setApplying(false);
-        setProgress(null);
+        setPublishApplying(false);
+        setPublishProgress(null);
       }
     }
-  }, [connected, serverUrl, pathToCollectionId]);
-
-  const handleSyncGroup = useCallback(async () => {
-    const pending = syncGroupPending;
-    if (!pending) return;
-    const prefix = pending.groupPath + '.';
-    await syncScopeBase({
-      pending,
-      matchPath: (path) => path === pending.groupPath || path.startsWith(prefix),
-      scopeLabel: 'group',
-      setPending: setSyncGroupPending,
-      setApplying: setSyncGroupApplying,
-      setProgress: setSyncGroupProgress,
-      setError: setSyncGroupError,
-      sendApply: (_, payload) => sendVarApply('apply-variables', payload),
-      buildPayload: (tokens) => ({ tokens, collectionMap, modeMap }),
-      successMsg: (count, skipped) => `${count} variable${count !== 1 ? 's' : ''} published${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
-      entityName: 'variables',
-    });
   }, [
-    sendVarApply,
+    publishPending,
+    connected,
+    serverUrl,
+    pathToCollectionId,
     collectionMap,
     modeMap,
-    setSyncGroupApplying,
-    setSyncGroupError,
-    setSyncGroupPending,
-    setSyncGroupProgress,
-    syncScopeBase,
-    syncGroupPending,
-  ]);
-
-  const handleSyncGroupStyles = useCallback(async () => {
-    const pending = syncGroupStylesPending;
-    if (!pending) return;
-    const prefix = pending.groupPath + '.';
-    await syncScopeBase({
-      pending,
-      matchPath: (path) => path === pending.groupPath || path.startsWith(prefix),
-      scopeLabel: 'group',
-      setPending: setSyncGroupStylesPending,
-      setApplying: setSyncGroupStylesApplying,
-      setProgress: setSyncGroupStylesProgress,
-      setError: setSyncGroupStylesError,
-      sendApply: (_, payload) => sendStyleApply('apply-styles', payload),
-      buildPayload: (tokens) => ({ tokens }),
-      successMsg: (count, skipped) => `${count} style${count !== 1 ? 's' : ''} created${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
-      entityName: 'styles',
-    });
-  }, [
-    sendStyleApply,
-    setSyncGroupStylesApplying,
-    setSyncGroupStylesError,
-    setSyncGroupStylesPending,
-    setSyncGroupStylesProgress,
-    syncScopeBase,
-    syncGroupStylesPending,
-  ]);
-
-  const handleSyncCollection = useCallback(async () => {
-    const pending = syncCollectionPending;
-    if (!pending) return;
-    await syncScopeBase({
-      pending,
-      matchPath: (path) => pathToCollectionId[path] === pending.collectionId,
-      scopeLabel: 'collection',
-      setPending: setSyncCollectionPending,
-      setApplying: setSyncCollectionApplying,
-      setProgress: setSyncCollectionProgress,
-      setError: setSyncCollectionError,
-      sendApply: (_, payload) => sendVarApply('apply-variables', payload),
-      buildPayload: (tokens) => ({ tokens, collectionMap, modeMap }),
-      successMsg: (count, skipped) => `${count} variable${count !== 1 ? 's' : ''} published${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
-      entityName: 'variables',
-    });
-  }, [
+    createStyles,
     sendVarApply,
-    collectionMap,
-    modeMap,
-    pathToCollectionId,
-    setSyncCollectionApplying,
-    setSyncCollectionError,
-    setSyncCollectionPending,
-    setSyncCollectionProgress,
-    syncScopeBase,
-    syncCollectionPending,
-  ]);
-
-  const handleSyncCollectionStyles = useCallback(async () => {
-    const pending = syncCollectionStylesPending;
-    if (!pending) return;
-    await syncScopeBase({
-      pending,
-      matchPath: (path) => pathToCollectionId[path] === pending.collectionId,
-      scopeLabel: 'collection',
-      setPending: setSyncCollectionStylesPending,
-      setApplying: setSyncCollectionStylesApplying,
-      setProgress: setSyncCollectionStylesProgress,
-      setError: setSyncCollectionStylesError,
-      sendApply: (_, payload) => sendStyleApply('apply-styles', payload),
-      buildPayload: (tokens) => ({ tokens }),
-      successMsg: (count, skipped) => `${count} style${count !== 1 ? 's' : ''} created${skipped > 0 ? ` · ${skipped} skipped (unsupported type)` : ''}`,
-      entityName: 'styles',
-    });
-  }, [
     sendStyleApply,
-    pathToCollectionId,
-    setSyncCollectionStylesApplying,
-    setSyncCollectionStylesError,
-    setSyncCollectionStylesPending,
-    setSyncCollectionStylesProgress,
-    syncScopeBase,
-    syncCollectionStylesPending,
   ]);
 
   const handleApplyGroupScopes = useCallback(async () => {
@@ -357,26 +205,12 @@ export function useFigmaSync(
   }, [groupScopesPath, groupScopesSelected, connected, serverUrl, currentCollectionId]);
 
   return {
-    syncGroupPending,
-    setSyncGroupPending,
-    syncGroupApplying,
-    syncGroupProgress,
-    syncGroupError,
-    syncGroupStylesPending,
-    setSyncGroupStylesPending,
-    syncGroupStylesApplying,
-    syncGroupStylesProgress,
-    syncGroupStylesError,
-    syncCollectionPending,
-    setSyncCollectionPending,
-    syncCollectionApplying,
-    syncCollectionProgress,
-    syncCollectionError,
-    syncCollectionStylesPending,
-    setSyncCollectionStylesPending,
-    syncCollectionStylesApplying,
-    syncCollectionStylesProgress,
-    syncCollectionStylesError,
+    publishPending,
+    setPublishPending,
+    publishApplying,
+    publishProgress,
+    publishError,
+    handlePublish,
     groupScopesPath,
     setGroupScopesPath,
     groupScopesSelected,
@@ -385,10 +219,6 @@ export function useFigmaSync(
     groupScopesError,
     setGroupScopesError,
     groupScopesProgress,
-    handleSyncGroup,
-    handleSyncGroupStyles,
-    handleSyncCollection,
-    handleSyncCollectionStyles,
     handleApplyGroupScopes,
   };
 }

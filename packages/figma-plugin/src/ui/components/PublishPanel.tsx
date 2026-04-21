@@ -14,7 +14,9 @@ import { NoticeBanner, type NoticeSeverity } from '../shared/noticeSystem';
 import { useOrphanCleanup } from '../hooks/useOrphanCleanup';
 import { useReadinessChecks } from '../hooks/useReadinessChecks';
 import type { ValidationSnapshot } from '../hooks/useValidationCache';
-import { usePublishAll, type ConfirmAction, type PublishAllSections } from '../hooks/usePublishAll';
+import { usePublishAll, type ConfirmAction } from '../hooks/usePublishAll';
+import { usePersistedJsonState } from '../hooks/usePersistedState';
+import { STORAGE_KEYS } from '../shared/storage';
 import { useNavigationContext } from '../contexts/NavigationContext';
 import { useResolverContext } from '../contexts/CollectionContext';
 import { apiFetch } from '../shared/apiFetch';
@@ -730,6 +732,11 @@ export function PublishPanel({
       : varSync
   ), [isResolverPublishCompareActive, varSync]);
 
+  const [createStylesPref, setCreateStylesPref] = usePersistedJsonState<boolean>(
+    STORAGE_KEYS.PUBLISH_CREATE_STYLES,
+    true,
+  );
+
   const publishAll = usePublishAll({
     varSync: publishAllVarSync,
     styleSync,
@@ -991,7 +998,7 @@ export function PublishPanel({
               </button>
             </div>
             {standardRoutingExpanded && (
-              <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+              <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3 flex flex-col gap-3">
                 <StandardPublishRoutingCard
                   currentCollectionId={currentCollectionId}
                   draft={standardRoutingDraft}
@@ -1002,6 +1009,20 @@ export function PublishPanel({
                   onReset={resetStandardRoutingDraft}
                   onSave={() => void saveStandardRouting()}
                 />
+                <label className="flex items-start gap-2 pt-2 border-t border-[var(--color-figma-border)] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={createStylesPref}
+                    onChange={(e) => setCreateStylesPref(e.target.checked)}
+                    className="mt-0.5 w-3 h-3 accent-[var(--color-figma-accent)]"
+                  />
+                  <span className="flex-1">
+                    <span className="text-body text-[var(--color-figma-text)]">Create Figma styles for applicable tokens</span>
+                    <span className="block text-secondary text-[var(--color-figma-text-secondary)] leading-relaxed">
+                      Colors, typography, shadows, and gradients will be available in the Figma style picker. Turn off for a variables-only workflow.
+                    </span>
+                  </span>
+                </label>
               </div>
             )}
           </div>
@@ -1041,7 +1062,7 @@ export function PublishPanel({
           {!hasComparedAnything && !isSyncing && !isApplying && !hasIssues && preflightStage === 'idle' && !readinessError && (
             <div className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-3">
               <p className="text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
-                Click <strong className="text-[var(--color-figma-text)]">Check for changes</strong> to compare your tokens with Figma variables and styles.
+                Click <strong className="text-[var(--color-figma-text)]">Check for changes</strong> to compare your tokens with Figma.
               </p>
             </div>
           )}
@@ -1171,19 +1192,19 @@ export function PublishPanel({
     {confirmAction === 'publish-all' && (
       <PublishAllPreviewModal
         hasVarChanges={hasVarChanges}
-        hasStyleChanges={hasStyleChanges}
+        hasStyleChanges={hasStyleChanges && createStylesPref}
         varRows={varSync.rows}
         varDirs={varSync.dirs}
         varPushCount={varSync.pushCount}
         varPullCount={varSync.pullCount}
         styleRows={styleSync.rows}
         styleDirs={styleSync.dirs}
-        stylePushCount={styleSync.pushCount}
-        stylePullCount={styleSync.pullCount}
+        stylePushCount={createStylesPref ? styleSync.pushCount : 0}
+        stylePullCount={createStylesPref ? styleSync.pullCount : 0}
         onCancel={() => setConfirmAction(null)}
-        onConfirm={async (sections) => {
+        onConfirm={async () => {
           setConfirmAction(null);
-          await runPublishAll(sections);
+          await runPublishAll({ vars: true, styles: createStylesPref });
         }}
       />
     )}
@@ -1477,12 +1498,10 @@ function PublishAllPreviewModal({
   stylePushCount: number;
   stylePullCount: number;
   onCancel: () => void;
-  onConfirm: (sections: PublishAllSections) => void | Promise<void>;
+  onConfirm: () => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
-  const [includeVars, setIncludeVars] = useState(hasVarChanges);
-  const [includeStyles, setIncludeStyles] = useState(hasStyleChanges);
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
 
@@ -1493,13 +1512,14 @@ function PublishAllPreviewModal({
   }, [onCancel]);
 
   const hasAnyChanges = hasVarChanges || hasStyleChanges;
-  const anySelected = (includeVars && hasVarChanges) || (includeStyles && hasStyleChanges);
+  const totalPush = varPushCount + stylePushCount;
+  const totalPull = varPullCount + stylePullCount;
 
   const handleConfirm = async () => {
     setBusy(true);
     setConfirmError(null);
     try {
-      await onConfirm({ vars: includeVars, styles: includeStyles });
+      await onConfirm();
     } catch (err) {
       setConfirmError(describeError(err));
       setBusy(false);
@@ -1516,9 +1536,14 @@ function PublishAllPreviewModal({
           <h3 id="publish-all-modal-title" className="text-heading font-semibold text-[var(--color-figma-text)]">
             Review changes
           </h3>
-          <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
-            Review before applying.
-          </p>
+          {hasAnyChanges && (
+            <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+              {[
+                totalPush > 0 ? `↑ ${totalPush} to update in Figma` : null,
+                totalPull > 0 ? `↓ ${totalPull} to update locally` : null,
+              ].filter(Boolean).join(' · ')}
+            </p>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-2 flex flex-col gap-3">
@@ -1529,48 +1554,12 @@ function PublishAllPreviewModal({
             </div>
           )}
 
-          {/* Variables section */}
           {hasVarChanges && (
-            <div className={includeVars ? '' : 'opacity-50'}>
-              <label className="flex items-center gap-1.5 mb-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeVars}
-                  onChange={e => setIncludeVars(e.target.checked)}
-                  className="w-3 h-3 accent-[var(--color-figma-accent)]"
-                />
-                <span className="text-secondary font-semibold text-[var(--color-figma-text)]">Variables</span>
-                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                  {[
-                    varPushCount > 0 ? `\u2191 ${varPushCount} to update in Figma` : null,
-                    varPullCount > 0 ? `\u2193 ${varPullCount} to update locally` : null,
-                  ].filter(Boolean).join(' \u00b7 ')}
-                </span>
-              </label>
-              <SyncDiffSummary rows={varRows} dirs={varDirs} />
-            </div>
+            <SyncDiffSummary rows={varRows} dirs={varDirs} />
           )}
 
-          {/* Styles section */}
           {hasStyleChanges && (
-            <div className={includeStyles ? '' : 'opacity-50'}>
-              <label className="flex items-center gap-1.5 mb-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeStyles}
-                  onChange={e => setIncludeStyles(e.target.checked)}
-                  className="w-3 h-3 accent-[var(--color-figma-accent)]"
-                />
-                <span className="text-secondary font-semibold text-[var(--color-figma-text)]">Styles</span>
-                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                  {[
-                    stylePushCount > 0 ? `\u2191 ${stylePushCount} to update in Figma` : null,
-                    stylePullCount > 0 ? `\u2193 ${stylePullCount} to update locally` : null,
-                  ].filter(Boolean).join(' \u00b7 ')}
-                </span>
-              </label>
-              <SyncDiffSummary rows={styleRows} dirs={styleDirs} />
-            </div>
+            <SyncDiffSummary rows={styleRows} dirs={styleDirs} />
           )}
         </div>
 
@@ -1588,12 +1577,11 @@ function PublishAllPreviewModal({
           {hasAnyChanges ? (
             <button
               onClick={handleConfirm}
-              disabled={busy || !anySelected}
-              title={!anySelected ? 'Select at least one target' : undefined}
+              disabled={busy}
               className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
-              {busy ? 'Applying\u2026' : !anySelected ? 'Nothing selected' : 'Apply selected'}
+              {busy ? 'Publishing\u2026' : 'Publish to Figma'}
             </button>
           ) : (
             <button
