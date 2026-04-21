@@ -591,9 +591,9 @@ export const TokenGroupNode = memo(
               <span>Generated</span>
             </button>
           )}
-          {!selectMode && !renamingGroup && (
+          {!renamingGroup && (
             <div
-              className={`flex items-center gap-0.5 shrink-0 ml-auto ${isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"} transition-opacity`}
+              className={`flex items-center gap-0.5 shrink-0 ml-auto ${selectMode ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"} transition-opacity`}
             >
               {onZoomIntoGroup && (
                 <button

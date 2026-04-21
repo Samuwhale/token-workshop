@@ -1247,35 +1247,33 @@ export const TokenLeafNode = memo(
               </svg>
             </span>
           )}
-          {!selectMode && (
-            <div
-              className={`flex items-center gap-0.5 shrink-0 ml-1 ${isRowActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"} transition-opacity`}
+          <div
+            className={`flex items-center gap-0.5 shrink-0 ml-1 ${selectMode ? "invisible" : isRowActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"} transition-opacity`}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenTokenActions(e.currentTarget);
+              }}
+              title="More token actions"
+              aria-label="More token actions"
+              aria-haspopup="menu"
+              aria-expanded={!!contextMenuPos}
+              className="p-2 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenTokenActions(e.currentTarget);
-                }}
-                title="More token actions"
-                aria-label="More token actions"
-                aria-haspopup="menu"
-                aria-expanded={!!contextMenuPos}
-                className="p-2 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <circle cx="5" cy="12" r="2" />
-                  <circle cx="12" cy="12" r="2" />
-                  <circle cx="19" cy="12" r="2" />
-                </svg>
-              </button>
-            </div>
-          )}
+                <circle cx="5" cy="12" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="19" cy="12" r="2" />
+              </svg>
+            </button>
+          </div>
           </div>
           {/* end name cell (grid column 1) */}
 
