@@ -177,6 +177,11 @@ export function PanelRouter({
   const {
     refreshAll,
     handleEditorSave,
+    guardEditorAction,
+    validationIssues,
+    lintViolations,
+    refreshValidation,
+    setErrorToast,
   } = controller;
   // Navigation and editor state from contexts (previously passed as props)
   const {
@@ -221,6 +226,9 @@ export function PanelRouter({
     tokensContextualSurfaceState,
     switchContextualSurface,
     closeMaintenanceSurface,
+    showImport,
+    historyFilterPath,
+    setHistoryFilterPath,
   } = useEditorContext();
   const activeEditorSurface = tokensContextualSurfaceState.editorSurface;
   const activeMaintenanceSurface = tokensContextualSurfaceState.maintenanceSurface;
@@ -267,11 +275,6 @@ export function PanelRouter({
     cancelHeatmapScan: _cancelHeatmapScan,
   } = useHeatmapContext();
   const { tokenUsageCounts } = useUsageContext();
-  const {
-    showImport,
-    historyFilterPath,
-    setHistoryFilterPath,
-  } = useEditorContext();
   const [healthViewRequest, setHealthViewRequest] = useState<{
     view: "dashboard" | "issues" | "unused" | "deprecated" | "alias-opportunities" | "duplicates" | "hidden";
     nonce: number;
@@ -290,7 +293,7 @@ export function PanelRouter({
 
   const openTokenInspector = useCallback(
     (path: string, collectionId: string, name?: string) => {
-      controller.guardEditorAction(() => {
+      guardEditorAction(() => {
         if (collectionId !== currentCollectionId) {
           setCurrentCollectionId(collectionId);
         }
@@ -302,20 +305,27 @@ export function PanelRouter({
         setHighlightedToken(path);
       });
     },
-    [controller, currentCollectionId, navigateTo, setCurrentCollectionId, switchContextualSurface, setHighlightedToken],
+    [
+      currentCollectionId,
+      guardEditorAction,
+      navigateTo,
+      setCurrentCollectionId,
+      setHighlightedToken,
+      switchContextualSurface,
+    ],
   );
 
   const healthSignals = useHealthSignals({
-    validationIssues: controller.validationIssues,
-    lintViolations: controller.lintViolations,
+    validationIssues,
+    lintViolations,
     generators,
     currentCollectionId,
   });
   const issueActions = useIssueActions({
     serverUrl,
     connected,
-    onRefreshValidation: controller.refreshValidation,
-    onError: controller.setErrorToast,
+    onRefreshValidation: refreshValidation,
+    onError: setErrorToast,
   });
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"

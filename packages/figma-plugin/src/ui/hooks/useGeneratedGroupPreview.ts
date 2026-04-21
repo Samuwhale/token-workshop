@@ -158,7 +158,7 @@ export async function requestGeneratedGroupPreview({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: signal ? createFetchSignal(signal) : undefined,
+    signal: createFetchSignal(signal, 15_000),
   });
 }
 

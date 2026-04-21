@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { apiFetch, ApiError } from "../shared/apiFetch";
+import { apiFetch, ApiError, createFetchSignal } from "../shared/apiFetch";
 import { validateJsonRefs } from "../components/tokenListHelpers";
-import { getErrorMessage } from "../shared/utils";
+import { getErrorMessage, isAbortError } from "../shared/utils";
 import type { TokenMapEntry } from "../../shared/types";
 import type { TokenNode } from "./useTokens";
 
@@ -31,21 +31,17 @@ export function useJsonEditor({
   const [jsonBrokenRefs, setJsonBrokenRefs] = useState<string[]>([]);
   const jsonTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load raw JSON when entering JSON view (or when collectionId changes in JSON view)
-  useEffect(() => {
-    if (viewMode !== "json" || !connected || !serverUrl || !collectionId) return;
-    if (jsonDirty) return; // don't clobber unsaved edits
-    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/raw`)
-      .then((data) => {
-        const text = JSON.stringify(data, null, 2);
-        setJsonText(text);
-        setJsonError(null);
-        setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
-      })
-      .catch(() => setJsonError("Failed to load JSON"));
-  }, [viewMode, collectionId, connected, serverUrl, jsonDirty, allTokensFlat]);
+  const loadJson = useCallback(async (signal?: AbortSignal) => {
+    const data = await apiFetch(
+      `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/raw`,
+      { signal: createFetchSignal(signal, 10_000) },
+    );
+    const text = JSON.stringify(data, null, 2);
+    setJsonText(text);
+    setJsonError(null);
+    setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
+  }, [allTokensFlat, collectionId, serverUrl]);
 
-  // Sync from list view → JSON when tokens change externally (not dirty)
   useEffect(() => {
     if (
       viewMode !== "json" ||
@@ -53,24 +49,21 @@ export function useJsonEditor({
       !connected ||
       !serverUrl ||
       !collectionId
-    )
+    ) {
       return;
-    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/raw`)
-      .then((data) => {
-        const text = JSON.stringify(data, null, 2);
-        setJsonText(text);
-        setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
-      })
-      .catch((err) => console.warn("[TokenList] fetch raw JSON failed:", err));
-  }, [
-    tokens,
-    viewMode,
-    jsonDirty,
-    connected,
-    serverUrl,
-    collectionId,
-    allTokensFlat,
-  ]);
+    }
+
+    const controller = new AbortController();
+    loadJson(controller.signal).catch((err) => {
+      if (isAbortError(err)) return;
+      console.warn("[TokenList] fetch raw JSON failed:", err);
+      setJsonError("Failed to load JSON");
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [tokens, viewMode, jsonDirty, connected, serverUrl, collectionId, loadJson]);
 
   const handleJsonChange = useCallback(
     (val: string) => {
@@ -116,19 +109,12 @@ export function useJsonEditor({
 
   const handleJsonRevert = useCallback(() => {
     setJsonDirty(false);
-    apiFetch(
-      `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/raw`,
-    )
-      .then((data) => {
-        const text = JSON.stringify(data, null, 2);
-        setJsonText(text);
-        setJsonError(null);
-        setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
-      })
-      .catch((err) =>
-        console.warn("[TokenList] reload raw JSON failed:", err),
-      );
-  }, [serverUrl, collectionId, allTokensFlat]);
+    void loadJson().catch((err) => {
+      if (isAbortError(err)) return;
+      console.warn("[TokenList] reload raw JSON failed:", err);
+      setJsonError("Failed to load JSON");
+    });
+  }, [loadJson]);
 
   return {
     jsonText,

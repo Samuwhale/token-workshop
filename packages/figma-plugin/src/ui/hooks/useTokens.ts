@@ -374,6 +374,9 @@ async function fetchAllCollections(serverUrl: string, signal?: AbortSignal): Pro
   for (let index = 0; index < results.length; index++) {
     const result = results[index];
     if (result.status === 'rejected') {
+      if (isAbortError(result.reason)) {
+        throw result.reason;
+      }
       failed.push(collectionIds[index]);
       console.error(`Failed to fetch token collection "${collectionIds[index]}":`, result.reason);
       continue;

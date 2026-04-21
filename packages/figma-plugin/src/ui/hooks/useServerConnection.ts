@@ -91,6 +91,7 @@ export function useServerConnection() {
 
   /** Save a new URL and immediately test connectivity. Returns the result. */
   const updateServerUrlAndConnect = useCallback(async (url: string): Promise<boolean> => {
+    fireDisconnect();
     updateServerUrl(url);
     setChecking(true);
     const ok = await checkConnection(url);
@@ -98,7 +99,7 @@ export function useServerConnection() {
     setConnected(ok);
     setChecking(false);
     return ok;
-  }, [updateServerUrl, checkConnection]);
+  }, [fireDisconnect, updateServerUrl, checkConnection]);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +135,7 @@ export function useServerConnection() {
     return () => {
       cancelled = true;
       clearInterval(interval);
+      fireDisconnect();
     };
   }, [serverUrl, fireDisconnect]);
 
