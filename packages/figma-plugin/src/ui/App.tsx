@@ -24,6 +24,8 @@ import type { CollectionSummary, TokenNode } from "./hooks/useTokens";
 import { useUndo } from "./hooks/useUndo";
 import { useLint } from "./hooks/useLint";
 import { usePreviewSplit } from "./hooks/usePreviewSplit";
+import { useResizableBoundary } from "./hooks/useResizableBoundary";
+import { ResizeDivider } from "./components/ResizeDivider";
 import { useAvailableFonts } from "./hooks/useAvailableFonts";
 import { useWindowExpand } from "./hooks/useWindowExpand";
 import { useWindowResize } from "./hooks/useWindowResize";
@@ -75,7 +77,7 @@ import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { tokenPathToUrlSegment } from "./shared/utils";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
-import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
+import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 import {
   Layers, Frame, Share2, ChevronRight, Bell, Settings,
@@ -745,16 +747,19 @@ export function App() {
     refreshValidation,
   } = useValidationCache({ serverUrl, connected, tokenChangeKey });
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => lsGet(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "1",
-  );
+  const sidebarBoundary = useResizableBoundary({
+    storageKey: STORAGE_KEYS.SIDEBAR_WIDTH,
+    defaultSize: 120,
+    min: 40,
+    max: 240,
+    axis: "x",
+    mode: "px",
+    snap: { below: 56, to: 40 },
+  });
+  const sidebarCollapsed = sidebarBoundary.size <= 40;
   const toggleSidebarCollapsed = useCallback(() => {
-    setSidebarCollapsed((previous) => {
-      const next = !previous;
-      lsSet(STORAGE_KEYS.SIDEBAR_COLLAPSED, next ? "1" : "0");
-      return next;
-    });
-  }, []);
+    sidebarBoundary.setSize(sidebarBoundary.size <= 40 ? 120 : 40);
+  }, [sidebarBoundary]);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(
     () => new Set([activeWorkspace.id]),
   );
@@ -1493,7 +1498,8 @@ export function App() {
       <h1 className="sr-only">TokenManager</h1>
       {/* Sidebar */}
       <nav
-        className={`flex ${sidebarCollapsed ? 'w-10' : 'w-[120px]'} shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]`}
+        className={`flex shrink-0 flex-col bg-[var(--color-figma-bg)] ${sidebarBoundary.isDragging ? '' : 'transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]'}`}
+        style={{ width: sidebarBoundary.size }}
         aria-label="Workspaces"
       >
         {/* Accordion navigation */}
@@ -1706,6 +1712,13 @@ export function App() {
           </Tooltip>
         </div>
       </nav>
+      <ResizeDivider
+        axis="x"
+        ariaLabel="Resize workspace sidebar"
+        ariaValueNow={sidebarBoundary.ariaValueNow}
+        onMouseDown={sidebarBoundary.onMouseDown}
+        onKeyDown={sidebarBoundary.onKeyDown}
+      />
 
       {/* Content area — no top bar */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

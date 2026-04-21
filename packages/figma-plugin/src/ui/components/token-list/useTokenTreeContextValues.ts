@@ -223,7 +223,7 @@ interface LeafActionsDeps {
   onEdit: (path: string, name?: string) => void;
   onPreview?: (path: string, name?: string) => void;
   requestDeleteToken: (path: string) => void;
-  handleTokenSelect: (path: string, modifiers?: { shift: boolean; ctrl: boolean }) => void;
+  handleTokenSelect: (path: string, modifiers?: { shift: boolean }) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   onRefresh: () => void;
   onPushUndo?: any;
@@ -255,7 +255,6 @@ interface LeafActionsDeps {
   handleClearPendingRename: () => void;
   handleClearPendingTabEdit: () => void;
   handleTabToNext: (currentPath: string, columnId: string | null, direction: 1 | -1) => void;
-  setPendingTabEdit: (edit: { path: string; columnId: string | null } | null) => void;
   setRovingFocusPath: (path: string) => void;
 }
 
@@ -297,8 +296,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       clearPendingRename: deps.handleClearPendingRename,
       clearPendingTabEdit: deps.handleClearPendingTabEdit,
       onTabToNext: deps.handleTabToNext,
-      onEnterCellEdit: (path, columnId) =>
-        deps.setPendingTabEdit({ path, columnId }),
       onRovingFocus: deps.setRovingFocusPath,
     }),
     [deps],

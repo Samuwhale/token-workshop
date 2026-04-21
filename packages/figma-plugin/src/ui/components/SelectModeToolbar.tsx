@@ -18,7 +18,7 @@ export interface SelectModeToolbarProps {
   onSelectAll: () => void;
   onSetBatchAction: (action: BatchActionType | null) => void;
   onRequestBulkDelete: () => void;
-  onExitSelectMode: () => void;
+  onClearSelection: () => void;
   onCopyJson: () => void;
   onCopyCssVar: () => void;
   onCopyDtcgRef: () => void;
@@ -90,7 +90,7 @@ export function SelectModeToolbar({
   onSelectAll,
   onSetBatchAction,
   onRequestBulkDelete,
-  onExitSelectMode,
+  onClearSelection,
   onCopyJson,
   onCopyCssVar,
   onCopyDtcgRef,
@@ -245,9 +245,9 @@ export function SelectModeToolbar({
 
       {/* Exit */}
       <button
-        onClick={onExitSelectMode}
+        onClick={onClearSelection}
         className="shrink-0 p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-        aria-label="Exit select mode"
+        aria-label="Clear selection"
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
           <path d="M2 2l6 6M8 2l-6 6" />

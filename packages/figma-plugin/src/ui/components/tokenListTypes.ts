@@ -203,7 +203,6 @@ export interface TokenListActions {
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */
 export interface TokenListImperativeHandle {
-  /** Enter multi-select mode (no navigation — user selects tokens then clicks Compare) */
   openCompareMode: () => void;
   /** Expand the parent chain for a token/group and scroll it into view */
   revealPath: (path: string) => void;
@@ -301,8 +300,11 @@ export interface PromoteRow {
   accepted: boolean;
 }
 
-/** Types that can be edited inline in the list row (without opening the drawer). Boolean uses a staged true/false toggle. */
-export const INLINE_SIMPLE_TYPES = new Set([
+/**
+ * Types that open the quick value editor popover on click in the token list.
+ * Every entry must have a matching case in `InlineValuePopover`'s `TypeEditor`.
+ */
+export const QUICK_EDITABLE_TYPES = new Set([
   "color",
   "dimension",
   "number",
@@ -312,10 +314,6 @@ export const INLINE_SIMPLE_TYPES = new Set([
   "fontWeight",
   "duration",
   "asset",
-]);
-
-/** Types that open the inline value popover on double-click (not handled by INLINE_SIMPLE_TYPES). */
-export const INLINE_POPOVER_TYPES = new Set([
   "shadow",
   "border",
   "typography",
@@ -479,7 +477,7 @@ export interface TokenTreeLeafActionsContextType {
   onDelete: (path: string) => void;
   onToggleSelect: (
     path: string,
-    modifiers?: { shift: boolean; ctrl: boolean },
+    modifiers?: { shift: boolean },
   ) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   onRefresh: () => void;
@@ -542,8 +540,6 @@ export interface TokenTreeLeafActionsContextType {
     columnId: string | null,
     direction: 1 | -1,
   ) => void;
-  /** Request a value cell to enter edit mode (used for Enter-to-edit from the row). */
-  onEnterCellEdit: (path: string, columnId: string | null) => void;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
 }

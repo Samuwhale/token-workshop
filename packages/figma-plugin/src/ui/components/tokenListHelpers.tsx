@@ -64,18 +64,6 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
-/** Get a human-editable string representation of a token value for the inline input. */
-export function getEditableString(type: string | undefined, value: any): string {
-  if (value === undefined || value === null) return '';
-  if (type === 'dimension' && typeof value === 'object' && value !== null && 'value' in value && 'unit' in value) {
-    return `${value.value}${value.unit}`;
-  }
-  if (typeof value === 'boolean') return value ? 'true' : 'false';
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'string') return value;
-  return String(value);
-}
-
 /** Parse an inline-edited string back to the correct token value shape.
  * Returns null if the value is invalid for the given type. */
 export function parseInlineValue(type: string, str: string): any {
@@ -95,12 +83,6 @@ export function parseInlineValue(type: string, str: string): any {
   }
   // color, string, fontFamily: return as-is
   return str;
-}
-
-/** Returns a human-readable error message for an invalid inline value of the given type. */
-export function getInlineValueError(type: string): string {
-  if (type === 'boolean') return "Enter 'true' or 'false'";
-  return 'Invalid value';
 }
 
 /** Infer token type from a raw value string. Returns null if no pattern matches. */

@@ -215,7 +215,7 @@ export function TokenList({
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(
     new Set(),
   );
-  // selectMode/selectedPaths/showBatchEditor/lastSelectedPathRef managed by useTokenSelection (called below)
+  // selectedPaths/showBatchEditor/lastSelectedPathRef managed by useTokenSelection (called below)
   const varReadPendingRef = useRef<
     Map<
       string,
@@ -1170,7 +1170,6 @@ export function TokenList({
     setVirtualScrollTop,
     itemOffsets,
     pendingTabEdit,
-    setPendingTabEdit,
     handleClearPendingTabEdit,
     handleJumpToGroup,
     handleTabToNext,
@@ -1195,7 +1194,6 @@ export function TokenList({
   });
   const {
     selectMode,
-    setSelectMode,
     selectedPaths,
     setSelectedPaths,
     showBatchEditor,
@@ -1206,22 +1204,17 @@ export function TokenList({
     handleTokenSelect,
     handleSelectAll,
     handleSelectGroupChildren,
+    clearSelection: clearSelectionImpl,
   } = tokenSelection;
 
   const [activeBatchAction, setActiveBatchAction] = useState<BatchActionType | null>(null);
 
-  // Wire up the clearSelection ref now that useTokenSelection has been called
-  clearSelectionRef.current = () => {
-    setSelectMode(false);
-    setSelectedPaths(new Set());
-  };
+  clearSelectionRef.current = clearSelectionImpl;
 
-  const handleExitSelectMode = useCallback(() => {
-    setSelectMode(false);
-    setSelectedPaths(new Set());
+  const handleClearSelection = useCallback(() => {
+    clearSelectionImpl();
     setActiveBatchAction(null);
-    setShowBatchEditor(false);
-  }, [setSelectMode, setSelectedPaths, setShowBatchEditor]);
+  }, [clearSelectionImpl]);
 
   const openBulkEditorForPaths = useCallback(
     (paths: Set<string>, scope: BulkEditScope) => {
@@ -1229,11 +1222,10 @@ export function TokenList({
         dispatchToast("No tokens match that bulk-edit scope.", "error");
         return;
       }
-      setSelectMode(true);
       setSelectedPaths(paths);
       setActiveBulkEditScope(scope);
     },
-    [setSelectMode, setSelectedPaths],
+    [setSelectedPaths],
   );
 
   const handleBatchActionSelectionChange = useCallback(
@@ -1242,10 +1234,9 @@ export function TokenList({
       if (nextSelectedPaths.size === 0) {
         setActiveBatchAction(null);
         setShowBatchEditor(false);
-        setSelectMode(false);
       }
     },
-    [setSelectMode, setSelectedPaths, setShowBatchEditor],
+    [setSelectedPaths, setShowBatchEditor],
   );
 
   const selectedEntries = useMemo(
@@ -1317,11 +1308,11 @@ export function TokenList({
   ]);
 
   useEffect(() => {
-    if (!selectMode || selectedPaths.size === 0) {
+    if (selectedPaths.size === 0) {
       setActiveBulkEditScope(null);
       setActiveBatchAction(null);
     }
-  }, [selectMode, selectedPaths.size]);
+  }, [selectedPaths.size]);
 
   // Sync: keyboard handler toggles showBatchEditor (from useTokenSelection).
   // Map that to activeBatchAction so the E key opens/closes the panel.
@@ -1731,7 +1722,6 @@ export function TokenList({
   }, [pendingBatchEditorFocus, activeBatchAction]);
 
   const handleListKeyDown = useTokenListKeyboardHandler({
-    selectMode,
     selectedPaths,
     expandedPaths,
     zoomRootPath,
@@ -1749,9 +1739,9 @@ export function TokenList({
     virtualListRef,
     collectionIds,
     collectionId,
-    setSelectMode,
     setSelectedPaths,
     setShowBatchEditor,
+    clearSelection,
     setZoomRootPath,
     setVirtualScrollTop,
     setBatchMoveToCollectionTarget,
@@ -1910,8 +1900,7 @@ export function TokenList({
     selectedPaths,
     onRefresh,
     onError,
-    setSelectMode,
-    setSelectedPaths,
+    clearSelection,
     setOperationLoading,
   });
 
@@ -2156,7 +2145,6 @@ export function TokenList({
     if (!compareHandle) return;
     compareHandle.current = {
       openCompareMode: () => {
-        setSelectMode(true);
         setActiveBatchAction(null);
       },
       revealPath: (path: string) => {
@@ -2194,7 +2182,6 @@ export function TokenList({
     };
   }, [
     compareHandle,
-    setSelectMode,
     handleRevealPath,
     setShowRecentlyTouched,
     viewMode,
@@ -2283,7 +2270,6 @@ export function TokenList({
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, onOpenGeneratedGroupEditor, onToggleStar,
     handleClearPendingRename, handleClearPendingTabEdit, handleTabToNext,
-    setPendingTabEdit,
     setRovingFocusPath,
   });
 
@@ -2378,7 +2364,7 @@ export function TokenList({
             onSelectAll={handleSelectAll}
             onSetBatchAction={setActiveBatchAction}
             onRequestBulkDelete={requestBulkDelete}
-            onExitSelectMode={handleExitSelectMode}
+            onClearSelection={handleClearSelection}
             onCopyJson={() => {
               const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
               copyTokensAsJson(nodes);
@@ -2467,7 +2453,7 @@ export function TokenList({
             onOpenImportPanel={onOpenImportPanel}
             onOpenCreateCollection={onOpenCreateCollection}
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
-            onSelectTokens={() => { setSelectMode(true); setActiveBatchAction(null); }}
+            onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
             overflowMenuProps={tokens.length > 0 ? {

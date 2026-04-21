@@ -5,7 +5,6 @@ import { matchesShortcut } from "../../shared/shortcutRegistry";
 import { nodeParentPath } from "../tokenListUtils";
 
 interface KeyboardHandlerConfig {
-  selectMode: boolean;
   selectedPaths: Set<string>;
   expandedPaths: Set<string>;
   zoomRootPath: string | null;
@@ -25,9 +24,9 @@ interface KeyboardHandlerConfig {
   collectionId: string;
 
   // Actions
-  setSelectMode: (v: boolean) => void;
   setSelectedPaths: React.Dispatch<React.SetStateAction<Set<string>>>;
   setShowBatchEditor: React.Dispatch<React.SetStateAction<boolean>>;
+  clearSelection: () => void;
   setZoomRootPath: (v: string | null) => void;
   setVirtualScrollTop: (v: number) => void;
   setBatchMoveToCollectionTarget: (v: string) => void;
@@ -40,7 +39,7 @@ interface KeyboardHandlerConfig {
   handleExpandAll: () => void;
   handleCollapseAll: () => void;
   handleMoveTokenInGroup: (path: string, name: string, dir: "up" | "down") => void;
-  handleTokenSelect: (path: string, modifiers: { shift: boolean; ctrl: boolean }) => void;
+  handleTokenSelect: (path: string, modifiers: { shift: boolean }) => void;
   requestBulkDeleteFromHook: (paths: Set<string>) => void;
   onNavigateBack?: () => void;
   onEdit: (path: string, name?: string) => void;
@@ -48,7 +47,6 @@ interface KeyboardHandlerConfig {
 
 export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
   const {
-    selectMode,
     selectedPaths,
     expandedPaths,
     zoomRootPath,
@@ -66,9 +64,9 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
     virtualListRef,
     collectionIds,
     collectionId,
-    setSelectMode,
     setSelectedPaths,
     setShowBatchEditor,
+    clearSelection,
     setZoomRootPath,
     setVirtualScrollTop,
     setBatchMoveToCollectionTarget,
@@ -97,14 +95,13 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       const activeEl = document.activeElement as HTMLElement | null;
       const focusedTokenPath = activeEl?.dataset?.tokenPath;
       const focusedGroupPath = activeEl?.dataset?.groupPath;
+      const hasSelection = selectedPaths.size > 0;
 
-      // Escape: close create form, exit select mode, exit zoom, or blur search
+      // Escape: clear selection, exit zoom, or blur search
       if (e.key === "Escape") {
-        if (selectMode) {
+        if (hasSelection) {
           e.preventDefault();
-          setSelectMode(false);
-          setSelectedPaths(new Set());
-          setShowBatchEditor(false);
+          clearSelection();
           return;
         }
         if (zoomRootPath) {
@@ -119,7 +116,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
 
       // Cmd/Ctrl+C: copy selected tokens as DTCG JSON
       if (matchesShortcut(e, "TOKEN_COPY")) {
-        if (selectMode && selectedPaths.size > 0) {
+        if (hasSelection) {
           e.preventDefault();
           const nodes = displayedLeafNodesRef.current.filter((n) =>
             selectedPaths.has(n.path),
@@ -146,7 +143,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
 
       // Cmd/Ctrl+Shift+C: copy selected tokens in preferred format
       if (matchesShortcut(e, "TOKEN_COPY_CSS_VAR")) {
-        if (selectMode && selectedPaths.size > 0) {
+        if (hasSelection) {
           e.preventDefault();
           const nodes = displayedLeafNodesRef.current.filter((n) =>
             selectedPaths.has(n.path),
@@ -177,7 +174,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         e.altKey &&
         !e.shiftKey
       ) {
-        if (selectMode && selectedPaths.size > 0) {
+        if (hasSelection) {
           e.preventDefault();
           const nodes = displayedLeafNodesRef.current.filter((n) =>
             selectedPaths.has(n.path),
@@ -230,18 +227,16 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         e.key.toLowerCase() === "a"
       ) {
         e.preventDefault();
-        if (!selectMode) setSelectMode(true);
         setSelectedPaths(
           new Set(displayedLeafNodesRef.current.map((n) => n.path)),
         );
         return;
       }
 
-      // Backspace/Del: bulk delete when in select mode
+      // Backspace/Del: bulk delete when tokens are selected
       if (
         matchesShortcut(e, "TOKEN_DELETE") &&
-        selectMode &&
-        selectedPaths.size > 0 &&
+        hasSelection &&
         (focusedTokenPath || focusedGroupPath)
       ) {
         e.preventDefault();
@@ -252,8 +247,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       // Cmd+Shift+M: batch move selected tokens to another collection
       if (
         matchesShortcut(e, "TOKEN_BATCH_MOVE_TO_COLLECTION") &&
-        selectMode &&
-        selectedPaths.size > 0
+        hasSelection
       ) {
         e.preventDefault();
         setBatchMoveToCollectionTarget(collectionIds.filter((s) => s !== collectionId)[0] ?? "");
@@ -264,8 +258,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       // Cmd+Shift+Y: batch copy selected tokens to another collection
       if (
         matchesShortcut(e, "TOKEN_BATCH_COPY_TO_COLLECTION") &&
-        selectMode &&
-        selectedPaths.size > 0
+        hasSelection
       ) {
         e.preventDefault();
         setBatchCopyToCollectionTarget(collectionIds.filter((s) => s !== collectionId)[0] ?? "");
@@ -273,22 +266,18 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         return;
       }
 
-      // m: toggle multi-select mode
+      // m: clear selection when tokens are selected
       if (matchesShortcut(e, "TOKEN_MULTI_SELECT")) {
-        e.preventDefault();
-        if (selectMode) {
-          setSelectMode(false);
-          setSelectedPaths(new Set());
-          setShowBatchEditor(false);
-        } else {
-          setSelectMode(true);
+        if (hasSelection) {
+          e.preventDefault();
+          clearSelection();
         }
         return;
       }
 
-      // e: open/toggle batch editor when in select mode with tokens selected
+      // e: open/toggle batch editor when tokens are selected
       if (e.key === "e" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        if (selectMode && selectedPaths.size > 0) {
+        if (hasSelection) {
           e.preventDefault();
           setShowBatchEditor((v) => !v);
           return;
@@ -360,7 +349,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       }
 
       // Up/Down: navigate between visible token and group rows
-      // Shift+Up/Down in select mode: extend/shrink range selection
+      // Shift+Up/Down: extend/shrink range selection
       if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         const rows = Array.from(
           document.querySelectorAll<HTMLElement>(
@@ -384,12 +373,11 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         targetRow?.focus();
         targetRow?.scrollIntoView({ block: "nearest" });
 
-        // Shift+Arrow: extend/shrink range selection (auto-enters select mode)
+        // Shift+Arrow: extend/shrink range selection
         if (e.shiftKey && targetRow) {
           const targetPath =
             targetRow.dataset.tokenPath || targetRow.dataset.groupPath;
           if (targetPath) {
-            if (!selectMode) setSelectMode(true);
             if (lastSelectedPathRef.current === null) {
               const currentRow =
                 currentIndex >= 0 ? rows[currentIndex] : undefined;
@@ -404,7 +392,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
                 });
               }
             }
-            handleTokenSelect(targetPath, { shift: true, ctrl: false });
+            handleTokenSelect(targetPath, { shift: true });
           }
         }
       }
@@ -496,7 +484,6 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       }
     },
     [
-      selectMode,
       selectedPaths,
       handleOpenCreateSibling,
       onCreateNew,
@@ -523,7 +510,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       lastSelectedPathRef,
       onEdit,
       searchRef,
-      setSelectMode,
+      clearSelection,
       setSelectedPaths,
       setShowBatchEditor,
       setVirtualScrollTop,

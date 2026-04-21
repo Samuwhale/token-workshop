@@ -1,17 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, Settings2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight, MoreHorizontal } from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { COLLECTION_NAME_RE } from "../shared/utils";
+import {
+  MENU_DANGER_ITEM_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_SEPARATOR_CLASS,
+  MENU_SURFACE_CLASS,
+  clampMenuPosition,
+  type MenuPosition,
+} from "./token-tree/tokenTreeNodeShared";
 
 interface CollectionRailProps {
   collections: TokenCollection[];
   currentCollectionId: string;
   collectionTokenCounts?: Record<string, number>;
   focusRequestKey: number;
+  widthPx: number;
   onSelectCollection: (collectionId: string) => void;
   onCreateCollection: (name: string) => Promise<string>;
   onOpenCollectionDetails: (collectionId: string) => void;
+  onRenameCollection: (collectionId: string) => void;
+  onDuplicateCollection: (collectionId: string) => void;
+  onMergeCollection?: (collectionId: string) => void;
+  onSplitCollection: (collectionId: string) => void;
+  onDeleteCollection: (collectionId: string) => void;
 }
+
+const MENU_WIDTH = 220;
+const MENU_HEIGHT = 260;
 
 interface FolderGroup {
   folder: string;
@@ -75,9 +92,15 @@ export function CollectionRail({
   currentCollectionId,
   collectionTokenCounts = {},
   focusRequestKey,
+  widthPx,
   onSelectCollection,
   onCreateCollection,
   onOpenCollectionDetails,
+  onRenameCollection,
+  onDuplicateCollection,
+  onMergeCollection,
+  onSplitCollection,
+  onDeleteCollection,
 }: CollectionRailProps) {
   const [query, setQuery] = useState("");
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -85,8 +108,14 @@ export function CollectionRail({
   const [newCollectionName, setNewCollectionName] = useState("");
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [menuState, setMenuState] = useState<
+    { collectionId: string; pos: MenuPosition } | null
+  >(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const createInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const canMerge = collections.length > 1 && !!onMergeCollection;
 
   const filteredCollections = useMemo(
     () => filterCollections(collections, query),
@@ -122,6 +151,88 @@ export function CollectionRail({
     searchInputRef.current?.focus();
     searchInputRef.current?.select();
   }, [focusRequestKey]);
+
+  const closeMenu = useCallback((options?: { restoreFocus?: boolean }) => {
+    const restoreFocus = options?.restoreFocus ?? true;
+    setMenuState((previous) => {
+      if (previous && restoreFocus) {
+        triggerRefs.current.get(previous.collectionId)?.focus();
+      }
+      return null;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!menuState) {
+      return;
+    }
+    const handleMouseDown = (event: MouseEvent) => {
+      if (menuRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      closeMenu({ restoreFocus: false });
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        closeMenu();
+      }
+    };
+    const handleBlur = () => closeMenu({ restoreFocus: false });
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, [menuState, closeMenu]);
+
+  const openMenuFromTrigger = useCallback((collectionId: string) => {
+    const trigger = triggerRefs.current.get(collectionId);
+    if (!trigger) {
+      return;
+    }
+    const rect = trigger.getBoundingClientRect();
+    const pos = clampMenuPosition(
+      rect.right - MENU_WIDTH,
+      rect.bottom + 4,
+      MENU_WIDTH,
+      MENU_HEIGHT,
+    );
+    setMenuState({ collectionId, pos });
+  }, []);
+
+  const openMenuFromContextEvent = useCallback(
+    (collectionId: string, event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const pos = clampMenuPosition(
+        event.clientX,
+        event.clientY,
+        MENU_WIDTH,
+        MENU_HEIGHT,
+      );
+      setMenuState({ collectionId, pos });
+    },
+    [],
+  );
+
+  const runMenuAction = useCallback(
+    (
+      collectionId: string,
+      action: ((collectionId: string) => void) | undefined,
+    ) => {
+      if (!action) {
+        return;
+      }
+      onSelectCollection(collectionId);
+      action(collectionId);
+      closeMenu({ restoreFocus: false });
+    },
+    [onSelectCollection, closeMenu],
+  );
 
   const handleCreateCollection = async () => {
     const name = newCollectionName.trim();
@@ -164,9 +275,11 @@ export function CollectionRail({
 
   const renderCollectionRow = (collectionId: string, indented: boolean) => {
     const isActive = collectionId === currentCollectionId;
+    const isMenuOpen = menuState?.collectionId === collectionId;
     return (
       <div
         key={collectionId}
+        onContextMenu={(event) => openMenuFromContextEvent(collectionId, event)}
         className={`group flex items-center gap-1 rounded-md ${
           indented ? "ml-3" : ""
         } ${isActive ? "bg-[var(--color-figma-bg-selected)]" : "hover:bg-[var(--color-figma-bg-hover)]"}`}
@@ -191,25 +304,113 @@ export function CollectionRail({
           </div>
         </button>
         <button
-          type="button"
-          onClick={() => {
-            onSelectCollection(collectionId);
-            onOpenCollectionDetails(collectionId);
+          ref={(node) => {
+            if (node) {
+              triggerRefs.current.set(collectionId, node);
+            } else {
+              triggerRefs.current.delete(collectionId);
+            }
           }}
-          className={`mr-1 rounded p-1 text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] ${
-            isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            if (isMenuOpen) {
+              closeMenu();
+            } else {
+              openMenuFromTrigger(collectionId);
+            }
+          }}
+          aria-haspopup="menu"
+          aria-expanded={isMenuOpen}
+          aria-label={`${collectionId} actions`}
+          title="Collection actions"
+          className={`mr-1 rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)] ${
+            isActive || isMenuOpen
+              ? "opacity-100"
+              : "opacity-60 group-hover:opacity-100"
           }`}
-          aria-label={`Open ${collectionId} setup`}
-          title="Collection setup"
         >
-          <Settings2 size={12} strokeWidth={1.8} aria-hidden />
+          <MoreHorizontal size={14} strokeWidth={1.8} aria-hidden />
+        </button>
+      </div>
+    );
+  };
+
+  const renderMenu = () => {
+    if (!menuState) {
+      return null;
+    }
+    const { collectionId, pos } = menuState;
+    return (
+      <div
+        ref={menuRef}
+        role="menu"
+        data-context-menu="collection"
+        style={{ top: pos.y, left: pos.x, width: MENU_WIDTH }}
+        onClick={(event) => event.stopPropagation()}
+        className={MENU_SURFACE_CLASS}
+      >
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => runMenuAction(collectionId, onOpenCollectionDetails)}
+          className={MENU_ITEM_CLASS}
+        >
+          Open setup…
+        </button>
+        <div className={MENU_SEPARATOR_CLASS} role="separator" />
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => runMenuAction(collectionId, onRenameCollection)}
+          className={MENU_ITEM_CLASS}
+        >
+          Rename
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => runMenuAction(collectionId, onDuplicateCollection)}
+          className={MENU_ITEM_CLASS}
+        >
+          Duplicate
+        </button>
+        <div className={MENU_SEPARATOR_CLASS} role="separator" />
+        <button
+          type="button"
+          role="menuitem"
+          disabled={!canMerge}
+          onClick={() => runMenuAction(collectionId, onMergeCollection)}
+          className={`${MENU_ITEM_CLASS} disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent`}
+        >
+          Merge into another collection…
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => runMenuAction(collectionId, onSplitCollection)}
+          className={MENU_ITEM_CLASS}
+        >
+          Split by top-level groups…
+        </button>
+        <div className={MENU_SEPARATOR_CLASS} role="separator" />
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => runMenuAction(collectionId, onDeleteCollection)}
+          className={MENU_DANGER_ITEM_CLASS}
+        >
+          Delete collection
         </button>
       </div>
     );
   };
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+    <aside
+      className="flex h-full shrink-0 flex-col bg-[var(--color-figma-bg)]"
+      style={{ width: widthPx }}
+    >
       <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
         <div className="flex items-center justify-between gap-2">
           <div>
@@ -323,6 +524,7 @@ export function CollectionRail({
           </div>
         )}
       </div>
+      {renderMenu()}
     </aside>
   );
 }

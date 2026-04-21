@@ -362,9 +362,7 @@ This should be the designer-facing output surface.
 
 `Export` and `Versions` should remain visible, but as quieter secondary navigation entries rather than children of `Share`.
 
-That gives developers a clear home while keeping the designer’s primary flow cleaner.
-
-This is an end-state recommendation, not the first thing that must change. A reasonable interim step is to rename `Share` to `Sync` and keep `Export` and `Versions` nested there while Library contention is fixed first.
+That gives developers a clear home while keeping the designer’s primary flow cleaner. This should be treated as the target structure, not deferred as a later cleanup.
 
 ### Contextual surfaces that should stay contextual
 
@@ -419,11 +417,7 @@ Keep group sync in the token tree and add a matching collection-level action in 
 
 When a Figma selection exists, Library should not make the user hunt for “related to selection” inside a filter menu.
 
-Good options:
-
-- auto-show a small selection section at the top of the list
-- auto-highlight bound tokens
-- show a dismissible contextual banner that switches Library into selection-related mode
+The chosen direction is to make selection context automatic. Library should proactively reflect the active selection rather than waiting for the user to discover a filter affordance.
 
 ### 8.8 Make health more ambient and make “issue” mean one thing
 
@@ -455,7 +449,7 @@ Instead:
 - reduce generic toast-history behavior
 - store explicit navigation targets with notifications instead of inferring them from message copy
 - connect entries to concrete destinations
-- reconsider whether a persistent bell is needed once health and sync signals become more ambient
+- make the inbox quieter once Health and Sync carry more ambient state
 
 ### 8.12 Make `Usage` scans more explicit
 
@@ -481,7 +475,7 @@ The rail should communicate more than token count alone:
 
 If the product keeps `Library` as the workspace and `Tokens` as a subsection, that hierarchy should be used consistently in onboarding, import follow-up guidance, health routing, and command language.
 
-The same applies to `Health` versus `Audit`.
+The same applies to `Health` versus `Audit`. The chosen direction is to standardize on `Health` as the single maintenance term.
 
 ## 9. Naming Audit
 
@@ -492,7 +486,7 @@ These are the remaining high-impact naming fixes.
 | **Share** | **Sync** | Matches the designer’s primary output task. |
 | **Coverage** | **Usage** | Matches designer language. |
 | **Scopes** | **Applies to** or **Conditions** | More legible in designer-facing generator and metadata flows. |
-| **Health / Audit** | Pick one, preferably **Health** for the section name | One maintenance concept should not have two product names. |
+| **Health / Audit** | **Health** | One maintenance concept should not have two product names. |
 | **Library / Tokens** | Use one hierarchy consistently | Users should not have to infer whether these are the same place or different places. |
 | **Duplicate** | **Create from this token** | Better matches designer intent. |
 | **Resolver files / publish routing / orphan cleanup** | Keep, but hide behind advanced disclosure | Legitimate concepts, shown too early. |
@@ -532,12 +526,103 @@ The cleanest implementation strategy is:
 
 This would improve both the user experience and the maintainability of the code.
 
-## 11. Recommended Delivery Order
+## 11. Chosen Direction
 
-The product does not need a full IA rewrite in one step. The best sequence is:
+The following decisions are now the intended product direction for future work:
 
-1. **Fix language first.** Rename `Share` to `Sync`, rename `Coverage` to `Usage`, and remove the remaining `Library` / `Tokens` and `Health` / `Audit` naming drift.
-2. **Reduce Library contention.** Make `Health` and `History` persistent Library sections and let the side editor stay pinned while the user moves between nearby maintenance views.
-3. **Close the real authoring gaps.** Add collection-level sync, `Copy to all modes`, better duplicate/create-from-token naming, and stronger selection-aware Library context.
-4. **Unify feedback and routing.** Make `issue` mean one thing across Library and Health, and give notifications explicit destinations instead of heuristic navigation.
-5. **Improve collection comprehension and onboarding.** Surface modes more clearly in the collection rail and tighten the first-run flow so designers reach confident day-to-day usage faster.
+- **Structural-first, not quick-wins-first.** Optimize for the best end-state experience, even when that requires reshaping navigation and workflow ownership first.
+- **`Library` becomes a persistent three-section workspace.** The sections should be `Tokens`, `Health`, and `History`.
+- **The token editor stays pinned across Library sections once opened.** Moving between `Tokens`, `Health`, and `History` should not discard active editing context.
+- **`Canvas` stays first-class.** It should keep `Selection` and `Usage`, and Library should automatically reflect active selection context.
+- **`Share` becomes `Sync`.** `Sync` remains a primary workspace. `Export` and `Versions` move into quieter secondary navigation.
+- **`Health` becomes the single maintenance term.** Avoid parallel `Audit` naming for the same concept.
+- **The inbox becomes quieter, not more central.** Fix destination reliability, but let `Health` and `Sync` become the primary homes for system state.
+- **`Copy to all modes` is the highest-priority missing authoring capability.**
+
+This means the product should stop treating navigation, editor state, maintenance state, and notification routing as separate cleanup tracks. They are one UX program and should be sequenced that way.
+
+## 12. Actionable Task List
+
+The task list below is intentionally written for autonomous agents. It focuses on product outcomes and scope boundaries rather than implementation instructions.
+
+### Wave 1 — Shell and naming foundation
+
+1. **Rename the primary output workflow from `Share` to `Sync`.**
+   Update the product language so the designer-facing output workflow is consistently described as `Sync`.
+
+2. **Rename `Coverage` to `Usage` everywhere it is user-facing.**
+   Use one clear term for the canvas usage workflow across navigation, headers, onboarding, and follow-up guidance.
+
+3. **Standardize maintenance naming on `Health`.**
+   Remove `Health` / `Audit` drift and make `Health` the only section-level maintenance concept in the product.
+
+4. **Make primary and secondary navigation explicit.**
+   Move to the chosen IA shape:
+   - Primary: `Library`, `Canvas`, `Sync`
+   - Secondary: `Export`, `Versions`, `Settings`, utility surfaces
+
+### Wave 2 — Library structure and context
+
+5. **Turn `Library` into a persistent three-section workspace.**
+   Create stable `Tokens`, `Health`, and `History` sections so those workflows no longer compete for one body slot.
+
+6. **Preserve the pinned token editor across Library section changes.**
+   Make active token editing context durable while the user checks `Health` or `History`.
+
+7. **Keep contextual tools contextual, but quieter.**
+   Re-home secondary tools so `Compare`, `Import`, `Color Analysis`, collection setup, and generator editing stop competing with the primary Library structure.
+
+8. **Make selection context automatic inside Library.**
+   When a Figma selection exists, Library should proactively reflect it instead of hiding the workflow behind filter discovery.
+
+### Wave 3 — Health and system feedback
+
+9. **Unify the meaning of `Health` across the product.**
+   Make issue counts, warnings, generated-state signals, and maintenance entry points use one coherent model of what needs attention.
+
+10. **Surface Health at the collection and token levels.**
+    Make collections and token rows communicate meaningful maintenance state so `Health` is not only visible after entering a dedicated section.
+
+11. **Consolidate generated-group state into the Health model.**
+    Stop treating stale generated state as a parallel warning system with its own separate logic and emphasis.
+
+12. **Replace inferred inbox routing with explicit destinations.**
+    Keep the notification model reliable, but reduce its prominence as `Health` and `Sync` become clearer ambient surfaces.
+
+### Wave 4 — Core authoring workflow gaps
+
+13. **Add `Copy to all modes`.**
+    Introduce the missing multi-mode authoring action designers expect when working across modes.
+
+14. **Add collection-level sync from Library.**
+    Complement existing group sync with a collection-level sync entry point in the collection workflow.
+
+15. **Reframe `Duplicate` as `Create from this token`.**
+    Make the existing capability read like a normal authoring flow rather than a technical clone command.
+
+16. **Make rename safety feel like the default workflow.**
+    Keep reference-safe rename behavior, but present it as the standard rename path rather than as a warning-heavy advanced case.
+
+17. **Make multi-select feel like a first-class editing mode.**
+    Improve the clarity and momentum of bulk workflows once the user enters selection mode.
+
+### Wave 5 — Collection comprehension and onboarding
+
+18. **Upgrade the collection rail to communicate the real container model.**
+    Make collections easier to choose and understand by surfacing more than token count, especially mode structure and relevant status.
+
+19. **Tighten the first-run path after setup.**
+    Improve the handoff from initial setup into day-to-day work so designers gain confidence in collections, modes, sync, and maintenance flows faster.
+
+20. **Use one consistent workspace hierarchy everywhere.**
+    Ensure navigation, onboarding, import follow-up, commands, and empty states all reinforce the same `Library` / `Tokens` / `Health` / `History` structure.
+
+## 13. Suggested Parallelization
+
+The work should still be staged, but several tasks can move in parallel once their parent wave starts.
+
+- In **Wave 1**, naming cleanup and primary/secondary navigation restructuring can run as separate tasks.
+- In **Wave 2**, Library sectioning, pinned editor preservation, and contextual-tool demotion can be split into distinct work items.
+- In **Wave 3**, Health-model unification and notification-destination cleanup are related but separable.
+- In **Wave 4**, `Copy to all modes`, collection-level sync, create-from-token framing, and multi-select improvements can run as separate agent tasks.
+- In **Wave 5**, collection-rail improvement and onboarding cleanup can be worked independently after the shell structure is stable.

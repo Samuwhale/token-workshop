@@ -1,15 +1,26 @@
 /**
- * InlineValuePopover — lightweight popover for editing complex token values
- * without opening the full side panel.
+ * InlineValuePopover — unified quick editor for every editable token type.
  *
- * Triggered by double-clicking a token row whose type is in INLINE_POPOVER_TYPES,
- * or by double-clicking an alias-valued token (any type).
+ * Opens when a user clicks a value cell in the token list or presses Enter
+ * on a focused row. Uses the same per-type editors as the full TokenEditor
+ * (ColorEditor, DimensionEditor, BooleanEditor, etc.) so the quick path is
+ * no longer limited to plain text inputs. The popover stays lightweight: one
+ * mode at a time, escape hatch to the full editor, no metadata editing.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias } from '../../shared/resolveAlias';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import {
+  ColorEditor,
+  DimensionEditor,
+  NumberEditor,
+  StringEditor,
+  BooleanEditor,
+  FontFamilyEditor,
+  FontWeightEditor,
+  DurationEditor,
+  AssetEditor,
   TypographyEditor,
   ShadowEditor,
   BorderEditor,
@@ -34,9 +45,11 @@ export interface InlineValuePopoverProps {
   tokenName: string;
   tokenType: string;
   currentValue: unknown;
+  /** Mode label shown in the header; omit for single-mode collections. */
+  modeLabel?: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
-  /** Bounding rect of the token row — used to position the popover */
+  /** Bounding rect of the clicked cell — used to position the popover. */
   anchorRect: DOMRect;
   onSave: (
     newValue: unknown,
@@ -44,6 +57,8 @@ export interface InlineValuePopoverProps {
   ) => void;
   onOpenFullEditor: () => void;
   onClose: () => void;
+  /** Tab navigation between adjacent value cells within the same row. */
+  onTab?: (direction: 1 | -1) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,6 +78,24 @@ function TypeEditor({
   pathToCollectionId: Record<string, string>;
 }) {
   switch (type) {
+    case 'color':
+      return <ColorEditor value={value} onChange={onChange} autoFocus allTokensFlat={allTokensFlat} />;
+    case 'dimension':
+      return <DimensionEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} autoFocus />;
+    case 'number':
+      return <NumberEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} autoFocus />;
+    case 'string':
+      return <StringEditor value={value} onChange={onChange} autoFocus />;
+    case 'boolean':
+      return <BooleanEditor value={value} onChange={onChange} />;
+    case 'fontFamily':
+      return <FontFamilyEditor value={value} onChange={onChange} autoFocus />;
+    case 'fontWeight':
+      return <FontWeightEditor value={value} onChange={onChange} />;
+    case 'duration':
+      return <DurationEditor value={value} onChange={onChange} autoFocus />;
+    case 'asset':
+      return <AssetEditor value={value} onChange={onChange} />;
     case 'shadow':
       return <ShadowEditor value={value} onChange={onChange} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} />;
     case 'border':
@@ -98,7 +131,7 @@ function TypeEditor({
     default:
       return (
         <p className="text-body text-[var(--color-figma-text-secondary)] py-2">
-          No inline editor for type <code className="font-mono">{type}</code>. Use the full editor.
+          No quick editor for type <code className="font-mono">{type}</code>. Use the full editor.
         </p>
       );
   }
@@ -153,22 +186,23 @@ export function InlineValuePopover({
   tokenName,
   tokenType,
   currentValue,
+  modeLabel,
   allTokensFlat,
   pathToCollectionId = {},
   anchorRect,
   onSave,
   onOpenFullEditor,
   onClose,
+  onTab,
 }: InlineValuePopoverProps) {
   const isCurrentAlias = isAlias(currentValue as import('@tokenmanager/core').TokenValue | undefined);
 
-  // Start in alias mode if current value is already an alias
   const [aliasMode, setAliasMode] = useState(isCurrentAlias);
   const [draftValue, setDraftValue] = useState(currentValue);
   const [aliasQuery, setAliasQuery] = useState('');
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click (with a small delay so the triggering double-click doesn't immediately close it)
+  // Close on outside click. Small delay so the triggering click doesn't immediately close us.
   useEffect(() => {
     const timer = setTimeout(() => {
       const handleClick = (e: MouseEvent) => {
@@ -182,18 +216,6 @@ export function InlineValuePopover({
     return () => clearTimeout(timer);
   }, [onClose]);
 
-  // Close on Escape
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handleKey, true);
-    return () => document.removeEventListener('keydown', handleKey, true);
-  }, [onClose]);
-
   const handleSave = useCallback(() => {
     onSave(draftValue, { type: tokenType, value: currentValue });
   }, [currentValue, draftValue, onSave, tokenType]);
@@ -202,7 +224,35 @@ export function InlineValuePopover({
     onSave(`{${path}}`, { type: tokenType, value: currentValue });
   }, [currentValue, onSave, tokenType]);
 
-  // Compute popover position: prefer below the row, flip above if needed
+  // Popover-level keyboard: Escape cancels, Enter saves (unless in textarea), Tab navigates.
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      const inTextarea = target?.tagName === 'TEXTAREA';
+      if (e.key === 'Enter' && !inTextarea && !aliasMode) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSave();
+        return;
+      }
+      if (e.key === 'Tab' && onTab) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!aliasMode) handleSave();
+        else onClose();
+        onTab(e.shiftKey ? -1 : 1);
+      }
+    };
+    document.addEventListener('keydown', handleKey, true);
+    return () => document.removeEventListener('keydown', handleKey, true);
+  }, [aliasMode, handleSave, onClose, onTab]);
+
+  // Compute popover position: prefer below the cell, flip above if needed.
   const POPOVER_WIDTH = 320;
   const POPOVER_MAX_HEIGHT = 480;
   const MARGIN = 8;
@@ -233,21 +283,29 @@ export function InlineValuePopover({
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
-        <span className="text-body text-[var(--color-figma-text)] font-medium truncate flex-1 min-w-0" title={tokenPath}>
+        <span className="text-body text-[var(--color-figma-text)] font-medium truncate min-w-0" title={tokenPath}>
           {tokenName}
         </span>
-        <span className={`px-1 py-0.5 rounded text-[8px] font-medium shrink-0 ${typeBadgeClass}`}>
+        {modeLabel && (
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0 truncate max-w-[80px]" title={`Mode: ${modeLabel}`}>
+            {modeLabel}
+          </span>
+        )}
+        <span className="flex-1" />
+        <span className={`px-1.5 py-0.5 rounded text-secondary font-medium shrink-0 ${typeBadgeClass}`}>
           {tokenType}
         </span>
-        {/* Alias / direct value toggle */}
         <button
           type="button"
           title={aliasMode ? 'Switch to direct value' : 'Link to token (alias)'}
           onClick={() => {
             if (aliasMode) {
-              // Switch to direct value mode — clear alias
               setAliasMode(false);
-              setDraftValue(currentValue && !isAlias(currentValue as import('@tokenmanager/core').TokenValue | undefined) ? currentValue as import('@tokenmanager/core').TokenValue : undefined);
+              setDraftValue(
+                currentValue && !isAlias(currentValue as import('@tokenmanager/core').TokenValue | undefined)
+                  ? (currentValue as import('@tokenmanager/core').TokenValue)
+                  : undefined,
+              );
             } else {
               setAliasMode(true);
               setAliasQuery('');

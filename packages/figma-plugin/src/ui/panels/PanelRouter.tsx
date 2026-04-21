@@ -20,6 +20,8 @@ import { CollectionRail } from "../components/CollectionRail";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
 import { PublishPanel } from "../components/PublishPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
+import { useResizableBoundary } from "../hooks/useResizableBoundary";
+import { ResizeDivider } from "../components/ResizeDivider";
 import { ImportPanel } from "../components/ImportPanel";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import { SelectionInspector } from "../components/SelectionInspector";
@@ -131,6 +133,32 @@ export function PanelRouter({
     routing: PublishRoutingDraft,
   ) => Promise<{ collectionName?: string; modeName?: string }>;
 }): ReactNode {
+  const collectionRailBoundary = useResizableBoundary({
+    storageKey: STORAGE_KEYS.COLLECTION_RAIL_WIDTH,
+    defaultSize: 240,
+    min: 180,
+    max: 360,
+    axis: "x",
+    mode: "px",
+  });
+  const sideEditorBoundary = useResizableBoundary({
+    storageKey: STORAGE_KEYS.SIDE_EDITOR_WIDTH,
+    defaultSize: 320,
+    min: 280,
+    max: 560,
+    axis: "x",
+    mode: "px",
+    measureFrom: "end",
+  });
+  const healthDetailBoundary = useResizableBoundary({
+    storageKey: STORAGE_KEYS.HEALTH_DETAIL_WIDTH,
+    defaultSize: 320,
+    min: 280,
+    max: 560,
+    axis: "x",
+    mode: "px",
+    measureFrom: "end",
+  });
   const shell = useShellWorkspaceController();
   const editorShell = useEditorShellController();
   const tokensController = useTokensWorkspaceController();
@@ -1007,10 +1035,20 @@ export function PanelRouter({
           surface: "health",
           content: healthDetailToken ? (
             <div className="flex min-h-0 flex-1 h-full overflow-hidden">
-              <div className="min-w-0 flex-1 overflow-hidden border-r border-[var(--color-figma-border)]">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 {healthPanel}
               </div>
-              <div className="w-[320px] min-w-[280px] shrink-0 overflow-hidden panel-slide-in">
+              <ResizeDivider
+                axis="x"
+                ariaLabel="Resize token detail panel"
+                ariaValueNow={healthDetailBoundary.ariaValueNow}
+                onMouseDown={healthDetailBoundary.onMouseDown}
+                onKeyDown={healthDetailBoundary.onKeyDown}
+              />
+              <div
+                className="shrink-0 overflow-hidden panel-slide-in"
+                style={{ width: healthDetailBoundary.size }}
+              >
                 <TokenCompactPreview
                   tokenPath={healthDetailToken.path}
                   storageCollectionId={healthDetailToken.collectionId}
@@ -1373,11 +1411,19 @@ export function PanelRouter({
         {/* Side panel layout: library + editor/preview side by side */}
         {hasTokensLibrarySurface && !controller.showPreviewSplit && contextualSurface && isSidePanelSurface && (
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <div className="min-w-0 flex-1 overflow-hidden border-r border-[var(--color-figma-border)]">
+            <div className="min-w-0 flex-1 overflow-hidden">
               {renderTokensLibraryBody()}
             </div>
+            <ResizeDivider
+              axis="x"
+              ariaLabel="Resize side editor"
+              ariaValueNow={sideEditorBoundary.ariaValueNow}
+              onMouseDown={sideEditorBoundary.onMouseDown}
+              onKeyDown={sideEditorBoundary.onKeyDown}
+            />
             <div
-              className="w-[320px] min-w-[280px] shrink-0 overflow-hidden panel-slide-in"
+              className="shrink-0 overflow-hidden panel-slide-in"
+              style={{ width: sideEditorBoundary.size }}
               data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
               data-tokens-library-contextual-surface={contextualSurface.surface}
               onKeyDown={(e) => {
@@ -1492,6 +1538,7 @@ export function PanelRouter({
             currentCollectionId={currentCollectionId}
             collectionTokenCounts={collectionTokenCounts}
             focusRequestKey={shell.collectionRailFocusRequestKey}
+            widthPx={collectionRailBoundary.size}
             onSelectCollection={(collectionId) => {
               if (collectionId !== currentCollectionId) {
                 setCurrentCollectionId(collectionId);
@@ -1510,6 +1557,18 @@ export function PanelRouter({
                 collection: { collectionId },
               })
             }
+            onRenameCollection={collectionStructureController.onRename}
+            onDuplicateCollection={collectionStructureController.onDuplicate}
+            onMergeCollection={collectionStructureController.onMerge}
+            onSplitCollection={collectionStructureController.onSplit}
+            onDeleteCollection={collectionStructureController.onDelete}
+          />
+          <ResizeDivider
+            axis="x"
+            ariaLabel="Resize collection rail"
+            ariaValueNow={collectionRailBoundary.ariaValueNow}
+            onMouseDown={collectionRailBoundary.onMouseDown}
+            onKeyDown={collectionRailBoundary.onKeyDown}
           />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             {renderLibrarySection()}

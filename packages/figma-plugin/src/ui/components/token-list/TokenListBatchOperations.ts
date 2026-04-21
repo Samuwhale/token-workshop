@@ -8,8 +8,7 @@ interface BatchOperationsConfig {
   selectedPaths: Set<string>;
   onRefresh: () => void;
   onError?: (msg: string) => void;
-  setSelectMode: (v: boolean) => void;
-  setSelectedPaths: (v: Set<string>) => void;
+  clearSelection: () => void;
   setOperationLoading: (v: string | null) => void;
 }
 
@@ -21,8 +20,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
     selectedPaths,
     onRefresh,
     onError,
-    setSelectMode,
-    setSelectedPaths,
+    clearSelection,
     setOperationLoading,
   } = config;
 
@@ -63,8 +61,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
             body: JSON.stringify({ renames, updateAliases: true }),
           },
         );
-        setSelectedPaths(new Set());
-        setSelectMode(false);
+        clearSelection();
       } catch (err) {
         onError?.(
           err instanceof ApiError ? err.message : "Move failed: network error",
@@ -80,8 +77,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
       collectionId,
       onRefresh,
       onError,
-      setSelectMode,
-      setSelectedPaths,
+      clearSelection,
       setOperationLoading,
     ],
   );
@@ -109,8 +105,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
             }),
           },
         );
-        setSelectedPaths(new Set());
-        setSelectMode(false);
+        clearSelection();
       } catch (err) {
         onError?.(
           err instanceof ApiError
@@ -128,8 +123,7 @@ export function useTokenListBatchOperations(config: BatchOperationsConfig) {
       collectionId,
       onRefresh,
       onError,
-      setSelectMode,
-      setSelectedPaths,
+      clearSelection,
       setOperationLoading,
     ],
   );

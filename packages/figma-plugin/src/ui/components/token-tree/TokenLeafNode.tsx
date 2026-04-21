@@ -37,8 +37,10 @@ import {
   highlightMatch,
   resolveCompositeForApply,
 } from "../tokenListHelpers";
-import { INLINE_SIMPLE_TYPES, INLINE_POPOVER_TYPES } from "../tokenListTypes";
+import { QUICK_EDITABLE_TYPES } from "../tokenListTypes";
 import { InlineValuePopover } from "../InlineValuePopover";
+import type { QuickEditRequest } from "./ValueCell";
+import type { TokenMapEntry } from "../../../shared/types";
 import { PropertyPicker } from "../PropertyPicker";
 import { ValuePreview } from "../ValuePreview";
 import { getQuickBindTargets } from "../selectionInspectorUtils";
@@ -154,7 +156,6 @@ export const TokenLeafNode = memo(
       clearPendingRename,
       clearPendingTabEdit,
       onTabToNext,
-      onEnterCellEdit,
       onOpenGeneratedGroupEditor,
       onRovingFocus,
     } = useTokenTreeLeafActions();
@@ -184,9 +185,14 @@ export const TokenLeafNode = memo(
     const [pickerProps, setPickerProps] = useState<BindableProperty[] | null>(
       null,
     );
-    const [inlinePopoverOpen, setInlinePopoverOpen] = useState(false);
-    const [inlinePopoverAnchor, setInlinePopoverAnchor] =
-      useState<DOMRect | null>(null);
+    const [quickEditor, setQuickEditor] = useState<{
+      anchor: DOMRect;
+      optionName: string;
+      collectionId: string;
+      targetCollectionId: string | null;
+      currentValue: TokenMapEntry | undefined;
+    } | null>(null);
+    const closeQuickEditor = useCallback(() => setQuickEditor(null), []);
     const [generatedTokenChoiceOpen, setGeneratedTokenChoiceOpen] =
       useState(false);
     const [generatedTokenChoiceBusy, setGeneratedTokenChoiceBusy] = useState<
@@ -365,8 +371,8 @@ export const TokenLeafNode = memo(
       isSelected || rovingFocusPath === node.path || isPreviewed;
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
-      : isSelected && selectMode
-        ? "bg-[var(--color-figma-accent)]/10"
+      : isSelected
+        ? "bg-[var(--color-figma-accent)]/12"
         : isPreviewed
           ? "bg-[var(--color-figma-accent)]/8"
           : "";
@@ -533,19 +539,11 @@ export const TokenLeafNode = memo(
       [node.$type, node.path, onMultiModeInlineSave, producingGenerator],
     );
 
-    // Inline quick-edit eligibility
-    const canInlineEdit =
-      !isAlias(node.$value) &&
-      !!node.$type &&
-      INLINE_SIMPLE_TYPES.has(node.$type) &&
-      !!onInlineSave;
-
-    // Complex type or alias — eligible for the inline value popover
-    const canInlinePopover =
+    // Quick editor eligibility — every editable type + alias-valued tokens.
+    const canQuickEdit =
       !!onInlineSave &&
       !!node.$type &&
-      (INLINE_POPOVER_TYPES.has(node.$type) || isAlias(node.$value)) &&
-      !canInlineEdit;
+      (QUICK_EDITABLE_TYPES.has(node.$type) || isAlias(node.$value));
 
     // Nearby token match for inline editing nudge
     const nearbyMatches = useNearbyTokenMatch(
@@ -788,31 +786,53 @@ export const TokenLeafNode = memo(
       }
     }, [node, allTokensFlat, selectedNodes, applyWithProperty]);
 
-    // Activate inline editing for simple types via the first value cell. The
-    // cell renders the right input for the type (text input / color picker).
-    const activateInlineEdit = useCallback(() => {
-      if (!canInlineEdit || !node.$type) return;
-      const firstMode = multiModeValues[0]?.optionName ?? null;
-      onEnterCellEdit(node.path, firstMode);
+    // When a Tab from a sibling row targets this row, open the popover on the matching mode.
+    useEffect(() => {
+      if (pendingTabEdit?.path !== node.path) return;
+      if (!canQuickEdit || !node.$type) return;
+      const targetMv =
+        multiModeValues.find((m) => m.optionName === pendingTabEdit.columnId) ??
+        multiModeValues[0];
+      if (!targetMv) return;
+      const rect = nodeRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setQuickEditor({
+        anchor: rect,
+        optionName: targetMv.optionName,
+        collectionId: targetMv.collectionId,
+        targetCollectionId: targetMv.targetCollectionId,
+        currentValue: targetMv.resolved,
+      });
+      clearPendingTabEdit();
+    }, [pendingTabEdit, node.path, node.$type, canQuickEdit, multiModeValues, clearPendingTabEdit]);
+
+    // Open the quick editor popover on the first editable mode cell.
+    const openQuickEditorFirstMode = useCallback(() => {
+      if (!canQuickEdit || !node.$type) return;
+      const firstEditable = multiModeValues.find((mv) => mv.targetCollectionId) ?? multiModeValues[0];
+      if (!firstEditable) return;
+      const rect = nodeRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setQuickEditor({
+        anchor: rect,
+        optionName: firstEditable.optionName,
+        collectionId: firstEditable.collectionId,
+        targetCollectionId: firstEditable.targetCollectionId,
+        currentValue: firstEditable.resolved,
+      });
       setInlineNudgeVisible(false);
-    }, [canInlineEdit, node, multiModeValues, onEnterCellEdit]);
+    }, [canQuickEdit, node.$type, multiModeValues]);
 
     const handleRowKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
-        // Enter or e: inline edit for simple types, inline popover for complex, full editor otherwise
+        // Enter or e: open the quick editor on the first mode cell; fall back to full editor.
         if (
           e.key === "Enter" ||
           (e.key === "e" && !e.metaKey && !e.ctrlKey && !e.altKey)
         ) {
           e.preventDefault();
-          if (canInlineEdit) {
-            activateInlineEdit();
-          } else if (canInlinePopover) {
-            const rect = nodeRef.current?.getBoundingClientRect();
-            if (rect) {
-              setInlinePopoverAnchor(rect);
-              setInlinePopoverOpen(true);
-            }
+          if (canQuickEdit) {
+            openQuickEditorFirstMode();
           } else {
             onEdit(node.path, node.name);
           }
@@ -863,9 +883,8 @@ export const TokenLeafNode = memo(
         }
       },
       [
-        canInlineEdit,
-        canInlinePopover,
-        activateInlineEdit,
+        canQuickEdit,
+        openQuickEditorFirstMode,
         onEdit,
         node.path,
         node.name,
@@ -964,6 +983,9 @@ export const TokenLeafNode = memo(
           onContextMenu={handleContextMenu}
           onKeyDown={handleRowKeyDown}
         >
+          {isSelected && (
+            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--color-figma-accent)] pointer-events-none z-10" />
+          )}
           <div
             className="flex items-center gap-1.5 min-w-0 pr-1"
             style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 14)}px` }}
@@ -976,59 +998,57 @@ export const TokenLeafNode = memo(
               style={reorderPos === "before" ? { top: 0 } : { bottom: 0 }}
             />
           )}
-          {selectMode ? (
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => {}}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleSelect(node.path, {
-                  shift: e.shiftKey,
-                  ctrl: e.ctrlKey || e.metaKey,
-                });
-              }}
-              aria-label={`Select token ${node.path}`}
-              className="shrink-0 cursor-pointer"
-            />
-          ) : hovered ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleSelect(node.path, { shift: false, ctrl: true });
-              }}
-              aria-label={`Select ${node.name}`}
-              className="shrink-0 w-3 h-3 rounded-full border border-[var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15 transition-colors"
-            />
-          ) : null}
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={isSelected}
+            aria-label={`Select ${node.name}`}
+            tabIndex={-1}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect(node.path, {
+                shift: e.shiftKey,
+              });
+            }}
+            className={`shrink-0 w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-opacity ${
+              selectMode || hovered
+                ? "opacity-100"
+                : "opacity-0 pointer-events-none"
+            } ${
+              isSelected
+                ? "bg-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]"
+                : "border border-[var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-accent)]"
+            }`}
+          >
+            {isSelected && (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M2.5 5L4.5 7L7.5 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
 
-          {/* Name and info — single-click opens editor (non-select mode) */}
-          {/* ctrl/cmd-click enters select mode; shift-click range-selects */}
           <div
             title={[
               formatDisplayPath(node.path, node.name),
               node.$type ? `Type: ${node.$type}` : null,
               `Value: ${formatValue(node.$type, displayValue)}`,
               node.$description ? `Description: ${node.$description}` : null,
-              !selectMode ? `${modKey}Click to select` : null,
+              `${modKey}Click to select`,
             ]
               .filter(Boolean)
               .join("\n")}
-            className={`flex-1 min-w-0${!selectMode ? " cursor-pointer" : ""}`}
+            className="flex-1 min-w-0 cursor-pointer"
             onClick={(e) => {
-              if (selectMode || e.ctrlKey || e.metaKey) {
+              if (e.ctrlKey || e.metaKey || e.shiftKey) {
                 e.stopPropagation();
                 onToggleSelect(node.path, {
                   shift: e.shiftKey,
-                  ctrl: e.ctrlKey || e.metaKey,
                 });
                 return;
               }
               e.stopPropagation();
               onEdit(node.path, node.name);
             }}
-            style={selectMode ? { cursor: "pointer" } : undefined}
           >
             <div className="flex items-center gap-1 min-w-0 overflow-hidden">
               <CondensedAncestorBreadcrumb
@@ -1719,25 +1739,58 @@ export const TokenLeafNode = memo(
             />
           )}
 
-          {/* Inline value popover — for complex types and alias-valued tokens */}
-          {inlinePopoverOpen && inlinePopoverAnchor && node.$type && (
+          {/* Unified quick value editor — every editable type + alias editing. */}
+          {quickEditor && node.$type && (
             <InlineValuePopover
               tokenPath={node.path}
               tokenName={node.name}
               tokenType={node.$type}
-              currentValue={node.$value}
+              currentValue={quickEditor.currentValue?.$value}
+              modeLabel={multiModeValues.length > 1 ? quickEditor.optionName : undefined}
               allTokensFlat={allTokensFlat}
               pathToCollectionId={pathToCollectionId}
-              anchorRect={inlinePopoverAnchor}
+              anchorRect={quickEditor.anchor}
               onSave={(newVal, previousState) => {
-                requestInlineValueSave(newVal, previousState);
-                setInlinePopoverOpen(false);
+                if (quickEditor.targetCollectionId) {
+                  handleMultiModeGeneratedSaveRequest(
+                    newVal,
+                    quickEditor.targetCollectionId,
+                    quickEditor.collectionId,
+                    quickEditor.optionName,
+                    previousState,
+                  );
+                } else {
+                  requestInlineValueSave(newVal, previousState);
+                }
+                closeQuickEditor();
               }}
               onOpenFullEditor={() => {
-                setInlinePopoverOpen(false);
+                closeQuickEditor();
                 onEdit(node.path, node.name);
               }}
-              onClose={() => setInlinePopoverOpen(false)}
+              onClose={closeQuickEditor}
+              onTab={(dir) => {
+                const idx = multiModeValues.findIndex(
+                  (m) => m.optionName === quickEditor.optionName,
+                );
+                const nextIdx = idx + dir;
+                if (nextIdx >= 0 && nextIdx < multiModeValues.length) {
+                  const next = multiModeValues[nextIdx];
+                  const rect = nodeRef.current?.getBoundingClientRect();
+                  if (rect) {
+                    setQuickEditor({
+                      anchor: rect,
+                      optionName: next.optionName,
+                      collectionId: next.collectionId,
+                      targetCollectionId: next.targetCollectionId,
+                      currentValue: next.resolved,
+                    });
+                  }
+                } else {
+                  closeQuickEditor();
+                  onTabToNext(node.path, quickEditor.optionName, dir);
+                }
+              }}
             />
           )}
 
@@ -1750,35 +1803,15 @@ export const TokenLeafNode = memo(
           {multiModeValues.map((mv) => (
             <ValueCell
               key={mv.optionName}
-              tokenPath={node.path}
               tokenType={node.$type}
-              value={mv.resolved}
+              currentValue={mv.resolved}
               targetCollectionId={mv.targetCollectionId}
               collectionId={mv.collectionId}
               optionName={mv.optionName}
-              onSave={(
-                _path,
-                _type,
-                nextValue,
-                targetCollectionId,
-                collectionId,
-                optionName,
-                previousState,
-              ) =>
-                handleMultiModeGeneratedSaveRequest(
-                  nextValue,
-                  targetCollectionId,
-                  collectionId,
-                  optionName,
-                  previousState,
-                )
-              }
-              isTabPending={
-                pendingTabEdit?.path === node.path &&
-                pendingTabEdit?.columnId === mv.optionName
-              }
-              onTabActivated={clearPendingTabEdit}
-              onTab={(dir) => onTabToNext(node.path, mv.optionName, dir)}
+              onRequestQuickEdit={canQuickEdit ? (req: QuickEditRequest) => {
+                setQuickEditor(req);
+                setInlineNudgeVisible(false);
+              } : undefined}
               onEdit={() => onEdit(node.path, node.name)}
             />
           ))}
