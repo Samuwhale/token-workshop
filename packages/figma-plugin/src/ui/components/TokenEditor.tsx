@@ -788,6 +788,8 @@ export function TokenEditor({
       return next;
     });
   }, []);
+  const [devMetadataOpen, setDevMetadataOpen] = useState(false);
+  const [rawJsonOpen, setRawJsonOpen] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -1425,12 +1427,10 @@ export function TokenEditor({
         )}
 
         <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePaste}>
-          {modeValue.modes.length >= 2 && valueFormatHint(tokenType) && (
-            <span className="text-secondary text-[var(--color-figma-text-tertiary)] italic">
-              {valueFormatHint(tokenType)}
-            </span>
-          )}
-          <div className="divide-y divide-[var(--color-figma-border)]/50 overflow-hidden rounded-md border border-[var(--color-figma-border)]/65">
+          <div
+            className="divide-y divide-[var(--color-figma-border)]/50 rounded-md border border-[var(--color-figma-border)]/65"
+            title={modeValue.modes.length >= 2 ? (valueFormatHint(tokenType) || undefined) : undefined}
+          >
             {modeValue.modes.map((mode, modeIdx) => {
               const modeVal = mode.value === "" ? undefined : mode.value;
               const baseVal = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
@@ -1806,14 +1806,15 @@ export function TokenEditor({
         <Collapsible
           open={detailsOpen}
           onToggle={toggleDetails}
-          label={<span>Advanced</span>}
+          label="Advanced"
         >
-          <div className="mt-2 flex flex-col gap-3">
-            <details className="mt-1">
-              <summary className="cursor-pointer text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
-                Developer metadata
-              </summary>
-              <div className="mt-2">
+          <div className="mt-2 flex flex-col gap-3 pl-3">
+            <Collapsible
+              open={devMetadataOpen}
+              onToggle={() => setDevMetadataOpen((v) => !v)}
+              label="Developer metadata"
+            >
+              <div className="mt-2 pl-3">
                 <MetadataEditor
                   tokenType={tokenType}
                   scopes={scopes}
@@ -1824,25 +1825,26 @@ export function TokenEditor({
                   onExtensionsJsonErrorChange={setExtensionsJsonError}
                 />
               </div>
-            </details>
+            </Collapsible>
 
             {extendsSection}
 
-            <details className="mt-1">
-              <summary className="cursor-pointer text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] select-none">
-                Raw JSON
-              </summary>
-              <div className="mt-2">
+            <Collapsible
+              open={rawJsonOpen}
+              onToggle={() => setRawJsonOpen((v) => !v)}
+              label="Raw JSON"
+            >
+              <div className="mt-2 pl-3">
                 <pre className="max-h-56 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
                   {rawJsonPreview}
                 </pre>
                 {extensionsJsonError && (
-                  <p className="text-secondary text-[var(--color-figma-error)]">
+                  <p className="mt-1 text-secondary text-[var(--color-figma-error)]">
                     Extensions JSON is invalid. The preview excludes that invalid block until it parses.
                   </p>
                 )}
               </div>
-            </details>
+            </Collapsible>
           </div>
         </Collapsible>
       </EditorShell>

@@ -9,7 +9,9 @@ import {
 import { Spinner } from "./Spinner";
 import type { TokenNode } from "../hooks/useTokens";
 import type { NodeCapabilities, TokenMapEntry } from "../../shared/types";
-import { BatchEditor } from "./BatchEditor";
+import { BatchActionPanel } from "./batch-actions/BatchActionPanel";
+import type { BatchActionType } from "./batch-actions/types";
+import { FIGMA_SCOPE_OPTIONS } from "../shared/tokenMetadata";
 import { stableStringify } from "../shared/utils";
 import { apiFetch } from "../shared/apiFetch";
 import {
@@ -131,7 +133,7 @@ type VisibleTokenRow = {
   ancestorPathLabel?: string;
 };
 
-type BatchEditorFocusTarget = "find-path";
+type BatchEditorFocusTarget = "find-replace";
 
 export function TokenList({
   ctx: { collectionId, collectionIds, serverUrl, connected, selectedNodes },
@@ -278,7 +280,6 @@ export function TokenList({
     rowHeight,
     condensedView,
     setCondensedView,
-    showModeColumns,
     multiModeDimId,
     setMultiModeDimId,
   } = viewState;
@@ -505,10 +506,12 @@ export function TokenList({
   );
 
 
-  // Compute per-option resolved token maps for the selected dimension
+  // Compute per-mode resolved token maps for the selected dimension. Always
+  // produces at least one column — single-mode collections get one result,
+  // multi-mode collections get N. Returns null only when no collection is
+  // selected yet (e.g. during initial load).
   const multiModeData = useMemo(() => {
     if (
-      !showModeColumns ||
       !multiModeDimId ||
       !unresolvedAllTokensFlat ||
       activeCollections.length === 0
@@ -517,7 +520,7 @@ export function TokenList({
     const collection = activeCollections.find(
       (candidate) => candidate.id === multiModeDimId,
     );
-    if (!collection || collection.modes.length < 2) return null;
+    if (!collection || collection.modes.length === 0) return null;
 
     const results: Array<{
       optionName: string;
@@ -538,7 +541,6 @@ export function TokenList({
     }
     return { collection, results };
   }, [
-    showModeColumns,
     multiModeDimId,
     unresolvedAllTokensFlat,
     activeCollections,
@@ -546,10 +548,11 @@ export function TokenList({
     pathToCollectionId,
   ]);
 
-  // Build multiModeValues for a given token path
+  // Build mode values for a given token path. Always returns at least one entry
+  // — single-mode collections get one, multi-mode collections get N.
   const getMultiModeValues = useCallback(
-    (tokenPath: string): MultiModeValue[] | undefined => {
-      if (!multiModeData) return undefined;
+    (tokenPath: string): MultiModeValue[] => {
+      if (!multiModeData) return [];
       const { results } = multiModeData;
       return results.map(({ optionName, collectionId, resolved }) => {
         return {
@@ -1167,6 +1170,7 @@ export function TokenList({
     setVirtualScrollTop,
     itemOffsets,
     pendingTabEdit,
+    setPendingTabEdit,
     handleClearPendingTabEdit,
     handleJumpToGroup,
     handleTabToNext,
@@ -1201,7 +1205,10 @@ export function TokenList({
     selectedLeafNodes,
     handleTokenSelect,
     handleSelectAll,
+    handleSelectGroupChildren,
   } = tokenSelection;
+
+  const [activeBatchAction, setActiveBatchAction] = useState<BatchActionType | null>(null);
 
   // Wire up the clearSelection ref now that useTokenSelection has been called
   clearSelectionRef.current = () => {
@@ -1212,13 +1219,9 @@ export function TokenList({
   const handleExitSelectMode = useCallback(() => {
     setSelectMode(false);
     setSelectedPaths(new Set());
+    setActiveBatchAction(null);
     setShowBatchEditor(false);
   }, [setSelectMode, setSelectedPaths, setShowBatchEditor]);
-
-  const handleToggleBatchEditor = useCallback(() => {
-    setShowBatchEditor((v) => !v);
-  }, [setShowBatchEditor]);
-
 
   const openBulkEditorForPaths = useCallback(
     (paths: Set<string>, scope: BulkEditScope) => {
@@ -1228,21 +1231,41 @@ export function TokenList({
       }
       setSelectMode(true);
       setSelectedPaths(paths);
-      setShowBatchEditor(true);
       setActiveBulkEditScope(scope);
     },
-    [setSelectMode, setSelectedPaths, setShowBatchEditor],
+    [setSelectMode, setSelectedPaths],
   );
 
-  const handleBatchEditorSelectionChange = useCallback(
+  const handleBatchActionSelectionChange = useCallback(
     (nextSelectedPaths: Set<string>) => {
       setSelectedPaths(nextSelectedPaths);
       if (nextSelectedPaths.size === 0) {
+        setActiveBatchAction(null);
         setShowBatchEditor(false);
         setSelectMode(false);
       }
     },
     [setSelectMode, setSelectedPaths, setShowBatchEditor],
+  );
+
+  const selectedEntries = useMemo(
+    () => [...selectedPaths]
+      .map(p => ({ path: p, entry: allTokensFlat[p] }))
+      .filter((x): x is { path: string; entry: TokenMapEntry } => x.entry != null),
+    [selectedPaths, allTokensFlat],
+  );
+
+  const hasColors = useMemo(
+    () => selectedEntries.some(x => x.entry.$type === 'color'),
+    [selectedEntries],
+  );
+  const hasNumeric = useMemo(
+    () => selectedEntries.some(x => x.entry.$type === 'dimension' || x.entry.$type === 'number'),
+    [selectedEntries],
+  );
+  const hasScopableTypes = useMemo(
+    () => selectedEntries.some(x => !!FIGMA_SCOPE_OPTIONS[x.entry.$type as string]),
+    [selectedEntries],
   );
 
   const handleOpenBulkWorkflowForVisibleTokens = useCallback(() => {
@@ -1296,8 +1319,19 @@ export function TokenList({
   useEffect(() => {
     if (!selectMode || selectedPaths.size === 0) {
       setActiveBulkEditScope(null);
+      setActiveBatchAction(null);
     }
   }, [selectMode, selectedPaths.size]);
+
+  // Sync: keyboard handler toggles showBatchEditor (from useTokenSelection).
+  // Map that to activeBatchAction so the E key opens/closes the panel.
+  useEffect(() => {
+    if (showBatchEditor && !activeBatchAction) {
+      setActiveBatchAction('set-description');
+    } else if (!showBatchEditor && activeBatchAction) {
+      setActiveBatchAction(null);
+    }
+  }, [showBatchEditor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tokenCrud = useTokenCrud({
     connected,
@@ -1624,6 +1658,7 @@ export function TokenList({
     dismissMoveToken();
     dismissCopyToken();
     setShowFindReplace(false);
+    setActiveBatchAction(null);
     setShowBatchEditor(false);
     setPendingBatchEditorFocus(null);
   }, [
@@ -1647,7 +1682,8 @@ export function TokenList({
       new Set(displayedLeafNodes.map((node) => node.path)),
       currentBulkEditScope,
     );
-    setPendingBatchEditorFocus("find-path");
+    setActiveBatchAction('find-replace');
+    setPendingBatchEditorFocus("find-replace");
   }, [
     closeLongLivedReviewSurfaces,
     crossCollectionSearch,
@@ -1681,18 +1717,18 @@ export function TokenList({
   );
 
   useEffect(() => {
-    if (!showBatchEditor || pendingBatchEditorFocus !== "find-path") return;
+    if (!activeBatchAction || pendingBatchEditorFocus !== "find-replace") return;
     const frameId = window.requestAnimationFrame(() => {
       const input =
         batchEditorPanelRef.current?.querySelector<HTMLInputElement>(
-          'input[aria-label="Find in path"]',
+          'input[type="text"]',
         );
       input?.focus();
       input?.select();
       setPendingBatchEditorFocus(null);
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [pendingBatchEditorFocus, showBatchEditor]);
+  }, [pendingBatchEditorFocus, activeBatchAction]);
 
   const handleListKeyDown = useTokenListKeyboardHandler({
     selectMode,
@@ -2121,7 +2157,7 @@ export function TokenList({
     compareHandle.current = {
       openCompareMode: () => {
         setSelectMode(true);
-        setShowBatchEditor(false);
+        setActiveBatchAction(null);
       },
       revealPath: (path: string) => {
         handleRevealPath(path);
@@ -2159,7 +2195,6 @@ export function TokenList({
   }, [
     compareHandle,
     setSelectMode,
-    setShowBatchEditor,
     handleRevealPath,
     setShowRecentlyTouched,
     viewMode,
@@ -2219,7 +2254,8 @@ export function TokenList({
     handleRunGeneratedGroup,
     handleToggleGeneratedGroupEnabled,
     handleDeleteGeneratedGroup,
-    handleDetachGeneratedGroup, onNavigateToAlias, setRovingFocusPath,
+    handleDetachGeneratedGroup, onNavigateToAlias, handleSelectGroupChildren,
+    setRovingFocusPath,
   });
 
   const tokenTreeLeafState = useTokenTreeLeafState({
@@ -2231,7 +2267,7 @@ export function TokenList({
     starredPaths,
     collections: activeCollections,
     pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
-    showModeColumns, tokenModeMissing,
+    tokenModeMissing,
   });
 
   const tokenTreeLeafActions = useTokenTreeLeafActions({
@@ -2247,6 +2283,7 @@ export function TokenList({
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, onOpenGeneratedGroupEditor, onToggleStar,
     handleClearPendingRename, handleClearPendingTabEdit, handleTabToNext,
+    setPendingTabEdit,
     setRovingFocusPath,
   });
 
@@ -2331,12 +2368,15 @@ export function TokenList({
             displayedLeafPaths={displayedLeafPaths}
             collectionIds={collectionIds}
             operationLoading={operationLoading}
-            showBatchEditor={showBatchEditor}
+            activeBatchAction={activeBatchAction}
+            hasColors={hasColors}
+            hasNumeric={hasNumeric}
+            hasScopableTypes={hasScopableTypes}
             copyFeedback={copyFeedback}
             copyCssFeedback={copyCssFeedback}
             copyAliasFeedback={copyAliasFeedback}
             onSelectAll={handleSelectAll}
-            onToggleBatchEditor={handleToggleBatchEditor}
+            onSetBatchAction={setActiveBatchAction}
             onRequestBulkDelete={requestBulkDelete}
             onExitSelectMode={handleExitSelectMode}
             onCopyJson={() => {
@@ -2374,21 +2414,20 @@ export function TokenList({
           />
         )}
 
-        {/* Batch editor panel */}
-        {selectMode && showBatchEditor && selectedPaths.size > 0 && (
+        {/* Active batch action panel */}
+        {selectMode && activeBatchAction && selectedPaths.size > 0 && (
           <div ref={batchEditorPanelRef}>
-            <BatchEditor
+            <BatchActionPanel
+              action={activeBatchAction}
               selectedPaths={selectedPaths}
+              selectedEntries={selectedEntries}
               allTokensFlat={allTokensFlat}
               collectionId={collectionId}
-              collectionIds={collectionIds}
               serverUrl={serverUrl}
               connected={connected}
               onApply={onRefresh}
-              onSelectedPathsChange={handleBatchEditorSelectionChange}
               onPushUndo={onPushUndo}
-              onRequestDelete={requestBulkDelete}
-              selectionScope={activeBulkEditScope}
+              onSelectedPathsChange={handleBatchActionSelectionChange}
             />
           </div>
         )}
@@ -2428,7 +2467,7 @@ export function TokenList({
             onOpenImportPanel={onOpenImportPanel}
             onOpenCreateCollection={onOpenCreateCollection}
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
-            onSelectTokens={() => { setSelectMode(true); setShowBatchEditor(false); }}
+            onSelectTokens={() => { setSelectMode(true); setActiveBatchAction(null); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
             overflowMenuProps={tokens.length > 0 ? {
@@ -2593,7 +2632,7 @@ export function TokenList({
         </div>
 
         <TokenListReviewOverlays
-          showBatchEditor={showBatchEditor}
+          showBatchEditor={activeBatchAction !== null}
           varDiffPending={varDiffPending}
           onCloseVarDiff={handleCloseVarDiff}
           onApplyVarDiff={handleApplyVarDiff}

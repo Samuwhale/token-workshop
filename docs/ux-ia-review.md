@@ -1,538 +1,543 @@
 # TokenManager Figma Plugin — UX/IA Review
 
-**Date:** 2026-04-21
-**Scope:** Full audit of screens, flows, information architecture, and UX quality
-**Target users:** Figma UI/UX designers, design system maintainers (primary); developers (secondary)
-
-> **Note:** The memory at `project-ia-overhaul.md` claims Phase 2 (Library / Canvas / Sync / Export, Share eliminated, rail codes Li/Ca/Sy/Ex) shipped 2026-04-20. The code at `packages/figma-plugin/src/ui/shared/navigationTypes.ts:409-488` still has Library / Canvas / **Share** with figma-sync/export/versions sub-tabs. Phase 2 is planned, not shipped. This review is written against the shipped code.
-
----
+**Date:** 2026-04-21  
+**Scope:** Full audit of screens, flows, information architecture, and UX quality  
+**Target users:** Figma UI/UX designers and design-system maintainers (primary); developers collaborating on tokens, sync, export, and governance (secondary)
 
 ## Executive Summary
 
-The plugin is feature-rich to the point of being overwhelming. It has the functionality of a desktop application packed into a Figma plugin panel. The core authoring flow (Library) is solid, the canonical domain model (collections > modes > tokens, modes visible simultaneously) is respected throughout, and no rotten patterns from the old domain model remain.
+The plugin is unusually capable for a Figma plugin. The core authoring model is strong: collections are the primary container, modes are visible simultaneously, and token authoring in `Library` generally follows a Figma-native mental model.
 
-Three structural problems block it from being excellent:
+The main problem is not missing functionality. The main problem is that too many workflows are fighting for attention inside a narrow panel, and the app still does not present one coherent feedback model for quality, status, and actionability.
 
-1. **Too many surfaces competing for one slot.** The Library workspace hosts ~8 contextual surfaces (editor, generator, compare, collection details, color analysis, import, health, history) that all replace each other. Opening one closes the other. This is the architectural root of many UX complaints.
-2. **"Share" is the wrong umbrella name**, and Versions is a stub inside it. The workspace label doesn't match the contents.
-3. **Jargon and dev-flavored surfaces leak into designer-facing areas** — "lint violations," "scopes," "coverage," dense Figma-sync form, etc.
+Four structural issues matter most:
 
-The underlying functionality is mostly right. Reorganization, targeted consolidation, a small number of kills, and a handful of high-leverage empowerment fixes (copy-to-all-modes, inline alias resolution, rename-with-references) would elevate this from dense to delightful.
+1. **Too many Library tools compete for one slot.** Token editing, generated groups, compare, collection setup, color analysis, import, health, and history all replace each other inside the same workspace body. This is the root of the app feeling dense.
+2. **`Share` is the wrong umbrella name.** It mixes a designer-critical sync workflow with developer-facing export and version-control workflows. The problem is naming and placement, not that those features exist.
+3. **Several capabilities feel missing because they are buried.** Selection-aware filtering, health entry points, group sync, duplicate/create-from-token, rename with alias updates, and reorder already exist. They read as missing because they are hidden in menus, split across surfaces, or framed with the wrong language.
+4. **System feedback is fragmented.** Health, toolbar issue counts, row badges, stale generated banners, and notifications all overlap, but they do not share one consistent model of what an “issue” is or where the user should go next.
 
----
+For the target user, the right strategy is:
 
-## Table of Contents
+- keep `Canvas` first-class
+- give `Library` persistent sub-navigation
+- rename `Share` to `Sync`
+- unify issue and system-feedback models before adding more maintenance chrome
+- surface existing capabilities before building replacements
+- add a small set of real missing empowerment features, especially **copy value to all modes** and collection-level sync from Library
 
-1. [Current Architecture](#1-current-architecture)
-2. [Information Architecture Problems](#2-information-architecture-problems)
-3. [Core Workflow Assessment](#3-core-workflow-assessment)
-4. [Feature Bloat — Kill, Demote, Keep](#4-feature-bloat--kill-demote-keep)
-5. [What's Missing](#5-whats-missing)
-6. [Proposed IA Restructuring](#6-proposed-ia-restructuring)
-7. [Specific UX Fixes (Quick Wins)](#7-specific-ux-fixes-quick-wins)
-8. [Jargon & Naming Audit](#8-jargon--naming-audit)
-9. [Code Architecture Observations](#9-code-architecture-observations)
+## 1. Current Product Read
 
----
+### Navigation today
 
-## 1. Current Architecture
+The current app has three top-level workspaces:
 
-### Navigation Structure
+- **Library**: token authoring, collection management, and several contextual tools
+- **Canvas**: selection inspection and usage analysis
+- **Share**: Figma Sync, Export, and Versions
 
-The plugin uses a two-tier navigation system: three top-level workspaces in a collapsible sidebar, plus contextual surfaces that replace the main body.
+`Library` currently hosts the following contextual surfaces:
 
-| Workspace | Sub-tabs | Contextual Surfaces |
-|-----------|----------|-------------------|
-| **Library** | (none) | Token editor, Generated group editor, Collection details, Compare, Color analysis, Import, Health, History |
-| **Canvas** | Selection inspector | (none) |
-| **Share** | Figma Sync, Export, Versions | (none) |
+- Token editor
+- Generated group editor
+- Collection details
+- Compare
+- Color analysis
+- Import
+- Health
+- History
 
-**Secondary surfaces** (full-height overlays): Settings, Keyboard Shortcuts
+This matters because all of those surfaces currently compete for one workspace body.
 
-**Transient overlays** (dialogs): Command Palette, Paste Tokens, Quick Apply, Collection Create, Unsaved Changes, Group Scopes, Confirm modals, Progress overlays
+### Important distinction: History vs Versions
 
-### Sidebar
+`History` and `Versions` are not duplicates.
+
+- **History** is the local operational timeline: recent actions, undo/redo context, checkpoints, and rollback-oriented review.
+- **Versions** is the repository and Git workflow: repo setup, branch status, pull/push, commits, and commit comparison.
+
+That distinction is important for the target audience. Designers may mostly care about authoring and sync, but developers still need a clear, explicit place for version history and platform output.
+
+## 2. What Is Already Working Well
+
+Several foundations are solid and should be preserved:
+
+- The canonical domain model is respected throughout the product.
+- The collection rail + token tree + side editor pattern is strong.
+- Multi-mode authoring is handled in the right mental model: all modes are visible together.
+- `Canvas` is correctly treated as a distinct workflow rather than a hidden detail of Library.
+- `Figma Sync` already has meaningful progressive disclosure: target editing can collapse, conflicts are separated from non-conflicts, and advanced routing is already behind a disclosure.
+- Several secondary tools are already quieter than they used to be. JSON editing, token table creation, batch editing, and other utility workflows have already moved into menus instead of permanently crowding the shell.
+
+Several capabilities that the UI makes hard to discover are already implemented:
+
+- drag-drop reorder in the token tree
+- rename with alias updates
+- group-level sync to Figma
+- duplicate token and duplicate group flows
+- selection-aware filtering in Library
+- health entry points in the Library toolbar
+- token-row issue/status badges
+- bulk-edit and multi-select workflows
+- stale generated-group signals inside Library
+
+The product is not empty or immature. It is mainly oversubscribed.
+
+## 3. Validated Information Architecture Problems
+
+### 3.1 Library surface contention is the core problem
+
+This is the most important conclusion in the review, and it holds up.
+
+`Library` is trying to be all of the following at once:
+
+- primary token browser
+- token editor
+- collection setup surface
+- generator host
+- compare tool
+- import center
+- audit dashboard
+- history viewer
+
+Because those surfaces replace one another, the user loses context while moving through normal work:
+
+- edit a token, then open Health: the editor is gone
+- preview tokens, then open Compare: the preview split closes
+- import tokens, then inspect quality: back out of one takeover, open another
+
+For designers, this feels like the app keeps hiding the thing they were just using. That is the wrong feeling for a primary authoring workspace.
+
+### 3.2 `Share` is vague, but the features inside it are real
+
+The current top-level label does not match the user’s task.
+
+`Share` currently mixes:
+
+- **Figma Sync**: designer-critical output into variables and styles
+- **Export**: developer-facing platform files
+- **Versions**: repository history and collaboration
+
+The label is wrong because it does not tell the designer what will happen. But the fix is not to remove the secondary workflows. The fix is to give them a clearer structure.
+
+For this product, developer features should not be buried or deleted. They should be visible, explicit, and quieter than the primary designer flow.
+
+### 3.3 Hidden capabilities are being mistaken for missing capabilities
+
+A recurring problem in the current UX is not absence, but poor surfacing.
+
+Examples:
+
+- **Selection-aware Library context exists**, but it is hidden behind a filter entry and an active chip rather than being surfaced proactively when the user has a Figma selection.
+- **Health already has more surfacing than a first glance suggests**: there is a header count and token rows already expose issue state. The deeper problem is that collection-level surfacing is weak and the product still does not unify one issue model across Library and Health.
+- **Group sync exists in the tree**, but collection-level sync is absent, so the workflow feels incomplete.
+- **Rename updates references already exist**, and the default path already supports updating aliases, but the experience still reads like a dependency warning rather than a normal designer rename flow.
+- **Duplicate token already exists**, but the action label, placement, and default `-copy` naming still feel technical rather than authoring-oriented.
+- **Several advanced tools are already partly demoted**, which means the right next step is continued simplification of placement and language, not rebuilding the feature set.
+
+This distinction matters because the product should not spend time rebuilding features that already ship.
+
+### 3.4 Jargon and naming drift still leak into designer-facing surfaces
+
+The biggest remaining language problems are:
+
+- `Share`
+- `Coverage`
+- `Scopes`
+- `Health` versus `Audit`
+- `Library` versus `Tokens` when they refer to the same area of the product
+- advanced sync terminology that appears too early
+
+The app has already improved some naming:
+
+- `Issues` is already better than `Lint violations`
+- `Advanced` is already better than `Extensions`
+
+The remaining work is narrower than it first appears, but still important.
+
+### 3.5 `Issue` does not mean one consistent thing yet
+
+The current product has multiple overlapping issue systems:
+
+- Library row badges and “Only tokens with issues” mainly mean lint-driven problems
+- Health combines lint, validation, stale generated state, duplicates, and usage-related risk signals
+- the toolbar audit count emphasizes validation totals rather than the narrower Library issue model
+- stale generated groups also surface through their own status banners and row metadata
+
+That means the same collection can look “clean” in one place and “warning” in another without the user understanding why.
+
+For designers, that does not feel like rich maintenance tooling. It feels like the product is changing the definition of a problem depending on where they are standing.
+
+### 3.6 The inbox and system feedback model are promising, but routing is brittle
+
+The app already has the beginnings of a useful actionable inbox. That is worth preserving.
+
+The current weakness is that many entries still behave like a smarter toast history rather than a reliable task system. Navigation targets are inferred from message text, and token targets are recovered by scraping quoted token paths, rather than carried as explicit product state.
+
+That makes the experience feel less trustworthy than it should. If a system entry says “Open health” or “Open sync,” the user should not have to wonder whether the app guessed correctly.
+
+## 4. Workflow Assessment
+
+### Library
+
+`Library` is fundamentally a good authoring surface. The collection rail, token tree, type grouping, search, and side-panel editing all make sense for designers.
+
+The current problem is not that the top row is visibly overloaded. The visible chrome is already more condensed than the old “7+ controls” critique suggests. The current issue is that too much important state is distributed across:
+
+- `View`
+- `Filter`
+- `Actions`
+- search qualifiers
+- state chips
+- contextual takeovers
+
+That shifts the problem from visible clutter to discoverability and context loss.
+
+There is also a smaller but important collection-level gap: the rail currently emphasizes token count much more than mode structure, which weakens the Figma mental model at the point where designers choose where to work.
+
+### Canvas
+
+`Canvas` should stay a top-level workspace.
+
+For the primary user, selecting a Figma layer and asking “what is bound here?” or “what should I apply here?” is not a secondary detail. It is the real usage moment for tokens.
+
+The current weakness is not that Canvas exists. The weakness is that Library does not borrow enough context from Canvas when a selection is active.
+
+There is also a behavior issue in the current `Coverage` flow: entering that view can feel more computational than navigational because scanning begins immediately on tab switch. That weakens predictability.
+
+### Sync
+
+`Figma Sync` is still the densest surface in the product, but it is not as unstructured as a first glance suggests.
+
+The panel already contains:
+
+- a default target summary
+- an idle “Check for changes” state
+- explicit conflict handling
+- a non-conflict summary
+- advanced routing behind disclosure
+
+The remaining issue is that the first pass still asks the user to understand too much structure before the happy path is obvious.
+
+### Health
+
+Health is feature-rich and useful, but still buried.
+
+The right conclusion is not “Health should disappear.” The right conclusion is that it deserves persistent access inside Library rather than existing as a hidden takeover behind toolbar actions.
+
+The other remaining weakness is conceptual: the product still does not make `Health`, `Issues`, `Audit`, and row-level warnings feel like one coherent maintenance system.
+
+### Versions and Export
+
+These are real secondary workflows and should stay.
+
+- `Export` is a legitimate developer-facing output surface.
+- `Versions` is a legitimate Git/history/collaboration surface.
+
+They simply should not sit inside a vague top-level workspace that is pretending to be the designer’s sync surface.
+
+### Onboarding
+
+Onboarding has the right intent, but it still does not do enough to stage the product gradually for a designer.
+
+The current setup guidance introduces sensible concepts, but the handoff from “start here” into ongoing work is still weak, and some of the copy mixes product labels in ways that reduce confidence early.
+
+## 5. Keep, Demote, Remove
+
+### Keep
+
+These features are legitimate and should stay in the product:
+
+- `Canvas` as a top-level workspace
+- `Export`
+- `Versions`
+- `Color Analysis`
+- notifications/inbox state as a model for actionable system feedback
+- `Z-Index Scale`
+- `Dark Mode Inversion`
+
+The principle here is simple: if a feature supports a real designer or developer workflow, it deserves a home even if it should not be loud.
+
+### Demote or Simplify
+
+These features feel secondary and should move to quieter access paths:
+
+- `JSON Editor`
+- `Table Create`
+- `Custom Scale`
+- `Compare`
+- `Batch Editor`
+- `Keyboard Shortcuts` as a dedicated surface
+
+Several of these are already partly demoted. That is the right direction.
+
+The goal is not to delete them first. The goal is to stop letting them compete with the designer’s primary authoring flow.
+
+### Remove only with evidence
+
+There are no high-confidence kill recommendations based on the current code alone.
+
+Most current UX debt comes from **placement, naming, and discoverability**, not from the mere existence of too many features.
+
+If future usage data shows that `JSON Editor` or `Table Create` are effectively unused, they are the strongest removal candidates. They are not the first thing that needs to change.
+
+## 6. What Is Actually Missing
+
+These are the highest-leverage missing or incomplete workflows for the primary user.
+
+1. **Copy value to all modes.** The current multi-mode editor supports copying from a neighboring mode, but not the direct “apply this value to every mode” action designers expect.
+2. **Faster alias tracing in the token list.** Resolved-value inspection exists as a view mode, but switching the whole list state is heavier than a local hover or inline preview.
+3. **Collection-level sync from Library.** Group-level sync exists, but collection-level sync is still missing from the collection rail.
+4. **A clearer “Create from this token” flow.** Duplicate already exists, but the label, placement, and default `-copy` path make it read like a technical clone command rather than a designer authoring flow.
+5. **More direct bulk workflows once multi-select is active.** Multi-select and bulk edit exist, but they still read as secondary tools rather than a first-class editing mode.
+6. **Better first-run guidance after setup.** The current onboarding does not do enough to gradually introduce generators, modes, sync, and maintenance workflows.
+7. **More consistent visibility for auto-updating generated groups.** Generated state already appears in the token list, but through several disconnected patterns rather than one coherent status model.
+8. **A single issue and system-feedback model across Library, Health, generated-state surfaces, and notifications.** The product needs one stable meaning for “issue,” “warning,” and “needs action.”
+9. **A more explicit Usage scan flow in Canvas.** Entering Usage should feel intentional and predictable, not like a side effect of switching views.
+10. **Better collection summaries in the rail, especially mode visibility.** Collections are the primary container in the domain model, so the rail should communicate more than token count alone.
+11. **Structured notification destinations and action payloads.** The inbox can be useful, but only if entries navigate by explicit destination data instead of parsing prose.
+
+## 7. Recommended Information Architecture
+
+The strongest end-state IA shape for the current product is:
 
 ```
-Sidebar (120px expanded / 40px collapsed)
-├── Library (Layers icon)
-├── Canvas (Frame icon)
-├── Share (Share2 icon)
-│   ├── Figma Sync      ← only visible when Share is expanded
-│   ├── Export
-│   └── Versions
-├── ─── divider ───
-├── Notifications (bell)
-├── Settings (gear)
-├── Undo / Redo
-└── Collapse toggle
-```
-
-### Library Workspace Layout
-
-```
-┌──────────────┬──────────────────────────────────┐
-│ Collection   │ Token List (tree view)            │
-│ Rail         │   ├── Search + toolbar            │
-│              │   ├── Mode column headers         │
-│ • Collection │   ├── Group headers (expandable)  │
-│ • Collection │   │   ├── Token row               │
-│ • Collection │   │   ├── Token row               │
-│              │   │   └── ...                      │
-│ [+ Create]   │   └── Stats bar                   │
-│              │                                    │
-│              │ ──── OR (contextual surface) ───── │
-│              │                                    │
-│              │ Token Editor (320px side panel)    │
-│              │ Compare Panel (full takeover)      │
-│              │ Health Panel (full takeover)       │
-│              │ Import Panel (full takeover)       │
-│              │ History Panel (full takeover)      │
-│              │ etc.                               │
-└──────────────┴──────────────────────────────────┘
-```
-
-Key issue: all 8 contextual surfaces share one slot. Opening one closes the other.
-
----
-
-## 2. Information Architecture Problems
-
-### The three-workspace split is close to right, but each workspace has a problem
-
-Designers' real workflow has three phases: **define** tokens → **use** tokens → **ship** tokens. The current split reflects this. The friction is *within* each workspace, not in the number of workspaces:
-
-**Library is overloaded.** It contains the token list *plus* ~8 contextual surfaces (compare, collection details, token editor, generated group editor, color analysis, import, health, history). These are accessed through the same slot, so opening one hides the other. A designer editing a token who wants to check health has to close the editor, losing context. Library tries to be authoring tool, import center, audit dashboard, and history viewer simultaneously. This is the single biggest IA problem.
-
-**Canvas is thin on surfaces, not thin on importance.** It currently has just Selection Inspector plus a Coverage/Usage sub-tab. For the target user — a Figma UI designer *using* tokens in design work — Canvas is the moment of truth: selecting a layer and binding a token. Collapsing Canvas into Library (as the original Option A proposed) would bury this moment and make Library's surface-contention problem worse. **Canvas should stay a top-level workspace and gain surfaces** (e.g., quick-apply, extract-from-selection, usage drill-down), not lose its home.
-
-**Share bundles three loosely-related concerns** under a label that describes none of them: Figma Sync (designer-critical publish), Export (developer-facing platform files), Versions (a stub that duplicates History). Ship three fixes: **rename Share → Sync**, **promote or hide Export** (it's developer-facing; it belongs in a menu or as a sibling workspace only if used often), **kill the Versions stub** and fold anything real into History inside Library.
-
-### The sidebar is both too simple and too complex
-
-Three top-level items with Share expanding to show sub-tabs. But Library — the most complex workspace with 8+ sub-surfaces — shows no sub-navigation at all. The complexity is hidden behind contextual surfaces that replace each other. A designer has no persistent way to jump between "token list," "health audit," and "history" without going through the Library body and clicking different toolbar actions.
-
-### Contextual surface contention
-
-The eight contextual surfaces fighting for one slot is the architectural root of many UX problems:
-
-- Editor and Health can't coexist
-- Import takes over the entire workspace
-- Compare replaces the token list
-- No breadcrumb or navigation history within Library
-- The designer loses spatial context when switching between surfaces
-
----
-
-## 3. Core Workflow Assessment
-
-### Token Authoring (Library) — Good, but cluttered
-
-The collection rail + token tree + side-panel editor is a strong pattern. The tree view with type grouping, search, starred tokens, and virtual scrolling are all well-implemented. Mode columns showing all modes simultaneously is exactly right per the Figma mental model.
-
-**Issues:**
-- The toolbar has accumulated too many concerns: search, view mode, sort, filter, batch toggle, issues filter, preview split — 7+ controls competing for space in a Figma plugin panel (typically 300-400px wide)
-- The contextual surface pattern means constant context-switching
-- Batch operations, find-and-replace, table create, and JSON editor are power-user features that most designers will never use but add cognitive load
-
-### Token Creation — Good
-
-Create mode as a full takeover with type selection, path autocomplete, namespace suggestions, and "save & create another" is well thought out. The mode value editor for multi-mode tokens showing all modes inline is correct.
-
-### Generators — Impressive but complex
-
-11 generator types is a lot. The breakdown:
-
-| Generator | Designer value | Assessment |
-|-----------|---------------|------------|
-| Color Ramp | High | Core feature, well-executed |
-| Type Scale | High | Core feature for typography systems |
-| Spacing Scale | High | Essential for layout consistency |
-| Opacity Scale | Medium | Useful, simple enough |
-| Shadow Scale | Medium | Useful for elevation systems |
-| Border Radius Scale | Low | Narrow use case |
-| Z-Index Scale | None for designers | Pure developer concern |
-| Custom Scale | Low | Too abstract for designers |
-| Dark Mode Inversion | Low | Niche; explicit mode authoring is better |
-
-The generated group editor is a full-takeover experience with many steps, which is appropriate for the complexity but means it's a big commitment to start.
-
-### Canvas Inspection — Functional but isolated
-
-The Selection Inspector with property rows, suggested tokens, binding, and unbinding works well. But it's stranded on its own workspace tab. A designer working in the Library who selects a Figma layer shouldn't have to navigate to a different workspace to see what's bound. The canvas analysis/heatmap is a nice feature but is rarely needed.
-
-### Figma Sync (Publish) — Overly complex
-
-The publish panel has preflight checks, readiness validation, diff summaries, variable comparison, style comparison, resolver-based publishing, orphan cleanup, and rollback. This is the most technically sophisticated part of the plugin, and it shows — it's dense and hard to parse. A designer who just wants to push their tokens to Figma variables shouldn't need to understand "resolver files," "publish routing," "variable comparison modes," or "orphan cleanup."
-
-**Missing:** A smart-default happy path. Not a "single button that hides everything" — scope/mode-mapping conflicts genuinely require user input and silently guessing will cause data loss. The right shape is:
-
-- **Default view:** plugin auto-resolves what it can, shows a one-line summary ("3 new, 2 updated, 1 conflict"), and only surfaces the *genuine* conflicts.
-- **Advanced toggle:** full preflight/diff/resolver view for power users who want fine-grained control.
-
-Current experience surfaces everything always, which is the inverse of progressive disclosure.
-
-### Export — Appropriate
-
-Platform selection, format config, preview, download. Well-scoped for its audience (developers). No major issues.
-
-### Health/Audit — Feature-rich but buried
-
-The health dashboard with 7 views (dashboard, issues, unused, deprecated, consolidate, duplicates, ignored) is comprehensive. But it's buried as one of 8 contextual surfaces inside Library, with no persistent access. A designer who cares about token quality has to remember to manually open this panel. There's no ambient signal in the main token list that says "you have 12 unused tokens."
-
-### History — Adequate
-
-Git commits + snapshots + rollback. Fine for what it is, but serves developers more than designers.
-
----
-
-## 4. Feature Bloat — Kill, Demote, Keep
-
-Killing a feature is cheap to propose and expensive to get wrong. The test isn't "does this feel developer-y?" — it's "would removing it break a real workflow for the primary user?" Several items in the previous draft of this review failed that test.
-
-### Kill candidates (defensible)
-
-| Feature | Location | Reason |
-|---------|----------|--------|
-| **JSON Editor view** | `hooks/useJsonEditor.ts` | Developers have their own editors. A JSON editing mode inside a Figma plugin is a novelty for designers and a strictly worse experience for developers. Remove. |
-| **Table Create form** | `TableCreateForm.tsx`, `hooks/useTableCreate.ts` | Bulk CSV-like token creation doesn't match how designers create tokens. If needed, fold the underlying logic into Import. |
-| **Versions sub-tab (Share)** | `navigationTypes.ts:472-481` | A stub with no real functionality. History contextual panel already covers this. |
-
-### Demote candidates
-
-Keep the feature, move it to secondary access so it doesn't clutter primary surfaces.
-
-| Feature | Current Access | Suggested Access |
-|---------|---------------|-----------------|
-| **Custom Scale generator** | Generator picker (prominent) | Behind "More generators" — niche but legitimate for advanced users. |
-| **Compare panel** | Toolbar action (contextual surface) | Token context menu → "Compare with…" |
-| **Batch Editor** | Toolbar toggle | Multi-select context menu — becomes available when 2+ tokens selected, invisible otherwise. |
-| **Find & Replace** | Dedicated hook + entry | Rename to **"Rename & update references"** and surface as a context-menu action on tokens. This feature is the answer to a real problem (renaming a token breaks `{path}` aliases); the previous draft proposed killing it while simultaneously asking for the same capability under a different name. Keep the capability, rename the UX. |
-| **Window size toggle** | Utility menu action | Setting in Settings panel. |
-| **Keyboard Shortcuts panel** | Standalone secondary surface | Section within Settings. |
-
-### Keep — reversals from the previous draft
-
-| Feature | Why it stays |
-|---------|--------------|
-| **Z-Index Scale generator** | Designers *do* think about stacking (modal over dropdown over tooltip). Low-maintenance generator with clear design-system value. Demote to "More generators" if the picker feels crowded, but don't kill. |
-| **Dark Mode Inversion generator** | This *is* explicit mode authoring — automated. It saves real work. Niche ≠ worthless. |
-| **Color Analysis panel** | Contrast-in-editor ≠ whole-palette analysis (lightness scale, gamut coverage, palette coherence). Different tool. Verify with usage data before killing; for now, keep and make triggerable from a color token's context menu. |
-| **Notifications panel** | The same review asks for "ambient health indicators" in §5. Ambient signals need a backing model — either notifications or something functionally equivalent. Don't kill the infrastructure that powers the feature you're asking for. Simplify (drop the bell icon if noisy), but keep the state. |
-
-### Consolidate (not listed previously)
-
-| Feature | Today | After |
-|---------|-------|-------|
-| **Health dashboard views** | 5 separate views (Issues, Unused, Deprecated, Duplicates, Consolidation) | One filterable list with chips. Saves code duplication and cognitive load. |
-| **Export presets UI** | Manual save/load of preset configs | Auto-remember last export config. Expose "Save as preset" only as overflow. Most users re-export the same thing. |
-| **Git state** | Split between `PublishPanel` (sync tab) and `HistoryPanel` (Library contextual) | Single timeline in History (operations + git commits interleaved). |
-
----
-
-## 5. What's Missing
-
-### Empowerment gaps (every designer hits these in week one)
-
-Ordered by leverage — these are the fixes most likely to move the UX score in a single release.
-
-1. **Copy value to all modes.** Editing a multi-mode token, the designer sets a value in mode A and wants B, C, D to match. Today: edit each mode individually. Fix: one button in `ModeValueEditor`.
-2. **Inline alias resolution preview.** Hovering `{color.primary}` in the token list should reveal the resolved swatch or value. Today the user has to click into the editor to trace it. Critical for multi-level alias chains.
-3. **Rename with references.** Renaming `color.primary` → `color.primary-blue` silently breaks every `{color.primary}` alias. Today's workaround is Find & Replace (buried, code-flavored). Fix: surface as "Rename & update references" on the token context menu — single action, preview of affected tokens, confirm.
-4. **"Create from this token."** Most new tokens are shaped like existing tokens. Duplicate-and-edit from the list context menu would eliminate repeated type+mode setup.
-5. **Reorder within the tree.** Tree order is path-alphabetical only. Designers care about semantic order (primary > secondary > tertiary), not alphabetical.
-6. **Multi-select + bulk actions in the token list.** Retype, move to group, delete. Today bulk work goes through Find & Replace or Batch Editor — both indirect.
-
-### Ambient health indicators in the token list
-
-The token list should show inline indicators for issues. Lint badges exist but the Health panel's insights ("unused," "deprecated," "consolidate") don't surface in the main list. A small "3 issues" pill on the collection rail with click-to-expand, plus badges on affected tokens, would eliminate the need to explicitly open Health to discover problems.
-
-### Selection-aware context in Library
-
-When a designer selects a Figma layer, Library should subtly indicate which tokens are bound to that selection without a workspace switch. A small "Selection" section at the top of the token list, or a highlight on bound tokens, would bridge Library and Canvas without forcing navigation.
-
-### Quick publish from Library
-
-A designer who just changed a token should be able to sync it to Figma without navigating to a separate workspace. Right-click a collection in the rail → "Sync to Figma." Right-click a group → "Sync group." The most common output action should be one click away from the authoring surface.
-
-### Smart-default Figma Sync (not "just push it")
-
-Per §3: auto-resolve everything resolvable, surface only genuine conflicts in the default view, hide the full preflight behind an Advanced toggle. One-button-that-hides-everything is wrong — conflicts can lose data if silently guessed.
-
-### Visibility for generator "keep updated" mode
-
-Generators can be set to auto-update when their source changes. Today this is silent — the user doesn't know which generators will rerun or have rerun. Either make the behavior default and visible (stale badge + "regenerate" button on affected groups), or remove the toggle. The current invisible opt-in is the worst of both worlds.
-
-### Onboarding beyond WelcomePrompt
-
-The WelcomePrompt handles first-run, but there's no progressive feature introduction. A designer opening this plugin for the first time faces a dense interface with no guidance about what to do after setup. Contextual hints for first-time interactions with key features (generators, modes, publishing) would pay off quickly.
-
----
-
-## 6. Proposed IA Restructuring
-
-### Recommended: Three workspaces, sub-nav inside Library, Sync promoted, Export demoted
-
-```
-Sidebar
+Primary
 ├── Library
-│   ├── Tokens      (default — tree view)
+│   ├── Tokens
 │   ├── Health
 │   └── History
 ├── Canvas
-│   ├── Selection   (default)
-│   └── Usage       (was "Coverage")
-├── Sync            (was "Share > Figma Sync")
-├── ─── divider ───
+│   ├── Selection
+│   └── Usage
+├── Sync
+│
+Secondary
+├── Export
+├── Versions
 ├── Settings
 ├── Undo / Redo
-└── Collapse toggle
+└── Collapse
 ```
 
-**Library** becomes three persistent sub-tabs instead of eight colliding contextual surfaces:
+### Why this structure fits the target user
 
-- **Tokens** — token tree, editor (persistent side panel), collection rail, generators, compare, collection details. Compare and collection-details remain contextual surfaces but stop competing with Health and History.
-- **Health** — audit dashboard consolidated from today's five views into one filterable list (see §4 "Consolidate"). First-class citizen, not buried behind a toolbar button.
-- **History** — undo log + manual checkpoints + git commits, interleaved into one timeline. Kills the split between `PublishPanel` git state and today's `HistoryPanel`.
+It does four useful things at once:
 
-**Canvas** stays a top-level workspace. The previous recommendation to collapse Canvas into Library was wrong: Canvas is the moment of truth for the primary user (designers *using* tokens in design work). Rename the "Coverage" sub-tab to **Usage** — same heatmap, less jargon. Canvas can gain surfaces over time (quick-apply, extract-from-selection); the workspace is right-sized for its importance, not under-sized.
+1. **Preserves the designer’s mental model.** Designers mostly move between authoring, using, and syncing.
+2. **Reduces Library contention.** `Health` and `History` stop competing with token editing inside the same body slot.
+3. **Keeps Canvas first-class.** Using tokens in design work stays visible and explicit.
+4. **Gives developer features a clear home without cluttering the designer’s primary workflow.** `Export` and `Versions` remain visible, but they are moved out of the primary task path.
 
-**Sync** (renamed from Share) becomes a single-view workspace focused on pushing tokens to Figma variables and styles. Ship the smart-default progressive-disclosure experience (§5).
+### Library
 
-**Export** is demoted out of the sidebar. It's developer-facing and used occasionally — perfect fit for the command palette (⌘K → "Export") or a Tools-menu entry. If telemetry later shows heavy use, promote back to a top-level workspace.
+`Library` should become three persistent sub-sections:
 
-**Versions** is deleted (stub).
+- **Tokens**: token tree, editor, generators, collection setup, compare, import
+- **Health**: audit dashboard and issue maintenance
+- **History**: recent operations, checkpoints, rollback-oriented review
 
-**Everything else:**
-- **Import** → stays a Library contextual surface, invoked from the create menu.
-- **Color Analysis** → context-menu action on color tokens; no longer a full takeover.
-- **Notifications** → kept (simplified): the same model that powers ambient health indicators.
-- **Compare** → context menu action ("Compare with…") plus contextual surface when chosen.
-- **Keyboard Shortcuts** → section within Settings.
-
-**Why this beats the two-workspace alternative previously proposed:**
-- Canvas stays first-class for designers who use tokens in design work.
-- Library's contextual-surface contention drops from 8 surfaces to ~3 (Tokens/Health/History persistent, Editor persistent side panel, Import/Compare/Collection-details as occasional contextual).
-- Persistent sub-nav gives Health and History discoverable homes without elevating them to top-level workspaces they don't deserve.
-- Sync gets a clear name and a focused surface instead of being buried one click deep in a vague "Share" umbrella.
-
----
-
-## 7. Specific UX Fixes (Quick Wins)
-
-These can be implemented independently of the IA restructuring.
-
-### 7.1 Rename "Share" to "Sync"
-
-"Share" is vague — it could mean sharing a link, collaborating, or exporting. "Sync" tells the designer exactly what this workspace does: push tokens into Figma variables/styles. (Don't rename to "Publish" — in design-tool vocabulary "Publish" is adjacent to library publishing; "Sync" is cleaner and more accurate to the actual behavior.)
-
-### 7.2 Collapse the toolbar
-
-The token list toolbar should have three visible controls:
-1. **Search** (always visible)
-2. **Create Token** button
-3. **"..." overflow menu** for everything else (sort, filter, view mode, batch, issues toggle, preview split)
-
-This reduces visual noise from 7+ controls to 3 while keeping all functionality accessible.
-
-### 7.3 Make the token editor a persistent side panel
-
-The editor should coexist with the token list (as it partially does at 320px), but it shouldn't prevent access to other tools. Currently, if the editor is open as a side panel and the designer opens Health, the editor closes. The editor in "edit mode" should persist as a pinned side panel that stays open across surface switches.
-
-The "full takeover" for create mode is fine and should stay as-is.
-
-### 7.4 Add "Sync to Figma" in the token list
-
-Per-collection or per-group sync from the context menu:
-- Right-click collection in rail → "Sync to Figma"
-- Right-click group header in tree → "Sync group to Figma"
-
-Don't make designers navigate to a separate workspace for the most common output action.
-
-### 7.5 Simplify the generator picker
-
-Show 4 generators prominently:
-1. Color Scale
-2. Type Scale
-3. Spacing Scale
-4. Opacity Scale
-
-The rest go behind "More generators" for power users. This matches the 80/20 rule — most designers will only use these four.
-
-### 7.6 Remove the Notifications panel
-
-Kill the bell icon and notification history panel. Toasts + undo/redo provide sufficient feedback. This removes:
-- A UI element from the sidebar
-- A state management concern (`notificationHistory`, `toggleNotifications`, `closeNotifications`)
-- A component (`NotificationsPanel.tsx`)
-- Cognitive overhead (designers don't need to check a notification inbox in a design tool)
-
-### 7.7 Make Health ambient
-
-Show a small indicator on the collection rail or token list header:
-- "3 issues" pill with click-to-expand
-- Inline badges on tokens that have warnings
-- A subtle banner at the top of the token list when critical issues exist
-
-Don't require the designer to explicitly open a Health panel to discover problems.
-
-### 7.8 Inline alias resolution preview
-
-Hovering `{color.primary}` in the token list should show the resolved swatch (colors) or value (dimensions, typography) in a small tooltip. For deep alias chains, show each hop. Eliminates the "click in, check, close" cycle designers do dozens of times a session.
-
-### 7.9 "Copy to all modes" button in the mode value editor
-
-One button next to the first mode's input. Applies the current value to every other mode. Matches how designers actually work ("I want blue in all three modes except dark").
-
-### 7.10 Fix jargon in designer-facing surfaces
-
-See §8 for the full audit. Quick wins:
-- **"Lint violations"** → **"Issues"** (HealthPanel).
-- **"Scopes"** (generator wizard) → **"Conditions"** or **"Applies to."**
-- **"Coverage"** (Canvas sub-tab) → **"Usage."**
-- **"Extensions"** (TokenEditor section) → **"Advanced"** (same content, less jargon).
-
-### 7.11 Collapse the filter chip stack when >2 active
-
-At plugin-window widths the chip row crowds the search input once four or more filters are active. Collapse to a single "4 filters active" chip with a dropdown to inspect/clear individually.
-
----
-
-## 8. Jargon & Naming Audit
-
-Developer features live in mostly good homes (Health panel, History panel, Sync, Export), but developer *vocabulary* leaks into designer-facing surfaces. Each rename is cheap and high-impact.
-
-| Today | Change to | Where | Why |
-|-------|-----------|-------|-----|
-| **Share** (workspace) | **Sync** | Sidebar, top tab | Share implies collaboration/URLs; the actual action is pushing tokens to Figma. |
-| **Coverage** (Canvas sub-tab) | **Usage** | Canvas workspace | Designers say "where am I using this?"; "coverage" is a developer/QA term. |
-| **Lint violations** | **Issues** | HealthPanel | "Lint" is code-editor vocabulary. |
-| **Scopes** | **Conditions** or **Applies to** | Generator wizard, GroupScopesDialog | "Scopes" has both a developer meaning (variable scope) and a Figma meaning (scoping rules); both are wrong for the generator context. |
-| **Extensions** | **Advanced** | TokenEditor collapsible section | DTCG $extensions is implementation; the section holds advanced metadata. Label the affordance by purpose, not schema. |
-| **Resolver files**, **publish routing**, **orphan cleanup** | Hide behind Advanced toggle | PublishPanel | These are legitimate concepts for power users. Don't rename — just don't surface them in the default view. |
-
-Keep these as-is:
-- **Alias** — Figma-native, designers recognize it.
-- **Modes** — matches Figma's own Variables terminology exactly.
-- **Collections** — DTCG-native; designers adapt quickly.
-- **Tokens** — the product name; no better alternative.
-
----
-
-## 9. Code Architecture Observations
-
-These observations are relevant for implementing the above changes:
-
-### Large orchestrator files
-
-- **App.tsx** (1,955 lines) and **PanelRouter.tsx** (1,595 lines) are too large. They handle prop drilling, state management, event handling, and layout. The `WorkspaceControllerContext` helps but these files are the bottleneck for any IA change.
-- Any restructuring should include breaking these files down further.
-
-### High component count
-
-- **211 component files + 91 hooks** is significant surface area.
-- Some decomposition is excellent (health/ has 8 focused files).
-- Some is fragmented (the token editor touches 7+ files in `token-editor/` plus `TokenEditor.tsx` plus 8 `hooks/useTokenEditor*.ts` files).
-
-### Contextual surface pattern mirrors UX problem
-
-The fact that the code needs `switchContextualSurface()` with a union type of 8 values is a code smell that mirrors the UX problem. Eight things competing for one slot is complicated in both code and UI. Reducing the number of contextual surfaces (by killing some and making others persistent) simplifies both.
-
-### State management sprawl
-
-The plugin has 7 context providers, each with multiple sub-contexts. The `WorkspaceControllerContext` alone has 6 subdivisions (`shell`, `editor`, `tokens`, `apply`, `sync`, `collectionStructure`). This is a consequence of the feature density — simplifying the feature set would naturally reduce state management complexity.
-
----
-
-## Appendix: Current Feature Inventory
-
-For reference, here is every feature the plugin currently offers:
-
-### Token Authoring
-- 24 DTCG token types with dedicated value editors
-- Tree view with type grouping, expand/collapse
-- Flat view (linear list)
-- Search with fuzzy matching and qualifier syntax
-- Sort by name, type, usage, recent modification
-- Filter by type, collection, generation status
-- Starred/pinned tokens
-- Recently touched tokens
-- Virtual scrolling for large token sets
-- Inline rename, move, delete
-- Drag-drop reordering
-- Right-click context menu
-- Lint badges and inline warnings
-- Mode value previews (all modes visible simultaneously)
-- Preview split (token list + detail preview)
-- Path autocomplete with namespace suggestions
-- "Save & create another" flow
-- Draft auto-save in editor
-
-### Collections & Modes
-- Create, rename, duplicate, delete collections
-- Collection descriptions
-- Add/remove/configure modes
-- Merge collections (with conflict resolution)
-- Split collections (by group prefix)
-
-### Generators (11 types)
-- Color Ramp, Type Scale, Spacing Scale, Opacity Scale
-- Shadow Scale, Border Radius Scale, Z-Index Scale
-- Custom Scale, Dark Mode Inversion
-- Semantic mapping layer
-- Auto-cascading (source change triggers regeneration)
-- Per-step overrides and detachment
-
-### Import
-- Figma variables, Figma styles
-- JSON, CSS/SCSS, Tailwind config, Token Studio
-- Collection mapping, conflict resolution, result summary
-
-### Export
-- CSS, SCSS, JSON, TypeScript, Tailwind
-- iOS Swift, Android Kotlin, Dart
-- Export presets, diff-only export, ZIP bundling
-
-### Figma Sync (Publish)
-- Variable sync with mode mapping
-- Style sync
-- Preflight readiness checks
-- Diff summary
-- Resolver-based publishing
-- Variable group scoping
-- Orphan cleanup
-- Rollback support
+Inside `Tokens`, the editor should remain a side panel and stop collapsing when the user briefly moves into related maintenance views.
 
 ### Canvas
-- Selection inspector with property binding
-- Suggested tokens ranked by relevance
-- Create token from selection
-- Deep inspect for nested properties
-- Heatmap/coverage analysis
-- Remap bindings, extract tokens
 
-### Health/Audit
-- Dashboard with issue counts
-- Lint violations, unused tokens, deprecated tokens
-- Consolidation opportunities, duplicate detection
-- Ignored issues management
-- Server-side validation with caching
+`Canvas` should keep:
 
-### History & Versioning
-- Git commit history
-- Snapshots/checkpoints
-- Rollback to previous state
-- Undo/redo (operation log)
+- **Selection**
+- **Usage** (rename from `Coverage`)
 
-### Utilities
-- Command palette (Cmd+K)
-- Quick Apply picker (bind token to selection)
-- Paste tokens modal
-- Find & Replace
-- Batch editor (bulk operations)
-- Table create (CSV-like bulk creation)
-- JSON editor view
-- Keyboard shortcuts reference
-- Settings (server connection, display density, color format, copy format, lint config)
-- Welcome/onboarding prompt
+`Canvas` is already the right place for binding, suggestions, and usage analysis. The main improvement is to reflect active selection context back into Library more aggressively.
+
+### Sync
+
+`Sync` should be a single top-level primary workspace focused on one job:
+
+- compare local tokens with Figma variables and styles
+- resolve real conflicts
+- apply changes
+
+This should be the designer-facing output surface.
+
+### Export and Versions
+
+`Export` and `Versions` should remain visible, but as quieter secondary navigation entries rather than children of `Share`.
+
+That gives developers a clear home while keeping the designer’s primary flow cleaner.
+
+This is an end-state recommendation, not the first thing that must change. A reasonable interim step is to rename `Share` to `Sync` and keep `Export` and `Versions` nested there while Library contention is fixed first.
+
+### Contextual surfaces that should stay contextual
+
+These still make sense as occasional contextual or modal tools:
+
+- Import
+- Compare
+- Color Analysis
+- generator editing
+- collection setup
+
+The mistake today is not that contextual tools exist. The mistake is that too many major workflows are only reachable that way.
+
+## 8. Specific UX Fixes
+
+These changes can ship independently of the broader IA restructuring.
+
+### 8.1 Rename `Share` to `Sync`
+
+This is the most obvious naming fix. The current label does not describe the designer’s task.
+
+### 8.2 Rename `Coverage` to `Usage`
+
+Designers ask “where is this used?” not “what is the coverage?”
+
+### 8.3 Preserve the condensed toolbar, but improve state visibility
+
+Do not overcorrect by forcing everything into one overflow menu.
+
+The current toolbar is already reasonably compact. The better fix is:
+
+- clearer active-state summaries
+- stronger filter/inspect cues
+- better visibility when selection-aware filtering is active
+- simpler chip handling when many filters are on
+
+### 8.4 Let the token editor stay pinned
+
+When editing an existing token, the side-panel editor should survive movement into nearby Library workflows such as `Health` and `History`.
+
+Create mode can remain a larger takeover when needed.
+
+### 8.5 Add `Copy to all modes`
+
+This is the highest-value missing authoring control.
+
+### 8.6 Add collection-level `Sync to Figma`
+
+Keep group sync in the token tree and add a matching collection-level action in the collection rail.
+
+### 8.7 Surface selection context in Library automatically
+
+When a Figma selection exists, Library should not make the user hunt for “related to selection” inside a filter menu.
+
+Good options:
+
+- auto-show a small selection section at the top of the list
+- auto-highlight bound tokens
+- show a dismissible contextual banner that switches Library into selection-related mode
+
+### 8.8 Make health more ambient and make “issue” mean one thing
+
+The current header count is a start, not the finish.
+
+Add health visibility at the collection and token level:
+
+- issue counts in the collection rail
+- inline issue markers on affected tokens
+- clearer entry into `Health` from where the problem is visible
+- one stable definition of what counts as an issue across row badges, filters, health totals, and warning banners
+
+### 8.9 Frame rename safety as the default workflow
+
+Keep the current alias-update safeguards, but make them read like the standard rename path rather than an advanced side feature.
+
+### 8.10 Rephrase `Duplicate` as `Create from this token`
+
+The capability already exists. The language should match the designer’s intent.
+
+Also improve the default post-duplicate naming flow so it feels like creating a new authored token, not generating a technical `-copy` path.
+
+### 8.11 Keep notifications state, but give entries explicit destinations
+
+Do not remove the underlying model that can power actionable system feedback.
+
+Instead:
+
+- reduce generic toast-history behavior
+- store explicit navigation targets with notifications instead of inferring them from message copy
+- connect entries to concrete destinations
+- reconsider whether a persistent bell is needed once health and sync signals become more ambient
+
+### 8.12 Make `Usage` scans more explicit
+
+Entering `Usage` should feel intentional, not like a side effect.
+
+Good options:
+
+- require an explicit scan action the first time
+- make scan state more obvious before results appear
+- remember recent results so switching back into the view feels immediate when possible
+
+### 8.13 Show modes in the collection rail
+
+Collections are the primary authored container and modes are core to the Figma mental model.
+
+The rail should communicate more than token count alone:
+
+- mode count
+- prominent multi-mode indication
+- optional issue or warning summary at the collection level
+
+### 8.14 Use one product naming hierarchy consistently
+
+If the product keeps `Library` as the workspace and `Tokens` as a subsection, that hierarchy should be used consistently in onboarding, import follow-up guidance, health routing, and command language.
+
+The same applies to `Health` versus `Audit`.
+
+## 9. Naming Audit
+
+These are the remaining high-impact naming fixes.
+
+| Today | Change to | Why |
+|-------|-----------|-----|
+| **Share** | **Sync** | Matches the designer’s primary output task. |
+| **Coverage** | **Usage** | Matches designer language. |
+| **Scopes** | **Applies to** or **Conditions** | More legible in designer-facing generator and metadata flows. |
+| **Health / Audit** | Pick one, preferably **Health** for the section name | One maintenance concept should not have two product names. |
+| **Library / Tokens** | Use one hierarchy consistently | Users should not have to infer whether these are the same place or different places. |
+| **Duplicate** | **Create from this token** | Better matches designer intent. |
+| **Resolver files / publish routing / orphan cleanup** | Keep, but hide behind advanced disclosure | Legitimate concepts, shown too early. |
+
+These can stay as-is:
+
+- **Alias**
+- **Modes**
+- **Collections**
+- **Versions**
+- **Export**
+
+## 10. Code Architecture Implications
+
+The code structure mirrors the UX problem.
+
+- `App.tsx` is still very large at roughly 1,943 lines.
+- `PanelRouter.tsx` is still very large at roughly 1,586 lines.
+- The UI currently spans roughly 197 component files and 90 hooks.
+
+The most important structural smell is not just file size. It is that the product still encodes too many overlapping workflow models:
+
+- the routing model coordinates too many Library-only contextual surfaces
+- editing and maintenance views are still treated as mutually exclusive state
+- issue and status signals are split across multiple independent pipelines
+- notification destinations are inferred from message text rather than carried as explicit state
+
+That means the product should not keep adding major Library workflows until the surface model and feedback model are simplified.
+
+The cleanest implementation strategy is:
+
+1. make `Health` and `History` persistent Library sections
+2. separate pinned editing state from Library maintenance routes
+3. unify issue/status pipelines and notification targets
+4. split primary vs secondary navigation explicitly
+5. only then continue layering more tooling on top
+
+This would improve both the user experience and the maintainability of the code.
+
+## 11. Recommended Delivery Order
+
+The product does not need a full IA rewrite in one step. The best sequence is:
+
+1. **Fix language first.** Rename `Share` to `Sync`, rename `Coverage` to `Usage`, and remove the remaining `Library` / `Tokens` and `Health` / `Audit` naming drift.
+2. **Reduce Library contention.** Make `Health` and `History` persistent Library sections and let the side editor stay pinned while the user moves between nearby maintenance views.
+3. **Close the real authoring gaps.** Add collection-level sync, `Copy to all modes`, better duplicate/create-from-token naming, and stronger selection-aware Library context.
+4. **Unify feedback and routing.** Make `issue` mean one thing across Library and Health, and give notifications explicit destinations instead of heuristic navigation.
+5. **Improve collection comprehension and onboarding.** Surface modes more clearly in the collection rail and tighten the first-run flow so designers reach confident day-to-day usage faster.

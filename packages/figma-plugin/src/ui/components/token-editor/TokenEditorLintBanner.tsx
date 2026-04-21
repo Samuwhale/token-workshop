@@ -1,3 +1,4 @@
+import { AlertTriangle, Info } from "lucide-react";
 import type { LintViolation } from "../../hooks/useLint";
 
 interface TokenEditorLintBannerProps {
@@ -15,38 +16,20 @@ export function TokenEditorLintBanner({
       ? "warning"
       : "info";
 
+  const toneClass =
+    lintTone === "error"
+      ? "text-[var(--color-figma-error)]"
+      : lintTone === "warning"
+        ? "text-[var(--color-figma-warning)]"
+        : "text-[var(--color-figma-text-secondary)]";
+
+  const Icon = lintTone === "info" ? Info : AlertTriangle;
+
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-1.5">
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className={
-            lintTone === "error"
-              ? "text-[var(--color-figma-error)]"
-              : lintTone === "warning"
-                ? "text-[var(--color-figma-warning)]"
-                : "text-[var(--color-figma-text-secondary)]"
-          }
-        >
-          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
-        </svg>
-        <span
-          className={`text-secondary font-medium ${
-            lintTone === "error"
-              ? "text-[var(--color-figma-error)]"
-              : lintTone === "warning"
-                ? "text-[var(--color-figma-warning)]"
-                : "text-[var(--color-figma-text-secondary)]"
-          }`}
-        >
+      <div className={`flex items-center gap-1.5 ${toneClass}`}>
+        <Icon size={11} strokeWidth={2} aria-hidden />
+        <span className="text-secondary font-medium">
           {lintViolations.length === 1
             ? "1 issue"
             : `${lintViolations.length} issues`}
@@ -55,12 +38,12 @@ export function TokenEditorLintBanner({
       {lintViolations.map((violation, index) => (
         <div
           key={`${violation.path}-${violation.message}-${index}`}
-          className={`rounded border border-[var(--color-figma-border)] px-2 py-1.5 ${
+          className={`rounded px-2 py-1.5 ring-1 ${
             violation.severity === "error"
-              ? "bg-[var(--color-figma-error)]/8"
+              ? "ring-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5"
               : violation.severity === "warning"
-                ? "bg-[var(--color-figma-warning)]/8"
-                : "bg-[var(--color-figma-bg-secondary)]"
+                ? "ring-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5"
+                : "ring-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40"
           }`}
         >
           <div className="text-secondary text-[var(--color-figma-text)]">

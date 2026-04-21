@@ -14,7 +14,7 @@ import {
 } from "react";
 import { dispatchToast } from "../../shared/toastBus";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
-import { DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE } from "../tokenListTypes";
+import { DENSITY_PY_CLASS } from "../tokenListTypes";
 import {
   TOKEN_PROPERTY_MAP,
   PROPERTY_LABELS,
@@ -27,16 +27,13 @@ import {
   buildResolutionChain,
 } from "../../../shared/resolveAlias";
 import type { ResolutionStep } from "../../../shared/resolveAlias";
-import { stableStringify } from "../../shared/utils";
+import { stableStringify, modKey } from "../../shared/utils";
 import {
   hasSyncSnapshotChange,
   resolveSyncComparableValue,
 } from "../../shared/tokenSync";
 import { formatDisplayPath, formatValue, nodeParentPath } from "../tokenListUtils";
 import {
-  getEditableString,
-  parseInlineValue,
-  getInlineValueError,
   highlightMatch,
   resolveCompositeForApply,
 } from "../tokenListHelpers";
@@ -44,7 +41,6 @@ import { INLINE_SIMPLE_TYPES, INLINE_POPOVER_TYPES } from "../tokenListTypes";
 import { InlineValuePopover } from "../InlineValuePopover";
 import { PropertyPicker } from "../PropertyPicker";
 import { ValuePreview } from "../ValuePreview";
-import { ColorPicker } from "../ColorPicker";
 import { getQuickBindTargets } from "../selectionInspectorUtils";
 import {
   useTokenTreeLeafActions,
@@ -86,7 +82,7 @@ import {
 import type { MenuPosition } from "./tokenTreeNodeShared";
 import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
 import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
-import { MultiModeCell } from "./MultiModeCell";
+import { ValueCell } from "./ValueCell";
 
 export const TokenLeafNode = memo(
   function TokenLeafNode(props: TokenTreeNodeProps) {
@@ -103,6 +99,7 @@ export const TokenLeafNode = memo(
       onMoveUp: _onMoveUp,
       onMoveDown: _onMoveDown,
       multiModeValues,
+      gridTemplate,
     } = props;
 
     const {
@@ -157,12 +154,12 @@ export const TokenLeafNode = memo(
       clearPendingRename,
       clearPendingTabEdit,
       onTabToNext,
+      onEnterCellEdit,
       onOpenGeneratedGroupEditor,
       onRovingFocus,
     } = useTokenTreeLeafActions();
 
     const pyClass = DENSITY_PY_CLASS[density];
-    const swatchSize = DENSITY_SWATCH_SIZE[density];
 
     const isHighlighted = highlightedToken === node.path;
     const isPreviewed = previewedPath === node.path;
@@ -172,8 +169,6 @@ export const TokenLeafNode = memo(
     const [pickerAnchor, setPickerAnchor] = useState<
       { top: number; left: number } | undefined
     >();
-    const [colorPickerOpen, setColorPickerOpen] = useState(false);
-    const [pendingColor, setPendingColor] = useState("");
     const [contextMenuPos, setContextMenuPos] = useState<MenuPosition | null>(
       null,
     );
@@ -184,10 +179,6 @@ export const TokenLeafNode = memo(
     } | null>(null);
     const refsPopoverRef = useRef<HTMLDivElement>(null);
     const chainExpanded = chainExpandedProp;
-    const [inlineEditActive, setInlineEditActive] = useState(false);
-    const [inlineEditValue, setInlineEditValue] = useState("");
-    const [inlineEditError, setInlineEditError] = useState<string | null>(null);
-    const inlineEditEscapedRef = useRef(false);
     const [inlineNudgeVisible, setInlineNudgeVisible] = useState(false);
     const [quickBound, setQuickBound] = useState<string | null>(null);
     const [pickerProps, setPickerProps] = useState<BindableProperty[] | null>(
@@ -211,10 +202,6 @@ export const TokenLeafNode = memo(
     } | null>(null);
     const [showDetachTokenConfirm, setShowDetachTokenConfirm] = useState(false);
     const nodeRef = useRef<HTMLDivElement>(null);
-    // Stable refs for the tab-edit effect (see useEffect near pendingTabEdit)
-    const nodeDataRef = useRef(node);
-    const canInlineEditRef = useRef(false);
-    const clearPendingTabEditRef = useRef(clearPendingTabEdit);
 
     // Token rename state
     const [renamingToken, setRenamingToken] = useState(false);
@@ -222,7 +209,6 @@ export const TokenLeafNode = memo(
     const [renameTokenError, setRenameTokenError] = useState("");
     const renameTokenInputRef = useRef<HTMLInputElement>(null);
     const tokenMenuRef = useRef<HTMLDivElement>(null);
-    const booleanInlineEditRef = useRef<HTMLDivElement>(null);
     const quickGeneratorType = useMemo(
       () =>
         getQuickGeneratedGroupTypeForToken(
@@ -241,12 +227,6 @@ export const TokenLeafNode = memo(
       }
     }, [renamingToken]);
 
-    useLayoutEffect(() => {
-      if (inlineEditActive && node.$type === "boolean") {
-        booleanInlineEditRef.current?.focus();
-      }
-    }, [inlineEditActive, node.$type]);
-
     // When this token is the pending rename target (e.g. after Cmd+D duplicate), activate inline rename
     useEffect(() => {
       if (pendingRenameToken === node.path) {
@@ -255,26 +235,6 @@ export const TokenLeafNode = memo(
         clearPendingRename();
       }
     }, [pendingRenameToken, node.path, node.name, clearPendingRename]);
-
-    // When Tab navigation lands on this token (non-multi-mode), activate inline edit.
-    // Reads node/canInlineEdit/clearPendingTabEdit via stable refs so the effect only
-    // fires when pendingTabEdit changes, not on every unrelated prop update.
-    useEffect(() => {
-      const n = nodeDataRef.current;
-      if (
-        !pendingTabEdit ||
-        pendingTabEdit.path !== n.path ||
-        pendingTabEdit.columnId !== null
-      )
-        return;
-      if (canInlineEditRef.current && n.$type && n.$type !== "color") {
-        setInlineEditValue(getEditableString(n.$type, n.$value));
-        setInlineEditError(null);
-        setInlineEditActive(true);
-        setInlineNudgeVisible(false);
-      }
-      clearPendingTabEditRef.current();
-    }, [pendingTabEdit]);
 
     const closeTokenMenus = useCallback(() => {
       setContextMenuPos(null);
@@ -587,11 +547,6 @@ export const TokenLeafNode = memo(
       (INLINE_POPOVER_TYPES.has(node.$type) || isAlias(node.$value)) &&
       !canInlineEdit;
 
-    // Keep stable refs up-to-date for the tab-edit effect
-    nodeDataRef.current = node;
-    canInlineEditRef.current = canInlineEdit;
-    clearPendingTabEditRef.current = clearPendingTabEdit;
-
     // Nearby token match for inline editing nudge
     const nearbyMatches = useNearbyTokenMatch(
       node.$value,
@@ -599,94 +554,6 @@ export const TokenLeafNode = memo(
       allTokensFlat,
       node.path,
       !isAlias(node.$value) && inlineNudgeVisible,
-    );
-
-    const handleInlineSubmit = useCallback(() => {
-      if (!inlineEditActive) return;
-      const raw = inlineEditValue.trim();
-      if (!raw || raw === getEditableString(node.$type, node.$value)) {
-        setInlineEditActive(false);
-        return;
-      }
-      const parsed = parseInlineValue(node.$type!, raw);
-      if (parsed === null) {
-        setInlineEditError(getInlineValueError(node.$type!));
-        return;
-      }
-      setInlineEditError(null);
-      setInlineEditActive(false);
-      requestInlineValueSave(
-        parsed,
-        {
-          type: node.$type,
-          value: node.$value,
-        },
-        () => {
-          setInlineNudgeVisible(true);
-        },
-      );
-    }, [inlineEditActive, inlineEditValue, node, requestInlineValueSave]);
-
-    const cancelInlineEdit = useCallback(() => {
-      inlineEditEscapedRef.current = true;
-      setInlineEditError(null);
-      setInlineEditActive(false);
-    }, []);
-
-    // Tab from an inline-edit cell: save current value (if valid) then navigate to next/prev token
-    const handleInlineTabToNext = useCallback(
-      (shiftKey: boolean) => {
-        if (inlineEditActive && node.$type) {
-          const raw = inlineEditValue.trim();
-          if (raw && raw !== getEditableString(node.$type, node.$value)) {
-            const parsed = parseInlineValue(node.$type, raw);
-            if (parsed === null) {
-              // Invalid value — show error and stay in this editor instead of silently dropping the edit
-              setInlineEditError(getInlineValueError(node.$type));
-              return;
-            }
-            requestInlineValueSave(parsed, {
-              type: node.$type,
-              value: node.$value,
-            });
-          }
-        }
-        setInlineEditError(null);
-        inlineEditEscapedRef.current = true; // block onBlur from double-saving
-        setInlineEditActive(false);
-        onTabToNext(node.path, null, shiftKey ? -1 : 1);
-      },
-      [inlineEditActive, inlineEditValue, node, onTabToNext, requestInlineValueSave],
-    );
-
-    // Stepper helpers for number/dimension/fontWeight/duration inline editing
-    const isNumericInlineType =
-      node.$type === "number" ||
-      node.$type === "dimension" ||
-      node.$type === "fontWeight" ||
-      node.$type === "duration";
-    const dimParts =
-      node.$type === "dimension" && inlineEditActive
-        ? (inlineEditValue.trim().match(/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/) ??
-          null)
-        : null;
-    const stepInlineValue = useCallback(
-      (delta: number) => {
-        if (node.$type === "dimension") {
-          const m = inlineEditValue
-            .trim()
-            .match(/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/);
-          if (m)
-            setInlineEditValue(
-              `${Math.round((parseFloat(m[1]) + delta) * 100) / 100}${m[2] || "px"}`,
-            );
-        } else {
-          const n = parseFloat(inlineEditValue);
-          if (!isNaN(n))
-            setInlineEditValue(String(Math.round((n + delta) * 100) / 100));
-        }
-      },
-      [node.$type, inlineEditValue],
     );
 
     // Sync state indicator
@@ -921,21 +788,14 @@ export const TokenLeafNode = memo(
       }
     }, [node, allTokensFlat, selectedNodes, applyWithProperty]);
 
-    // Activate inline editing for simple types (keyboard or double-click)
+    // Activate inline editing for simple types via the first value cell. The
+    // cell renders the right input for the type (text input / color picker).
     const activateInlineEdit = useCallback(() => {
       if (!canInlineEdit || !node.$type) return;
-      if (node.$type === "color") {
-        setPendingColor(
-          typeof node.$value === "string" ? node.$value : "#000000",
-        );
-        setColorPickerOpen(true);
-      } else {
-        setInlineEditValue(getEditableString(node.$type, node.$value));
-        setInlineEditError(null);
-        setInlineEditActive(true);
-        setInlineNudgeVisible(false);
-      }
-    }, [canInlineEdit, node]);
+      const firstMode = multiModeValues[0]?.optionName ?? null;
+      onEnterCellEdit(node.path, firstMode);
+      setInlineNudgeVisible(false);
+    }, [canInlineEdit, node, multiModeValues, onEnterCellEdit]);
 
     const handleRowKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1032,7 +892,8 @@ export const TokenLeafNode = memo(
         <div
           role="treeitem"
           aria-level={depth + 1}
-          className={`relative flex items-center ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass}`}
+          style={{ display: "grid", gridTemplateColumns: gridTemplate }}
+          className={`relative items-stretch ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}
           tabIndex={rovingFocusPath === node.path ? 0 : -1}
           data-token-path={node.path}
@@ -1104,7 +965,7 @@ export const TokenLeafNode = memo(
           onKeyDown={handleRowKeyDown}
         >
           <div
-            className="flex items-center gap-1.5 flex-1 min-w-0 pr-1"
+            className="flex items-center gap-1.5 min-w-0 pr-1"
             style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 14)}px` }}
           >
           <DepthBar depth={depth} />
@@ -1115,12 +976,11 @@ export const TokenLeafNode = memo(
               style={reorderPos === "before" ? { top: 0 } : { bottom: 0 }}
             />
           )}
-          {/* Checkbox for select mode */}
-          {selectMode && (
+          {selectMode ? (
             <input
               type="checkbox"
               checked={isSelected}
-              onChange={() => {}} // controlled; onClick handles logic with modifier support
+              onChange={() => {}}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleSelect(node.path, {
@@ -1131,75 +991,17 @@ export const TokenLeafNode = memo(
               aria-label={`Select token ${node.path}`}
               className="shrink-0 cursor-pointer"
             />
-          )}
-
-          {/* Value preview — hidden when multi-mode columns are the value display */}
-          {!(multiModeValues && multiModeValues.length > 0) && (canInlineEdit &&
-          node.$type === "color" &&
-          typeof displayValue === "string" ? (
-            <>
-              <div className="relative shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPendingColor(
-                      typeof node.$value === "string" ? node.$value : "#000000",
-                    );
-                    setColorPickerOpen(true);
-                  }}
-                  title={`${displayValue} — click to edit`}
-                  aria-label={`Edit color: ${displayValue}`}
-                  className="inline-flex items-center justify-center rounded border border-[var(--color-figma-border)] shrink-0 min-h-[24px] min-w-[24px] hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
-                  style={{
-                    backgroundColor: displayValue,
-                    width: swatchSize,
-                    height: swatchSize,
-                  }}
-                />
-                {colorPickerOpen && (
-                  <ColorPicker
-                    value={pendingColor}
-                    onChange={setPendingColor}
-                    onClose={() => {
-                      setColorPickerOpen(false);
-                      if (pendingColor !== node.$value) {
-                        requestInlineValueSave(pendingColor, {
-                          type: node.$type,
-                          value: node.$value,
-                        });
-                      }
-                    }}
-                  />
-                )}
-              </div>
-            </>
-          ) : (
+          ) : hovered ? (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (canInlineEdit && node.$type && node.$type !== "color") {
-                  activateInlineEdit();
-                } else if (canInlinePopover) {
-                  const rect = nodeRef.current?.getBoundingClientRect();
-                  if (rect) {
-                    setInlinePopoverAnchor(rect);
-                    setInlinePopoverOpen(true);
-                  }
-                } else {
-                  onEdit(node.path, node.name);
-                }
+                onToggleSelect(node.path, { shift: false, ctrl: true });
               }}
-              title={`${formatValue(node.$type, displayValue)} — click to edit`}
-              aria-label={`Edit ${node.name}`}
-              className={`inline-flex min-h-[24px] min-w-[24px] items-center justify-center shrink-0 rounded cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] transition-shadow hover:ring-1 hover:ring-[var(--color-figma-accent)]/50`}
-            >
-              <ValuePreview
-                type={node.$type}
-                value={displayValue}
-                size={swatchSize}
-              />
-            </button>
-          ))}
+              aria-label={`Select ${node.name}`}
+              className="shrink-0 w-3 h-3 rounded-full border border-[var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15 transition-colors"
+            />
+          ) : null}
 
           {/* Name and info — single-click opens editor (non-select mode) */}
           {/* ctrl/cmd-click enters select mode; shift-click range-selects */}
@@ -1209,10 +1011,11 @@ export const TokenLeafNode = memo(
               node.$type ? `Type: ${node.$type}` : null,
               `Value: ${formatValue(node.$type, displayValue)}`,
               node.$description ? `Description: ${node.$description}` : null,
+              !selectMode ? `${modKey}Click to select` : null,
             ]
               .filter(Boolean)
               .join("\n")}
-            className={`shrink min-w-0${!selectMode ? " cursor-pointer" : ""}`}
+            className={`flex-1 min-w-0${!selectMode ? " cursor-pointer" : ""}`}
             onClick={(e) => {
               if (selectMode || e.ctrlKey || e.metaKey) {
                 e.stopPropagation();
@@ -1321,291 +1124,6 @@ export const TokenLeafNode = memo(
             </div>
           </div>
 
-          {/* Value text (hidden when multi-mode columns are shown) */}
-          {!(multiModeValues && multiModeValues.length > 0) &&
-            (canInlineEdit && node.$type === "boolean" && inlineEditActive ? (
-              <div
-                ref={booleanInlineEditRef}
-                tabIndex={-1}
-                className="flex items-center gap-1 shrink-0 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] p-0.5"
-                onClick={(e) => e.stopPropagation()}
-                onBlur={(e) => {
-                  if (inlineEditEscapedRef.current) {
-                    inlineEditEscapedRef.current = false;
-                    return;
-                  }
-                  if (
-                    e.relatedTarget instanceof Node &&
-                    e.currentTarget.contains(e.relatedTarget)
-                  )
-                    return;
-                  handleInlineSubmit();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleInlineSubmit();
-                  }
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    cancelInlineEdit();
-                  }
-                  if (e.key === "Tab") {
-                    e.preventDefault();
-                    handleInlineTabToNext(e.shiftKey);
-                  }
-                  e.stopPropagation();
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInlineEditValue("true");
-                    setInlineEditError(null);
-                  }}
-                  className={`rounded px-1.5 py-0.5 text-secondary leading-none transition-colors ${inlineEditValue === "true" ? "bg-[var(--color-figma-accent)] text-white" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                  aria-pressed={inlineEditValue === "true"}
-                >
-                  true
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInlineEditValue("false");
-                    setInlineEditError(null);
-                  }}
-                  className={`rounded px-1.5 py-0.5 text-secondary leading-none transition-colors ${inlineEditValue === "false" ? "bg-[var(--color-figma-accent)] text-white" : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"}`}
-                  aria-pressed={inlineEditValue === "false"}
-                >
-                  false
-                </button>
-              </div>
-            ) : canInlineEdit && node.$type === "boolean" ? (
-              <span
-                className="text-body text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
-                title="Double-click to edit"
-              >
-                {highlightMatch(
-                  formatValue(node.$type, displayValue),
-                  searchHighlight?.valueTerms ?? [],
-                )}
-              </span>
-            ) : canInlineEdit && node.$type !== "color" && inlineEditActive ? (
-              isNumericInlineType ? (
-                <div
-                  className="flex items-center shrink-0 gap-0.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      stepInlineValue(-1);
-                    }}
-                    tabIndex={-1}
-                    title="Decrement"
-                    aria-label="Decrement value"
-                    className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-body font-medium leading-none select-none shrink-0"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    value={
-                      node.$type === "dimension"
-                        ? dimParts
-                          ? dimParts[1]
-                          : inlineEditValue
-                        : inlineEditValue
-                    }
-                    onChange={(e) => {
-                      setInlineEditError(null);
-                      if (node.$type === "dimension") {
-                        const unit = dimParts ? dimParts[2] || "px" : "px";
-                        setInlineEditValue(`${e.target.value}${unit}`);
-                      } else {
-                        setInlineEditValue(e.target.value);
-                      }
-                    }}
-                    onBlur={() => {
-                      if (inlineEditEscapedRef.current) {
-                        inlineEditEscapedRef.current = false;
-                        return;
-                      }
-                      handleInlineSubmit();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleInlineSubmit();
-                      }
-                      if (e.key === "Escape") {
-                        e.preventDefault();
-                        cancelInlineEdit();
-                      }
-                      if (e.key === "Tab") {
-                        e.preventDefault();
-                        handleInlineTabToNext(e.shiftKey);
-                        return;
-                      }
-                      e.stopPropagation();
-                    }}
-                    aria-label="Token value"
-                    autoFocus
-                    className="text-body text-[var(--color-figma-text)] w-[52px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  {node.$type === "dimension" && dimParts && dimParts[2] && (
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
-                      {dimParts[2]}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      stepInlineValue(1);
-                    }}
-                    tabIndex={-1}
-                    title="Increment"
-                    aria-label="Increment value"
-                    className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-body font-medium leading-none select-none shrink-0"
-                  >
-                    +
-                  </button>
-                </div>
-              ) : (
-                <div
-                  className="relative shrink-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    type="text"
-                    value={inlineEditValue}
-                    onChange={(e) => {
-                      setInlineEditValue(e.target.value);
-                      setInlineEditError(null);
-                    }}
-                    onBlur={() => {
-                      if (inlineEditEscapedRef.current) {
-                        inlineEditEscapedRef.current = false;
-                        return;
-                      }
-                      handleInlineSubmit();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleInlineSubmit();
-                      }
-                      if (e.key === "Escape") {
-                        e.preventDefault();
-                        cancelInlineEdit();
-                      }
-                      if (e.key === "Tab") {
-                        e.preventDefault();
-                        handleInlineTabToNext(e.shiftKey);
-                        return;
-                      }
-                      e.stopPropagation();
-                    }}
-                    aria-label="Token value"
-                    aria-invalid={inlineEditError ? "true" : undefined}
-                    autoFocus
-                    className={`text-body text-[var(--color-figma-text)] w-[96px] bg-[var(--color-figma-bg)] border rounded px-1 outline-none ${inlineEditError ? "border-red-400 focus:border-red-400" : "border-[var(--color-figma-accent)]"}`}
-                  />
-                  {inlineEditError && (
-                    <div
-                      role="alert"
-                      className="absolute top-full left-0 mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-red-400 rounded px-1.5 py-0.5 text-secondary text-red-400 whitespace-nowrap shadow-sm pointer-events-none"
-                    >
-                      {inlineEditError}
-                    </div>
-                  )}
-                </div>
-              )
-            ) : isAlias(node.$value) &&
-              !isBrokenAlias &&
-              !showResolvedValues ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (aliasTargetPath) {
-                    onNavigateToAlias?.(aliasTargetPath, node.path);
-                  }
-                }}
-                className="inline-flex min-w-0 shrink-0 items-center gap-1 text-body text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-                title={`${(node.$value as string).slice(1, -1)} → ${formatValue(node.$type, displayValue)}`}
-              >
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  className="shrink-0"
-                >
-                  <path d="M7 17 17 7" />
-                  <path d="M8 7h9v9" />
-                </svg>
-                <span className="truncate max-w-[84px]">
-                {highlightMatch(
-                  formatValue(node.$type, displayValue),
-                  searchHighlight?.valueTerms ?? [],
-                )}
-                </span>
-              </button>
-            ) : canInlineEdit && node.$type !== "color" ? (
-              <span
-                className="text-body text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-text hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
-                title="Click to edit"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setInlineEditValue(
-                    getEditableString(node.$type, node.$value),
-                  );
-                  setInlineEditError(null);
-                  setInlineEditActive(true);
-                  setInlineNudgeVisible(false);
-                }}
-              >
-                {highlightMatch(
-                  formatValue(node.$type, displayValue),
-                  searchHighlight?.valueTerms ?? [],
-                )}
-              </span>
-            ) : canInlineEdit && node.$type === "color" ? (
-              <span
-                className="text-body text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-pointer hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
-                title="Click to edit color"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPendingColor(
-                    typeof node.$value === "string" ? node.$value : "#000000",
-                  );
-                  setColorPickerOpen(true);
-                }}
-              >
-                {highlightMatch(
-                  formatValue(node.$type, displayValue),
-                  searchHighlight?.valueTerms ?? [],
-                )}
-              </span>
-            ) : (
-              <span
-                className="text-body text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
-                title={formatValue(node.$type, displayValue)}
-              >
-                {highlightMatch(
-                  formatValue(node.$type, displayValue),
-                  searchHighlight?.valueTerms ?? [],
-                )}
-              </span>
-            ))}
           {tokenStatus &&
             (tokenStatus.kind === "lint" ? (
               <button
@@ -1734,6 +1252,8 @@ export const TokenLeafNode = memo(
               </button>
             </div>
           )}
+          </div>
+          {/* end name cell (grid column 1) */}
 
           {/* Property picker dropdown */}
           {showPicker && node.$type && TOKEN_PROPERTY_MAP[node.$type] && (
@@ -2225,49 +1745,46 @@ export const TokenLeafNode = memo(
           {hoverPreviewVisible && node.$type && !isBrokenAlias && (
             <ComplexTypePreviewCard type={node.$type} value={displayValue} />
           )}
-          </div>
 
-          {/* Multi-mode value columns — per-mode resolved values */}
-          {multiModeValues && multiModeValues.length > 0 && (
-            <div className="flex items-center shrink-0">
-              {multiModeValues.map((mv) => (
-                <MultiModeCell
-                  key={mv.optionName}
-                  tokenPath={node.path}
-                  tokenType={node.$type}
-                  value={mv.resolved}
-                  targetCollectionId={mv.targetCollectionId}
-                  collectionId={mv.collectionId}
-                  optionName={mv.optionName}
-                  modeCount={multiModeValues.length}
-                  onSave={(
-                    _path,
-                    _type,
-                    nextValue,
-                    targetCollectionId,
-                    collectionId,
-                    optionName,
-                    previousState,
-                  ) =>
-                    handleMultiModeGeneratedSaveRequest(
-                      nextValue,
-                      targetCollectionId,
-                      collectionId,
-                      optionName,
-                      previousState,
-                    )
-                  }
-                  isTabPending={
-                    pendingTabEdit?.path === node.path &&
-                    pendingTabEdit?.columnId === mv.optionName
-                  }
-                  onTabActivated={clearPendingTabEdit}
-                  onTab={(dir) => onTabToNext(node.path, mv.optionName, dir)}
-                  onEdit={() => onEdit(node.path, node.name)}
-                />
-              ))}
-            </div>
-          )}
+          {/* Value columns — one ValueCell per mode. Always length ≥ 1. */}
+          {multiModeValues.map((mv) => (
+            <ValueCell
+              key={mv.optionName}
+              tokenPath={node.path}
+              tokenType={node.$type}
+              value={mv.resolved}
+              targetCollectionId={mv.targetCollectionId}
+              collectionId={mv.collectionId}
+              optionName={mv.optionName}
+              onSave={(
+                _path,
+                _type,
+                nextValue,
+                targetCollectionId,
+                collectionId,
+                optionName,
+                previousState,
+              ) =>
+                handleMultiModeGeneratedSaveRequest(
+                  nextValue,
+                  targetCollectionId,
+                  collectionId,
+                  optionName,
+                  previousState,
+                )
+              }
+              isTabPending={
+                pendingTabEdit?.path === node.path &&
+                pendingTabEdit?.columnId === mv.optionName
+              }
+              onTabActivated={clearPendingTabEdit}
+              onTab={(dir) => onTabToNext(node.path, mv.optionName, dir)}
+              onEdit={() => onEdit(node.path, node.name)}
+            />
+          ))}
+
+          {/* Trailing empty cell — aligns with the header's add-mode + button */}
+          <div aria-hidden="true" />
         </div>
 
         {/* Inline nudge — shown after saving a raw value that closely matches an existing token */}
@@ -2398,6 +1915,7 @@ export const TokenLeafNode = memo(
       prev.isSelected === next.isSelected &&
       prev.lintViolations === next.lintViolations &&
       prev.multiModeValues === next.multiModeValues &&
+      prev.gridTemplate === next.gridTemplate &&
       prev.isPinned === next.isPinned &&
       prev.chainExpanded === next.chainExpanded &&
       prev.depth === next.depth

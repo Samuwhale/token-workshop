@@ -1,40 +1,28 @@
 /**
- * MultiModeCell — compact inline-editable value cell for a single collection mode.
- * Extracted from TokenTreeNode.tsx.
+ * ValueCell — compact inline-editable value cell for a single collection mode.
+ * Used for every value column in the token table; single-mode collections
+ * render one ValueCell, multi-mode collections render one per mode.
  */
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
 import { isAlias, extractAliasPath } from "../../../shared/resolveAlias";
 import { formatValue } from "../tokenListUtils";
+import { ValuePreview } from "../ValuePreview";
 import {
   getEditableString,
   parseInlineValue,
 } from "../tokenListHelpers";
-import { INLINE_SIMPLE_TYPES, getModeColumnWidth } from "../tokenListTypes";
+import { INLINE_SIMPLE_TYPES } from "../tokenListTypes";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { useTokenTreeSharedData } from "../TokenTreeContext";
 
-export function MultiModeCell({
-  tokenPath,
-  tokenType,
-  value,
-  targetCollectionId,
-  collectionId,
-  optionName,
-  modeCount,
-  onSave,
-  isTabPending,
-  onTabActivated,
-  onTab,
-  onEdit,
-}: {
+interface ValueCellProps {
   tokenPath: string;
   tokenType: string | undefined;
   value: TokenMapEntry | undefined;
   targetCollectionId: string | null;
   collectionId: string;
   optionName: string;
-  modeCount: number;
   onSave?: (
     path: string,
     type: string,
@@ -49,7 +37,21 @@ export function MultiModeCell({
   onTabActivated?: () => void;
   onTab?: (direction: 1 | -1) => void;
   onEdit?: () => void;
-}) {
+}
+
+export function ValueCell({
+  tokenPath,
+  tokenType,
+  value,
+  targetCollectionId,
+  collectionId,
+  optionName,
+  onSave,
+  isTabPending,
+  onTabActivated,
+  onTab,
+  onEdit,
+}: ValueCellProps) {
   const { allTokensFlat, pathToCollectionId } = useTokenTreeSharedData();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -57,7 +59,6 @@ export function MultiModeCell({
   const colorInputRef = useRef<HTMLInputElement>(null);
   const cellRef = useRef<HTMLDivElement>(null);
 
-  // Alias editing state
   const [aliasEditing, setAliasEditing] = useState(false);
   const [aliasQuery, setAliasQuery] = useState("");
   const [aliasPopoverPos, setAliasPopoverPos] = useState({ x: 0, y: 0 });
@@ -71,14 +72,8 @@ export function MultiModeCell({
     !isAliasValue;
   const canEditAlias = isAliasValue && !!targetCollectionId && !!onSave;
   const canCreate =
-    !value &&
-    !!tokenType &&
-    !!targetCollectionId &&
-    !!onSave;
+    !value && !!tokenType && !!targetCollectionId && !!onSave;
 
-  // Stable refs so the tab-activation effect always reads fresh values without
-  // adding them as trigger dependencies (which would cause spurious re-activations
-  // whenever value/tokenType/canEdit change while isTabPending is already true).
   const canEditRef = useRef(canEdit);
   canEditRef.current = canEdit;
   const canCreateRef = useRef(canCreate);
@@ -90,11 +85,17 @@ export function MultiModeCell({
   const onTabActivatedRef = useRef(onTabActivated);
   onTabActivatedRef.current = onTabActivated;
 
-  // Activate edit mode when Tab navigation lands on this cell
   useEffect(() => {
-    if (!isTabPending || tokenTypeRef.current === "color") return;
+    if (!isTabPending) return;
+    if (tokenTypeRef.current === "color") {
+      // Open the native color input for colors.
+      if (canEditRef.current || canCreateRef.current) {
+        colorInputRef.current?.click();
+        onTabActivatedRef.current?.();
+      }
+      return;
+    }
     if (canCreateRef.current) {
-      // Empty cell — open editor with blank value
       setEditValue("");
       setEditing(true);
       onTabActivatedRef.current?.();
@@ -149,7 +150,6 @@ export function MultiModeCell({
     typeof value.$value === "string" &&
     !isAliasValue;
 
-  // For <input type="color">, extract 6-char hex and preserve any alpha suffix
   const colorHex = isColor ? (value!.$value as string) : "";
   const colorHexBase = colorHex.startsWith("#")
     ? colorHex.slice(0, 7)
@@ -157,13 +157,14 @@ export function MultiModeCell({
   const colorAlphaSuffix =
     colorHex.startsWith("#") && colorHex.length === 9 ? colorHex.slice(7) : "";
 
+  const wrapperClass = `min-w-0 shrink-0 px-1.5 flex items-center gap-1.5 border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`;
+
   return (
     <div
       ref={cellRef}
-      className={`${getModeColumnWidth(modeCount)} shrink-0 px-1 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}
+      className={wrapperClass}
       title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}`}
     >
-      {/* Hidden color input — rendered for existing color values or creatable empty color cells */}
       {(canEdit || canCreate) && tokenType === "color" && (
         <input
           type="color"
@@ -222,19 +223,6 @@ export function MultiModeCell({
             —
           </span>
         )
-      ) : isColor ? (
-        <span
-          className={`w-5 h-5 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]" : ""}`}
-          style={{ backgroundColor: value.$value as string }}
-          onClick={
-            canEdit
-              ? (e) => {
-                  e.stopPropagation();
-                  colorInputRef.current?.click();
-                }
-              : undefined
-          }
-        />
       ) : editing ? (
         <input
           type="text"
@@ -260,7 +248,6 @@ export function MultiModeCell({
             if (e.key === "Tab") {
               e.preventDefault();
               e.stopPropagation();
-              // Use escapedRef to block the onBlur from double-saving
               escapedRef.current = true;
               if (tokenType && targetCollectionId && onSave) {
                 const raw = editValue.trim();
@@ -296,7 +283,13 @@ export function MultiModeCell({
       ) : isAliasValue ? (
         <>
           <span
-            className={`text-body truncate max-w-full font-mono ${canEditAlias ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
+            className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+            aria-hidden="true"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7" /><path d="M8 7h9v9" /></svg>
+          </span>
+          <span
+            className={`text-body truncate min-w-0 font-mono ${canEditAlias ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
             onClick={canEditAlias ? openAliasEditor : undefined}
             title={`${optionName}: ${displayVal}${targetCollectionId ? `\nSet: ${targetCollectionId}` : ""}\nClick to redirect alias`}
           >
@@ -353,20 +346,40 @@ export function MultiModeCell({
           )}
         </>
       ) : (
-        <span
-          className={`text-body truncate max-w-full ${canEdit ? "cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
-          onClick={
-            canEdit
-              ? (e) => {
-                  e.stopPropagation();
-                  setEditValue(getEditableString(value.$type, value.$value));
-                  setEditing(true);
-                }
-              : undefined
-          }
-        >
-          {displayVal}
-        </span>
+        <>
+          <span
+            className={`shrink-0 ${canEdit && isColor ? "cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)] rounded" : ""}`}
+            onClick={
+              canEdit && isColor
+                ? (e) => {
+                    e.stopPropagation();
+                    colorInputRef.current?.click();
+                  }
+                : undefined
+            }
+          >
+            <ValuePreview type={value.$type} value={value.$value} size={16} />
+          </span>
+          <span
+            className={`text-body truncate min-w-0 ${canEdit ? "cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
+            onClick={
+              canEdit && !isColor
+                ? (e) => {
+                    e.stopPropagation();
+                    setEditValue(getEditableString(value.$type, value.$value));
+                    setEditing(true);
+                  }
+                : canEdit && isColor
+                  ? (e) => {
+                      e.stopPropagation();
+                      colorInputRef.current?.click();
+                    }
+                  : undefined
+            }
+          >
+            {displayVal}
+          </span>
+        </>
       )}
     </div>
   );

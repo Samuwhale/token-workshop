@@ -125,24 +125,18 @@ export function useTokenListViewState({
     lsSet(STORAGE_KEYS.CONDENSED_VIEW, v ? "1" : "0");
   }, []);
 
-  // Auto-enabled when active collection has 2+ modes
+  // Mode columns are always shown — one column per mode. For single-mode
+  // collections this is one column; multi-mode collections get N.
   const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
 
   useEffect(() => {
     const activeCollection = collections.find((c) => c.id === collectionId);
-    if (activeCollection && activeCollection.modes.length >= 2) {
+    if (activeCollection) {
       setMultiModeDimId(collectionId);
       return;
     }
-    const firstMultiMode = collections.find((c) => c.modes.length >= 2);
-    setMultiModeDimId(firstMultiMode?.id ?? null);
+    setMultiModeDimId(collections[0]?.id ?? null);
   }, [collectionId, collections]);
-
-  const showModeColumns = useMemo(() => {
-    if (!multiModeDimId) return false;
-    const collection = collections.find((c) => c.id === multiModeDimId);
-    return !!collection && collection.modes.length >= 2;
-  }, [collections, multiModeDimId]);
 
   return {
     showRecentlyTouched,
@@ -162,7 +156,6 @@ export function useTokenListViewState({
     rowHeight,
     condensedView,
     setCondensedView,
-    showModeColumns,
     multiModeDimId,
     setMultiModeDimId,
   };

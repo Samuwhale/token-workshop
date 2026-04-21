@@ -128,6 +128,7 @@ export const TokenGroupNode = memo(
       onToggleGeneratedGroupEnabled,
       onDetachGeneratedGroup,
       onNavigateToToken,
+      onSelectGroupChildren,
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
 
@@ -686,6 +687,18 @@ export const TokenGroupNode = memo(
                     <span className={MENU_SHORTCUT_CLASS}>N</span>
                   </button>
                 )}
+                {onSelectGroupChildren && (
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { closeGroupMenus(); onSelectGroupChildren(node); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                    <span className="flex-1">Select all tokens</span>
+                  </button>
+                )}
                 {onSetGroupScopes && (
                   <button
                     role="menuitem"
@@ -1088,6 +1101,8 @@ export const TokenGroupNode = memo(
               lintViolations={
                 childLintMap?.get(child.path) ?? EMPTY_LINT_VIOLATIONS
               }
+              multiModeValues={props.multiModeValues}
+              gridTemplate={props.gridTemplate}
             />
           ))}
       </div>

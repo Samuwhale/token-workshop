@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Layers, MousePointer2, X, ChevronUp } from "lucide-react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { LintViolation } from "../../hooks/useLint";
@@ -16,7 +16,7 @@ import { JsonEditorView } from "../JsonEditorView";
 import { TokenListFilteredEmptyState } from "./TokenListStates";
 import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
-import { getModeColumnWidth } from "../tokenListTypes";
+import { getGridTemplate } from "../tokenListTypes";
 import { apiFetch } from "../../shared/apiFetch";
 
 type VisibleTokenRow = {
@@ -105,7 +105,7 @@ interface TokenListTreeBodyProps {
   multiModeDimensionName: string | null;
   collections: { id: string; modes: { name: string }[] }[];
   setMultiModeDimId: (v: string) => void;
-  getMultiModeValues: (tokenPath: string) => MultiModeValue[] | undefined;
+  getMultiModeValues: (tokenPath: string) => MultiModeValue[];
   serverUrl: string;
   onModeMutated?: () => void;
 
@@ -261,10 +261,46 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     }
   }, [addModeTargetId, onModeMutated, serverUrl]);
 
-  // Multi-mode column headers
-  const multiModeHeaders = multiModeData && viewMode === "tree" ? (
-    <div className="sticky top-0 z-20 flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-      <div className="flex-1 min-w-0 px-2 py-1 flex items-center gap-1">
+  const modeCount = multiModeData?.results.length ?? 1;
+  const gridTemplate = getGridTemplate(modeCount);
+  const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
+  const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!addModeMenuOpen) return;
+    const onDocMouseDown = (e: MouseEvent) => {
+      if (addModeMenuContainerRef.current?.contains(e.target as Node)) return;
+      setAddModeMenuOpen(false);
+      setAddingMode(false);
+      setNewModeName("");
+    };
+    window.addEventListener("mousedown", onDocMouseDown);
+    return () => window.removeEventListener("mousedown", onDocMouseDown);
+  }, [addModeMenuOpen]);
+
+  const closeAddModeMenu = useCallback(() => {
+    setAddModeMenuOpen(false);
+    setAddingMode(false);
+    setNewModeName("");
+  }, []);
+
+  const handleAddModeFromMenu = useCallback(
+    async (name: string) => {
+      setAddModeMenuOpen(false);
+      await handleAddModePreset(name);
+    },
+    [handleAddModePreset],
+  );
+
+  // Unified table header — always shown for the tree view. For single-mode
+  // collections this renders one mode column; multi-mode collections render
+  // one column per mode. The trailing + button adds new modes via a popover.
+  const tableHeader = multiModeData && viewMode === "tree" ? (
+    <div
+      className="sticky top-0 z-20 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
+      style={{ display: "grid", gridTemplateColumns: gridTemplate }}
+    >
+      <div className="min-w-0 px-2 py-1 flex items-center gap-1">
         {collections.length > 1 ? (
           <select
             value={multiModeDimId ?? ""}
@@ -287,7 +323,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         <ModeColumnHeader
           key={r.optionName}
           modeName={r.optionName}
-          modeCount={multiModeData.results.length}
           modeIndex={idx}
           allModeNames={multiModeData.results.map((x) => x.optionName)}
           collectionId={multiModeData.collection.id}
@@ -296,103 +331,76 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           connected={connected}
         />
       ))}
-      {addingMode ? (
-        <div className={`${getModeColumnWidth(multiModeData.results.length)} shrink-0 px-1 py-0.5 border-l border-[var(--color-figma-border)]`}>
-          <input
-            type="text"
-            value={newModeName}
-            onChange={(e) => setNewModeName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void handleAddMode();
-              if (e.key === "Escape") {
-                setAddingMode(false);
-                setNewModeName("");
-              }
-            }}
-            onBlur={() => {
-              if (!newModeName.trim()) {
-                setAddingMode(false);
-                setNewModeName("");
-              }
-            }}
-            autoFocus
-            disabled={addingModeSaving}
-            placeholder="Mode name"
-            className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
-          />
-        </div>
-      ) : (
+      <div
+        ref={addModeMenuContainerRef}
+        className="relative border-l border-[var(--color-figma-border)] flex items-stretch"
+      >
         <button
           type="button"
-          onClick={() => setAddingMode(true)}
+          onClick={() => setAddModeMenuOpen((v) => !v)}
           disabled={!connected}
-          className="w-[28px] shrink-0 flex items-center justify-center py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
+          className="w-full flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
           title="Add mode"
           aria-label="Add mode"
+          aria-haspopup="menu"
+          aria-expanded={addModeMenuOpen}
         >
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M8 3v10M3 8h10" />
           </svg>
         </button>
-      )}
-    </div>
-  ) : null;
-
-  const addModeTargetCollection = collections.find((c) => c.id === addModeTargetId);
-  const singleModeAddHeader = !multiModeData && viewMode === "tree" && connected && addModeTargetId && addModeTargetCollection && addModeTargetCollection.modes.length <= 1 ? (
-    <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
-      {addingMode ? (
-        <div className="flex items-center gap-1.5">
-          <input
-            type="text"
-            value={newModeName}
-            onChange={(e) => setNewModeName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void handleAddMode();
-              if (e.key === "Escape") {
-                setAddingMode(false);
-                setNewModeName("");
-              }
-            }}
-            onBlur={() => {
-              if (!newModeName.trim()) {
-                setAddingMode(false);
-                setNewModeName("");
-              }
-            }}
-            autoFocus
-            disabled={addingModeSaving}
-            placeholder="Mode name"
-            className="w-32 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
-          />
-        </div>
-      ) : (
-        <>
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-            Add a mode to define variants
-          </span>
-          <div className="flex items-center gap-1">
-            {MODE_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => handleAddModePreset(preset)}
-                disabled={addingModeSaving}
-                className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
-              >
-                {preset}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setAddingMode(true)}
-              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
-            >
-              Custom…
-            </button>
+        {addModeMenuOpen && (
+          <div
+            className="absolute right-0 top-full z-30 mt-0.5 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {addingMode ? (
+              <div className="px-2 py-1">
+                <input
+                  type="text"
+                  value={newModeName}
+                  onChange={(e) => setNewModeName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      void handleAddMode().then(() => setAddModeMenuOpen(false));
+                    }
+                    if (e.key === "Escape") closeAddModeMenu();
+                  }}
+                  onBlur={() => {
+                    if (!newModeName.trim()) closeAddModeMenu();
+                  }}
+                  autoFocus
+                  disabled={addingModeSaving}
+                  placeholder="Mode name"
+                  className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
+                />
+              </div>
+            ) : (
+              <>
+                {MODE_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => void handleAddModeFromMenu(preset)}
+                    disabled={addingModeSaving}
+                    className="block w-full px-3 py-1 text-left text-body text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                  >
+                    {preset}
+                  </button>
+                ))}
+                <div className="my-1 h-px bg-[var(--color-figma-border)]" />
+                <button
+                  type="button"
+                  onClick={() => setAddingMode(true)}
+                  className="block w-full px-3 py-1 text-left text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                >
+                  Custom…
+                </button>
+              </>
+            )}
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   ) : null;
 
@@ -401,7 +409,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     if (crossCollectionResults.length === 0) {
       return (
         <>
-          {multiModeHeaders}
+          {tableHeader}
         <div className="py-3">
           <FeedbackPlaceholder
               variant="no-results"
@@ -443,7 +451,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
     return (
       <>
-        {multiModeHeaders}
+        {tableHeader}
         <div>
           {collectionIds
             .filter((sn) => crossCollectionResults.some((r) => r.collectionId === sn))
@@ -519,7 +527,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   if (inspectMode && selectedNodes.length === 0) {
     return (
       <>
-        {multiModeHeaders}
+        {tableHeader}
         <FeedbackPlaceholder
           variant="empty"
           title="Select a layer to inspect"
@@ -534,7 +542,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   if (viewMode === "json") {
     return (
       <>
-        {multiModeHeaders}
+        {tableHeader}
         <JsonEditorView
           jsonText={jsonEditorProps.jsonText}
           jsonDirty={jsonEditorProps.jsonDirty}
@@ -585,7 +593,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
     return (
       <>
-        {multiModeHeaders}
+        {tableHeader}
         <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
           <FeedbackPlaceholder
             variant="empty"
@@ -605,7 +613,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   if (displayedTokens.length === 0 && filtersActive) {
     return (
       <>
-        {multiModeHeaders}
+        {tableHeader}
         <TokenListFilteredEmptyState
           searchQuery={searchQuery}
           availableTypes={availableTypes}
@@ -625,8 +633,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Tree view with virtual scroll
   return (
     <>
-      {multiModeHeaders}
-      {singleModeAddHeader}
+      {tableHeader}
       <div className="py-1">
         {zoomBreadcrumb ? (
           <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary">
@@ -808,11 +815,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                         )
                     : undefined
                 }
-                multiModeValues={
-                  multiModeData
-                    ? getMultiModeValues(node.path)
-                    : undefined
-                }
+                multiModeValues={getMultiModeValues(node.path)}
+                gridTemplate={gridTemplate}
               />
             );
           })}

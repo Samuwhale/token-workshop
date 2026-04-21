@@ -69,13 +69,20 @@ export const DEPTH_COLORS: readonly string[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Mode column sizing
+// Table grid template
 // ---------------------------------------------------------------------------
-const MODE_COLUMN_WIDTH = "w-[80px]";
-const MODE_COLUMN_WIDTH_WIDE = "w-[100px]";
 
-export function getModeColumnWidth(modeCount: number): string {
-  return modeCount === 2 ? MODE_COLUMN_WIDTH_WIDE : MODE_COLUMN_WIDTH;
+/** Width of the trailing add-mode slot in the header (matches header + button). */
+export const ADD_MODE_SLOT_PX = 28;
+
+/**
+ * Grid template for the token table. Shared between header and every row so
+ * columns always align regardless of content (single-mode collections get one
+ * value column; multi-mode collections get one column per mode).
+ */
+export function getGridTemplate(modeCount: number): string {
+  const count = Math.max(1, modeCount);
+  return `minmax(200px, 2fr) repeat(${count}, minmax(96px, 1fr)) ${ADD_MODE_SLOT_PX}px`;
 }
 
 // ---------------------------------------------------------------------------
@@ -421,6 +428,7 @@ export interface TokenTreeGroupActionsContextType {
   ) => Promise<void>;
   /** Navigate to a token by path (used for generator source token navigation) */
   onNavigateToToken?: (path: string) => void;
+  onSelectGroupChildren?: (groupNode: TokenNode) => void;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
 }
@@ -534,6 +542,8 @@ export interface TokenTreeLeafActionsContextType {
     columnId: string | null,
     direction: 1 | -1,
   ) => void;
+  /** Request a value cell to enter edit mode (used for Enter-to-edit from the row). */
+  onEnterCellEdit: (path: string, columnId: string | null) => void;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
 }
@@ -554,6 +564,8 @@ export interface TokenTreeNodeProps {
   chainExpanded?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  /** Per-option resolved values for multi-mode column view */
-  multiModeValues?: MultiModeValue[];
+  /** Per-mode resolved values for the token. Always length ≥ 1; single-mode collections have one entry. */
+  multiModeValues: MultiModeValue[];
+  /** Grid template shared between the table header and every row so columns align. */
+  gridTemplate: string;
 }

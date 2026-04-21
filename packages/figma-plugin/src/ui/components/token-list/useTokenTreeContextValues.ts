@@ -119,6 +119,7 @@ interface GroupActionsDeps {
   ) => Promise<void>;
   handleDetachGeneratedGroup: (generatorId: string, groupPath: string) => Promise<void>;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
+  handleSelectGroupChildren?: (groupNode: TokenNode) => void;
   setRovingFocusPath: (path: string) => void;
 }
 
@@ -151,6 +152,7 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       onNavigateToToken: deps.onNavigateToAlias
         ? (path: string) => deps.onNavigateToAlias!(path)
         : undefined,
+      onSelectGroupChildren: deps.handleSelectGroupChildren,
       onRovingFocus: deps.setRovingFocusPath,
     }),
     [deps],
@@ -181,7 +183,6 @@ interface LeafStateDeps {
   pendingTabEdit: { path: string; columnId: string | null } | null;
   effectiveRovingPath: string | null;
   showDuplicates: boolean;
-  showModeColumns: boolean;
   tokenModeMissing?: Map<string, number>;
 }
 
@@ -254,6 +255,7 @@ interface LeafActionsDeps {
   handleClearPendingRename: () => void;
   handleClearPendingTabEdit: () => void;
   handleTabToNext: (currentPath: string, columnId: string | null, direction: 1 | -1) => void;
+  setPendingTabEdit: (edit: { path: string; columnId: string | null } | null) => void;
   setRovingFocusPath: (path: string) => void;
 }
 
@@ -295,6 +297,8 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       clearPendingRename: deps.handleClearPendingRename,
       clearPendingTabEdit: deps.handleClearPendingTabEdit,
       onTabToNext: deps.handleTabToNext,
+      onEnterCellEdit: (path, columnId) =>
+        deps.setPendingTabEdit({ path, columnId }),
       onRovingFocus: deps.setRovingFocusPath,
     }),
     [deps],

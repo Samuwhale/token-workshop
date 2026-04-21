@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { apiFetch } from "../../shared/apiFetch";
-import { getModeColumnWidth } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
   modeName: string;
-  modeCount: number;
   modeIndex: number;
   allModeNames: string[];
   collectionId: string;
@@ -15,7 +13,6 @@ interface ModeColumnHeaderProps {
 
 export function ModeColumnHeader({
   modeName,
-  modeCount,
   modeIndex,
   allModeNames,
   collectionId,
@@ -132,7 +129,7 @@ export function ModeColumnHeader({
   return (
     <div
       ref={cellRef}
-      className={`${getModeColumnWidth(modeCount)} shrink-0 border-l border-[var(--color-figma-border)]`}
+      className="min-w-0 border-l border-[var(--color-figma-border)]"
       onContextMenu={openMenu}
     >
       {renaming ? (
