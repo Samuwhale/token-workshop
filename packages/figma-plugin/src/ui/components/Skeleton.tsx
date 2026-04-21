@@ -46,17 +46,3 @@ export function SkeletonImportRow({ nameWidth = 'w-1/2' }: { nameWidth?: string 
     </div>
   );
 }
-
-/**
- * Skeleton for a token flow / dependency graph row:
- * node block — arrow — node block
- */
-export function SkeletonFlowRow({ wide = false }: { wide?: boolean }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-2" aria-hidden="true">
-      <Skeleton className={`h-[22px] rounded ${wide ? 'w-28' : 'w-20'}`} />
-      <Skeleton className="h-[6px] w-6 rounded-full" />
-      <Skeleton className="h-[22px] flex-1 rounded" />
-    </div>
-  );
-}

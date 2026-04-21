@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import type { ColorModifierOp } from '@tokenmanager/core';
+import type { ColorModifierOp, TokenCollection } from '@tokenmanager/core';
 import { validateColorModifiers } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
+import { readEditorCollectionModeValues } from '../shared/collectionModeUtils';
 import { getErrorMessage, tokenPathToUrlSegment, isAbortError, stableStringify } from '../shared/utils';
-import { isAlias } from '../../shared/resolveAlias';
 import type { FieldsSnapshot } from './useTokenEditorFields';
 import {
   loadEditorDraft,
@@ -14,67 +14,56 @@ import type {
   TokenEditorLifecycle,
   TokenEditorModeValues,
   TokenEditorServerExtensions,
+  TokenEditorTokenManagerExtension,
   TokenEditorTokenResponse,
   TokenEditorValue,
 } from '../shared/tokenEditorTypes';
-
-function readModeValues(
-  raw: unknown,
-  collectionId: string,
-): Record<string, Record<string, unknown>> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return {};
-  }
-
-  const optionMap = (raw as Record<string, unknown>)[collectionId];
-  if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
-    return {};
-  }
-
-  return { [collectionId]: { ...(optionMap as Record<string, unknown>) } };
-}
+import {
+  omitTokenEditorReservedExtensions,
+  splitTokenManagerExtension,
+} from '../shared/tokenEditorTypes';
 
 interface UseTokenEditorLoadParams {
   serverUrl: string;
   collectionId: string;
+  collections: TokenCollection[];
   tokenPath: string;
   isCreateMode: boolean;
   initialRef: React.MutableRefObject<FieldsSnapshot | null>;
   setTokenType: (v: string) => void;
   setValue: (v: TokenEditorValue) => void;
   setDescription: (v: string) => void;
-  setReference: (v: string) => void;
-  setAliasMode: (v: boolean) => void;
   setScopes: (v: string[]) => void;
   setColorModifiers: (v: ColorModifierOp[]) => void;
   setModeValues: (v: TokenEditorModeValues) => void;
   setExtensionsJsonText: (v: string) => void;
+  setExtensionsJsonError: (v: string | null) => void;
   setLifecycle: (v: TokenEditorLifecycle) => void;
   setExtendsPath: (v: string) => void;
   setError: (v: string | null) => void;
-  refInputRef: React.RefObject<HTMLInputElement | null>;
+  passthroughTokenManagerRef: React.MutableRefObject<Record<string, unknown> | null>;
   valueEditorContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useTokenEditorLoad({
   serverUrl,
   collectionId,
+  collections,
   tokenPath,
   isCreateMode,
   initialRef,
   setTokenType,
   setValue,
   setDescription,
-  setReference,
-  setAliasMode,
   setScopes,
   setColorModifiers,
   setModeValues,
   setExtensionsJsonText,
+  setExtensionsJsonError,
   setLifecycle,
   setExtendsPath,
   setError,
-  refInputRef,
+  passthroughTokenManagerRef,
   valueEditorContainerRef,
 }: UseTokenEditorLoadParams) {
   const [loading, setLoading] = useState(!isCreateMode);
@@ -83,14 +72,24 @@ export function useTokenEditorLoad({
   const didAutoFocusRef = useRef(false);
 
   const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
+  const collection = collections.find((entry) => entry.id === collectionId) ?? null;
 
   useEffect(() => {
     didAutoFocusRef.current = false;
     initialServerSnapshotRef.current = null;
+    passthroughTokenManagerRef.current = null;
     setPendingDraft(null);
     setError(null);
+    setExtensionsJsonError(null);
     setLoading(!isCreateMode);
-  }, [isCreateMode, setError, collectionId, tokenPath]);
+  }, [
+    collectionId,
+    isCreateMode,
+    passthroughTokenManagerRef,
+    setError,
+    setExtensionsJsonError,
+    tokenPath,
+  ]);
 
   useEffect(() => {
     if (isCreateMode) return;
@@ -100,43 +99,38 @@ export function useTokenEditorLoad({
         const data = await apiFetch<TokenEditorTokenResponse>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/${encodedTokenPath}`, { signal: controller.signal });
         const token = data.token;
         const extensions: TokenEditorServerExtensions = token?.$extensions ?? {};
+        const { managed: tokenManager, passthrough: passthroughTokenManager } = splitTokenManagerExtension(
+          extensions.tokenmanager as TokenEditorTokenManagerExtension | undefined,
+        );
+        passthroughTokenManagerRef.current =
+          Object.keys(passthroughTokenManager).length > 0
+            ? passthroughTokenManager
+            : null;
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
         setDescription(token?.$description || '');
         const savedScopes = extensions['com.figma.scopes'] ?? token?.$scopes;
         setScopes(Array.isArray(savedScopes) ? savedScopes : []);
-        const savedModifiers = extensions.tokenmanager?.colorModifier;
+        const savedModifiers = tokenManager.colorModifier;
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
         setColorModifiers(loadedModifiers);
-        const savedModes = extensions.tokenmanager?.modes;
-        const loadedModes = readModeValues(savedModes, collectionId);
+        const savedModes = tokenManager.modes;
+        const loadedModes = readEditorCollectionModeValues(savedModes, collection);
         setModeValues(loadedModes);
-        const savedLifecycle = extensions.tokenmanager?.lifecycle;
+        const savedLifecycle = tokenManager.lifecycle;
         const loadedLifecycle: TokenEditorLifecycle = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
         setLifecycle(loadedLifecycle);
-        const savedExtends = extensions.tokenmanager?.extends;
+        const savedExtends = tokenManager.extends;
         const loadedExtends = typeof savedExtends === 'string' ? savedExtends : '';
         setExtendsPath(loadedExtends);
-        const ext = extensions;
-        const knownExtKeys = new Set([
-          'com.figma.scopes',
-          'tokenmanager',
-          'com.tokenmanager.generator',
-        ]);
-        const otherExt: Record<string, any> = {};
-        for (const [k, v] of Object.entries(ext)) {
-          if (!knownExtKeys.has(k)) otherExt[k] = v;
-        }
+        const otherExt = omitTokenEditorReservedExtensions(extensions);
         const otherExtText = Object.keys(otherExt).length > 0 ? JSON.stringify(otherExt, null, 2) : '';
         setExtensionsJsonText(otherExtText);
-        initialServerSnapshotRef.current = JSON.stringify(token ?? null);
-        const ref = isAlias(token?.$value) ? token.$value : '';
-        setReference(ref);
-        setAliasMode(Boolean(ref));
+        setExtensionsJsonError(null);
+        initialServerSnapshotRef.current = stableStringify(token ?? null);
         initialRef.current = {
           value: token?.$value ?? '',
           description: token?.$description || '',
-          reference: ref,
           scopes: Array.isArray(savedScopes) ? savedScopes : [],
           type: token?.$type || 'string',
           colorModifiers: loadedModifiers,
@@ -145,7 +139,6 @@ export function useTokenEditorLoad({
           lifecycle: loadedLifecycle,
           extendsPath: loadedExtends,
         };
-        // Check for a saved draft that differs from the current server state
         const draft = loadEditorDraft(collectionId, tokenPath);
         if (draft) {
           const init = initialRef.current!;
@@ -153,7 +146,6 @@ export function useTokenEditorLoad({
             draft.tokenType !== init.type ||
             stableStringify(draft.value) !== stableStringify(init.value) ||
             draft.description !== init.description ||
-            draft.reference !== init.reference ||
             stableStringify(draft.scopes) !== stableStringify(init.scopes) ||
             stableStringify(draft.colorModifiers) !== stableStringify(init.colorModifiers) ||
             stableStringify(draft.modeValues) !== stableStringify(init.modeValues) ||
@@ -183,33 +175,29 @@ export function useTokenEditorLoad({
     serverUrl,
     setColorModifiers,
     setDescription,
-    setAliasMode,
     setError,
     setExtensionsJsonText,
+    setExtensionsJsonError,
     setExtendsPath,
     setLifecycle,
     setModeValues,
+    passthroughTokenManagerRef,
     collectionId,
-    setReference,
+    collection,
     setScopes,
     setTokenType,
     setValue,
     tokenPath,
   ]);
 
-  // Auto-focus the appropriate field once edit mode data finishes loading
   useEffect(() => {
     if (isCreateMode || loading || didAutoFocusRef.current) return;
     didAutoFocusRef.current = true;
-    if (initialRef.current?.reference) {
-      setTimeout(() => refInputRef.current?.focus(), 0);
-    } else {
-      const input = valueEditorContainerRef.current?.querySelector<HTMLElement>(
-        'input:not([type="color"]):not([type="checkbox"]):not([type="hidden"]):not([type="radio"]), textarea'
-      );
-      input?.focus();
-    }
-  }, [initialRef, isCreateMode, loading, refInputRef, valueEditorContainerRef]);
+    const input = valueEditorContainerRef.current?.querySelector<HTMLElement>(
+      'input:not([type="color"]):not([type="checkbox"]):not([type="hidden"]):not([type="radio"]), textarea'
+    );
+    input?.focus();
+  }, [initialRef, isCreateMode, loading, valueEditorContainerRef]);
 
   return {
     loading,

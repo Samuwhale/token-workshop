@@ -1023,7 +1023,6 @@ export class ManualSnapshotStore {
   }
 
   private async captureRestoreWorkspaceState(
-    _tokenStore: TokenStore,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
     generatorService: GeneratorService,
@@ -1166,7 +1165,6 @@ export class ManualSnapshotStore {
 
   restore(
     id: string,
-    tokenStore: TokenStore,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
     generatorService: GeneratorService,
@@ -1192,7 +1190,6 @@ export class ManualSnapshotStore {
       const baseline =
         currentWorkspaceState ??
         (await this.captureRestoreWorkspaceState(
-          tokenStore,
           collectionService,
           resolverStore,
           generatorService,

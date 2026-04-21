@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import {
+  buildTokenExtensionsWithCollectionModes,
   TOKEN_TYPE_VALUES,
   TokenValidator,
   flattenTokenGroup,
@@ -132,6 +133,73 @@ function findCollectionDefinition(
   return collections.find((collection) => collection.id === collectionId);
 }
 
+function normalizeTokenModesForCollectionWrite<T extends Pick<Token, '$extensions'>>(
+  token: T,
+  collection: TokenCollection,
+): T {
+  const nextToken = structuredClone(token);
+  const currentModes = readTokenCollectionModeValues(nextToken);
+  const collectionModes = currentModes[collection.id];
+  if (!collectionModes) {
+    return nextToken;
+  }
+
+  const hadExtensions = Object.prototype.hasOwnProperty.call(
+    nextToken,
+    '$extensions',
+  );
+  const secondaryModeNames = new Set(
+    collection.modes.slice(1).map((mode) => mode.name),
+  );
+  const normalizedCollectionModes = Object.fromEntries(
+    Object.entries(collectionModes).filter(
+      ([modeName, value]) =>
+        secondaryModeNames.has(modeName) &&
+        value !== '' &&
+        value !== undefined &&
+        value !== null,
+    ),
+  );
+  const nextModes = { ...currentModes };
+  if (Object.keys(normalizedCollectionModes).length > 0) {
+    nextModes[collection.id] = normalizedCollectionModes;
+  } else {
+    delete nextModes[collection.id];
+  }
+
+  const nextExtensions = buildTokenExtensionsWithCollectionModes(
+    nextToken,
+    nextModes,
+  );
+  if (nextExtensions !== undefined) {
+    nextToken.$extensions = nextExtensions;
+  } else if (hadExtensions) {
+    nextToken.$extensions = undefined;
+  } else {
+    delete nextToken.$extensions;
+  }
+
+  return nextToken;
+}
+
+function normalizeTokenGroupModesForCollectionWrite(
+  tokens: TokenGroup,
+  collection: TokenCollection,
+): TokenGroup {
+  const nextTokens = structuredClone(tokens);
+  for (const [, token] of flattenTokenGroup(nextTokens)) {
+    const normalizedToken = normalizeTokenModesForCollectionWrite(
+      token,
+      collection,
+    );
+    for (const key of Object.keys(token)) {
+      delete (token as unknown as Record<string, unknown>)[key];
+    }
+    Object.assign(token, normalizedToken);
+  }
+  return nextTokens;
+}
+
 function mergeCollectionSnapshot(
   target: Record<string, SnapshotEntry>,
   collectionId: string,
@@ -157,15 +225,33 @@ function groupSnapshotEntriesByCollection(
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
+  function listActiveDependents(
+    tokenPath: string,
+  ): Array<{ path: string; collectionId: string }> {
+    return fastify.tokenStore.getDependents(tokenPath).filter((dependent) => {
+      const dependentToken = fastify.tokenStore
+        .getTokenDefinitions(dependent.path)
+        .find(({ collectionId }) => collectionId === dependent.collectionId)?.token;
+      return dependentToken != null && getTokenLifecycle(dependentToken) !== 'deprecated';
+    });
+  }
+
   async function loadCollectionModeNames(
     collectionId: string,
   ): Promise<Set<string>> {
+    const collection = await loadCollectionDefinition(collectionId);
+    return new Set(collection.modes.map((mode) => mode.name));
+  }
+
+  async function loadCollectionDefinition(
+    collectionId: string,
+  ): Promise<TokenCollection> {
     const state = await fastify.collectionService.loadState();
     const collection = findCollectionDefinition(state.collections, collectionId);
     if (!collection) {
       throw new Error(`Collection "${collectionId}" not found`);
     }
-    return new Set(collection.modes.map((mode) => mode.name));
+    return collection;
   }
 
   async function validateTokenModesForCollectionWrite(
@@ -661,22 +747,32 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         await fastify.collectionService.requireCollectionsExist([collectionId]);
-        const validModeNames = await loadCollectionModeNames(collectionId);
+        const collection = await loadCollectionDefinition(collectionId);
+        const validModeNames = new Set(
+          collection.modes.map((mode) => mode.name),
+        );
+        const normalizedPatches = patches.map((entry) => ({
+          path: entry.path,
+          patch: normalizeTokenModesForCollectionWrite(
+            entry.patch as Partial<Token>,
+            collection,
+          ),
+        }));
         // Type-aware validation for each patch (needs existing token for inherited type)
-        for (const p of patches) {
+        for (const p of normalizedPatches) {
           const modeError = await validateTokenModesForCollectionWrite(
             collectionId,
             p.path,
-            p.patch as Pick<Token, '$extensions'>,
+            p.patch,
             validModeNames,
           );
           if (modeError) {
             return reply.status(400).send({ error: modeError });
           }
 
-          const patchVal = (p.patch as Record<string, unknown>).$value;
+          const patchVal = p.patch.$value;
           if (patchVal !== undefined) {
-            const patchType = (p.patch as Record<string, unknown>).$type as string | undefined;
+            const patchType = p.patch.$type;
             const effectiveType = patchType ?? (await fastify.tokenStore.getToken(collectionId, p.path))?.$type;
             if (effectiveType) {
               const valueErr = validateTokenValue(patchVal, effectiveType, p.path);
@@ -693,7 +789,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
         const paths = patches.map(p => p.path);
         const before = await snapshotPaths(fastify.tokenStore, collectionId, paths);
-        await fastify.tokenStore.batchUpdateTokens(collectionId, patches);
+        await fastify.tokenStore.batchUpdateTokens(
+          collectionId,
+          normalizedPatches,
+        );
         const after = await snapshotPaths(fastify.tokenStore, collectionId, paths);
         const entry = await fastify.operationLog.record({
           type: 'batch-update',
@@ -1017,22 +1116,29 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         await fastify.collectionService.requireCollectionsExist([collectionId]);
-        const validModeNames = await loadCollectionModeNames(collectionId);
+        const collection = await loadCollectionDefinition(collectionId);
+        const validModeNames = new Set(
+          collection.modes.map((mode) => mode.name),
+        );
         // Check alias targets exist (allow intra-batch references)
         const batchPaths = new Set(tokens.map(t => t.path));
-        for (const t of tokens) {
+        const normalizedTokens = tokens.map((token) => ({
+          ...token,
+          token: normalizeTokenModesForCollectionWrite(token as Token, collection),
+        }));
+        for (const t of normalizedTokens) {
           const modeError = await validateTokenModesForCollectionWrite(
             collectionId,
             t.path,
-            t,
+            t.token,
             validModeNames,
           );
           if (modeError) {
             return reply.status(400).send({ error: modeError });
           }
 
-          if (isReference(t.$value)) {
-            const targetPath = parseReference(t.$value as string);
+          if (isReference(t.token.$value)) {
+            const targetPath = parseReference(t.token.$value as string);
             if (!fastify.tokenStore.tokenPathExists(targetPath) && !batchPaths.has(targetPath)) {
               return reply.status(400).send({ error: `Alias target "${targetPath}" in "${t.path}" does not exist` });
             }
@@ -1043,7 +1149,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const before = await snapshotPaths(fastify.tokenStore, collectionId, paths);
         const result = await fastify.tokenStore.batchUpsertTokens(
           collectionId,
-          tokens.map(t => ({ path: t.path, token: t as Token })),
+          normalizedTokens.map(({ path, token }) => ({ path, token })),
           strategy,
         );
         const after = await snapshotPaths(fastify.tokenStore, collectionId, paths);
@@ -1093,8 +1199,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           deprecatedPath,
           collectionId: meta.collectionId,
           type: meta.type,
-          dependents: fastify.tokenStore
-            .getDependents(deprecatedPath)
+          dependents: listActiveDependents(deprecatedPath)
             .slice()
             .sort(
               (a, b) =>
@@ -1157,7 +1262,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
-        const dependents = fastify.tokenStore.getDependents(deprecatedPath);
+        const dependents = listActiveDependents(deprecatedPath);
         if (dependents.length === 0) {
           return { ok: true, updated: 0 };
         }
@@ -1479,15 +1584,23 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.collectionService.requireCollectionsExist([collectionId]);
+          const collection = await loadCollectionDefinition(collectionId);
+          const normalizedBody = normalizeTokenGroupModesForCollectionWrite(
+            body as TokenGroup,
+            collection,
+          );
           const modeError = await validateTokenGroupModesForCollectionWrite(
             collectionId,
-            body as TokenGroup,
+            normalizedBody,
           );
           if (modeError) {
             return reply.status(400).send({ error: modeError });
           }
           const before = await snapshotCollection(fastify.tokenStore, collectionId);
-          await fastify.tokenStore.replaceCollectionTokens(collectionId, body as TokenGroup);
+          await fastify.tokenStore.replaceCollectionTokens(
+            collectionId,
+            normalizedBody,
+          );
           const after = await snapshotCollection(fastify.tokenStore, collectionId);
           await fastify.operationLog.record({
             type: 'collection-replace',
@@ -1554,10 +1667,15 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.collectionService.requireCollectionsExist([collectionId]);
+          const collection = await loadCollectionDefinition(collectionId);
+          const normalizedBody = normalizeTokenModesForCollectionWrite(
+            body as Token,
+            collection,
+          );
           const modeError = await validateTokenModesForCollectionWrite(
             collectionId,
             tokenPath,
-            body,
+            normalizedBody,
           );
           if (modeError) {
             return reply.status(400).send({ error: modeError });
@@ -1569,15 +1687,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           // Check alias target existence
-          if (isReference(body.$value)) {
-            const targetPath = parseReference(body.$value as string);
+          if (isReference(normalizedBody.$value)) {
+            const targetPath = parseReference(normalizedBody.$value as string);
             if (!fastify.tokenStore.tokenPathExists(targetPath)) {
               return reply.status(400).send({ error: `Alias target "${targetPath}" does not exist` });
             }
           }
 
           const before = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
-          await fastify.tokenStore.createToken(collectionId, tokenPath, body as Token);
+          await fastify.tokenStore.createToken(
+            collectionId,
+            tokenPath,
+            normalizedBody,
+          );
           const after = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
           await fastify.operationLog.record({
             type: 'token-create',
@@ -1614,25 +1736,30 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           await fastify.collectionService.requireCollectionsExist([collectionId]);
+          const collection = await loadCollectionDefinition(collectionId);
+          const normalizedBody = normalizeTokenModesForCollectionWrite(
+            body as Partial<Token>,
+            collection,
+          );
           const modeError = await validateTokenModesForCollectionWrite(
             collectionId,
             tokenPath,
-            body,
+            normalizedBody,
           );
           if (modeError) {
             return reply.status(400).send({ error: modeError });
           }
           // Validate $value against effective type (own or inherited from existing token)
-          if (body.$value !== undefined) {
+          if (normalizedBody.$value !== undefined) {
             const existingForType = await fastify.tokenStore.getToken(collectionId, tokenPath);
-            const effectiveType = body.$type ?? existingForType?.$type;
+            const effectiveType = normalizedBody.$type ?? existingForType?.$type;
             if (effectiveType) {
-              const valueErr = validateTokenValue(body.$value, effectiveType, tokenPath);
+              const valueErr = validateTokenValue(normalizedBody.$value, effectiveType, tokenPath);
               if (valueErr) return reply.status(400).send({ error: `Invalid $value for type "${effectiveType}": ${valueErr}` });
             }
             // Check alias target existence
-            if (isReference(body.$value)) {
-              const targetPath = parseReference(body.$value as string);
+            if (isReference(normalizedBody.$value)) {
+              const targetPath = parseReference(normalizedBody.$value as string);
               if (!fastify.tokenStore.tokenPathExists(targetPath)) {
                 return reply.status(400).send({ error: `Alias target "${targetPath}" does not exist` });
               }
@@ -1640,7 +1767,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           const before = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
-          await fastify.tokenStore.updateToken(collectionId, tokenPath, body as Partial<Token>);
+          await fastify.tokenStore.updateToken(
+            collectionId,
+            tokenPath,
+            normalizedBody,
+          );
           const after = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
           await fastify.operationLog.record({
             type: 'token-update',

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import { createTimeoutSignal } from '../shared/apiFetch';
 
 const DEFAULT_URL = 'http://localhost:9400';
 
@@ -30,7 +31,7 @@ export function useServerConnection() {
   }, []);
 
   // AbortController that fires when the server goes offline.
-  // In-flight fetch calls should combine this signal via AbortSignal.any() so they
+  // In-flight fetch calls should combine this signal via the shared fetch helpers so they
   // are cancelled immediately when the health check detects a disconnect rather than
   // waiting for their own timeouts.
   const disconnectControllerRef = useRef(new AbortController());
@@ -53,7 +54,7 @@ export function useServerConnection() {
 
   const checkConnection = useCallback(async (url: string): Promise<boolean> => {
     try {
-      const res = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(2000) });
+      const res = await fetch(`${url}/api/health`, { signal: createTimeoutSignal(2000) });
       return res.ok;
     } catch (err) {
       console.warn('[useServerConnection] health check failed:', err);
@@ -105,7 +106,7 @@ export function useServerConnection() {
 
     const check = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/health`, { signal: AbortSignal.timeout(2000) });
+        const res = await fetch(`${serverUrl}/api/health`, { signal: createTimeoutSignal(2000) });
         const ok = res.ok;
         if (!cancelled) {
           if (prevConnected === true && !ok) {

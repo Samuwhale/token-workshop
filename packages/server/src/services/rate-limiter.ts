@@ -29,8 +29,18 @@ export class RateLimiter {
   private readonly store = new Map<string, Entry>();
 
   constructor(options: Partial<RateLimitOptions> = {}) {
-    this.max = options.max ?? 200;
-    this.windowMs = options.windowMs ?? 60_000;
+    this.max =
+      typeof options.max === "number" &&
+      Number.isFinite(options.max) &&
+      options.max > 0
+        ? Math.floor(options.max)
+        : 200;
+    this.windowMs =
+      typeof options.windowMs === "number" &&
+      Number.isFinite(options.windowMs) &&
+      options.windowMs > 0
+        ? Math.floor(options.windowMs)
+        : 60_000;
   }
 
   /**
@@ -42,12 +52,13 @@ export class RateLimiter {
    * Only POST/PUT/PATCH/DELETE requests are counted; all other methods always pass.
    */
   check(method: string, ip: string): { retryAfterSec: number } | null {
-    if (!MUTATION_METHODS.has(method)) return null;
+    const normalizedMethod = method.toUpperCase();
+    if (!MUTATION_METHODS.has(normalizedMethod)) return null;
 
     const now = Date.now();
     this.prune(now);
 
-    const key = ip;
+    const key = ip || "unknown";
     const entry = this.store.get(key);
 
     if (!entry || now - entry.windowStart >= this.windowMs) {

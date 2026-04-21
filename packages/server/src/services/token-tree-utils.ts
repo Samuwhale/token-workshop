@@ -235,7 +235,7 @@ export function updateAliasRefs(group: TokenGroup, oldGroupPath: string, newGrou
   return walkAliasValues(group, (s) => {
     if (!s.includes(`{${oldGroupPath}`)) return null;
     let matched = false;
-    const result = s.replace(refRegex, (_match, _path, rest) => {
+    const result = s.replace(refRegex, (_, _groupPath, rest) => {
       matched = true;
       return rest ? `{${newGroupPath}${rest}}` : `{${newGroupPath}}`;
     });
@@ -346,7 +346,7 @@ export function previewGroupAliasChanges(
   const scanValue = (val: unknown, tokenPath: string) => {
     if (typeof val === 'string' && val.includes(`{${oldGroupPath}`)) {
       let matched = false;
-      const result = val.replace(refRegex, (_match, _path, rest) => {
+      const result = val.replace(refRegex, (_, _groupPath, rest) => {
         matched = true;
         return rest ? `{${newGroupPath}${rest}}` : `{${newGroupPath}}`;
       });

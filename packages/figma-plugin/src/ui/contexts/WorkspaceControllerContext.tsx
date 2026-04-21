@@ -83,15 +83,12 @@ export interface TokensWorkspaceController {
   setShowIssuesOnly: Dispatch<SetStateAction<boolean>>;
   lintViolations: LintViolation[];
   jumpToNextIssue: () => void;
-  cascadeDiff: Record<string, { before: unknown; after: unknown }> | null;
   refreshAll: () => void;
   pushUndo: (slot: UndoSlot) => void;
   setErrorToast: (message: string) => void;
   setSuccessToast: (message: string) => void;
   handleNavigateToCollection: (collectionId: string, tokenPath: string) => void;
   handleNavigateToGeneratedGroup: (generatorId: string) => void;
-  flowPanelInitialPath: string | null;
-  setFlowPanelInitialPath: (path: string | null) => void;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
   tokenListSelection: string[];
   recentlyTouched: RecentlyTouchedState;

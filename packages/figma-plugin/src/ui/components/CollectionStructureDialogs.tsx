@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useConnectionContext } from "../contexts/ConnectionContext";
-import { apiFetch, createFetchSignal } from "../shared/apiFetch";
+import { apiFetch, createFetchSignal, combineAbortSignals } from "../shared/apiFetch";
 import type {
   CollectionPreflightImpact,
   CollectionStructuralOperation,
@@ -54,7 +54,7 @@ export function useCollectionStructuralPreflight({
           ...(typeof deleteOriginal === "boolean" ? { deleteOriginal } : {}),
         }),
         signal: createFetchSignal(
-          AbortSignal.any([controller.signal, getDisconnectSignal()]),
+          combineAbortSignals([controller.signal, getDisconnectSignal()]),
         ),
       },
     )

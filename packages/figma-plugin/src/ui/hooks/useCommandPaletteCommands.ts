@@ -447,20 +447,6 @@ export function useCommandPaletteCommands(): {
             },
           ]
         : []),
-      ...(highlightedToken
-        ? [
-            {
-              id: "show-dependencies",
-              label: `Show dependencies: ${highlightedToken}`,
-              description: "View what aliases and tokens reference this token",
-              category: "Audit" as const,
-              handler: () => {
-                tokens.setFlowPanelInitialPath(highlightedToken);
-                switchContextualSurface({ surface: "health" });
-              },
-            },
-          ]
-        : []),
       ...(collections.length > 0 && highlightedToken
         ? [
             {
@@ -496,7 +482,6 @@ export function useCommandPaletteCommands(): {
     openCompareInTokens,
     pathToCollectionId,
     setHighlightedToken,
-    switchContextualSurface,
     tokens,
   ]);
 

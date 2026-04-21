@@ -588,10 +588,6 @@ export function PanelRouter({
         openGeneratedGroupEditor(target);
       }),
     onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
-    onShowReferences: (path: string) => {
-      controller.setFlowPanelInitialPath(path);
-      switchContextualSurface({ surface: "health" });
-    },
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => {
       controller.displayedLeafNodesRef.current = nodes;
     },
@@ -684,10 +680,6 @@ export function PanelRouter({
         availableFonts: controller.availableFonts,
         fontWeightsByFamily: controller.fontWeightsByFamily,
         derivedTokenPaths,
-        onShowReferences: (path: string) => {
-          controller.setFlowPanelInitialPath(path);
-          switchContextualSurface({ surface: "health" });
-        },
         onNavigateToToken: (path: string) =>
           openLinkedTokenSurface({
             path,
@@ -1107,7 +1099,6 @@ export function PanelRouter({
           generatorsByTargetGroup,
           derivedTokenPaths,
           tokenUsageCounts,
-          cascadeDiff: controller.cascadeDiff ?? undefined,
           perCollectionFlat,
           collectionMap,
           modeMap,

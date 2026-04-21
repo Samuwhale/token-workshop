@@ -66,7 +66,10 @@ export function getInitialCreateValue(
   type: string,
   raw?: string,
 ): TokenEditorValue {
-  if (raw && !isAlias(raw)) {
+  if (raw && isAlias(raw)) {
+    return raw;
+  }
+  if (raw) {
     return parseInitialValueForType(type, raw);
   }
   if (type === "color") return "#000000";

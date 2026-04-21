@@ -297,7 +297,7 @@ export class TokenResolver {
 
       // All deps are resolved — resolve this token
       let resolvedValue = this.resolveValue(token.$value, path);
-      const $type = this.resolveType(token, path);
+      const $type = this.resolveType(token);
 
       // Dimension and duration tokens must always carry an explicit {value, unit}
       // object so that downstream formula references can reliably inherit the unit
@@ -430,7 +430,7 @@ export class TokenResolver {
 
     // Formula evaluation: substitute all {ref} tokens with their numeric values
     if (typeof value === 'string' && isFormula(value)) {
-      const substituted = value.replace(makeReferenceGlobalRegex(), (_match, refPath: string) => {
+      const substituted = value.replace(makeReferenceGlobalRegex(), (_, refPath: string) => {
         const resolved = this.resolved.get(refPath);
         if (!resolved) {
           throw new Error(
@@ -518,7 +518,7 @@ export class TokenResolver {
    * Determine the effective $type for a token. If the token itself
    * declares a type, use it. Otherwise follow the reference chain.
    */
-  private resolveType(token: Token, _path: string): TokenType {
+  private resolveType(token: Token): TokenType {
     if (token.$type) return token.$type;
 
     // If the value is a direct reference, inherit the type from the target

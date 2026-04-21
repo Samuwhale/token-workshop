@@ -1,6 +1,8 @@
 import { useState, useRef, useMemo, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias } from '../../shared/resolveAlias';
+import type { TokenEditorModeValues } from '../shared/tokenEditorTypes';
+import { stableStringify } from '../shared/utils';
 
 export const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
   color: '#000000',
@@ -35,11 +37,8 @@ interface UseTokenTypeParsingParams {
   setTokenType: (v: string) => void;
   value: any;
   setValue: (v: any) => void;
-  aliasMode: boolean;
-  reference: string;
-  setReference: (v: string) => void;
-  setAliasMode: (v: boolean) => void;
-  setShowAutocomplete: (v: boolean) => void;
+  modeValues: TokenEditorModeValues;
+  setModeValues: (v: TokenEditorModeValues) => void;
   setScopes: (v: string[]) => void;
   setExtendsPath: (v: string) => void;
   extensionsJsonError: string | null;
@@ -55,11 +54,8 @@ export function useTokenTypeParsing({
   setTokenType,
   value,
   setValue,
-  aliasMode,
-  reference,
-  setReference,
-  setAliasMode,
-  setShowAutocomplete,
+  modeValues,
+  setModeValues,
   setScopes,
   setExtendsPath,
   extensionsJsonError,
@@ -74,12 +70,26 @@ export function useTokenTypeParsing({
   const fontFamilyRef = useRef<HTMLInputElement>(null);
   const fontSizeRef = useRef<HTMLInputElement>(null);
 
-  const aliasHasCycle = useMemo((): string[] | null => {
-    if (!aliasMode || !isAlias(reference)) return null;
+  const valueIsAlias = typeof value === 'string' && isAlias(value);
+
+  const aliasCycleError = useMemo((): string[] | null => {
     const cp = isCreateMode ? editPath.trim() : currentTokenPath;
     if (!cp) return null;
-    return detectAliasCycle(reference, cp, allTokensFlat);
-  }, [aliasMode, reference, isCreateMode, editPath, currentTokenPath, allTokensFlat, detectAliasCycle]);
+    if (valueIsAlias) {
+      const cycle = detectAliasCycle(value as string, cp, allTokensFlat);
+      if (cycle) return cycle;
+    }
+    for (const collectionModes of Object.values(modeValues)) {
+      if (!collectionModes || typeof collectionModes !== 'object') continue;
+      for (const modeVal of Object.values(collectionModes)) {
+        if (typeof modeVal === 'string' && isAlias(modeVal)) {
+          const cycle = detectAliasCycle(modeVal, cp, allTokensFlat);
+          if (cycle) return cycle;
+        }
+      }
+    }
+    return null;
+  }, [valueIsAlias, value, modeValues, isCreateMode, editPath, currentTokenPath, allTokensFlat, detectAliasCycle]);
 
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
@@ -89,10 +99,10 @@ export function useTokenTypeParsing({
   }, [isCreateMode, editPath, allTokensFlat]);
 
   const canSave = useMemo(() => {
-    if (aliasHasCycle) return false;
+    if (aliasCycleError) return false;
     if (extensionsJsonError) return false;
     if (duplicatePath) return false;
-    if (tokenType === 'typography' && !aliasMode) {
+    if (tokenType === 'typography' && !valueIsAlias) {
       const v = typeof value === 'object' && value !== null ? value : {};
       const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
       if (!family || String(family).trim() === '') return false;
@@ -100,13 +110,13 @@ export function useTokenTypeParsing({
       if (fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0) return false;
     }
     return true;
-  }, [aliasHasCycle, extensionsJsonError, duplicatePath, tokenType, value, aliasMode]);
+  }, [aliasCycleError, extensionsJsonError, duplicatePath, tokenType, value, valueIsAlias]);
 
   const saveBlockReason = useMemo(() => {
-    if (aliasHasCycle) return 'Circular reference';
+    if (aliasCycleError) return 'Circular reference';
     if (duplicatePath) return 'A token with this path already exists';
     if (extensionsJsonError) return 'Fix extensions JSON';
-    if (tokenType === 'typography' && !aliasMode) {
+    if (tokenType === 'typography' && !valueIsAlias) {
       const v = typeof value === 'object' && value !== null ? value : {};
       const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
       const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
@@ -118,23 +128,23 @@ export function useTokenTypeParsing({
     }
     if (isCreateMode && !editPath.trim()) return 'Enter a token path';
     return null;
-  }, [aliasHasCycle, duplicatePath, extensionsJsonError, tokenType, value, aliasMode, isCreateMode, editPath]);
+  }, [aliasCycleError, duplicatePath, extensionsJsonError, tokenType, value, valueIsAlias, isCreateMode, editPath]);
 
   const applyTypeChange = (newType: string) => {
     setTokenType(newType);
     setValue(DEFAULT_VALUE_FOR_TYPE[newType] ?? '');
+    setModeValues({});
     setScopes([]);
-    setReference('');
-    setAliasMode(false);
-    setShowAutocomplete(false);
     setPendingTypeChange(null);
     setShowPendingDependents(false);
     setExtendsPath('');
   };
 
   const handleTypeChange = (newType: string) => {
-    if (aliasMode) { applyTypeChange(newType); return; }
-    const isDefaultValue = JSON.stringify(value) === JSON.stringify(DEFAULT_VALUE_FOR_TYPE[tokenType] ?? '');
+    if (valueIsAlias) { applyTypeChange(newType); return; }
+    const isDefaultValue =
+      stableStringify(value) ===
+      stableStringify(DEFAULT_VALUE_FOR_TYPE[tokenType] ?? '');
     if (!isDefaultValue) {
       setPendingTypeChange(newType);
     } else {
@@ -143,7 +153,7 @@ export function useTokenTypeParsing({
   };
 
   const focusBlockedField = useCallback(() => {
-    if (tokenType !== 'typography' || aliasMode) return;
+    if (tokenType !== 'typography' || valueIsAlias) return;
     const v = typeof value === 'object' && value !== null ? value : {};
     const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
     const missingFamily = !family || String(family).trim() === '';
@@ -156,7 +166,7 @@ export function useTokenTypeParsing({
     if (missingSize) {
       fontSizeRef.current?.focus();
     }
-  }, [tokenType, aliasMode, value]);
+  }, [tokenType, valueIsAlias, value]);
 
   return {
     pendingTypeChange,
@@ -165,7 +175,7 @@ export function useTokenTypeParsing({
     setShowPendingDependents,
     fontFamilyRef,
     fontSizeRef,
-    aliasHasCycle,
+    aliasCycleError,
     duplicatePath,
     canSave,
     saveBlockReason,

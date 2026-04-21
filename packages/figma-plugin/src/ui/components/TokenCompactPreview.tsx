@@ -37,6 +37,7 @@ export function TokenCompactPreview({
   const name = tokenName ?? tokenPath.split(".").pop() ?? tokenPath;
   const type = entry?.$type ?? "unknown";
   const rawValue = entry?.$value;
+  const aliasReference = entry?.reference;
 
   const displayPath = useMemo(
     () => formatDisplayPath(tokenPath, name),
@@ -137,18 +138,18 @@ export function TokenCompactPreview({
           />
         )}
 
-        {typeof rawValue === "string" && isAlias(rawValue) && (
+        {typeof aliasReference === "string" && isAlias(aliasReference) && (
           <div className="flex items-center gap-1 mb-1">
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 opacity-40">
               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
             </svg>
             <button
-              onClick={() => onNavigateToAlias?.(rawValue.slice(1, -1))}
+              onClick={() => onNavigateToAlias?.(aliasReference.slice(1, -1))}
               className="text-secondary font-mono text-[var(--color-figma-accent)] hover:underline truncate"
-              title={rawValue}
+              title={aliasReference}
             >
-              {rawValue}
+              {aliasReference}
             </button>
           </div>
         )}
@@ -161,9 +162,9 @@ export function TokenCompactPreview({
               : String(rawValue)}
         </div>
 
-        {(entry as Record<string, unknown>).$description && (
+        {entry.$description && (
           <div className="mt-1.5 text-secondary text-[var(--color-figma-text-secondary)] whitespace-pre-wrap break-words line-clamp-2">
-            {String((entry as Record<string, unknown>).$description)}
+            {entry.$description}
           </div>
         )}
       </div>

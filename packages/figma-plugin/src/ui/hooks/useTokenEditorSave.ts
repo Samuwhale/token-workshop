@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import { ApiError } from '../shared/apiFetch';
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, stableStringify } from '../shared/utils';
 import {
   applyTokenMutationSuccess,
   createToken,
@@ -14,12 +14,15 @@ import { clearEditorDraft } from './useTokenEditorUtils';
 import type { UndoSlot } from './useUndo';
 import { matchesShortcut } from '../shared/shortcutRegistry';
 import type { TokenCollection } from '@tokenmanager/core';
+import { sanitizeEditorCollectionModeValues } from '../shared/collectionModeUtils';
 import type {
   TokenEditorLifecycle,
   TokenEditorModeValues,
+  TokenEditorTokenManagerExtension,
   TokenEditorTokenResponse,
   TokenEditorValue,
 } from '../shared/tokenEditorTypes';
+import { omitTokenEditorReservedExtensions } from '../shared/tokenEditorTypes';
 
 interface UseTokenEditorSaveParams {
   serverUrl: string;
@@ -29,7 +32,6 @@ interface UseTokenEditorSaveParams {
   editPath: string;
   tokenType: string;
   value: TokenEditorValue;
-  reference: string;
   description: string;
   scopes: string[];
   colorModifiers: ColorModifierOp[];
@@ -38,6 +40,7 @@ interface UseTokenEditorSaveParams {
   lifecycle: TokenEditorLifecycle;
   extendsPath: string;
   initialServerSnapshotRef: React.MutableRefObject<string | null>;
+  passthroughTokenManagerRef: React.MutableRefObject<Record<string, unknown> | null>;
   onBack: () => void;
   requestClose: () => void;
   onSaved?: (savedPath: string) => void;
@@ -48,10 +51,6 @@ interface UseTokenEditorSaveParams {
     createAnother: boolean,
   ) => Promise<boolean> | boolean;
   collections: TokenCollection[];
-  // For keyboard handler
-  handleToggleAlias: () => void;
-  showAutocomplete: boolean;
-  setShowAutocomplete: (v: boolean) => void;
 }
 
 export function useTokenEditorSave({
@@ -62,7 +61,6 @@ export function useTokenEditorSave({
   editPath,
   tokenType,
   value,
-  reference,
   description,
   scopes,
   colorModifiers,
@@ -72,35 +70,15 @@ export function useTokenEditorSave({
   extendsPath,
   collections,
   initialServerSnapshotRef,
+  passthroughTokenManagerRef,
   onBack,
   requestClose,
   onSaved,
   onSaveAndCreateAnother,
   pushUndo,
   beforeSave,
-  handleToggleAlias,
-  showAutocomplete,
-  setShowAutocomplete,
 }: UseTokenEditorSaveParams) {
-  const firstModeName = collections.find((c) => c.id === collectionId)?.modes[0]?.name ?? null;
-  const sanitizeModeValues = (
-    modes: TokenEditorModeValues,
-  ): TokenEditorModeValues => {
-    const currentCollectionModes = modes[collectionId];
-    if (!currentCollectionModes || typeof currentCollectionModes !== 'object') {
-      return {};
-    }
-
-    const cleanOptions = Object.fromEntries(
-      Object.entries(currentCollectionModes).filter(
-        ([, value]) => value !== '' && value !== undefined && value !== null,
-      ),
-    );
-
-    return Object.keys(cleanOptions).length > 0
-      ? { [collectionId]: cleanOptions }
-      : {};
-  };
+  const collection = collections.find((c) => c.id === collectionId) ?? null;
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +107,6 @@ export function useTokenEditorSave({
       setError('Token path cannot be empty');
       return false;
     }
-    const collection = collections.find((c) => c.id === collectionId);
     if (collection && collection.modes.length >= 2) {
       const isEmpty = (v: unknown) => v === '' || v === undefined || v === null;
       if (isEmpty(value)) {
@@ -154,7 +131,7 @@ export function useTokenEditorSave({
       if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
         try {
           const checkData = await fetchToken<TokenEditorTokenResponse>(serverUrl, collectionId, tokenPath);
-          const currentSnapshot = JSON.stringify(checkData.token ?? null);
+          const currentSnapshot = stableStringify(checkData.token ?? null);
           if (currentSnapshot !== initialServerSnapshotRef.current) {
             setShowConflictConfirm(true);
             setSaving(false);
@@ -167,25 +144,37 @@ export function useTokenEditorSave({
 
       const extensions: Record<string, any> = {};
       if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
-      const tmExt: Record<string, any> = {};
-      if (colorModifiers.length > 0) tmExt.colorModifier = colorModifiers;
-      const cleanModes = sanitizeModeValues(modeValues);
-      if (firstModeName && cleanModes[collectionId]?.[firstModeName] !== undefined) {
-        delete cleanModes[collectionId][firstModeName];
-        if (Object.keys(cleanModes[collectionId]).length === 0) {
-          delete cleanModes[collectionId];
-        }
+      const tmExt: TokenEditorTokenManagerExtension = passthroughTokenManagerRef.current
+        ? { ...passthroughTokenManagerRef.current }
+        : {};
+      if (colorModifiers.length > 0) {
+        tmExt.colorModifier = colorModifiers;
+      } else {
+        delete tmExt.colorModifier;
       }
-      if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
-      if (lifecycle !== 'published') tmExt.lifecycle = lifecycle;
-      if (extendsPath) tmExt.extends = extendsPath;
+      const cleanModes = sanitizeEditorCollectionModeValues(modeValues, collection);
+      if (Object.keys(cleanModes).length > 0) {
+        tmExt.modes = cleanModes;
+      } else {
+        delete tmExt.modes;
+      }
+      if (lifecycle !== 'published') {
+        tmExt.lifecycle = lifecycle;
+      } else {
+        delete tmExt.lifecycle;
+      }
+      if (extendsPath) {
+        tmExt.extends = extendsPath;
+      } else {
+        delete tmExt.extends;
+      }
       if (Object.keys(tmExt).length > 0) extensions.tokenmanager = tmExt;
       const trimmedExtJson = extensionsJsonText.trim();
       if (trimmedExtJson && trimmedExtJson !== '{}') {
         try {
           const parsed = JSON.parse(trimmedExtJson);
           if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-            Object.assign(extensions, parsed);
+            Object.assign(extensions, omitTokenEditorReservedExtensions(parsed));
           }
         } catch (err) {
           console.debug('[TokenEditor] invalid extensions JSON:', err);
@@ -197,7 +186,7 @@ export function useTokenEditorSave({
       }
       const body = createTokenValueBody({
         type: tokenType,
-        value: reference || value,
+        value,
         description: description || undefined,
         extensions,
       });
@@ -262,12 +251,7 @@ export function useTokenEditorSave({
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (showAutocomplete) { setShowAutocomplete(false); return; }
         requestClose();
-      }
-      if (matchesShortcut(e, 'EDITOR_TOGGLE_ALIAS')) {
-        e.preventDefault();
-        handleToggleAlias();
       }
       if (matchesShortcut(e, 'EDITOR_SAVE_AND_NEW')) {
         e.preventDefault();
@@ -282,14 +266,13 @@ export function useTokenEditorSave({
         handleSaveRef.current();
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === 's') {
-        // ⌘S: undocumented alternative save shortcut (not in registry)
         e.preventDefault();
         handleSaveRef.current();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [requestClose, showAutocomplete, handleToggleAlias, isCreateMode, onSaveAndCreateAnother, setShowAutocomplete]);
+  }, [requestClose, isCreateMode, onSaveAndCreateAnother]);
 
   return {
     saving,

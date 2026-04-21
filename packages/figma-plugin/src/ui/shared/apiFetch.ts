@@ -39,21 +39,144 @@ export function isNetworkError(err: unknown): boolean {
   return false;
 }
 
+function getAbortReason(signal: AbortSignal): unknown {
+  return 'reason' in signal
+    ? (signal as AbortSignal & { reason?: unknown }).reason
+    : undefined;
+}
+
+function createAbortException(name: 'AbortError' | 'TimeoutError', message: string): Error {
+  if (typeof DOMException === 'function') {
+    return new DOMException(message, name);
+  }
+  const error = new Error(message);
+  error.name = name;
+  return error;
+}
+
+export function createTimeoutSignal(timeoutMs = 5000): AbortSignal {
+  if (typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(timeoutMs);
+  }
+
+  const controller = new AbortController();
+  const timer = globalThis.setTimeout(() => {
+    controller.abort(
+      createAbortException(
+        'TimeoutError',
+        `Timed out after ${timeoutMs} ms.`,
+      ),
+    );
+  }, timeoutMs);
+
+  controller.signal.addEventListener(
+    'abort',
+    () => {
+      globalThis.clearTimeout(timer);
+    },
+    { once: true },
+  );
+
+  return controller.signal;
+}
+
+export function combineAbortSignals(
+  signals: ReadonlyArray<AbortSignal | null | undefined>,
+): AbortSignal | undefined {
+  const activeSignals = signals.filter(
+    (signal): signal is AbortSignal => signal != null,
+  );
+  if (activeSignals.length === 0) {
+    return undefined;
+  }
+
+  const alreadyAborted = activeSignals.find((signal) => signal.aborted);
+  if (alreadyAborted) {
+    return alreadyAborted;
+  }
+
+  if (typeof AbortSignal.any === 'function') {
+    return AbortSignal.any(activeSignals);
+  }
+
+  const controller = new AbortController();
+  const removers: Array<() => void> = [];
+
+  const cleanup = () => {
+    for (const remove of removers.splice(0, removers.length)) {
+      remove();
+    }
+  };
+
+  const abortFrom = (signal: AbortSignal) => {
+    cleanup();
+    controller.abort(
+      getAbortReason(signal) ??
+        createAbortException('AbortError', 'This operation was aborted.'),
+    );
+  };
+
+  for (const signal of activeSignals) {
+    const onAbort = () => abortFrom(signal);
+    signal.addEventListener('abort', onAbort, { once: true });
+    removers.push(() => signal.removeEventListener('abort', onAbort));
+  }
+
+  controller.signal.addEventListener('abort', cleanup, { once: true });
+  return controller.signal;
+}
+
 /**
  * Create an AbortSignal that fires after `timeoutMs` ms (default 5 s) OR when `disconnectSignal`
  * fires — whichever comes first.  Pass this to every background data-fetch so that hung
  * requests don't accumulate indefinitely.
  *
  * For hooks that need to combine more than one extra signal (e.g. disconnect + unmount),
- * pre-combine them with `AbortSignal.any([s1, s2])` before passing here.
+ * pre-combine them with `combineAbortSignals([s1, s2])` before passing here.
  *
  * @example
  *   const signal = createFetchSignal(controller.signal);
  *   await apiFetch(url, { signal });
  */
 export function createFetchSignal(disconnectSignal?: AbortSignal, timeoutMs = 5000): AbortSignal {
-  const timeout = AbortSignal.timeout(timeoutMs);
-  return disconnectSignal ? AbortSignal.any([timeout, disconnectSignal]) : timeout;
+  if (!disconnectSignal) {
+    return createTimeoutSignal(timeoutMs);
+  }
+
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => {
+    controller.abort(
+      createAbortException(
+        'TimeoutError',
+        `Timed out after ${timeoutMs} ms.`,
+      ),
+    );
+  }, timeoutMs);
+
+  const cleanup = () => {
+    globalThis.clearTimeout(timeout);
+    disconnectSignal.removeEventListener('abort', abortFromDisconnect);
+  };
+
+  const abortFromDisconnect = () => {
+    controller.abort(
+      getAbortReason(disconnectSignal) ??
+        createAbortException('AbortError', 'This operation was aborted.'),
+    );
+  };
+
+  controller.signal.addEventListener('abort', cleanup, { once: true });
+
+  if (disconnectSignal.aborted) {
+    abortFromDisconnect();
+    return controller.signal;
+  }
+
+  disconnectSignal.addEventListener('abort', abortFromDisconnect, {
+    once: true,
+  });
+
+  return controller.signal;
 }
 
 /**

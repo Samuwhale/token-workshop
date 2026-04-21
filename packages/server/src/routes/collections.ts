@@ -14,7 +14,6 @@ function slugifyName(name: string): string {
 
 export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   fastify,
-  _opts,
 ) => {
   fastify.get("/collections", async (_request, reply) => {
     try {

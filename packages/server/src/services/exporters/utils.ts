@@ -233,7 +233,7 @@ export function injectFormulaCalc(obj: Record<string, any>): Record<string, any>
       if ('$value' in val) {
         const formula = val.$extensions?.tokenmanager?.formula;
         if (typeof formula === 'string') {
-          const cssFormula = formula.replace(makeReferenceGlobalRegex(), (_m: string, refPath: string) => {
+          const cssFormula = formula.replace(makeReferenceGlobalRegex(), (_: string, refPath: string) => {
             return `var(--${refPath.replace(/\./g, '-')})`;
           });
           result[key] = { ...val, $value: `calc(${cssFormula})` };

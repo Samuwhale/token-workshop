@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { UndoSlot } from './useUndo';
 import { getErrorMessage } from '../shared/utils';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import { apiFetch, ApiError, createTimeoutSignal } from '../shared/apiFetch';
 import type {
   FindReplaceScope,
   FindReplaceTarget,
@@ -334,7 +334,7 @@ export function useFindReplace({
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
-                  signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                  signal: createTimeoutSignal(BULK_RENAME_TIMEOUT_MS),
                 });
                 onRefresh();
               },
@@ -343,7 +343,7 @@ export function useFindReplace({
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
-                  signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                  signal: createTimeoutSignal(BULK_RENAME_TIMEOUT_MS),
                 });
                 onRefresh();
               },
@@ -402,7 +402,7 @@ export function useFindReplace({
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
-                      signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                      signal: createTimeoutSignal(BULK_RENAME_TIMEOUT_MS),
                     });
                   }
                   onRefresh();
@@ -417,7 +417,7 @@ export function useFindReplace({
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
-                      signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                      signal: createTimeoutSignal(BULK_RENAME_TIMEOUT_MS),
                     });
                   }
                   onRefresh();
@@ -500,7 +500,7 @@ export function useFindReplace({
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ patches }),
-                  signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                  signal: createTimeoutSignal(BULK_RENAME_TIMEOUT_MS),
                 });
               }
               onRefresh();
@@ -515,7 +515,7 @@ export function useFindReplace({
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ patches }),
-                  signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
+                  signal: createTimeoutSignal(BULK_RENAME_TIMEOUT_MS),
                 });
               }
               onRefresh();

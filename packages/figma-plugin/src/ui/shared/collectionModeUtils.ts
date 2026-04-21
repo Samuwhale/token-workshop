@@ -3,6 +3,7 @@ import type {
   TokenCollection,
   TokenModeValues,
 } from "@tokenmanager/core";
+import type { TokenEditorModeValues } from "./tokenEditorTypes";
 import {
   readTokenCollectionModeValues,
 } from "@tokenmanager/core";
@@ -16,6 +17,68 @@ function readTokenModes(
 ): TokenModeMap | null {
   const modes = readTokenCollectionModeValues(entry);
   return Object.keys(modes).length > 0 ? modes : null;
+}
+
+function getSecondaryModeNames(collection: TokenCollection): Set<string> {
+  return new Set(collection.modes.slice(1).map((mode) => mode.name));
+}
+
+export function readEditorCollectionModeValues(
+  raw: unknown,
+  collection: TokenCollection | null | undefined,
+): TokenEditorModeValues {
+  if (!collection || !raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {};
+  }
+
+  const optionMap = (raw as Record<string, unknown>)[collection.id];
+  if (!optionMap || typeof optionMap !== "object" || Array.isArray(optionMap)) {
+    return {};
+  }
+
+  const secondaryModeNames = getSecondaryModeNames(collection);
+  if (secondaryModeNames.size === 0) {
+    return {};
+  }
+
+  const filteredEntries = Object.entries(optionMap as Record<string, unknown>).filter(
+    ([modeName]) => secondaryModeNames.has(modeName),
+  );
+
+  return filteredEntries.length > 0
+    ? { [collection.id]: Object.fromEntries(filteredEntries) }
+    : {};
+}
+
+export function sanitizeEditorCollectionModeValues(
+  modeValues: TokenEditorModeValues,
+  collection: TokenCollection | null | undefined,
+): TokenEditorModeValues {
+  if (!collection) {
+    return {};
+  }
+
+  const secondaryModeNames = getSecondaryModeNames(collection);
+  if (secondaryModeNames.size === 0) {
+    return {};
+  }
+
+  const collectionModes = modeValues[collection.id];
+  if (!collectionModes || typeof collectionModes !== "object") {
+    return {};
+  }
+
+  const filteredEntries = Object.entries(collectionModes).filter(
+    ([modeName, value]) =>
+      secondaryModeNames.has(modeName) &&
+      value !== "" &&
+      value !== undefined &&
+      value !== null,
+  );
+
+  return filteredEntries.length > 0
+    ? { [collection.id]: Object.fromEntries(filteredEntries) }
+    : {};
 }
 
 export function applyModeSelectionsToTokens(
@@ -66,4 +129,3 @@ export function applyModeSelectionsToTokens(
 
   return resolveAllAliases(collectionResolvedEntries);
 }
-

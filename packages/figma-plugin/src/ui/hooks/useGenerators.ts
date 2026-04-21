@@ -3,7 +3,7 @@ import {
   createGeneratorOwnershipKey,
   getGeneratorManagedOutputs,
 } from '@tokenmanager/core';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
 // ---------------------------------------------------------------------------
@@ -264,7 +264,7 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
     setLoading(true);
     try {
       const data = await apiFetch<TokenGenerator[]>(`${serverUrl}/api/generators`, {
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
+        signal: createFetchSignal(controller.signal, 5000),
       });
       if (controller.signal.aborted) return;
       setGenerators(data);

@@ -283,11 +283,17 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           </span>
         )}
       </div>
-      {multiModeData.results.map((r) => (
+      {multiModeData.results.map((r, idx) => (
         <ModeColumnHeader
           key={r.optionName}
           modeName={r.optionName}
           modeCount={multiModeData.results.length}
+          modeIndex={idx}
+          allModeNames={multiModeData.results.map((x) => x.optionName)}
+          collectionId={multiModeData.collection.id}
+          serverUrl={serverUrl}
+          onMutated={onModeMutated}
+          connected={connected}
         />
       ))}
       {addingMode ? (
@@ -548,32 +554,34 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
   // Empty collection
   if (tokens.length === 0) {
-    const emptyCollectionActions: FeedbackPlaceholderAction[] = [
-      onCreateGeneratedGroup
-        ? {
-            label: "Generate group…",
-            onClick: onCreateGeneratedGroup,
-            disabled: !connected,
-            tone: "secondary",
-          }
-        : null,
-      onOpenImportPanel
-        ? {
-            label: "Import tokens",
-            onClick: onOpenImportPanel,
-            disabled: !connected,
-            tone: "secondary",
-          }
-        : null,
-      onCreateNew
-        ? {
-            label: "New token",
-            onClick: () => onCreateNew(),
-            disabled: !connected,
-            tone: "primary",
-          }
-        : null,
-    ].filter((action): action is FeedbackPlaceholderAction => action !== null);
+    const emptyCollectionActions: FeedbackPlaceholderAction[] = [];
+
+    if (onCreateGeneratedGroup) {
+      emptyCollectionActions.push({
+        label: "Generate group…",
+        onClick: onCreateGeneratedGroup,
+        disabled: !connected,
+        tone: "secondary",
+      });
+    }
+
+    if (onOpenImportPanel) {
+      emptyCollectionActions.push({
+        label: "Import tokens",
+        onClick: onOpenImportPanel,
+        disabled: !connected,
+        tone: "secondary",
+      });
+    }
+
+    if (onCreateNew) {
+      emptyCollectionActions.push({
+        label: "New token",
+        onClick: () => onCreateNew(),
+        disabled: !connected,
+        tone: "primary",
+      });
+    }
 
     return (
       <>

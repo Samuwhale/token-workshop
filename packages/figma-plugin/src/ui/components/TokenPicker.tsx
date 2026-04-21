@@ -1,13 +1,11 @@
 /**
  * TokenPicker — Universal token selection component.
  *
- * Replaces the 4 separate reference patterns (AliasAutocomplete, TokenRefInput,
- * AliasPicker, ExtendsTokenPicker) with a single consistent component.
+ * Consolidates the editor's token-linking UI into a single consistent component.
  *
  * Modes:
- * - "dropdown" — Inline searchable dropdown (replaces AliasAutocomplete)
+ * - "dropdown" — Inline searchable dropdown
  * - "field"    — Shows a linked badge or trigger button; opens search on click
- *                (replaces TokenRefInput + ExtendsTokenPicker)
  */
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';

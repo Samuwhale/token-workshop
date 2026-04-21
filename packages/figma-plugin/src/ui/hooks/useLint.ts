@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 
 export interface LintViolation {
   rule: string;
@@ -33,7 +33,7 @@ export function useLint(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ collectionId: collectionId }),
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
+          signal: createFetchSignal(controller.signal, 5000),
         });
         setViolations(data.violations ?? []);
       } catch (err) {

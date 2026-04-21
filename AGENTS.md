@@ -2,7 +2,7 @@
 
 ## Target user
 
-The target user of this app are mainly Figma UI designers, Figma UX designers, Figma Design System Creators/maintainers. These designers might work in conjunction with developers.
+The primary users are Figma UI designers, UX designers, and design system creators/maintainers. They use the plugin to create, edit, and manage design tokens, as well as to use those tokens in Figma to design and prototype interfaces. Developers are a secondary but important audience — designers and developers use this tool together for design-token handoff, collaboration, and shared governance. Design the UI primarily for designers (Figma-native mental models, minimal jargon), but don't cut or hide developer-facing features like audit reports, git history, or export formats. Instead, give developer features a clear home that doesn't clutter the designer's primary workflow.
 
 ## Development Status
 
@@ -27,7 +27,6 @@ Modes follow Figma's mental model: every token value IS a mode value. There is n
 
 - When a collection has 2+ modes, the UI shows all modes equally (stacked list in editor, columns in token list). The first mode's value maps to `$value` (DTCG requirement); other modes store in `$extensions.tokenmanager.modes`. This is a storage detail — never expose it in UI.
 - Do not reintroduce a "base value" concept, a global alias toggle for multi-mode tokens, or a mode-selection dropdown that picks which single mode to view. All modes are visible simultaneously.
-- Mode management (add, rename, reorder, delete) lives in the token list column headers — not in a settings panel.
 - Each mode field independently accepts literal values or alias references (`{token.path}`).
 
 ## Tests
@@ -38,7 +37,6 @@ Modes follow Figma's mental model: every token value IS a mode value. There is n
 ## UI Guidance
 
 - Optimize UX and information architecture for how Figma designers already think about their work
-- Keep generation inside the normal token-authoring model: a generated group is just a token group inside one collection, not a separate automation workspace or scheduler. Favor quiet, outcome-first flows with immediate preview, inline generated state in the library, and explicit interruption for manual drift (`Edit generator`, `Make manual exception`, `Detach from generator`).
 - Prefer mental models, naming, grouping, and flows that feel native to Figma and design-system workflows
 - Make primary concepts, actions, and consequences obvious without requiring users to translate from developer-centric terminology
 - Keep interaction patterns predictable and easy to learn so designers can build confidence quickly

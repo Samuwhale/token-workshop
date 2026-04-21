@@ -146,7 +146,6 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         // Perform the restore
         const result = await fastify.manualSnapshots.restore(
           request.params.id,
-          fastify.tokenStore,
           fastify.collectionService,
           fastify.resolverStore,
           fastify.generatorService,
@@ -187,8 +186,17 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           rollbackSteps: result.rollbackSteps,
         });
 
-        const { rollbackSteps: _rollbackSteps, ...restoreResult } = result;
-        return { ok: true, ...restoreResult, operationId: opEntry.id };
+        return {
+          ok: true,
+          restoredCollections: result.restoredCollections,
+          deletedCollections: result.deletedCollections,
+          restoredCollectionState: result.restoredCollectionState,
+          restoredResolvers: result.restoredResolvers,
+          deletedResolvers: result.deletedResolvers,
+          restoredGenerators: result.restoredGenerators,
+          deletedGenerators: result.deletedGenerators,
+          operationId: opEntry.id,
+        };
       });
     } catch (err) {
       return handleRouteError(reply, err);

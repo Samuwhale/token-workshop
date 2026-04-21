@@ -178,8 +178,11 @@ export interface SelectionMessage {
 export interface TokenMapEntry {
   $value: TokenValue | TokenReference;
   $type: string;
+  /** Original alias reference string when `$value` has been resolved for UI use. */
+  reference?: TokenReference;
   /** DTCG leaf key (segment name) — may contain dots, e.g. "1.5". */
   $name?: string;
+  $description?: string;
   $extensions?: TokenExtensions;
   /** Figma variable scopes from $extensions['com.figma.scopes']. Empty/undefined = unrestricted. */
   $scopes?: string[];

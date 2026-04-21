@@ -221,7 +221,6 @@ export const STORAGE_KEYS = {
   LAST_CREATE_GROUP:        'tm_last_create_group',
   LAST_CREATE_TYPE:         'tm_last_token_type',
   EDITOR_DETAILS:           'tm_editor_details',
-  EDITOR_INFO_TAB:          'tm_editor_info_tab',
   READINESS_CHANGE_KEY:     'tm_readiness_change_key',
   CONSISTENCY_REJECTED:     'tm_consistency_rejected',
   CANVAS_SCAN_TAB:          'tm_canvas_scan_tab',

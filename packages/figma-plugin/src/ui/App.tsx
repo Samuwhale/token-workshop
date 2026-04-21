@@ -74,7 +74,7 @@ import type { TokenMapEntry } from "../shared/types";
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { tokenPathToUrlSegment } from "./shared/utils";
 import { matchesShortcut } from "./shared/shortcutRegistry";
-import { apiFetch } from "./shared/apiFetch";
+import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsGet, lsSet, lsGetJson } from "./shared/storage";
 import { findLeafByPath } from "./components/tokenListUtils";
 import {
@@ -744,9 +744,6 @@ export function App() {
     validationIsStale,
     refreshValidation,
   } = useValidationCache({ serverUrl, connected, tokenChangeKey });
-  const [flowPanelInitialPath, setFlowPanelInitialPath] = useState<
-    string | null
-  >(null);
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => lsGet(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "1",
@@ -762,8 +759,6 @@ export function App() {
     () => new Set([activeWorkspace.id]),
   );
   const contextualEditorTransition = CONTEXTUAL_PANEL_TRANSITIONS.fullTakeover;
-
-  const cascadeDiff = null;
 
   const {
     syncGroupPending,
@@ -909,10 +904,7 @@ export function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: name }),
-        signal: AbortSignal.any([
-          AbortSignal.timeout(5000),
-          getDisconnectSignal(),
-        ]),
+        signal: createFetchSignal(getDisconnectSignal(), 5000),
       });
       syncCollectionSummariesToState(result.collections);
       setSuccessToast(`Created collection "${result.id}"`);
@@ -1360,15 +1352,12 @@ export function App() {
       setShowIssuesOnly,
       lintViolations,
       jumpToNextIssue,
-      cascadeDiff: cascadeDiff ?? null,
       refreshAll,
       pushUndo,
       setErrorToast,
       setSuccessToast,
       handleNavigateToCollection,
       handleNavigateToGeneratedGroup,
-      flowPanelInitialPath,
-      setFlowPanelInitialPath,
       tokenListCompareRef,
       tokenListSelection,
       recentlyTouched,

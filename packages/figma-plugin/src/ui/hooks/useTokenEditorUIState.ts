@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
+import { isAlias } from '../../shared/resolveAlias';
 import type { TokenEditorValue } from '../shared/tokenEditorTypes';
 
 interface UseTokenEditorUIStateParams {
@@ -10,32 +11,22 @@ export function useTokenEditorUIState({
 }: UseTokenEditorUIStateParams) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [pasteFlash, setPasteFlash] = useState(false);
   const [showPathAutocomplete, setShowPathAutocomplete] = useState(false);
   const [editPath, setEditPath] = useState(tokenPath);
-  const [refsExpanded, setRefsExpanded] = useState(false);
   const pathInputWrapperRef = useRef<HTMLDivElement>(null);
-  const pasteFlashTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (pasteFlashTimerRef.current !== null) {
-        window.clearTimeout(pasteFlashTimerRef.current);
-      }
-    };
-  }, []);
 
   const handlePasteInValueEditor = useCallback((
     e: React.ClipboardEvent<HTMLDivElement>,
     options: {
-      aliasMode: boolean;
       tokenType: string;
+      value: TokenEditorValue;
+      isAliasMode?: boolean;
       parsePastedValue: (type: string, text: string) => TokenEditorValue | null;
       setValue: (v: TokenEditorValue) => void;
     },
   ) => {
-    const { aliasMode, tokenType, parsePastedValue, setValue } = options;
-    if (aliasMode) return;
+    const { tokenType, value, isAliasMode, parsePastedValue, setValue } = options;
+    if (isAliasMode || (typeof value === 'string' && isAlias(value))) return;
     const text = e.clipboardData.getData('text/plain');
     if (!text.trim()) return;
 
@@ -54,14 +45,6 @@ export function useTokenEditorUIState({
 
     e.preventDefault();
     setValue(parsed);
-    setPasteFlash(true);
-    if (pasteFlashTimerRef.current !== null) {
-      window.clearTimeout(pasteFlashTimerRef.current);
-    }
-    pasteFlashTimerRef.current = window.setTimeout(() => {
-      setPasteFlash(false);
-      pasteFlashTimerRef.current = null;
-    }, 1500);
   }, []);
 
   return {
@@ -69,14 +52,10 @@ export function useTokenEditorUIState({
     setShowDeleteConfirm,
     copied,
     setCopied,
-    pasteFlash,
-    setPasteFlash,
     showPathAutocomplete,
     setShowPathAutocomplete,
     editPath,
     setEditPath,
-    refsExpanded,
-    setRefsExpanded,
     pathInputWrapperRef,
     handlePasteInValueEditor,
   };

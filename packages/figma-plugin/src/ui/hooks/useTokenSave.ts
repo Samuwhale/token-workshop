@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { createGeneratorOwnershipKey, getGeneratorManagedOutputs } from '@tokenmanager/core';
+import { createGeneratorOwnershipKey, getGeneratorManagedOutputs, type TokenCollection } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { ApiError } from '../shared/apiFetch';
@@ -11,6 +11,7 @@ import {
 } from '../shared/tokenMutations';
 import { apiFetch } from '../shared/apiFetch';
 import type { TokenGenerator } from './useGenerators';
+import { sanitizeEditorCollectionModeValues } from '../shared/collectionModeUtils';
 
 export interface UseTokenSaveParams {
   connected: boolean;
@@ -19,6 +20,7 @@ export interface UseTokenSaveParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   generators?: TokenGenerator[];
+  collections?: TokenCollection[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRecordTouch: (path: string) => void;
@@ -43,6 +45,7 @@ export function useTokenSave({
   allTokensFlat,
   perCollectionFlat,
   generators,
+  collections,
   onRefresh,
   onPushUndo,
   onRecordTouch,
@@ -228,7 +231,15 @@ export function useTokenSave({
       !Array.isArray(tokenmanager.modes)
         ? { ...(tokenmanager.modes as Record<string, Record<string, unknown>>) }
         : {};
-    const collectionModes = modes[targetCollectionId] ? { ...modes[targetCollectionId] } : {};
+    const targetCollection =
+      collections?.find((collection) => collection.id === targetCollectionId) ?? null;
+    const normalizedModes = sanitizeEditorCollectionModeValues(
+      modes,
+      targetCollection,
+    );
+    const collectionModes = normalizedModes[targetCollectionId]
+      ? { ...normalizedModes[targetCollectionId] }
+      : {};
     collectionModes[optionName] = newValue;
     tokenmanager.modes = { [targetCollectionId]: collectionModes };
     nextExtensions.tokenmanager = tokenmanager;
@@ -266,6 +277,7 @@ export function useTokenSave({
       touchedPath: path,
     });
   }, [
+    collections,
     connected,
     findProducingGenerator,
     serverUrl,

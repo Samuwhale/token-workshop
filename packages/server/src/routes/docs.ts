@@ -13,6 +13,22 @@ function contrastRatio(hex1: string, hex2: string): number | null {
 
 type FlatToken = DTCGToken & { path: string; $type: string };
 
+function renderMissingCollectionPage(collectionId: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${escapeHtml(collectionId)} — Token Docs</title>
+  <style>${CSS}</style>
+</head>
+<body>
+  <div class="breadcrumb"><a href="/docs">← All collections</a></div>
+  <h1>Collection not found</h1>
+  <p style="color:var(--text-muted)">No collection named "${escapeHtml(collectionId)}" exists.</p>
+</body>
+</html>`;
+}
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -223,11 +239,10 @@ export async function docsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { collectionId: string } }>('/docs/:collectionId', async (request, reply) => {
     try {
       const { collectionId } = request.params;
-      await fastify.collectionService.requireCollectionsExist([collectionId]);
-      const tokenCollection = await fastify.tokenStore.getCollection(collectionId);
-      if (!tokenCollection) {
+      const collectionIds = await fastify.collectionService.listCollectionIds();
+      if (!collectionIds.includes(collectionId)) {
         reply.status(404).header('Content-Type', 'text/html; charset=utf-8');
-        return `<!DOCTYPE html><html><body><h1>Collection "${escapeHtml(collectionId)}" not found</h1><p><a href="/docs">Back</a></p></body></html>`;
+        return renderMissingCollectionPage(collectionId);
       }
       const resolved: ResolvedToken[] = await fastify.tokenStore.resolveTokens();
       const flat: FlatToken[] = resolved

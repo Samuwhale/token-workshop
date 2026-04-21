@@ -10,7 +10,7 @@ import type {
 import { deserializeTokenCollections } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsRemove, lsSet } from '../shared/storage';
-import { apiFetch, isNetworkError, createFetchSignal } from '../shared/apiFetch';
+import { apiFetch, isNetworkError, createFetchSignal, combineAbortSignals } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
 
 export interface CollectionSummary extends SerializedTokenCollection {
@@ -61,6 +61,7 @@ function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): A
         $value: value.$value as TokenValue | TokenReference,
         $type,
         $name: key,
+        ...(value.$description ? { $description: value.$description } : {}),
         ...(value.$extensions ? { $extensions: value.$extensions } : {}),
         ...($scopes ? { $scopes } : {}),
         ...($lifecycle ? { $lifecycle } : {}),
@@ -120,12 +121,11 @@ export function useCollectionState(
   ): Promise<CollectionSummary[]> => {
     const unmountSignal = unmountControllerRef.current.signal;
     const disconnectSignal = getDisconnectSignal?.();
-    const baseSignal = disconnectSignal
-      ? AbortSignal.any([disconnectSignal, unmountSignal])
-      : unmountSignal;
-    const combinedDisconnectSignal = signalOverride
-      ? AbortSignal.any([baseSignal, signalOverride])
-      : baseSignal;
+    const combinedDisconnectSignal = combineAbortSignals([
+      disconnectSignal,
+      unmountSignal,
+      signalOverride,
+    ]);
     const signal = createFetchSignal(combinedDisconnectSignal);
 
     const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(
@@ -147,7 +147,10 @@ export function useCollectionState(
     const generation = ++fetchGenRef.current;
     const unmountSignal = unmountControllerRef.current.signal;
     const disconnectSignal = getDisconnectSignal?.();
-    const combinedDisconnectSignal = disconnectSignal ? AbortSignal.any([disconnectSignal, unmountSignal]) : unmountSignal;
+    const combinedDisconnectSignal = combineAbortSignals([
+      disconnectSignal,
+      unmountSignal,
+    ]) ?? unmountSignal;
     const signal = createFetchSignal(combinedDisconnectSignal);
 
     try {
@@ -193,7 +196,10 @@ export function useCollectionState(
     const generation = ++fetchGenRef.current;
     const unmountSignal = unmountControllerRef.current.signal;
     const disconnectSignal = getDisconnectSignal?.();
-    const combinedDisconnectSignal = disconnectSignal ? AbortSignal.any([disconnectSignal, unmountSignal]) : unmountSignal;
+    const combinedDisconnectSignal = combineAbortSignals([
+      disconnectSignal,
+      unmountSignal,
+    ]) ?? unmountSignal;
     const signal = createFetchSignal(combinedDisconnectSignal);
 
     try {
@@ -346,18 +352,16 @@ async function fetchAllCollections(serverUrl: string, signal?: AbortSignal): Pro
   pathToCollectionId: Record<string, string>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
-  const baseSignal = signal
-    ? AbortSignal.any([AbortSignal.timeout(5000), signal])
-    : AbortSignal.timeout(5000);
-  const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(`${serverUrl}/api/collections`, { signal: baseSignal });
+  const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(`${serverUrl}/api/collections`, {
+    signal: createFetchSignal(signal, 5000),
+  });
   const collectionIds = (collectionsData.collections ?? []).map((collection) => collection.id);
 
   const results = await Promise.allSettled(
     collectionIds.map(async (collectionId) => {
-      const perCollectionSignal = signal
-        ? AbortSignal.any([AbortSignal.timeout(5000), signal])
-        : AbortSignal.timeout(5000);
-      const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`, { signal: perCollectionSignal });
+      const data = await apiFetch<{ tokens: DTCGGroup }>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`, {
+        signal: createFetchSignal(signal, 5000),
+      });
       return { collectionId, tokens: data.tokens || {} };
     }),
   );

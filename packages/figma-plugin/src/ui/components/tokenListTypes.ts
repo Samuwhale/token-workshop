@@ -107,7 +107,6 @@ export interface TokenListData {
   generators?: TokenGenerator[];
   generatorsByTargetGroup?: Map<string, TokenGenerator>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
-  cascadeDiff?: Record<string, { before: any; after: any }>;
   tokenUsageCounts?: Record<string, number>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   collectionMap?: Record<string, string>;
@@ -172,8 +171,6 @@ export interface TokenListActions {
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
   /** Open the generator editor to create a new generator */
   onNavigateToNewGeneratedGroup?: () => void;
-  /** Navigate to Token Flow panel with this token pre-selected */
-  onShowReferences?: (path: string) => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
   onDisplayedLeafNodesChange?: (nodes: TokenNode[]) => void;
   /** Called whenever the multi-selection changes — exposes selection to parent (e.g. command palette bulk-delete) */

@@ -57,7 +57,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
 
   const dup = useTokenDuplicate({ connected, serverUrl, collectionId, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
 
-  const save = useTokenSave({ connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, generators, onRefresh, onPushUndo, onRecordTouch, onRefreshGeneratedGroups, onError });
+  const save = useTokenSave({ connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, generators, collections, onRefresh, onPushUndo, onRecordTouch, onRefreshGeneratedGroups, onError });
 
   return {
     // Rename state + callbacks

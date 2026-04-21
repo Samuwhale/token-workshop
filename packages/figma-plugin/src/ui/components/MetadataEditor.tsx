@@ -1,9 +1,19 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
+import { TOKEN_EDITOR_RESERVED_EXTENSION_KEYS } from '../shared/tokenEditorTypes';
 
 /* ── Structured key-value extensions editor ── */
 
 interface ExtEntry { key: string; value: string }
+
+function findReservedExtensionKey(keys: Iterable<string>): string | null {
+  for (const key of keys) {
+    if (TOKEN_EDITOR_RESERVED_EXTENSION_KEYS.has(key)) {
+      return key;
+    }
+  }
+  return null;
+}
 
 function parseEntries(jsonText: string): ExtEntry[] | null {
   const trimmed = jsonText.trim();
@@ -15,8 +25,7 @@ function parseEntries(jsonText: string): ExtEntry[] | null {
       key: k,
       value: typeof v === 'string' ? v : JSON.stringify(v, null, 2),
     }));
-  } catch (e) {
-    console.debug('[MetadataEditor] failed to parse extensions JSON:', e);
+  } catch (_error) {
     return null;
   }
 }
@@ -31,8 +40,7 @@ function entriesToJson(entries: ExtEntry[]): string {
     if (val) {
       try {
         obj[e.key] = JSON.parse(val);
-      } catch (e2) {
-        console.debug('[MetadataEditor] value is not valid JSON, treating as string:', e2);
+      } catch (_error) {
         obj[e.key] = val;
       }
     } else {
@@ -46,10 +54,16 @@ function validateEntries(entries: ExtEntry[]): string | null {
   const keys = entries.map(e => e.key.trim()).filter(Boolean);
   const dups = keys.filter((k, i) => keys.indexOf(k) !== i);
   if (dups.length > 0) return `Duplicate key: ${dups[0]}`;
+  const reservedKey = findReservedExtensionKey(keys);
+  if (reservedKey) return `"${reservedKey}" is managed elsewhere in the editor`;
   for (const e of entries) {
     const val = e.value.trim();
     if (val && (val.startsWith('{') || val.startsWith('['))) {
-      try { JSON.parse(val); } catch (e2) { console.debug('[MetadataEditor] invalid JSON value for key:', e.key, e2); return `Invalid JSON value for "${e.key}"`; }
+      try {
+        JSON.parse(val);
+      } catch (_error) {
+        return `Invalid JSON value for "${e.key}"`;
+      }
     }
   }
   return null;
@@ -87,6 +101,8 @@ function getJsonErrorInfo(text: string): JsonErrorInfo | null {
   try {
     const parsed = JSON.parse(trimmed);
     if (typeof parsed !== 'object' || Array.isArray(parsed)) return { message: 'Must be a JSON object' };
+    const reservedKey = findReservedExtensionKey(Object.keys(parsed as Record<string, unknown>));
+    if (reservedKey) return { message: `"${reservedKey}" is managed elsewhere in the editor` };
     return null;
   } catch (e) {
     if (!(e instanceof SyntaxError)) return { message: 'Invalid JSON' };
@@ -132,20 +148,33 @@ function ExtensionsEditor({
   // Track the last jsonText we synced from, to detect external changes
   const [lastSyncedText, setLastSyncedText] = useState(extensionsJsonText);
 
-  // If extensionsJsonText changed externally (e.g. token load), re-parse entries
-  if (extensionsJsonText !== lastSyncedText) {
+  useEffect(() => {
+    if (extensionsJsonText === lastSyncedText) {
+      return;
+    }
+
     const parsed = parseEntries(extensionsJsonText);
     if (parsed !== null) {
       setEntries(parsed);
-      if (rawMode && parsed.length > 0) setRawMode(false);
+      if (rawMode && parsed.length > 0) {
+        setRawMode(false);
+      }
       setJsonErrorInfo(null);
+      onExtensionsJsonErrorChange(null);
     } else {
-      // Can't parse — switch to raw mode
+      const errorInfo = getJsonErrorInfo(extensionsJsonText);
       setRawMode(true);
-      setJsonErrorInfo(getJsonErrorInfo(extensionsJsonText));
+      setJsonErrorInfo(errorInfo);
+      onExtensionsJsonErrorChange(errorInfo ? errorInfo.message : null);
     }
+
     setLastSyncedText(extensionsJsonText);
-  }
+  }, [
+    extensionsJsonText,
+    lastSyncedText,
+    onExtensionsJsonErrorChange,
+    rawMode,
+  ]);
 
   const updateEntry = useCallback((idx: number, field: 'key' | 'value', val: string) => {
     setEntries(prev => {
@@ -179,7 +208,9 @@ function ExtensionsEditor({
         const formatted = JSON.stringify(JSON.parse(trimmed), null, 2);
         onExtensionsJsonTextChange(formatted);
         setLastSyncedText(formatted);
-      } catch (e) { console.debug('[MetadataEditor] failed to format JSON:', e); /* keep as-is */ }
+      } catch (_error) {
+        // Keep the current text as-is if it is not parseable.
+      }
     }
     setRawMode(true);
   }, [extensionsJsonText, onExtensionsJsonTextChange]);
@@ -221,7 +252,7 @@ function ExtensionsEditor({
         <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
           <div className="flex items-center justify-between">
             <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Custom extension data. The <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">scopes</code> sections are managed above.
+              Custom extension data. The <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">com.figma.scopes</code> sections are managed above.
             </p>
             <button
               type="button"
@@ -359,14 +390,12 @@ interface MetadataEditorProps {
   onExtensionsJsonTextChange: (text: string) => void;
   extensionsJsonError: string | null;
   onExtensionsJsonErrorChange: (err: string | null) => void;
-  isCreateMode: boolean;
 }
 
 export function MetadataEditor({
   tokenType, scopes, onScopesChange,
   extensionsJsonText, onExtensionsJsonTextChange,
   extensionsJsonError, onExtensionsJsonErrorChange,
-  isCreateMode,
 }: MetadataEditorProps) {
   const [showScopes, setShowScopes] = useState(false);
   const [showExtensions, setShowExtensions] = useState(false);
@@ -419,16 +448,14 @@ export function MetadataEditor({
     )}
 
     {/* Other extensions */}
-    {!isCreateMode && (
-      <ExtensionsEditor
-        showExtensions={showExtensions}
-        onToggleExtensions={() => setShowExtensions(v => !v)}
-        extensionsJsonText={extensionsJsonText}
-        onExtensionsJsonTextChange={onExtensionsJsonTextChange}
-        extensionsJsonError={extensionsJsonError}
-        onExtensionsJsonErrorChange={onExtensionsJsonErrorChange}
-      />
-    )}
+    <ExtensionsEditor
+      showExtensions={showExtensions}
+      onToggleExtensions={() => setShowExtensions(v => !v)}
+      extensionsJsonText={extensionsJsonText}
+      onExtensionsJsonTextChange={onExtensionsJsonTextChange}
+      extensionsJsonError={extensionsJsonError}
+      onExtensionsJsonErrorChange={onExtensionsJsonErrorChange}
+    />
     </>
   );
 }

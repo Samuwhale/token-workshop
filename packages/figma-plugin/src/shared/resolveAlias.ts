@@ -205,8 +205,10 @@ export function resolveAllAliases(
     }
 
     resolved[path] = {
+      ...entry,
       $value: resolvedValue,
       $type: result.$type,
+      ...(isAlias(entry.$value) ? { reference: entry.$value } : {}),
     };
   }
   return resolved;

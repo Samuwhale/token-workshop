@@ -116,9 +116,7 @@ export function ComponentCoveragePanel() {
   // Auto-scan on first mount so the user sees results without clicking Scan.
   useEffect(() => {
     runCoverageScan();
-  // runCoverageScan has stable identity (no deps), so this runs exactly once.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [runCoverageScan]);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-3 gap-3" style={{ scrollbarWidth: 'thin' }}>

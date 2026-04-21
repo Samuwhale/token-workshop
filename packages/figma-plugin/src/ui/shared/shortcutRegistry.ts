@@ -71,7 +71,6 @@ export const SHORTCUT_KEYS = {
   // Token Editor
   EDITOR_SAVE:           '⌘↵',
   EDITOR_SAVE_AND_NEW:   '⌘⇧↵',
-  EDITOR_TOGGLE_ALIAS:   '⌘L',
   EDITOR_NEXT_TOKEN:     '⌘]',
   EDITOR_PREV_TOKEN:     '⌘[',
   // Token List
@@ -152,7 +151,6 @@ export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
   // Token Editor
   EDITOR_SAVE:           { key: 'Enter',      meta: true,  shift: false, alt: false },
   EDITOR_SAVE_AND_NEW:   { key: 'Enter',      meta: true,  shift: true,  alt: false },
-  EDITOR_TOGGLE_ALIAS:   { key: 'l',          meta: true,  shift: false, alt: false },
   EDITOR_NEXT_TOKEN:     { key: ']',          meta: true,  shift: false, alt: false },
   EDITOR_PREV_TOKEN:     { key: '[',          meta: true,  shift: false, alt: false },
   // Token List
@@ -294,7 +292,6 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   // ── Token Editor ─────────────────────────────────────────────────────────
   { id: 'EDITOR_NEXT',           group: 'Token Editor',    description: 'Next token',                     mac: SHORTCUT_KEYS.EDITOR_NEXT_TOKEN },
   { id: 'EDITOR_PREV',           group: 'Token Editor',    description: 'Previous token',                 mac: SHORTCUT_KEYS.EDITOR_PREV_TOKEN },
-  { id: 'EDITOR_TOGGLE_ALIAS',   group: 'Token Editor',    description: 'Toggle reference mode',          mac: SHORTCUT_KEYS.EDITOR_TOGGLE_ALIAS },
   { id: 'EDITOR_SAVE',           group: 'Token Editor',    description: 'Save token',                     mac: SHORTCUT_KEYS.EDITOR_SAVE },
   { id: 'EDITOR_SAVE_NEW',       group: 'Token Editor',    description: 'Save and create another',        mac: SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW },
   { id: 'EDITOR_ESC',            group: 'Token Editor',    description: 'Back / discard',                 mac: 'Esc',   displayOnly: true },

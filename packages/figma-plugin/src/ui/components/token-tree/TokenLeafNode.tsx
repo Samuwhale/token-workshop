@@ -28,6 +28,10 @@ import {
 } from "../../../shared/resolveAlias";
 import type { ResolutionStep } from "../../../shared/resolveAlias";
 import { stableStringify } from "../../shared/utils";
+import {
+  hasSyncSnapshotChange,
+  resolveSyncComparableValue,
+} from "../../shared/tokenSync";
 import { formatDisplayPath, formatValue, nodeParentPath } from "../tokenListUtils";
 import {
   getEditableString,
@@ -53,16 +57,13 @@ import {
 } from "../ComplexTypePreviewCard";
 import { useNearbyTokenMatch } from "../../hooks/useNearbyTokenMatch";
 import { TokenNudge } from "../TokenNudge";
-import { AliasAutocomplete } from "../AliasAutocomplete";
 import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import { matchesShortcut } from "../../shared/shortcutRegistry";
 import { ConfirmModal } from "../ConfirmModal";
 import {
   compactTokenPath,
   getLifecycleLabel,
-  getTokenProvenanceLabel,
   readTokenPresentationMetadata,
-  summarizeTokenScopes,
 } from "../../shared/tokenMetadata";
 import {
   BADGE_TEXT_CLASS,
@@ -126,7 +127,6 @@ export const TokenLeafNode = memo(
       pendingTabEdit,
       rovingFocusPath,
       showDuplicatesFilter,
-      tokenModeMissing,
     } = useTokenTreeLeafState();
     const { allTokensFlat, pathToCollectionId } = useTokenTreeSharedData();
     const {
@@ -174,7 +174,6 @@ export const TokenLeafNode = memo(
     >();
     const [colorPickerOpen, setColorPickerOpen] = useState(false);
     const [pendingColor, setPendingColor] = useState("");
-    const [_copiedWhat, setCopiedWhat] = useState<"path" | "value" | null>(null);
     const [contextMenuPos, setContextMenuPos] = useState<MenuPosition | null>(
       null,
     );
@@ -194,12 +193,6 @@ export const TokenLeafNode = memo(
     const [pickerProps, setPickerProps] = useState<BindableProperty[] | null>(
       null,
     );
-    const [aliasPickerOpen, setAliasPickerOpen] = useState(false);
-    const [aliasQuery, setAliasQuery] = useState("");
-    const [aliasPickerPos, _setAliasPickerPos] = useState<{
-      x: number;
-      y: number;
-    }>({ x: 0, y: 0 });
     const [inlinePopoverOpen, setInlinePopoverOpen] = useState(false);
     const [inlinePopoverAnchor, setInlinePopoverAnchor] =
       useState<DOMRect | null>(null);
@@ -360,20 +353,6 @@ export const TokenLeafNode = memo(
         document.removeEventListener("keydown", onKey);
       };
     }, [refsPopover]);
-
-    // Close alias picker on outside click
-    useEffect(() => {
-      if (!aliasPickerOpen) return;
-      const close = () => setAliasPickerOpen(false);
-      const timer = setTimeout(
-        () => document.addEventListener("click", close),
-        0,
-      );
-      return () => {
-        clearTimeout(timer);
-        document.removeEventListener("click", close);
-      };
-    }, [aliasPickerOpen]);
 
     // Scroll highlighted token into view (only when NOT in virtual scroll mode)
     useEffect(() => {
@@ -711,10 +690,14 @@ export const TokenLeafNode = memo(
     );
 
     // Sync state indicator
-    const syncChanged =
-      syncSnapshot &&
-      node.path in syncSnapshot &&
-      syncSnapshot[node.path] !== stableStringify(node.$value);
+    const syncChanged = hasSyncSnapshotChange(
+      syncSnapshot,
+      node.path,
+      resolveSyncComparableValue({
+        tokenPath: node.path,
+        allTokensFlat,
+      }),
+    );
     const tokenStatus = getTokenRowStatus({
       lintViolations,
       quickBound,
@@ -726,8 +709,6 @@ export const TokenLeafNode = memo(
       navigator.clipboard
         .writeText(node.path)
         .catch((e) => console.warn("[clipboard] write failed:", e));
-      setCopiedWhat("path");
-      setTimeout(() => setCopiedWhat(null), 1500);
     }, [node.path]);
 
     const handleCopyValue = useCallback(() => {
@@ -738,19 +719,11 @@ export const TokenLeafNode = memo(
       navigator.clipboard
         .writeText(val)
         .catch((e) => console.warn("[clipboard] write failed:", e));
-      setCopiedWhat("value");
-      setTimeout(() => setCopiedWhat(null), 1500);
     }, [displayValue]);
 
     const presentationEntry = allTokensFlat[node.path] ?? node;
     const presentationMetadata = readTokenPresentationMetadata(
       presentationEntry,
-    );
-    const scopeSummary = node.$type
-      ? summarizeTokenScopes(node.$type, presentationMetadata.scopes)
-      : null;
-    const provenanceLabel = getTokenProvenanceLabel(
-      presentationMetadata.provenance,
     );
     const lifecycleLabel = getLifecycleLabel(presentationMetadata.lifecycle);
     const incomingRefs = useMemo(
@@ -797,51 +770,19 @@ export const TokenLeafNode = memo(
             ? () => onNavigateToAlias(aliasTargetPath, node.path)
             : undefined,
       });
-    } else if (presentationMetadata.extendsPath) {
-      leafMetadataSegments.push({
-        label: `Extends ${compactTokenPath(presentationMetadata.extendsPath)}`,
-        title: `Base token for this value: ${presentationMetadata.extendsPath}`,
-        priority: "identity" as const,
-        onClick: onNavigateToAlias
-          ? () => onNavigateToAlias(presentationMetadata.extendsPath!, node.path)
-          : undefined,
-      });
-    }
-    if (scopeSummary) {
-      leafMetadataSegments.push({
-        label: `Scopes: ${scopeSummary}`,
-        title: `Figma variable scopes: ${presentationMetadata.scopes.join(", ")}`,
-        priority: "detail" as const,
-      });
     }
     if (incomingRefs.length > 0) {
       leafMetadataSegments.push({
-        label:
+        label: String(incomingRefs.length),
+        title:
           incomingRefs.length === 1
-            ? "Referenced by 1 token"
-            : `Referenced by ${incomingRefs.length} tokens`,
-        title: incomingRefs.join("\n"),
+            ? `Referenced by 1 token:\n${incomingRefs[0]}`
+            : `Referenced by ${incomingRefs.length} tokens:\n${incomingRefs.join("\n")}`,
         priority: "detail" as const,
         onClick: openRefsPopover,
       });
     }
-    if (provenanceLabel) {
-      leafMetadataSegments.push({
-        label: `Origin: ${provenanceLabel}`,
-        title: provenanceLabel,
-        hoverOnly: true,
-        priority: "detail" as const,
-      });
-    }
-    const missingModeCount = tokenModeMissing?.get(node.path);
-    if (missingModeCount && missingModeCount > 0) {
-      leafMetadataSegments.push({
-        label: `${missingModeCount} mode${missingModeCount === 1 ? "" : "s"} unfilled`,
-        title: `${missingModeCount} mode value${missingModeCount === 1 ? "" : "s"} not yet defined`,
-        priority: "detail" as const,
-      });
-    }
-    if (lifecycleLabel) {
+    if (lifecycleLabel && presentationMetadata.lifecycle !== "published") {
       leafMetadataSegments.push({
         label: lifecycleLabel,
         tone:
@@ -2078,56 +2019,6 @@ export const TokenLeafNode = memo(
                   )}
                 </>
               )}
-            </div>
-          )}
-
-          {/* Inline alias picker popover — opened via "Link to token…" context menu item */}
-          {aliasPickerOpen && (
-            <div
-              className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 w-64"
-              style={{ top: aliasPickerPos.y, left: aliasPickerPos.x }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
-                Link{" "}
-                <span className="font-mono normal-case text-[var(--color-figma-text)]">
-                  {node.name}
-                </span>{" "}
-                to…
-              </div>
-              <div className="relative">
-                <input
-                  autoFocus
-                  type="text"
-                  value={aliasQuery}
-                  onChange={(e) => setAliasQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.stopPropagation();
-                      setAliasPickerOpen(false);
-                    }
-                  }}
-                  className="w-full border border-[var(--color-figma-border)] rounded px-2 py-1 text-body bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
-                  placeholder="Search tokens…"
-                />
-                <AliasAutocomplete
-                  query={aliasQuery}
-                  allTokensFlat={allTokensFlat}
-                  pathToCollectionId={pathToCollectionId}
-                  filterType={node.$type}
-                  onSelect={(path) => {
-                    requestInlineValueSave(
-                      `{${path}}`,
-                      {
-                        type: node.$type,
-                        value: node.$value,
-                      },
-                    );
-                    setAliasPickerOpen(false);
-                  }}
-                  onClose={() => setAliasPickerOpen(false)}
-                />
-              </div>
             </div>
           )}
 

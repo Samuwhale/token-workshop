@@ -26,7 +26,6 @@ export function HistoryPanel({
   redoableOpIds,
   onServerRedo,
   executeUndo,
-  canUndo: _canUndo,
 }: HistoryPanelProps) {
   const [activeView, setActiveView] = useState<HistoryView>('recent');
 

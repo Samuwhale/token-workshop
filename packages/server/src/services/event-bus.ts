@@ -18,7 +18,9 @@ export class EventBus {
   private listeners: Set<(entry: SequencedEvent) => void> = new Set();
 
   constructor(bufferSize = DEFAULT_BUFFER_SIZE) {
-    this.bufferSize = bufferSize;
+    this.bufferSize = Number.isInteger(bufferSize) && bufferSize > 0
+      ? bufferSize
+      : DEFAULT_BUFFER_SIZE;
   }
 
   /** Push a new workspace event into the bus. */
@@ -53,9 +55,9 @@ export class EventBus {
    */
   eventsSince(lastId: number): SequencedEvent[] | null {
     if (lastId >= this.seq) return [];
-    if (this.buffer.length === 0) return null;
+    if (this.buffer.length === 0) return [];
     const oldest = this.buffer[0].id;
-    if (lastId < oldest) return null; // gap — client is too stale
+    if (lastId < oldest - 1) return null; // gap — client is too stale
     // Find events after lastId
     const startIdx = this.buffer.findIndex((e) => e.id > lastId);
     if (startIdx === -1) return [];

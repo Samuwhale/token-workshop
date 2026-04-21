@@ -96,15 +96,6 @@ export function HealthIssuesView({
       );
   })();
 
-  const formatValidatedAt = (date: Date): string => {
-    const diffMs = Date.now() - date.getTime();
-    const diffMin = Math.floor(diffMs / 60000);
-    if (diffMin < 1) return "just now";
-    if (diffMin === 1) return "1 min ago";
-    if (diffMin < 60) return `${diffMin} min ago`;
-    return `at ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
-  };
-
   const copyMarkdown = () => {
     const lines: string[] = [
       `# Audit Report — ${validationIssues.length} issue${validationIssues.length !== 1 ? "s" : ""}\n`,
