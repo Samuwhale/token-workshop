@@ -13,7 +13,6 @@ import {
   memo,
 } from "react";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
-import { DENSITY_PY_CLASS } from "../tokenListTypes";
 import {
   createGeneratorOwnershipKey,
   getGeneratorManagedOutputs,
@@ -61,13 +60,11 @@ export const TokenGroupNode = memo(
       node,
       depth,
       lintViolations = [],
-      isPinned: _isPinned,
       onMoveUp,
       onMoveDown,
     } = props;
 
     const {
-      density,
       collectionId,
       activeCollectionModeLabel,
       selectMode,
@@ -80,7 +77,6 @@ export const TokenGroupNode = memo(
       dragSource,
       generatorsByTargetGroup,
       collectionCoverage,
-      condensedView = false,
       rovingFocusPath: groupRovingFocusPath,
     } = useTokenTreeGroupState();
     const {
@@ -132,7 +128,6 @@ export const TokenGroupNode = memo(
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
 
-    const pyClass = DENSITY_PY_CLASS[density];
     const isExpanded = expandedPaths.has(node.path);
     const isHighlighted = highlightedToken === node.path;
     const isGroupActive =
@@ -414,10 +409,10 @@ export const TokenGroupNode = memo(
           data-group-path={node.path}
           data-node-name={node.name}
           onFocus={() => onGroupRovingFocus(node.path)}
-          className={`relative flex items-center gap-1 px-1.5 ${pyClass} cursor-pointer transition-colors group/group token-row-hover ${targetGenerator ? "bg-amber-500/[0.03] hover:bg-amber-500/[0.08]" : "bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)]"} ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
+          className={`sticky left-0 z-[1] relative flex items-center gap-1 px-1.5 py-1 cursor-pointer transition-colors group/group token-row-hover ${targetGenerator ? "bg-amber-500/[0.03] hover:bg-amber-500/[0.08]" : "bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)]"} ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
           data-roving-focus={groupRovingFocusPath === node.path || undefined}
           style={{
-            paddingLeft: `${computePaddingLeft(depth, condensedView, 8)}px`,
+            paddingLeft: `${computePaddingLeft(depth, 8)}px`,
           }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
           onDoubleClick={() => !renamingGroup && onZoomIntoGroup?.(node.path)}
@@ -561,73 +556,73 @@ export const TokenGroupNode = memo(
               </div>
             )
           )}
-          {!renamingGroup &&
-            collectionCoverageSummary &&
-            collectionCoverageSummary.total > 0 &&
-            collectionCoverageSummary.totalMissing > 0 && (
-              <span
-                className="shrink-0 text-micro font-normal text-[var(--color-figma-text-tertiary)]"
-                title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
-              >
-                {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
-              </span>
-            )}
-        {!renamingGroup && targetGenerator && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (targetGenerator.id) onEditGeneratedGroup?.(targetGenerator.id);
-              }}
-              disabled={!targetGenerator.id || !onEditGeneratedGroup}
-              className={`inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-micro ${
-                targetGenerator.isStale
-                  ? "text-amber-600"
-                  : "text-[var(--color-figma-text-tertiary)]"
-              } transition-colors hover:bg-[var(--color-figma-accent)]/10 hover:text-[var(--color-figma-accent)] disabled:cursor-default disabled:opacity-60`}
-              title="Edit generator"
-            >
-              <GeneratedGlyph size={7} className="shrink-0" />
-              <span>Generated</span>
-            </button>
-          )}
           {!renamingGroup && (
-            <div
-              className={`flex items-center gap-0.5 shrink-0 ml-auto ${selectMode ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"} transition-opacity`}
-            >
-              {onZoomIntoGroup && (
+            <div className="flex items-center gap-1 shrink-0 ml-auto">
+              {collectionCoverageSummary &&
+                collectionCoverageSummary.total > 0 &&
+                collectionCoverageSummary.totalMissing > 0 && (
+                  <span
+                    className="shrink-0 text-micro font-normal text-[var(--color-figma-text-tertiary)]"
+                    title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
+                  >
+                    {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
+                  </span>
+                )}
+              {targetGenerator && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onZoomIntoGroup(node.path); }}
-                  title="Focus on this group"
-                  aria-label="Focus on this group"
-                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (targetGenerator.id) onEditGeneratedGroup?.(targetGenerator.id);
+                  }}
+                  disabled={!targetGenerator.id || !onEditGeneratedGroup}
+                  className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${
+                    targetGenerator.isStale
+                      ? "text-amber-600"
+                      : "text-[var(--color-figma-text-tertiary)]"
+                  } hover:bg-[var(--color-figma-accent)]/10 hover:text-[var(--color-figma-accent)] disabled:cursor-default disabled:opacity-60`}
+                  title={targetGenerator.isStale ? "Generated (source changed) — click to edit" : "Generated group — click to edit"}
+                  aria-label="Edit generator"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
-                  <span>Focus</span>
+                  <GeneratedGlyph size={12} className="shrink-0" />
                 </button>
               )}
-              <button
-                onClick={(e) => { e.stopPropagation(); onCreateSibling?.(node.path, inferGroupTokenType(node.children)); }}
-                title="Add token to group"
-                aria-label="Add token to group"
-                className="p-2 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+              <div
+                className={`flex items-center gap-0.5 shrink-0 ${selectMode ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"}`}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 192, 420));
-                }}
-                title="Group actions"
-                aria-label="Group actions"
-                aria-haspopup="menu"
-                aria-expanded={!!groupMenuPos}
-                className="p-2 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                {onZoomIntoGroup && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onZoomIntoGroup(node.path); }}
+                    title="Focus on this group"
+                    aria-label="Focus on this group"
+                    className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
+                  </button>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onCreateSibling?.(node.path, inferGroupTokenType(node.children)); }}
+                  title="Add token to group"
+                  aria-label="Add token to group"
+                  className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 192, 420));
+                  }}
+                  title="Group actions"
+                  aria-label="Group actions"
+                  aria-haspopup="menu"
+                  aria-expanded={!!groupMenuPos}
+                  className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
                 </button>
+              </div>
             </div>
           )}
         </div>
@@ -909,7 +904,7 @@ export const TokenGroupNode = memo(
           <div
             className="mb-0.5 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5"
             style={{
-              marginLeft: `${computePaddingLeft(depth, condensedView, 8)}px`,
+              marginLeft: `${computePaddingLeft(depth, 8)}px`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -982,7 +977,6 @@ export const TokenGroupNode = memo(
         {!props.skipChildren && isExpanded && targetGenerator && (
           <GeneratedGroupSummaryRow
             depth={depth}
-            condensedView={condensedView}
             generator={targetGenerator}
             exceptionCount={manualExceptionCount}
             previewTokens={previewTokens}
@@ -1117,7 +1111,6 @@ export const TokenGroupNode = memo(
       prev.skipChildren === next.skipChildren &&
       prev.showFullPath === next.showFullPath &&
       prev.ancestorPathLabel === next.ancestorPathLabel &&
-      prev.isPinned === next.isPinned &&
       prev.chainExpanded === next.chainExpanded &&
       prev.onMoveUp === next.onMoveUp &&
       prev.onMoveDown === next.onMoveDown &&

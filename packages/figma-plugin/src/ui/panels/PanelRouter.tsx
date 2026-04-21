@@ -1279,7 +1279,6 @@ export function PanelRouter({
             if (collectionId !== currentCollectionId) {
               setCurrentCollectionId(collectionId);
             }
-            navigateTo("library", "tokens");
           }}
           onCreateCollection={async (name) => {
             const createdCollectionId =

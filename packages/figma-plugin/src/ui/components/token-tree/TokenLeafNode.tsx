@@ -14,7 +14,6 @@ import {
 } from "react";
 import { dispatchToast } from "../../shared/toastBus";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
-import { DENSITY_PY_CLASS } from "../tokenListTypes";
 import {
   TOKEN_PROPERTY_MAP,
   PROPERTY_LABELS,
@@ -67,7 +66,6 @@ import {
   BADGE_TEXT_CLASS,
   clampMenuPosition,
   computePaddingLeft,
-  CondensedAncestorBreadcrumb,
   DepthBar,
   GeneratedGlyph,
   getIncomingRefs,
@@ -96,7 +94,6 @@ export const TokenLeafNode = memo(
       skipChildren,
       showFullPath,
       ancestorPathLabel,
-      isPinned: _isPinned,
       chainExpanded: chainExpandedProp = false,
       onMoveUp: _onMoveUp,
       onMoveDown: _onMoveDown,
@@ -105,7 +102,6 @@ export const TokenLeafNode = memo(
     } = props;
 
     const {
-      density,
       collectionId,
       selectionCapabilities,
       selectMode,
@@ -121,7 +117,6 @@ export const TokenLeafNode = memo(
       dragOverReorder,
       selectedLeafNodes,
       showResolvedValues,
-      condensedView = false,
       starredPaths,
       pendingRenameToken,
       pendingTabEdit,
@@ -161,8 +156,6 @@ export const TokenLeafNode = memo(
       onOpenGeneratedGroupEditor,
       onRovingFocus,
     } = useTokenTreeLeafActions();
-
-    const pyClass = DENSITY_PY_CLASS[density];
 
     const isHighlighted = highlightedToken === node.path;
     const isPreviewed = previewedPath === node.path;
@@ -927,7 +920,7 @@ export const TokenLeafNode = memo(
           role="treeitem"
           aria-level={depth + 1}
           style={{ display: "grid", gridTemplateColumns: gridTemplate }}
-          className={`relative items-stretch ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass} ${boundAccentClass}`}
+          className={`relative items-stretch py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass} ${boundAccentClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}
           tabIndex={rovingFocusPath === node.path ? 0 : -1}
           data-token-path={node.path}
@@ -1002,8 +995,8 @@ export const TokenLeafNode = memo(
             <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--color-figma-accent)] pointer-events-none z-10" />
           )}
           <div
-            className="flex items-center gap-1.5 min-w-0 pr-1"
-            style={{ paddingLeft: `${computePaddingLeft(depth, condensedView, 14)}px` }}
+            className="sticky left-0 z-[1] flex items-center gap-1.5 min-w-0 pr-1 bg-[var(--color-figma-bg)] group-hover:bg-[var(--color-figma-bg-hover)]"
+            style={{ paddingLeft: `${computePaddingLeft(depth, 14)}px` }}
           >
           <DepthBar depth={depth} />
           {/* Drag reorder indicator line */}
@@ -1066,12 +1059,6 @@ export const TokenLeafNode = memo(
             }}
           >
             <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-              <CondensedAncestorBreadcrumb
-                nodePath={node.path}
-                nodeName={node.name}
-                depth={depth}
-                condensedView={condensedView}
-              />
               {renamingToken ? (
                 <div
                   className="flex flex-col gap-0.5 flex-1 min-w-0"
@@ -1122,7 +1109,16 @@ export const TokenLeafNode = memo(
                   )}
                 </div>
               ) : (
-                <div className="flex min-w-0 flex-1 flex-col">
+                <>
+                  {ancestorPathLabel && (
+                    <span
+                      className="shrink min-w-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]"
+                      title={`In ${ancestorPathLabel}`}
+                    >
+                      {ancestorPathLabel}
+                      <span aria-hidden="true" className="mx-1 text-[var(--color-figma-text-tertiary)]/60">/</span>
+                    </span>
+                  )}
                   <span
                     className="min-w-0 truncate text-body text-[var(--color-figma-text)]"
                     title={formatDisplayPath(node.path, node.name)}
@@ -1134,157 +1130,106 @@ export const TokenLeafNode = memo(
                       searchHighlight?.nameTerms ?? [],
                     )}
                   </span>
-                  {(ancestorPathLabel || leafMetadataSegments.length > 0) && (
-                    <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
-                      {ancestorPathLabel && (
-                        <span
-                          className="truncate text-[var(--color-figma-text-tertiary)]"
-                          title={`In ${ancestorPathLabel}`}
-                        >
-                          In {ancestorPathLabel}
-                        </span>
-                      )}
-                      {producingGenerator && (
-                        <GeneratedGlyph
-                          size={7}
-                          className={`shrink-0 ${producingGenerator.isStale ? "text-amber-600" : "text-[var(--color-figma-accent)]"}`}
-                        />
-                      )}
-                      {leafMetadataSegments.length > 0 &&
-                        renderRowMetadataSegments(leafMetadataSegments)}
-                    </div>
+                  {leafMetadataSegments.length > 0 && (
+                    <span className="flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
+                      {renderRowMetadataSegments(leafMetadataSegments)}
+                    </span>
                   )}
-                </div>
+                </>
               )}
             </div>
           </div>
 
-          {tokenStatus &&
-            (tokenStatus.kind === "lint" ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onPreview) onPreview(node.path, node.name);
-                  else onEdit(node.path, node.name);
-                }}
-                title={tokenStatus.title}
-                className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded transition-opacity ${tokenStatus.toneClass} ${
-                  isRowActive
-                    ? "opacity-100"
-                    : tokenStatus.lintSeverity === "error"
-                      ? "opacity-60 group-hover:opacity-100"
-                      : tokenStatus.lintSeverity === "warning"
-                        ? "opacity-30 group-hover:opacity-80"
-                        : "opacity-0 group-hover:opacity-60"
-                }`}
-              >
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
+          {/* Right-edge status cluster: star, status icon, action menu */}
+          {!renamingToken && (
+            <div className="flex items-center gap-1 shrink-0">
+              {isFavorite && (
+                <span
+                  className="shrink-0 text-amber-400"
+                  title="Favorited"
+                  aria-label="Favorited"
                 >
-                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
-                </svg>
-              </button>
-            ) : (
-              <span
-                className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass}`}
-                title={tokenStatus.title}
-              >
-                {tokenStatus.kind === "applied" ? (
                   <svg
-                    width="8"
-                    height="8"
+                    width="12"
+                    height="12"
                     viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M20 6L9 17l-5-5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : tokenStatus.kind === "sync" ? (
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-current"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 24 24"
-                    fill="none"
+                    fill="currentColor"
                     stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    <rect x="9" y="9" width="10" height="10" rx="2" />
-                    <path d="M5 15V7a2 2 0 0 1 2-2h8" />
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                   </svg>
-                )}
-              </span>
-            ))}
-          {/* Passive favorite indicator — always visible when starred */}
-          {isFavorite && (
-            <span
-              className="shrink-0 text-amber-400 ml-0.5"
-              title="Favorited"
-              aria-label="Favorited"
-            >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
+                </span>
+              )}
+              {tokenStatus && (tokenStatus.kind === "lint" ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onPreview) onPreview(node.path, node.name);
+                    else onEdit(node.path, node.name);
+                  }}
+                  title={tokenStatus.title}
+                  className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass}`}
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+                  </svg>
+                </button>
+              ) : (
+                <span
+                  className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass}`}
+                  title={tokenStatus.title}
+                >
+                  {tokenStatus.kind === "applied" ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : tokenStatus.kind === "sync" ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="9" y="9" width="10" height="10" rx="2" />
+                      <path d="M5 15V7a2 2 0 0 1 2-2h8" />
+                    </svg>
+                  )}
+                </span>
+              ))}
+              <div
+                className={`shrink-0 ${selectMode ? "invisible" : isRowActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"}`}
               >
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-            </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenTokenActions(e.currentTarget);
+                  }}
+                  title="More token actions"
+                  aria-label="More token actions"
+                  aria-haspopup="menu"
+                  aria-expanded={!!contextMenuPos}
+                  className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="5" cy="12" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="19" cy="12" r="2" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           )}
-          <div
-            className={`flex items-center gap-0.5 shrink-0 ml-1 ${selectMode ? "invisible" : isRowActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"} transition-opacity`}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenTokenActions(e.currentTarget);
-              }}
-              title="More token actions"
-              aria-label="More token actions"
-              aria-haspopup="menu"
-              aria-expanded={!!contextMenuPos}
-              className="p-2 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <circle cx="5" cy="12" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="19" cy="12" r="2" />
-              </svg>
-            </button>
-          </div>
           </div>
           {/* end name cell (grid column 1) */}
 
@@ -1859,7 +1804,7 @@ export const TokenLeafNode = memo(
           <div
             className="flex items-center border-t border-[var(--color-figma-border)]"
             style={{
-              paddingLeft: `${computePaddingLeft(depth, condensedView, 12)}px`,
+              paddingLeft: `${computePaddingLeft(depth, 12)}px`,
             }}
           >
             <TokenNudge
@@ -1882,7 +1827,7 @@ export const TokenLeafNode = memo(
           <div
             className="flex flex-col bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]"
             style={{
-              paddingLeft: `${computePaddingLeft(depth, condensedView, 12)}px`,
+              paddingLeft: `${computePaddingLeft(depth, 12)}px`,
             }}
           >
             {resolutionSteps.map((step, i) => {
@@ -1983,7 +1928,6 @@ export const TokenLeafNode = memo(
       prev.lintViolations === next.lintViolations &&
       prev.multiModeValues === next.multiModeValues &&
       prev.gridTemplate === next.gridTemplate &&
-      prev.isPinned === next.isPinned &&
       prev.chainExpanded === next.chainExpanded &&
       prev.depth === next.depth
     );

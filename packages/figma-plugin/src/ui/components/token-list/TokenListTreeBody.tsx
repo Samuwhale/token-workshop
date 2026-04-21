@@ -300,7 +300,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       className="sticky top-0 z-20 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
       style={{ display: "grid", gridTemplateColumns: gridTemplate }}
     >
-      <div className="min-w-0 px-2 py-1 flex items-center gap-1">
+      <div className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
         {collections.length > 1 ? (
           <select
             value={multiModeDimId ?? ""}

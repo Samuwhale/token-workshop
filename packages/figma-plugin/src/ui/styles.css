@@ -108,13 +108,6 @@
   --color-figma-overlay: rgba(0, 0, 0, 0.40);
   --color-figma-overlay-heavy: rgba(0, 0, 0, 0.60);
 
-  /* Depth guide-bar colors — used in tree indentation bars */
-  --color-depth-0: transparent;
-  --color-depth-1: rgba(24, 160, 251, 0.55);
-  --color-depth-2: rgba(90, 210, 140, 0.55);
-  --color-depth-3: rgba(255, 180, 50, 0.55);
-  --color-depth-4: rgba(230, 100, 80, 0.55);
-  --color-depth-5: rgba(170, 100, 240, 0.55);
 }
 
 /* Light mode — Figma injects .figma-light on the iframe <html> element */
@@ -198,14 +191,6 @@ html.figma-light {
   --color-token-type-shadow: #a435c9;
   --color-token-type-border: #b7950b;
   --color-token-type-fallback: #6b6b88;
-
-  /* Depth guide-bar colors — reduced opacity for light backgrounds */
-  --color-depth-0: transparent;
-  --color-depth-1: rgba(24, 160, 251, 0.4);
-  --color-depth-2: rgba(90, 210, 140, 0.4);
-  --color-depth-3: rgba(255, 180, 50, 0.4);
-  --color-depth-4: rgba(230, 100, 80, 0.4);
-  --color-depth-5: rgba(170, 100, 240, 0.4);
 
   --color-figma-overlay: rgba(0, 0, 0, 0.25);
   --color-figma-overlay-heavy: rgba(0, 0, 0, 0.40);

@@ -34,13 +34,13 @@ export interface UseTokenSearchParams {
   scrollAnchorPathRef: React.MutableRefObject<string | null>;
   isFilterChangeRef: React.MutableRefObject<boolean>;
   expandedPaths: Set<string>;
-  pinnedPaths: Set<string>;
+  starredPaths: Set<string>;
   sortedTokens: TokenNode[];
   recentlyTouchedPaths: Set<string>;
   // Additional filtering state from component
   showIssuesOnly?: boolean;
   showRecentlyTouched?: boolean;
-  showPinnedOnly?: boolean;
+  showStarredOnly?: boolean;
   inspectMode?: boolean;
   zoomRootPath?: string | null;
   lintPaths?: Set<string>;
@@ -61,12 +61,12 @@ export function useTokenSearch({
   scrollAnchorPathRef,
   isFilterChangeRef,
   expandedPaths: _expandedPaths,
-  pinnedPaths,
+  starredPaths,
   sortedTokens,
   recentlyTouchedPaths,
   showIssuesOnly = false,
   showRecentlyTouched = false,
-  showPinnedOnly = false,
+  showStarredOnly = false,
   inspectMode = false,
   zoomRootPath = null,
   lintPaths = new Set(),
@@ -235,10 +235,10 @@ export function useTokenSearch({
     return () => { clearTimeout(timer); ctrl.abort(); };
   }, [crossCollectionOffset, crossCollectionSearch, searchQuery, serverUrl]);
 
-  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showPinnedOnly;
+  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showStarredOnly;
 
   // Count of active non-search filters (for compact filter indicator)
-  const activeFilterCount = (typeFilter !== '' ? 1 : 0) + (refFilter !== 'all' ? 1 : 0) + (showDuplicates ? 1 : 0) + (showIssuesOnly ? 1 : 0) + (showRecentlyTouched ? 1 : 0) + (showPinnedOnly ? 1 : 0);
+  const activeFilterCount = (typeFilter !== '' ? 1 : 0) + (refFilter !== 'all' ? 1 : 0) + (showDuplicates ? 1 : 0) + (showIssuesOnly ? 1 : 0) + (showRecentlyTouched ? 1 : 0) + (showStarredOnly ? 1 : 0);
 
   // Compute duplicate value info from all tokens in the current collection
   const { duplicateValuePaths, duplicateCounts } = useMemo(() => {
@@ -476,12 +476,12 @@ export function useTokenSearch({
       if (recentlyTouchedPaths.size > 0) result = filterByDuplicatePaths(result, recentlyTouchedPaths);
       else result = [];
     }
-    if (showPinnedOnly) {
-      if (pinnedPaths.size > 0) result = filterByDuplicatePaths(result, pinnedPaths);
+    if (showStarredOnly) {
+      if (starredPaths.size > 0) result = filterByDuplicatePaths(result, starredPaths);
       else result = [];
     }
     return result;
-  }, [sortedTokens, zoomRootPath, collectionId, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouchedPaths, showPinnedOnly, pinnedPaths, derivedTokenPaths, unusedTokenPaths]);
+  }, [sortedTokens, zoomRootPath, collectionId, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouchedPaths, showStarredOnly, starredPaths, derivedTokenPaths, unusedTokenPaths]);
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);

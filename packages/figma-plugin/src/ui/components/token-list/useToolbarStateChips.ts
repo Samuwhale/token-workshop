@@ -26,14 +26,14 @@ interface ToolbarStateChipsConfig {
   lintViolationsLength: number;
   showRecentlyTouched: boolean;
   setShowRecentlyTouched: (v: boolean) => void;
+  showStarredOnly: boolean;
+  setShowStarredOnly: (v: boolean | ((prev: boolean) => boolean)) => void;
   typeFilter: string;
   setTypeFilter: (v: string) => void;
   inspectMode: boolean;
   setInspectMode: (v: boolean) => void;
   crossCollectionSearch: boolean;
   setCrossCollectionSearch: (v: boolean) => void;
-  condensedView: boolean;
-  setCondensedView: (v: boolean) => void;
   showPreviewSplit: boolean;
   onTogglePreviewSplit?: () => void;
   showFlatSearchResults: boolean;
@@ -45,9 +45,10 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     structuredFilterChips, removeQueryToken, sortOrder, setSortOrder,
     refFilter, setRefFilter, showDuplicates, setShowDuplicates,
     showIssuesOnly, onToggleIssuesOnly, lintViolationsLength,
-    showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
+    showRecentlyTouched, setShowRecentlyTouched,
+    showStarredOnly, setShowStarredOnly,
+    typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
-    condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation,
   } = config;
@@ -107,6 +108,14 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         onRemove: () => setShowRecentlyTouched(false),
       });
     }
+    if (showStarredOnly) {
+      chips.push({
+        key: "starred-only",
+        label: "Only starred",
+        tone: "filter",
+        onRemove: () => setShowStarredOnly(false),
+      });
+    }
     if (typeFilter !== "") {
       chips.push({
         key: `type:${typeFilter}`,
@@ -131,14 +140,6 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         onRemove: () => setCrossCollectionSearch(false),
       });
     }
-    if (condensedView) {
-      chips.push({
-        key: "view:condensed",
-        label: "Condensed rows",
-        tone: "view",
-        onRemove: () => setCondensedView(false),
-      });
-    }
     if (showPreviewSplit && onTogglePreviewSplit) {
       chips.push({
         key: "view:split",
@@ -158,14 +159,15 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
 
     return chips;
   }, [
-    condensedView, crossCollectionSearch, inspectMode, lintViolationsLength,
+    crossCollectionSearch, inspectMode, lintViolationsLength,
     onToggleIssuesOnly,
-    onTogglePreviewSplit, refFilter, removeQueryToken, setCondensedView,
+    onTogglePreviewSplit, refFilter, removeQueryToken,
     setCrossCollectionSearch, setInspectMode, setRefFilter,
     setSearchResultPresentation, setShowDuplicates,
-    setShowRecentlyTouched, setSortOrder, setTypeFilter, showDuplicates,
+    setShowRecentlyTouched, setShowStarredOnly,
+    setSortOrder, setTypeFilter, showDuplicates,
     showFlatSearchResults, showIssuesOnly, showPreviewSplit,
-    showRecentlyTouched, sortOrder, structuredFilterChips,
+    showRecentlyTouched, showStarredOnly, sortOrder, structuredFilterChips,
     typeFilter,
   ]);
 

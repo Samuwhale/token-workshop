@@ -67,7 +67,7 @@ export function ValueCell({
     });
   };
 
-  const wrapperClass = `min-w-0 shrink-0 px-1.5 flex items-center gap-1.5 border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`;
+  const wrapperClass = `min-w-0 shrink-0 px-1 flex items-center gap-1 border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`;
 
   return (
     <div

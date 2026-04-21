@@ -21,7 +21,6 @@ import { SegmentedControl } from "./SegmentedControl";
 // Types
 // ---------------------------------------------------------------------------
 
-type Density = "compact" | "comfortable";
 type ColorFormat = "hex" | "rgb" | "hsl" | "oklch" | "p3";
 export type PreferredCopyFormat =
   | "css-var"
@@ -160,7 +159,6 @@ type ImportDiffEntry = {
 const IMPORTABLE_PREFIXES = [
   STORAGE_PREFIXES.TOKEN_SORT,
   STORAGE_PREFIXES.TOKEN_TYPE_FILTER,
-  STORAGE_PREFIXES.PINNED_TOKENS,
   STORAGE_PREFIXES.TOKEN_VIEW_MODE,
   STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES,
 ] as const;
@@ -168,7 +166,6 @@ const IMPORTABLE_PREFIXES = [
 const PREFIX_LABELS: Array<{ prefix: string; label: string }> = [
   { prefix: STORAGE_PREFIXES.TOKEN_SORT, label: "Sort" },
   { prefix: STORAGE_PREFIXES.TOKEN_TYPE_FILTER, label: "Filter" },
-  { prefix: STORAGE_PREFIXES.PINNED_TOKENS, label: "Pinned" },
   { prefix: STORAGE_PREFIXES.TOKEN_VIEW_MODE, label: "View mode" },
   { prefix: STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES, label: "Resolved values" },
 ];
@@ -193,7 +190,6 @@ function labelForImportKey(key: string): string {
 
 /** Exact localStorage keys that are allowed to be imported. */
 const IMPORTABLE_EXACT_KEYS = new Set<string>([
-  STORAGE_KEYS.DENSITY,
   STORAGE_KEYS.COLOR_FORMAT,
   STORAGE_KEYS.PREFERRED_COPY_FORMAT,
   STORAGE_KEYS.CONTRAST_BG,
@@ -218,7 +214,6 @@ function isAllowedImportKey(key: string): boolean {
 }
 
 const IMPORT_KEY_LABELS: Record<string, string> = {
-  [STORAGE_KEYS.DENSITY]: "UI density",
   [STORAGE_KEYS.COLOR_FORMAT]: "Color format",
   [STORAGE_KEYS.PREFERRED_COPY_FORMAT]: "Preferred copy format",
   [STORAGE_KEYS.CONTRAST_BG]: "Contrast background",
@@ -300,10 +295,6 @@ export function SettingsPanel({
   } = useLintConfig(serverUrl, connected);
 
   // ---- UI Preferences ----
-  const [density, setDensity] = useState<Density>(() => {
-    const stored = lsGet(STORAGE_KEYS.DENSITY);
-    return stored === "compact" ? "compact" : "comfortable";
-  });
   const [colorFormat, setColorFormat] = useState<ColorFormat>(() => {
     const saved = lsGet(STORAGE_KEYS.COLOR_FORMAT);
     if (
@@ -346,7 +337,6 @@ export function SettingsPanel({
 
   const handleExportSettings = useCallback(() => {
     const preferenceKeys: string[] = [
-      STORAGE_KEYS.DENSITY,
       STORAGE_KEYS.COLOR_FORMAT,
       STORAGE_KEYS.PREFERRED_COPY_FORMAT,
       STORAGE_KEYS.CONTRAST_BG,
@@ -510,12 +500,6 @@ export function SettingsPanel({
   );
 
   // ---- Handlers ----
-  const handleDensityChange = (d: Density) => {
-    setDensity(d);
-    lsSet(STORAGE_KEYS.DENSITY, d);
-    dispatchSettingsChanged(STORAGE_KEYS.DENSITY);
-  };
-
   const handleColorFormatChange = (f: ColorFormat) => {
     setColorFormat(f);
     lsSet(STORAGE_KEYS.COLOR_FORMAT, f);
@@ -600,21 +584,6 @@ export function SettingsPanel({
 
           {/* ── Everyday preferences (always visible) ── */}
           <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-body text-[var(--color-figma-text)]">
-                Density
-              </span>
-              <SegmentedControl
-                options={[
-                  { value: "compact" as Density, label: "Compact" },
-                  { value: "comfortable" as Density, label: "Comfortable" },
-                ]}
-                value={density}
-                onChange={handleDensityChange}
-                label="Density"
-              />
-            </div>
-
             <Toggle
               checked={hideDeprecated}
               onChange={handleHideDeprecatedChange}

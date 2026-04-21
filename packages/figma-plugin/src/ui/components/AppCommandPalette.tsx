@@ -9,7 +9,6 @@ import {
 } from "../contexts/TokenDataContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
-import { usePinnedTokens } from "../hooks/usePinnedTokens";
 import { isAlias } from "../../shared/resolveAlias";
 import { useTokensWorkspaceController } from "../contexts/WorkspaceControllerContext";
 
@@ -31,7 +30,7 @@ export function AppCommandPalette({
     useEditorContext();
   const tokens = useTokensWorkspaceController();
   const { commands, currentCollectionPaletteTokens } = useCommandPaletteCommands();
-  const pinnedTokensState = usePinnedTokens(currentCollectionId);
+  const { starredTokens } = tokens;
 
   const paletteTokens = useMemo<TokenEntry[]>(() => {
     return Object.entries(allTokensFlat).map(([path, entry]) => ({
@@ -49,10 +48,12 @@ export function AppCommandPalette({
     }));
   }, [allTokensFlat, derivedTokenPaths, pathToCollectionId]);
 
-  const pinnedPaletteTokens = useMemo<TokenEntry[]>(() => {
-    return Array.from(pinnedTokensState.paths)
-      .filter((path) => allTokensFlat[path])
-      .map((path) => {
+  const starredPaletteTokens = useMemo<TokenEntry[]>(() => {
+    return starredTokens.tokens
+      .filter(({ path, collectionId }) =>
+        allTokensFlat[path] && pathToCollectionId[path] === collectionId,
+      )
+      .map(({ path, collectionId }) => {
         const entry = allTokensFlat[path];
         return {
           path,
@@ -61,11 +62,11 @@ export function AppCommandPalette({
             typeof entry.$value === "string"
               ? entry.$value
               : JSON.stringify(entry.$value),
-          set: pathToCollectionId[path],
+          set: collectionId,
           isAlias: isAlias(entry.$value),
         };
       });
-  }, [allTokensFlat, pathToCollectionId, pinnedTokensState.paths]);
+  }, [allTokensFlat, pathToCollectionId, starredTokens.tokens]);
 
   const recentPaletteTokens = useMemo<TokenEntry[]>(() => {
     const maxRecent = 10;
@@ -97,7 +98,7 @@ export function AppCommandPalette({
       commands={commands}
       tokens={currentCollectionPaletteTokens}
       allSetTokens={paletteTokens}
-      pinnedTokens={pinnedPaletteTokens}
+      starredTokens={starredPaletteTokens}
       recentTokens={recentPaletteTokens}
       onGoToToken={(path) => {
         const targetCollectionId = pathToCollectionId[path];

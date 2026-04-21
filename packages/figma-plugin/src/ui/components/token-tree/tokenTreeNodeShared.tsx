@@ -19,8 +19,7 @@ import {
 import { formatValue } from "../generators/generatorShared";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
-  CONDENSED_MAX_DEPTH,
-  DEPTH_COLORS,
+  DEPTH_GUIDE_COLOR,
   INDENT_PER_LEVEL,
 } from "../tokenListTypes";
 
@@ -67,60 +66,18 @@ export function getIncomingRefs(
   return results.sort();
 }
 
-export function computePaddingLeft(
-  depth: number,
-  condensedView: boolean,
-  base: number,
-): number {
-  const effectiveDepth = condensedView
-    ? Math.min(depth, CONDENSED_MAX_DEPTH)
-    : depth;
-  return effectiveDepth * INDENT_PER_LEVEL + base;
+export function computePaddingLeft(depth: number, base: number): number {
+  return depth * INDENT_PER_LEVEL + base;
 }
 
 export function DepthBar({ depth }: { depth: number }) {
   if (depth === 0) return null;
-  const color = DEPTH_COLORS[depth % DEPTH_COLORS.length] ?? DEPTH_COLORS[1];
   return (
     <span
       aria-hidden="true"
       className="absolute top-0 bottom-0 pointer-events-none"
-      style={{ left: 0, width: 2, background: color, borderRadius: 1 }}
+      style={{ left: 0, width: 1, background: DEPTH_GUIDE_COLOR }}
     />
-  );
-}
-
-export function CondensedAncestorBreadcrumb({
-  nodePath,
-  nodeName,
-  depth,
-  condensedView,
-}: {
-  nodePath: string;
-  nodeName: string;
-  depth: number;
-  condensedView: boolean;
-}) {
-  if (!condensedView || depth <= CONDENSED_MAX_DEPTH) return null;
-  const parts = nodePath.split(".");
-  const hiddenSegments = parts.slice(
-    CONDENSED_MAX_DEPTH,
-    parts.length - nodeName.split(".").length,
-  );
-  if (hiddenSegments.length === 0) return null;
-  const label =
-    hiddenSegments.length === 1
-      ? hiddenSegments[0]
-      : `…${hiddenSegments[hiddenSegments.length - 1]}`;
-  const tooltip = `Hidden ancestors: ${hiddenSegments.join(" › ")}`;
-  return (
-    <span
-      className={`shrink-0 ${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] leading-none`}
-      title={tooltip}
-      aria-label={`In: ${hiddenSegments.join(" › ")}`}
-    >
-      {label}
-    </span>
   );
 }
 
@@ -184,7 +141,6 @@ function countManagedGeneratorLeaves(
 
 export function GeneratedGroupSummaryRow({
   depth,
-  condensedView,
   generator,
   exceptionCount,
   previewTokens,
@@ -202,7 +158,6 @@ export function GeneratedGroupSummaryRow({
   onNavigateToSourceToken,
 }: {
   depth: number;
-  condensedView: boolean;
   generator: TokenGenerator;
   exceptionCount: number;
   previewTokens: GeneratedTokenResult[];
@@ -235,7 +190,7 @@ export function GeneratedGroupSummaryRow({
     <div
       className="mb-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
       style={{
-        paddingLeft: `${computePaddingLeft(depth, condensedView, 24)}px`,
+        paddingLeft: `${computePaddingLeft(depth, 24)}px`,
       }}
       onClick={(event) => event.stopPropagation()}
     >

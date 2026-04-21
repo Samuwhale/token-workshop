@@ -511,14 +511,14 @@ export function TokenListToolbar({
 
         {(filterItems.length > 0 || viewItems.length > 0) && (
           <div className="flex items-center gap-1.5">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5 text-secondary leading-tight">
+            <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-x-1 overflow-x-auto whitespace-nowrap text-secondary leading-tight scrollbar-thin">
               {filterItems.map((item) => (
                 <button
                   key={item.key}
                   type="button"
                   onClick={item.onRemove}
                   disabled={!item.onRemove}
-                  className="truncate text-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:cursor-default"
+                  className="shrink-0 text-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:cursor-default"
                   title={item.onRemove ? `Remove ${item.label}` : item.label}
                 >
                   {item.label}
@@ -530,7 +530,7 @@ export function TokenListToolbar({
                   type="button"
                   onClick={item.onRemove}
                   disabled={!item.onRemove}
-                  className="truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:cursor-default"
+                  className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:cursor-default"
                   title={item.onRemove ? `Remove ${item.label}` : item.label}
                 >
                   {item.label}

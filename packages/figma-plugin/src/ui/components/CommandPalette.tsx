@@ -58,7 +58,7 @@ interface CommandPaletteProps {
   commands: Command[];
   tokens?: TokenEntry[];
   allSetTokens?: TokenEntry[];
-  pinnedTokens?: TokenEntry[];
+  starredTokens?: TokenEntry[];
   recentTokens?: TokenEntry[];
   onGoToToken?: (path: string) => void;
   onGoToGroup?: (path: string) => void;
@@ -151,7 +151,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onRenameToken, onDeleteToken, onMoveToken, onClose, initialQuery = '' }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], allSetTokens, starredTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onRenameToken, onDeleteToken, onMoveToken, onClose, initialQuery = '' }: CommandPaletteProps) {
   const [query, setQuery] = useState(initialQuery);
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
@@ -338,15 +338,15 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
   // Token quick-access sections for no-query mode
   const dedupedRecentTokens = useMemo(() => {
     if (!recentTokens?.length) return [];
-    if (!pinnedTokens?.length) return recentTokens;
-    const pinnedSet = new Set(pinnedTokens.map(t => t.path));
-    return recentTokens.filter(t => !pinnedSet.has(t.path));
-  }, [recentTokens, pinnedTokens]);
+    if (!starredTokens?.length) return recentTokens;
+    const starredSet = new Set(starredTokens.map(t => t.path));
+    return recentTokens.filter(t => !starredSet.has(t.path));
+  }, [recentTokens, starredTokens]);
 
-  const noQueryPinnedTokens = useMemo(() => {
+  const noQueryStarredTokens = useMemo(() => {
     if (isTokenMode || query.trim()) return [];
-    return pinnedTokens ?? [];
-  }, [isTokenMode, query, pinnedTokens]);
+    return starredTokens ?? [];
+  }, [isTokenMode, query, starredTokens]);
 
   const noQueryRecentTokens = useMemo(() => {
     if (isTokenMode || query.trim()) return [];
@@ -362,14 +362,14 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
       for (const t of filteredTokens) items.push({ kind: 'token', token: t });
       return items;
     }
-    // No-query mode: pinned and recent token items come before commands
+    // No-query mode: starred and recent token items come before commands
     const items: FlatItem[] = [];
-    for (const t of noQueryPinnedTokens) items.push({ kind: 'token', token: t });
+    for (const t of noQueryStarredTokens) items.push({ kind: 'token', token: t });
     for (const t of noQueryRecentTokens) items.push({ kind: 'token', token: t });
     const cmdList = sectionFlatItems ?? filteredCommands;
     for (const cmd of cmdList) items.push({ kind: 'command', cmd });
     return items;
-  }, [isTokenMode, filteredTokens, filteredGroups, filteredCommands, sectionFlatItems, noQueryPinnedTokens, noQueryRecentTokens]);
+  }, [isTokenMode, filteredTokens, filteredGroups, filteredCommands, sectionFlatItems, noQueryStarredTokens, noQueryRecentTokens]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -878,18 +878,18 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
             </>
           )}
 
-          {/* Pinned tokens quick-access (no query) */}
-          {noQueryPinnedTokens.length > 0 && (
+          {/* Starred tokens quick-access (no query) */}
+          {noQueryStarredTokens.length > 0 && (
             <div>
               <div className="px-3 pt-2 pb-0.5 text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
-                <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 3H8a1 1 0 00-1 1v7.586l-2.707 2.707A1 1 0 005 16h14a1 1 0 00.707-1.707L17 11.586V4a1 1 0 00-1-1z"/><rect x="10" y="16" width="4" height="5" rx="1"/></svg>
-                Pinned Tokens
+                <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                Starred
               </div>
-              {noQueryPinnedTokens.map((token, idx) => {
+              {noQueryStarredTokens.map((token, idx) => {
                 const flatIdx = idx;
                 return (
                   <button
-                    key={'pin:' + token.path}
+                    key={'star:' + token.path}
                     role="option"
                     aria-selected={flatIdx === activeIdx}
                     data-palette-item
@@ -923,7 +923,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
                 Recently Edited
               </div>
               {noQueryRecentTokens.map((token, idx) => {
-                const flatIdx = noQueryPinnedTokens.length + idx;
+                const flatIdx = noQueryStarredTokens.length + idx;
                 return (
                   <button
                     key={'rec:' + token.path}
@@ -954,7 +954,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, pinnedToke
 
           {/* Grouped sections (no query) */}
           {!isTokenMode && sections && (() => {
-            let runningIdx = noQueryPinnedTokens.length + noQueryRecentTokens.length;
+            let runningIdx = noQueryStarredTokens.length + noQueryRecentTokens.length;
             return sections.map(section => (
               <div key={section.header}>
                 <div className="px-3 pt-2 pb-0.5 text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">

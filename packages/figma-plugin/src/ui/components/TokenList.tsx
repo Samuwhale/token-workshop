@@ -267,6 +267,8 @@ export function TokenList({
   const {
     showRecentlyTouched,
     setShowRecentlyTouched,
+    showStarredOnly,
+    setShowStarredOnly,
     inspectMode,
     setInspectMode,
     viewMode,
@@ -277,11 +279,7 @@ export function TokenList({
     setShowResolvedValues,
     statsBarOpen,
     setStatsBarOpen,
-    density,
-    setDensity,
     rowHeight,
-    condensedView,
-    setCondensedView,
     multiModeDimId,
     setMultiModeDimId,
   } = viewState;
@@ -916,12 +914,12 @@ export function TokenList({
     scrollAnchorPathRef,
     isFilterChangeRef,
     expandedPaths,
-    pinnedPaths: EMPTY_PATH_SET,
+    starredPaths: starredPaths ?? EMPTY_PATH_SET,
     sortedTokens,
     recentlyTouchedPaths,
     showIssuesOnly,
     showRecentlyTouched,
-    showPinnedOnly: false,
+    showStarredOnly,
     inspectMode,
     zoomRootPath,
     lintPaths,
@@ -1016,8 +1014,8 @@ export function TokenList({
     refFilter, setRefFilter, showDuplicates, setShowDuplicates,
     showIssuesOnly, onToggleIssuesOnly, lintViolationsLength: lintViolations.length,
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
+    showStarredOnly, setShowStarredOnly,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
-    condensedView, setCondensedView,
     showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
     setSearchResultPresentation,
   });
@@ -1808,6 +1806,7 @@ export function TokenList({
     setCrossCollectionSearch(false);
     setInspectMode(false);
     setShowRecentlyTouched(false);
+    setShowStarredOnly(false);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
   }, [
     onToggleIssuesOnly,
@@ -1817,20 +1816,18 @@ export function TokenList({
     setSearchQuery,
     setShowDuplicates,
     setShowRecentlyTouched,
+    setShowStarredOnly,
     setTypeFilter,
     showIssuesOnly,
   ]);
 
   const clearViewModes = useCallback(() => {
     if (showResolvedValues) setShowResolvedValues(false);
-    if (condensedView) setCondensedView(false);
     if (showPreviewSplit) onTogglePreviewSplit?.();
     if (showFlatSearchResults) setSearchResultPresentation("grouped");
     if (sortOrder !== "default") setSortOrder("default");
   }, [
-    condensedView,
     onTogglePreviewSplit,
-    setCondensedView,
     setSearchResultPresentation,
     setSortOrder,
     setShowResolvedValues,
@@ -2218,9 +2215,9 @@ export function TokenList({
   }, [activeCollections, collectionId]);
 
   const tokenTreeGroupState = useTokenTreeGroupState({
-    density, collectionId, activeCollectionModeLabel, selectMode, expandedPaths, highlightedToken,
+    collectionId, activeCollectionModeLabel, selectMode, expandedPaths, highlightedToken,
     searchHighlight, dragOverGroup, dragOverGroupIsInvalid, dragSource,
-    generatorsByTargetGroup, collectionCoverage, condensedView,
+    generatorsByTargetGroup, collectionCoverage,
     effectiveRovingPath,
   });
 
@@ -2241,11 +2238,10 @@ export function TokenList({
   });
 
   const tokenTreeLeafState = useTokenTreeLeafState({
-    density, serverUrl, collectionId, collectionIds, selectionCapabilities, duplicateCounts,
+    serverUrl, collectionId, collectionIds, selectionCapabilities, duplicateCounts,
     selectMode, highlightedToken, inspectMode, syncSnapshot, derivedTokenPaths,
     searchHighlight, selectedNodes, boundTokenPaths, dragOverReorder, selectedLeafNodes,
     showResolvedValues,
-    condensedView,
     starredPaths,
     collections: activeCollections,
     pendingRenameToken, pendingTabEdit, effectiveRovingPath, showDuplicates,
@@ -2469,10 +2465,6 @@ export function TokenList({
               onCollapseAll: handleCollapseAll,
               hasGroups: tokens.some((n) => n.isGroup),
               allGroupsExpanded,
-              density,
-              onDensityChange: setDensity,
-              condensedView,
-              onCondensedViewChange: setCondensedView,
               hasCollections: collections.length > 0,
               showPreviewSplit,
               onTogglePreviewSplit,
@@ -2485,6 +2477,9 @@ export function TokenList({
               recentlyTouchedCount: recentlyTouched.count,
               showRecentlyTouched,
               onToggleRecentlyTouched: () => setShowRecentlyTouched((v) => !v),
+              starredCount: starredPaths?.size ?? 0,
+              showStarredOnly,
+              onToggleStarredOnly: () => setShowStarredOnly((v) => !v),
               inspectMode,
               onToggleInspectMode: () => setInspectMode((v) => !v),
               crossCollectionSearch,

@@ -1,8 +1,6 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { STORAGE_KEY_BUILDERS, STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
-import { useSettingsListener } from "../components/SettingsPanel";
-import { DENSITY_ROW_HEIGHT } from "../components/tokenListTypes";
-import type { Density } from "../components/tokenListTypes";
+import { VIRTUAL_ITEM_HEIGHT } from "../components/tokenListTypes";
 import type { SortOrder } from "../components/tokenListUtils";
 import type { TokenCollection } from "@tokenmanager/core";
 
@@ -24,6 +22,7 @@ export function useTokenListViewState({
   collections,
 }: UseTokenListViewStateParams) {
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [inspectMode, setInspectMode] = useState(false);
 
   const [viewMode, setViewModeState] = useState<"tree" | "json">("tree");
@@ -97,33 +96,7 @@ export function useTokenListViewState({
     [collectionId],
   );
 
-  const [density, setDensityState] = useState<Density>(() => {
-    const stored = lsGet(STORAGE_KEYS.DENSITY);
-    return stored === "compact" ? "compact" : "comfortable";
-  });
-
-  const setDensity = useCallback((d: Density) => {
-    setDensityState(d);
-    lsSet(STORAGE_KEYS.DENSITY, d);
-  }, []);
-
-  const densityRev = useSettingsListener(STORAGE_KEYS.DENSITY);
-  useEffect(() => {
-    if (densityRev === 0) return;
-    const stored = lsGet(STORAGE_KEYS.DENSITY);
-    setDensityState(stored === "compact" ? "compact" : "comfortable");
-  }, [densityRev]);
-
-  const rowHeight = DENSITY_ROW_HEIGHT[density];
-
-  const [condensedView, setCondensedViewState] = useState<boolean>(
-    () => lsGet(STORAGE_KEYS.CONDENSED_VIEW) === "1",
-  );
-
-  const setCondensedView = useCallback((v: boolean) => {
-    setCondensedViewState(v);
-    lsSet(STORAGE_KEYS.CONDENSED_VIEW, v ? "1" : "0");
-  }, []);
+  const rowHeight = VIRTUAL_ITEM_HEIGHT;
 
   // Mode columns are always shown — one column per mode. For single-mode
   // collections this is one column; multi-mode collections get N.
@@ -141,6 +114,8 @@ export function useTokenListViewState({
   return {
     showRecentlyTouched,
     setShowRecentlyTouched,
+    showStarredOnly,
+    setShowStarredOnly,
     inspectMode,
     setInspectMode,
     viewMode,
@@ -151,11 +126,7 @@ export function useTokenListViewState({
     setShowResolvedValues,
     statsBarOpen,
     setStatsBarOpen,
-    density,
-    setDensity,
     rowHeight,
-    condensedView,
-    setCondensedView,
     multiModeDimId,
     setMultiModeDimId,
   };

@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { Check, Eye, Filter } from "lucide-react";
 import type { SortOrder } from "./tokenListTypes";
-import type { Density } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 
@@ -12,10 +11,6 @@ export interface ViewMenuProps {
   onCollapseAll: () => void;
   hasGroups: boolean;
   allGroupsExpanded: boolean;
-  density: Density;
-  onDensityChange: (d: Density) => void;
-  condensedView: boolean;
-  onCondensedViewChange: (v: boolean) => void;
   hasCollections: boolean;
   showPreviewSplit: boolean;
   onTogglePreviewSplit?: () => void;
@@ -33,6 +28,9 @@ export interface FilterMenuProps {
   recentlyTouchedCount: number;
   showRecentlyTouched: boolean;
   onToggleRecentlyTouched: () => void;
+  starredCount: number;
+  showStarredOnly: boolean;
+  onToggleStarredOnly: () => void;
   inspectMode: boolean;
   onToggleInspectMode: () => void;
   crossCollectionSearch: boolean;
@@ -197,29 +195,6 @@ export function ViewMenu(
               />
             )}
             <MenuItem
-              label={
-                props.density === "compact"
-                  ? "Density: compact"
-                  : "Density: comfortable"
-              }
-              onClick={() =>
-                runAndClose(() =>
-                  props.onDensityChange(
-                    props.density === "compact" ? "comfortable" : "compact",
-                  ),
-                )
-              }
-            />
-            <MenuItem
-              label="Condense rows"
-              checked={props.condensedView}
-              onClick={() =>
-                runAndClose(() =>
-                  props.onCondensedViewChange(!props.condensedView),
-                )
-              }
-            />
-            <MenuItem
               label="Preview pane"
               checked={props.showPreviewSplit}
               onClick={() =>
@@ -308,6 +283,14 @@ export function FilterMenu(props: FilterMenuProps) {
                 onClick={() =>
                   runAndClose(props.onToggleRecentlyTouched)
                 }
+              />
+            )}
+            {props.starredCount > 0 && (
+              <MenuItem
+                label="Only starred"
+                checked={props.showStarredOnly}
+                suffix={`${props.starredCount}`}
+                onClick={() => runAndClose(props.onToggleStarredOnly)}
               />
             )}
             <MenuItem

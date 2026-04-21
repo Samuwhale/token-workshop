@@ -14,7 +14,6 @@ import type {
   TokenTreeLeafStateContextType,
   TokenTreeSharedDataContextType,
 } from "../tokenListTypes";
-import type { Density } from "../tokenListTypes";
 
 interface SharedDataDeps {
   effectiveAllTokensFlat: Record<string, TokenMapEntry>;
@@ -44,7 +43,6 @@ export function useTokenTreeSharedData(deps: SharedDataDeps): TokenTreeSharedDat
 }
 
 interface GroupStateDeps {
-  density: Density;
   collectionId: string;
   activeCollectionModeLabel?: string | null;
   selectMode: boolean;
@@ -59,14 +57,12 @@ interface GroupStateDeps {
     string,
     { configured: number; total: number; totalMissing: number }
   >;
-  condensedView?: boolean;
   effectiveRovingPath: string | null;
 }
 
 export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStateContextType {
   return useMemo(
     () => ({
-      density: deps.density,
       collectionId: deps.collectionId,
       activeCollectionModeLabel: deps.activeCollectionModeLabel ?? null,
       selectMode: deps.selectMode,
@@ -79,14 +75,13 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       dragSource: deps.dragSource,
       generatorsByTargetGroup: deps.generatorsByTargetGroup,
       collectionCoverage: deps.collectionCoverage,
-      condensedView: deps.condensedView,
       rovingFocusPath: deps.effectiveRovingPath,
     }),
     [
-      deps.density, deps.collectionId, deps.activeCollectionModeLabel, deps.selectMode, deps.expandedPaths,
+      deps.collectionId, deps.activeCollectionModeLabel, deps.selectMode, deps.expandedPaths,
       deps.highlightedToken, deps.searchHighlight, deps.dragOverGroup,
       deps.dragOverGroupIsInvalid, deps.dragSource, deps.generatorsByTargetGroup,
-      deps.collectionCoverage, deps.condensedView, deps.effectiveRovingPath,
+      deps.collectionCoverage, deps.effectiveRovingPath,
     ],
   );
 }
@@ -160,7 +155,6 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
 }
 
 interface LeafStateDeps {
-  density: Density;
   serverUrl: string;
   collectionId: string;
   collectionIds: string[];
@@ -177,7 +171,6 @@ interface LeafStateDeps {
   dragOverReorder?: { path: string; position: "before" | "after" } | null;
   selectedLeafNodes?: TokenNode[];
   showResolvedValues: boolean;
-  condensedView?: boolean;
   starredPaths?: Set<string>;
   collections?: TokenCollection[];
   pendingRenameToken: string | null;
@@ -190,7 +183,6 @@ interface LeafStateDeps {
 export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateContextType {
   return useMemo(
     () => ({
-      density: deps.density,
       serverUrl: deps.serverUrl,
       collectionId: deps.collectionId,
       collectionIds: deps.collectionIds,
@@ -208,7 +200,6 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       dragOverReorder: deps.dragOverReorder,
       selectedLeafNodes: deps.selectedLeafNodes,
       showResolvedValues: deps.showResolvedValues,
-      condensedView: deps.condensedView,
       starredPaths: deps.starredPaths,
       collections: deps.collections,
       pendingRenameToken: deps.pendingRenameToken,

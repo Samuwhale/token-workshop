@@ -24,50 +24,17 @@ export interface MultiModeValue {
 }
 
 // ---------------------------------------------------------------------------
-// Density preference
-// ---------------------------------------------------------------------------
-export type Density = "compact" | "comfortable";
-
-/** Row height (px) per density level */
-export const DENSITY_ROW_HEIGHT: Record<Density, number> = {
-  compact: 28,
-  comfortable: 34,
-};
-
-/** Swatch / preview size (px) per density level */
-export const DENSITY_SWATCH_SIZE: Record<Density, number> = {
-  compact: 16,
-  comfortable: 20,
-};
-
-/** Tailwind py class per density level */
-export const DENSITY_PY_CLASS: Record<Density, string> = {
-  compact: "py-0.5",
-  comfortable: "py-1",
-};
-
-// ---------------------------------------------------------------------------
-// Depth indicator & condensed view
+// Depth indicator
 // ---------------------------------------------------------------------------
 
 /** Single source of truth for indentation per nesting level (px) */
 export const INDENT_PER_LEVEL = 8;
 
-/** Maximum depth shown as distinct indent levels when condensed view is on */
-export const CONDENSED_MAX_DEPTH = 3;
-
 /**
- * Colors for the per-depth guide bar. Cycles for depth >= length.
- * depth 0 → transparent (category headers get no bar).
+ * Single neutral guide color for the depth bar. Depth is communicated by
+ * indentation; the bar is a subtle structural cue, not a color-coded index.
  */
-export const DEPTH_COLORS: readonly string[] = [
-  "var(--color-depth-0)", // depth 0 — transparent (category headers get no bar)
-  "var(--color-depth-1)", // depth 1 — accent blue
-  "var(--color-depth-2)", // depth 2 — green
-  "var(--color-depth-3)", // depth 3 — amber
-  "var(--color-depth-4)", // depth 4 — coral
-  "var(--color-depth-5)", // depth 5 — purple
-];
+export const DEPTH_GUIDE_COLOR = "var(--color-figma-border)";
 
 // ---------------------------------------------------------------------------
 // Table grid template
@@ -89,7 +56,7 @@ export function getGridTemplate(modeCount: number): string {
 // ---------------------------------------------------------------------------
 // Virtual scroll constants
 // ---------------------------------------------------------------------------
-export const VIRTUAL_ITEM_HEIGHT = 30; // px per row base height (default density — overridden at runtime)
+export const VIRTUAL_ITEM_HEIGHT = 30; // px per row base height
 export const VIRTUAL_CHAIN_EXPAND_HEIGHT = 24; // extra px when the alias chain panel is expanded
 export const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the viewport
 
@@ -363,7 +330,6 @@ export interface TokenTreeSharedDataContextType {
 }
 
 export interface TokenTreeGroupStateContextType {
-  density: Density;
   collectionId: string;
   /** Active mode for the current collection in the Tokens view, when that collection has modes. */
   activeCollectionModeLabel?: string | null;
@@ -380,8 +346,6 @@ export interface TokenTreeGroupStateContextType {
   generatorsByTargetGroup?: Map<string, TokenGenerator>;
   /** Pre-computed collection mode coverage per group: groupPath → { configured, total, totalMissing } */
   collectionCoverage?: Map<string, { configured: number; total: number; totalMissing: number }>;
-  /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
-  condensedView?: boolean;
   /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
   rovingFocusPath: string | null;
 }
@@ -433,7 +397,6 @@ export interface TokenTreeGroupActionsContextType {
 }
 
 export interface TokenTreeLeafStateContextType {
-  density: Density;
   serverUrl: string;
   collectionId: string;
   collectionIds: string[];
@@ -456,8 +419,6 @@ export interface TokenTreeLeafStateContextType {
   selectedLeafNodes?: TokenNode[];
   /** When true, tree view shows fully resolved values instead of alias references */
   showResolvedValues?: boolean;
-  /** When true, indentation is capped at CONDENSED_MAX_DEPTH levels to prevent deep nesting from pushing content off-screen */
-  condensedView?: boolean;
   /** Starred token paths for the current collection — for fast O(1) lookup */
   starredPaths?: Set<string>;
   /** Collections used for resolution-chain debugging */
@@ -561,7 +522,6 @@ export interface TokenTreeNodeProps {
   skipChildren?: boolean;
   showFullPath?: boolean;
   ancestorPathLabel?: string;
-  isPinned?: boolean;
   chainExpanded?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
