@@ -218,7 +218,6 @@ export const STORAGE_KEYS = {
   SIDEBAR_WIDTH:            'tm_sidebar_width',
   COLLECTION_RAIL_WIDTH:    'tm_collection_rail_width',
   SIDE_EDITOR_WIDTH:        'tm_side_editor_width',
-  HEALTH_DETAIL_WIDTH:      'tm_health_detail_width',
   INSPECTOR_SUGGESTIONS_OPEN: 'inspector-suggestions-open',
   LAST_CREATE_GROUP:        'tm_last_create_group',
   LAST_CREATE_TYPE:         'tm_last_token_type',

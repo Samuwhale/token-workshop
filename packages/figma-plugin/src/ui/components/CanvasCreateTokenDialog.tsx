@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ResolvedTokenValue } from '../../shared/types';
-import { ALL_BINDABLE_PROPERTIES, TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
+import { ALL_BINDABLE_PROPERTIES, tokenTypeBadgeClass } from '../../shared/types';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Spinner } from './Spinner';
 import { createTokenValueBody, upsertToken } from '../shared/tokenMutations';
@@ -219,7 +219,7 @@ export function CanvasCreateTokenDialog({
                       {selectedOption.propertyLabel}
                     </span>
                     <span
-                      className={`${TOKEN_TYPE_BADGE_CLASS[selectedOption.tokenType] ?? 'token-type-string'} inline-flex shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium uppercase tracking-wide`}
+                      className={`${tokenTypeBadgeClass(selectedOption.tokenType)} inline-flex shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium uppercase tracking-wide`}
                     >
                       {selectedOption.tokenType}
                     </span>

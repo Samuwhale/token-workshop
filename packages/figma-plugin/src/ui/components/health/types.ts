@@ -3,6 +3,6 @@ export type HealthView =
   | "issues"
   | "unused"
   | "deprecated"
-  | "consolidate"
+  | "alias-opportunities"
   | "duplicates"
-  | "ignored";
+  | "hidden";

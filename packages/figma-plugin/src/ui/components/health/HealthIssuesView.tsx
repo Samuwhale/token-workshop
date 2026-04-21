@@ -2,28 +2,10 @@ import { useState } from "react";
 import type { ValidationIssue } from "../../hooks/useValidationCache";
 import { severityStyles } from "../../shared/noticeSystem";
 import type { NoticeSeverity } from "../../shared/noticeSystem";
-import { LINT_RULE_BY_ID } from "../../shared/lintRules";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { dispatchToast } from "../../shared/toastBus";
 import { Spinner } from "../Spinner";
-
-const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
-  "missing-type": { label: "Missing type", tip: "Add a $type for spec compliance" },
-  "broken-alias": { label: "Broken reference", tip: "Referenced token missing — update or remove" },
-  "circular-reference": { label: "Circular reference", tip: "Break the loop so the token resolves" },
-  "max-alias-depth": { label: "Deep reference chain", tip: "Shorten the chain to the source token" },
-  "references-deprecated-token": { label: "Deprecated token in use", tip: "Replace with a non-deprecated token" },
-  "type-mismatch": { label: "Type / value mismatch", tip: "Value doesn't match declared $type" },
-};
-
-function getRuleLabel(rule: string): { label: string; tip: string } | undefined {
-  return (
-    VALIDATION_LABELS[rule] ??
-    (LINT_RULE_BY_ID[rule]
-      ? { label: LINT_RULE_BY_ID[rule].label, tip: LINT_RULE_BY_ID[rule].tip }
-      : undefined)
-  );
-}
+import { getRuleLabel, hasFix, fixLabel, suppressKey } from "../../shared/ruleLabels";
 
 const ISSUES_PER_PAGE = 20;
 
@@ -36,10 +18,6 @@ export interface HealthIssuesViewProps {
   onIgnore: (issue: ValidationIssue) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onBack: () => void;
-}
-
-function suppressKey(issue: ValidationIssue): string {
-  return `${issue.rule}:${issue.collectionId}:${issue.path}`;
 }
 
 export function HealthIssuesView({
@@ -83,7 +61,7 @@ export function HealthIssuesView({
     const severityOrder = { error: 0, warning: 1, info: 2 } as const;
     return [...map.entries()]
       .map(([rule, issues]) => {
-        const meta = getRuleLabel(rule) ?? { label: rule, tip: "" };
+        const meta = getRuleLabel(rule);
         const worst = issues.reduce((a, b) =>
           severityOrder[a.severity] <= severityOrder[b.severity] ? a : b,
         );
@@ -152,25 +130,6 @@ export function HealthIssuesView({
     URL.revokeObjectURL(url);
     dispatchToast("Exported CSV", "success");
     exportMenu.close();
-  };
-
-  const hasFix = (issue: ValidationIssue): boolean =>
-    issue.suggestedFix === "add-description" ||
-    ((issue.suggestedFix === "flatten-alias-chain" || issue.suggestedFix === "extract-to-alias") && !!issue.suggestion) ||
-    issue.suggestedFix === "delete-token" ||
-    (issue.suggestedFix === "rename-token" && !!issue.suggestion) ||
-    (issue.suggestedFix === "fix-type" && !!issue.suggestion);
-
-  const fixLabel = (fix: string | undefined): string => {
-    switch (fix) {
-      case "add-description": return "Add desc";
-      case "flatten-alias-chain": return "Flatten";
-      case "extract-to-alias": return "Make alias";
-      case "delete-token": return "Delete";
-      case "rename-token": return "Rename";
-      case "fix-type": return "Fix type";
-      default: return "Fix";
-    }
   };
 
   return (
@@ -419,7 +378,7 @@ function IssueRow({
               onClick={() => { onIgnore(); overflowMenu.close(); }}
               className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              Ignore this issue
+              Hide this issue
             </button>
           </div>
         )}

@@ -66,6 +66,7 @@ import {
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
 import { useHealthSignals } from "../hooks/useHealthSignals";
+import { useIssueActions } from "../hooks/useIssueActions";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
 import type {
   ImportNextStepRecommendation,
@@ -145,15 +146,6 @@ export function PanelRouter({
   });
   const sideEditorBoundary = useResizableBoundary({
     storageKey: STORAGE_KEYS.SIDE_EDITOR_WIDTH,
-    defaultSize: 320,
-    min: 280,
-    max: 560,
-    axis: "x",
-    mode: "px",
-    measureFrom: "end",
-  });
-  const healthDetailBoundary = useResizableBoundary({
-    storageKey: STORAGE_KEYS.HEALTH_DETAIL_WIDTH,
     defaultSize: 320,
     min: 280,
     max: 560,
@@ -280,12 +272,8 @@ export function PanelRouter({
     historyFilterPath,
     setHistoryFilterPath,
   } = useEditorContext();
-  const [healthDetailToken, setHealthDetailToken] = useState<{
-    path: string;
-    collectionId: string;
-  } | null>(null);
   const [healthViewRequest, setHealthViewRequest] = useState<{
-    view: "dashboard" | "issues" | "unused" | "deprecated" | "consolidate" | "duplicates" | "ignored";
+    view: "dashboard" | "issues" | "unused" | "deprecated" | "alias-opportunities" | "duplicates" | "hidden";
     nonce: number;
   } | null>(null);
 
@@ -294,23 +282,27 @@ export function PanelRouter({
       if (collectionId !== currentCollectionId) {
         setCurrentCollectionId(collectionId);
       }
-      setHealthDetailToken(null);
       setHealthViewRequest({ view: "issues", nonce: Date.now() });
       navigateTo("library", "health");
     },
     [currentCollectionId, navigateTo, setCurrentCollectionId],
   );
 
-  const openTokenIssues = useCallback(
-    (path: string, collectionId: string) => {
-      if (collectionId !== currentCollectionId) {
-        setCurrentCollectionId(collectionId);
-      }
-      setHealthDetailToken({ path, collectionId });
-      setHealthViewRequest({ view: "issues", nonce: Date.now() });
-      navigateTo("library", "health");
+  const openTokenInspector = useCallback(
+    (path: string, collectionId: string, name?: string) => {
+      controller.guardEditorAction(() => {
+        if (collectionId !== currentCollectionId) {
+          setCurrentCollectionId(collectionId);
+        }
+        navigateTo("library", "tokens");
+        switchContextualSurface({
+          surface: "token-inspector",
+          token: { path, name, currentCollectionId: collectionId },
+        });
+        setHighlightedToken(path);
+      });
     },
-    [currentCollectionId, navigateTo, setCurrentCollectionId],
+    [controller, currentCollectionId, navigateTo, setCurrentCollectionId, switchContextualSurface, setHighlightedToken],
   );
 
   const healthSignals = useHealthSignals({
@@ -318,6 +310,12 @@ export function PanelRouter({
     lintViolations: controller.lintViolations,
     generators,
     currentCollectionId,
+  });
+  const issueActions = useIssueActions({
+    serverUrl,
+    connected,
+    onRefreshValidation: controller.refreshValidation,
+    onError: controller.setErrorToast,
   });
   const editingGeneratedGroupData =
     editingGeneratedGroup?.mode === "edit"
@@ -625,7 +623,7 @@ export function PanelRouter({
       setHistoryFilterPath(path);
       navigateTo("library", "history");
     },
-    onOpenTokenIssues: openTokenIssues,
+    onOpenTokenIssues: openTokenInspector,
     onEditGeneratedGroup: (generatorId: string) =>
       controller.guardEditorAction(() => {
         openGeneratedGroupEditor({
@@ -965,6 +963,11 @@ export function PanelRouter({
                 syncSnapshot={
                   Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined
                 }
+                fixingKeys={issueActions.fixingKeys}
+                suppressedKeys={issueActions.suppressedKeys}
+                onFixIssue={issueActions.applyIssueFix}
+                onHideIssue={issueActions.handleSuppress}
+                onOpenInHealth={() => openCollectionIssues(inspectingToken.currentCollectionId)}
                 onEdit={() =>
                   controller.guardEditorAction(() => {
                     openTokenEditor({
@@ -1529,84 +1532,36 @@ export function PanelRouter({
 
   function renderLibraryHealth(): ReactNode {
     const body = (
-      <div className="flex h-full min-h-0 overflow-hidden">
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <ErrorBoundary
-            panelName="Health"
-            onReset={() => navigateTo("library", "tokens")}
-          >
-            <HealthPanel
-              serverUrl={serverUrl}
-              connected={connected}
-              currentCollectionId={currentCollectionId}
-              healthSignals={healthSignals}
-              allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToCollectionId}
-              tokenUsageCounts={tokenUsageCounts}
-              heatmapResult={heatmapResult}
-              onNavigateToToken={(path, collectionId) => {
-                setHealthDetailToken({ path, collectionId });
-              }}
-              validationIssues={controller.validationIssues}
-              validationLoading={controller.validationLoading}
-              validationError={controller.validationError}
-              validationLastRefreshed={controller.validationLastRefreshed}
-              validationIsStale={controller.validationIsStale}
-              onRefreshValidation={controller.refreshValidation}
-              onPushUndo={controller.pushUndo}
-              onError={controller.setErrorToast}
-              onNavigateToGenerators={() => navigateTo("library", "tokens")}
-              viewRequest={healthViewRequest}
-            />
-          </ErrorBoundary>
-        </div>
-        {healthDetailToken && (
-          <>
-            <ResizeDivider
-              axis="x"
-              ariaLabel="Resize token detail panel"
-              ariaValueNow={healthDetailBoundary.ariaValueNow}
-              onMouseDown={healthDetailBoundary.onMouseDown}
-              onKeyDown={healthDetailBoundary.onKeyDown}
-            />
-            <div
-              className="shrink-0 overflow-hidden panel-slide-in"
-              style={{ width: healthDetailBoundary.size }}
-            >
-              <TokenInspector
-                tokenPath={healthDetailToken.path}
-                storageCollectionId={healthDetailToken.collectionId}
-                allTokensFlat={allTokensFlat}
-                pathToCollectionId={pathToCollectionId}
-                collections={collections}
-                lintViolations={healthSignals.lintViolationsForCurrent.filter(
-                  (v) => v.path === healthDetailToken.path,
-                )}
-                onEdit={() => {
-                  setCurrentCollectionId(healthDetailToken.collectionId);
-                  setPendingHighlight(healthDetailToken.path);
-                  switchContextualSurface({
-                    surface: "token-editor",
-                    token: {
-                      path: healthDetailToken.path,
-                      currentCollectionId: healthDetailToken.collectionId,
-                    },
-                  });
-                }}
-                onDuplicate={() =>
-                  controller.guardEditorAction(() => {
-                    void controller.handlePaletteDuplicate(healthDetailToken.path);
-                  })
-                }
-                onClose={() => setHealthDetailToken(null)}
-                onNavigateToToken={(path) => {
-                  const cid = pathToCollectionId[path];
-                  if (cid) setHealthDetailToken({ path, collectionId: cid });
-                }}
-              />
-            </div>
-          </>
-        )}
+      <div className="h-full min-h-0 overflow-hidden">
+        <ErrorBoundary
+          panelName="Health"
+          onReset={() => navigateTo("library", "tokens")}
+        >
+          <HealthPanel
+            serverUrl={serverUrl}
+            connected={connected}
+            currentCollectionId={currentCollectionId}
+            healthSignals={healthSignals}
+            allTokensFlat={allTokensFlat}
+            pathToCollectionId={pathToCollectionId}
+            tokenUsageCounts={tokenUsageCounts}
+            heatmapResult={heatmapResult}
+            onNavigateToToken={(path, collectionId) => {
+              openTokenInspector(path, collectionId);
+            }}
+            validationIssues={controller.validationIssues}
+            validationLoading={controller.validationLoading}
+            validationError={controller.validationError}
+            validationLastRefreshed={controller.validationLastRefreshed}
+            validationIsStale={controller.validationIsStale}
+            onRefreshValidation={controller.refreshValidation}
+            onPushUndo={controller.pushUndo}
+            onError={controller.setErrorToast}
+            onNavigateToGenerators={() => navigateTo("library", "tokens")}
+            viewRequest={healthViewRequest}
+            issueActions={issueActions}
+          />
+        </ErrorBoundary>
       </div>
     );
 

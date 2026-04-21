@@ -1270,7 +1270,7 @@ export function TokenList({
     } else if (!showBatchEditor && activeBatchAction) {
       setActiveBatchAction(null);
     }
-  }, [showBatchEditor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showBatchEditor, activeBatchAction]);
 
   const tokenCrud = useTokenCrud({
     connected,

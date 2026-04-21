@@ -134,6 +134,24 @@ export function useTokenSyncBase<
   const [checked, setChecked] = useState(false);
   const [progress, setProgress] = useState<SyncProgress | null>(null);
 
+  const toProgressPayload = (
+    msg: { current?: number; total?: number } | null,
+  ): SyncProgress | null => {
+    if (
+      !msg ||
+      typeof msg.current !== 'number' ||
+      !Number.isFinite(msg.current) ||
+      typeof msg.total !== 'number' ||
+      !Number.isFinite(msg.total)
+    ) {
+      return null;
+    }
+    return {
+      current: msg.current,
+      total: msg.total,
+    };
+  };
+
   // AbortController reset on every mount; aborted on unmount to cancel in-flight pull fetches
   const abortRef = useRef(new AbortController());
   useEffect(() => {
@@ -159,8 +177,10 @@ export function useTokenSyncBase<
     const handler = (ev: MessageEvent) => {
       const msg = getPluginMessageFromEvent<{ type?: string; current?: number; total?: number }>(ev);
       if (msg?.type === configRef.current.progressEventType) {
-        const p = { current: msg.current as number, total: msg.total as number };
-        setProgress(p);
+        const nextProgress = toProgressPayload(msg);
+        if (nextProgress) {
+          setProgress(nextProgress);
+        }
       }
     };
     window.addEventListener('message', handler);

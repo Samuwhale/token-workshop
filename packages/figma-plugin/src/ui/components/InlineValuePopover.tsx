@@ -38,7 +38,7 @@ import {
   LineHeightEditor,
   CustomEditor,
 } from './ValueEditors';
-import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
+import { tokenTypeBadgeClass } from '../../shared/types';
 
 export interface InlineValuePopoverProps {
   tokenPath: string;
@@ -266,7 +266,7 @@ export function InlineValuePopover({
       ? anchorRect.top - Math.min(POPOVER_MAX_HEIGHT, spaceAbove) - 2
       : anchorRect.bottom + 2;
 
-  const typeBadgeClass = TOKEN_TYPE_BADGE_CLASS[tokenType] ?? 'token-type-string';
+  const typeBadgeClass = tokenTypeBadgeClass(tokenType);
 
   return (
     <div

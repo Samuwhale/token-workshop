@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useImportSourceContext } from './ImportPanelContext';
 import { type ImportToken } from './importPanelTypes';
-import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
+import { tokenTypeBadgeClass } from '../../shared/types';
 
 function resolveAlias(token: ImportToken, tokensByPath: Map<string, ImportToken>, depth = 0): string | null {
   if (depth > 10 || typeof token.$value !== 'string') return null;
@@ -55,7 +55,7 @@ function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: M
           </div>
         )}
       </div>
-      <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[token.$type ?? ''] ?? 'token-type-string'}`}>
+      <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0 ${tokenTypeBadgeClass(token.$type)}`}>
         {token.$type}
       </span>
     </div>

@@ -12,7 +12,7 @@ import type { TokenCollection } from "@tokenmanager/core";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
-import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
+import { tokenTypeBadgeClass, ALL_TOKEN_TYPES } from "../../shared/types";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { AliasAutocomplete } from "./AliasAutocomplete";
@@ -980,10 +980,10 @@ export function TokenEditor({
                 value={tokenType}
                 onChange={(e) => handleTypeChange(e.target.value)}
                 title="Change token type"
-                className={`pr-4 pl-1.5 py-0.5 rounded text-secondary font-medium uppercase cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ""] ?? "token-type-string"}`}
+                className={`pr-4 pl-1.5 py-0.5 rounded text-secondary font-medium uppercase cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${tokenTypeBadgeClass(tokenType)}`}
                 style={{ backgroundImage: "none" }}
               >
-                {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
+                {ALL_TOKEN_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -1362,7 +1362,7 @@ export function TokenEditor({
                   title="Change token type"
                   className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary font-medium uppercase text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
                 >
-                  {Object.keys(TOKEN_TYPE_BADGE_CLASS).map((t) => (
+                  {ALL_TOKEN_TYPES.map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>

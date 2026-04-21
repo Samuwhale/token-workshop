@@ -8,7 +8,7 @@ import type {
   ShadowTokenValue,
   BindableProperty,
 } from "../../shared/types";
-import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
+import { tokenTypeBadgeClass } from "../../shared/types";
 import { getErrorMessage } from "../shared/utils";
 import {
   createTokenValueBody,
@@ -541,7 +541,7 @@ export function ExtractTokensPanel({
               const isSelected = selected.has(idx);
               const name = names[idx] ?? token.suggestedName;
               const isConflict = !!tokenMap[name];
-              const badgeClass = TOKEN_TYPE_BADGE_CLASS[token.tokenType] || "";
+              const badgeClass = tokenTypeBadgeClass(token.tokenType);
 
               return (
                 <div
@@ -577,7 +577,7 @@ export function ExtractTokensPanel({
                     </div>
                     {/* Value + type badge + layer info */}
                     <div className="flex items-center gap-1.5 text-secondary">
-                      <span className={`${badgeClass} token-type-badge`}>
+                      <span className={`${badgeClass} px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0`}>
                         {token.tokenType}
                       </span>
                       {/* Color swatch */}

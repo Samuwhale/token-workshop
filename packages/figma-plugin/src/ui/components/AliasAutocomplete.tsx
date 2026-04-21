@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
-import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
+import { tokenTypeBadgeClass } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
@@ -187,7 +187,7 @@ export function AliasAutocomplete({
           )}
 
           {/* Type badge */}
-          <span className={`text-[8px] px-1 py-0.5 rounded font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[entry.$type ?? ''] ?? 'token-type-string'}`}>
+          <span className={`text-[8px] px-1 py-0.5 rounded font-medium uppercase shrink-0 ${tokenTypeBadgeClass(entry.$type)}`}>
             {entry.$type}
           </span>
 

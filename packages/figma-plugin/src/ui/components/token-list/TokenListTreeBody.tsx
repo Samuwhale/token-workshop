@@ -4,7 +4,7 @@ import { Layers, MousePointer2, X, ChevronUp } from "lucide-react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { LintViolation } from "../../hooks/useLint";
 import type { MultiModeValue } from "../tokenListTypes";
-import { TOKEN_TYPE_BADGE_CLASS } from "../../../shared/types";
+import { tokenTypeBadgeClass } from "../../../shared/types";
 import { highlightMatch } from "../tokenListHelpers";
 import { nodeParentPath } from "../tokenListUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
@@ -497,7 +497,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                         )}
                       </span>
                       <span
-                        className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[r.entry.$type] ?? "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"}`}
+                        className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${tokenTypeBadgeClass(r.entry.$type)}`}
                       >
                         {r.entry.$type}
                       </span>

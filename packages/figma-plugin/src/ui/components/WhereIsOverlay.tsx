@@ -1,4 +1,4 @@
-import { TOKEN_TYPE_BADGE_CLASS } from "../../shared/types";
+import { tokenTypeBadgeClass } from "../../shared/types";
 
 export interface WhereIsResult {
   collectionId: string;
@@ -132,7 +132,7 @@ export function WhereIsOverlay({
                   </div>
                   {/* Type badge */}
                   <span
-                    className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[def.$type] ?? "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"}`}
+                    className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${tokenTypeBadgeClass(def.$type)}`}
                   >
                     {def.$type}
                   </span>

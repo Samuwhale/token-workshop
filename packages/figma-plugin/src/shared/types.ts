@@ -31,35 +31,62 @@ export const ALL_BINDABLE_PROPERTIES: BindableProperty[] = [
   'typography', 'shadow', 'visible',
 ];
 
-/** Maps each known token type to its CSS badge class defined in styles.css.
- *  Add new types here AND in styles.css to keep badge styling in sync. */
-export const TOKEN_TYPE_BADGE_CLASS: Record<string, string> = {
-  color: 'token-type-color',
-  dimension: 'token-type-dimension',
-  typography: 'token-type-typography',
-  shadow: 'token-type-shadow',
-  border: 'token-type-border',
-  number: 'token-type-number',
-  string: 'token-type-string',
-  boolean: 'token-type-boolean',
-  gradient: 'token-type-gradient',
-  duration: 'token-type-duration',
-  fontFamily: 'token-type-fontFamily',
-  composition: 'token-type-composition',
-  asset: 'token-type-asset',
-  cubicBezier: 'token-type-cubicBezier',
-  transition: 'token-type-transition',
-  fontStyle: 'token-type-fontStyle',
-  lineHeight: 'token-type-lineHeight',
-  letterSpacing: 'token-type-letterSpacing',
-  percentage: 'token-type-percentage',
-  link: 'token-type-link',
-  textDecoration: 'token-type-textDecoration',
-  textTransform: 'token-type-textTransform',
-  custom: 'token-type-custom',
-  fontWeight: 'token-type-fontWeight',
-  strokeStyle: 'token-type-strokeStyle',
+/** Semantic families that group related token types under one color.
+ *  Six hues keep the palette readable as a legend instead of a 25-type rainbow. */
+export type TokenFamily = 'color' | 'size' | 'type' | 'effect' | 'motion' | 'other';
+
+export const TOKEN_TYPE_FAMILY: Record<string, TokenFamily> = {
+  color: 'color',
+  gradient: 'color',
+
+  dimension: 'size',
+  spacing: 'size',
+  fontSize: 'size',
+  lineHeight: 'size',
+  letterSpacing: 'size',
+  percentage: 'size',
+
+  typography: 'type',
+  fontFamily: 'type',
+  fontStyle: 'type',
+  fontWeight: 'type',
+  textDecoration: 'type',
+  textTransform: 'type',
+
+  shadow: 'effect',
+  border: 'effect',
+  strokeStyle: 'effect',
+  composition: 'effect',
+  transition: 'effect',
+
+  duration: 'motion',
+  cubicBezier: 'motion',
+
+  number: 'other',
+  string: 'other',
+  boolean: 'other',
+  asset: 'other',
+  link: 'other',
+  custom: 'other',
 };
+
+export const TOKEN_FAMILY_BADGE_CLASS: Record<TokenFamily, string> = {
+  color: 'token-family-color',
+  size: 'token-family-size',
+  type: 'token-family-type',
+  effect: 'token-family-effect',
+  motion: 'token-family-motion',
+  other: 'token-family-other',
+};
+
+/** Unknown or missing types fall back to the "other" family so every token
+ *  still renders a styled badge. */
+export function tokenTypeBadgeClass(tokenType: string | undefined): string {
+  const family = (tokenType && TOKEN_TYPE_FAMILY[tokenType]) || 'other';
+  return TOKEN_FAMILY_BADGE_CLASS[family];
+}
+
+export const ALL_TOKEN_TYPES: string[] = Object.keys(TOKEN_TYPE_FAMILY);
 
 export const TOKEN_PROPERTY_MAP: Record<string, BindableProperty[]> = {
   color: ['fill', 'stroke'],

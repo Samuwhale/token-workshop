@@ -1,19 +1,19 @@
 import type { AliasOpportunityGroup } from "../../hooks/useHealthData";
 import { Spinner } from "../Spinner";
 
-export interface HealthConsolidateViewProps {
+export interface HealthAliasOpportunitiesViewProps {
   aliasOpportunityGroups: AliasOpportunityGroup[];
   promotingGroupId: string | null;
   onPromote: (group: AliasOpportunityGroup) => void;
   onBack: () => void;
 }
 
-export function HealthConsolidateView({
+export function HealthAliasOpportunitiesView({
   aliasOpportunityGroups,
   promotingGroupId,
   onPromote,
   onBack,
-}: HealthConsolidateViewProps) {
+}: HealthAliasOpportunitiesViewProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
@@ -26,7 +26,7 @@ export function HealthConsolidateView({
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <span className="text-body font-semibold text-[var(--color-figma-text)]">Consolidate</span>
+        <span className="text-body font-semibold text-[var(--color-figma-text)]">Alias opportunities</span>
         {aliasOpportunityGroups.length > 0 && (
           <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-auto">
             {aliasOpportunityGroups.length} group{aliasOpportunityGroups.length !== 1 ? "s" : ""}
@@ -38,7 +38,7 @@ export function HealthConsolidateView({
         {aliasOpportunityGroups.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-body text-[var(--color-figma-text-secondary)]">
-              No consolidation opportunities found
+              No alias opportunities found
             </p>
           </div>
         ) : (

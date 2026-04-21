@@ -1,7 +1,7 @@
 import { getErrorMessage, isAbortError } from '../shared/utils';
 import { dispatchToast } from '../shared/toastBus';
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { createTokenBody, updateToken } from '../shared/tokenMutations';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
@@ -56,6 +56,24 @@ export function useFigmaSync(
     return () => { controller.abort(); };
   }, []);
 
+  const toProgressPayload = (
+    msg: { current?: number; total?: number } | null,
+  ): { current: number; total: number } | null => {
+    if (
+      !msg ||
+      typeof msg.current !== 'number' ||
+      !Number.isFinite(msg.current) ||
+      typeof msg.total !== 'number' ||
+      !Number.isFinite(msg.total)
+    ) {
+      return null;
+    }
+    return {
+      current: msg.current,
+      total: msg.total,
+    };
+  };
+
   // Both variable- and style-sync progress messages map onto the single publish
   // progress indicator. The user sees one ongoing operation, not two.
   useEffect(() => {
@@ -64,7 +82,10 @@ export function useFigmaSync(
       if (signal.aborted) return;
       const msg = getPluginMessageFromEvent<{ type?: string; current?: number; total?: number }>(ev);
       if (msg?.type === 'variable-sync-progress' || msg?.type === 'style-sync-progress') {
-        setPublishProgress({ current: msg.current as number, total: msg.total as number });
+        const progress = toProgressPayload(msg);
+        if (progress) {
+          setPublishProgress(progress);
+        }
       }
     };
     window.addEventListener('message', handler);
@@ -88,6 +109,7 @@ export function useFigmaSync(
   const handlePublish = useCallback(async () => {
     const pending = publishPending;
     if (!pending || !connected) return;
+    const signal = createFetchSignal(abortRef.current.signal, 15_000);
 
     const matchPath = pending.scope === 'group'
       ? ((path: string) => path === pending.groupPath || path.startsWith(pending.groupPath + '.'))
@@ -99,14 +121,17 @@ export function useFigmaSync(
     setPublishError(null);
 
     try {
-      const rawMap = await fetchAllTokensFlat(serverUrl);
+      const rawMap = await fetchAllTokensFlat(serverUrl, signal);
+      if (signal.aborted) return;
       const resolved = resolveAllAliases(rawMap);
+      if (signal.aborted) return;
       const tokens: { path: string; $type: string; $value: any; collectionId?: string }[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
         if (matchPath(path)) {
           tokens.push({ path, $type: entry.$type, $value: entry.$value, collectionId: pathToCollectionId[path] });
         }
       }
+      if (signal.aborted) return;
 
       const varResult = await sendVarApply('apply-variables', { tokens, collectionMap, modeMap });
       const styleResult = createStyles
@@ -155,7 +180,7 @@ export function useFigmaSync(
 
   const handleApplyGroupScopes = useCallback(async () => {
     if (!groupScopesPath || !connected) return;
-    const signal = abortRef.current.signal;
+    const signal = createFetchSignal(abortRef.current.signal, 15_000);
     setGroupScopesApplying(true);
     setGroupScopesError(null);
     try {
@@ -176,6 +201,7 @@ export function useFigmaSync(
         }
       };
       walk(data.tokens || {}, '');
+      if (signal.aborted) return;
       const total = tokenPaths.length;
       const BATCH_SIZE = 5;
       let done = 0;

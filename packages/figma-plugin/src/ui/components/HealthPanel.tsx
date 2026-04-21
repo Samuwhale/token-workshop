@@ -4,24 +4,20 @@ import type { HeatmapResult } from "./HeatmapPanel";
 import type { TokenMapEntry } from "../../shared/types";
 import type { HealthSignalsResult } from "../hooks/useHealthSignals";
 import type { ValidationIssue } from "../hooks/useValidationCache";
+import type { UseIssueActionsResult } from "../hooks/useIssueActions";
 import { apiFetch } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
-import {
-  createTokenBody,
-  deleteToken,
-  updateToken,
-} from "../shared/tokenMutations";
 import { promoteTokensToSharedAlias } from "../hooks/useExtractToAlias";
 import { useHealthData } from "../hooks/useHealthData";
 import type { AliasOpportunityGroup } from "../hooks/useHealthData";
 import type { HealthView } from "./health/types";
 import { HealthDashboard } from "./health/HealthDashboard";
 import { HealthIssuesView } from "./health/HealthIssuesView";
-import { HealthIgnoredView } from "./health/HealthIgnoredView";
+import { HealthHiddenView } from "./health/HealthHiddenView";
 import { HealthUnusedView } from "./health/HealthUnusedView";
 import { HealthDeprecatedView } from "./health/HealthDeprecatedView";
 import type { DeprecatedUsageEntry } from "./health/HealthDeprecatedView";
-import { HealthConsolidateView } from "./health/HealthConsolidateView";
+import { HealthAliasOpportunitiesView } from "./health/HealthAliasOpportunitiesView";
 import { HealthDuplicatesView } from "./health/HealthDuplicatesView";
 
 type HealthStatus = "healthy" | "warning" | "critical";
@@ -46,10 +42,7 @@ export interface HealthPanelProps {
   onError: (msg: string) => void;
   onNavigateToGenerators?: () => void;
   viewRequest?: { view: HealthView; nonce: number } | null;
-}
-
-function suppressKey(issue: ValidationIssue): string {
-  return `${issue.rule}:${issue.collectionId}:${issue.path}`;
+  issueActions: UseIssueActionsResult;
 }
 
 export function HealthPanel({
@@ -72,7 +65,9 @@ export function HealthPanel({
   onError,
   onNavigateToGenerators,
   viewRequest,
+  issueActions,
 }: HealthPanelProps) {
+  const { suppressedKeys, suppressingKey, fixingKeys, applyIssueFix, handleSuppress, handleUnsuppress } = issueActions;
   const requestedView = viewRequest?.view;
   const viewRequestNonce = viewRequest?.nonce;
   const [activeView, setActiveView] = useState<HealthView>(requestedView ?? "dashboard");
@@ -81,25 +76,12 @@ export function HealthPanel({
     if (requestedView) setActiveView(requestedView);
   }, [requestedView, viewRequestNonce]);
 
-  const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set());
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   const [deprecatedUsageEntries, setDeprecatedUsageEntries] = useState<DeprecatedUsageEntry[]>([]);
   const [deprecatedUsageLoading, setDeprecatedUsageLoading] = useState(false);
   const [deprecatedUsageError, setDeprecatedUsageError] = useState<string | null>(null);
-
-  const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(new Set());
-  const [suppressingKey, setSuppressingKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!connected || !serverUrl) return;
-    apiFetch<{ suppressions: string[] }>(`${serverUrl}/api/lint/suppressions`)
-      .then((data) => {
-        if (Array.isArray(data.suppressions)) setSuppressedKeys(new Set(data.suppressions));
-      })
-      .catch(() => {});
-  }, [connected, serverUrl]);
 
   useEffect(() => {
     if (!connected || !serverUrl) {
@@ -181,73 +163,6 @@ export function HealthPanel({
         ? "warning"
         : "healthy";
 
-  const handleSuppress = async (issue: ValidationIssue) => {
-    const key = suppressKey(issue);
-    if (suppressedKeys.has(key)) return;
-    setSuppressingKey(key);
-    const next = new Set(suppressedKeys);
-    next.add(key);
-    setSuppressedKeys(next);
-    try {
-      await apiFetch(`${serverUrl}/api/lint/suppressions`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ suppressions: [...next] }),
-      });
-    } catch {
-      setSuppressedKeys((prev) => { const r = new Set(prev); r.delete(key); return r; });
-      onError("Failed to save suppression");
-    } finally {
-      setSuppressingKey(null);
-    }
-  };
-
-  const handleUnsuppress = async (key: string) => {
-    setSuppressingKey(key);
-    const next = new Set(suppressedKeys);
-    next.delete(key);
-    setSuppressedKeys(next);
-    try {
-      await apiFetch(`${serverUrl}/api/lint/suppressions`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ suppressions: [...next] }),
-      });
-    } catch {
-      setSuppressedKeys((prev) => { const r = new Set(prev); r.add(key); return r; });
-      onError("Failed to remove suppression");
-    } finally {
-      setSuppressingKey(null);
-    }
-  };
-
-  const applyIssueFix = async (issue: ValidationIssue) => {
-    const key = suppressKey(issue);
-    setFixingKeys((prev) => { const next = new Set(prev); next.add(key); return next; });
-    try {
-      if (issue.suggestedFix === "add-description") {
-        await updateToken(serverUrl, issue.collectionId, issue.path, createTokenBody({ $description: "" }));
-      } else if ((issue.suggestedFix === "flatten-alias-chain" || issue.suggestedFix === "extract-to-alias") && issue.suggestion) {
-        await updateToken(serverUrl, issue.collectionId, issue.path, createTokenBody({ $value: issue.suggestion }));
-      } else if (issue.suggestedFix === "delete-token") {
-        await deleteToken(serverUrl, issue.collectionId, issue.path);
-      } else if (issue.suggestedFix === "rename-token" && issue.suggestion) {
-        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(issue.collectionId)}/tokens/rename`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ oldPath: issue.path, newPath: issue.suggestion, updateAliases: true }),
-        });
-      } else if (issue.suggestedFix === "fix-type" && issue.suggestion) {
-        await updateToken(serverUrl, issue.collectionId, issue.path, createTokenBody({ $type: issue.suggestion }));
-      }
-      await onRefreshValidation();
-    } catch {
-      onError("Fix failed — check connection and retry.");
-    } finally {
-      setFixingKeys((prev) => { const next = new Set(prev); next.delete(key); return next; });
-    }
-  };
-
   const handlePromote = async (group: AliasOpportunityGroup) => {
     const sampleEntry = allTokensUnified[group.tokens[0]?.path ?? ""];
     if (!sampleEntry) { onError("Alias promotion failed — source tokens unavailable."); return; }
@@ -319,9 +234,9 @@ export function HealthPanel({
         />
       );
 
-    case "ignored":
+    case "hidden":
       return (
-        <HealthIgnoredView
+        <HealthHiddenView
           suppressedKeys={suppressedKeysForCurrent}
           suppressingKey={suppressingKey}
           onUnsuppress={handleUnsuppress}
@@ -354,9 +269,9 @@ export function HealthPanel({
         />
       );
 
-    case "consolidate":
+    case "alias-opportunities":
       return (
-        <HealthConsolidateView
+        <HealthAliasOpportunitiesView
           aliasOpportunityGroups={aliasOpportunityGroups}
           promotingGroupId={promotingAliasGroupId}
           onPromote={handlePromote}
@@ -392,9 +307,9 @@ export function HealthPanel({
           generatorIssueCount={generatorIssueCount}
           unusedCount={unusedTokens.length}
           deprecatedCount={deprecatedUsageEntriesForCurrent.length}
-          consolidateCount={aliasOpportunityGroups.length}
+          aliasOpportunitiesCount={aliasOpportunityGroups.length}
           duplicateCount={totalDuplicateAliases}
-          ignoredCount={suppressedKeysForCurrent.size}
+          hiddenCount={suppressedKeysForCurrent.size}
           onNavigateToView={setActiveView}
           onNavigateToGenerators={onNavigateToGenerators}
         />

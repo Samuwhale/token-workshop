@@ -2,13 +2,11 @@ import React from 'react';
 import type { RefObject } from 'react';
 import { Spinner } from './Spinner';
 import { PLATFORMS } from '../shared/platforms';
-import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
+import { ALL_TOKEN_TYPES } from '../../shared/types';
 import type { PlatformConfig } from '../hooks/usePlatformConfig';
 import type { DiffState } from '../hooks/useDiffState';
 import type { ExportPresetsState, ExportPreset } from '../hooks/useExportPresets';
 import type { ExportResultFile } from '../hooks/useExportResults';
-
-const ALL_TOKEN_TYPES = Object.keys(TOKEN_TYPE_BADGE_CLASS);
 
 interface PlatformExportConfigProps {
   platformConfig: PlatformConfig;

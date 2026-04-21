@@ -3,11 +3,15 @@ import type { TokenCollection } from '@tokenmanager/core';
 import { readTokenCollectionModeValues } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { LintViolation } from '../hooks/useLint';
+import type { ValidationIssue } from '../hooks/useValidationCache';
 import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { formatDisplayPath } from './tokenListUtils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { stableStringify } from '../shared/utils';
+import { getRuleLabel, hasFix, fixLabel, suppressKey } from '../shared/ruleLabels';
 import { ValuePreview } from './ValuePreview';
+import { Spinner } from './Spinner';
+import { useDropdownMenu } from '../hooks/useDropdownMenu';
 import {
   ArrowLeft,
   ArrowRight,
@@ -28,10 +32,15 @@ interface TokenInspectorProps {
   collections?: TokenCollection[];
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
+  fixingKeys?: Set<string>;
+  suppressedKeys?: Set<string>;
   onEdit: () => void;
   onDuplicate?: () => void;
   onClose: () => void;
   onNavigateToToken?: (path: string) => void;
+  onFixIssue?: (issue: ValidationIssue) => void;
+  onHideIssue?: (issue: ValidationIssue) => void;
+  onOpenInHealth?: () => void;
 }
 
 interface ResolvedModeCell {
@@ -56,10 +65,15 @@ export function TokenInspector({
   collections,
   lintViolations = [],
   syncSnapshot,
+  fixingKeys,
+  suppressedKeys,
   onEdit,
   onDuplicate,
   onClose,
   onNavigateToToken,
+  onFixIssue,
+  onHideIssue,
+  onOpenInHealth,
 }: TokenInspectorProps) {
   const entry = allTokensFlat[tokenPath];
   const name = tokenName ?? tokenPath.split('.').pop() ?? tokenPath;
@@ -92,6 +106,11 @@ export function TokenInspector({
     return buildAliasChain(tokenPath, startRaw, entry.$type ?? '', allTokensFlat, pathToCollectionId);
   }, [entry, tokenPath, allTokensFlat, pathToCollectionId]);
 
+  const visibleIssues = useMemo<ValidationIssue[]>(
+    () => lintViolations.filter((v) => !suppressedKeys?.has(suppressKey(v))),
+    [lintViolations, suppressedKeys],
+  );
+
   const referencedBy = useMemo(() => {
     const result: string[] = [];
     for (const [path, e] of Object.entries(allTokensFlat)) {
@@ -100,13 +119,6 @@ export function TokenInspector({
     }
     return result.sort();
   }, [allTokensFlat, tokenPath]);
-
-  const lintTone = useMemo<'error' | 'warning' | 'info' | null>(() => {
-    if (lintViolations.some((v) => v.severity === 'error')) return 'error';
-    if (lintViolations.some((v) => v.severity === 'warning')) return 'warning';
-    if (lintViolations.length > 0) return 'info';
-    return null;
-  }, [lintViolations]);
 
   const syncChanged = useMemo(() => {
     if (!syncSnapshot || !(tokenPath in syncSnapshot)) return false;
@@ -145,10 +157,7 @@ export function TokenInspector({
         >
           {displayPath}
         </span>
-        {lintTone && (
-          <LintBadge tone={lintTone} count={lintViolations.length} />
-        )}
-        {!lintTone && syncChanged && (
+        {syncChanged && (
           <span
             className="shrink-0 h-2 w-2 rounded-full bg-[var(--color-figma-warning)]"
             title="Unpublished changes"
@@ -180,6 +189,16 @@ export function TokenInspector({
       {/* Body */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <HeroBlock type={heroType} value={heroValue} />
+
+        {visibleIssues.length > 0 && (
+          <IssuesSection
+            issues={visibleIssues}
+            fixingKeys={fixingKeys}
+            onFixIssue={onFixIssue}
+            onHideIssue={onHideIssue}
+            onOpenInHealth={onOpenInHealth}
+          />
+        )}
 
         {hasMultipleModes && (
           <Section label={`Modes in ${collection!.id}`}>
@@ -218,8 +237,6 @@ export function TokenInspector({
           tokenPath={tokenPath}
           rawValue={entry.$value}
           rawReference={entry.reference}
-          lintViolations={lintViolations}
-          onNavigateToToken={onNavigateToToken}
         />
       </div>
     </div>
@@ -448,14 +465,10 @@ function DevDrawer({
   tokenPath,
   rawValue,
   rawReference,
-  lintViolations,
-  onNavigateToToken,
 }: {
   tokenPath: string;
   rawValue: unknown;
   rawReference?: string;
-  lintViolations: LintViolation[];
-  onNavigateToToken?: (path: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const cssVar = `--${tokenPath.replace(/\./g, '-')}`;
@@ -474,11 +487,6 @@ function DevDrawer({
       >
         {open ? <ChevronDown size={12} strokeWidth={2} aria-hidden /> : <ChevronRight size={12} strokeWidth={2} aria-hidden />}
         <span>For developers</span>
-        {lintViolations.length > 0 && (
-          <span className="ml-auto text-secondary text-[var(--color-figma-text-tertiary)]">
-            {lintViolations.length} issue{lintViolations.length === 1 ? '' : 's'}
-          </span>
-        )}
       </button>
       {open && (
         <div className="px-3 pb-3 flex flex-col gap-2">
@@ -490,15 +498,6 @@ function DevDrawer({
               {rawJson || '—'}
             </pre>
           </DevRow>
-          {lintViolations.length > 0 && (
-            <DevRow label="Lint">
-              <ul className="flex flex-col gap-1">
-                {lintViolations.map((v, idx) => (
-                  <LintRow key={idx} violation={v} onNavigateToToken={onNavigateToToken} />
-                ))}
-              </ul>
-            </DevRow>
-          )}
         </div>
       )}
     </div>
@@ -538,44 +537,6 @@ function CopyableCode({ text }: { text: string }) {
   );
 }
 
-function LintRow({
-  violation,
-  onNavigateToToken,
-}: {
-  violation: LintViolation;
-  onNavigateToToken?: (path: string) => void;
-}) {
-  const toneClass =
-    violation.severity === 'error'
-      ? 'text-[var(--color-figma-error)]'
-      : violation.severity === 'warning'
-        ? 'text-[var(--color-figma-warning)]'
-        : 'text-[var(--color-figma-text-secondary)]';
-  return (
-    <li className="flex flex-col gap-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-2 py-1.5">
-      <div className="flex items-baseline gap-1.5">
-        <span className={`text-secondary font-medium ${toneClass}`}>{violation.severity}</span>
-        <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{violation.rule}</span>
-      </div>
-      <div className="text-body text-[var(--color-figma-text)]">{violation.message}</div>
-      {violation.suggestedFix && (
-        <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-          {violation.suggestedFix}
-        </div>
-      )}
-      {violation.suggestion && onNavigateToToken && (
-        <button
-          type="button"
-          onClick={() => onNavigateToToken(violation.suggestion!)}
-          className="self-start inline-flex items-center gap-1 text-[var(--color-figma-accent)] hover:underline text-secondary font-mono"
-        >
-          <LinkIcon size={10} strokeWidth={2} aria-hidden /> {violation.suggestion}
-        </button>
-      )}
-    </li>
-  );
-}
-
 // ─── Section ─────────────────────────────────────────────────────────────────
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
@@ -589,22 +550,129 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-// ─── Lint badge ──────────────────────────────────────────────────────────────
+// ─── Issues section ──────────────────────────────────────────────────────────
 
-function LintBadge({ tone, count }: { tone: 'error' | 'warning' | 'info'; count: number }) {
-  const cls =
-    tone === 'error'
-      ? 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'
-      : tone === 'warning'
-        ? 'bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]'
-        : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
+function IssuesSection({
+  issues,
+  fixingKeys,
+  onFixIssue,
+  onHideIssue,
+  onOpenInHealth,
+}: {
+  issues: ValidationIssue[];
+  fixingKeys?: Set<string>;
+  onFixIssue?: (issue: ValidationIssue) => void;
+  onHideIssue?: (issue: ValidationIssue) => void;
+  onOpenInHealth?: () => void;
+}) {
   return (
-    <span
-      className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-medium ${cls}`}
-      title={`${count} lint issue${count === 1 ? '' : 's'}`}
-    >
-      {count}
-    </span>
+    <section className="border-b border-[var(--color-figma-border)]">
+      <div className="flex flex-col">
+        {issues.map((issue, idx) => (
+          <IssueRow
+            key={`${issue.rule}:${issue.path}:${idx}`}
+            issue={issue}
+            fixing={fixingKeys?.has(suppressKey(issue)) ?? false}
+            onFix={onFixIssue ? () => onFixIssue(issue) : undefined}
+            onHide={onHideIssue ? () => onHideIssue(issue) : undefined}
+          />
+        ))}
+      </div>
+      {onOpenInHealth && (
+        <button
+          type="button"
+          onClick={onOpenInHealth}
+          className="w-full px-3 py-1.5 text-left text-secondary text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
+        >
+          See all in Health →
+        </button>
+      )}
+    </section>
+  );
+}
+
+function IssueRow({
+  issue,
+  fixing,
+  onFix,
+  onHide,
+}: {
+  issue: ValidationIssue;
+  fixing: boolean;
+  onFix?: () => void;
+  onHide?: () => void;
+}) {
+  const overflowMenu = useDropdownMenu();
+  const meta = getRuleLabel(issue.rule);
+  const canFix = hasFix(issue);
+  const toneClass =
+    issue.severity === 'error'
+      ? 'text-[var(--color-figma-error)]'
+      : issue.severity === 'warning'
+        ? 'text-[var(--color-figma-warning)]'
+        : 'text-[var(--color-figma-text-secondary)]';
+  const isDestructive = issue.suggestedFix === 'delete-token';
+
+  return (
+    <div className="group px-3 py-2 flex items-start gap-2 border-b border-[var(--color-figma-border)] last:border-b-0">
+      <span
+        className={`mt-1 shrink-0 h-1.5 w-1.5 rounded-full ${issue.severity === 'error' ? 'bg-[var(--color-figma-error)]' : issue.severity === 'warning' ? 'bg-[var(--color-figma-warning)]' : 'bg-[var(--color-figma-text-tertiary)]'}`}
+        aria-hidden
+      />
+      <div className="flex-1 min-w-0">
+        <div className={`text-secondary font-medium ${toneClass}`}>{meta.label}</div>
+        <div className="text-secondary text-[var(--color-figma-text-secondary)] break-words">
+          {issue.message}
+        </div>
+      </div>
+      {canFix && onFix && (
+        <button
+          type="button"
+          onClick={onFix}
+          disabled={fixing}
+          className={`shrink-0 text-secondary disabled:opacity-40 disabled:cursor-wait hover:underline ${
+            isDestructive
+              ? 'text-[var(--color-figma-error)]'
+              : 'text-[var(--color-figma-accent)]'
+          }`}
+        >
+          {fixing ? <Spinner size="xs" /> : fixLabel(issue.suggestedFix)}
+        </button>
+      )}
+      {onHide && (
+        <div className="relative shrink-0">
+          <button
+            ref={overflowMenu.triggerRef}
+            type="button"
+            onClick={overflowMenu.toggle}
+            className="text-secondary px-1 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] opacity-0 group-hover:opacity-100"
+            aria-haspopup="true"
+            aria-expanded={overflowMenu.open}
+            aria-label="More actions"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+            </svg>
+          </button>
+          {overflowMenu.open && (
+            <div
+              ref={overflowMenu.menuRef}
+              className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-0.5"
+              role="menu"
+            >
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => { onHide(); overflowMenu.close(); }}
+                className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Hide this issue
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

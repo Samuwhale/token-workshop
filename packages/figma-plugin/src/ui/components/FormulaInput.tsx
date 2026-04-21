@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { evalExpr } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
-import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
+import { tokenTypeBadgeClass } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { AUTHORING } from '../shared/editorClasses';
 
@@ -381,7 +381,7 @@ export function FormulaInput({
               )}
 
               {/* Type badge */}
-              <span className={`text-[8px] px-1 py-0.5 rounded font-medium shrink-0 ${TOKEN_TYPE_BADGE_CLASS[entry.$type ?? ''] ?? 'token-type-string'}`}>
+              <span className={`text-[8px] px-1 py-0.5 rounded font-medium shrink-0 ${tokenTypeBadgeClass(entry.$type)}`}>
                 {entry.$type}
               </span>
 

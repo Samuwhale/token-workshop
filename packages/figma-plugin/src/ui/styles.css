@@ -38,71 +38,29 @@
   --color-figma-success: #14ae5c;
   --color-figma-warning: #f2a20d;
   --color-figma-error: #f24822;
+
+  /* Token family badge colors — six semantic groups cover every token $type
+     so the palette reads as a legend instead of a rainbow. */
   --token-badge-color-bg: #e74c3c26;
   --token-badge-color-text: #f27a6a;
-  --token-badge-dimension-bg: #3498db26;
-  --token-badge-dimension-text: #5bb8f0;
-  --token-badge-typography-bg: #9b59b626;
-  --token-badge-typography-text: #b97fd4;
-  --token-badge-shadow-bg: #2db5a026;
-  --token-badge-shadow-text: #4fd4bf;
-  --token-badge-border-bg: #2db5a026;
-  --token-badge-border-text: #4fd4bf;
-  --token-badge-number-bg: #7c8a9226;
-  --token-badge-number-text: #a3b1bd;
-  --token-badge-string-bg: #7c8a9226;
-  --token-badge-string-text: #a3b1bd;
-  --token-badge-boolean-bg: #7c8a9226;
-  --token-badge-boolean-text: #a3b1bd;
-  --token-badge-gradient-bg: #e74c3c26;
-  --token-badge-gradient-text: #f27a6a;
-  --token-badge-duration-bg: #7c8a9226;
-  --token-badge-duration-text: #a3b1bd;
-  --token-badge-fontFamily-bg: #9b59b626;
-  --token-badge-fontFamily-text: #b97fd4;
-  --token-badge-composition-bg: #2db5a026;
-  --token-badge-composition-text: #4fd4bf;
-  --token-badge-asset-bg: #7c8a9226;
-  --token-badge-asset-text: #a3b1bd;
-  --token-badge-cubicBezier-bg: #7c8a9226;
-  --token-badge-cubicBezier-text: #a3b1bd;
-  --token-badge-transition-bg: #2db5a026;
-  --token-badge-transition-text: #4fd4bf;
-  --token-badge-fontStyle-bg: #9b59b626;
-  --token-badge-fontStyle-text: #b97fd4;
-  --token-badge-lineHeight-bg: #3498db26;
-  --token-badge-lineHeight-text: #5bb8f0;
-  --token-badge-letterSpacing-bg: #3498db26;
-  --token-badge-letterSpacing-text: #5bb8f0;
-  --token-badge-percentage-bg: #3498db26;
-  --token-badge-percentage-text: #5bb8f0;
-  --token-badge-link-bg: #7c8a9226;
-  --token-badge-link-text: #a3b1bd;
-  --token-badge-textDecoration-bg: #9b59b626;
-  --token-badge-textDecoration-text: #b97fd4;
-  --token-badge-textTransform-bg: #9b59b626;
-  --token-badge-textTransform-text: #b97fd4;
-  --token-badge-custom-bg: #7c8a9226;
-  --token-badge-custom-text: #a3b1bd;
-  --token-badge-fontWeight-bg: #9b59b626;
-  --token-badge-fontWeight-text: #b97fd4;
-  --token-badge-strokeStyle-bg: #2db5a026;
-  --token-badge-strokeStyle-text: #4fd4bf;
+  --token-badge-size-bg: #3498db26;
+  --token-badge-size-text: #5bb8f0;
+  --token-badge-type-bg: #9b59b626;
+  --token-badge-type-text: #b97fd4;
+  --token-badge-effect-bg: #2db5a026;
+  --token-badge-effect-text: #4fd4bf;
+  --token-badge-motion-bg: #d99a3626;
+  --token-badge-motion-text: #e8c47d;
+  --token-badge-other-bg: #7c8a9226;
+  --token-badge-other-text: #a3b1bd;
 
-  /* Token type colors — used in stats bar segments */
-  --color-token-type-color: #e85d4a;
-  --color-token-type-dimension: #4a9ee8;
-  --color-token-type-spacing: #5bc4a0;
-  --color-token-type-typography: #a77de8;
-  --color-token-type-fontFamily: #c47de8;
-  --color-token-type-fontSize: #e8a77d;
-  --color-token-type-fontWeight: #7de8c4;
-  --color-token-type-lineHeight: #e8c47d;
-  --color-token-type-number: #7db8e8;
-  --color-token-type-string: #aae87d;
-  --color-token-type-shadow: #e87dc4;
-  --color-token-type-border: #e8e07d;
-  --color-token-type-fallback: #8888aa;
+  /* Token family colors for stats bar segments */
+  --color-token-family-color: #e85d4a;
+  --color-token-family-size: #4a9ee8;
+  --color-token-family-type: #a77de8;
+  --color-token-family-effect: #5bc4a0;
+  --color-token-family-motion: #e8c47d;
+  --color-token-family-other: #8888aa;
 
   /* Overlay backdrop */
   --color-figma-overlay: rgba(0, 0, 0, 0.40);
@@ -128,69 +86,23 @@ html.figma-light {
 
   --token-badge-color-bg: #e74c3c14;
   --token-badge-color-text: #c0392b;
-  --token-badge-dimension-bg: #2471a314;
-  --token-badge-dimension-text: #1a6694;
-  --token-badge-typography-bg: #76448a14;
-  --token-badge-typography-text: #6b3a7d;
-  --token-badge-shadow-bg: #1a8c7c14;
-  --token-badge-shadow-text: #15705f;
-  --token-badge-border-bg: #1a8c7c14;
-  --token-badge-border-text: #15705f;
-  --token-badge-number-bg: #5c6b7514;
-  --token-badge-number-text: #4d5a63;
-  --token-badge-string-bg: #5c6b7514;
-  --token-badge-string-text: #4d5a63;
-  --token-badge-boolean-bg: #5c6b7514;
-  --token-badge-boolean-text: #4d5a63;
-  --token-badge-gradient-bg: #e74c3c14;
-  --token-badge-gradient-text: #c0392b;
-  --token-badge-duration-bg: #5c6b7514;
-  --token-badge-duration-text: #4d5a63;
-  --token-badge-fontFamily-bg: #76448a14;
-  --token-badge-fontFamily-text: #6b3a7d;
-  --token-badge-composition-bg: #1a8c7c14;
-  --token-badge-composition-text: #15705f;
-  --token-badge-asset-bg: #5c6b7514;
-  --token-badge-asset-text: #4d5a63;
-  --token-badge-cubicBezier-bg: #5c6b7514;
-  --token-badge-cubicBezier-text: #4d5a63;
-  --token-badge-transition-bg: #1a8c7c14;
-  --token-badge-transition-text: #15705f;
-  --token-badge-fontStyle-bg: #76448a14;
-  --token-badge-fontStyle-text: #6b3a7d;
-  --token-badge-lineHeight-bg: #2471a314;
-  --token-badge-lineHeight-text: #1a6694;
-  --token-badge-letterSpacing-bg: #2471a314;
-  --token-badge-letterSpacing-text: #1a6694;
-  --token-badge-percentage-bg: #2471a314;
-  --token-badge-percentage-text: #1a6694;
-  --token-badge-link-bg: #5c6b7514;
-  --token-badge-link-text: #4d5a63;
-  --token-badge-textDecoration-bg: #76448a14;
-  --token-badge-textDecoration-text: #6b3a7d;
-  --token-badge-textTransform-bg: #76448a14;
-  --token-badge-textTransform-text: #6b3a7d;
-  --token-badge-custom-bg: #5c6b7514;
-  --token-badge-custom-text: #4d5a63;
-  --token-badge-fontWeight-bg: #76448a14;
-  --token-badge-fontWeight-text: #6b3a7d;
-  --token-badge-strokeStyle-bg: #1a8c7c14;
-  --token-badge-strokeStyle-text: #15705f;
+  --token-badge-size-bg: #2471a314;
+  --token-badge-size-text: #1a6694;
+  --token-badge-type-bg: #76448a14;
+  --token-badge-type-text: #6b3a7d;
+  --token-badge-effect-bg: #1a8c7c14;
+  --token-badge-effect-text: #15705f;
+  --token-badge-motion-bg: #b8860b14;
+  --token-badge-motion-text: #8a6408;
+  --token-badge-other-bg: #5c6b7514;
+  --token-badge-other-text: #4d5a63;
 
-  /* Token type colors — stats bar segments */
-  --color-token-type-color: #c0392b;
-  --color-token-type-dimension: #2471a3;
-  --color-token-type-spacing: #1e8449;
-  --color-token-type-typography: #76448a;
-  --color-token-type-fontFamily: #8e3aad;
-  --color-token-type-fontSize: #c46c15;
-  --color-token-type-fontWeight: #148f77;
-  --color-token-type-lineHeight: #b8860b;
-  --color-token-type-number: #2874a6;
-  --color-token-type-string: #6c8c22;
-  --color-token-type-shadow: #a435c9;
-  --color-token-type-border: #b7950b;
-  --color-token-type-fallback: #6b6b88;
+  --color-token-family-color: #c0392b;
+  --color-token-family-size: #2471a3;
+  --color-token-family-type: #76448a;
+  --color-token-family-effect: #1a8c7c;
+  --color-token-family-motion: #b8860b;
+  --color-token-family-other: #6b6b88;
 
   --color-figma-overlay: rgba(0, 0, 0, 0.25);
   --color-figma-overlay-heavy: rgba(0, 0, 0, 0.40);
@@ -304,59 +216,21 @@ select:focus-visible,
   animation: create-form-pulse 0.6s ease-out;
 }
 
-/* Token type color badges */
-.token-type-color { background: var(--token-badge-color-bg); color: var(--token-badge-color-text); }
-.token-type-dimension { background: var(--token-badge-dimension-bg); color: var(--token-badge-dimension-text); }
-.token-type-typography { background: var(--token-badge-typography-bg); color: var(--token-badge-typography-text); }
-.token-type-shadow { background: var(--token-badge-shadow-bg); color: var(--token-badge-shadow-text); }
-.token-type-border { background: var(--token-badge-border-bg); color: var(--token-badge-border-text); }
-.token-type-number { background: var(--token-badge-number-bg); color: var(--token-badge-number-text); }
-.token-type-string { background: var(--token-badge-string-bg); color: var(--token-badge-string-text); }
-.token-type-boolean { background: var(--token-badge-boolean-bg); color: var(--token-badge-boolean-text); }
-.token-type-gradient { background: var(--token-badge-gradient-bg); color: var(--token-badge-gradient-text); }
-.token-type-duration { background: var(--token-badge-duration-bg); color: var(--token-badge-duration-text); }
-.token-type-fontFamily { background: var(--token-badge-fontFamily-bg); color: var(--token-badge-fontFamily-text); }
-.token-type-composition { background: var(--token-badge-composition-bg); color: var(--token-badge-composition-text); }
-.token-type-asset { background: var(--token-badge-asset-bg); color: var(--token-badge-asset-text); }
-.token-type-cubicBezier { background: var(--token-badge-cubicBezier-bg); color: var(--token-badge-cubicBezier-text); }
-.token-type-transition { background: var(--token-badge-transition-bg); color: var(--token-badge-transition-text); }
-.token-type-fontStyle { background: var(--token-badge-fontStyle-bg); color: var(--token-badge-fontStyle-text); }
-.token-type-lineHeight { background: var(--token-badge-lineHeight-bg); color: var(--token-badge-lineHeight-text); }
-.token-type-letterSpacing { background: var(--token-badge-letterSpacing-bg); color: var(--token-badge-letterSpacing-text); }
-.token-type-percentage { background: var(--token-badge-percentage-bg); color: var(--token-badge-percentage-text); }
-.token-type-link { background: var(--token-badge-link-bg); color: var(--token-badge-link-text); }
-.token-type-textDecoration { background: var(--token-badge-textDecoration-bg); color: var(--token-badge-textDecoration-text); }
-.token-type-textTransform { background: var(--token-badge-textTransform-bg); color: var(--token-badge-textTransform-text); }
-.token-type-custom { background: var(--token-badge-custom-bg); color: var(--token-badge-custom-text); }
-.token-type-fontWeight { background: var(--token-badge-fontWeight-bg); color: var(--token-badge-fontWeight-text); }
-.token-type-strokeStyle { background: var(--token-badge-strokeStyle-bg); color: var(--token-badge-strokeStyle-text); }
+/* Token family badges — six semantic groups, one per visual hue */
+.token-family-color  { background: var(--token-badge-color-bg);  color: var(--token-badge-color-text); }
+.token-family-size   { background: var(--token-badge-size-bg);   color: var(--token-badge-size-text); }
+.token-family-type   { background: var(--token-badge-type-bg);   color: var(--token-badge-type-text); }
+.token-family-effect { background: var(--token-badge-effect-bg); color: var(--token-badge-effect-text); }
+.token-family-motion { background: var(--token-badge-motion-bg); color: var(--token-badge-motion-text); }
+.token-family-other  { background: var(--token-badge-other-bg);  color: var(--token-badge-other-text); }
 
 :is(
-  .token-type-color,
-  .token-type-dimension,
-  .token-type-typography,
-  .token-type-shadow,
-  .token-type-border,
-  .token-type-number,
-  .token-type-string,
-  .token-type-boolean,
-  .token-type-gradient,
-  .token-type-duration,
-  .token-type-fontFamily,
-  .token-type-composition,
-  .token-type-asset,
-  .token-type-cubicBezier,
-  .token-type-transition,
-  .token-type-fontStyle,
-  .token-type-lineHeight,
-  .token-type-letterSpacing,
-  .token-type-percentage,
-  .token-type-link,
-  .token-type-textDecoration,
-  .token-type-textTransform,
-  .token-type-custom,
-  .token-type-fontWeight,
-  .token-type-strokeStyle
+  .token-family-color,
+  .token-family-size,
+  .token-family-type,
+  .token-family-effect,
+  .token-family-motion,
+  .token-family-other
 ) {
   display: inline-flex;
   align-items: center;

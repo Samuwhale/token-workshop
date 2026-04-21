@@ -33,6 +33,7 @@ export function ConfirmModal({
   const [error, setError] = useState('');
   const mountedRef = useRef(true);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const canCancel = !busy;
   useFocusTrap(dialogRef);
 
   useEffect(() => {
@@ -56,18 +57,20 @@ export function ConfirmModal({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape' && canCancel) onCancel();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onCancel]);
+  }, [canCancel, onCancel]);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      onMouseDown={(e) => {
+        if (canCancel && e.target === e.currentTarget) onCancel();
+      }}
     >
-      <div ref={dialogRef} className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <div ref={dialogRef} className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-busy={busy}>
         <div className="px-4 pt-4 pb-3">
           <h3 id="confirm-modal-title" className="text-heading font-semibold text-[var(--color-figma-text)]">{title}</h3>
           {description && (
@@ -83,6 +86,7 @@ export function ConfirmModal({
         <div className="px-4 pb-4 flex gap-2">
           <button
             onClick={onCancel}
+            disabled={!canCancel}
             className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             {cancelLabel}

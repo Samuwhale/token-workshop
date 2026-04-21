@@ -48,6 +48,7 @@ export function RollbackPreviewModal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   useFocusTrap(dialogRef);
+  const dismissDisabled = confirming;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -85,6 +86,7 @@ export function RollbackPreviewModal({
   }, []);
 
   const handleConfirm = async () => {
+    if (confirming) return;
     setConfirming(true);
     setConfirmError(null);
     try {
@@ -98,10 +100,12 @@ export function RollbackPreviewModal({
   };
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !dismissDisabled) onCancel();
+    };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onCancel]);
+  }, [dismissDisabled, onCancel]);
 
   const summary = changes ? summarizeChanges(changes) : null;
   const noChanges = changes?.length === 0 && metadataChanges.length === 0;
@@ -109,7 +113,9 @@ export function RollbackPreviewModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      onMouseDown={(e) => {
+        if (!dismissDisabled && e.target === e.currentTarget) onCancel();
+      }}
     >
       <div
         ref={dialogRef}
@@ -117,6 +123,7 @@ export function RollbackPreviewModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="rollback-preview-title"
+        aria-busy={confirming}
       >
         {/* Header */}
         <div className="px-4 pt-4 pb-3 shrink-0 border-b border-[var(--color-figma-border)]">

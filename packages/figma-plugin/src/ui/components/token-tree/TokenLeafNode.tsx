@@ -1172,7 +1172,7 @@ export const TokenLeafNode = memo(
                       onEdit(node.path, node.name);
                     }
                   }}
-                  title={`${tokenStatus.title}\n\nClick to open in Health`}
+                  title={`${tokenStatus.title}\n\nClick to view issues`}
                   className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded cursor-pointer transition-colors hover:bg-[var(--color-figma-bg-secondary)] ${tokenStatus.toneClass}`}
                 >
                   <svg

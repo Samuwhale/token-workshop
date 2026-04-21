@@ -13,19 +13,19 @@ function getRuleLabel(rule: string): string {
   return VALIDATION_LABELS[rule]?.label ?? LINT_RULE_BY_ID[rule]?.label ?? rule;
 }
 
-export interface HealthIgnoredViewProps {
+export interface HealthHiddenViewProps {
   suppressedKeys: Set<string>;
   suppressingKey: string | null;
   onUnsuppress: (key: string) => void;
   onBack: () => void;
 }
 
-export function HealthIgnoredView({
+export function HealthHiddenView({
   suppressedKeys,
   suppressingKey,
   onUnsuppress,
   onBack,
-}: HealthIgnoredViewProps) {
+}: HealthHiddenViewProps) {
   const keys = [...suppressedKeys];
 
   return (
@@ -40,7 +40,7 @@ export function HealthIgnoredView({
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <span className="text-body font-semibold text-[var(--color-figma-text)]">Ignored</span>
+        <span className="text-body font-semibold text-[var(--color-figma-text)]">Hidden</span>
         <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-auto">{keys.length} issue{keys.length !== 1 ? "s" : ""}</span>
       </div>
 
@@ -48,7 +48,7 @@ export function HealthIgnoredView({
         {keys.length === 0 ? (
           <div className="px-3 py-12 text-center">
             <p className="text-body text-[var(--color-figma-text-secondary)]">
-              No ignored issues
+              No hidden issues
             </p>
           </div>
         ) : (

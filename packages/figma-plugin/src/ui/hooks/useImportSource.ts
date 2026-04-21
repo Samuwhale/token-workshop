@@ -121,6 +121,11 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
   const correlationIdRef = useRef<string | null>(null);
 
+  const clearModeImportState = useCallback(() => {
+    setModeCollectionNames({});
+    setModeEnabled({});
+  }, []);
+
   const resetLoadedImportState = useCallback(() => {
     if (readTimeoutRef.current) {
       clearTimeout(readTimeoutRef.current);
@@ -132,11 +137,12 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setSource(null);
     setCollectionData([]);
     setTokens([]);
+    clearModeImportState();
     setSelectedTokens(new Set());
     setTypeFilter(null);
     setSkippedEntries([]);
     setSkippedExpanded(false);
-  }, []);
+  }, [clearModeImportState]);
 
   const resetImportFlow = useCallback(() => {
     resetLoadedImportState();
@@ -267,6 +273,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setSource('variables');
     setCollectionData([]);
     setTokens([]);
+    clearModeImportState();
     setError(null);
     const sent = postPluginMessage({ type: 'read-variables', correlationId: cid });
     if (!sent) {
@@ -277,7 +284,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     }
     setLoading(true);
     startReadTimeout('variables');
-  }, [clearFileImportValidation, startReadTimeout]);
+  }, [clearFileImportValidation, clearModeImportState, startReadTimeout]);
 
   const handleReadStyles = useCallback(() => {
     clearFileImportValidation();
@@ -287,6 +294,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setSourceFamily('figma');
     setSource('styles');
     setTokens([]);
+    clearModeImportState();
     setError(null);
     const sent = postPluginMessage({ type: 'read-styles', correlationId: cid });
     if (!sent) {
@@ -297,7 +305,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     }
     setLoading(true);
     startReadTimeout('styles');
-  }, [clearFileImportValidation, startReadTimeout]);
+  }, [clearFileImportValidation, clearModeImportState, startReadTimeout]);
 
   const processTokensStudioContent = useCallback((
     raw: string,
@@ -342,6 +350,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       const markedTokens = markDuplicatePaths(importTokens);
       setSource('tokens-studio');
       setTokens(markedTokens);
+      clearModeImportState();
       setSelectedTokens(new Set(importTokens.map(t => t.path)));
       setTypeFilter(null);
     } else {
@@ -382,7 +391,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       supportedFormats: getSupportedFormatsForSource('tokens-studio'),
       parserLimits: getParserLimitsForSource('tokens-studio'),
     });
-  }, [onResetExistingPathsCache, updateFileImportValidation]);
+  }, [clearModeImportState, onResetExistingPathsCache, updateFileImportValidation]);
 
   const processJsonFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -492,6 +501,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         const markedImportTokens = markDuplicatePaths(importTokens);
         setSource('json');
         setTokens(markedImportTokens);
+        clearModeImportState();
         setSelectedTokens(new Set(importTokens.map(t => t.path)));
         setTypeFilter(null);
         setError(null);
@@ -553,7 +563,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       });
     };
     reader.readAsText(file);
-  }, [processTokensStudioContent, onResetExistingPathsCache, updateFileImportValidation]);
+  }, [clearModeImportState, processTokensStudioContent, onResetExistingPathsCache, updateFileImportValidation]);
 
   const processCSSFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -606,6 +616,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         const isPartial = skipped.length > 0 || errors.length > 0;
         setSource('css');
         setTokens(markedImportTokens);
+        clearModeImportState();
         setSelectedTokens(new Set(importTokens.map(t => t.path)));
         setTypeFilter(null);
         setSkippedEntries(skipped);
@@ -676,7 +687,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       });
     };
     reader.readAsText(file);
-  }, [onResetExistingPathsCache, updateFileImportValidation]);
+  }, [clearModeImportState, onResetExistingPathsCache, updateFileImportValidation]);
 
   const processTailwindFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -716,6 +727,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         const isPartial = skipped.length > 0 || errors.length > 0;
         setSource('tailwind');
         setTokens(markedImportTokens);
+        clearModeImportState();
         setSelectedTokens(new Set(importTokens.map(t => t.path)));
         setTypeFilter(null);
         setSkippedEntries(skipped);
@@ -786,7 +798,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       });
     };
     reader.readAsText(file);
-  }, [onResetExistingPathsCache, updateFileImportValidation]);
+  }, [clearModeImportState, onResetExistingPathsCache, updateFileImportValidation]);
 
   const processTokensStudioFile = useCallback((file: File) => {
     const reader = new FileReader();

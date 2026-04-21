@@ -1,22 +1,24 @@
-const TOKEN_TYPE_COLORS: Record<string, string> = {
-  color: "var(--color-token-type-color)",
-  dimension: "var(--color-token-type-dimension)",
-  spacing: "var(--color-token-type-spacing)",
-  typography: "var(--color-token-type-typography)",
-  fontFamily: "var(--color-token-type-fontFamily)",
-  fontSize: "var(--color-token-type-fontSize)",
-  fontWeight: "var(--color-token-type-fontWeight)",
-  lineHeight: "var(--color-token-type-lineHeight)",
-  number: "var(--color-token-type-number)",
-  string: "var(--color-token-type-string)",
-  shadow: "var(--color-token-type-shadow)",
-  border: "var(--color-token-type-border)",
-};
+import { TOKEN_TYPE_FAMILY, type TokenFamily } from "../../../shared/types";
+
+const FAMILY_ORDER: TokenFamily[] = ["color", "size", "type", "effect", "motion", "other"];
 
 interface TokenListStatsBarProps {
   statsTotalTokens: number;
   statsByType: [string, number][];
   onClose: () => void;
+}
+
+function aggregateByFamily(statsByType: [string, number][]): [TokenFamily, number][] {
+  const counts: Record<TokenFamily, number> = {
+    color: 0, size: 0, type: 0, effect: 0, motion: 0, other: 0,
+  };
+  for (const [type, count] of statsByType) {
+    const family = TOKEN_TYPE_FAMILY[type] ?? "other";
+    counts[family] += count;
+  }
+  return FAMILY_ORDER
+    .map((family) => [family, counts[family]] as [TokenFamily, number])
+    .filter(([, count]) => count > 0);
 }
 
 export function TokenListStatsBar({
@@ -26,6 +28,8 @@ export function TokenListStatsBar({
 }: TokenListStatsBarProps) {
   if (statsTotalTokens === 0) return null;
 
+  const segments = aggregateByFamily(statsByType);
+
   return (
     <div className="shrink-0 border-b border-[var(--color-figma-border)] flex items-center gap-2 px-3 py-1 text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
       <span className="font-medium text-[var(--color-figma-text)]">
@@ -33,15 +37,14 @@ export function TokenListStatsBar({
       </span>
       <span>token{statsTotalTokens !== 1 ? "s" : ""}</span>
       <div className="flex-1 h-1.5 rounded-full overflow-hidden flex gap-px">
-        {statsByType.map(([type, count]) => (
+        {segments.map(([family, count]) => (
           <div
-            key={type}
+            key={family}
             style={{
               width: `${(count / statsTotalTokens) * 100}%`,
-              backgroundColor:
-                TOKEN_TYPE_COLORS[type] ?? "var(--color-token-type-fallback)",
+              backgroundColor: `var(--color-token-family-${family})`,
             }}
-            title={`${type}: ${count}`}
+            title={`${family}: ${count}`}
           />
         ))}
       </div>

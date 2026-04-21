@@ -23,9 +23,9 @@ export interface HealthDashboardProps {
   generatorIssueCount: number;
   unusedCount: number;
   deprecatedCount: number;
-  consolidateCount: number;
+  aliasOpportunitiesCount: number;
   duplicateCount: number;
-  ignoredCount: number;
+  hiddenCount: number;
 
   onNavigateToView: (view: HealthView) => void;
   onNavigateToGenerators?: () => void;
@@ -87,9 +87,9 @@ export function HealthDashboard({
   generatorIssueCount,
   unusedCount,
   deprecatedCount,
-  consolidateCount,
+  aliasOpportunitiesCount,
   duplicateCount,
-  ignoredCount,
+  hiddenCount,
   onNavigateToView,
   onNavigateToGenerators,
 }: HealthDashboardProps) {
@@ -114,12 +114,12 @@ export function HealthDashboard({
     { id: "generators", label: "Generators", count: generatorIssueCount, severity: categorySeverity(generatorIssueCount, false), onOpen: () => onNavigateToGenerators?.() },
     { id: "unused", label: "Unused", count: unusedCount, severity: categorySeverity(unusedCount, false), onOpen: openView("unused") },
     { id: "deprecated", label: "Deprecated", count: deprecatedCount, severity: categorySeverity(deprecatedCount, false), onOpen: openView("deprecated") },
-    { id: "consolidate", label: "Consolidate", count: consolidateCount, severity: categorySeverity(consolidateCount, false), onOpen: openView("consolidate") },
+    { id: "alias-opportunities", label: "Alias opportunities", count: aliasOpportunitiesCount, severity: categorySeverity(aliasOpportunitiesCount, false), onOpen: openView("alias-opportunities") },
     { id: "duplicates", label: "Duplicates", count: duplicateCount, severity: categorySeverity(duplicateCount, false), onOpen: openView("duplicates") },
   ];
 
-  if (ignoredCount > 0) {
-    categories.push({ id: "ignored", label: "Ignored", count: ignoredCount, severity: "healthy", onOpen: openView("ignored") });
+  if (hiddenCount > 0) {
+    categories.push({ id: "hidden", label: "Hidden", count: hiddenCount, severity: "healthy", onOpen: openView("hidden") });
   }
 
   return (

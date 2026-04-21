@@ -27,8 +27,8 @@ export interface CollectionHealthSummary {
 }
 
 /**
- * Rules that are surfaced as dedicated Health categories (Consolidate, Duplicates)
- * rather than row-level issues. They should not inflate the primary issue count.
+ * Rules surfaced as dedicated Health categories rather than row-level issues,
+ * so they don't inflate the primary issue count.
  */
 const CATEGORY_ONLY_RULES = new Set(["no-duplicate-values", "alias-opportunity"]);
 
