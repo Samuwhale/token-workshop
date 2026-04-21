@@ -35,13 +35,13 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
 }> = {
   full: {
     container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-2 py-1.5 text-center',
-    content: 'w-full max-w-[320px] space-y-1.5',
+    content: 'w-full max-w-[320px] flex flex-col items-center gap-1.5',
     title: 'text-body font-medium',
     description: 'text-secondary leading-snug',
   },
   section: {
     container: 'flex w-full flex-col items-center justify-center px-2 py-1 text-center',
-    content: 'w-full max-w-[300px] space-y-0.5',
+    content: 'w-full max-w-[300px] flex flex-col items-center gap-1',
     title: 'text-secondary font-medium',
     description: 'text-secondary leading-snug',
   },
@@ -153,24 +153,20 @@ export function FeedbackPlaceholder({
   return (
     <div className={joinClasses(sizeStyles.container, className)}>
       <div className={sizeStyles.content}>
-        <div className="flex flex-col items-center gap-1.5">
-          {iconNode !== null ? (
-            <div className={iconColor}>
-              {iconNode}
+        {iconNode !== null ? (
+          <div className={iconColor}>
+            {iconNode}
+          </div>
+        ) : null}
+        <div>
+          <h3 className={joinClasses(sizeStyles.title, 'text-[var(--color-figma-text)]')}>{title}</h3>
+          {description ? (
+            <div className={joinClasses('mt-0.5', sizeStyles.description, 'text-[var(--color-figma-text-secondary)]')}>
+              {description}
             </div>
           ) : null}
-          <div className="space-y-0.5">
-            <h3 className={joinClasses(sizeStyles.title, 'text-[var(--color-figma-text)]')}>{title}</h3>
-            {description ? (
-              <div className={joinClasses(sizeStyles.description, 'text-[var(--color-figma-text-secondary)]')}>
-                {description}
-              </div>
-            ) : null}
-          </div>
         </div>
-
-        {children ? <div>{children}</div> : null}
-
+        {children}
         {resolvedActions.length > 0 ? (
           <div className="flex flex-wrap items-center justify-center gap-2">
             {resolvedActions.map((action, index) => (

@@ -334,26 +334,22 @@ export function PropertyRow({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-secondary text-[var(--color-figma-text)] font-medium truncate">
-                    {PROPERTY_LABELS[prop]}
+                <span className="text-secondary text-[var(--color-figma-text)] font-medium truncate block">
+                  {PROPERTY_LABELS[prop]}
+                </span>
+                {isBound ? (
+                  <span className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] truncate block" title={resolvedDisplay ?? undefined}>
+                    {resolvedDisplay ?? formatCurrentValue(prop, value)}
                   </span>
-                </div>
-                <div className="mt-0.5 min-w-0">
-                  {isBound ? (
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)] truncate block" title={resolvedDisplay ?? undefined}>
-                      {resolvedDisplay ?? formatCurrentValue(prop, value)}
-                    </span>
-                  ) : isMixed ? (
-                    <span className="text-secondary text-[var(--color-figma-warning,#f5a623)] block">
-                      Different bindings across {rootNodes.length} selected {rootNodes.length === 1 ? 'layer' : 'layers'}
-                    </span>
-                  ) : (
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)] truncate block">
-                      {formatCurrentValue(prop, value)}
-                    </span>
-                  )}
-                </div>
+                ) : isMixed ? (
+                  <span className="mt-0.5 text-secondary text-[var(--color-figma-warning,#f5a623)] block">
+                    Different bindings across {rootNodes.length} selected {rootNodes.length === 1 ? 'layer' : 'layers'}
+                  </span>
+                ) : (
+                  <span className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] truncate block">
+                    {formatCurrentValue(prop, value)}
+                  </span>
+                )}
               </div>
               {statusLabel && (
                 <span className={`shrink-0 rounded-full px-2 py-1 text-secondary font-medium ${statusBadgeClass}`}>
@@ -466,12 +462,10 @@ export function PropertyRow({
       {isMixed && showMixedDetail && (() => {
         const mixedValues = getMixedBindingValues(rootNodes, prop);
         return (
-          <div className="mx-2 mb-1 rounded border border-[var(--color-figma-warning,#f5a623)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
-            <div className="px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-warning,#f5a623)]/5">
-              <span className="text-secondary text-[var(--color-figma-warning,#f5a623)] font-medium">
-                Distinct bindings across {rootNodes.length} layers
-              </span>
-            </div>
+          <div className="mx-2 mb-1 px-2">
+            <span className="text-secondary text-[var(--color-figma-warning,#f5a623)] font-medium block mb-1">
+              Distinct bindings across {rootNodes.length} layers
+            </span>
             <div className="flex flex-col divide-y divide-[var(--color-figma-border)]/30">
               {mixedValues.map(({ binding: b, count }) => {
                 const display = b ? resolveBindingDisplay(b, tokenMap) : null;
@@ -509,12 +503,8 @@ export function PropertyRow({
 
       {/* Inline: bind existing token */}
       {bindingFromProp === prop && (
-        <div className="mx-2 mb-1.5 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
-          <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-accent)]/5">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-accent)] shrink-0" aria-hidden="true">
-              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-            </svg>
+        <div className="mx-2 mb-1.5">
+          <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50">
             <span className="text-secondary text-[var(--color-figma-accent)] font-medium flex-1">
               {isBound ? 'Remap' : 'Bind'} {PROPERTY_LABELS[prop]}
             </span>
@@ -530,15 +520,11 @@ export function PropertyRow({
             </button>
           </div>
           {isBound && binding && binding !== 'mixed' && (
-            <div className="flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)]">
+            <div className="flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)]/50">
               {swatchColor && (
                 <div className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: swatchColor }} />
               )}
               <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1" title={binding as string}>{binding as string}</span>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-              <span className="text-[8px] text-[var(--color-figma-text-secondary)] italic shrink-0">pick replacement</span>
             </div>
           )}
           <div className="px-2 py-1.5 flex flex-col gap-1">
@@ -572,10 +558,7 @@ export function PropertyRow({
                 {/* Recently used section */}
                 {recentBindCandidates.length > 0 && (
                   <>
-                    <div className="text-[8px] text-[var(--color-figma-text-secondary)] font-medium px-1.5 pt-0.5 pb-0.5 flex items-center gap-1">
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-                      </svg>
+                    <div className="text-[8px] text-[var(--color-figma-text-secondary)] font-medium px-1.5 pt-0.5 pb-0.5">
                       Recently used
                     </div>
                     {recentBindCandidates.map(([path, entry], idx) => {
@@ -638,10 +621,7 @@ export function PropertyRow({
                   return (
                     <div key={path}>
                       {showSuggestedHeader && (
-                        <div className="text-[8px] text-[var(--color-figma-accent)] font-medium px-1.5 pt-0.5 pb-0.5 flex items-center gap-1">
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z" />
-                          </svg>
+                        <div className="text-[8px] text-[var(--color-figma-accent)] font-medium px-1.5 pt-0.5 pb-0.5">
                           Suggested
                         </div>
                       )}
@@ -701,11 +681,8 @@ export function PropertyRow({
 
       {/* Inline: create token from value */}
       {creatingFromProp === prop && (
-        <div className="mx-2 mb-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
-          <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)]">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+        <div className="mx-2 mb-1.5">
+          <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50">
             <span className="text-secondary text-[var(--color-figma-text)] font-medium flex-1">
               Create token from {PROPERTY_LABELS[prop]}
             </span>

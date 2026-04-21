@@ -1088,29 +1088,27 @@ export function PanelRouter({
         return {
           surface: "history",
           content: (
-            <div className="flex h-full flex-col overflow-hidden">
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <ErrorBoundary panelName="Changes" onReset={onReset}>
-                  <HistoryPanel
-                    serverUrl={serverUrl}
-                    connected={connected}
-                    onPushUndo={controller.pushUndo}
-                    onRefreshTokens={controller.refreshAll}
-                    filterTokenPath={historyFilterPath}
-                    onClearFilter={() => setHistoryFilterPath(null)}
-                    recentOperations={controller.recentOperations}
-                    totalOperations={controller.totalOperations}
-                    hasMoreOperations={controller.hasMoreOperations}
-                    onLoadMoreOperations={controller.loadMoreOperations}
-                    onRollback={controller.handleRollback}
-                    undoDescriptions={controller.undoDescriptions}
-                    redoableOpIds={controller.redoableOpIds}
-                    onServerRedo={controller.handleServerRedo}
-                    executeUndo={controller.executeUndo}
-                    canUndo={controller.canUndo}
-                  />
-                </ErrorBoundary>
-              </div>
+            <div className="h-full min-h-0 overflow-hidden">
+              <ErrorBoundary panelName="Changes" onReset={onReset}>
+                <HistoryPanel
+                  serverUrl={serverUrl}
+                  connected={connected}
+                  onPushUndo={controller.pushUndo}
+                  onRefreshTokens={controller.refreshAll}
+                  filterTokenPath={historyFilterPath}
+                  onClearFilter={() => setHistoryFilterPath(null)}
+                  recentOperations={controller.recentOperations}
+                  totalOperations={controller.totalOperations}
+                  hasMoreOperations={controller.hasMoreOperations}
+                  onLoadMoreOperations={controller.loadMoreOperations}
+                  onRollback={controller.handleRollback}
+                  undoDescriptions={controller.undoDescriptions}
+                  redoableOpIds={controller.redoableOpIds}
+                  onServerRedo={controller.handleServerRedo}
+                  executeUndo={controller.executeUndo}
+                  canUndo={controller.canUndo}
+                />
+              </ErrorBoundary>
             </div>
           ),
           onDismiss: onReset,
@@ -1531,7 +1529,6 @@ export function PanelRouter({
     );
 
     return (
-      <>
         <div className="flex h-full min-h-0 overflow-hidden">
           <CollectionRail
             collections={collections}
@@ -1574,7 +1571,6 @@ export function PanelRouter({
             {renderLibrarySection()}
           </div>
         </div>
-      </>
     );
   }
   function renderShareFigmaSync(): ReactNode {

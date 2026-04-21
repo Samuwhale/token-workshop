@@ -77,58 +77,51 @@ function ActionRow({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "w-full text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "w-full flex items-start gap-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         emphasized
           ? "border-t-0 px-0 pb-2.5 pt-0"
           : "border-t border-[var(--color-figma-border)] px-0 py-2.5 first:border-t-0 first:pt-0 last:pb-0",
       ].join(" ")}
     >
-      <div className="flex items-start gap-3">
-        <div
+      <span
+        className={[
+          "mt-0.5 shrink-0",
+          emphasized
+            ? "text-[var(--color-figma-accent)]"
+            : "text-[var(--color-figma-text-secondary)]",
+        ].join(" ")}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
           className={[
-            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded border",
+            "text-body font-medium block",
             emphasized
-              ? "border-[var(--color-figma-accent)]/25 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-              : "border-transparent bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]",
+              ? "text-[var(--color-figma-accent)]"
+              : "text-[var(--color-figma-text)]",
           ].join(" ")}
         >
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <span
-                className={[
-                  "text-body font-medium",
-                  emphasized
-                    ? "text-[var(--color-figma-accent)]"
-                    : "text-[var(--color-figma-text)]",
-                ].join(" ")}
-              >
-                {title}
-              </span>
-              <p className="mt-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
-                {description}
-              </p>
-            </div>
-            <span className="shrink-0 pt-0.5 text-[var(--color-figma-text-tertiary)]">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </span>
-          </div>
-        </div>
-      </div>
+          {title}
+        </span>
+        <span className="mt-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)] block">
+          {description}
+        </span>
+      </span>
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="shrink-0 mt-0.5 text-[var(--color-figma-text-tertiary)]"
+        aria-hidden="true"
+      >
+        <path d="M9 6l6 6-6 6" />
+      </svg>
     </button>
   );
 }
