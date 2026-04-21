@@ -264,8 +264,6 @@ export interface VariableSyncToken {
     'com.figma.scopes'?: string[];
     [key: string]: unknown;
   };
-  /** Legacy scopes field */
-  $scopes?: string[];
 }
 
 // ─── Variable read-back types ─────────────────────────────────────────────────

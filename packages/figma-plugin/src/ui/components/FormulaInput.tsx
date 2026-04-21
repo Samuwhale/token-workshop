@@ -3,7 +3,7 @@ import { evalExpr } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
-import { inputClass } from '../shared/editorClasses';
+import { AUTHORING } from '../shared/editorClasses';
 
 interface FormulaInputProps {
   value: string;
@@ -336,7 +336,7 @@ export function FormulaInput({
           setTimeout(() => setShowOperatorHints(false), 150);
         }}
         placeholder={placeholder}
-        className={inputClass + ' flex-1 font-mono caret-[var(--color-figma-text)]'}
+        className={AUTHORING.input + ' flex-1 font-mono caret-[var(--color-figma-text)]'}
         style={{ color: validation?.refs?.length ? 'transparent' : undefined, caretColor: 'var(--color-figma-text)' }}
         autoFocus={autoFocus}
       />

@@ -73,11 +73,13 @@ export function HealthPanel({
   onNavigateToGenerators,
   viewRequest,
 }: HealthPanelProps) {
-  const [activeView, setActiveView] = useState<HealthView>(viewRequest?.view ?? "dashboard");
+  const requestedView = viewRequest?.view;
+  const viewRequestNonce = viewRequest?.nonce;
+  const [activeView, setActiveView] = useState<HealthView>(requestedView ?? "dashboard");
 
   useEffect(() => {
-    if (viewRequest) setActiveView(viewRequest.view);
-  }, [viewRequest?.nonce]);
+    if (requestedView) setActiveView(requestedView);
+  }, [requestedView, viewRequestNonce]);
 
   const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set());
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
@@ -399,4 +401,3 @@ export function HealthPanel({
       );
   }
 }
-

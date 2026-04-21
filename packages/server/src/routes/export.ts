@@ -1,7 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { exportTokens, type ExportPlatform, type CssExportOptions } from '../services/style-dict.js';
 import type { TokenGroup } from '@tokenmanager/core';
+import type { CssExportOptions, ExportPlatform } from '../services/exporters/index.js';
 import { handleRouteError } from '../errors.js';
+import { exportTokens } from '../services/style-dict.js';
 
 const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json', 'scss', 'less', 'typescript', 'tailwind', 'css-in-js'];
 

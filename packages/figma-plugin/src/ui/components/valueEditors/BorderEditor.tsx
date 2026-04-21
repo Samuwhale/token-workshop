@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
-import { inputClass, labelClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput, DimensionSubProp } from './valueEditorShared';
 
@@ -20,7 +20,7 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <div className={labelClass}>Color</div>
+        <div className={AUTHORING.label}>Color</div>
         <div className="flex gap-2 items-center">
           {!isColorAlias && (
             <ColorSwatchButton
@@ -41,7 +41,7 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
-          <div className={labelClass}>Width</div>
+          <div className={AUTHORING.label}>Width</div>
           <DimensionSubProp
             value={val.width ?? { value: 1, unit: 'px' }}
             onChange={v => update('width', v)}
@@ -50,11 +50,11 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
           />
         </div>
         <div className="flex-1">
-          <div className={labelClass}>Style</div>
+          <div className={AUTHORING.label}>Style</div>
           <select
             value={val.style || 'solid'}
             onChange={e => update('style', e.target.value)}
-            className={inputClass}
+            className={AUTHORING.input}
           >
             <option value="solid">Solid</option>
             <option value="dashed">Dashed</option>

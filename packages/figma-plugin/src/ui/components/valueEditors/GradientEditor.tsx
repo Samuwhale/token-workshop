@@ -1,6 +1,6 @@
 import { useState, useRef, memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import { ColorSwatchButton } from './ColorEditor';
 import { StepperInput } from './DimensionEditor';
@@ -243,7 +243,7 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToCol
               }}
               onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
               placeholder="{color.primary}"
-              className={inputClass}
+              className={AUTHORING.input}
             />
             {showAutocomplete && (
               <AliasAutocomplete
@@ -270,7 +270,7 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToCol
               value={stop.color || '#000000'}
               onChange={e => onChange({ color: e.target.value })}
               placeholder="#000000"
-              className={inputClass + ' flex-1'}
+              className={AUTHORING.input + ' flex-1'}
             />
           </div>
         )}
@@ -337,7 +337,7 @@ export const GradientEditor = memo(function GradientEditor({ value, onChange, al
         <select
           value={gradientType}
           onChange={e => onChange({ ...value, type: e.target.value })}
-          className={inputClass + ' flex-1'}
+          className={AUTHORING.input + ' flex-1'}
         >
           <option value="linear">Linear</option>
           <option value="radial">Radial</option>

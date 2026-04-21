@@ -2,7 +2,7 @@ import { useState, memo } from 'react';
 import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 import { resolveFormulaPreview } from './valueEditorShared';
 
 export const StepperInput = memo(function StepperInput({
@@ -38,7 +38,7 @@ export const StepperInput = memo(function StepperInput({
         onKeyDown={handleKeyDown}
         onWheel={handleWheel}
         autoFocus={autoFocus}
-        className={inputClass + ' w-full pr-5 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'}
+        className={AUTHORING.input + ' w-full pr-5 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'}
       />
       <div className="absolute right-0 top-0 bottom-0 flex flex-col border-l border-[var(--color-figma-border)]">
         <button
@@ -132,7 +132,7 @@ export const DimensionEditor = memo(function DimensionEditor({ value, onChange, 
         <select
           value={val.unit}
           onChange={e => handleUnitChange(e.target.value)}
-          className={inputClass + ' w-16'}
+          className={AUTHORING.input + ' w-16'}
         >
           <option value="px">px</option>
           <option value="rem">rem</option>

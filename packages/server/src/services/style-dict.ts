@@ -2,18 +2,16 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { TokenGroup } from '@tokenmanager/core';
+import type { CssExportOptions, ExportPlatform, ExportResult, ExportTokensResult } from './exporters/index.js';
 import { EXPORTERS } from './exporters/index.js';
 import { deepMergeInto, resolveGradientStopAliases, injectFormulaCalc, buildFlatValueMap, buildFlatTokenList } from './exporters/utils.js';
 
-// Re-export types so existing callers (routes/export.ts) don't need to change.
-export type { ExportPlatform, ExportResult, ExportTokensResult, CssExportOptions } from './exporters/index.js';
-
 export async function exportTokens(
   tokens: Record<string, TokenGroup>,
-  platforms: Array<import('./exporters/index.js').ExportPlatform>,
+  platforms: ExportPlatform[],
   outputDir?: string,
-  cssOptions?: import('./exporters/index.js').CssExportOptions,
-): Promise<import('./exporters/index.js').ExportTokensResult> {
+  cssOptions?: CssExportOptions,
+): Promise<ExportTokensResult> {
   const isTemp = !outputDir;
   const tmpDir = outputDir || path.join(os.tmpdir(), `tokenmanager-export-${Date.now()}`);
   await fs.mkdir(tmpDir, { recursive: true });
@@ -57,7 +55,7 @@ export async function exportTokens(
     const ctx = { tmpDir, flatTokens, cssOptions };
 
     // Run each requested platform exporter.
-    const results: import('./exporters/index.js').ExportResult[] = [];
+    const results: ExportResult[] = [];
     for (const platform of platforms) {
       const exporter = EXPORTERS.get(platform);
       if (!exporter) continue;

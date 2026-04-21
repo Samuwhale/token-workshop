@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { labelClass, inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 const BEZIER_PRESETS: { label: string; value: [number, number, number, number] }[] = [
   { label: 'linear', value: [0, 0, 1, 1] },
@@ -45,7 +45,7 @@ export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChan
         <div className="flex-1 grid grid-cols-2 gap-1">
           {labels.map((label, i) => (
             <div key={label} className="flex flex-col">
-              <span className={labelClass}>{label}</span>
+              <span className={AUTHORING.label}>{label}</span>
               <input
                 type="number"
                 step={0.01}
@@ -53,7 +53,7 @@ export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChan
                 max={i % 2 === 0 ? 1 : undefined}
                 value={pts[i]}
                 onChange={e => update(i, parseFloat(e.target.value) || 0)}
-                className={inputClass}
+                className={AUTHORING.input}
               />
             </div>
           ))}

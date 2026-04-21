@@ -90,24 +90,19 @@ export const AUTHORING = {
   generatorCardList: 'tm-generator-authoring__card-list',
 } as const;
 
-// Backward-compatible aliases — used by 26+ value editor files
-export const inputClass = AUTHORING.input;
-export const labelClass = AUTHORING.label;
+const DEFAULT_FIELD_BORDER_CLASS =
+  'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]';
 
 /**
  * Returns the border + focus-visible border classes for a form field based on
- * its validation state.  Use in combination with the base `inputClass` constant:
+ * its validation state. Use with the canonical AUTHORING input styles:
  *
- *   className={`${inputClass} ${fieldBorderClass(!!error, !!warning)}`}
- *
- * Note: `inputClass` already contains `border-[var(--color-figma-border)]` and
- * `focus-visible:border-[var(--color-figma-accent)]` which this function
- * overrides when the field is in an error or warning state.
+ *   className={`${AUTHORING.input} ${fieldBorderClass(!!error, !!warning)}`}
  */
 export function fieldBorderClass(hasError?: boolean, hasWarning?: boolean): string {
   if (hasError) return severityStyles('error').fieldBorder;
   if (hasWarning) return severityStyles('warning').fieldBorder;
-  return 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]';
+  return DEFAULT_FIELD_BORDER_CLASS;
 }
 
 /**
@@ -115,7 +110,7 @@ export function fieldBorderClass(hasError?: boolean, hasWarning?: boolean): stri
  * of boolean flags, for callers that already know the active severity.
  */
 export function fieldBorderClassForSeverity(severity?: NoticeSeverity): string {
-  if (!severity) return 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]';
+  if (!severity) return DEFAULT_FIELD_BORDER_CLASS;
   const border = severityStyles(severity).fieldBorder;
-  return border || 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]';
+  return border || DEFAULT_FIELD_BORDER_CLASS;
 }

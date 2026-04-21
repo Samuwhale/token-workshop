@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 const DURATION_PRESETS = [100, 150, 200, 300, 500];
 
@@ -18,12 +18,12 @@ export const DurationEditor = memo(function DurationEditor({ value, onChange, au
           value={ms}
           onChange={e => update({ value: parseFloat(e.target.value) || 0 })}
           autoFocus={autoFocus}
-          className={inputClass + ' flex-1'}
+          className={AUTHORING.input + ' flex-1'}
         />
         <select
           value={unit}
           onChange={e => update({ unit: e.target.value as 'ms' | 's' })}
-          className={inputClass + ' w-16'}
+          className={AUTHORING.input + ' w-16'}
         >
           <option value="ms">ms</option>
           <option value="s">s</option>

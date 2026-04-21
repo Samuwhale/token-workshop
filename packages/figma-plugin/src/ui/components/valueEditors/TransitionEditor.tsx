@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
-import { labelClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 import { DimensionSubProp } from './valueEditorShared';
 import { CubicBezierEditor } from './CubicBezierEditor';
 
@@ -15,7 +15,7 @@ export const TransitionEditor = memo(function TransitionEditor({ value, onChange
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <div className={labelClass}>Duration</div>
+        <div className={AUTHORING.label}>Duration</div>
         <DimensionSubProp
           value={typeof duration === 'string' ? duration : duration}
           onChange={v => update({ duration: v })}
@@ -26,7 +26,7 @@ export const TransitionEditor = memo(function TransitionEditor({ value, onChange
         />
       </div>
       <div>
-        <div className={labelClass}>Delay</div>
+        <div className={AUTHORING.label}>Delay</div>
         <DimensionSubProp
           value={typeof delay === 'string' ? delay : delay}
           onChange={v => update({ delay: v })}
@@ -37,7 +37,7 @@ export const TransitionEditor = memo(function TransitionEditor({ value, onChange
         />
       </div>
       <div>
-        <div className={labelClass}>Timing Function</div>
+        <div className={AUTHORING.label}>Timing Function</div>
         <CubicBezierEditor value={timingFunction} onChange={(tf: any) => update({ timingFunction: tf })} />
       </div>
     </div>

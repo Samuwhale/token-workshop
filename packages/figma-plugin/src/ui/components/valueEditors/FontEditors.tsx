@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { FontFamilyPicker } from '../FontFamilyPicker';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 import { FONT_WEIGHTS } from './valueEditorShared';
 
 export const FontFamilyEditor = memo(function FontFamilyEditor({ value, onChange, autoFocus, availableFonts }: { value: any; onChange: (v: any) => void; autoFocus?: boolean; availableFonts?: string[] }) {
@@ -20,7 +20,7 @@ export const FontWeightEditor = memo(function FontWeightEditor({ value, onChange
     <select
       value={w}
       onChange={e => onChange(parseInt(e.target.value))}
-      className={inputClass}
+      className={AUTHORING.input}
     >
       {FONT_WEIGHTS.map(fw => (
         <option key={fw.value} value={fw.value}>{fw.label}</option>

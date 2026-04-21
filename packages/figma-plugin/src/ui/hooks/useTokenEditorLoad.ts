@@ -109,7 +109,7 @@ export function useTokenEditorLoad({
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
         setDescription(token?.$description || '');
-        const savedScopes = extensions['com.figma.scopes'] ?? token?.$scopes;
+        const savedScopes = extensions['com.figma.scopes'];
         setScopes(Array.isArray(savedScopes) ? savedScopes : []);
         const savedModifiers = tokenManager.colorModifier;
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];

@@ -383,8 +383,15 @@ async function fetchAllCollections(serverUrl: string, signal?: AbortSignal): Pro
     const collectionMap: Record<string, TokenMapEntry> = {};
     for (const [path, entry] of flattenWithNames(tokens)) {
       collectionMap[path] = entry;
+      if (path in flat) {
+        continue;
+      }
+
+      // Keep the global token index aligned with pathToCollectionId.
+      // Shared token paths can exist across collections, but callers that
+      // consume the global flat map already rely on the first collection win.
       flat[path] = entry;
-      if (!(path in pathToCollectionId)) pathToCollectionId[path] = collectionId;
+      pathToCollectionId[path] = collectionId;
     }
     perCollectionFlat[collectionId] = collectionMap;
   }

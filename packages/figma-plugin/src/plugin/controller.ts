@@ -1,6 +1,7 @@
 // This runs in Figma's sandbox (no DOM access)
 
 import type { PluginMessage } from '../shared/types.js';
+import { getErrorMessage } from '../shared/utils.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, scanTokenVariableBindings, revertVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
@@ -87,13 +88,9 @@ function normalizeScanScope(scope: unknown): 'page' | 'selection' | 'all-pages' 
 }
 
 /** Extract a human-readable message from an unknown thrown value. */
-function describeError(e: unknown, fallback: string): string {
-  return e instanceof Error ? e.message : fallback;
-}
-
 /** Post a generic error back to the UI so it doesn't hang waiting for a response. */
 function reportError(handler: string, e: unknown): void {
-  const message = describeError(e, `Unexpected error in ${handler}`);
+  const message = getErrorMessage(e, `Unexpected error in ${handler}`);
   console.error(`[controller] ${handler} failed:`, e);
   figma.notify(`Error: ${message}`, { error: true });
   figma.ui.postMessage({ type: 'error', message, handler });
@@ -308,7 +305,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       } catch (e) {
         figma.ui.postMessage({
           type: 'apply-variables-error',
-          error: describeError(e, 'Failed to apply variables'),
+          error: getErrorMessage(e, 'Failed to apply variables'),
           correlationId: msg.correlationId,
         });
       }
@@ -319,7 +316,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       } catch (e) {
         figma.ui.postMessage({
           type: 'styles-apply-error',
-          error: describeError(e, 'Failed to apply styles'),
+          error: getErrorMessage(e, 'Failed to apply styles'),
           correlationId: msg.correlationId,
         });
       }
@@ -341,7 +338,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         figma.ui.postMessage({
           type: 'variables-reverted',
           correlationId: msg.correlationId,
-          failures: [describeError(e, 'Failed to revert variables')],
+          failures: [getErrorMessage(e, 'Failed to revert variables')],
         });
       }
       break;
@@ -363,7 +360,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         figma.ui.postMessage({
           type: 'styles-reverted',
           correlationId: msg.correlationId,
-          failures: [describeError(e, 'Failed to revert styles')],
+          failures: [getErrorMessage(e, 'Failed to revert styles')],
         });
       }
       break;
@@ -374,7 +371,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       } catch (e) {
         figma.ui.postMessage({
           type: 'variables-read-error',
-          error: describeError(e, 'Failed to read Figma variables'),
+          error: getErrorMessage(e, 'Failed to read Figma variables'),
           correlationId: msg.correlationId,
         });
       }
@@ -385,7 +382,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       } catch (e) {
         figma.ui.postMessage({
           type: 'styles-read-error',
-          error: describeError(e, 'Failed to read Figma styles'),
+          error: getErrorMessage(e, 'Failed to read Figma styles'),
           correlationId: msg.correlationId,
         });
       }

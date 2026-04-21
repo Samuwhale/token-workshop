@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 export const LinkEditor = memo(function LinkEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const url = typeof value === 'string' ? value : '';
@@ -10,7 +10,7 @@ export const LinkEditor = memo(function LinkEditor({ value, onChange }: { value:
         value={url}
         onChange={e => onChange(e.target.value)}
         placeholder="https://…"
-        className={inputClass + ' flex-1'}
+        className={AUTHORING.input + ' flex-1'}
       />
       {url && (
         <a

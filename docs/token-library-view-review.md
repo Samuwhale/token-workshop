@@ -522,6 +522,356 @@ That is not acceptable.
 
 Good simplification keeps all modes visible and legible while reducing everything around them.
 
+## Where This Review Is Still Too Soft
+
+This review is directionally right.
+
+But it still pulls some punches.
+
+## 1. It is still too generic about what is cluttering the library
+
+The document correctly says the library has too much chrome.
+
+It should go further and say that the problem is now structural, not cosmetic.
+
+In the current product, the token table can sit beneath multiple stacked support layers:
+
+- selection strip
+- library toolbar
+- selection-mode toolbar
+- batch action panel
+- stale generated banner
+- stats bar
+- operation status row
+
+That is not just "a bit busy."
+
+It means the default authoring surface no longer has a stable visual shape.
+
+The table keeps moving down the screen while support UI keeps moving up the ranking.
+
+## 2. The shell problem is more urgent than this document suggests
+
+This review says the shell is real but not the first thing to solve.
+
+I would be harsher.
+
+The shell is part of the first impression of the product.
+
+When the app presents Library, Canvas, Sync, Export, and Versions as peer workspaces, it teaches a broad system map before it teaches the core authoring job.
+
+That is a serious ranking problem for a Figma plugin.
+
+The library default is still the most important workflow to fix.
+
+But the shell should be treated as part of the same problem, not a later cleanup.
+
+## 3. The review does not separate user jobs clearly enough
+
+The document talks about "designers" as one group.
+
+That is not precise enough.
+
+There are at least three important jobs here:
+
+- system authors building and maintaining collections and modes
+- working designers applying tokens to real canvas work
+- collaborators handling export, sync, history, and delivery
+
+These users overlap, but their moments are different.
+
+The product should not force all three jobs to feel equally present at all times.
+
+The review should judge every surface by asking:
+
+- is this authoring
+- is this application
+- is this maintenance
+- is this downstream delivery
+
+And then decide whether it is ranked correctly for that moment.
+
+## 4. The review should be stricter about naming and copy
+
+A lot of the product language is internally coherent.
+
+That is not the same as being natural for designers in a tight Figma workflow.
+
+Terms like:
+
+- generate group
+- foundations
+- semantics
+- sync
+- versions
+- collection setup
+
+may all be valid, but the product currently asks users to interpret too much product vocabulary too early.
+
+The problem is not only layout.
+
+It is also language load.
+
+## 5. The review does not emphasize authoring trust enough
+
+Designers need to feel confident about:
+
+- what container they are editing
+- what mode they are editing
+- what a structural action will change
+- whether a token is authored, derived, filtered, or just currently highlighted by context
+
+This product has many powerful structural actions:
+
+- merge collection
+- split collection
+- generate group
+- keep updated
+- bulk edit
+- move across collections
+
+The review should more explicitly treat trust and consequence clarity as core UX criteria, not secondary polish.
+
+## 6. The review needs a stronger position on onboarding and generators
+
+The current document says onboarding and generators imply too much doctrine.
+
+That is true.
+
+But the stronger point is this:
+
+the product still risks teaching automation before teaching authorship.
+
+That is backwards for this audience.
+
+Generators should be introduced as optional accelerators after the user understands collections, modes, and deliberate token authoring.
+
+Not as the implied path to building a good system.
+
+## Additional Product Judgments
+
+These are the conclusions I would add after reviewing the current UX more closely.
+
+### 1. The token editor is conceptually stronger than the library shell around it
+
+The editor generally respects the canonical model better than the surrounding library frame.
+
+That matters.
+
+It suggests the right solution is not to rethink authoring.
+
+It is to reduce the amount of surrounding machinery competing with authored token work.
+
+### 2. Collection setup is useful, but it still bundles too many structural actions together
+
+Modes, rename, duplicate, merge, split, and delete all belong in collection management.
+
+But the current setup surface still feels more like an operations console than a calm designer-facing configuration panel.
+
+It should communicate structure and consequences more clearly and make destructive or reshaping actions feel more deliberately separated from normal setup.
+
+### 3. Canvas remains one of the highest-value parts of the product
+
+This should be protected.
+
+The apply workflow is one of the most compelling reasons for this product to exist inside Figma.
+
+The goal is not to reduce capability there.
+
+The goal is to make the next best action more obvious and reduce side-path competition inside that workspace.
+
+### 4. Overview is probably not carrying enough product weight to justify equal prominence
+
+At the moment, Overview reads more like a secondary convenience surface than a primary workspace.
+
+That does not mean it should be deleted.
+
+It means it should probably not compete for attention with the same visual weight as authoring and application work.
+
+## Actionable Worklist
+
+This should be added to the product plan as a prioritized sequence, not as a grab bag.
+
+## Priority 0: Reassert the default authoring experience
+
+### 1. Define the one true default Tokens screen
+
+The default Tokens state should be:
+
+- one active collection
+- token table visible immediately
+- all modes visible together
+- minimal persistent support UI
+
+Make every other library state visibly secondary to this one.
+
+### 2. Collapse the stacked support layers above the table
+
+Reduce the number of persistent rows above the token list.
+
+As a rule:
+
+- only one persistent toolbar row should remain by default
+- selection-specific controls should appear only during explicit selection work
+- review and generator status should not permanently displace the table
+
+### 3. Strip the library header back to essentials
+
+Keep only:
+
+- current collection
+- primary create entry point
+- simple search
+- one overflow entry point for advanced controls
+
+Move active-state explanation, advanced search behavior, and low-frequency actions out of the top-level header.
+
+## Priority 1: Make the library easier to read
+
+### 4. Simplify the collection rail into navigation first
+
+The collection rail should primarily show:
+
+- collection name
+- active state
+- maybe one small secondary fact
+
+Remove or demote multi-line summaries, issue surfacing, and action affordances that make the rail compete with the token table.
+
+### 5. Move structural collection actions out of the rail’s everyday rhythm
+
+Keep selection and navigation in the rail.
+
+Keep powerful management actions in collection setup.
+
+Make the rail feel like navigation, not a management console.
+
+### 6. Rework search so basic search feels plain before advanced search exists
+
+Default behavior should optimize for simple path/name/value finding.
+
+Qualifier-driven and structured filtering should become a progressive layer, not something the user has to parse in the main search field from the start.
+
+### 7. Reduce ambient status
+
+Audit every banner, strip, chip, pill, and inline status surface in the library.
+
+Remove or demote anything that does not help an immediate decision.
+
+Status should be:
+
+- timely
+- local
+- actionable
+
+## Priority 2: Make context predictable
+
+### 8. Standardize one contextual-depth model for library work
+
+Token edit, token inspect, collection setup, compare, import follow-up, and review should feel like one coherent family of contextual surfaces.
+
+Users should not have to relearn where "deeper detail" appears for each task.
+
+### 9. Keep editing and inspecting clearly distinct
+
+A user should always be able to tell whether they are:
+
+- editing a token
+- inspecting a token
+- reviewing an issue
+- performing a structural collection action
+
+Do not let these states blur into one another visually.
+
+### 10. Make structural actions more consequence-explicit
+
+For merge, split, generator save, bulk edit, and cross-collection moves, improve the clarity of:
+
+- what changes
+- where it changes
+- whether authored values are being created, replaced, or derived
+
+This is a trust problem, not just a wording problem.
+
+## Priority 3: Fix the product framing
+
+### 11. Rewrite onboarding around two valid starts, not a preferred doctrine
+
+The opening choices should be:
+
+- bring in an existing system
+- start authoring manually
+
+Generator and semantic workflows should appear as optional accelerators later, not as the implied shape of a good token system.
+
+### 12. Reposition generators as optional acceleration
+
+Review all generator entry points and copy.
+
+The product should say, in effect:
+
+- author tokens directly when you want control
+- use generation when it saves time
+
+Not:
+
+- generation is how a proper system gets made
+
+### 13. Tighten naming around designer-native tasks
+
+Review top-level labels, setup labels, and create actions for language that feels too product-internal or too infrastructural.
+
+Prioritize wording that matches how design system authors already think inside Figma.
+
+## Priority 4: Re-rank the shell
+
+### 14. Stop presenting all major areas as equally primary
+
+Library and Canvas are the core day-to-day jobs.
+
+Sync, Export, History, and Versions are important, but they are not equally frequent authoring destinations.
+
+Reflect that in the shell.
+
+### 15. Re-evaluate whether Overview deserves a peer section
+
+If Overview is primarily a summary aid, it should be demoted or folded into Library rather than holding peer weight with primary work surfaces.
+
+### 16. Clarify the relationship between authoring, review, and delivery
+
+The product structure should make it obvious that:
+
+- Library is authoring
+- Canvas is application
+- Health and History are maintenance close to authoring
+- Sync, Export, and Versions are downstream support
+
+That ranking should be visible in navigation, not just implied in copy.
+
+## Priority 5: Validate with the right lens
+
+### 17. Review all major surfaces against real designer questions
+
+For each major surface, test whether a designer can answer:
+
+- where am I
+- what am I editing
+- what should I do next
+- what will happen if I use this action
+
+If the UI does not answer those quickly, it is not yet ranked correctly.
+
+### 18. Use reduction as the default design move
+
+When a surface feels confusing, first try:
+
+- removing a row
+- collapsing duplicate explanations
+- moving advanced actions behind context
+- demoting support UI
+
+before adding new helper UI.
+
 ## 15. Sparse states still risk feeling like exposed infrastructure
 
 Some occasional-use areas still risk feeling justified by product architecture more than user value.
@@ -579,259 +929,6 @@ The highest-value move is simplification before expansion.
 Not simplification through capability loss.
 
 Simplification through disciplined disclosure.
-
-## Recommended Product Direction
-
-## 1. Make the library feel unquestionably primary
-
-The library should feel like the home base of the product.
-
-It should answer immediately:
-
-- where am I
-- which collection is active
-- what modes exist here
-- what values am I editing
-- what can I do next
-
-## 2. Establish one canonical default authoring state
-
-The default library should be stable, predictable, and easy to learn.
-
-It should feel like:
-
-- active collection
-- token table dominant
-- all modes visible together
-- plain search
-- contextual editing one step away
-
-Everything else should feel explicitly invoked.
-
-## 3. Compress the default header much harder
-
-The default header should carry only what is necessary to start work.
-
-That likely means:
-
-- current collection context
-- one create entry point
-- search
-- one advanced entry point
-
-If a control does not materially help the user begin work, it probably does not belong in the default header.
-
-## 4. Remove visible support clutter before adding anything else
-
-The product should reduce helper UI that mainly restates nearby context.
-
-Suggested direction:
-
-- reduce strips and banners in the default library
-- reduce persistent state summaries
-- avoid visible wrappers that only explain existing controls
-- keep support UI only when it directly changes comprehension or action
-
-This is a major quality move, not cosmetic cleanup.
-
-## 5. Simplify the collection rail
-
-The rail should prioritize orientation over management.
-
-Suggested direction:
-
-- make collection switching faster to scan
-- make hierarchy legible without visual noise
-- quiet metadata that does not affect the immediate decision
-- push heavier actions deeper into collection context
-
-## 6. Unify contextual depth
-
-The product needs one stronger, more predictable model for deeper context.
-
-That layer should hold:
-
-- token detail
-- token editing
-- collection detail
-- dependency and alias context
-- issue detail
-
-The goal is not to create more panels.
-
-The goal is to make depth feel consistent.
-
-## 7. Keep search plain by default
-
-Search should begin as obvious findability:
-
-- name
-- path
-- familiar narrowing
-
-Advanced refinement should still exist.
-
-It just should not define the emotional default of the workspace.
-
-## 8. Keep Canvas separate, but simplify it around the next action
-
-Canvas should remain a dedicated adjacent workspace.
-
-But it should feel focused around:
-
-- what is selected
-- what can be bound
-- the best likely match
-- the next meaningful action
-
-Secondary controls should recede.
-
-## 9. Re-rank review and delivery work
-
-The product should communicate a clearer hierarchy:
-
-- authoring at the center
-- quality work near authoring
-- canvas application adjacent
-- history close enough to support active work
-- sync, export, and versions downstream
-
-## 10. Make onboarding momentum-based
-
-The first-run experience should help users begin work quickly.
-
-Suggested direction:
-
-- connect if needed
-- create or import
-- land in the library
-- begin authoring
-
-Accelerators should remain optional.
-
-## 11. Demote generators without weakening them
-
-Generators should remain available and useful.
-
-But the product should consistently frame authored tokens as primary and automation as optional leverage.
-
-## 12. Show less system state, but make it more actionable
-
-Suggested direction:
-
-- show status when it changes a decision
-- tie warnings to obvious next actions
-- keep informational state quiet when it is not actionable
-- make risk clear without making the workspace anxious
-
-## 13. Tighten voice and sparse states
-
-The product should make occasional areas feel purposeful and should consistently use language that feels:
-
-- direct
-- calm
-- clear
-- native to design workflows
-
-## Priority Order
-
-The product does not need a single large redesign effort.
-
-It needs better sequence and stricter discipline.
-
-Recommended order:
-
-1. stabilize the default library state
-2. compress the header and reduce helper clutter
-3. simplify the collection rail
-4. unify contextual depth
-5. simplify Canvas around the next action
-6. re-rank review and delivery areas
-7. improve onboarding, generator framing, sparse states, and voice
-
-This order matters.
-
-The product should not start with a shell-first rewrite.
-
-It should first become calmer and clearer where the primary work actually happens.
-
-## Clear Actionable Workstreams
-
-## A. Stabilize the default library state
-
-Goals:
-
-- define one unmistakable default authoring state
-- reduce the number of ways the library changes character
-- keep the table dominant
-- make alternate states feel explicitly entered
-
-## B. Compress the library header
-
-Goals:
-
-- reduce visible controls
-- remove competing emphasis
-- preserve only the actions needed to begin work
-- move advanced controls behind clearer invitation
-
-## C. Remove support clutter
-
-Goals:
-
-- reduce helper surfaces that restate nearby context
-- remove low-value visible summaries
-- keep only support UI that improves a decision or action immediately
-
-## D. Simplify the collection rail
-
-Goals:
-
-- make collection selection easier to scan
-- quiet secondary metadata
-- stop the rail from acting like a parallel control center
-
-## E. Consolidate contextual depth
-
-Goals:
-
-- reduce fragmentation between detail, edit, compare, review, and setup context
-- make deeper context easier to predict
-- improve confidence in where advanced information lives
-
-## F. Simplify Canvas around the next action
-
-Goals:
-
-- foreground the current selection
-- foreground bindable properties
-- foreground likely matches
-- reduce visible secondary paths
-
-## G. Re-rank adjacent and downstream areas
-
-Goals:
-
-- make authoring feel central
-- keep quality work nearby without over-promoting it
-- keep downstream delivery areas clearly secondary in everyday use
-
-## H. Reduce doctrinal framing
-
-Goals:
-
-- help users begin real work quickly
-- keep generator and setup flows optional
-- stop implying a preferred philosophy of authoring
-
-## I. Tighten status, voice, and sparse states
-
-Goals:
-
-- remove passive operational noise
-- make status more actionable
-- make empty and low-data areas feel intentional
-- make the product sound calmer and more design-native
 
 ## Product Decision
 

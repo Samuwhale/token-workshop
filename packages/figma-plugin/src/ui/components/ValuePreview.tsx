@@ -1,13 +1,42 @@
 import { isWideGamutColor, swatchBgColor, getSrgbFallback } from '../shared/colorUtils';
 
+/**
+ * Inline type-aware preview glyph for a single token value.
+ *
+ * Two visual categories — kept consistent so rows line up:
+ *
+ *   Canvas previews   — boxed (rounded + border + bg) because the content needs a
+ *                       surface to read against. Width is `size × 4/3` (wide) for
+ *                       text- and gradient-like canvases, or `size × size` (square)
+ *                       for color, shadow inset, and asset thumbnails.
+ *                       Types: color, typography, fontFamily, fontWeight, gradient,
+ *                               border, shadow, asset.
+ *
+ *   Indicator previews — unboxed (no border/bg), always `size × size` square.
+ *                       The shape itself (bar, ring, curve, glyph) carries the
+ *                       meaning; an outer box would just add chrome.
+ *                       Types: dimension, number, duration, percentage, cubicBezier,
+ *                               strokeStyle, boolean, string, composition, fallback.
+ *
+ *   The single exception is `transition`, which is a wide indicator: its bezier
+ *   curve needs horizontal room to read as a timeline.
+ *
+ *  The `size` prop is the preview height. All SVG radii, paddings and child
+ *  element sizes scale off it so the preview works at 12px (resolution chain),
+ *  16px (token row cells) and 24px+ (inspectors).
+ */
 interface ValuePreviewProps {
   type?: string;
   value?: any;
-  /** Swatch size in px (default 24) */
+  /** Preview height in px. Default 24 (inspector/panel size); token row cells pass 16. */
   size?: number;
 }
 
-/** Parse a DTCG dimension value (object {value,unit} or string "16px") into numeric + unit */
+const WIDE_RATIO = 4 / 3;
+const BOX_CLS = 'rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]';
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
 function parseDimension(val: any): { num: number; unit: string } {
   if (typeof val === 'object' && val !== null && 'value' in val) {
     return { num: Number(val.value) || 0, unit: val.unit || 'px' };
@@ -25,14 +54,31 @@ function dimensionLabel(val: any): string {
   return String(val ?? '');
 }
 
-export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
-  const sizeStyle = { width: size, height: size };
+/** sqrt-scale so 8/16/32/64/128/256px each produce a visibly distinct bar width. */
+function dimensionBarPct(num: number, unit: string): number {
+  const abs = Math.abs(num);
+  const px = unit === 'rem' || unit === 'em' ? abs * 16 : abs;
+  // sqrt(px)/16: 16→0.25, 64→0.5, 144→0.75, 256→1.0
+  const scaled = Math.sqrt(Math.min(px, 256)) / 16;
+  return Math.max(0.08, Math.min(scaled, 1));
+}
 
-  // Unresolved alias — show warning icon
+// ── Component ───────────────────────────────────────────────────────────────
+
+export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
+  const squareStyle = { width: size, height: size };
+  const wideStyle = { width: Math.round(size * WIDE_RATIO), height: size };
+
+  // Broken/unresolved alias — warning glyph (applies regardless of $type).
   if (typeof value === 'string' && value.startsWith('{')) {
+    const glyph = Math.round(size * 0.75);
     return (
-      <div className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]" style={sizeStyle} title={`Unresolved reference: ${value}`}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <div
+        className="shrink-0 flex items-center justify-center text-[var(--color-figma-warning,#f59e0b)]"
+        style={squareStyle}
+        title={`Unresolved reference: ${value}`}
+      >
+        <svg width={glyph} height={glyph} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
           <line x1="12" y1="9" x2="12" y2="13" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -41,15 +87,15 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     );
   }
 
-  // ── Color ──────────────────────────────────────────────────────────────
+  // ── Color (canvas, square) ────────────────────────────────────────────────
   if (type === 'color' && typeof value === 'string') {
     const wg = isWideGamutColor(value);
     const fallback = wg ? getSrgbFallback(value) : null;
     return (
       <div className="relative shrink-0 flex items-center gap-1">
         <div
-          className="rounded border border-[var(--color-figma-border)] shrink-0"
-          style={{ ...sizeStyle, backgroundColor: swatchBgColor(value) }}
+          className={`${BOX_CLS} shrink-0`}
+          style={{ ...squareStyle, backgroundColor: swatchBgColor(value) }}
           title={value + (wg ? `\nsRGB fallback: ${fallback}` : '')}
         />
         {wg && (
@@ -61,15 +107,18 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     );
   }
 
-  // ── Typography — "Aa" rendered in actual font/weight/scaled size ──────
+  // ── Typography (canvas, wide) ─────────────────────────────────────────────
   if (type === 'typography' && typeof value === 'object' && value !== null) {
-    const fontFamily = value.fontFamily || 'inherit';
+    // DTCG allows fontFamily to be either a string or an array of fallbacks.
+    const fontFamily = Array.isArray(value.fontFamily)
+      ? value.fontFamily.map((f: unknown) => String(f)).join(', ')
+      : (value.fontFamily || 'inherit');
     const fontWeight = value.fontWeight || 400;
     const { num: rawSize } = parseDimension(value.fontSize);
-    // Scale font size to fit the swatch: clamp between 8px and size-2px, proportional
+    // log-ish scale so 8/16/24/48 render visibly different while fitting the box
     const scaledFontSize = rawSize > 0
-      ? Math.max(8, Math.min(size - 2, rawSize * 0.65))
-      : 10;
+      ? Math.min(size - 2, Math.max(8, Math.round(7 + Math.log2(Math.max(rawSize, 1)) * 1.3)))
+      : Math.max(8, size - 4);
     const fontStyle = value.fontStyle || 'normal';
     const textDecoration = value.textDecoration || 'none';
     const sizeStr = dimensionLabel(value.fontSize);
@@ -78,11 +127,10 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     if (fontStyle !== 'normal') titleParts.push(fontStyle);
     return (
       <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
+        className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[var(--color-figma-text)]`}
         title={titleParts.filter(Boolean).join(' ')}
         style={{
-          width: Math.round(size * 4 / 3),
-          height: size,
+          ...wideStyle,
           fontFamily,
           fontWeight,
           fontSize: `${scaledFontSize}px`,
@@ -96,33 +144,53 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     );
   }
 
-  // ── Shadow — elevated card with real shadow ───────────────────────────
+  // ── Shadow (canvas, square) — offsets/blur/spread scaled to fit preview ──
   if (type === 'shadow' && typeof value === 'object' && value !== null) {
     const shadows = Array.isArray(value) ? value : [value];
-    const shadowParts = shadows
-      .filter((s): s is Record<string, any> => s !== null && typeof s === 'object')
-      .map(s => {
-        const { color = '#00000040', offsetX, offsetY, blur, spread, type: sType } = s;
-        const ox = dimensionLabel(offsetX) || '0px';
-        const oy = dimensionLabel(offsetY) || '4px';
-        const b = dimensionLabel(blur) || '8px';
-        const sp = dimensionLabel(spread) || '0px';
-        const inset = sType === 'innerShadow' ? 'inset ' : '';
-        return `${inset}${ox} ${oy} ${b} ${sp} ${color}`;
+    const objs = shadows.filter((s): s is Record<string, any> => s !== null && typeof s === 'object');
+    if (objs.length > 0) {
+      // Scale so the largest magnitude fits within ~40% of the preview height
+      const magnitudes: number[] = [];
+      for (const s of objs) {
+        for (const key of ['offsetX', 'offsetY', 'blur', 'spread']) {
+          magnitudes.push(Math.abs(parseDimension(s[key]).num));
+        }
+      }
+      const maxMag = Math.max(1, ...magnitudes);
+      const scale = (size * 0.4) / maxMag;
+
+      const scaledCss = objs.map(s => {
+        const ox = parseDimension(s.offsetX).num * scale;
+        const oy = parseDimension(s.offsetY).num * scale;
+        const blur = Math.max(0, parseDimension(s.blur).num * scale);
+        const spread = parseDimension(s.spread).num * scale;
+        const color = typeof s.color === 'string' ? s.color : '#00000040';
+        const inset = s.type === 'innerShadow' ? 'inset ' : '';
+        return `${inset}${ox.toFixed(2)}px ${oy.toFixed(2)}px ${blur.toFixed(2)}px ${spread.toFixed(2)}px ${color}`;
       });
-    if (shadowParts.length > 0) {
+
+      const realTitle = objs.map(s => {
+        const ox = dimensionLabel(s.offsetX) || '0px';
+        const oy = dimensionLabel(s.offsetY) || '0px';
+        const b = dimensionLabel(s.blur) || '0px';
+        const sp = dimensionLabel(s.spread) || '0px';
+        const color = typeof s.color === 'string' ? s.color : '';
+        const inset = s.type === 'innerShadow' ? 'inset ' : '';
+        return `${inset}${ox} ${oy} ${b} ${sp} ${color}`.trim();
+      }).join(', ');
+
       return (
         <div
           className="shrink-0 flex items-center justify-center"
-          style={sizeStyle}
-          title={shadowParts.join(', ')}
+          style={squareStyle}
+          title={realTitle}
         >
           <div
-            className="rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]"
+            className={BOX_CLS}
             style={{
-              width: Math.round(size * 0.7),
-              height: Math.round(size * 0.7),
-              boxShadow: shadowParts.join(', '),
+              width: Math.round(size * 0.55),
+              height: Math.round(size * 0.55),
+              boxShadow: scaledCss.join(', '),
             }}
           />
         </div>
@@ -130,88 +198,78 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     }
   }
 
-  // ── Font Family — "Aa" in that font ──────────────────────────────────
-  if (type === 'fontFamily' && typeof value === 'string' && value) {
-    return (
-      <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
-        title={value}
-        style={{ width: Math.round(size * 4 / 3), height: size, fontFamily: value, fontSize: '11px', lineHeight: 1 }}
-      >
-        Aa
-      </div>
-    );
-  }
-
-  // ── Font Weight — "Aa" at that weight ────────────────────────────────
-  if (type === 'fontWeight') {
-    const w = typeof value === 'number' ? value : parseInt(String(value)) || 400;
-    return (
-      <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
-        title={String(w)}
-        style={{ width: Math.round(size * 4 / 3), height: size, fontWeight: w, fontSize: '11px', lineHeight: 1 }}
-      >
-        Aa
-      </div>
-    );
-  }
-
-  // ── Gradient — color bar ──────────────────────────────────────────────
-  if (type === 'gradient') {
-    let gradientCss: string | null = null;
-    if (typeof value === 'string' && value.includes('gradient')) {
-      gradientCss = value;
-    } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && 'color' in value[0]) {
-      const stops = (value as Array<{ color: string; position?: number }>)
-        .map(s => `${s.color}${s.position != null ? ` ${Math.round(s.position * 100)}%` : ''}`)
-        .join(', ');
-      gradientCss = `linear-gradient(to right, ${stops})`;
+  // ── Font Family (canvas, wide) ────────────────────────────────────────────
+  if (type === 'fontFamily') {
+    const fam = Array.isArray(value)
+      ? value.map(f => String(f)).join(', ')
+      : typeof value === 'string' ? value : '';
+    if (fam) {
+      return (
+        <div
+          className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[var(--color-figma-text)]`}
+          title={fam}
+          style={{ ...wideStyle, fontFamily: fam, fontSize: '11px', lineHeight: 1 }}
+        >
+          Aa
+        </div>
+      );
     }
+  }
+
+  // ── Font Weight (canvas, wide) ────────────────────────────────────────────
+  if (type === 'fontWeight') {
+    const w = typeof value === 'number' ? value : parseInt(String(value), 10) || 400;
+    return (
+      <div
+        className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[var(--color-figma-text)]`}
+        title={String(w)}
+        style={{ ...wideStyle, fontWeight: w, fontSize: '11px', lineHeight: 1 }}
+      >
+        Aa
+      </div>
+    );
+  }
+
+  // ── Gradient (canvas, wide) — honors `type` and sorts stops ──────────────
+  if (type === 'gradient') {
+    const gradientCss = buildGradientCss(value);
     if (gradientCss) {
       return (
         <div
-          className="rounded border border-[var(--color-figma-border)] shrink-0"
-          style={{ width: Math.round(size * 4 / 3), height: size, background: gradientCss }}
+          className={`${BOX_CLS} shrink-0`}
+          style={{ ...wideStyle, background: gradientCss }}
           title={gradientCss}
         />
       );
     }
   }
 
-  // ── Dimension — horizontal proportional bar ───────────────────────────
+  // ── Dimension (indicator, unboxed bar, sqrt scale) ───────────────────────
   if (type === 'dimension') {
     const { num, unit } = parseDimension(value);
-    const maxRef = unit === 'rem' || unit === 'em' ? 4 : 64;
-    const pct = Math.min(Math.max(Math.abs(num) / maxRef, 0.08), 1);
-    const label = dimensionLabel(value);
+    const pct = dimensionBarPct(num, unit);
     return (
-      <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center overflow-hidden bg-[var(--color-figma-bg)] px-px"
-        style={sizeStyle}
-        title={label}
-      >
+      <div className="shrink-0 flex items-center" style={squareStyle} title={dimensionLabel(value)}>
         <div
-          className="rounded-sm h-2/3"
+          className="rounded-sm"
           style={{
             width: `${Math.round(pct * 100)}%`,
+            height: Math.max(2, Math.round(size * 0.4)),
             minWidth: 2,
             backgroundColor: 'var(--color-figma-accent)',
-            opacity: 0.6,
+            opacity: 0.55,
           }}
         />
       </div>
     );
   }
 
-  // ── Duration — clock ring indicator ───────────────────────────────────
+  // ── Duration (indicator, unboxed ring scales with size) ──────────────────
   if (type === 'duration') {
     const { num, unit } = parseDimension(value);
-    const maxRef = unit === 's' ? 2 : 2000; // 2s or 2000ms
+    const maxRef = unit === 's' ? 2 : 2000;
     const pct = Math.min(Math.max(num / maxRef, 0.05), 1);
-    const label = dimensionLabel(value);
-    // SVG arc for duration
-    const r = 7;
+    const r = Math.max(3, (size - 4) / 2);
     const cx = size / 2;
     const cy = size / 2;
     const angle = pct * 360;
@@ -220,242 +278,257 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const y2 = cy + r * Math.sin(rad);
     const largeArc = angle > 180 ? 1 : 0;
     const arcPath = angle >= 360
-      ? `M${cx},${cy - r} A${r},${r} 0 1 1 ${cx - 0.01},${cy - r}` // full circle
+      ? `M${cx},${cy - r} A${r},${r} 0 1 1 ${cx - 0.01},${cy - r}`
       : `M${cx},${cy - r} A${r},${r} 0 ${largeArc} 1 ${x2},${y2}`;
     return (
-      <div className="shrink-0 flex items-center justify-center" style={sizeStyle} title={label}>
+      <div className="shrink-0" style={squareStyle} title={dimensionLabel(value)}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--color-figma-border)" strokeWidth="1.5" />
-          <path d={arcPath} fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--color-figma-border)" strokeWidth="1.25" />
+          <path d={arcPath} fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.75" strokeLinecap="round" />
         </svg>
       </div>
     );
   }
 
-  // ── Number — filled bar (opacity-style for 0-1 range) ────────────────
+  // ── Number (indicator, unboxed bar — no opacity heuristic) ───────────────
   if (type === 'number') {
     const numericVal = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
-    const isOpacityLike = numericVal >= 0 && numericVal <= 1;
-    if (isOpacityLike) {
-      // Show as an opacity fill — checkerboard behind with a colored overlay
-      return (
-        <div
-          className="rounded border border-[var(--color-figma-border)] shrink-0 overflow-hidden"
-          style={{
-            ...sizeStyle,
-            background: 'repeating-conic-gradient(var(--color-figma-border) 0% 25%, var(--color-figma-bg) 0% 50%) 50% / 6px 6px',
-          }}
-          title={String(numericVal)}
-        >
-          <div
-            className="w-full h-full"
-            style={{ backgroundColor: 'var(--color-figma-text)', opacity: numericVal }}
-          />
-        </div>
-      );
-    }
-    // Non-opacity numbers: bar chart
-    const maxRef = 100;
-    const pct = Math.min(Math.max(Math.abs(numericVal) / maxRef, 0.08), 1);
+    // sqrt(|n|)/2 — 0.25→0.25, 1→0.5, 4→1, 16→1(clamp). Covers both fractional
+    // (ratios, multipliers) and integer (counts, z-index) ranges visibly.
+    const pct = Math.max(0.08, Math.min(Math.sqrt(Math.abs(numericVal)) / 2, 1));
     return (
-      <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center overflow-hidden bg-[var(--color-figma-bg)] px-px"
-        style={sizeStyle}
-        title={String(numericVal)}
-      >
+      <div className="shrink-0 flex items-center" style={squareStyle} title={String(numericVal)}>
         <div
-          className="rounded-sm h-2/3"
+          className="rounded-sm"
           style={{
             width: `${Math.round(pct * 100)}%`,
+            height: Math.max(2, Math.round(size * 0.4)),
             minWidth: 2,
             backgroundColor: 'var(--color-figma-text-tertiary)',
-            opacity: 0.6,
+            opacity: 0.55,
           }}
         />
       </div>
     );
   }
 
-  // ── Border — line with color swatch ───────────────────────────────────
+  // ── Border (canvas, wide) — line drawn in real color/style/width ─────────
   if (type === 'border' && typeof value === 'object' && value !== null) {
     const { color: borderColor, width: borderWidth, style: borderStyle } = value as Record<string, any>;
     const colorStr = typeof borderColor === 'string' ? swatchBgColor(borderColor) : 'var(--color-figma-text)';
     const { num: bwNum } = parseDimension(borderWidth);
     const widthStr = dimensionLabel(borderWidth) || '1px';
     const styleStr = typeof borderStyle === 'string' ? borderStyle : 'solid';
-    // Clamp border width for preview to 1-4px
     const previewWidth = Math.max(1, Math.min(bwNum || 1, 4));
-    const label = `${widthStr} ${styleStr} ${typeof borderColor === 'string' ? borderColor : ''}`;
+    const label = `${widthStr} ${styleStr} ${typeof borderColor === 'string' ? borderColor : ''}`.trim();
     return (
       <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
-        style={sizeStyle}
+        className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden`}
+        style={wideStyle}
         title={label}
       >
-        <div
-          style={{
-            width: '80%',
-            borderBottom: `${previewWidth}px ${styleStr} ${colorStr}`,
-          }}
-        />
+        <div style={{ width: '80%', borderBottom: `${previewWidth}px ${styleStr} ${colorStr}` }} />
       </div>
     );
   }
 
-  // ── Cubic Bezier — curve preview ──────────────────────────────────────
+  // ── Cubic Bezier (indicator, unboxed curve) ──────────────────────────────
   if (type === 'cubicBezier' && Array.isArray(value) && value.length === 4) {
     const [x1, y1, x2, y2] = value.map(Number);
-    // Draw the bezier curve in a small SVG
-    const pad = 3;
-    const w = size - pad * 2;
-    const h = size - pad * 2;
-    const sx = pad;
-    const sy = pad + h;
-    const ex = pad + w;
-    const ey = pad;
-    const cx1 = pad + x1 * w;
-    const cy1 = pad + (1 - y1) * h;
-    const cx2 = pad + x2 * w;
-    const cy2 = pad + (1 - y2) * h;
     return (
-      <div className="shrink-0" style={sizeStyle} title={`cubic-bezier(${value.join(', ')})`}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-          {/* Grid line from start to end */}
-          <line x1={sx} y1={sy} x2={ex} y2={ey} stroke="var(--color-figma-border)" strokeWidth="1" strokeDasharray="2 2" />
-          {/* The bezier curve */}
-          <path
-            d={`M${sx},${sy} C${cx1},${cy1} ${cx2},${cy2} ${ex},${ey}`}
-            fill="none"
-            stroke="var(--color-figma-accent)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          {/* Endpoints */}
-          <circle cx={sx} cy={sy} r="1.5" fill="var(--color-figma-text-tertiary)" />
-          <circle cx={ex} cy={ey} r="1.5" fill="var(--color-figma-text-tertiary)" />
-        </svg>
+      <div className="shrink-0" style={squareStyle} title={`cubic-bezier(${value.join(', ')})`}>
+        {renderBezierCurve(size, size, x1, y1, x2, y2)}
       </div>
     );
   }
 
-  // ── Stroke Style — dashed/dotted line preview ─────────────────────────
+  // ── Stroke Style (indicator, unboxed dashes) ─────────────────────────────
   if (type === 'strokeStyle') {
     const style = typeof value === 'string' ? value : 'solid';
     return (
       <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
-        style={sizeStyle}
+        className="shrink-0 flex items-center justify-center"
+        style={squareStyle}
         title={style}
       >
-        <div style={{ width: '80%', borderBottom: `2px ${style} var(--color-figma-text-secondary)` }} />
+        <div style={{ width: '85%', borderBottom: `2px ${style} var(--color-figma-text-secondary)` }} />
       </div>
     );
   }
 
-  // ── Asset — image thumbnail ───────────────────────────────────────────
+  // ── Asset (canvas, square) ────────────────────────────────────────────────
   if (type === 'asset' && typeof value === 'string' && value.length > 0) {
     return (
-      <div className="rounded border border-[var(--color-figma-border)] shrink-0 overflow-hidden bg-[var(--color-figma-bg-secondary)]" style={sizeStyle}>
+      <div className={`${BOX_CLS} shrink-0 overflow-hidden bg-[var(--color-figma-bg-secondary)]`} style={squareStyle}>
         <img src={value} alt="" className="w-full h-full object-cover" aria-hidden="true" />
       </div>
     );
   }
 
-  // ── Transition / Composition — type icon ──────────────────────────────
+  // ── Transition (wide indicator) — bezier shape + duration/delay in title ─
   if (type === 'transition' && typeof value === 'object' && value !== null) {
+    const v = value as { duration?: any; delay?: any; timingFunction?: number[] };
+    const tf = Array.isArray(v.timingFunction) && v.timingFunction.length === 4
+      ? v.timingFunction.map(Number)
+      : [0.25, 0.1, 0.25, 1];
+    const durLabel = v.duration ? dimensionLabel(v.duration) : '';
+    const delayLabel = v.delay ? dimensionLabel(v.delay) : '';
+    const title = [
+      durLabel || 'no duration',
+      delayLabel && delayLabel !== '0ms' ? `delay ${delayLabel}` : '',
+      `bezier(${tf.join(', ')})`,
+    ].filter(Boolean).join(' · ');
+    const w = Math.round(size * WIDE_RATIO);
     return (
-      <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]"
-        style={sizeStyle}
-        title="Transition"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
+      <div className="shrink-0" style={wideStyle} title={title}>
+        {renderBezierCurve(w, size, tf[0], tf[1], tf[2], tf[3])}
       </div>
     );
   }
 
+  // ── Composition (indicator, unboxed {n} glyph) ───────────────────────────
   if (type === 'composition' && typeof value === 'object' && value !== null) {
+    const count = Object.keys(value).filter(k => !k.startsWith('$')).length;
     return (
       <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]"
-        style={sizeStyle}
-        title="Composition"
+        className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-secondary)] font-mono"
+        style={squareStyle}
+        title={`${count} propert${count === 1 ? 'y' : 'ies'}`}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="3" y="3" width="7" height="7" />
-          <rect x="14" y="3" width="7" height="7" />
-          <rect x="3" y="14" width="7" height="7" />
-          <rect x="14" y="14" width="7" height="7" />
-        </svg>
+        <span style={{ fontSize: Math.round(size * 0.62), lineHeight: 1, fontWeight: 500 }}>
+          {'{'}{count}{'}'}
+        </span>
       </div>
     );
   }
 
-  // ── Boolean — check/x icon ────────────────────────────────────────────
+  // ── Boolean (indicator, unboxed check/x) ─────────────────────────────────
   if (type === 'boolean') {
     const boolVal = value === true || value === 'true';
+    const glyph = Math.round(size * 0.8);
     return (
       <div
-        className={`rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden ${boolVal ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]'}`}
-        style={sizeStyle}
+        className={`shrink-0 flex items-center justify-center ${boolVal ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
+        style={squareStyle}
         title={String(boolVal)}
       >
-        {boolVal ? (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-        ) : (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
-        )}
+        <svg width={glyph} height={glyph} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {boolVal
+            ? <path d="M20 6L9 17l-5-5" />
+            : <path d="M18 6L6 18M6 6l12 12" />}
+        </svg>
       </div>
     );
   }
 
-  // ── String — quote icon ───────────────────────────────────────────────
+  // ── String (indicator, unboxed quote glyph) ──────────────────────────────
   if (type === 'string' && typeof value === 'string') {
     return (
       <div
-        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text-tertiary)]"
-        style={sizeStyle}
+        className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]"
+        style={squareStyle}
         title={value}
       >
-        <span style={{ fontSize: Math.round(size * 0.55), lineHeight: 1, fontWeight: 600 }}>&ldquo;&rdquo;</span>
+        <span style={{ fontSize: Math.round(size * 0.9), lineHeight: 1, fontWeight: 600, letterSpacing: '-0.08em' }}>
+          &ldquo;&rdquo;
+        </span>
       </div>
     );
   }
 
-  // ── Percentage — circular progress ring ───────────────────────────────
+  // ── Percentage (indicator, unboxed ring scales with size) ────────────────
   if (type === 'percentage') {
     const numVal = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
     const pct = Math.min(Math.max(numVal / 100, 0), 1);
-    const r = 7;
+    const r = Math.max(3, (size - 4) / 2);
     const cx = size / 2;
     const cy = size / 2;
     const circumference = 2 * Math.PI * r;
     const dashOffset = circumference * (1 - pct);
     return (
-      <div className="shrink-0 flex items-center justify-center" style={sizeStyle} title={`${numVal}%`}>
+      <div className="shrink-0" style={squareStyle} title={`${numVal}%`}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--color-figma-border)" strokeWidth="1.5" />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--color-figma-border)" strokeWidth="1.25" />
           <circle
             cx={cx} cy={cy} r={r}
             fill="none"
             stroke="var(--color-figma-accent)"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
-            opacity="0.7"
           />
         </svg>
       </div>
     );
   }
 
-  // ── Fallback — empty spacer ───────────────────────────────────────────
-  return <div className="shrink-0" style={sizeStyle} />;
+  // ── Fallback — surface the $type name so unknown tokens aren't invisible ─
+  if (type) {
+    const label = type.length <= 4 ? type : type.slice(0, 3);
+    return (
+      <div
+        className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)] font-mono"
+        style={squareStyle}
+        title={`Unknown type: ${type}`}
+      >
+        <span style={{ fontSize: Math.round(size * 0.45), lineHeight: 1 }}>{label}</span>
+      </div>
+    );
+  }
+
+  return <div className="shrink-0" style={squareStyle} />;
+}
+
+// ── Internal SVG helpers ────────────────────────────────────────────────────
+
+function renderBezierCurve(width: number, height: number, x1: number, y1: number, x2: number, y2: number) {
+  const pad = 2;
+  const w = width - pad * 2;
+  const h = height - pad * 2;
+  const sx = pad;
+  const sy = pad + h;
+  const ex = pad + w;
+  const ey = pad;
+  const cx1 = pad + x1 * w;
+  const cy1 = pad + (1 - y1) * h;
+  const cx2 = pad + x2 * w;
+  const cy2 = pad + (1 - y2) * h;
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+      <line x1={sx} y1={sy} x2={ex} y2={ey} stroke="var(--color-figma-border)" strokeWidth="1" strokeDasharray="2 2" />
+      <path
+        d={`M${sx},${sy} C${cx1},${cy1} ${cx2},${cy2} ${ex},${ey}`}
+        fill="none"
+        stroke="var(--color-figma-accent)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function buildGradientCss(value: any): string | null {
+  if (typeof value === 'string' && value.includes('gradient')) return value;
+
+  // Bare array of stops (legacy/loose shape)
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] && 'color' in value[0]) {
+    const sorted = [...(value as Array<{ color: string; position?: number }>)]
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    const stops = sorted.map(s => `${s.color}${s.position != null ? ` ${Math.round(s.position * 100)}%` : ''}`).join(', ');
+    return `linear-gradient(to right, ${stops})`;
+  }
+
+  if (!value || typeof value !== 'object') return null;
+  const v = value as { type?: string; stops?: Array<{ color: string; position?: number }> };
+  if (!Array.isArray(v.stops) || v.stops.length === 0) return null;
+  const sorted = [...v.stops].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const stops = sorted.map(s => `${s.color}${s.position != null ? ` ${Math.round(s.position * 100)}%` : ''}`).join(', ');
+  const gradType = v.type || 'linear';
+
+  if (gradType === 'radial') return `radial-gradient(circle, ${stops})`;
+  if (gradType === 'angular' || gradType === 'conic') return `conic-gradient(${stops})`;
+  // CSS has no native "diamond" gradient; fall back to a 45° linear as a best-effort hint.
+  if (gradType === 'diamond') return `linear-gradient(45deg, ${stops})`;
+  return `linear-gradient(to right, ${stops})`;
 }

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 export const PercentageEditor = memo(function PercentageEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const num = typeof value === 'number' ? value : 0;
@@ -10,7 +10,7 @@ export const PercentageEditor = memo(function PercentageEditor({ value, onChange
         step={1}
         value={num}
         onChange={e => onChange(parseFloat(e.target.value) || 0)}
-        className={inputClass + ' flex-1'}
+        className={AUTHORING.input + ' flex-1'}
       />
       <span className="text-body text-[var(--color-figma-text-secondary)] shrink-0">%</span>
     </div>

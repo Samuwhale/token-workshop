@@ -7,7 +7,7 @@ import type { NumericOpMode } from './transforms';
 import {
   applyNumericTransform,
   COMPOSITE_SUB_PROPS_BY_TYPE, COMPOSITE_TOKEN_TYPES,
-  PREVIEW_MAX, rollbackOperation, formatBatchValue,
+  PREVIEW_MAX, rollbackOperation,
 } from './transforms';
 import { PreviewPath, PreviewCard, ValueTransition, ActionFeedback } from './BatchActionPreview';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';

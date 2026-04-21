@@ -544,7 +544,7 @@ export function TokenEditor({
           destination: {
             kind: "token",
             tokenPath,
-            collectionId: currentCollectionId,
+            collectionId: ownerCollectionId,
           },
         },
       );
@@ -555,7 +555,14 @@ export function TokenEditor({
     } finally {
       setDetachingGeneratorOwnership(false);
     }
-  }, [initialServerSnapshotRef, onRefresh, producingGenerator, serverUrl, tokenPath]);
+  }, [
+    initialServerSnapshotRef,
+    onRefresh,
+    ownerCollectionId,
+    producingGenerator,
+    serverUrl,
+    tokenPath,
+  ]);
 
   const getProducingGeneratorStepName = useCallback(() => {
     if (!activeProducingGenerator) {

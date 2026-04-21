@@ -7,12 +7,48 @@ import {
 import { BadRequestError } from '../errors.js';
 
 const MAX_REGEX_LENGTH = 200;
+const FONT_FAMILY_SCOPE = 'FONT_FAMILY';
 
 /**
  * A node in the DTCG token tree — either a group (with nested children)
  * or a leaf token (with $value). Used as the traversal cursor type.
  */
 type TokenTreeNode = TokenGroup[string]; // Token | TokenGroup | TokenType | string | undefined
+
+function hasFontFamilyScope(token: { $extensions?: Record<string, unknown> }): boolean {
+  const rawScopes = token.$extensions?.['com.figma.scopes'];
+  return Array.isArray(rawScopes) && rawScopes.includes(FONT_FAMILY_SCOPE);
+}
+
+export function normalizeLegacyFontFamilyToken<
+  T extends { $type?: string; $extensions?: Record<string, unknown> },
+>(token: T): T {
+  if (token.$type === 'string' && hasFontFamilyScope(token)) {
+    return { ...token, $type: 'fontFamily' };
+  }
+  return token;
+}
+
+export function normalizeLegacyFontFamilyTokenGroup(tokens: TokenGroup): boolean {
+  let changed = false;
+
+  const walk = (group: TokenGroup) => {
+    for (const [key, value] of Object.entries(group)) {
+      if (key.startsWith('$') || value === null || typeof value !== 'object') continue;
+      if (isDTCGToken(value)) {
+        if (value.$type === 'string' && hasFontFamilyScope(value)) {
+          value.$type = 'fontFamily';
+          changed = true;
+        }
+        continue;
+      }
+      walk(value as TokenGroup);
+    }
+  };
+
+  walk(tokens);
+  return changed;
+}
 
 // ----- Tree walkers -----
 

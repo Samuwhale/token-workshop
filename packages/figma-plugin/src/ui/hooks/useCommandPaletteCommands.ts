@@ -50,7 +50,7 @@ export function useCommandPaletteCommands(): {
   const collectionIds = collections.map((collection) => collection.id);
   const { allTokensFlat, pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useGeneratorContext();
-  const { navigateTo, closeSecondarySurface } = useNavigationContext();
+  const { navigateTo } = useNavigationContext();
   const { selectedNodes } = useSelectionContext();
   const {
     highlightedToken,
@@ -296,7 +296,6 @@ export function useCommandPaletteCommands(): {
     selectedNodes.length,
     setEditingToken,
     shell,
-    closeSecondarySurface,
     switchContextualSurface,
     tokens,
     sync,

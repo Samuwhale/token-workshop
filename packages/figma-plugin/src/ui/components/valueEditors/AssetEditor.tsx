@@ -1,5 +1,5 @@
 import { useState, useRef, memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 export const AssetEditor = memo(function AssetEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const url = typeof value === 'string' ? value : '';
@@ -43,7 +43,7 @@ export const AssetEditor = memo(function AssetEditor({ value, onChange }: { valu
           value={isDataUri ? '' : url}
           onChange={e => { onChange(e.target.value); setLoadError(false); }}
           placeholder={isDataUri ? `data URI (${dataUriSize}KB)` : 'https://example.com/image.png'}
-          className={inputClass}
+          className={AUTHORING.input}
           disabled={isDataUri}
         />
         {isDataUri && (

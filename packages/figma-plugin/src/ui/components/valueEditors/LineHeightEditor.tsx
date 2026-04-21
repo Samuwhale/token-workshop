@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 const LINE_HEIGHT_UNITS = ['px', 'rem', 'em', '%'];
 
@@ -34,13 +34,13 @@ export const LineHeightEditor = memo(function LineHeightEditor({ value, onChange
             const n = parseFloat(e.target.value) || 0;
             isDimension ? setDimension({ value: n }) : setUnitless(n);
           }}
-          className={inputClass + ' flex-1'}
+          className={AUTHORING.input + ' flex-1'}
         />
         {isDimension ? (
           <select
             value={unit}
             onChange={e => setDimension({ unit: e.target.value })}
-            className={inputClass + ' w-16'}
+            className={AUTHORING.input + ' w-16'}
           >
             {LINE_HEIGHT_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
           </select>

@@ -7,11 +7,13 @@
  * not by the cell itself, so every token type shares one editing surface.
  */
 import { useRef } from "react";
+import type { CSSProperties } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
-import { isAlias } from "../../../shared/resolveAlias";
+import { extractAliasPath, isAlias } from "../../../shared/resolveAlias";
 import { formatValue } from "../tokenListUtils";
 import { ValuePreview } from "../ValuePreview";
 import { QUICK_EDITABLE_TYPES } from "../tokenListTypes";
+import { getValueCellPresentation } from "./valueCellPresentation";
 
 export interface QuickEditRequest {
   anchor: DOMRect;
@@ -44,15 +46,22 @@ export function ValueCell({
 }: ValueCellProps) {
   const cellRef = useRef<HTMLDivElement>(null);
 
-  const isAliasValue = isAlias(value?.$value);
+  const isBrokenAlias = isAlias(value?.$value);
+  const resolvedAliasPath = value?.reference && !isBrokenAlias
+    ? extractAliasPath(value.reference)
+    : null;
+  const isResolvedAlias = resolvedAliasPath != null;
   const canQuickEdit =
     !!tokenType &&
-    (QUICK_EDITABLE_TYPES.has(tokenType) || isAliasValue) &&
+    (QUICK_EDITABLE_TYPES.has(tokenType) || isBrokenAlias) &&
     !!targetCollectionId &&
     !!onRequestQuickEdit;
   const canCreate = !value && !!tokenType && !!targetCollectionId && !!onRequestQuickEdit;
 
   const displayVal = value ? formatValue(value.$type, value.$value) : "—";
+  const presentation = value
+    ? getValueCellPresentation(value)
+    : null;
 
   const openQuickEdit = () => {
     if (!onRequestQuickEdit) return;
@@ -67,7 +76,57 @@ export function ValueCell({
     });
   };
 
-  const wrapperClass = `min-w-0 shrink-0 px-1 flex items-center gap-1 border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`;
+  const wrapperClass = `min-w-0 shrink-0 px-1.5 flex items-center gap-1.5 border-l border-[var(--color-figma-border)] h-full ${!value && !canCreate ? "bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`;
+  const interactiveTextClass = canQuickEdit
+    ? "cursor-pointer hover:text-[var(--color-figma-text)]"
+    : "";
+
+  const renderValueText = (
+    primary: string,
+    secondary?: string,
+    options?: {
+      primaryMonospace?: boolean;
+      secondaryMonospace?: boolean;
+      primaryClassName?: string;
+      secondaryClassName?: string;
+      primaryStyle?: CSSProperties;
+      secondaryStyle?: CSSProperties;
+    },
+  ) => (
+    <div
+      className={`min-w-0 flex-1 ${interactiveTextClass}`}
+      onClick={
+        canQuickEdit
+          ? (e) => {
+              e.stopPropagation();
+              openQuickEdit();
+            }
+          : undefined
+      }
+    >
+      <div
+        className={`truncate text-[11px] leading-[1.08] ${
+          options?.primaryMonospace ? "font-mono" : ""
+        } ${options?.primaryClassName ?? "text-[var(--color-figma-text)]"}`}
+        style={options?.primaryStyle}
+      >
+        {primary}
+      </div>
+      {secondary ? (
+        <div
+          className={`truncate text-[10px] leading-[1.08] ${
+            options?.secondaryMonospace ? "font-mono" : ""
+          } ${
+            options?.secondaryClassName ??
+            "text-[var(--color-figma-text-tertiary)]"
+          }`}
+          style={options?.secondaryStyle}
+        >
+          {secondary}
+        </div>
+      ) : null}
+    </div>
+  );
 
   return (
     <div
@@ -105,32 +164,54 @@ export function ValueCell({
             —
           </span>
         )
-      ) : isAliasValue ? (
+      ) : isBrokenAlias ? (
         <>
-          <span
-            className="shrink-0 text-[var(--color-figma-text-tertiary)]"
-            aria-hidden="true"
-          >
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7" /><path d="M8 7h9v9" /></svg>
+          <span className="shrink-0">
+            <ValuePreview type={value.$type} value={value.$value} size={16} />
           </span>
-          <span
-            className={`text-body truncate min-w-0 font-mono ${canQuickEdit ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
-            onClick={canQuickEdit ? (e) => { e.stopPropagation(); openQuickEdit(); } : undefined}
-          >
-            {displayVal}
+          {renderValueText(displayVal, "Reference not found", {
+            primaryMonospace: true,
+            primaryClassName:
+              "font-mono italic text-[var(--color-figma-warning,#f59e0b)]",
+            secondaryClassName: "text-[var(--color-figma-warning,#f59e0b)]/80",
+          })}
+        </>
+      ) : isResolvedAlias ? (
+        <>
+          <span className="shrink-0">
+            <ValuePreview type={value.$type} value={value.$value} size={16} />
           </span>
+          {renderValueText(
+            presentation?.secondary
+              ? `${presentation.primary} · ${presentation.secondary}`
+              : (presentation?.primary ?? displayVal),
+            resolvedAliasPath ?? undefined,
+            {
+              primaryMonospace:
+                Boolean(presentation?.primaryMonospace) &&
+                !presentation?.secondary,
+              secondaryMonospace: true,
+              secondaryClassName: "text-[var(--color-figma-text-secondary)]",
+              primaryStyle: presentation?.primaryStyle,
+              secondaryStyle: presentation?.secondaryStyle,
+            },
+          )}
         </>
       ) : (
         <>
           <span className="shrink-0">
             <ValuePreview type={value.$type} value={value.$value} size={16} />
           </span>
-          <span
-            className={`text-body truncate min-w-0 ${canQuickEdit ? "cursor-pointer hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]" : "text-[var(--color-figma-text-secondary)]"}`}
-            onClick={canQuickEdit ? (e) => { e.stopPropagation(); openQuickEdit(); } : undefined}
-          >
-            {displayVal}
-          </span>
+          {renderValueText(
+            presentation?.primary ?? displayVal,
+            presentation?.secondary,
+            {
+              primaryMonospace: presentation?.primaryMonospace,
+              secondaryMonospace: presentation?.secondaryMonospace,
+              primaryStyle: presentation?.primaryStyle,
+              secondaryStyle: presentation?.secondaryStyle,
+            },
+          )}
         </>
       )}
     </div>

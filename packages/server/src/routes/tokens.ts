@@ -34,6 +34,7 @@ import {
   renameGroupCommand,
   renameTokenCommand,
 } from '../services/token-mutation-commands.js';
+import { normalizeLegacyFontFamilyToken } from '../services/token-tree-utils.js';
 import { stableStringify } from '../services/stable-stringify.js';
 
 interface TokenMutationRouteBody {
@@ -1089,10 +1090,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     Body: { tokens: BatchTokenMutationRouteBody[]; strategy: 'skip' | 'overwrite' | 'merge' };
   }>('/tokens/:collectionId/batch', async (request, reply) => {
     const { collectionId } = request.params;
-    const { tokens, strategy } = request.body ?? {};
-    if (!Array.isArray(tokens) || tokens.length === 0) {
+    const { tokens: rawTokens, strategy } = request.body ?? {};
+    if (!Array.isArray(rawTokens) || rawTokens.length === 0) {
       return reply.status(400).send({ error: 'tokens must be a non-empty array' });
     }
+    const tokens = rawTokens.map((token) =>
+      normalizeLegacyFontFamilyToken(token),
+    );
     if (strategy !== 'skip' && strategy !== 'overwrite' && strategy !== 'merge') {
       return reply.status(400).send({ error: 'strategy must be "skip", "overwrite", or "merge"' });
     }
@@ -1650,13 +1654,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'Token path is required' });
       }
 
-      const body = request.body;
-      if (!body || body.$value === undefined) {
+      const rawBody = request.body;
+      if (!rawBody || rawBody.$value === undefined) {
         return reply.status(400).send({ error: 'Token must have a $value property' });
       }
-      if (!validateTokenBody(body)) {
+      if (!validateTokenBody(rawBody)) {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
+      const body = normalizeLegacyFontFamilyToken(rawBody);
 
       // Type-aware value validation (can be done before acquiring the lock)
       if (body.$type) {
@@ -1728,10 +1733,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'Token path is required' });
       }
 
-      const body = request.body;
-      if (!validateTokenBody(body)) {
+      const rawBody = request.body;
+      if (!validateTokenBody(rawBody)) {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
+      const body = normalizeLegacyFontFamilyToken(rawBody);
 
       return withLock(async () => {
         try {

@@ -180,12 +180,9 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
           variable.setValueForMode(modeId, figmaValue);
         }
 
-        // Apply scopes if specified (read from $extensions or legacy $scopes)
-        const scopeOverrides: string[] = (
-          (Array.isArray(token.$extensions?.['com.figma.scopes']) ? token.$extensions['com.figma.scopes'] : null) ??
-          (Array.isArray(token.$scopes) ? token.$scopes : null) ??
-          []
-        );
+        const scopeOverrides = Array.isArray(token.$extensions?.['com.figma.scopes'])
+          ? token.$extensions['com.figma.scopes']
+          : [];
         variable.scopes = scopeOverrides as VariableScope[];
 
         // Store mapping in shared plugin data

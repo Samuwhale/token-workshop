@@ -31,6 +31,8 @@ import {
   updateBulkAliasRefs,
   previewBulkAliasChanges,
   previewGroupAliasChanges,
+  normalizeLegacyFontFamilyToken,
+  normalizeLegacyFontFamilyTokenGroup,
   type AliasChange,
 } from "./token-tree-utils.js";
 
@@ -115,14 +117,24 @@ export class TokenStore {
 
   private async readCollectionTokens(
     collectionId: string,
-  ): Promise<{ tokens: TokenGroup; missing: boolean; filePath: string }> {
+  ): Promise<{
+    tokens: TokenGroup;
+    missing: boolean;
+    filePath: string;
+    normalizationChanged: boolean;
+  }> {
     const filePath = this.collectionFilePath(collectionId);
     let content: string;
     try {
       content = await fs.readFile(filePath, "utf-8");
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        return { tokens: {}, missing: true, filePath };
+        return {
+          tokens: {},
+          missing: true,
+          filePath,
+          normalizationChanged: false,
+        };
       }
       throw err;
     }
@@ -144,18 +156,23 @@ export class TokenStore {
         `Collection "${collectionId}" could not be loaded from "${path.relative(this.dir, filePath)}".`,
       );
     }
-    return { tokens, missing: false, filePath };
+    const normalizationChanged = normalizeLegacyFontFamilyTokenGroup(tokens);
+    return { tokens, missing: false, filePath, normalizationChanged };
   }
 
   private async loadRegisteredCollection(
     collectionId: string,
   ): Promise<"loaded" | "missing"> {
-    const { tokens, missing, filePath } = await this.readCollectionTokens(collectionId);
+    const { tokens, missing, filePath, normalizationChanged } =
+      await this.readCollectionTokens(collectionId);
     this.collections.set(collectionId, {
       name: collectionId,
       tokens,
       ...(missing ? {} : { filePath }),
     });
+    if (!missing && normalizationChanged) {
+      await this.saveCollection(collectionId);
+    }
     return missing ? "missing" : "loaded";
   }
 
@@ -163,9 +180,11 @@ export class TokenStore {
     const nextIds = [...new Set(Array.from(collectionIds).filter(Boolean))];
     const nextCollections = new Map<string, StoredCollection>();
     const missingIds: string[] = [];
+    const normalizedIds: string[] = [];
 
     for (const collectionId of nextIds) {
-      const { tokens, missing, filePath } = await this.readCollectionTokens(collectionId);
+      const { tokens, missing, filePath, normalizationChanged } =
+        await this.readCollectionTokens(collectionId);
       nextCollections.set(collectionId, {
         name: collectionId,
         tokens,
@@ -174,9 +193,15 @@ export class TokenStore {
       if (missing) {
         missingIds.push(collectionId);
       }
+      if (!missing && normalizationChanged) {
+        normalizedIds.push(collectionId);
+      }
     }
 
     this.collections = nextCollections;
+    for (const collectionId of normalizedIds) {
+      await this.saveCollection(collectionId);
+    }
     this.rebuildFlatTokens();
 
     for (const collectionId of missingIds) {
@@ -815,6 +840,7 @@ export class TokenStore {
       );
     }
     validateTokenPath(tokenPath);
+    token = normalizeLegacyFontFamilyToken(token);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     token = this.enrichFormulaExtension(token);
     // Check for circular references before persisting
@@ -847,6 +873,7 @@ export class TokenStore {
       throw new NotFoundError(
         `Token "${tokenPath}" not found in collection "${collectionId}"`,
       );
+    token = normalizeLegacyFontFamilyToken(token);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     if ("$value" in token && token.$value !== undefined) {
       const enriched = this.enrichFormulaExtension({
@@ -916,7 +943,9 @@ export class TokenStore {
     await this.withBatch(async () => {
       try {
         for (const { path: tokenPath, token } of tokens) {
-          const enriched = this.enrichFormulaExtension(token);
+          const enriched = this.enrichFormulaExtension(
+            normalizeLegacyFontFamilyToken(token),
+          );
           const existing = getTokenAtPath(collection.tokens, tokenPath);
           if (existing) {
             if (strategy === "overwrite") {

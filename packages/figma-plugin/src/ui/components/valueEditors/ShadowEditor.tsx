@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
-import { inputClass, labelClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput } from './valueEditorShared';
 
@@ -22,7 +22,7 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <div className={labelClass}>Color</div>
+        <div className={AUTHORING.label}>Color</div>
         <div className="flex gap-2 items-center">
           {!isColorAlias && (
             <ColorSwatchButton
@@ -43,28 +43,28 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <div className={labelClass}>Offset X</div>
+          <div className={AUTHORING.label}>Offset X</div>
           <SubPropInput value={getDim(val.offsetX)} onChange={v => setDim('offsetX', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </div>
         <div>
-          <div className={labelClass}>Offset Y</div>
+          <div className={AUTHORING.label}>Offset Y</div>
           <SubPropInput value={getDim(val.offsetY)} onChange={v => setDim('offsetY', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </div>
         <div>
-          <div className={labelClass}>Blur</div>
+          <div className={AUTHORING.label}>Blur</div>
           <SubPropInput value={getDim(val.blur)} onChange={v => setDim('blur', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </div>
         <div>
-          <div className={labelClass}>Spread</div>
+          <div className={AUTHORING.label}>Spread</div>
           <SubPropInput value={getDim(val.spread)} onChange={v => setDim('spread', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </div>
       </div>
       <div>
-        <div className={labelClass}>Type</div>
+        <div className={AUTHORING.label}>Type</div>
         <select
           value={val.type || 'dropShadow'}
           onChange={e => update('type', e.target.value)}
-          className={inputClass}
+          className={AUTHORING.input}
         >
           <option value="dropShadow">Drop Shadow</option>
           <option value="innerShadow">Inner Shadow</option>

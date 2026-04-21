@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
-import { inputClass, labelClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 import { swatchBgColor } from '../../shared/colorUtils';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput } from './valueEditorShared';
@@ -227,7 +227,7 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
 
   if (!visible) return (
     <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)]">
-      <div className={labelClass + ' mb-1'}>Preview</div>
+      <div className={AUTHORING.label + ' mb-1'}>Preview</div>
       <p className="text-secondary text-[var(--color-figma-text-tertiary)] italic">Hidden (visible = false)</p>
     </div>
   );
@@ -250,7 +250,7 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
 
   return (
     <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)]">
-      <div className={labelClass + ' mb-1'}>Preview</div>
+      <div className={AUTHORING.label + ' mb-1'}>Preview</div>
       <div className="flex items-center justify-center p-2 rounded bg-[var(--color-figma-bg)] border border-dashed border-[var(--color-figma-border)]">
         <div
           style={{
@@ -370,7 +370,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
           <select
             value={newProp}
             onChange={e => setNewProp(e.target.value)}
-            className={inputClass + ' flex-1'}
+            className={AUTHORING.input + ' flex-1'}
           >
             {unusedProps.map(p => <option key={p} value={p}>{COMP_PROP_LABELS[p] || p}</option>)}
           </select>

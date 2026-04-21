@@ -115,12 +115,6 @@ function getInlineModeValues(
   return collectionModes as Record<string, unknown>;
 }
 
-type BulkEditScope = {
-  source: "current-scope" | "saved-preset";
-  title: string;
-  detail: string;
-};
-
 type PendingBulkPresetLaunch = {
   presetId: string;
   presetName: string;
@@ -281,8 +275,6 @@ export function TokenList({
     setMultiModeDimId,
   } = viewState;
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
-  const [activeBulkEditScope, setActiveBulkEditScope] =
-    useState<BulkEditScope | null>(null);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] =
     useState<PendingBulkPresetLaunch | null>(null);
   const [pendingBatchEditorFocus, setPendingBatchEditorFocus] =
@@ -1017,29 +1009,6 @@ export function TokenList({
     setSearchResultPresentation,
   });
 
-  const currentBulkEditScope = useMemo<BulkEditScope>(() => {
-    const trimmedQuery = searchQuery.trim();
-    if (trimmedQuery) {
-      return {
-        source: "current-scope",
-        title: "Current query results",
-        detail: trimmedQuery,
-      };
-    }
-    if (toolbarStateChips.length > 0) {
-      return {
-        source: "current-scope",
-        title: "Current filtered tokens",
-        detail: toolbarStateChips.map(c => c.label).join(" · "),
-      };
-    }
-    return {
-      source: "current-scope",
-      title: `All tokens in ${collectionId}`,
-      detail: "No search or filter constraints",
-    };
-  }, [toolbarStateChips, searchQuery, collectionId]);
-
   const insertSearchQualifier = useCallback(
     (qualifier: string) => {
       const trimmed = searchQuery.trimEnd();
@@ -1206,13 +1175,12 @@ export function TokenList({
   }, [clearSelectionImpl]);
 
   const openBulkEditorForPaths = useCallback(
-    (paths: Set<string>, scope: BulkEditScope) => {
+    (paths: Set<string>) => {
       if (paths.size === 0) {
         dispatchToast("No tokens match that bulk-edit scope.", "error");
         return;
       }
       setSelectedPaths(paths);
-      setActiveBulkEditScope(scope);
     },
     [setSelectedPaths],
   );
@@ -1256,13 +1224,9 @@ export function TokenList({
       );
       return;
     }
-    openBulkEditorForPaths(
-      new Set(displayedLeafNodes.map((node) => node.path)),
-      currentBulkEditScope,
-    );
+    openBulkEditorForPaths(new Set(displayedLeafNodes.map((node) => node.path)));
   }, [
     crossCollectionSearch,
-    currentBulkEditScope,
     displayedLeafNodes,
     openBulkEditorForPaths,
   ]);
@@ -1281,11 +1245,7 @@ export function TokenList({
       setPendingBulkPresetLaunch(null);
       return;
     }
-    openBulkEditorForPaths(presetPaths, {
-      source: "saved-preset",
-      title: pendingBulkPresetLaunch.presetName,
-      detail: pendingBulkPresetLaunch.query,
-    });
+    openBulkEditorForPaths(presetPaths);
     setPendingBulkPresetLaunch(null);
   }, [
     crossCollectionSearch,
@@ -1298,7 +1258,6 @@ export function TokenList({
 
   useEffect(() => {
     if (selectedPaths.size === 0) {
-      setActiveBulkEditScope(null);
       setActiveBatchAction(null);
     }
   }, [selectedPaths.size]);
@@ -1659,16 +1618,12 @@ export function TokenList({
       return;
     }
     closeLongLivedReviewSurfaces();
-    openBulkEditorForPaths(
-      new Set(displayedLeafNodes.map((node) => node.path)),
-      currentBulkEditScope,
-    );
+    openBulkEditorForPaths(new Set(displayedLeafNodes.map((node) => node.path)));
     setActiveBatchAction('find-replace');
     setPendingBatchEditorFocus("find-replace");
   }, [
     closeLongLivedReviewSurfaces,
     crossCollectionSearch,
-    currentBulkEditScope,
     displayedLeafNodes,
     openBulkEditorForPaths,
   ]);

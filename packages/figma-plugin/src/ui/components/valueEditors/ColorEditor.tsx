@@ -6,7 +6,7 @@ import { formatHexAs, parseColorInput, swatchBgColor, isWideGamutColor, type Col
 import { GamutIndicator } from '../GamutIndicator';
 import { STORAGE_KEYS, lsGet, lsSet } from '../../shared/storage';
 import { useSettingsListener } from '../SettingsPanel';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 export const ColorSwatchButton = memo(function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { color: string; onChange: (hex: string) => void; className?: string }) {
   const [open, setOpen] = useState(false);
@@ -114,7 +114,7 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
           onKeyDown={e => { if (e.key === 'Enter') commitText((e.target as HTMLInputElement).value); }}
           placeholder={format === 'hex' ? '#000000' : format === 'rgb' ? 'rgb(0, 0, 0)' : format === 'oklch' ? 'oklch(0.7 0.15 180)' : format === 'p3' ? 'color(display-p3 1 0 0)' : 'hsl(0, 0%, 0%)'}
           autoFocus={autoFocus}
-          className={inputClass}
+          className={AUTHORING.input}
         />
         <div className="relative shrink-0">
           <button

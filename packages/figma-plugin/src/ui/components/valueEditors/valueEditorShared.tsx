@@ -7,7 +7,7 @@ import type { TokenMapEntry } from '../../../shared/types';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import { isAlias, extractAliasPath } from '../../../shared/resolveAlias';
 import { FontFamilyPicker } from '../FontFamilyPicker';
-import { inputClass, fieldBorderClass } from '../../shared/editorClasses';
+import { AUTHORING, fieldBorderClass } from '../../shared/editorClasses';
 import { FieldMessage } from '../../shared/FieldMessage';
 
 /** Per-type format hints shown below the "Value" label in the token editor. */
@@ -155,7 +155,7 @@ export const SubPropInput = memo(function SubPropInput({
         }}
         onBlur={() => setTimeout(() => setShowAC(false), 150)}
         placeholder={placeholder}
-        className={`${inputClass} flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
+        className={`${AUTHORING.input} flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
       />
       <button
         type="button"
@@ -236,7 +236,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
         type="number"
         value={dim.value ?? 0}
         onChange={e => onChange({ ...dim, value: parseFloat(e.target.value) || 0 })}
-        className={`${inputClass} flex-1`}
+        className={`${AUTHORING.input} flex-1`}
         placeholder={placeholder}
         onKeyDown={e => {
           if (e.key === '{') {
@@ -248,7 +248,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
       <select
         value={dim.unit ?? units[0]}
         onChange={e => onChange({ ...dim, unit: e.target.value })}
-        className={`${inputClass} w-14`}
+        className={`${AUTHORING.input} w-14`}
       >
         {units.map(u => <option key={u} value={u}>{u}</option>)}
       </select>
@@ -308,7 +308,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
           }}
           onBlur={() => setTimeout(() => setShowAC(false), 150)}
           placeholder="Inter"
-          className={`${inputClass} flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
+          className={`${AUTHORING.input} flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
         />
         {isAliasVal && (
           <button

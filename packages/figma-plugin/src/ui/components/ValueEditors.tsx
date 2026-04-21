@@ -26,6 +26,3 @@ export { LineHeightEditor } from './valueEditors/LineHeightEditor';
 export { CubicBezierEditor } from './valueEditors/CubicBezierEditor';
 export { TransitionEditor } from './valueEditors/TransitionEditor';
 export { CustomEditor } from './valueEditors/CustomEditor';
-
-// Re-export editorClasses helpers that were previously re-exported from this file
-export { inputClass, labelClass } from '../shared/editorClasses';

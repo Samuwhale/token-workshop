@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 export const CustomEditor = memo(function CustomEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const isObj = typeof value === 'object' && value !== null;
@@ -34,7 +34,7 @@ export const CustomEditor = memo(function CustomEditor({ value, onChange }: { va
         }}
         onBlur={e => commit(e.target.value)}
         rows={4}
-        className={inputClass + ' font-mono resize-y'}
+        className={AUTHORING.input + ' font-mono resize-y'}
         placeholder='String, number, or JSON object'
       />
       {parseError && (

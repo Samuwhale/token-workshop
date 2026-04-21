@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { inputClass } from '../shared/editorClasses';
+import { AUTHORING } from '../shared/editorClasses';
 
 interface FontFamilyPickerProps {
   value: string;
@@ -123,7 +123,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder || 'Inter, system-ui, sans-serif'}
         autoFocus={autoFocus}
-        className={className || inputClass}
+        className={className || AUTHORING.input}
       />
     );
   }
@@ -155,7 +155,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
           onKeyDown={handleKeyDown}
           placeholder={placeholder || 'Search fonts…'}
           autoFocus={autoFocus}
-          className={className || inputClass}
+          className={className || AUTHORING.input}
           role="combobox"
           aria-expanded={open}
           aria-autocomplete="list"

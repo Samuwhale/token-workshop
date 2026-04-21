@@ -99,7 +99,6 @@ export interface TokenEditorServerToken {
   $type?: string;
   $description?: string;
   $extensions?: TokenEditorServerExtensions;
-  $scopes?: string[];
 }
 
 export interface TokenEditorTokenResponse {

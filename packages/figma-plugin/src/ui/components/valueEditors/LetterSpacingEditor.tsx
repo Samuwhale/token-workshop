@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 const LETTER_SPACING_UNITS = ['px', 'rem', 'em', '%'];
 
@@ -15,12 +15,12 @@ export const LetterSpacingEditor = memo(function LetterSpacingEditor({ value, on
         step={unit === 'px' ? 0.5 : 0.01}
         value={num}
         onChange={e => update({ value: parseFloat(e.target.value) || 0 })}
-        className={inputClass + ' flex-1'}
+        className={AUTHORING.input + ' flex-1'}
       />
       <select
         value={unit}
         onChange={e => update({ unit: e.target.value })}
-        className={inputClass + ' w-16'}
+        className={AUTHORING.input + ' w-16'}
       >
         {LETTER_SPACING_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
       </select>

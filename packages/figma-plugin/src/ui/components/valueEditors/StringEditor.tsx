@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 export const StringEditor = memo(function StringEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
   return (
@@ -9,7 +9,7 @@ export const StringEditor = memo(function StringEditor({ value, onChange, autoFo
       onChange={e => onChange(e.target.value)}
       placeholder="Enter value"
       autoFocus={autoFocus}
-      className={inputClass}
+      className={AUTHORING.input}
     />
   );
 });

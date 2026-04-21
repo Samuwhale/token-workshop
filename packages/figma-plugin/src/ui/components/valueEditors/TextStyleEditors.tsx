@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { inputClass } from '../../shared/editorClasses';
+import { AUTHORING } from '../../shared/editorClasses';
 
 const FONT_STYLES = ['normal', 'italic', 'oblique'];
 
@@ -8,7 +8,7 @@ export const FontStyleEditor = memo(function FontStyleEditor({ value, onChange }
     <select
       value={typeof value === 'string' ? value : 'normal'}
       onChange={e => onChange(e.target.value)}
-      className={inputClass}
+      className={AUTHORING.input}
     >
       {FONT_STYLES.map(s => (
         <option key={s} value={s}>{s}</option>
@@ -24,7 +24,7 @@ export const TextDecorationEditor = memo(function TextDecorationEditor({ value, 
     <select
       value={typeof value === 'string' ? value : 'none'}
       onChange={e => onChange(e.target.value)}
-      className={inputClass}
+      className={AUTHORING.input}
     >
       {TEXT_DECORATIONS.map(s => (
         <option key={s} value={s}>{s}</option>
@@ -40,7 +40,7 @@ export const TextTransformEditor = memo(function TextTransformEditor({ value, on
     <select
       value={typeof value === 'string' ? value : 'none'}
       onChange={e => onChange(e.target.value)}
-      className={inputClass}
+      className={AUTHORING.input}
     >
       {TEXT_TRANSFORMS.map(s => (
         <option key={s} value={s}>{s}</option>

@@ -389,29 +389,6 @@ export function PanelRouter({
     ],
   );
 
-  const openTokenInspector = useCallback(
-    (options: { path: string; currentCollectionId: string; name?: string }) => {
-      setHighlightedToken(options.path);
-      if (options.currentCollectionId !== currentCollectionId) {
-        setCurrentCollectionId(options.currentCollectionId);
-      }
-      switchContextualSurface({
-        surface: "token-inspector",
-        token: {
-          path: options.path,
-          name: options.name,
-          currentCollectionId: options.currentCollectionId,
-        },
-      });
-    },
-    [
-      currentCollectionId,
-      setCurrentCollectionId,
-      setHighlightedToken,
-      switchContextualSurface,
-    ],
-  );
-
   const openLinkedTokenInEditor = useCallback(
     (options: {
       path: string;

@@ -1,6 +1,6 @@
 import { useState, useMemo, memo, type Ref } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
-import { inputClass, labelClass, fieldBorderClass } from '../../shared/editorClasses';
+import { AUTHORING, fieldBorderClass } from '../../shared/editorClasses';
 import { FieldMessage } from '../../shared/FieldMessage';
 import {
   InheritedBadge,
@@ -98,7 +98,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <div className={labelClass}>
+        <div className={AUTHORING.label}>
           Font Family
           {base && isInherited('fontFamily') && <InheritedBadge propKey="fontFamily" onOverride={() => update('fontFamily', val.fontFamily)} />}
           {base && !isInherited('fontFamily') && <RevertBadge propKey="fontFamily" onRevert={() => revertToInherited('fontFamily')} />}
@@ -114,7 +114,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
-          <div className={labelClass}>
+          <div className={AUTHORING.label}>
             Font Size
             {base && isInherited('fontSize') && <InheritedBadge propKey="fontSize" onOverride={() => update('fontSize', val.fontSize)} />}
             {base && !isInherited('fontSize') && <RevertBadge propKey="fontSize" onRevert={() => revertToInherited('fontSize')} />}
@@ -129,7 +129,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
           />
         </div>
         <div className="w-20">
-          <div className={labelClass}>
+          <div className={AUTHORING.label}>
             Weight
             {base && isInherited('fontWeight') && <InheritedBadge propKey="fontWeight" onOverride={() => update('fontWeight', val.fontWeight)} />}
             {base && !isInherited('fontWeight') && <RevertBadge propKey="fontWeight" onRevert={() => revertToInherited('fontWeight')} />}
@@ -148,7 +148,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
                 <select
                   value={val.fontWeight ?? 400}
                   onChange={e => update('fontWeight', parseInt(e.target.value))}
-                  className={`${inputClass} flex-1 ${fieldBorderClass(false, weightUnavailable)}`}
+                  className={`${AUTHORING.input} flex-1 ${fieldBorderClass(false, weightUnavailable)}`}
                 >
                   {FONT_WEIGHTS.map(fw => {
                     const unavailable = availableWeights !== null && !availableWeights.includes(fw.value);
@@ -178,7 +178,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
-          <div className={labelClass}>
+          <div className={AUTHORING.label}>
             Line Height
             {base && isInherited('lineHeight') && <InheritedBadge propKey="lineHeight" onOverride={() => update('lineHeight', val.lineHeight)} />}
             {base && !isInherited('lineHeight') && <RevertBadge propKey="lineHeight" onRevert={() => revertToInherited('lineHeight')} />}
@@ -192,7 +192,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
           />
         </div>
         <div className="flex-1">
-          <div className={labelClass}>
+          <div className={AUTHORING.label}>
             Letter Spacing
             {base && isInherited('letterSpacing') && <InheritedBadge propKey="letterSpacing" onOverride={() => update('letterSpacing', val.letterSpacing)} />}
             {base && !isInherited('letterSpacing') && <RevertBadge propKey="letterSpacing" onRevert={() => revertToInherited('letterSpacing')} />}
@@ -208,7 +208,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
       </div>
       {/* Live typography preview */}
       <div className="mt-1">
-        <div className={labelClass}>Preview</div>
+        <div className={AUTHORING.label}>Preview</div>
         <div
           className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 overflow-hidden"
           style={previewStyle}
@@ -224,7 +224,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
           type="text"
           value={sampleText}
           onChange={e => setSampleText(e.target.value)}
-          className={inputClass + ' mt-1'}
+          className={AUTHORING.input + ' mt-1'}
           placeholder="Sample text…"
         />
       </div>
