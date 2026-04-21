@@ -173,6 +173,7 @@ interface LeafStateDeps {
   derivedTokenPaths?: Map<string, TokenGenerator>;
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   selectedNodes: SelectionNodeInfo[];
+  boundTokenPaths?: Set<string>;
   dragOverReorder?: { path: string; position: "before" | "after" } | null;
   selectedLeafNodes?: TokenNode[];
   showResolvedValues: boolean;
@@ -203,6 +204,7 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       derivedTokenPaths: deps.derivedTokenPaths,
       searchHighlight: deps.searchHighlight,
       selectedNodes: deps.selectedNodes,
+      boundTokenPaths: deps.boundTokenPaths,
       dragOverReorder: deps.dragOverReorder,
       selectedLeafNodes: deps.selectedLeafNodes,
       showResolvedValues: deps.showResolvedValues,
@@ -250,6 +252,7 @@ interface LeafActionsDeps {
   handleDropReorder: (path: string, name: string, position: "before" | "after") => void;
   multiModeData: any;
   handleMultiModeInlineSave: any;
+  handleCopyValueToAllModes: (path: string, targetCollectionId: string) => Promise<void>;
   onOpenGeneratedGroupEditor?: any;
   onToggleStar?: (path: string) => void;
   handleClearPendingRename: () => void;
@@ -291,6 +294,9 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onMultiModeInlineSave: deps.multiModeData
         ? deps.handleMultiModeInlineSave
         : undefined,
+      onCopyValueToAllModes: (path, targetCollectionId) => {
+        void deps.handleCopyValueToAllModes(path, targetCollectionId);
+      },
       onOpenGeneratedGroupEditor: deps.onOpenGeneratedGroupEditor,
       onToggleStar: deps.onToggleStar,
       clearPendingRename: deps.handleClearPendingRename,

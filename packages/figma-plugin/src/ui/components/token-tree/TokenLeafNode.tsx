@@ -117,6 +117,7 @@ export const TokenLeafNode = memo(
       derivedTokenPaths,
       searchHighlight,
       selectedNodes,
+      boundTokenPaths,
       dragOverReorder,
       selectedLeafNodes,
       showResolvedValues,
@@ -152,6 +153,7 @@ export const TokenLeafNode = memo(
       onDragLeaveToken,
       onDropOnToken,
       onMultiModeInlineSave,
+      onCopyValueToAllModes,
       onToggleStar,
       clearPendingRename,
       clearPendingTabEdit,
@@ -376,6 +378,15 @@ export const TokenLeafNode = memo(
         : isPreviewed
           ? "bg-[var(--color-figma-accent)]/8"
           : "";
+    // Suppressed on accent-colored row states so the edge doesn't compete with the ring/background.
+    const isBoundToSelection =
+      !!boundTokenPaths?.has(node.path) &&
+      selectedNodes.length > 0 &&
+      !isRowActive &&
+      !isHighlighted;
+    const boundAccentClass = isBoundToSelection
+      ? "before:content-[''] before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-[var(--color-figma-accent)]"
+      : "";
     const duplicateCount = showDuplicatesFilter
       ? (duplicateCounts.get(stableStringify(node.$value)) ?? 0)
       : 0;
@@ -916,7 +927,7 @@ export const TokenLeafNode = memo(
           role="treeitem"
           aria-level={depth + 1}
           style={{ display: "grid", gridTemplateColumns: gridTemplate }}
-          className={`relative items-stretch ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass}`}
+          className={`relative items-stretch ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass} ${boundAccentClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}
           tabIndex={rovingFocusPath === node.path ? 0 : -1}
           data-token-path={node.path}
@@ -1451,6 +1462,27 @@ export const TokenLeafNode = memo(
                       <span className="flex-1">Copy to collection</span>
                     </button>
                   )}
+                  {onCopyValueToAllModes &&
+                    multiModeValues.length > 1 &&
+                    !isAlias(node.$value) &&
+                    node.$value !== "" &&
+                    node.$value != null && (
+                      <button
+                        role="menuitem"
+                        tabIndex={-1}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          const tokenCollectionId = pathToCollectionId?.[node.path];
+                          if (!tokenCollectionId) return;
+                          closeTokenMenus();
+                          onCopyValueToAllModes(node.path, tokenCollectionId);
+                        }}
+                        className={MENU_ITEM_CLASS}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M3 5h18M3 12h18M3 19h18" /></svg>
+                        <span className="flex-1">Copy value to all modes</span>
+                      </button>
+                    )}
                   {!isAlias(node.$value) && onExtractToAlias && (
                     <button
                       role="menuitem"

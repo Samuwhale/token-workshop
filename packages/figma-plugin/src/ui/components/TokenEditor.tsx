@@ -1547,7 +1547,7 @@ export function TokenEditor({
                               );
                             }
                           }}
-                          className="opacity-30 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                          className="opacity-60 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
                           title={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
                           aria-label={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
                         >
@@ -1569,7 +1569,7 @@ export function TokenEditor({
                               );
                             });
                           }}
-                          className="opacity-30 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
+                          className="opacity-60 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
                           title="Copy to all other modes"
                           aria-label="Copy to all other modes"
                         >

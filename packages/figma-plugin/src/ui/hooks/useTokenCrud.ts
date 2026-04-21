@@ -82,6 +82,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     handleInlineSave: save.handleInlineSave,
     handleDescriptionSave: save.handleDescriptionSave,
     handleMultiModeInlineSave: save.handleMultiModeInlineSave,
+    handleCopyValueToAllModes: save.handleCopyValueToAllModes,
     handleSaveGeneratedException: save.handleSaveGeneratedException,
     handleDetachFromGenerator: save.handleDetachFromGenerator,
     // Move state + callbacks

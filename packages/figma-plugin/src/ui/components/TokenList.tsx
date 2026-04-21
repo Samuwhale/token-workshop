@@ -1400,6 +1400,7 @@ export function TokenList({
     handleInlineSave,
     handleDescriptionSave: _handleDescriptionSave,
     handleMultiModeInlineSave,
+    handleCopyValueToAllModes,
     handleSaveGeneratedException,
     handleDetachFromGenerator,
     handleRequestMoveToken,
@@ -2242,7 +2243,7 @@ export function TokenList({
   const tokenTreeLeafState = useTokenTreeLeafState({
     density, serverUrl, collectionId, collectionIds, selectionCapabilities, duplicateCounts,
     selectMode, highlightedToken, inspectMode, syncSnapshot, derivedTokenPaths,
-    searchHighlight, selectedNodes, dragOverReorder, selectedLeafNodes,
+    searchHighlight, selectedNodes, boundTokenPaths, dragOverReorder, selectedLeafNodes,
     showResolvedValues,
     condensedView,
     starredPaths,
@@ -2262,7 +2263,8 @@ export function TokenList({
     handleDragStartNotify: handleDragStart,
     handleDragEndNotify: handleDragEnd,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
-    multiModeData, handleMultiModeInlineSave, onOpenGeneratedGroupEditor, onToggleStar,
+    multiModeData, handleMultiModeInlineSave, handleCopyValueToAllModes,
+    onOpenGeneratedGroupEditor, onToggleStar,
     handleClearPendingRename, handleClearPendingTabEdit, handleTabToNext,
     setRovingFocusPath,
   });

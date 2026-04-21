@@ -289,6 +289,95 @@ export function useTokenSave({
     perCollectionFlat,
   ]);
 
+  const handleCopyValueToAllModes = useCallback(async (
+    path: string,
+    targetCollectionId: string,
+  ) => {
+    if (!connected) return;
+    if (findProducingGenerator(path)) {
+      onError?.(
+        "This generated token must be edited through its generator, saved as a manual exception, or detached first.",
+      );
+      return;
+    }
+    const targetCollection = collections?.find(
+      (collection) => collection.id === targetCollectionId,
+    );
+    if (!targetCollection) return;
+    const currentEntry =
+      perCollectionFlat?.[targetCollectionId]?.[path] ?? allTokensFlat[path];
+    const sourceValue = currentEntry?.$value;
+
+    const previousExtensions = currentEntry?.$extensions
+      ? structuredClone(currentEntry.$extensions)
+      : undefined;
+    const nextExtensions = currentEntry?.$extensions
+      ? structuredClone(currentEntry.$extensions)
+      : {};
+    const tokenmanager =
+      nextExtensions.tokenmanager &&
+      typeof nextExtensions.tokenmanager === "object" &&
+      !Array.isArray(nextExtensions.tokenmanager)
+        ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
+        : {};
+    const nextCollectionModes: Record<string, unknown> = {};
+    for (let i = 1; i < targetCollection.modes.length; i += 1) {
+      nextCollectionModes[targetCollection.modes[i].name] =
+        typeof sourceValue === "object" && sourceValue !== null
+          ? structuredClone(sourceValue)
+          : sourceValue;
+    }
+    tokenmanager.modes = { [targetCollectionId]: nextCollectionModes };
+    nextExtensions.tokenmanager = tokenmanager;
+
+    try {
+      await updateToken(
+        serverUrl,
+        targetCollectionId,
+        path,
+        createTokenBody({ $extensions: nextExtensions }),
+      );
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : "Save failed: network error");
+      return;
+    }
+    if (onPushUndo) {
+      const capturedUrl = serverUrl;
+      const capturedCollectionId = targetCollectionId;
+      onPushUndo({
+        description: `Copy value to all modes for ${path}`,
+        restore: async () => {
+          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({
+            $extensions: previousExtensions,
+          }));
+          onRefresh();
+        },
+        redo: async () => {
+          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({
+            $extensions: nextExtensions,
+          }));
+          onRefresh();
+        },
+      });
+    }
+    await applyTokenMutationSuccess({
+      onRefresh,
+      onRecordTouch,
+      touchedPath: path,
+    });
+  }, [
+    allTokensFlat,
+    collections,
+    connected,
+    findProducingGenerator,
+    onError,
+    onPushUndo,
+    onRecordTouch,
+    onRefresh,
+    perCollectionFlat,
+    serverUrl,
+  ]);
+
   const handleSaveGeneratedException = useCallback(async (
     path: string,
     newValue: unknown,
@@ -367,6 +456,7 @@ export function useTokenSave({
     handleInlineSave,
     handleDescriptionSave,
     handleMultiModeInlineSave,
+    handleCopyValueToAllModes,
     handleSaveGeneratedException,
     handleDetachFromGenerator,
   };

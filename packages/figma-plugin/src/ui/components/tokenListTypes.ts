@@ -450,6 +450,8 @@ export interface TokenTreeLeafStateContextType {
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   /** Selected Figma nodes — used for quick-bind scope narrowing */
   selectedNodes: SelectionNodeInfo[];
+  /** Token paths bound to the current Figma selection — used to render a row-level cue */
+  boundTokenPaths?: Set<string>;
   dragOverReorder?: { path: string; position: "before" | "after" } | null;
   selectedLeafNodes?: TokenNode[];
   /** When true, tree view shows fully resolved values instead of alias references */
@@ -528,6 +530,8 @@ export interface TokenTreeLeafActionsContextType {
     previousState?: { type?: string; value: unknown },
     options?: { allowGeneratedEdit?: boolean },
   ) => void;
+  /** Copy a token's first-mode value to every other mode in its collection */
+  onCopyValueToAllModes?: (path: string, targetCollectionId: string) => void;
   onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   /** Toggle starred (cross-collection favorites) for the current token */
   onToggleStar?: (path: string) => void;
