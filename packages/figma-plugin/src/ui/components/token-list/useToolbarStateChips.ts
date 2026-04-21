@@ -34,8 +34,6 @@ interface ToolbarStateChipsConfig {
   setInspectMode: (v: boolean) => void;
   crossCollectionSearch: boolean;
   setCrossCollectionSearch: (v: boolean) => void;
-  showPreviewSplit: boolean;
-  onTogglePreviewSplit?: () => void;
   showFlatSearchResults: boolean;
   setSearchResultPresentation: (v: "grouped" | "flat") => void;
 }
@@ -49,7 +47,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     showStarredOnly, setShowStarredOnly,
     typeFilter, setTypeFilter,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
-    showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
+    showFlatSearchResults,
     setSearchResultPresentation,
   } = config;
 
@@ -140,14 +138,6 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         onRemove: () => setCrossCollectionSearch(false),
       });
     }
-    if (showPreviewSplit && onTogglePreviewSplit) {
-      chips.push({
-        key: "view:split",
-        label: "Preview pane",
-        tone: "view",
-        onRemove: onTogglePreviewSplit,
-      });
-    }
     if (showFlatSearchResults) {
       chips.push({
         key: "view:flat-results",
@@ -161,12 +151,12 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
   }, [
     crossCollectionSearch, inspectMode, lintViolationsLength,
     onToggleIssuesOnly,
-    onTogglePreviewSplit, refFilter, removeQueryToken,
+    refFilter, removeQueryToken,
     setCrossCollectionSearch, setInspectMode, setRefFilter,
     setSearchResultPresentation, setShowDuplicates,
     setShowRecentlyTouched, setShowStarredOnly,
     setSortOrder, setTypeFilter, showDuplicates,
-    showFlatSearchResults, showIssuesOnly, showPreviewSplit,
+    showFlatSearchResults, showIssuesOnly,
     showRecentlyTouched, showStarredOnly, sortOrder, structuredFilterChips,
     typeFilter,
   ]);

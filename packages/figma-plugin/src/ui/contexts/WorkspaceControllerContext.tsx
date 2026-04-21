@@ -4,7 +4,6 @@ import type {
   MutableRefObject,
   ReactNode,
   Ref,
-  RefObject,
   SetStateAction,
 } from "react";
 import type { TokenListImperativeHandle } from "../components/tokenListTypes";
@@ -29,8 +28,6 @@ import type { PublishPreflightState } from "../shared/syncWorkflow";
 import type { PublishPending } from "../hooks/useFigmaSync";
 
 export interface ShellWorkspaceController {
-  showPreviewSplit: boolean;
-  setShowPreviewSplit: Dispatch<SetStateAction<boolean>>;
   openCommandPaletteWithQuery: (query: string) => void;
   openPasteModal: () => void;
   openImportPanel: () => void;
@@ -49,7 +46,6 @@ export interface ShellWorkspaceController {
 
 export interface EditorShellController {
   contextualEditorTransition: SurfaceTransition;
-  splitPreviewTransition: SurfaceTransition;
   guardEditorAction: (fn: () => void) => void;
   registerEditorSession: (session: EditorSessionRegistration | null) => void;
   requestEditorClose: () => void;
@@ -61,11 +57,6 @@ export interface EditorShellController {
     savedPath: string,
     savedType: string,
   ) => void;
-  splitRatio: number;
-  splitValueNow: number;
-  splitContainerRef: RefObject<HTMLDivElement>;
-  handleSplitDragStart: (event: React.MouseEvent) => void;
-  handleSplitKeyDown: (event: React.KeyboardEvent) => void;
   availableFonts: string[];
   fontWeightsByFamily: Record<string, number[]>;
 }

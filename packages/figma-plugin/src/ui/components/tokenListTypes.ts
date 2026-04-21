@@ -98,7 +98,6 @@ export interface TokenListData {
 
 export interface TokenListActions {
   onEdit: (path: string, name?: string) => void;
-  onPreview?: (path: string, name?: string) => void;
   onCreateNew?: (
     initialPath?: string,
     initialType?: string,
@@ -142,6 +141,8 @@ export interface TokenListActions {
   ) => void;
   onError?: (msg: string) => void;
   onViewTokenHistory?: (path: string) => void;
+  /** Open Health → Issues scoped to a specific token */
+  onOpenTokenIssues?: (path: string, collectionId: string) => void;
   onEditGeneratedGroup?: (generatorId: string) => void;
   onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
@@ -167,7 +168,6 @@ export interface TokenListActions {
   onFindInAllCollections?: (path: string) => void;
   /** Open the unified start-here flow from token-level empty states */
   onOpenStartHere?: (branch?: StartHereBranch) => void;
-  onTogglePreviewSplit?: () => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */
@@ -203,7 +203,6 @@ export interface TokenListProps {
   defaultCreateOpen?: boolean;
   highlightedToken?: string | null;
   showIssuesOnly?: boolean;
-  showPreviewSplit?: boolean;
   /** Path of the token currently open in the editor — enables Cmd+]/[ navigation shortcuts */
   editingTokenPath?: string | null;
   /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */
@@ -437,7 +436,6 @@ export interface TokenTreeLeafStateContextType {
 
 export interface TokenTreeLeafActionsContextType {
   onEdit: (path: string, name?: string) => void;
-  onPreview?: (path: string, name?: string) => void;
   onDelete: (path: string) => void;
   onToggleSelect: (
     path: string,
@@ -466,6 +464,8 @@ export interface TokenTreeLeafActionsContextType {
   onRenameToken?: (oldPath: string, newPath: string) => void;
   /** Navigate to History panel filtered to this token path */
   onViewTokenHistory?: (path: string) => void;
+  /** Open Health → Issues scoped to this token (and its collection) */
+  onOpenTokenIssues?: (path: string, collectionId: string) => void;
   /** Open cross-collection comparison panel for this token */
   onCompareAcrossCollections?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;

@@ -181,19 +181,6 @@ export function useCommandPaletteCommands(): {
         },
       },
       {
-        id: "toggle-preview",
-        label: shell.showPreviewSplit
-          ? "Hide preview panel"
-          : "Show preview panel",
-        description: "Toggle the live preview split for quick visual checks",
-        category: "Views",
-        shortcut: adaptShortcut(SHORTCUT_KEYS.TOGGLE_PREVIEW),
-        handler: () => {
-          shell.setShowPreviewSplit((visible) => !visible);
-          closeSecondarySurface();
-        },
-      },
-      {
         id: "toggle-token-json-view",
         label: tokenJsonView
           ? "Switch token list to tree view"

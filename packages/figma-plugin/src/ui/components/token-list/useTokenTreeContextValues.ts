@@ -212,7 +212,6 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
 
 interface LeafActionsDeps {
   onEdit: (path: string, name?: string) => void;
-  onPreview?: (path: string, name?: string) => void;
   requestDeleteToken: (path: string) => void;
   handleTokenSelect: (path: string, modifiers?: { shift: boolean }) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
@@ -232,6 +231,7 @@ interface LeafActionsDeps {
   handleInlineSave: (path: string, type: string, newValue: any, previousState?: { type?: string; value: unknown }) => void;
   handleRenameToken: (oldPath: string, newPath: string) => void;
   onViewTokenHistory?: (path: string) => void;
+  onOpenTokenIssues?: (path: string, collectionId: string) => void;
   collectionsLength: number;
   handleCompareAcrossCollections: (path: string) => void;
   handleDragStartNotify: (paths: string[], names: string[]) => void;
@@ -254,7 +254,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
   return useMemo(
     () => ({
       onEdit: deps.onEdit,
-      onPreview: deps.onPreview,
       onDelete: deps.requestDeleteToken,
       onToggleSelect: deps.handleTokenSelect,
       onNavigateToAlias: deps.onNavigateToAlias,
@@ -271,6 +270,7 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onInlineSave: deps.handleInlineSave,
       onRenameToken: deps.handleRenameToken,
       onViewTokenHistory: deps.onViewTokenHistory,
+      onOpenTokenIssues: deps.onOpenTokenIssues,
       onCompareAcrossCollections:
         deps.collectionsLength > 0
           ? deps.handleCompareAcrossCollections

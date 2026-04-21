@@ -45,6 +45,7 @@ export interface HealthPanelProps {
   onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
   onNavigateToGenerators?: () => void;
+  viewRequest?: { view: HealthView; nonce: number } | null;
 }
 
 function suppressKey(issue: ValidationIssue): string {
@@ -70,8 +71,13 @@ export function HealthPanel({
   onPushUndo,
   onError,
   onNavigateToGenerators,
+  viewRequest,
 }: HealthPanelProps) {
-  const [activeView, setActiveView] = useState<HealthView>("dashboard");
+  const [activeView, setActiveView] = useState<HealthView>(viewRequest?.view ?? "dashboard");
+
+  useEffect(() => {
+    if (viewRequest) setActiveView(viewRequest.view);
+  }, [viewRequest?.nonce]);
 
   const [fixingKeys, setFixingKeys] = useState<Set<string>>(new Set());
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);

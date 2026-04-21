@@ -12,8 +12,6 @@ export interface ViewMenuProps {
   hasGroups: boolean;
   allGroupsExpanded: boolean;
   hasCollections: boolean;
-  showPreviewSplit: boolean;
-  onTogglePreviewSplit?: () => void;
   canToggleSearchResultPresentation: boolean;
   searchResultPresentation: "grouped" | "flat";
   onSearchResultPresentationChange: (
@@ -194,13 +192,6 @@ export function ViewMenu(
                 }
               />
             )}
-            <MenuItem
-              label="Preview pane"
-              checked={props.showPreviewSplit}
-              onClick={() =>
-                runAndClose(() => props.onTogglePreviewSplit?.())
-              }
-            />
             {props.canToggleSearchResultPresentation && (
               <MenuItem
                 label={

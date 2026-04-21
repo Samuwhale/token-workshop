@@ -28,6 +28,7 @@ interface CollectionRailProps {
   onSplitCollection: (collectionId: string) => void;
   onDeleteCollection: (collectionId: string) => void;
   onPublishCollection?: (collectionId: string, tokenCount: number) => void;
+  onOpenCollectionIssues?: (collectionId: string) => void;
 }
 
 const MENU_WIDTH = 220;
@@ -106,6 +107,7 @@ export function CollectionRail({
   onSplitCollection,
   onDeleteCollection,
   onPublishCollection,
+  onOpenCollectionIssues,
 }: CollectionRailProps) {
   const [query, setQuery] = useState("");
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -316,10 +318,17 @@ export function CollectionRail({
           indented ? "ml-3" : ""
         } ${isActive ? "bg-[var(--color-figma-bg-selected)]" : "hover:bg-[var(--color-figma-bg-hover)]"}`}
       >
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => onSelectCollection(collectionId)}
-          className="min-w-0 flex-1 px-2.5 py-1.5 text-left"
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onSelectCollection(collectionId);
+            }
+          }}
+          className="min-w-0 flex-1 cursor-pointer px-2.5 py-1.5 text-left"
         >
           <span
             className={`truncate text-body font-medium ${
@@ -341,20 +350,38 @@ export function CollectionRail({
             {healthTone && (
               <>
                 {" · "}
-                <span
-                  title={healthTitle}
-                  className={
-                    healthTone === "error"
-                      ? "text-[var(--color-figma-error)]"
-                      : "text-[var(--color-figma-warning)]"
-                  }
-                >
-                  {health!.actionable} issue{health!.actionable === 1 ? "" : "s"}
-                </span>
+                {onOpenCollectionIssues ? (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpenCollectionIssues(collectionId);
+                    }}
+                    title={healthTitle ? `${healthTitle} — review` : undefined}
+                    className={`hover:underline ${
+                      healthTone === "error"
+                        ? "text-[var(--color-figma-error)]"
+                        : "text-[var(--color-figma-warning)]"
+                    }`}
+                  >
+                    {health!.actionable} issue{health!.actionable === 1 ? "" : "s"}
+                  </button>
+                ) : (
+                  <span
+                    title={healthTitle}
+                    className={
+                      healthTone === "error"
+                        ? "text-[var(--color-figma-error)]"
+                        : "text-[var(--color-figma-warning)]"
+                    }
+                  >
+                    {health!.actionable} issue{health!.actionable === 1 ? "" : "s"}
+                  </span>
+                )}
               </>
             )}
           </div>
-        </button>
+        </div>
         <button
           ref={(node) => {
             if (node) {

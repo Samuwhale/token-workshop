@@ -172,8 +172,6 @@ export const STORAGE_KEYS = {
   EXPANDED:              'tm_expanded',
   WINDOW_WIDTH:          'tm_window_width',
   WINDOW_HEIGHT:         'tm_window_height',
-  PREVIEW_SPLIT:         'tm_preview_split',
-  PREVIEW_SPLIT_RATIO:   'tm_preview_split_ratio',
   CURRENT_COLLECTION_ID: 'tm_current_collection_id',
   ACTIVE_TAB:            'tm_active_tab',
   ACTIVE_TOP_TAB:        'tm_active_top_tab',

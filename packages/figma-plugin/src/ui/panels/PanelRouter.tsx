@@ -32,7 +32,7 @@ import { GitRepositoryPanel } from "../components/publish/GitRepositoryPanel";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { HealthPanel } from "../components/HealthPanel";
 import { ColorAnalysisPanel } from "../components/ColorAnalysisPanel";
-import { PreviewPanel } from "../components/PreviewPanel";
+import { OverviewPanel } from "../components/OverviewPanel";
 import { FeedbackPlaceholder } from "../components/FeedbackPlaceholder";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { NotificationsPanel } from "../components/NotificationsPanel";
@@ -183,8 +183,6 @@ export function PanelRouter({
     onOpenCommandPaletteWithQuery: shell.openCommandPaletteWithQuery,
   };
   const {
-    showPreviewSplit,
-    setShowPreviewSplit,
     refreshAll,
     handleEditorSave,
   } = controller;
@@ -201,6 +199,8 @@ export function PanelRouter({
   const {
     editingToken,
     setEditingToken,
+    inspectingToken,
+    setInspectingToken,
     editingGeneratedGroup,
     setEditingGeneratedGroup,
     inspectingCollection,
@@ -284,6 +284,34 @@ export function PanelRouter({
     path: string;
     collectionId: string;
   } | null>(null);
+  const [healthViewRequest, setHealthViewRequest] = useState<{
+    view: "dashboard" | "issues" | "unused" | "deprecated" | "consolidate" | "duplicates" | "ignored";
+    nonce: number;
+  } | null>(null);
+
+  const openCollectionIssues = useCallback(
+    (collectionId: string) => {
+      if (collectionId !== currentCollectionId) {
+        setCurrentCollectionId(collectionId);
+      }
+      setHealthDetailToken(null);
+      setHealthViewRequest({ view: "issues", nonce: Date.now() });
+      navigateTo("library", "health");
+    },
+    [currentCollectionId, navigateTo, setCurrentCollectionId],
+  );
+
+  const openTokenIssues = useCallback(
+    (path: string, collectionId: string) => {
+      if (collectionId !== currentCollectionId) {
+        setCurrentCollectionId(collectionId);
+      }
+      setHealthDetailToken({ path, collectionId });
+      setHealthViewRequest({ view: "issues", nonce: Date.now() });
+      navigateTo("library", "health");
+    },
+    [currentCollectionId, navigateTo, setCurrentCollectionId],
+  );
 
   const healthSignals = useHealthSignals({
     validationIssues: controller.validationIssues,
@@ -307,23 +335,8 @@ export function PanelRouter({
     setEditingGeneratedGroup(null);
   }, [editingGeneratedGroup, editingGeneratedGroupData, setEditingGeneratedGroup]);
 
-  const [splitPreviewToken, setSplitPreviewToken] = useState<{
-    path: string;
-    name?: string;
-    currentCollectionId: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!showPreviewSplit) return;
-    if (activeEditorSurface !== null || activeMaintenanceSurface !== null) {
-      setShowPreviewSplit(false);
-      setSplitPreviewToken(null);
-    }
-  }, [activeEditorSurface, activeMaintenanceSurface, setShowPreviewSplit, showPreviewSplit]);
-
-
   const tokenListHighlightedPath =
-    editingToken?.path || splitPreviewToken?.path || highlightedToken;
+    editingToken?.path || inspectingToken?.path || highlightedToken;
   const hasTokensLibrarySurface =
     tokens.length > 0 ||
     Boolean(currentCollectionId) ||
@@ -355,8 +368,6 @@ export function PanelRouter({
 
   const openTokenEditor = useCallback(
     (options: { path: string; currentCollectionId: string; name?: string }) => {
-      setShowPreviewSplit(false);
-      setSplitPreviewToken(null);
       setHighlightedToken(options.path);
       if (options.currentCollectionId !== currentCollectionId) {
         setCurrentCollectionId(options.currentCollectionId);
@@ -374,12 +385,34 @@ export function PanelRouter({
       currentCollectionId,
       setCurrentCollectionId,
       setHighlightedToken,
-      setShowPreviewSplit,
       switchContextualSurface,
     ],
   );
 
-  const openLinkedTokenSurface = useCallback(
+  const openTokenInspector = useCallback(
+    (options: { path: string; currentCollectionId: string; name?: string }) => {
+      setHighlightedToken(options.path);
+      if (options.currentCollectionId !== currentCollectionId) {
+        setCurrentCollectionId(options.currentCollectionId);
+      }
+      switchContextualSurface({
+        surface: "token-inspector",
+        token: {
+          path: options.path,
+          name: options.name,
+          currentCollectionId: options.currentCollectionId,
+        },
+      });
+    },
+    [
+      currentCollectionId,
+      setCurrentCollectionId,
+      setHighlightedToken,
+      switchContextualSurface,
+    ],
+  );
+
+  const openLinkedTokenInEditor = useCallback(
     (options: {
       path: string;
       fromPath?: string;
@@ -403,15 +436,38 @@ export function PanelRouter({
     ],
   );
 
+  const openLinkedTokenInInspector = useCallback(
+    (options: {
+      path: string;
+      fromPath?: string;
+    }) => {
+      const targetCollectionId = pathToCollectionId[options.path];
+      handleNavigateToAlias(options.path, options.fromPath);
+      if (!targetCollectionId) return;
+
+      switchContextualSurface({
+        surface: "token-inspector",
+        token: {
+          path: options.path,
+          currentCollectionId: targetCollectionId,
+        },
+      });
+    },
+    [
+      handleNavigateToAlias,
+      pathToCollectionId,
+      switchContextualSurface,
+    ],
+  );
+
   const openGeneratedGroupEditor = useCallback(
     (target: TokensLibraryGeneratedGroupEditorTarget) => {
-      setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "generated-group-editor",
         generatedGroup: target,
       });
     },
-    [setShowPreviewSplit, switchContextualSurface],
+    [switchContextualSurface],
   );
 
   const openNewGeneratedGroup = useCallback(() => {
@@ -438,7 +494,6 @@ export function PanelRouter({
 
   const openGeneratedTokens = useCallback(
     (targetGroup: string, targetCollectionId: string) => {
-      setShowPreviewSplit(false);
       switchContextualSurface({ surface: null });
       setPendingHighlightForCollection(targetGroup, targetCollectionId);
       if (targetCollectionId !== currentCollectionId) {
@@ -451,7 +506,6 @@ export function PanelRouter({
       navigateTo,
       setCurrentCollectionId,
       setPendingHighlightForCollection,
-      setShowPreviewSplit,
       switchContextualSurface,
     ],
   );
@@ -535,51 +589,33 @@ export function PanelRouter({
       showTokensCompare
     )
       return;
-    setShowPreviewSplit(false);
     openCreateLauncher();
   }, [
     createFromEmpty,
     editingGeneratedGroup,
     editingToken,
     openCreateLauncher,
-    setShowPreviewSplit,
     showTokensCompare,
   ]);
 
-  // Build the common TokenList `actions` object once — it's identical across the
-  // the TokenList render variants (no-split, preview-split).
+  // Build the common TokenList `actions` object once.
   const tokenListActions = {
+    // Row click / "open" action — lands in the read-only inspector. Users can
+    // escalate to the full editor via the inspector's Edit button, which opens
+    // the editor in the same side slot on top of the inspector.
     onEdit: (path: string, name?: string) =>
       controller.guardEditorAction(() => {
-        controller.setShowPreviewSplit(false);
         switchContextualSurface({
-          surface: "token-editor",
+          surface: "token-inspector",
           token: { path, name, currentCollectionId },
         });
         setHighlightedToken(path);
       }),
-    onPreview: (path: string, name?: string) => {
-      if (controller.showPreviewSplit) {
-        const targetCollectionId =
-          pathToCollectionId[path] ?? currentCollectionId;
-        setSplitPreviewToken({ path, name, currentCollectionId: targetCollectionId });
-        setHighlightedToken(path);
-      } else {
-        controller.guardEditorAction(() => {
-          switchContextualSurface({
-            surface: "token-editor",
-            token: { path, name, currentCollectionId },
-          });
-          setHighlightedToken(path);
-        });
-      }
-    },
     onCreateNew: (
       initialPath: string | undefined,
       initialType: string | undefined,
       initialValue: string | undefined,
     ) => {
-      controller.setShowPreviewSplit(false);
       openCreateLauncher({ initialPath, initialType, initialValue });
     },
     onRefresh: controller.refreshAll,
@@ -612,6 +648,7 @@ export function PanelRouter({
       setHistoryFilterPath(path);
       navigateTo("library", "history");
     },
+    onOpenTokenIssues: openTokenIssues,
     onEditGeneratedGroup: (generatorId: string) =>
       controller.guardEditorAction(() => {
         openGeneratedGroupEditor({
@@ -665,7 +702,6 @@ export function PanelRouter({
     },
     onError: controller.setErrorToast,
     onOpenCompare: (paths: Set<string>) => {
-      controller.setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "compare",
         mode: "tokens",
@@ -673,7 +709,6 @@ export function PanelRouter({
       });
     },
     onOpenCrossCollectionCompare: (path: string) => {
-      controller.setShowPreviewSplit(false);
       switchContextualSurface({
         surface: "compare",
         mode: "cross-collection",
@@ -685,7 +720,6 @@ export function PanelRouter({
     onOpenImportPanel: controller.onShowImportPanel,
     onOpenCreateCollection: controller.onOpenCollectionCreateDialog,
     onOpenStartHere: controller.onOpenStartHere,
-    onTogglePreviewSplit: () => controller.setShowPreviewSplit((v) => !v),
   };
 
   // Common TokenEditor props
@@ -717,7 +751,7 @@ export function PanelRouter({
         fontWeightsByFamily: controller.fontWeightsByFamily,
         derivedTokenPaths,
         onNavigateToToken: (path: string) =>
-          openLinkedTokenSurface({
+          openLinkedTokenInEditor({
             path,
             fromPath: editingToken.path,
           }),
@@ -936,6 +970,52 @@ export function PanelRouter({
         };
       }
 
+      if (activeEditorSurface === "token-inspector" && inspectingToken) {
+        return {
+          surface: "token-inspector",
+          content: (
+            <div className="flex flex-col h-full bg-[var(--color-figma-bg)] overflow-hidden">
+              <TokenInspector
+                tokenPath={inspectingToken.path}
+                tokenName={inspectingToken.name}
+                storageCollectionId={inspectingToken.currentCollectionId}
+                allTokensFlat={allTokensFlat}
+                pathToCollectionId={pathToCollectionId}
+                collections={collections}
+                lintViolations={healthSignals.lintViolationsForCurrent.filter(
+                  (v) => v.path === inspectingToken.path,
+                )}
+                syncSnapshot={
+                  Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined
+                }
+                onEdit={() =>
+                  controller.guardEditorAction(() => {
+                    openTokenEditor({
+                      path: inspectingToken.path,
+                      name: inspectingToken.name,
+                      currentCollectionId: inspectingToken.currentCollectionId,
+                    });
+                  })
+                }
+                onDuplicate={() =>
+                  controller.guardEditorAction(() => {
+                    void controller.handlePaletteDuplicate(inspectingToken.path);
+                  })
+                }
+                onClose={() => setInspectingToken(null)}
+                onNavigateToToken={(path) =>
+                  openLinkedTokenInInspector({
+                    path,
+                    fromPath: inspectingToken.path,
+                  })
+                }
+              />
+            </div>
+          ),
+          onDismiss: () => setInspectingToken(null),
+        };
+      }
+
       if (
         activeEditorSurface === "generated-group-editor" &&
         editingGeneratedGroup &&
@@ -1044,7 +1124,6 @@ export function PanelRouter({
         defaultCreateOpen={createFromEmpty}
         highlightedToken={tokenListHighlightedPath}
         showIssuesOnly={controller.showIssuesOnly}
-        showPreviewSplit={controller.showPreviewSplit}
         editingTokenPath={editingToken?.path}
         compareHandle={controller.tokenListCompareRef}
         collectionHealthSummary={healthSignals.currentCollection}
@@ -1219,6 +1298,7 @@ export function PanelRouter({
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     library: {
       tokens: renderLibraryTokens,
+      overview: renderLibraryOverview,
       health: renderLibraryHealth,
       history: renderLibraryHistory,
     },
@@ -1298,6 +1378,7 @@ export function PanelRouter({
           onPublishCollection={(collectionId, tokenCount) =>
             controller.setPublishPending({ scope: 'collection', collectionId, tokenCount })
           }
+          onOpenCollectionIssues={openCollectionIssues}
         />
         <ResizeDivider
           axis="x"
@@ -1311,29 +1392,19 @@ export function PanelRouter({
   }
 
   /**
-   * Shared scaffold for every Library section (Tokens, Health, History).
-   * Renders CollectionRail + main body and pins the side editor whenever a
-   * token is open so authoring context survives section switches. The Tokens
-   * section additionally opts into the preview-split layout.
+   * Shared scaffold for Library sections scoped to a single collection (Tokens,
+   * Overview, Health). Renders CollectionRail + main body and pins the side
+   * editor/inspector whenever a token is open so authoring context survives
+   * section switches.
    */
-  function renderLibraryScaffold({
-    body,
-    allowPreviewSplit,
-  }: {
-    body: ReactNode;
-    allowPreviewSplit: boolean;
-  }): ReactNode {
-    const showPreviewSplitLayout = allowPreviewSplit && controller.showPreviewSplit;
-    const editorSurfaceState = !showPreviewSplitLayout
-      ? getEditorSurfaceRenderState()
-      : null;
-    const maintenanceSurfaceState = !showPreviewSplitLayout
-      ? getMaintenanceSurfaceRenderState()
-      : null;
+  function renderLibraryScaffold({ body }: { body: ReactNode }): ReactNode {
+    const editorSurfaceState = getEditorSurfaceRenderState();
+    const maintenanceSurfaceState = getMaintenanceSurfaceRenderState();
 
     const sideEditorState =
       editorSurfaceState &&
       (editorSurfaceState.surface === "token-editor" ||
+        editorSurfaceState.surface === "token-inspector" ||
         editorSurfaceState.surface === "collection-details")
         ? editorSurfaceState
         : null;
@@ -1369,7 +1440,7 @@ export function PanelRouter({
             </div>
           )}
 
-          {!showPreviewSplitLayout && sideEditorState && (
+          {sideEditorState ? (
             <div className="flex min-h-0 flex-1 overflow-hidden">
               <div className="min-w-0 flex-1 overflow-hidden">
                 {renderLeftPane()}
@@ -1401,90 +1472,8 @@ export function PanelRouter({
                 {sideEditorState.content}
               </div>
             </div>
-          )}
-
-          {!showPreviewSplitLayout && !sideEditorState && renderLeftPane()}
-
-          {showPreviewSplitLayout && (
-            <div
-              ref={controller.splitContainerRef}
-              className="flex flex-col h-full overflow-hidden"
-              data-surface-kind={controller.splitPreviewTransition.kind}
-              data-surface-presentation={
-                controller.splitPreviewTransition.presentation
-              }
-              data-tokens-library-surface-slot={
-                TOKENS_LIBRARY_SURFACE_CONTRACT.splitPreview.id
-              }
-            >
-              <div
-                style={{
-                  height: `${controller.splitRatio * 100}%`,
-                  flexShrink: 0,
-                  overflow: "hidden",
-                }}
-              >
-                {body}
-              </div>
-              <div
-                role="separator"
-                aria-orientation="horizontal"
-                aria-valuenow={controller.splitValueNow}
-                aria-valuemin={20}
-                aria-valuemax={80}
-                aria-label="Resize token list and preview"
-                tabIndex={0}
-                className="h-1 flex-shrink-0 cursor-row-resize bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
-                onMouseDown={controller.handleSplitDragStart}
-                onKeyDown={controller.handleSplitKeyDown}
-              />
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <ErrorBoundary
-                  panelName="Preview"
-                  onReset={() => navigateTo("library", "tokens")}
-                >
-                  <PreviewPanel
-                    allTokensFlat={modeResolvedTokensFlat}
-                    onNavigateToToken={(path) => {
-                      const name = path.split(".").pop();
-                      const targetCollectionId =
-                        pathToCollectionId[path] ?? currentCollectionId;
-                      setSplitPreviewToken({
-                        path,
-                        name,
-                        currentCollectionId: targetCollectionId,
-                      });
-                      setHighlightedToken(path);
-                    }}
-                    focusedToken={splitPreviewToken}
-                    pathToCollectionId={pathToCollectionId}
-                    collections={collections}
-                    onClearFocus={() => setSplitPreviewToken(null)}
-                    lintViolations={healthSignals.lintViolationsForCurrent}
-                    syncSnapshot={
-                      Object.keys(syncSnapshot).length > 0
-                        ? syncSnapshot
-                        : undefined
-                    }
-                    onEditToken={(path, name, collectionId) => {
-                      controller.guardEditorAction(() => {
-                        openTokenEditor({
-                          path,
-                          name,
-                          currentCollectionId:
-                            collectionId ?? currentCollectionId,
-                        });
-                      });
-                    }}
-                    onDuplicateToken={(path) => {
-                      controller.guardEditorAction(() => {
-                        void controller.handlePaletteDuplicate(path);
-                      });
-                    }}
-                  />
-                </ErrorBoundary>
-              </div>
-            </div>
+          ) : (
+            renderLeftPane()
           )}
         </div>
       </div>
@@ -1530,7 +1519,35 @@ export function PanelRouter({
         inner
       );
 
-    return renderLibraryScaffold({ body, allowPreviewSplit: true });
+    return renderLibraryScaffold({ body });
+  }
+
+  function renderLibraryOverview(): ReactNode {
+    const collectionTokens = perCollectionFlat[currentCollectionId] ?? {};
+    const body = (
+      <div className="h-full min-h-0 overflow-hidden">
+        <ErrorBoundary
+          panelName="Overview"
+          onReset={() => navigateTo("library", "tokens")}
+        >
+          <OverviewPanel
+            tokens={collectionTokens}
+            onNavigateToToken={(path) => {
+              const targetCollectionId =
+                pathToCollectionId[path] ?? currentCollectionId;
+              controller.guardEditorAction(() => {
+                switchContextualSurface({
+                  surface: "token-inspector",
+                  token: { path, currentCollectionId: targetCollectionId },
+                });
+              });
+              setHighlightedToken(path);
+            }}
+          />
+        </ErrorBoundary>
+      </div>
+    );
+    return renderLibraryScaffold({ body });
   }
 
   function renderLibraryHealth(): ReactNode {
@@ -1562,6 +1579,7 @@ export function PanelRouter({
               onPushUndo={controller.pushUndo}
               onError={controller.setErrorToast}
               onNavigateToGenerators={() => navigateTo("library", "tokens")}
+              viewRequest={healthViewRequest}
             />
           </ErrorBoundary>
         </div>
@@ -1615,11 +1633,11 @@ export function PanelRouter({
       </div>
     );
 
-    return renderLibraryScaffold({ body, allowPreviewSplit: false });
+    return renderLibraryScaffold({ body });
   }
 
   function renderLibraryHistory(): ReactNode {
-    const body = (
+    return (
       <div className="h-full min-h-0 overflow-hidden">
         <ErrorBoundary
           panelName="Changes"
@@ -1646,8 +1664,6 @@ export function PanelRouter({
         </ErrorBoundary>
       </div>
     );
-
-    return renderLibraryScaffold({ body, allowPreviewSplit: false });
   }
   function renderSyncFigmaSync(): ReactNode {
     const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;

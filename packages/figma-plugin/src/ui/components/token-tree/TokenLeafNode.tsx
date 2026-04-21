@@ -126,7 +126,6 @@ export const TokenLeafNode = memo(
     const { allTokensFlat, pathToCollectionId } = useTokenTreeSharedData();
     const {
       onEdit,
-      onPreview,
       onDelete,
       onToggleSelect,
       onNavigateToAlias,
@@ -141,6 +140,7 @@ export const TokenLeafNode = memo(
       onInlineSave,
       onRenameToken,
       onViewTokenHistory,
+      onOpenTokenIssues,
       onCompareAcrossCollections,
       onDragStart,
       onDragEnd,
@@ -1168,11 +1168,14 @@ export const TokenLeafNode = memo(
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (onPreview) onPreview(node.path, node.name);
-                    else onEdit(node.path, node.name);
+                    if (onOpenTokenIssues) {
+                      onOpenTokenIssues(node.path, collectionId);
+                    } else {
+                      onEdit(node.path, node.name);
+                    }
                   }}
-                  title={tokenStatus.title}
-                  className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass}`}
+                  title={`${tokenStatus.title}\n\nClick to open in Health`}
+                  className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded cursor-pointer transition-colors hover:bg-[var(--color-figma-bg-secondary)] ${tokenStatus.toneClass}`}
                 >
                   <svg
                     width="12"

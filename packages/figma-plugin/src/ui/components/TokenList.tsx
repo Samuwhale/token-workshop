@@ -157,7 +157,6 @@ export function TokenList({
   },
   actions: {
     onEdit,
-    onPreview,
     onCreateNew,
     onRefresh,
     onPushUndo,
@@ -181,6 +180,7 @@ export function TokenList({
     onMoveStarredToken,
     onError,
     onViewTokenHistory,
+    onOpenTokenIssues,
     onEditGeneratedGroup,
     onOpenGeneratedGroupEditor,
     onNavigateToGeneratedGroup,
@@ -194,13 +194,11 @@ export function TokenList({
     onOpenImportPanel,
     onOpenCreateCollection,
     onOpenStartHere: _onOpenStartHere,
-    onTogglePreviewSplit,
   },
   recentlyTouched,
   defaultCreateOpen: _defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
-  showPreviewSplit = false,
   editingTokenPath,
   compareHandle,
   collectionHealthSummary,
@@ -1015,7 +1013,7 @@ export function TokenList({
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     showStarredOnly, setShowStarredOnly,
     inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
-    showPreviewSplit, onTogglePreviewSplit, showFlatSearchResults,
+    showFlatSearchResults,
     setSearchResultPresentation,
   });
 
@@ -1822,15 +1820,12 @@ export function TokenList({
 
   const clearViewModes = useCallback(() => {
     if (showResolvedValues) setShowResolvedValues(false);
-    if (showPreviewSplit) onTogglePreviewSplit?.();
     if (showFlatSearchResults) setSearchResultPresentation("grouped");
     if (sortOrder !== "default") setSortOrder("default");
   }, [
-    onTogglePreviewSplit,
     setSearchResultPresentation,
     setSortOrder,
     setShowResolvedValues,
-    showPreviewSplit,
     showResolvedValues,
     showFlatSearchResults,
     sortOrder,
@@ -2248,11 +2243,12 @@ export function TokenList({
   });
 
   const tokenTreeLeafActions = useTokenTreeLeafActions({
-    onEdit, onPreview, requestDeleteToken, handleTokenSelect, onNavigateToAlias,
+    onEdit, requestDeleteToken, handleTokenSelect, onNavigateToAlias,
     onRefresh, onPushUndo, handleRequestMoveTokenReview, handleRequestCopyTokenReview,
     handleDuplicateToken, handleDetachFromGenerator, handleSaveGeneratedException, handleOpenExtractToAlias,
     handleHoverToken, setTypeFilter, handleInlineSave, handleRenameToken,
     onViewTokenHistory,
+    onOpenTokenIssues,
     collectionsLength: activeCollections.length,
     handleCompareAcrossCollections,
     handleDragStartNotify: handleDragStart,
@@ -2465,8 +2461,6 @@ export function TokenList({
               hasGroups: tokens.some((n) => n.isGroup),
               allGroupsExpanded,
               hasCollections: collections.length > 0,
-              showPreviewSplit,
-              onTogglePreviewSplit,
               canToggleSearchResultPresentation: canToggleSearchResultPresentation && !crossCollectionSearch,
               searchResultPresentation,
               onSearchResultPresentationChange: setSearchResultPresentation,

@@ -58,7 +58,6 @@ export const SHORTCUT_KEYS = {
   SHOW_SHORTCUTS:        '?',
   TOGGLE_QUICK_APPLY:    '⌘⇧A',
   QUICK_SWITCH_COLLECTION: '⌘⇧S',
-  TOGGLE_PREVIEW:        '⌘P',
   // Navigation
   GO_TO_DEFINE:          '⌘1',
   GO_TO_APPLY:           '⌘2',
@@ -138,7 +137,6 @@ export const SHORTCUT_MATCHERS: Partial<Record<ShortcutKey, KeyMatcher>> = {
   SHOW_SHORTCUTS:        { key: '?',          meta: false },                           // shift not checked: '?' implies Shift on US keyboards
   TOGGLE_QUICK_APPLY:    { key: 'a',          meta: true,  shift: true,  alt: false },
   QUICK_SWITCH_COLLECTION: { key: 's',          meta: true,  shift: true,  alt: false },
-  TOGGLE_PREVIEW:        { key: 'p',          meta: true,  shift: false, alt: false },
   // Navigation
   GO_TO_DEFINE:          { key: '1',          meta: true,  shift: false, alt: false },
   GO_TO_APPLY:           { key: '2',          meta: true,  shift: false, alt: false },
@@ -232,7 +230,6 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'OPEN_TOKEN_SEARCH',     group: 'Global',          description: 'Open token search',              mac: SHORTCUT_KEYS.OPEN_TOKEN_SEARCH },
   { id: 'PASTE_TOKENS',          group: 'Global',          description: 'Paste tokens',                   mac: SHORTCUT_KEYS.PASTE_TOKENS },
   { id: 'OPEN_SETTINGS',         group: 'Global',          description: 'Open settings',                  mac: SHORTCUT_KEYS.OPEN_SETTINGS },
-  { id: 'TOGGLE_PREVIEW',        group: 'Global',          description: 'Toggle preview panel',           mac: SHORTCUT_KEYS.TOGGLE_PREVIEW },
   { id: 'UNDO',                  group: 'Global',          description: 'Undo',                           mac: '⌘Z' },
   { id: 'REDO',                  group: 'Global',          description: 'Redo',                           mac: '⌘⇧Z', altMac: '⌘Y' },
 

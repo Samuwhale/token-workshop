@@ -15,7 +15,7 @@ export type TopTab =
   | "sync"
   | "export"
   | "versions";
-export type LibrarySubTab = "tokens" | "health" | "history";
+export type LibrarySubTab = "tokens" | "overview" | "health" | "history";
 export type SubTab =
   | LibrarySubTab
   | "inspect"
@@ -45,14 +45,14 @@ export type SurfaceCloseBehavior =
 export type TokensLibraryContextualSurface =
   | "compare"
   | "collection-details"
+  | "token-inspector"
   | "token-editor"
   | "generated-group-editor"
   | "color-analysis"
   | "import";
 export type TokensLibrarySurfaceSlot =
   | "library-body"
-  | "contextual-panel"
-  | "split-preview";
+  | "contextual-panel";
 export type TokensLibraryGeneratedGroupEditorTarget =
   | {
       mode: "edit";
@@ -91,6 +91,7 @@ export const TOP_TABS: {
     label: "Library",
     subTabs: [
       { id: "tokens", label: "Tokens" },
+      { id: "overview", label: "Overview" },
       { id: "health", label: "Health" },
       { id: "history", label: "History" },
     ],
@@ -325,16 +326,7 @@ export const CONTEXTUAL_PANEL_TRANSITIONS = {
     closeBehavior: "restore-underlying-surface",
     usage: "Edit in place.",
   },
-  splitPreview: {
-    kind: "contextual-panel",
-    presentation: "split-pane",
-    closeBehavior: "restore-underlying-surface",
-    usage: "Live preview beside library.",
-  },
-} satisfies Record<
-  "fullTakeover" | "splitPreview",
-  SurfaceTransition
->;
+} satisfies Record<"fullTakeover", SurfaceTransition>;
 
 export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
   body: {
@@ -357,6 +349,10 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         label: "Collection setup",
         usage: "Review collection structure, metadata, and modes.",
       },
+      "token-inspector": {
+        label: "Token inspector",
+        usage: "Read-only detail for a token.",
+      },
       "token-editor": {
         label: "Token editor",
         usage: "Edit or create a token.",
@@ -378,13 +374,6 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
       { label: string; usage: string }
     >,
   },
-  splitPreview: {
-    id: "split-preview",
-    label: "Library > Live preview",
-    usage:
-      "Live preview beside library.",
-    transition: CONTEXTUAL_PANEL_TRANSITIONS.splitPreview,
-  },
 } satisfies {
   body: { id: TokensLibrarySurfaceSlot; label: string; usage: string };
   contextualPanel: {
@@ -396,12 +385,6 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
       TokensLibraryContextualSurface,
       { label: string; usage: string }
     >;
-  };
-  splitPreview: {
-    id: TokensLibrarySurfaceSlot;
-    label: string;
-    usage: string;
-    transition: SurfaceTransition;
   };
 };
 
@@ -466,6 +449,16 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         ),
       },
       {
+        id: "overview",
+        label: "Overview",
+        topTab: "library",
+        subTab: "overview",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Scan the token system at a glance.",
+        ),
+      },
+      {
         id: "health",
         label: "Health",
         topTab: "library",
@@ -488,6 +481,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     ],
     matchRoutes: [
       route("library", "tokens"),
+      route("library", "overview"),
       route("library", "health"),
       route("library", "history"),
     ],

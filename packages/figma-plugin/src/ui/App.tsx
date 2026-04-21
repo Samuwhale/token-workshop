@@ -24,7 +24,6 @@ import { useServerEvents } from "./hooks/useServerEvents";
 import type { CollectionSummary, TokenNode } from "./hooks/useTokens";
 import { useUndo } from "./hooks/useUndo";
 import { useLint } from "./hooks/useLint";
-import { usePreviewSplit } from "./hooks/usePreviewSplit";
 import { useResizableBoundary } from "./hooks/useResizableBoundary";
 import { ResizeDivider } from "./components/ResizeDivider";
 import { useAvailableFonts } from "./hooks/useAvailableFonts";
@@ -127,15 +126,6 @@ export function App() {
     switchContextualSurface,
     dismissContextualTools,
   } = useEditorContext();
-  const {
-    showPreviewSplit,
-    setShowPreviewSplit,
-    splitRatio,
-    splitValueNow,
-    splitContainerRef,
-    handleSplitDragStart,
-    handleSplitKeyDown,
-  } = usePreviewSplit();
   const {
     connected,
     checking,
@@ -1040,11 +1030,6 @@ export function App() {
       setCommandPaletteInitialQuery(">");
       setShowCommandPalette((v) => !v);
     }
-    if (matchesShortcut(e, "TOGGLE_PREVIEW")) {
-      e.preventDefault();
-      setShowPreviewSplit((v) => !v);
-      closeSecondarySurface();
-    }
     if (matchesShortcut(e, "CREATE_FROM_SELECTION")) {
       e.preventDefault();
       dismissEphemeralOverlays();
@@ -1334,8 +1319,6 @@ export function App() {
 
   const workspaceControllers = {
     shell: {
-      showPreviewSplit,
-      setShowPreviewSplit,
       openCommandPaletteWithQuery: (query: string) => {
         setCommandPaletteInitialQuery(">" + (query ? ` ${query}` : ""));
         setShowCommandPalette(true);
@@ -1376,7 +1359,6 @@ export function App() {
     },
     editor: {
       contextualEditorTransition,
-      splitPreviewTransition: CONTEXTUAL_PANEL_TRANSITIONS.splitPreview,
       guardEditorAction,
       registerEditorSession,
       requestEditorClose,
@@ -1385,11 +1367,6 @@ export function App() {
       handleEditorNavigate,
       handleEditorSave,
       handleEditorSaveAndCreateAnother,
-      splitRatio,
-      splitValueNow,
-      splitContainerRef,
-      handleSplitDragStart,
-      handleSplitKeyDown,
       availableFonts,
       fontWeightsByFamily,
     },
