@@ -60,6 +60,7 @@ import { LibrarySelectionStrip } from "./library/LibrarySelectionStrip";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { getGeneratedGroupKeepUpdatedAvailability, getGeneratedGroupTypeLabel } from "../shared/generatedGroupUtils";
+import { computeUnusedTokenPaths } from "../shared/tokenUsage";
 import { TokenListToolbar } from "./TokenListToolbar";
 import { TokenSelectionToolbar } from "./TokenSelectionToolbar";
 import { TableCreateForm } from "./TableCreateForm";
@@ -142,6 +143,7 @@ export function TokenList({
     generatorsByTargetGroup,
     derivedTokenPaths,
     tokenUsageCounts,
+    tokenUsageReady = false,
     perCollectionFlat,
     collectionMap = {},
     modeMap = {},
@@ -453,31 +455,14 @@ export function TokenList({
 
   // Compute the set of token paths that are "unused": zero Figma usage AND not referenced by any other token as an alias
   const unusedTokenPaths = useMemo<Set<string> | undefined>(() => {
-    if (!tokenUsageCounts || Object.keys(tokenUsageCounts).length === 0)
+    if (!tokenUsageReady || !tokenUsageCounts)
       return undefined;
-    // Collect all alias target paths from allTokensFlat
-    const referencedPaths = new Set<string>();
-    const collectRefs = (value: unknown) => {
-      if (typeof value === "string") {
-        const m = value.match(/^\{([^}]+)\}$/);
-        if (m) referencedPaths.add(m[1]);
-      } else if (Array.isArray(value)) {
-        for (const item of value) collectRefs(item);
-      } else if (value && typeof value === "object") {
-        for (const v of Object.values(value as Record<string, unknown>))
-          collectRefs(v);
-      }
-    };
-    for (const entry of Object.values(allTokensFlat)) collectRefs(entry.$value);
-    // Tokens with 0 Figma usage count AND not referenced by another token
-    const paths = new Set<string>();
-    for (const path of Object.keys(allTokensFlat)) {
-      if ((tokenUsageCounts[path] ?? 0) === 0 && !referencedPaths.has(path)) {
-        paths.add(path);
-      }
-    }
+
+    const paths = computeUnusedTokenPaths(allTokensFlat, tokenUsageCounts, {
+      includeDeprecated: false,
+    });
     return paths.size > 0 ? paths : undefined;
-  }, [tokenUsageCounts, allTokensFlat]);
+  }, [tokenUsageCounts, tokenUsageReady, allTokensFlat]);
 
   // Stats computed from allTokensFlat (cross-set) and perCollectionFlat for the stats bar
   const statsByType = useMemo(() => {

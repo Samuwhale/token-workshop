@@ -1,5 +1,5 @@
 // Shared types used by both controller (plugin sandbox) and UI
-import type { TokenValue, TokenReference } from '@tokenmanager/core';
+import type { TokenLifecycle, TokenReference, TokenValue } from '@tokenmanager/core';
 import type { TokenExtensions } from '@tokenmanager/core';
 
 /** Shape returned by API endpoints on error (e.g. 4xx/5xx). */
@@ -214,7 +214,7 @@ export interface TokenMapEntry {
   /** Figma variable scopes from $extensions['com.figma.scopes']. Empty/undefined = unrestricted. */
   $scopes?: string[];
   /** Lifecycle stage from $extensions.tokenmanager.lifecycle. Undefined means 'published'. */
-  $lifecycle?: 'draft' | 'published' | 'deprecated';
+  $lifecycle?: TokenLifecycle;
 }
 
 // ─── Concrete value types used in the plugin sandbox ─────────────────────────
@@ -970,6 +970,10 @@ export interface TokenUsageMapMessage {
   usageMap: Record<string, number>;
 }
 
+export interface TokenUsageMapCancelledMessage {
+  type: 'token-usage-map-cancelled';
+}
+
 export interface TokenUsageResultMessage {
   type: 'token-usage-result';
   tokenPath: string;
@@ -1044,6 +1048,7 @@ export type ControllerMessage =
   | AvailableFontsMessage
   | FindPeersResultMessage
   | TokenUsageMapMessage
+  | TokenUsageMapCancelledMessage
   | TokenUsageResultMessage
   | ConsistencyScanProgressMessage
   | ConsistencyScanResultMessage
@@ -1089,6 +1094,7 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'available-fonts',
   'peers-for-property-result',
   'token-usage-map',
+  'token-usage-map-cancelled',
   'token-usage-result',
   'consistency-scan-progress',
   'consistency-scan-result',

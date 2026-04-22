@@ -420,6 +420,10 @@ export function App() {
       ),
     [allTokensFlat, pathToCollectionId, currentCollectionId],
   );
+  const currentCollectionTokenPathSignature = useMemo(
+    () => [...existingPathsForCurrentCollection].sort().join("\0"),
+    [existingPathsForCurrentCollection],
+  );
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
   const prevAllTokensFlatRef = useRef<Record<string, TokenMapEntry>>({});
@@ -946,12 +950,17 @@ export function App() {
   useEffect(() => {
     if (
       activeTopTab === "library" &&
-      activeSubTab === "tokens" &&
-      tokens.length > 0
+      (activeSubTab === "tokens" || activeSubTab === "health") &&
+      currentCollectionTokenPathSignature.length > 0
     ) {
       triggerUsageScan();
     }
-  }, [activeTopTab, activeSubTab, tokens.length, triggerUsageScan]);
+  }, [
+    activeTopTab,
+    activeSubTab,
+    currentCollectionTokenPathSignature,
+    triggerUsageScan,
+  ]);
 
   // Moving between Library sections dismisses contextual tools (compare,
   // color-analysis, import, generated-group editor, collection-details) so they

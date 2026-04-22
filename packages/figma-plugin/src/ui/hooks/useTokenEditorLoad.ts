@@ -22,6 +22,7 @@ import {
   omitTokenEditorReservedExtensions,
   splitTokenManagerExtension,
 } from '../shared/tokenEditorTypes';
+import { normalizeTokenLifecycle } from '../shared/tokenMetadata';
 
 interface UseTokenEditorLoadParams {
   serverUrl: string;
@@ -117,8 +118,7 @@ export function useTokenEditorLoad({
         const savedModes = tokenManager.modes;
         const loadedModes = readEditorCollectionModeValues(savedModes, collection);
         setModeValues(loadedModes);
-        const savedLifecycle = tokenManager.lifecycle;
-        const loadedLifecycle: TokenEditorLifecycle = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
+        const loadedLifecycle: TokenEditorLifecycle = normalizeTokenLifecycle(tokenManager.lifecycle);
         setLifecycle(loadedLifecycle);
         const savedExtends = tokenManager.extends;
         const loadedExtends = typeof savedExtends === 'string' ? savedExtends : '';

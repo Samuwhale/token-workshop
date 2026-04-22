@@ -3,6 +3,7 @@ import type { TokenMapEntry } from "../../shared/types";
 import type { ValidationIssue } from "./useValidationCache";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { hexToLuminance } from "../shared/colorUtils";
+import { computeUnusedTokenPaths } from "../shared/tokenUsage";
 import { normalizeHex } from "@tokenmanager/core";
 import type { TokenValue } from "@tokenmanager/core";
 import {
@@ -14,6 +15,7 @@ export interface UnifiedTokenEntry {
   $value: unknown;
   $type: string;
   collectionId: string;
+  $extensions?: TokenMapEntry["$extensions"];
   $scopes?: string[];
   $lifecycle?: TokenMapEntry["$lifecycle"];
 }
@@ -83,6 +85,7 @@ export interface UseHealthDataParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   tokenUsageCounts: Record<string, number>;
+  tokenUsageReady?: boolean;
   validationIssues: ValidationIssue[] | null;
   currentCollectionId: string;
 }
@@ -102,6 +105,7 @@ export function useHealthData({
   allTokensFlat,
   pathToCollectionId,
   tokenUsageCounts,
+  tokenUsageReady = false,
   validationIssues,
   currentCollectionId,
 }: UseHealthDataParams): HealthDataResult {
@@ -112,6 +116,7 @@ export function useHealthData({
         $value: entry.$value,
         $type: entry.$type,
         collectionId: pathToCollectionId[path] ?? "",
+        $extensions: entry.$extensions,
         $scopes: entry.$scopes,
         $lifecycle: entry.$lifecycle,
       };
@@ -333,41 +338,30 @@ export function useHealthData({
   }, [allColorTokens]);
 
   const unusedTokens = useMemo((): UnusedToken[] => {
-    if (
-      Object.keys(tokenUsageCounts).length === 0 ||
-      Object.keys(allTokensUnified).length === 0
-    )
+    if (!tokenUsageReady || Object.keys(allTokensUnified).length === 0) {
       return [];
-    const referencedPaths = new Set<string>();
-    const collectRefs = (value: unknown) => {
-      if (typeof value === "string") {
-        const m = value.match(/^\{([^}]+)\}$/);
-        if (m) referencedPaths.add(m[1]);
-      } else if (Array.isArray(value)) {
-        for (const item of value) collectRefs(item);
-      } else if (value && typeof value === "object") {
-        for (const v of Object.values(value as Record<string, unknown>))
-          collectRefs(v);
-      }
-    };
-    for (const entry of Object.values(allTokensUnified))
-      collectRefs(entry.$value);
-    return Object.entries(allTokensUnified)
-      .filter(
-        ([path, entry]) =>
-          entry.collectionId === currentCollectionId &&
-          (tokenUsageCounts[path] ?? 0) === 0 &&
-          !referencedPaths.has(path) &&
-          allTokensUnified[path]?.$lifecycle !== "deprecated",
-      )
-      .map(([path, entry]) => ({
-        path,
-        collectionId: entry.collectionId,
-        $type: entry.$type,
-        $lifecycle: entry.$lifecycle,
-      }))
+    }
+
+    const unusedPaths = computeUnusedTokenPaths(
+      allTokensUnified,
+      tokenUsageCounts,
+      { includeDeprecated: false },
+    );
+
+    return [...unusedPaths].flatMap((path) => {
+        const entry = allTokensUnified[path];
+        if (!entry || entry.collectionId !== currentCollectionId) {
+          return [];
+        }
+        return [{
+          path,
+          collectionId: entry.collectionId,
+          $type: entry.$type,
+          $lifecycle: entry.$lifecycle,
+        }];
+      })
       .sort((a, b) => a.path.localeCompare(b.path));
-  }, [tokenUsageCounts, allTokensUnified, currentCollectionId]);
+  }, [tokenUsageCounts, tokenUsageReady, allTokensUnified, currentCollectionId]);
 
   return {
     allTokensUnified,
@@ -380,4 +374,3 @@ export function useHealthData({
     unusedTokens,
   };
 }
-

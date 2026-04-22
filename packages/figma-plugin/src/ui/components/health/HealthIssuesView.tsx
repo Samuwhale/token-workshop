@@ -4,6 +4,7 @@ import { severityStyles } from "../../shared/noticeSystem";
 import type { NoticeSeverity } from "../../shared/noticeSystem";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { dispatchToast } from "../../shared/toastBus";
+import { downloadBlob } from "../../shared/utils";
 import { Spinner } from "../Spinner";
 import { getRuleLabel, hasFix, fixLabel, suppressKey } from "../../shared/ruleLabels";
 
@@ -49,6 +50,7 @@ export function HealthIssuesView({
           return order[a.severity] - order[b.severity];
         })
       : activeIssues.filter((i) => i.severity === severityFilter);
+  const exportIssues = filteredIssues;
 
   const issueGroups = (() => {
     if (filteredIssues.length === 0) return [];
@@ -76,10 +78,10 @@ export function HealthIssuesView({
 
   const copyMarkdown = () => {
     const lines: string[] = [
-      `# Health Report — ${validationIssues.length} issue${validationIssues.length !== 1 ? "s" : ""}\n`,
+      `# Health Report — ${exportIssues.length} issue${exportIssues.length !== 1 ? "s" : ""}\n`,
     ];
     for (const sev of ["error", "warning", "info"] as const) {
-      const group = validationIssues.filter((i) => i.severity === sev);
+      const group = exportIssues.filter((i) => i.severity === sev);
       if (group.length === 0) continue;
       lines.push(`## ${sev.charAt(0).toUpperCase() + sev.slice(1)}s (${group.length})`);
       for (const issue of group) {
@@ -94,8 +96,8 @@ export function HealthIssuesView({
   const exportJson = () => {
     const payload = {
       generatedAt: new Date().toISOString(),
-      total: validationIssues.length,
-      issues: validationIssues.map((i) => ({
+      total: exportIssues.length,
+      issues: exportIssues.map((i) => ({
         severity: i.severity,
         rule: i.rule,
         collectionId: i.collectionId,
@@ -104,13 +106,10 @@ export function HealthIssuesView({
         ...(i.suggestedFix ? { suggestedFix: i.suggestedFix } : {}),
       })),
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "health-report.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
+      "health-report.json",
+    );
     dispatchToast("Exported JSON", "success");
     exportMenu.close();
   };
@@ -118,16 +117,13 @@ export function HealthIssuesView({
   const exportCsv = () => {
     const header = "severity,rule,collectionId,path,message,suggestedFix";
     const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
-    const rows = validationIssues.map((i) =>
+    const rows = exportIssues.map((i) =>
       [i.severity, i.rule, i.collectionId, i.path, i.message, i.suggestedFix ?? ""].map(escape).join(","),
     );
-    const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "health-report.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      new Blob([[header, ...rows].join("\n")], { type: "text/csv" }),
+      "health-report.csv",
+    );
     dispatchToast("Exported CSV", "success");
     exportMenu.close();
   };

@@ -1,20 +1,17 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { lintAllCollections, validateAllTokens, DEFAULT_LINT_CONFIG } from '../services/lint.js';
+import {
+  lintAllCollections,
+  validateAllTokens,
+  DEFAULT_LINT_CONFIG,
+  normalizeSuppressionKeys,
+} from '../services/lint.js';
 import type { LintConfig, LintRuleConfig, LintRuleCollectionOverride } from '../services/lint.js';
 import { handleRouteError } from '../errors.js';
 
 const KNOWN_CONFIG_FIELDS = new Set(['lintRules']);
-const KNOWN_RULE_IDS = [
-  'no-raw-color',
-  'require-description',
-  'path-pattern',
-  'max-alias-depth',
-  'no-duplicate-values',
-  'alias-opportunity',
-  'no-hardcoded-dimensions',
-  'require-alias-for-semantic-tokens',
-  'enforce-token-type-consistency',
-] as const satisfies readonly (keyof LintConfig['lintRules'])[];
+const KNOWN_RULE_IDS = Object.keys(
+  DEFAULT_LINT_CONFIG.lintRules,
+) as Array<keyof LintConfig['lintRules']>;
 const KNOWN_RULES = new Set<string>(KNOWN_RULE_IDS);
 const KNOWN_RULE_FIELDS = new Set(['enabled', 'severity', 'options', 'excludePaths', 'collectionOverrides']);
 const KNOWN_OVERRIDE_FIELDS = new Set(['enabled', 'severity', 'options']);
@@ -291,9 +288,16 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
       return reply.status(400).send({ error: '"suppressions" must be an array of strings' });
     }
 
+    const normalizedSuppressions = normalizeSuppressionKeys(body.suppressions);
+    if (normalizedSuppressions.length !== body.suppressions.length) {
+      return reply.status(400).send({
+        error: '"suppressions" must contain valid, unique suppression keys',
+      });
+    }
+
     try {
-      await lintConfigStore.setSuppressions(body.suppressions);
-      return { ok: true, suppressions: body.suppressions };
+      await lintConfigStore.setSuppressions(normalizedSuppressions);
+      return { ok: true, suppressions: normalizedSuppressions };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to update suppressions');
     }

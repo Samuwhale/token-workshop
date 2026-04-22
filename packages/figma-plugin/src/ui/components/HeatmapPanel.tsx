@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Spinner } from './Spinner';
+import { downloadBlob } from '../shared/utils';
 import {
   ALL_BINDABLE_PROPERTIES,
   PROPERTY_LABELS,
@@ -155,12 +156,7 @@ export function HeatmapPanel({
       n.totalCheckable,
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'heatmap.csv';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadBlob(new Blob([csv], { type: 'text/csv' }), 'heatmap.csv');
   }, [result]);
 
   const exportJSON = useCallback(() => {
@@ -174,12 +170,10 @@ export function HeatmapPanel({
       red: result.red,
       nodes: result.nodes,
     };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'heatmap.json';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadBlob(
+      new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }),
+      'heatmap.json',
+    );
   }, [result]);
 
   const filteredNodes = result?.nodes.filter(n => filter === 'all' || n.status === filter) ?? [];

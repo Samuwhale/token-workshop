@@ -11,6 +11,7 @@ import { deserializeTokenCollections } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsRemove, lsSet } from '../shared/storage';
 import { apiFetch, isNetworkError, createFetchSignal, combineAbortSignals } from '../shared/apiFetch';
+import { compactTokenLifecycle } from '../shared/tokenMetadata';
 import { isAbortError } from '../shared/utils';
 
 export interface CollectionSummary extends SerializedTokenCollection {
@@ -55,8 +56,7 @@ function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): A
       const $type = value.$type ?? inheritedType ?? 'unknown';
       const rawScopes = value.$extensions?.['com.figma.scopes'];
       const $scopes = Array.isArray(rawScopes) ? rawScopes as string[] : undefined;
-      const lifecycle = getTokenLifecycle(value);
-      const $lifecycle = lifecycle === 'published' ? undefined : lifecycle;
+      const $lifecycle = compactTokenLifecycle(getTokenLifecycle(value));
       out.push([path, {
         $value: value.$value as TokenValue | TokenReference,
         $type,
@@ -426,8 +426,6 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
     if (value && typeof value === 'object' && '$value' in value) {
       const token = value as import('@tokenmanager/core').DTCGToken;
       const rawScopes = token.$extensions?.['com.figma.scopes'];
-      const tokenManager = token.$extensions?.['tokenmanager'] as Record<string, unknown> | undefined;
-      const lifecycle = tokenManager?.lifecycle;
       nodes.push({
         path,
         name: key,
@@ -436,14 +434,12 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
         $description: token.$description,
         $extensions: token.$extensions as Record<string, unknown> | undefined,
         $scopes: Array.isArray(rawScopes) ? rawScopes.filter((scope): scope is string => typeof scope === 'string') : undefined,
-        $lifecycle: lifecycle === 'draft' || lifecycle === 'deprecated' || lifecycle === 'published' ? lifecycle : undefined,
+        $lifecycle: compactTokenLifecycle(getTokenLifecycle(token)),
         isGroup: false,
       });
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       const tokenGroup = value as import('@tokenmanager/core').DTCGGroup;
       const rawScopes = tokenGroup.$extensions?.['com.figma.scopes'];
-      const tokenManager = tokenGroup.$extensions?.['tokenmanager'] as Record<string, unknown> | undefined;
-      const lifecycle = tokenManager?.lifecycle;
       nodes.push({
         path,
         name: key,
@@ -451,7 +447,7 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
         $description: tokenGroup.$description,
         $extensions: tokenGroup.$extensions,
         $scopes: Array.isArray(rawScopes) ? rawScopes.filter((scope): scope is string => typeof scope === 'string') : undefined,
-        $lifecycle: lifecycle === 'draft' || lifecycle === 'deprecated' || lifecycle === 'published' ? lifecycle : undefined,
+        $lifecycle: compactTokenLifecycle(getTokenLifecycle(tokenGroup)),
         isGroup: true,
         children: buildTree(tokenGroup, path),
       });

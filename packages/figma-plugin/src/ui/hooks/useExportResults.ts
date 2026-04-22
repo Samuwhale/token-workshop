@@ -1,7 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
-import { getErrorMessage } from '../shared/utils';
+import { downloadBlob, getErrorMessage } from '../shared/utils';
 import { buildZipBlobAsync } from '../shared/zipUtils';
 import type { PlatformConfig } from './usePlatformConfig';
 import type { DiffState } from './useDiffState';
@@ -10,6 +10,17 @@ export interface ExportResultFile {
   platform: string;
   path: string;
   content: string;
+}
+
+interface ExportPlatformResult {
+  platform: string;
+  files?: Array<{ path: string; content: string }>;
+  error?: string;
+}
+
+interface ExportResponse {
+  results?: ExportPlatformResult[];
+  warnings?: string[];
 }
 
 interface UseExportResultsOptions {
@@ -58,6 +69,37 @@ function getNoChangedTokensMessage(isGitRepo: boolean | undefined, lastExportTim
   return isGitRepo === false && lastExportTimestamp !== null
     ? `No changed tokens found since ${new Date(lastExportTimestamp).toLocaleString()}.`
     : 'No changed tokens found. All tokens are up to date since the last commit.';
+}
+
+function summarizePlatformErrors(results: ExportPlatformResult[]): string | null {
+  const failures = results
+    .filter(
+      (result): result is ExportPlatformResult & { error: string } =>
+        typeof result.error === "string" && result.error.trim().length > 0,
+    )
+    .map((result) => `${result.platform}: ${result.error.trim()}`);
+
+  if (failures.length === 0) {
+    return null;
+  }
+
+  const visibleFailures = failures.slice(0, 3);
+  const remainingCount = failures.length - visibleFailures.length;
+  return remainingCount > 0
+    ? `${visibleFailures.join(" | ")} | ${remainingCount} more`
+    : visibleFailures.join(" | ");
+}
+
+function summarizeWarnings(warnings: string[] | undefined): string | null {
+  if (!warnings || warnings.length === 0) {
+    return null;
+  }
+
+  const visibleWarnings = warnings.slice(0, 2);
+  const remainingCount = warnings.length - visibleWarnings.length;
+  return remainingCount > 0
+    ? `${visibleWarnings.join(" | ")} | ${remainingCount} more`
+    : visibleWarnings.join(" | ");
 }
 
 export function useExportResults({
@@ -167,16 +209,34 @@ export function useExportResults({
       if (selected.has('css') && cssSelector && cssSelector !== ':root') body.cssSelector = cssSelector;
       if (resolvedDiffPaths) body.changedPaths = resolvedDiffPaths;
 
-      const data = await apiFetch<{ results?: { platform: string; files: { path: string; content: string }[] }[] }>(
+      const data = await apiFetch<ExportResponse>(
         `${serverUrl}/api/export`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
       );
+      const platformResults = data.results ?? [];
       const flatFiles: ExportResultFile[] = [];
-      for (const result of data.results || []) {
+      for (const result of platformResults) {
         for (const file of result.files || []) {
           flatFiles.push({ platform: result.platform, path: file.path, content: file.content });
         }
       }
+
+      const platformErrorSummary = summarizePlatformErrors(platformResults);
+      const warningSummary = summarizeWarnings(data.warnings);
+
+      if (flatFiles.length === 0) {
+        setResults([]);
+        setError(
+          platformErrorSummary
+            ? `Export failed: ${platformErrorSummary}`
+            : 'Export completed without any output files.',
+        );
+        dispatchToast('Export failed', 'error', {
+          destination: { kind: "workspace", topTab: "export", subTab: "export" },
+        });
+        return;
+      }
+
       setResults(flatFiles);
       if (flatFiles.length > 0) {
         setPreviewFileIndex(0);
@@ -188,9 +248,22 @@ export function useExportResults({
       const changesLabel = changesOnly && resolvedDiffPaths
         ? ` (${resolvedDiffPaths.length} changed token${resolvedDiffPaths.length !== 1 ? 's' : ''})`
         : '';
-      dispatchToast(`Exported ${flatFiles.length} file(s)${changesLabel}`, 'success', {
-        destination: { kind: "workspace", topTab: "export", subTab: "export" },
-      });
+      if (platformErrorSummary) {
+        setError(`Some platforms failed: ${platformErrorSummary}`);
+        dispatchToast(`Exported ${flatFiles.length} file(s) with platform errors${changesLabel}`, 'warning', {
+          destination: { kind: "workspace", topTab: "export", subTab: "export" },
+        });
+      } else {
+        setError(null);
+        dispatchToast(`Exported ${flatFiles.length} file(s)${changesLabel}`, 'success', {
+          destination: { kind: "workspace", topTab: "export", subTab: "export" },
+        });
+      }
+      if (warningSummary) {
+        dispatchToast(`Export warning: ${warningSummary}`, 'warning', {
+          destination: { kind: "workspace", topTab: "export", subTab: "export" },
+        });
+      }
       if (changesOnly && isGitRepo === false) {
         const now = Date.now();
         setLastExportTimestamp(now);
@@ -214,13 +287,8 @@ export function useExportResults({
     setZipProgress(0);
     try {
       const blob = await buildZipBlobAsync(zipFiles, pct => setZipProgress(pct));
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const safeName = zipFilename.trim().replace(/\.zip$/i, '') || 'tokens';
-      a.download = `${safeName}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `${safeName}.zip`);
       dispatchToast(`Downloaded ${results.length} file(s) as ZIP`, 'success', {
         destination: { kind: "workspace", topTab: "export", subTab: "export" },
       });
@@ -231,12 +299,7 @@ export function useExportResults({
 
   const handleDownloadFile = (file: ExportResultFile) => {
     const blob = new Blob([file.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.path.split('/').pop() || 'tokens.txt';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, file.path.split('/').pop() || 'tokens.txt');
   };
 
   const handleCopyFile = async (file: ExportResultFile) => {

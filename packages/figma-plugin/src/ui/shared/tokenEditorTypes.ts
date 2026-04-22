@@ -1,8 +1,8 @@
-import type { ColorModifierOp, TokenValue } from '@tokenmanager/core';
+import type { ColorModifierOp, TokenLifecycle, TokenValue } from '@tokenmanager/core';
 
 export type TokenEditorValue = unknown;
 
-export type TokenEditorLifecycle = 'draft' | 'published' | 'deprecated';
+export type TokenEditorLifecycle = TokenLifecycle;
 
 export type TokenEditorModeValues = Record<string, Record<string, unknown>>;
 

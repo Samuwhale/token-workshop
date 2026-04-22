@@ -5,6 +5,7 @@ import type { TokenGroup } from '@tokenmanager/core';
 import type { CssExportOptions, ExportPlatform, ExportResult, ExportTokensResult } from './exporters/index.js';
 import { EXPORTERS } from './exporters/index.js';
 import { deepMergeInto, resolveGradientStopAliases, injectFormulaCalc, buildFlatValueMap, buildFlatTokenList } from './exporters/utils.js';
+import type { JsonObject } from './exporters/utils.js';
 
 export async function exportTokens(
   tokens: Record<string, TokenGroup>,
@@ -19,11 +20,11 @@ export async function exportTokens(
   try {
     // Deep-merge all collections so that shared top-level group keys are combined
     // rather than the second collection silently overwriting the first.
-    const merged: Record<string, any> = {};
+    const merged: JsonObject = {};
     const warnings: string[] = [];
     for (const [collectionId, tokenGroup] of Object.entries(tokens)) {
       const collectionConflicts: string[] = [];
-      deepMergeInto(merged, tokenGroup as Record<string, any>, collectionConflicts);
+      deepMergeInto(merged, tokenGroup as JsonObject, collectionConflicts);
       for (const tokenPath of collectionConflicts) {
         const msg = `Token "${tokenPath}" is defined in multiple collections; value from collection "${collectionId}" will be used`;
         console.warn(`[export] ${msg}`);
@@ -61,6 +62,9 @@ export async function exportTokens(
       if (!exporter) continue;
       try {
         const files = await exporter.format(ctx);
+        if (files.length === 0) {
+          throw new Error(`Exporter "${exporter.label}" produced no output files.`);
+        }
         results.push({ platform, files });
       } catch (err) {
         results.push({ platform, files: [], error: String(err) });

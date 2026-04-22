@@ -2,24 +2,100 @@ import StyleDictionary from 'style-dictionary';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { makeReferenceGlobalRegex, resolveRefValue, isReference } from '@tokenmanager/core';
+import { stableStringify } from '../stable-stringify.js';
 import type { ExporterContext, FlatToken } from './types.js';
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
+
+type TokenLeaf = JsonObject & {
+  $value: JsonValue;
+  $type?: JsonValue;
+};
+
+function isPlainObject(value: unknown): value is JsonObject {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isTokenLeaf(value: unknown): value is TokenLeaf {
+  return isPlainObject(value) && '$value' in value;
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (value === null) {
+    return true;
+  }
+
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.every((item) => isJsonValue(item));
+  }
+
+  if (!isPlainObject(value)) {
+    return false;
+  }
+
+  return Object.values(value).every((item) => isJsonValue(item));
+}
+
+function cloneJsonValue<T extends JsonValue>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneJsonValue(item)) as T;
+  }
+
+  if (!isPlainObject(value)) {
+    return value;
+  }
+
+  const clone: JsonObject = {};
+  for (const [key, nestedValue] of Object.entries(value)) {
+    clone[key] = cloneJsonValue(nestedValue);
+  }
+  return clone as T;
+}
+
+function jsonValuesEqual(left: JsonValue | undefined, right: JsonValue): boolean {
+  return left !== undefined && stableStringify(left) === stableStringify(right);
+}
+
+function isGradientStop(value: unknown): value is JsonObject & { color: JsonValue; position: JsonValue } {
+  return (
+    isPlainObject(value) &&
+    isJsonValue(value.color) &&
+    isJsonValue(value.position)
+  );
+}
 
 /**
  * Build a flat path→rawValue lookup from a merged DTCG token object.
  * Skips $-prefixed metadata keys and descends into nested groups.
  */
-export function buildFlatValueMap(obj: Record<string, any>, prefix = ''): Record<string, unknown> {
+export function buildFlatValueMap(obj: JsonObject, prefix = ''): Record<string, unknown> {
   const map: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(obj)) {
     if (key.startsWith('$')) continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-      if ('$value' in val) {
-        map[path] = val.$value;
-      } else {
-        Object.assign(map, buildFlatValueMap(val, path));
-      }
+
+    if (!isPlainObject(val)) {
+      continue;
     }
+
+    const tokenPath = prefix ? `${prefix}.${key}` : key;
+    if (isTokenLeaf(val)) {
+      map[tokenPath] = val.$value;
+      continue;
+    }
+
+    Object.assign(map, buildFlatValueMap(val, tokenPath));
   }
   return map;
 }
@@ -29,7 +105,7 @@ export function buildFlatValueMap(obj: Record<string, any>, prefix = ''): Record
  * alias references using the provided flat value map.
  */
 export function buildFlatTokenList(
-  obj: Record<string, any>,
+  obj: JsonObject,
   flatMap: Record<string, unknown>,
   prefix = '',
   inheritedType?: string,
@@ -37,30 +113,51 @@ export function buildFlatTokenList(
   const tokens: FlatToken[] = [];
   for (const [key, val] of Object.entries(obj)) {
     if (key.startsWith('$')) continue;
-    const tokenPath = prefix ? `${prefix}.${key}` : key;
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-      if ('$value' in val) {
-        let value = val.$value;
-        if (typeof value === 'string' && isReference(value)) {
-          const resolved = resolveRefValue(value, flatMap);
-          if (resolved !== undefined) value = resolved;
-        }
-        tokens.push({ path: tokenPath, value, type: (val.$type as string | undefined) ?? inheritedType });
-      } else {
-        tokens.push(...buildFlatTokenList(val, flatMap, tokenPath, (val.$type as string | undefined) ?? inheritedType));
-      }
+
+    if (!isPlainObject(val)) {
+      continue;
     }
+
+    const tokenPath = prefix ? `${prefix}.${key}` : key;
+    if (isTokenLeaf(val)) {
+      let value = val.$value;
+      if (typeof value === 'string' && isReference(value)) {
+        const resolved = resolveRefValue(value, flatMap);
+        if (resolved !== undefined) {
+          value = resolved as JsonValue;
+        }
+      }
+
+      tokens.push({
+        path: tokenPath,
+        value,
+        type: typeof val.$type === 'string' ? val.$type : inheritedType,
+      });
+      continue;
+    }
+
+    tokens.push(
+      ...buildFlatTokenList(
+        val,
+        flatMap,
+        tokenPath,
+        typeof val['$type'] === 'string' ? val['$type'] : inheritedType,
+      ),
+    );
   }
   return tokens;
 }
 
 /** Set a value at a nested path within an object, creating intermediate objects as needed. */
-export function setNested(obj: Record<string, any>, segments: string[], value: unknown): void {
-  let cur = obj;
+export function setNested(obj: Record<string, unknown>, segments: string[], value: unknown): void {
+  let cur: Record<string, unknown> = obj;
   for (let i = 0; i < segments.length - 1; i++) {
     const seg = segments[i];
-    if (typeof cur[seg] !== 'object' || cur[seg] === null || Array.isArray(cur[seg])) cur[seg] = {};
-    cur = cur[seg] as Record<string, any>;
+    const next = cur[seg];
+    if (!isPlainObject(next)) {
+      cur[seg] = {};
+    }
+    cur = cur[seg] as Record<string, unknown>;
   }
   cur[segments[segments.length - 1]] = value;
 }
@@ -94,32 +191,30 @@ export function serializeJsValue(val: unknown, indent: number): string {
  * pushed onto `conflicts` so the caller can surface a warning.
  */
 export function deepMergeInto(
-  dst: Record<string, any>,
-  src: Record<string, any>,
+  dst: JsonObject,
+  src: JsonObject,
   conflicts: string[],
   prefix = '',
 ): void {
   for (const [key, srcVal] of Object.entries(src)) {
     const dstVal = dst[key];
     const fullPath = prefix ? `${prefix}.${key}` : key;
+
     if (
-      dstVal !== null &&
-      dstVal !== undefined &&
-      typeof dstVal === 'object' &&
-      !Array.isArray(dstVal) &&
-      !('$value' in dstVal) &&
-      typeof srcVal === 'object' &&
-      srcVal !== null &&
-      !Array.isArray(srcVal) &&
-      !('$value' in srcVal)
+      isPlainObject(dstVal) &&
+      !isTokenLeaf(dstVal) &&
+      isPlainObject(srcVal) &&
+      !isTokenLeaf(srcVal)
     ) {
       deepMergeInto(dstVal, srcVal, conflicts, fullPath);
-    } else {
-      if (dstVal !== undefined && dstVal !== null) {
-        conflicts.push(fullPath);
-      }
-      dst[key] = srcVal;
+      continue;
     }
+
+    if (!key.startsWith('$') && dstVal !== undefined && !jsonValuesEqual(dstVal, srcVal)) {
+      conflicts.push(fullPath);
+    }
+
+    dst[key] = cloneJsonValue(srcVal);
   }
 }
 
@@ -129,40 +224,49 @@ export function deepMergeInto(
  * concrete color values for gradient stops rather than `{path}` references
  * that it may not resolve inside array values.
  */
-export function resolveGradientStopAliases(merged: Record<string, any>): Record<string, any> {
+export function resolveGradientStopAliases(merged: JsonObject): JsonObject {
   const flatMap = buildFlatValueMap(merged);
 
-  const processValue = (val: unknown): unknown => {
-    if (!Array.isArray(val)) return val;
-    if (val.length === 0) return val;
-    const first = val[0];
-    if (typeof first !== 'object' || first === null || !('color' in first) || !('position' in first)) {
-      return val;
-    }
-    return (val as Array<{ color: unknown; position: unknown } & Record<string, unknown>>).map(stop => {
-      const color = stop.color;
-      if (isReference(color)) {
-        return { ...stop, color: resolveRefValue(color, flatMap) ?? color };
+  const processValue = (value: JsonValue): JsonValue => {
+    if (Array.isArray(value)) {
+      if (value.every(isGradientStop)) {
+        return value.map((stop) => {
+          const color = stop.color;
+          if (!isReference(color)) {
+            return cloneJsonValue(stop);
+          }
+          const resolvedColor = resolveRefValue(color, flatMap);
+          return {
+            ...cloneJsonValue(stop),
+            color: resolvedColor === undefined ? color : (resolvedColor as JsonValue),
+          };
+        });
       }
-      return stop;
-    });
+
+      return value.map((item) => {
+        if (isPlainObject(item)) {
+          return processObject(item);
+        }
+        return cloneJsonValue(item);
+      });
+    }
+
+    if (isPlainObject(value)) {
+      return processObject(value);
+    }
+
+    return value;
   };
 
-  const processObj = (obj: Record<string, any>): Record<string, any> => {
-    const result: Record<string, any> = {};
+  const processObject = (obj: JsonObject): JsonObject => {
+    const result: JsonObject = {};
     for (const [key, val] of Object.entries(obj)) {
-      if (key === '$value') {
-        result[key] = processValue(val);
-      } else if (val && typeof val === 'object' && !Array.isArray(val)) {
-        result[key] = processObj(val);
-      } else {
-        result[key] = val;
-      }
+      result[key] = processValue(val);
     }
     return result;
   };
 
-  return processObj(merged);
+  return processObject(merged);
 }
 
 /**
@@ -214,8 +318,11 @@ export async function buildWithStyleDictionary(
   try {
     const content = await fs.readFile(filePath, 'utf-8');
     return [{ path: destination, content }];
-  } catch {
-    return [];
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Style Dictionary did not produce "${destination}" for platform "${platformKey}": ${detail}`,
+    );
   }
 }
 
@@ -226,26 +333,33 @@ export async function buildWithStyleDictionary(
  * Example: a token with $value=16 and $extensions.tokenmanager.formula="{spacing.base} * 2"
  * becomes $value="calc(var(--spacing-base) * 2)".
  */
-export function injectFormulaCalc(obj: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = {};
+export function injectFormulaCalc(obj: JsonObject): JsonObject {
+  const result: JsonObject = {};
   for (const [key, val] of Object.entries(obj)) {
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-      if ('$value' in val) {
-        const formula = val.$extensions?.tokenmanager?.formula;
-        if (typeof formula === 'string') {
-          const cssFormula = formula.replace(makeReferenceGlobalRegex(), (_: string, refPath: string) => {
-            return `var(--${refPath.replace(/\./g, '-')})`;
-          });
-          result[key] = { ...val, $value: `calc(${cssFormula})` };
-        } else {
-          result[key] = val;
-        }
-      } else {
-        result[key] = injectFormulaCalc(val);
+    if (isTokenLeaf(val)) {
+      const extensions = isPlainObject(val.$extensions) ? val.$extensions : undefined;
+      const tokenManagerExtensions = extensions && isPlainObject(extensions.tokenmanager)
+        ? extensions.tokenmanager
+        : undefined;
+      const formula = tokenManagerExtensions?.formula;
+      if (typeof formula === 'string') {
+        const cssFormula = formula.replace(makeReferenceGlobalRegex(), (_: string, refPath: string) => {
+          return `var(--${refPath.replace(/\./g, '-')})`;
+        });
+        result[key] = { ...cloneJsonValue(val), $value: `calc(${cssFormula})` };
+        continue;
       }
-    } else {
-      result[key] = val;
+
+      result[key] = cloneJsonValue(val);
+      continue;
     }
+
+    if (isPlainObject(val)) {
+      result[key] = injectFormulaCalc(val);
+      continue;
+    }
+
+    result[key] = cloneJsonValue(val);
   }
   return result;
 }

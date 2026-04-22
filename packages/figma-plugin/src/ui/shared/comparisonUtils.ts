@@ -1,6 +1,7 @@
 import type { TokenCollection } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { applyModeSelectionsToTokens } from "./collectionModeUtils";
+import { downloadBlob } from "./utils";
 
 export interface ModeComparisonOption {
   collectionId: string;
@@ -34,13 +35,7 @@ export function resolveModeOption(
 export function exportCsvFile(filename: string, rows: string[][]): void {
   const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
   const csv = rows.map((row) => row.map(esc).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(new Blob([csv], { type: "text/csv" }), filename);
 }
 
 export async function copyToClipboard(

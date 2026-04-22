@@ -274,7 +274,7 @@ export function PanelRouter({
     triggerHeatmapScan,
     cancelHeatmapScan: _cancelHeatmapScan,
   } = useHeatmapContext();
-  const { tokenUsageCounts } = useUsageContext();
+  const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const [healthViewRequest, setHealthViewRequest] = useState<{
     view: "dashboard" | "issues" | "unused" | "deprecated" | "alias-opportunities" | "duplicates" | "hidden";
     nonce: number;
@@ -1102,6 +1102,7 @@ export function PanelRouter({
           generatorsByTargetGroup,
           derivedTokenPaths,
           tokenUsageCounts,
+          tokenUsageReady: hasTokenUsageScanResult,
           perCollectionFlat,
           collectionMap,
           modeMap,
@@ -1555,6 +1556,7 @@ export function PanelRouter({
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
             tokenUsageCounts={tokenUsageCounts}
+            tokenUsageReady={hasTokenUsageScanResult}
             heatmapResult={heatmapResult}
             onNavigateToToken={(path, collectionId) => {
               openTokenInspector(path, collectionId);

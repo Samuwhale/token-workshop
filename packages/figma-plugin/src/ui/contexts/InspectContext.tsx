@@ -45,6 +45,7 @@ import type {
   ConsistencySuggestion,
   TokenMapEntry,
   TokenUsageMapMessage,
+  TokenUsageMapCancelledMessage,
 } from "../../shared/types";
 import type { HeatmapProgress } from "../hooks/useHeatmap";
 import { matchesShortcut } from "../shared/shortcutRegistry";
@@ -83,6 +84,7 @@ export interface HeatmapContextValue {
 
 export interface UsageContextValue {
   tokenUsageCounts: Record<string, number>;
+  hasTokenUsageScanResult: boolean;
   /** Imperatively trigger a scan-token-usage postMessage. Called from App.tsx
    *  when the active tab/token state indicates a scan is needed. */
   triggerUsageScan: () => void;
@@ -212,6 +214,7 @@ function UsageProvider({ children }: { children: ReactNode }) {
   const [tokenUsageCounts, setTokenUsageCounts] = useState<
     Record<string, number>
   >({});
+  const [hasTokenUsageScanResult, setHasTokenUsageScanResult] = useState(false);
 
   const scanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -232,6 +235,11 @@ function UsageProvider({ children }: { children: ReactNode }) {
     null,
   );
 
+  const resetTokenUsageState = useCallback(() => {
+    setTokenUsageCounts({});
+    setHasTokenUsageScanResult(false);
+  }, []);
+
   const clearConsistencyTimeout = useCallback(() => {
     if (consistencyTimeoutRef.current !== null) {
       clearTimeout(consistencyTimeoutRef.current);
@@ -242,14 +250,20 @@ function UsageProvider({ children }: { children: ReactNode }) {
   // Listen for token-usage-map results; re-scan after apply/sync/remap changes.
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      const msg = getPluginMessageFromEvent<TokenUsageMapMessage | { type?: string }>(e);
+      const msg = getPluginMessageFromEvent<
+        TokenUsageMapMessage | TokenUsageMapCancelledMessage | { type?: string }
+      >(e);
       if (msg?.type === "token-usage-map") {
         setTokenUsageCounts((msg as TokenUsageMapMessage).usageMap ?? {});
+        setHasTokenUsageScanResult(true);
+      } else if (msg?.type === "token-usage-map-cancelled") {
+        resetTokenUsageState();
       } else if (
         msg?.type === "applied-to-selection" ||
         msg?.type === "sync-complete" ||
         msg?.type === "remap-complete"
       ) {
+        resetTokenUsageState();
         if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
         scanDebounceRef.current = setTimeout(() => {
           postPluginMessage({ type: "scan-token-usage" });
@@ -261,7 +275,7 @@ function UsageProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("message", handler);
       if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
     };
-  }, []);
+  }, [resetTokenUsageState]);
 
   // Listen for consistency scan messages
   useEffect(() => {
@@ -301,8 +315,9 @@ function UsageProvider({ children }: { children: ReactNode }) {
   }, [clearConsistencyTimeout]);
 
   const triggerUsageScan = useCallback(() => {
+    resetTokenUsageState();
     postPluginMessage({ type: "scan-token-usage" });
-  }, []);
+  }, [resetTokenUsageState]);
 
   const triggerConsistencyScan = useCallback(
     (
@@ -345,6 +360,7 @@ function UsageProvider({ children }: { children: ReactNode }) {
   const value = useMemo<UsageContextValue>(
     () => ({
       tokenUsageCounts,
+      hasTokenUsageScanResult,
       triggerUsageScan,
       consistencyResult,
       consistencyLoading,
@@ -358,6 +374,7 @@ function UsageProvider({ children }: { children: ReactNode }) {
     }),
     [
       tokenUsageCounts,
+      hasTokenUsageScanResult,
       triggerUsageScan,
       consistencyResult,
       consistencyLoading,

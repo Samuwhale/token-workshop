@@ -1,17 +1,4 @@
-import { LINT_RULE_BY_ID } from "../../shared/lintRules";
-
-const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
-  "missing-type": { label: "Missing type", tip: "Add a $type for spec compliance" },
-  "broken-alias": { label: "Broken reference", tip: "Referenced token missing — update or remove" },
-  "circular-reference": { label: "Circular reference", tip: "Break the loop so the token resolves" },
-  "max-alias-depth": { label: "Deep reference chain", tip: "Shorten the chain to the source token" },
-  "references-deprecated-token": { label: "Deprecated token in use", tip: "Replace with a non-deprecated token" },
-  "type-mismatch": { label: "Type / value mismatch", tip: "Value doesn't match declared $type" },
-};
-
-function getRuleLabel(rule: string): string {
-  return VALIDATION_LABELS[rule]?.label ?? LINT_RULE_BY_ID[rule]?.label ?? rule;
-}
+import { getRuleLabel, parseSuppressKey } from "../../shared/ruleLabels";
 
 export interface HealthHiddenViewProps {
   suppressedKeys: Set<string>;
@@ -26,7 +13,22 @@ export function HealthHiddenView({
   onUnsuppress,
   onBack,
 }: HealthHiddenViewProps) {
-  const keys = [...suppressedKeys];
+  const keys = [...suppressedKeys]
+    .map((key) => ({ key, parsed: parseSuppressKey(key) }))
+    .filter(
+      (
+        entry,
+      ): entry is {
+        key: string;
+        parsed: { rule: string; collectionId: string; path: string };
+      } => entry.parsed !== null,
+    )
+    .sort(
+      (left, right) =>
+        left.parsed.path.localeCompare(right.parsed.path) ||
+        left.parsed.rule.localeCompare(right.parsed.rule) ||
+        left.parsed.collectionId.localeCompare(right.parsed.collectionId),
+    );
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -56,9 +58,8 @@ export function HealthHiddenView({
             <p className="text-secondary text-[var(--color-figma-text-secondary)] mb-3">
               These issues are hidden from Health. Click <strong>Show again</strong> to restore.
             </p>
-            {keys.map((key) => {
-              const [rule, collectionId, ...pathParts] = key.split(":");
-              const path = pathParts.join(":");
+            {keys.map(({ key, parsed }) => {
+              const { rule, collectionId, path } = parsed;
               return (
                 <div key={key} className="group flex items-center gap-2 py-1.5">
                   <div className="flex-1 min-w-0">
@@ -71,7 +72,7 @@ export function HealthHiddenView({
                       </span>
                     </div>
                     <div className="text-secondary text-[var(--color-figma-text-secondary)] opacity-70">
-                      {getRuleLabel(rule)}
+                      {getRuleLabel(rule).label}
                     </div>
                   </div>
                   <button

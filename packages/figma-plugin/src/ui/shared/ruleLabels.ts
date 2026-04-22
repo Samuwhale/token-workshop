@@ -1,4 +1,5 @@
 import type { ValidationIssue } from "../hooks/useValidationCache";
+import { canApplyIssueFixDirectly, getIssueFixLabel } from "./issueFixes";
 import { LINT_RULE_BY_ID } from "./lintRules";
 
 const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
@@ -10,6 +11,10 @@ const VALIDATION_LABELS: Record<string, { label: string; tip: string }> = {
   "type-mismatch": { label: "Type / value mismatch", tip: "Value doesn't match declared $type" },
 };
 
+function isSuppressKeyPart(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
 export function getRuleLabel(rule: string): { label: string; tip: string } {
   const validation = VALIDATION_LABELS[rule];
   if (validation) return validation;
@@ -19,27 +24,35 @@ export function getRuleLabel(rule: string): { label: string; tip: string } {
 }
 
 export function suppressKey(issue: Pick<ValidationIssue, "rule" | "collectionId" | "path">): string {
-  return `${issue.rule}:${issue.collectionId}:${issue.path}`;
+  return JSON.stringify([issue.rule, issue.collectionId, issue.path]);
+}
+
+export function parseSuppressKey(
+  key: string,
+): { rule: string; collectionId: string; path: string } | null {
+  try {
+    const parsed = JSON.parse(key) as unknown;
+    if (!Array.isArray(parsed) || parsed.length !== 3) {
+      return null;
+    }
+    const [rule, collectionId, path] = parsed;
+    if (
+      !isSuppressKeyPart(rule) ||
+      !isSuppressKeyPart(collectionId) ||
+      !isSuppressKeyPart(path)
+    ) {
+      return null;
+    }
+    return { rule, collectionId, path };
+  } catch {
+    return null;
+  }
 }
 
 export function hasFix(issue: ValidationIssue): boolean {
-  return (
-    issue.suggestedFix === "add-description" ||
-    ((issue.suggestedFix === "flatten-alias-chain" || issue.suggestedFix === "extract-to-alias") && !!issue.suggestion) ||
-    issue.suggestedFix === "delete-token" ||
-    (issue.suggestedFix === "rename-token" && !!issue.suggestion) ||
-    (issue.suggestedFix === "fix-type" && !!issue.suggestion)
-  );
+  return canApplyIssueFixDirectly(issue);
 }
 
 export function fixLabel(fix: string | undefined): string {
-  switch (fix) {
-    case "add-description": return "Add desc";
-    case "flatten-alias-chain": return "Flatten";
-    case "extract-to-alias": return "Make alias";
-    case "delete-token": return "Delete";
-    case "rename-token": return "Rename";
-    case "fix-type": return "Fix type";
-    default: return "Fix";
-  }
+  return getIssueFixLabel(fix);
 }

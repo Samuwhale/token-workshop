@@ -15,6 +15,7 @@ import { useLintConfig } from "../hooks/useLintConfig";
 import { LintConfigPanel } from "./LintConfigPanel";
 import { formatHexAs } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
+import { downloadBlob } from "../shared/utils";
 import { SegmentedControl } from "./SegmentedControl";
 
 // ---------------------------------------------------------------------------
@@ -370,13 +371,10 @@ export function SettingsPanel({
       null,
       2,
     );
-    const blob = new Blob([payload], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tokenmanager-settings.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      new Blob([payload], { type: "application/json" }),
+      "tokenmanager-settings.json",
+    );
     dispatchToast("Settings backup exported", "success", {
       destination: { kind: "surface", surface: "settings" },
     });

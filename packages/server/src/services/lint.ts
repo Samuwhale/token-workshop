@@ -49,7 +49,7 @@ export interface LintConfig {
     'require-alias-for-semantic-tokens'?: LintRuleConfig;
     'enforce-token-type-consistency'?: LintRuleConfig;
   };
-  /** Server-persisted suppression keys shared across all team members. Format: "rule:collectionId:tokenPath" */
+  /** Server-persisted suppression keys shared across all team members. Format: JSON string [rule, collectionId, tokenPath]. */
   suppressions?: string[];
 }
 
@@ -85,6 +85,83 @@ export const DEFAULT_LINT_CONFIG: LintConfig = {
   },
 };
 
+function serializeSuppressionKey(
+  rule: string,
+  collectionId: string,
+  path: string,
+): string {
+  return JSON.stringify([rule, collectionId, path]);
+}
+
+function parseSuppressionKey(
+  key: string,
+): { rule: string; collectionId: string; path: string } | null {
+  try {
+    const parsed = JSON.parse(key) as unknown;
+    if (!Array.isArray(parsed) || parsed.length !== 3) {
+      return null;
+    }
+
+    const [rule, collectionId, path] = parsed;
+    if (
+      typeof rule !== 'string' ||
+      rule.length === 0 ||
+      typeof collectionId !== 'string' ||
+      collectionId.length === 0 ||
+      typeof path !== 'string' ||
+      path.length === 0
+    ) {
+      return null;
+    }
+
+    return { rule, collectionId, path };
+  } catch {
+    return null;
+  }
+}
+
+export function canonicalizeSuppressionKey(key: string): string | null {
+  const parsed = parseSuppressionKey(key);
+  if (!parsed) {
+    return null;
+  }
+  return serializeSuppressionKey(parsed.rule, parsed.collectionId, parsed.path);
+}
+
+export function normalizeSuppressionKeys(
+  suppressions: readonly unknown[] | undefined,
+): string[] {
+  if (!Array.isArray(suppressions) || suppressions.length === 0) {
+    return [];
+  }
+
+  const normalized: string[] = [];
+  const seen = new Set<string>();
+
+  for (const suppression of suppressions) {
+    if (typeof suppression !== 'string') {
+      continue;
+    }
+
+    const canonical = canonicalizeSuppressionKey(suppression);
+    if (!canonical || seen.has(canonical)) {
+      continue;
+    }
+
+    seen.add(canonical);
+    normalized.push(canonical);
+  }
+
+  return normalized;
+}
+
+function normalizeLintConfig(config: LintConfig): LintConfig {
+  return {
+    ...config,
+    suppressions: normalizeSuppressionKeys(config.suppressions),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Config persistence
 // ---------------------------------------------------------------------------
@@ -101,13 +178,14 @@ export class LintConfigStore {
     if (!this.config) {
       try {
         const content = await fs.readFile(this.configPath, 'utf-8');
-        this.config = expectJsonObject(
+        const parsedConfig = expectJsonObject(
           parseJsonFile(content, { filePath: this.configPath }),
           {
             filePath: this.configPath,
             expectation: 'contain a top-level lint config object',
           },
         ) as unknown as LintConfig;
+        this.config = normalizeLintConfig(parsedConfig);
       } catch (err) {
         if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
           this.config = structuredClone(DEFAULT_LINT_CONFIG);
@@ -120,9 +198,10 @@ export class LintConfigStore {
   }
 
   async save(config: LintConfig): Promise<void> {
-    this.config = structuredClone(config);
+    const normalizedConfig = normalizeLintConfig(config);
+    this.config = structuredClone(normalizedConfig);
     const tmp = `${this.configPath}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(config, null, 2));
+    await fs.writeFile(tmp, JSON.stringify(normalizedConfig, null, 2));
     await fs.rename(tmp, this.configPath);
   }
 
@@ -146,12 +225,12 @@ export class LintConfigStore {
 
   async getSuppressions(): Promise<string[]> {
     const config = await this.load();
-    return config.suppressions ?? [];
+    return normalizeSuppressionKeys(config.suppressions);
   }
 
   async setSuppressions(suppressions: string[]): Promise<void> {
     const config = await this.load();
-    config.suppressions = suppressions;
+    config.suppressions = normalizeSuppressionKeys(suppressions);
     await this.save(config);
   }
 
@@ -177,11 +256,15 @@ export class LintConfigStore {
 
     if (Array.isArray(config.suppressions) && config.suppressions.length > 0) {
       config.suppressions = config.suppressions.map((suppression) => {
-        const [rule, collectionId, ...pathParts] = suppression.split(":");
-        if (collectionId !== oldCollectionId || pathParts.length === 0) {
+        const parsed = parseSuppressionKey(suppression);
+        if (!parsed || parsed.collectionId !== oldCollectionId) {
           return suppression;
         }
-        return [rule, newCollectionId, ...pathParts].join(":");
+        return serializeSuppressionKey(
+          parsed.rule,
+          newCollectionId,
+          parsed.path,
+        );
       });
     }
 
@@ -199,8 +282,7 @@ export class LintConfigStore {
 
     if (Array.isArray(config.suppressions) && config.suppressions.length > 0) {
       config.suppressions = config.suppressions.filter((suppression) => {
-        const [, suppressionCollectionId] = suppression.split(":");
-        return suppressionCollectionId !== collectionId;
+        return parseSuppressionKey(suppression)?.collectionId !== collectionId;
       });
     }
 
@@ -735,7 +817,9 @@ export async function lintAllCollections(
   }
   const suppressionSet = new Set(lintConfig.suppressions ?? []);
   if (suppressionSet.size === 0) return results;
-  return results.filter(v => !suppressionSet.has(`${v.rule}:${v.collectionId}:${v.path}`));
+  return results.filter(v => !suppressionSet.has(
+    serializeSuppressionKey(v.rule, v.collectionId, v.path),
+  ));
 }
 
 // ---------------------------------------------------------------------------
@@ -993,8 +1077,10 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
     }
   }
 
-  // Filter out server-persisted suppressions. Format: "rule:collectionId:tokenPath"
+  // Filter out server-persisted suppressions.
   const suppressionSet = new Set(cfg.suppressions ?? []);
   if (suppressionSet.size === 0) return issues;
-  return issues.filter(i => !suppressionSet.has(`${i.rule}:${i.collectionId}:${i.path}`));
+  return issues.filter(i => !suppressionSet.has(
+    serializeSuppressionKey(i.rule, i.collectionId, i.path),
+  ));
 }

@@ -6,6 +6,9 @@ interface CategoryRow {
   id: string;
   label: string;
   count: number;
+  countLabel: string;
+  pending?: boolean;
+  disabled?: boolean;
   severity: HealthStatus;
   onOpen: () => void;
 }
@@ -20,7 +23,10 @@ export interface HealthDashboardProps {
   validationError: string | null;
 
   issueCount: number;
+  issueStatus: HealthStatus;
   generatorIssueCount: number;
+  generatorStatus: HealthStatus;
+  unusedReady: boolean;
   unusedCount: number;
   deprecatedCount: number;
   aliasOpportunitiesCount: number;
@@ -70,11 +76,6 @@ function formatCheckedAt(date: Date): string {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function categorySeverity(count: number, isError: boolean): HealthStatus {
-  if (count === 0) return "healthy";
-  return isError ? "critical" : "warning";
-}
-
 export function HealthDashboard({
   connected,
   overallStatus,
@@ -84,7 +85,10 @@ export function HealthDashboard({
   validationIsStale,
   validationError,
   issueCount,
+  issueStatus,
   generatorIssueCount,
+  generatorStatus,
+  unusedReady,
   unusedCount,
   deprecatedCount,
   aliasOpportunitiesCount,
@@ -109,17 +113,35 @@ export function HealthDashboard({
   }
 
   const openView = (view: HealthView) => () => onNavigateToView(view);
+  const summaryTitle =
+    validationError
+      ? "Health check failed"
+      : validationLoading && !validationLastRefreshed
+        ? "Checking health"
+        : !unusedReady && totalIssueCount === 0
+      ? "Checking usage"
+      : totalIssueCount === 0
+        ? "All clear"
+        : `${totalIssueCount} issue${totalIssueCount !== 1 ? "s" : ""}`;
   const categories: CategoryRow[] = [
-    { id: "issues", label: "Issues", count: issueCount, severity: categorySeverity(issueCount, true), onOpen: openView("issues") },
-    { id: "generators", label: "Generators", count: generatorIssueCount, severity: categorySeverity(generatorIssueCount, false), onOpen: () => onNavigateToGenerators?.() },
-    { id: "unused", label: "Unused", count: unusedCount, severity: categorySeverity(unusedCount, false), onOpen: openView("unused") },
-    { id: "deprecated", label: "Deprecated", count: deprecatedCount, severity: categorySeverity(deprecatedCount, false), onOpen: openView("deprecated") },
-    { id: "alias-opportunities", label: "Alias opportunities", count: aliasOpportunitiesCount, severity: categorySeverity(aliasOpportunitiesCount, false), onOpen: openView("alias-opportunities") },
-    { id: "duplicates", label: "Duplicates", count: duplicateCount, severity: categorySeverity(duplicateCount, false), onOpen: openView("duplicates") },
+    { id: "issues", label: "Issues", count: issueCount, countLabel: issueCount === 0 ? "All clear" : String(issueCount), severity: issueStatus, onOpen: openView("issues") },
+    {
+      id: "generators",
+      label: "Generators",
+      count: generatorIssueCount,
+      countLabel: generatorIssueCount === 0 ? "All clear" : String(generatorIssueCount),
+      disabled: !onNavigateToGenerators,
+      severity: generatorStatus,
+      onOpen: () => onNavigateToGenerators?.(),
+    },
+    { id: "unused", label: "Unused", count: unusedCount, countLabel: unusedReady ? (unusedCount === 0 ? "All clear" : String(unusedCount)) : "Checking…", pending: !unusedReady, severity: unusedCount > 0 ? "warning" : "healthy", onOpen: openView("unused") },
+    { id: "deprecated", label: "Deprecated", count: deprecatedCount, countLabel: deprecatedCount === 0 ? "All clear" : String(deprecatedCount), severity: deprecatedCount > 0 ? "warning" : "healthy", onOpen: openView("deprecated") },
+    { id: "alias-opportunities", label: "Alias opportunities", count: aliasOpportunitiesCount, countLabel: aliasOpportunitiesCount === 0 ? "All clear" : String(aliasOpportunitiesCount), severity: aliasOpportunitiesCount > 0 ? "warning" : "healthy", onOpen: openView("alias-opportunities") },
+    { id: "duplicates", label: "Duplicates", count: duplicateCount, countLabel: duplicateCount === 0 ? "All clear" : String(duplicateCount), severity: duplicateCount > 0 ? "warning" : "healthy", onOpen: openView("duplicates") },
   ];
 
   if (hiddenCount > 0) {
-    categories.push({ id: "hidden", label: "Hidden", count: hiddenCount, severity: "healthy", onOpen: openView("hidden") });
+    categories.push({ id: "hidden", label: "Hidden", count: hiddenCount, countLabel: String(hiddenCount), severity: "healthy", onOpen: openView("hidden") });
   }
 
   return (
@@ -130,7 +152,7 @@ export function HealthDashboard({
         </span>
         <div className="flex-1 min-w-0">
           <span className="text-subheading font-semibold text-[var(--color-figma-text)]">
-            {totalIssueCount === 0 ? "All clear" : `${totalIssueCount} issue${totalIssueCount !== 1 ? "s" : ""}`}
+            {summaryTitle}
           </span>
           <div className="flex items-center gap-1.5 mt-0.5">
             {validationLoading && (
@@ -153,12 +175,17 @@ export function HealthDashboard({
 
       <div className="flex flex-col gap-0.5">
         {categories.map((cat) => {
-          const isZero = cat.count === 0;
+          const isZero = !cat.pending && cat.count === 0;
           return (
             <button
               key={cat.id}
               onClick={cat.onOpen}
-              className="flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              disabled={cat.disabled}
+              className={`flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors ${
+                cat.disabled
+                  ? "cursor-default opacity-60"
+                  : "hover:bg-[var(--color-figma-bg-hover)]"
+              }`}
             >
               <span className={`shrink-0 ${isZero ? "text-[var(--color-figma-text-tertiary)]" : statusColor(cat.severity)}`}>
                 <svg width="7" height="7" viewBox="0 0 8 8" aria-hidden="true">
@@ -169,7 +196,7 @@ export function HealthDashboard({
                 {cat.label}
               </span>
               <span className={`text-body tabular-nums ${isZero ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"}`}>
-                {isZero ? "All clear" : cat.count}
+                {cat.countLabel}
               </span>
             </button>
           );

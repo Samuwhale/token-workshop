@@ -39,47 +39,66 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
 // ---------------------------------------------------------------------------
 // Scan cancellation
 // ---------------------------------------------------------------------------
-// Long-running scans (heatmap, consistency, coverage, token-usage) share a
-// single active signal object. The UI sends `cancel-scan` to abort the current
-// scan; each scan function checks `signal.aborted` at batch boundaries and
-// posts a *-cancelled message before returning early.
+// Long-running scans (heatmap, consistency, coverage, token-usage) each keep
+// their own active signal. Starting a new token-usage scan should not abort an
+// unrelated heatmap or consistency scan that the user explicitly kicked off.
+// The UI sends `cancel-scan` to abort either the matching requestId or all
+// active scans when no requestId is supplied.
 // ---------------------------------------------------------------------------
 
+type ScanKind =
+  | 'token-usage-map'
+  | 'component-coverage'
+  | 'canvas-heatmap'
+  | 'single-token-usage'
+  | 'consistency';
+
 type ActiveScanState = {
+  kind: ScanKind;
   signal: { aborted: boolean };
   requestId?: string;
 };
 
-let _activeScan: ActiveScanState | null = null;
+const _activeScans = new Map<ScanKind, ActiveScanState>();
 
-/** Abort any in-flight scan and return a fresh signal for the next one. */
-function createScanSignal(requestId?: string): { aborted: boolean } {
-  if (_activeScan) {
-    _activeScan.signal.aborted = true;
+/** Abort any in-flight scan of the same kind and return a fresh signal for the next one. */
+function createScanSignal(kind: ScanKind, requestId?: string): { aborted: boolean } {
+  const existing = _activeScans.get(kind);
+  if (existing) {
+    existing.signal.aborted = true;
   }
   const signal = { aborted: false };
-  _activeScan = { signal, requestId };
+  _activeScans.set(kind, { kind, signal, requestId });
   return signal;
 }
 
-/** Abort the in-flight scan without starting a new one. */
+/** Abort the matching in-flight scan, or all scans when no requestId is provided. */
 function cancelActiveScan(requestId?: string): void {
-  if (!_activeScan) {
+  if (_activeScans.size === 0) {
     return;
   }
 
-  if (requestId && _activeScan.requestId && _activeScan.requestId !== requestId) {
+  if (!requestId) {
+    for (const activeScan of _activeScans.values()) {
+      activeScan.signal.aborted = true;
+    }
+    _activeScans.clear();
     return;
   }
 
-  _activeScan.signal.aborted = true;
-  _activeScan = null;
+  for (const [kind, activeScan] of _activeScans.entries()) {
+    if (activeScan.requestId !== requestId) {
+      continue;
+    }
+    activeScan.signal.aborted = true;
+    _activeScans.delete(kind);
+  }
 }
 
 /** Clear the active signal after a scan completes, but only if it's still ours. */
-function clearScanSignal(signal: { aborted: boolean }): void {
-  if (_activeScan?.signal === signal) {
-    _activeScan = null;
+function clearScanSignal(kind: ScanKind, signal: { aborted: boolean }): void {
+  if (_activeScans.get(kind)?.signal === signal) {
+    _activeScans.delete(kind);
   }
 }
 
@@ -463,24 +482,24 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       figma.ui.postMessage({ type: 'scan-cancelled' });
       break;
     case 'scan-token-usage': {
-      const signal = createScanSignal();
+      const signal = createScanSignal('token-usage-map');
       try {
         await scanTokenUsageMap(signal);
       } catch (e) {
         reportError('scan-token-usage', e);
       } finally {
-        clearScanSignal(signal);
+        clearScanSignal('token-usage-map', signal);
       }
       break;
     }
     case 'scan-component-coverage': {
-      const signal = createScanSignal();
+      const signal = createScanSignal('component-coverage');
       try {
         await scanComponentCoverage(msg.correlationId, signal);
       } catch (e) {
         reportError('scan-component-coverage', e);
       } finally {
-        clearScanSignal(signal);
+        clearScanSignal('component-coverage', signal);
       }
       break;
     }
@@ -495,13 +514,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       selectNextSibling();
       break;
     case 'scan-canvas-heatmap': {
-      const signal = createScanSignal(msg.requestId);
+      const signal = createScanSignal('canvas-heatmap', msg.requestId);
       try {
         await scanCanvasHeatmap(normalizeScanScope(msg.scope), signal, msg.requestId);
       } catch (e) {
         reportError('scan-canvas-heatmap', e);
       } finally {
-        clearScanSignal(signal);
+        clearScanSignal('canvas-heatmap', signal);
       }
       break;
     }
@@ -520,13 +539,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       break;
     case 'scan-single-token-usage': {
-      const signal = createScanSignal();
+      const signal = createScanSignal('single-token-usage');
       try {
         await scanTokenUsage(msg.tokenPath, signal);
       } catch (e) {
         reportError('scan-single-token-usage', e);
       } finally {
-        clearScanSignal(signal);
+        clearScanSignal('single-token-usage', signal);
       }
       break;
     }
@@ -545,13 +564,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       break;
     case 'scan-consistency': {
-      const signal = createScanSignal();
+      const signal = createScanSignal('consistency');
       try {
         await scanConsistency(msg.tokenMap, msg.scope, signal);
       } catch (e) {
         reportError('scan-consistency', e);
       } finally {
-        clearScanSignal(signal);
+        clearScanSignal('consistency', signal);
       }
       break;
     }

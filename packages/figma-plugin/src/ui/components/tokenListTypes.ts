@@ -85,6 +85,7 @@ export interface TokenListData {
   generatorsByTargetGroup?: Map<string, TokenGenerator>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
   tokenUsageCounts?: Record<string, number>;
+  tokenUsageReady?: boolean;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;

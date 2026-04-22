@@ -1,8 +1,10 @@
 import { UnusedTokensPanel } from "../UnusedTokensPanel";
+import { Spinner } from "../Spinner";
 import type { UnusedToken } from "../../hooks/useHealthData";
 
 export interface HealthUnusedViewProps {
   serverUrl: string;
+  loading: boolean;
   unusedTokens: UnusedToken[];
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
@@ -12,6 +14,7 @@ export interface HealthUnusedViewProps {
 
 export function HealthUnusedView({
   serverUrl,
+  loading,
   unusedTokens,
   onNavigateToToken,
   onError,
@@ -31,7 +34,7 @@ export function HealthUnusedView({
           </svg>
         </button>
         <span className="text-body font-semibold text-[var(--color-figma-text)]">Unused</span>
-        {unusedTokens.length > 0 && (
+        {!loading && unusedTokens.length > 0 && (
           <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-auto">
             {unusedTokens.length} token{unusedTokens.length !== 1 ? "s" : ""}
           </span>
@@ -39,14 +42,23 @@ export function HealthUnusedView({
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <UnusedTokensPanel
-          serverUrl={serverUrl}
-          unusedTokens={unusedTokens}
-          onNavigateToToken={onNavigateToToken}
-          onError={onError}
-          onMutate={onMutate}
-          embedded
-        />
+        {loading ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
+            <Spinner size="sm" />
+            <p className="text-body text-[var(--color-figma-text-secondary)]">
+              Scanning Figma usage to find unused tokens.
+            </p>
+          </div>
+        ) : (
+          <UnusedTokensPanel
+            serverUrl={serverUrl}
+            unusedTokens={unusedTokens}
+            onNavigateToToken={onNavigateToToken}
+            onError={onError}
+            onMutate={onMutate}
+            embedded
+          />
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { getTokenLifecycle } from "@tokenmanager/core";
+import { getTokenLifecycle, type TokenLifecycle } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 
 export const FIGMA_SCOPE_OPTIONS: Record<
@@ -121,7 +121,7 @@ type TokenExtensions = Record<string, unknown> | undefined;
 type TokenPresentationEntry = {
   $extensions?: Record<string, unknown>;
   $scopes?: string[];
-  $lifecycle?: "draft" | "published" | "deprecated";
+  $lifecycle?: TokenLifecycle;
 };
 
 type TokenManagerMetadata = {
@@ -148,7 +148,7 @@ export function readTokenPresentationMetadata(
   entry?: TokenMapEntry | TokenPresentationEntry,
 ): {
   scopes: string[];
-  lifecycle: "draft" | "published" | "deprecated";
+  lifecycle: TokenLifecycle;
   provenance: string | null;
   extendsPath: string | null;
 } {
@@ -166,10 +166,29 @@ export function readTokenPresentationMetadata(
 
   return {
     scopes,
-    lifecycle: metadataEntry?.$lifecycle ?? getTokenLifecycle(metadataEntry ?? {}),
+    lifecycle: readTokenLifecycle(metadataEntry),
     provenance: metadata.source ?? null,
     extendsPath: metadata.extends ?? null,
   };
+}
+
+export function normalizeTokenLifecycle(value: unknown): TokenLifecycle {
+  return value === "draft" || value === "deprecated" || value === "published"
+    ? value
+    : "published";
+}
+
+export function compactTokenLifecycle(
+  value: unknown,
+): TokenMapEntry["$lifecycle"] | undefined {
+  const lifecycle = normalizeTokenLifecycle(value);
+  return lifecycle === "published" ? undefined : lifecycle;
+}
+
+export function readTokenLifecycle(
+  entry?: TokenMapEntry | TokenPresentationEntry,
+): TokenLifecycle {
+  return entry?.$lifecycle ?? getTokenLifecycle(entry ?? {});
 }
 
 export function getScopeLabels(tokenType: string, scopes: string[]): string[] {
@@ -196,7 +215,7 @@ export function compactTokenPath(path: string, segments = 3): string {
 }
 
 export function getLifecycleLabel(
-  lifecycle: "draft" | "published" | "deprecated",
+  lifecycle: TokenLifecycle,
 ): string | null {
   if (lifecycle === "published") return null;
   return lifecycle === "draft" ? "Draft" : "Deprecated";
