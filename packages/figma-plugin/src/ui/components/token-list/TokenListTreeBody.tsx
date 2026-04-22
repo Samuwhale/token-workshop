@@ -142,6 +142,8 @@ interface TokenListTreeBodyProps {
   onCreateNew?: (initialPath?: string) => void;
   onCreateGeneratedGroup?: () => void;
   onOpenImportPanel?: () => void;
+  onExtractFromSelection?: () => void;
+  hasSelection?: boolean;
 
   // Filters
   clearFilters: () => void;
@@ -207,6 +209,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     onCreateNew,
     onCreateGeneratedGroup,
     onOpenImportPanel,
+    onExtractFromSelection,
+    hasSelection,
     clearFilters,
   } = props;
   const { serverUrl, onModeMutated } = props;
@@ -568,12 +572,12 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   if (tokens.length === 0) {
     const emptyCollectionActions: FeedbackPlaceholderAction[] = [];
 
-    if (onCreateGeneratedGroup) {
+    if (onCreateNew) {
       emptyCollectionActions.push({
-        label: "Generate group…",
-        onClick: onCreateGeneratedGroup,
+        label: "New token",
+        onClick: () => onCreateNew(),
         disabled: !connected,
-        tone: "secondary",
+        tone: "primary",
       });
     }
 
@@ -586,12 +590,12 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       });
     }
 
-    if (onCreateNew) {
+    if (onExtractFromSelection && hasSelection) {
       emptyCollectionActions.push({
-        label: "New token",
-        onClick: () => onCreateNew(),
+        label: "Extract from selection",
+        onClick: onExtractFromSelection,
         disabled: !connected,
-        tone: "primary",
+        tone: "secondary",
       });
     }
 
@@ -605,9 +609,23 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             className="w-full max-w-[360px]"
             icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
             title="This collection is empty"
-            description="Create a token, generate a starter group, or import tokens into this collection."
+            description={
+              hasSelection
+                ? "Create a token, import from a file, or extract from your Figma selection."
+                : "Create a token or import tokens into this collection."
+            }
             actions={emptyCollectionActions}
           />
+          {onCreateGeneratedGroup && (
+            <button
+              type="button"
+              onClick={onCreateGeneratedGroup}
+              disabled={!connected}
+              className="text-secondary text-[var(--color-figma-text-secondary)] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Or generate a group of tokens
+            </button>
+          )}
         </div>
       </>
     );

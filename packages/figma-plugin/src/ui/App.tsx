@@ -2012,11 +2012,24 @@ export function App() {
           initialBranch={startHereState.initialBranch}
           onClose={closeStartHere}
           onRetryConnection={retryConnection}
-          onImportFigma={() => {
+          onImportExistingSystem={() => {
             navigateTo("library", "tokens");
             switchContextualSurface({ surface: "import" });
           }}
-          onPasteJSON={() => setShowPasteModal(true)}
+          onStartFromSelection={() => {
+            dismissEphemeralOverlays();
+            navigateTo("canvas", "inspect");
+            setTriggerExtractToken((n) => n + 1);
+          }}
+          onAuthorFirstToken={() => {
+            closeStartHere();
+            navigateTo("library", "tokens");
+            setEditingToken({
+              path: "",
+              currentCollectionId,
+              isCreate: true,
+            });
+          }}
           onGuidedSetupComplete={() => {
             closeStartHere();
             refreshAll();

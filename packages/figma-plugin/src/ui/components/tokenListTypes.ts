@@ -162,6 +162,8 @@ export interface TokenListActions {
   onShowPasteModal?: () => void;
   /** Open the import surface from the Tokens workspace */
   onOpenImportPanel?: () => void;
+  /** Jump to Canvas → Selection and open the extract-tokens surface */
+  onExtractFromSelection?: () => void;
   /** Open the collection creation flow */
   onOpenCreateCollection?: () => void;
   /** Open the details panel for the active collection (wired to toolbar anchor) */

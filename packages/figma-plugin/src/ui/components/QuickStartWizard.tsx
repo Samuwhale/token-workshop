@@ -1,9 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
-import type { GeneratedTokenResult, GeneratorType } from '../hooks/useGenerators';
 import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
 import { GeneratedGroupEditor } from './GeneratedGroupEditor';
-import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { apiFetch } from '../shared/apiFetch';
 import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratedGroupEditor';
 
@@ -11,16 +9,9 @@ import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratedGroupEdit
 // Types
 // ---------------------------------------------------------------------------
 
-type TaskId = 'modes' | 'foundations' | 'semantics';
+type TaskId = 'author-tokens' | 'modes' | 'foundations';
 type ChecklistView = 'list' | 'template-picker' | 'modes-inline';
 type PrereqPhase = 'connect' | 'create-collection' | null;
-
-interface SemanticData {
-  tokens: GeneratedTokenResult[];
-  targetGroup: string;
-  targetCollection: string;
-  generatorType: GeneratorType;
-}
 
 interface QuickStartWizardProps {
   serverUrl: string;
@@ -32,6 +23,7 @@ interface QuickStartWizardProps {
   onComplete: () => void;
   onCollectionCreated?: (name: string) => void;
   onRetryConnection?: () => void;
+  onAuthorFirstToken?: () => void;
   embedded?: boolean;
   onBack?: () => void;
 }
@@ -47,9 +39,9 @@ interface TaskDef {
 }
 
 const TASKS: TaskDef[] = [
-  { id: 'modes', label: 'Modes', description: 'Add the variations this collection needs' },
-  { id: 'foundations', label: 'Foundations', description: 'Generate colors, spacing, type, or other base scales' },
-  { id: 'semantics', label: 'Semantics', description: 'Create semantic aliases from your foundations' },
+  { id: 'author-tokens', label: 'Add your first tokens', description: 'Create tokens by hand in the token editor' },
+  { id: 'modes', label: 'Add modes (optional)', description: 'Create variations like Light / Dark. Skip if you only need one mode' },
+  { id: 'foundations', label: 'Accelerate with a generator (optional)', description: 'Generate a color ramp, type scale, spacing scale, or other foundation' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -321,9 +313,8 @@ function CompactTemplatePicker({ templates, connected, onSelect }: {
 // Task Checklist
 // ---------------------------------------------------------------------------
 
-function TaskChecklist({ completedTasks, semanticData, connected, onSelect }: {
+function TaskChecklist({ completedTasks, connected, onSelect }: {
   completedTasks: Set<TaskId>;
-  semanticData: SemanticData | null;
   connected: boolean;
   onSelect: (taskId: TaskId) => void;
 }) {
@@ -331,7 +322,7 @@ function TaskChecklist({ completedTasks, semanticData, connected, onSelect }: {
     <div className="flex flex-col">
       {TASKS.map(task => {
         const isCompleted = completedTasks.has(task.id);
-        const isDisabled = task.id === 'semantics' ? !semanticData : !connected;
+        const isDisabled = !connected;
 
         return (
           <button
@@ -381,6 +372,7 @@ export function QuickStartWizard({
   onComplete,
   onCollectionCreated,
   onRetryConnection,
+  onAuthorFirstToken,
   embedded = false,
   onBack,
 }: QuickStartWizardProps) {
@@ -404,12 +396,7 @@ export function QuickStartWizard({
     }
   }, [connected, prereqPhase]);
 
-  const [semanticData, setSemanticData] = useState<SemanticData | null>(null);
-
   const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(null);
-  const [showSemanticDialog, setShowSemanticDialog] = useState(false);
-
-  const semanticInterceptFired = useRef(false);
 
   const markCompleted = useCallback((task: TaskId) => {
     setCompletedTasks(prev => new Set([...prev, task]));
@@ -421,16 +408,7 @@ export function QuickStartWizard({
     setPrereqPhase(null);
   }, [onCollectionCreated]);
 
-  const handleFoundationsInterceptSemantic = useCallback((data: SemanticData) => {
-    setSemanticData(data);
-    semanticInterceptFired.current = true;
-  }, []);
-
   const handleFoundationsSaved = useCallback(() => {
-    if (!semanticInterceptFired.current) {
-      setSemanticData(null);
-    }
-    semanticInterceptFired.current = false;
     setSelectedTemplate(null);
     setChecklistView('list');
     markCompleted('foundations');
@@ -438,15 +416,6 @@ export function QuickStartWizard({
 
   const handleTemplateBack = useCallback(() => {
     setSelectedTemplate(null);
-  }, []);
-
-  const handleSemanticsCreated = useCallback(() => {
-    setShowSemanticDialog(false);
-    markCompleted('semantics');
-  }, [markCompleted]);
-
-  const handleSemanticsClose = useCallback(() => {
-    setShowSemanticDialog(false);
   }, []);
 
   const handleModesDone = useCallback(() => {
@@ -460,24 +429,25 @@ export function QuickStartWizard({
 
   const handleTaskSelect = useCallback((taskId: TaskId) => {
     switch (taskId) {
+      case 'author-tokens':
+        markCompleted('author-tokens');
+        onAuthorFirstToken?.();
+        break;
       case 'foundations':
         setChecklistView('template-picker');
-        break;
-      case 'semantics':
-        setShowSemanticDialog(true);
         break;
       case 'modes':
         setChecklistView('modes-inline');
         break;
     }
-  }, []);
+  }, [markCompleted, onAuthorFirstToken]);
 
   if (prereqPhase === 'connect' || prereqPhase === 'create-collection') {
     const prereqContent = (
       <>
         {!embedded && (
           <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-            <div className="text-heading font-semibold text-[var(--color-figma-text)]">Start a new token system</div>
+            <div className="text-heading font-semibold text-[var(--color-figma-text)]">Author a token system</div>
             <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
@@ -525,22 +495,7 @@ export function QuickStartWizard({
         initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveCollectionId)}
         onBack={handleTemplateBack}
         onClose={onClose}
-        onInterceptSemanticMapping={handleFoundationsInterceptSemantic}
         onSaved={handleFoundationsSaved}
-      />
-    );
-  }
-
-  if (showSemanticDialog && semanticData) {
-    return (
-      <SemanticMappingDialog
-        serverUrl={serverUrl}
-        generatedTokens={semanticData.tokens}
-        generatorType={semanticData.generatorType}
-        targetGroup={semanticData.targetGroup}
-        targetCollection={semanticData.targetCollection}
-        onClose={handleSemanticsClose}
-        onCreated={handleSemanticsCreated}
       />
     );
   }
@@ -571,7 +526,7 @@ export function QuickStartWizard({
               </button>
             )}
               <div className="text-heading font-semibold text-[var(--color-figma-text)]">
-              {viewTitle ?? 'Start a new token system'}
+              {viewTitle ?? 'Author a token system'}
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
@@ -600,7 +555,6 @@ export function QuickStartWizard({
           <>
             <TaskChecklist
               completedTasks={completedTasks}
-              semanticData={semanticData}
               connected={connected}
               onSelect={handleTaskSelect}
             />
@@ -621,10 +575,7 @@ export function QuickStartWizard({
           <CompactTemplatePicker
             templates={GRAPH_TEMPLATES}
             connected={connected}
-            onSelect={(template) => {
-              semanticInterceptFired.current = false;
-              setSelectedTemplate(template);
-            }}
+            onSelect={setSelectedTemplate}
           />
         )}
 

@@ -771,6 +771,7 @@ export function PanelRouter({
     onOpenCommandPaletteWithQuery: controller.openCommandPaletteWithQuery,
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
+    onExtractFromSelection: controller.triggerExtractFromSelection,
     onOpenCreateCollection: controller.onOpenCollectionCreateDialog,
     onOpenCollectionDetails: (collectionId: string) =>
       switchContextualSurface({
@@ -1611,14 +1612,10 @@ export function PanelRouter({
         size="full"
         icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
         title="No collections yet"
-        description="Create your first collection or import an existing token system to start authoring."
+        description="Start by importing a system, authoring one, or extracting from your current selection."
         primaryAction={{
-          label: "Create collection",
-          onClick: () => controller.onOpenCollectionCreateDialog(),
-        }}
-        secondaryAction={{
-          label: "Import tokens",
-          onClick: () => controller.onShowImportPanel(),
+          label: "Get started",
+          onClick: () => controller.onOpenStartHere(),
         }}
       />
     ) : hasTokensLibrarySurface ? (

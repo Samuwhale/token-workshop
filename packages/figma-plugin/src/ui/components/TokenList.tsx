@@ -187,6 +187,7 @@ export function TokenList({
     onOpenCommandPaletteWithQuery,
     onShowPasteModal,
     onOpenImportPanel,
+    onExtractFromSelection,
     onOpenCreateCollection,
     onOpenCollectionDetails,
     onOpenStartHere: _onOpenStartHere,
@@ -2566,6 +2567,8 @@ export function TokenList({
             onCreateNew={onCreateNew}
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
             onOpenImportPanel={onOpenImportPanel}
+            onExtractFromSelection={onExtractFromSelection}
+            hasSelection={selectedNodes.length > 0}
             clearFilters={clearFilters}
             serverUrl={serverUrl}
             onModeMutated={onRefresh}

@@ -3,10 +3,7 @@ import type { ReactNode } from "react";
 import { NoticeBanner } from "../shared/noticeSystem";
 import { QuickStartWizard } from "./QuickStartWizard";
 
-export type StartHereBranch =
-  | "root"
-  | "import"
-  | "start-new";
+export type StartHereBranch = "root" | "start-new";
 
 type StartHereBranchCopy = {
   title: string;
@@ -18,13 +15,9 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
     title: "Get started",
     description: "",
   },
-  import: {
-    title: "Import an existing token system",
-    description: "Bring in Figma variables or token files, then review the imported collections in Tokens.",
-  },
   "start-new": {
-    title: "Start a new token system",
-    description: "Create your first collection, add modes if needed, generate foundations, and turn them into semantics.",
+    title: "Author a token system",
+    description: "Create a collection, add modes, and author your first tokens.",
   },
 };
 
@@ -43,8 +36,9 @@ interface WelcomePromptProps {
   initialBranch?: StartHereBranch;
   onRetryConnection?: () => void;
   onClose: () => void;
-  onImportFigma?: () => void;
-  onPasteJSON: () => void;
+  onImportExistingSystem: () => void;
+  onStartFromSelection: () => void;
+  onAuthorFirstToken?: () => void;
   onGuidedSetupComplete: () => void;
   onCollectionCreated?: (name: string) => void;
 }
@@ -130,8 +124,9 @@ export function WelcomePrompt({
   initialBranch = "root",
   onRetryConnection,
   onClose,
-  onImportFigma,
-  onPasteJSON,
+  onImportExistingSystem,
+  onStartFromSelection,
+  onAuthorFirstToken,
   onGuidedSetupComplete,
   onCollectionCreated,
 }: WelcomePromptProps) {
@@ -147,11 +142,10 @@ export function WelcomePrompt({
   };
 
   const renderRoot = () => (
-    <div className="flex flex-col gap-3">
+    <div>
       <ActionRow
-        title="Start a new token system"
-        description="Create a collection, add modes, generate foundations, and create semantic aliases."
-        emphasized
+        title="Author a token system"
+        description="Create a collection and your first tokens from scratch."
         onClick={() => setBranch("start-new")}
         icon={
           <svg
@@ -165,82 +159,50 @@ export function WelcomePrompt({
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z" />
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
           </svg>
         }
       />
-      <div>
-        <ActionRow
-          title="Import an existing token system"
-          description="Bring in Figma variables or token files."
-          onClick={() => setBranch("import")}
-          icon={
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M12 3v12" />
-              <path d="M7 10l5 5 5-5" />
-              <path d="M5 21h14" />
-            </svg>
-          }
-        />
-      </div>
-    </div>
-  );
-
-  const renderImport = () => (
-    <div>
-      {onImportFigma && (
-        <ActionRow
-          title="Import from Figma variables"
-          description="Pull variables and modes into token collections."
-          disabled={!connected}
-          onClick={() => handleAction(onImportFigma)}
-          icon={
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M2 3h3v3H2zM7 3h3v3H7zM2 7h3v3H2z" />
-              <path d="M7 8.5V10M7 7v0" />
-            </svg>
-          }
-        />
-      )}
       <ActionRow
-        title="Paste token JSON"
-        description="DTCG, Style Dictionary, or Tokens Studio format."
-        disabled={!connected}
-        onClick={() => handleAction(onPasteJSON)}
+        title="Import an existing system"
+        description="Bring in Figma variables, styles, or a token file."
+        onClick={() => handleAction(onImportExistingSystem)}
         icon={
           <svg
             width="14"
             height="14"
-            viewBox="0 0 12 12"
+            viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.5"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <rect x="1.5" y="1.5" width="9" height="9" rx="1" />
-            <path d="M4 1.5v1.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5V1.5" />
+            <path d="M12 3v12" />
+            <path d="M7 10l5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+        }
+      />
+      <ActionRow
+        title="Start from current selection"
+        description="Extract colors, type, and spacing from what you have selected in Figma."
+        onClick={() => handleAction(onStartFromSelection)}
+        icon={
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 4l7.07 17 2.51-7.39L21 11.07z" />
           </svg>
         }
       />
@@ -329,7 +291,6 @@ export function WelcomePrompt({
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {branch === "root" && renderRoot()}
-          {branch === "import" && renderImport()}
           {branch === "start-new" && (
             <div className="h-full">
               <QuickStartWizard
@@ -344,6 +305,7 @@ export function WelcomePrompt({
                 onComplete={onGuidedSetupComplete}
                 onCollectionCreated={onCollectionCreated}
                 onRetryConnection={onRetryConnection}
+                onAuthorFirstToken={onAuthorFirstToken}
               />
             </div>
           )}

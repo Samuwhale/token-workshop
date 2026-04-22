@@ -16,9 +16,18 @@ export function SelectionInspectorLoadingState() {
 
 export function SelectionInspectorEmptyState({
   onSelectLayer,
+  extractPending = false,
 }: {
   onSelectLayer: (nodeId: string) => void;
+  extractPending?: boolean;
 }) {
+  const title = extractPending
+    ? "Select a layer to extract from"
+    : "No layer selected";
+  const description = extractPending
+    ? "Pick a frame, shape, or text layer with unbound colors, type, or spacing. The extract sheet will open automatically."
+    : "Search above or select a layer on the canvas to inspect its token bindings.";
+
   return (
     <div className="flex flex-1 flex-col gap-3 px-4 pt-4">
       <LayerSearchPanel onSelect={onSelectLayer} />
@@ -41,8 +50,8 @@ export function SelectionInspectorEmptyState({
             <path d="M3 9h18M9 21V9" />
           </svg>
         }
-        title="No layer selected"
-        description="Search above or select a layer on the canvas to inspect its token bindings."
+        title={title}
+        description={description}
       />
     </div>
   );

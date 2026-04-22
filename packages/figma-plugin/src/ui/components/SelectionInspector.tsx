@@ -712,11 +712,19 @@ export function SelectionInspector({
     setExtractOpen(unboundProperties);
   }, [rootNodes]);
 
+  const lastHandledExtractTrigger = useRef(0);
   useEffect(() => {
-    if (!triggerExtractToken || !hasSelection) return;
+    if (!triggerExtractToken) return;
+    if (triggerExtractToken === lastHandledExtractTrigger.current) return;
+    if (!hasSelection) return;
+    lastHandledExtractTrigger.current = triggerExtractToken;
     openExtract();
   }, [triggerExtractToken, hasSelection, openExtract]);
 
+  const extractPending =
+    !!triggerExtractToken &&
+    triggerExtractToken !== lastHandledExtractTrigger.current &&
+    !hasSelection;
 
   if (selectionLoading) {
     return <SelectionInspectorLoadingState />;
@@ -724,7 +732,12 @@ export function SelectionInspector({
 
   // No selection — full empty state
   if (!hasSelection) {
-    return <SelectionInspectorEmptyState onSelectLayer={handleSelectLayer} />;
+    return (
+      <SelectionInspectorEmptyState
+        onSelectLayer={handleSelectLayer}
+        extractPending={extractPending}
+      />
+    );
   }
 
   // Check if there are any visible properties (bindings or current values)
