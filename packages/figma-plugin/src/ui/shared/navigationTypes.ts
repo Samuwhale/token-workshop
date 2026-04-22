@@ -47,8 +47,7 @@ export type SurfaceCloseBehavior =
 export type TokensLibraryContextualSurface =
   | "compare"
   | "collection-details"
-  | "token-inspector"
-  | "token-editor"
+  | "token-details"
   | "generated-group-editor"
   | "color-analysis"
   | "import";
@@ -349,13 +348,9 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         label: "Collection setup",
         usage: "Review collection structure, metadata, and modes.",
       },
-      "token-inspector": {
-        label: "Token inspector",
-        usage: "Read-only detail for a token.",
-      },
-      "token-editor": {
-        label: "Token editor",
-        usage: "Edit or create a token.",
+      "token-details": {
+        label: "Token details",
+        usage: "Inspect, edit, or create a token.",
       },
       "generated-group-editor": {
         label: "Generated group editor",

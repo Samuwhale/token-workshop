@@ -118,14 +118,6 @@ export const COMPOSITE_SUB_PROPS_BY_TYPE: Record<string, Array<{ key: string; ki
 
 export const COMPOSITE_TOKEN_TYPES = new Set(Object.keys(COMPOSITE_SUB_PROPS_BY_TYPE));
 
-export const DTCG_TYPES = [
-  'color', 'dimension', 'fontFamily', 'fontWeight', 'duration', 'cubicBezier',
-  'number', 'strokeStyle', 'border', 'transition', 'shadow', 'gradient',
-  'typography', 'fontStyle', 'letterSpacing', 'lineHeight', 'percentage',
-  'string', 'boolean', 'link', 'textDecoration', 'textTransform', 'custom',
-  'composition', 'asset',
-] as const;
-
 export const PREVIEW_MAX = 8;
 
 export function formatBatchValue(v: unknown): string {

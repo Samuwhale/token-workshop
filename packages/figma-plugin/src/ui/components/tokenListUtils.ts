@@ -6,6 +6,7 @@ import type { SortOrder } from './tokenListTypes';
 import { isAlias } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
+import { TOKEN_TYPE_CATEGORIES } from '../shared/tokenTypeCategories';
 
 // ---------------------------------------------------------------------------
 // Structured query parsing
@@ -649,6 +650,45 @@ export function sortTokenNodes(nodes: TokenNode[], order: SortOrder): TokenNode[
     ...node,
     children: node.children ? sortTokenNodes(node.children, order) : undefined,
   }));
+}
+
+const TOKEN_TYPE_TO_GROUP = new Map(
+  TOKEN_TYPE_CATEGORIES.flatMap((category) =>
+    category.options.map((option) => [option.value, category.group] as const),
+  ),
+);
+
+function createTypeGroupPath(group: string): string {
+  return `__type/${group.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+export function groupTokenNodesByType(nodes: TokenNode[]): TokenNode[] {
+  const grouped = new Map<string, TokenNode[]>();
+  const orderedGroups = TOKEN_TYPE_CATEGORIES.map((category) => category.group);
+  const fallbackGroup = orderedGroups.includes('Other') ? 'Other' : orderedGroups[orderedGroups.length - 1];
+
+  for (const node of flattenLeafNodes(nodes)) {
+    const group = TOKEN_TYPE_TO_GROUP.get(node.$type ?? '') ?? fallbackGroup;
+    const bucket = grouped.get(group);
+    if (bucket) {
+      bucket.push(node);
+    } else {
+      grouped.set(group, [node]);
+    }
+  }
+
+  const result: TokenNode[] = [];
+  for (const group of orderedGroups) {
+    const children = grouped.get(group);
+    if (!children || children.length === 0) continue;
+    result.push({
+      path: createTypeGroupPath(group),
+      name: group,
+      children,
+      isGroup: true,
+    });
+  }
+  return result;
 }
 
 export function collectGroupPathsByDepth(nodes: TokenNode[], maxExpandDepth: number, depth = 0): string[] {

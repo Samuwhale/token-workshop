@@ -10,9 +10,15 @@ import {
 } from "./TokenListOverflowMenu";
 import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
 import type { CollectionHealthSummary } from "../hooks/useHealthSignals";
-import { replaceQueryToken } from "./tokenListUtils";
+import {
+  getQueryQualifierValues,
+  replaceQueryToken,
+  setQueryQualifierValues,
+} from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { SearchQualifierMenu } from "./SearchQualifierMenu";
+import { TOKEN_TYPE_CATEGORIES } from "../shared/tokenTypeCategories";
+import type { TokenGroupBy } from "./tokenListTypes";
 
 interface QualifierHint {
   id: string;
@@ -49,6 +55,10 @@ export interface TokenListToolbarProps {
   hasTokens: boolean;
   viewMode: "tree" | "json";
   setViewMode: (mode: "tree" | "json") => void;
+  groupBy: TokenGroupBy;
+  setGroupBy: (value: TokenGroupBy) => void;
+  showTypeFamilyFilters: boolean;
+  setShowTypeFamilyFilters: (value: boolean) => void;
   onCreateNew?: () => void;
   openTableCreate: () => void;
   handleOpenNewGroupDialog: () => void;
@@ -92,6 +102,10 @@ export function TokenListToolbar({
   hasTokens,
   viewMode,
   setViewMode,
+  groupBy,
+  setGroupBy,
+  showTypeFamilyFilters,
+  setShowTypeFamilyFilters,
   onCreateNew,
   openTableCreate,
   handleOpenNewGroupDialog,
@@ -136,7 +150,29 @@ export function TokenListToolbar({
   const filterItems = toolbarStateChips.filter((chip) => chip.tone === "filter");
   const viewItems = toolbarStateChips.filter((chip) => chip.tone === "view");
   const canClearFilters = hasStructuredFilters || filterItems.length > 0;
-  const canClearView = viewItems.length > 0;
+  const canClearView = viewItems.length > 0 || groupBy !== "path";
+  const activeTypeFilters = new Set(getQueryQualifierValues(searchQuery, "type"));
+  const typeCategoryChips = TOKEN_TYPE_CATEGORIES.map((category) => {
+    const values = category.options.map((option) => option.value.toLowerCase());
+    const active = values.every((value) => activeTypeFilters.has(value));
+    return {
+      key: category.group,
+      label: category.group,
+      active,
+      onClick: () => {
+        const nextValues = new Set(activeTypeFilters);
+        if (active) {
+          values.forEach((value) => nextValues.delete(value));
+        } else {
+          values.forEach((value) => nextValues.add(value));
+        }
+        setSearchQuery(
+          setQueryQualifierValues(searchQuery, "type", Array.from(nextValues)),
+        );
+        setHintIndex(0);
+      },
+    };
+  });
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -299,6 +335,8 @@ export function TokenListToolbar({
                 {...overflowMenuProps}
                 viewMode={viewMode}
                 setViewMode={setViewMode}
+                groupBy={groupBy}
+                setGroupBy={setGroupBy}
               />
             )}
 
@@ -475,6 +513,25 @@ export function TokenListToolbar({
                     searchRef.current?.focus();
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowTypeFamilyFilters(!showTypeFamilyFilters)}
+                  aria-pressed={showTypeFamilyFilters}
+                  className={`mr-1 flex h-[18px] w-[18px] items-center justify-center rounded transition-colors ${
+                    showTypeFamilyFilters
+                      ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                      : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                  }`}
+                  title="Filter by type"
+                  aria-label="Filter by type"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <rect x="3" y="4" width="7" height="7" rx="1" />
+                    <rect x="14" y="4" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                  </svg>
+                </button>
               </div>
 
               {showQualifierHints &&
@@ -526,6 +583,25 @@ export function TokenListToolbar({
                 )}
             </div>
 
+          </div>
+        )}
+
+        {hasTokens && showTypeFamilyFilters && (
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {typeCategoryChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={chip.onClick}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-secondary transition-colors ${
+                  chip.active
+                    ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
           </div>
         )}
 

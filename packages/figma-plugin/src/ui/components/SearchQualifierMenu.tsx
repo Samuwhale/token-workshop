@@ -8,6 +8,7 @@ interface QualifierEntry {
 
 const QUALIFIERS: QualifierEntry[] = [
   { qualifier: "type:", description: "Filter by token type" },
+  { qualifier: "scope:", description: "Filter by Figma field" },
   { qualifier: "has:", description: "Filter by property" },
   { qualifier: "value:", description: "Filter by value content" },
   { qualifier: "path:", description: "Filter by token path" },

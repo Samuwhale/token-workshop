@@ -46,7 +46,7 @@ export function ScopeEditor({
   if (available.length === 0) {
     return (
       <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-        Selected token types don't support Figma scopes
+        This type doesn't map to any Figma field
       </p>
     );
   }
@@ -65,7 +65,7 @@ export function ScopeEditor({
         <div className="flex items-center justify-between">
           {!compact && (
             <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              Empty = all scopes
+              Empty = any compatible field
             </span>
           )}
           {selectedScopes.length > 0 && (

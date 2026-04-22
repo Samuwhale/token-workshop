@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Crosshair } from "lucide-react";
 import type {
   BindableProperty,
@@ -47,15 +47,24 @@ function DeepBindPanel({
 }) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [ignoreScope, setIgnoreScope] = useState(false);
 
   const compatibleTypes = getCompatibleTokenTypes(prop);
-  const candidates = Object.entries(tokenMap)
-    .filter(([, entry]) => compatibleTypes.includes(entry.$type))
-    .filter(([, entry]) => isTokenScopeCompatible(entry, prop))
-    .filter(
+  const { candidates, hiddenByScope } = useMemo(() => {
+    const typeCompatible = Object.entries(tokenMap).filter(([, entry]) =>
+      compatibleTypes.includes(entry.$type),
+    );
+    const scopeCompatible = typeCompatible.filter(([, entry]) =>
+      isTokenScopeCompatible(entry, prop),
+    );
+    const filtered = (ignoreScope ? typeCompatible : scopeCompatible).filter(
       ([path]) => !query || path.toLowerCase().includes(query.toLowerCase()),
-    )
-    .slice(0, 12);
+    );
+    return {
+      candidates: filtered.slice(0, 12),
+      hiddenByScope: Math.max(0, typeCompatible.length - scopeCompatible.length),
+    };
+  }, [compatibleTypes, ignoreScope, prop, query, tokenMap]);
 
   return (
     <div className="ml-2 mr-1 mb-1 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
@@ -104,6 +113,7 @@ function DeepBindPanel({
           onChange={(e) => {
             setQuery(e.target.value);
             setSelectedIndex(-1);
+            setIgnoreScope(false);
           }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
@@ -190,6 +200,33 @@ function DeepBindPanel({
                 </button>
               );
             })}
+          </div>
+        )}
+        {hiddenByScope > 0 && (
+          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+            {ignoreScope ? (
+              <>
+                Showing all{" "}
+                <button
+                  type="button"
+                  onClick={() => setIgnoreScope(false)}
+                  className="text-[var(--color-figma-accent)] hover:underline"
+                >
+                  Restrict
+                </button>
+              </>
+            ) : (
+              <>
+                {hiddenByScope} restricted by applicability{" "}
+                <button
+                  type="button"
+                  onClick={() => setIgnoreScope(true)}
+                  className="text-[var(--color-figma-accent)] hover:underline"
+                >
+                  Show all
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

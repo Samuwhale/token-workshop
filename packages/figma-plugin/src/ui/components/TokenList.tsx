@@ -28,6 +28,7 @@ import {
   flattenLeafNodes,
   findGroupByPath,
   buildZoomBranchNavigation,
+  groupTokenNodesByType,
 } from "./tokenListUtils";
 import type { LintViolation } from "../hooks/useLint";
 import type {
@@ -267,6 +268,8 @@ export function TokenList({
     setInspectMode,
     viewMode,
     setViewMode,
+    groupBy,
+    setGroupBy,
     sortOrder,
     setSortOrder,
     showResolvedValues,
@@ -278,6 +281,7 @@ export function TokenList({
     setMultiModeDimId,
   } = viewState;
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
+  const [showTypeFamilyFilters, setShowTypeFamilyFilters] = useState(false);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] =
     useState<PendingBulkPresetLaunch | null>(null);
   const [pendingBatchEditorFocus, setPendingBatchEditorFocus] =
@@ -672,6 +676,23 @@ export function TokenList({
   // --- Custom hooks for extracted state groups ---
   const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
 
+  useEffect(() => {
+    setShowTypeFamilyFilters(
+      lsGet(STORAGE_KEY_BUILDERS.tokenTypeFamilyFiltersOpen(collectionId)) === "1",
+    );
+  }, [collectionId]);
+
+  const handleSetShowTypeFamilyFilters = useCallback(
+    (value: boolean) => {
+      setShowTypeFamilyFilters(value);
+      lsSet(
+        STORAGE_KEY_BUILDERS.tokenTypeFamilyFiltersOpen(collectionId),
+        value ? "1" : "0",
+      );
+    },
+    [collectionId],
+  );
+
   const { handleOpenCreateSibling } = useTokenCreate({
     selectedNodes,
     siblingOrderMap,
@@ -846,8 +867,8 @@ export function TokenList({
     expandedChains,
     setExpandedChains: _setExpandedChains,
     handleToggleExpand,
-    handleExpandAll,
-    handleCollapseAll,
+    handleExpandAll: handleExpandAllPath,
+    handleCollapseAll: handleCollapseAllPath,
   } = tokenExpansion;
   const expandedPathsRef = useRef(expandedPaths);
 
@@ -949,6 +970,15 @@ export function TokenList({
 
   const [searchResultPresentation, setSearchResultPresentation] =
     useState<SearchResultPresentation>("grouped");
+  const groupedDisplayedTokens = useMemo(
+    () =>
+      groupBy === "type" ? groupTokenNodesByType(displayedTokens) : displayedTokens,
+    [displayedTokens, groupBy],
+  );
+  const groupedDisplayedGroupPaths = useMemo(
+    () => collectAllGroupPaths(groupedDisplayedTokens),
+    [groupedDisplayedTokens],
+  );
   const canToggleSearchResultPresentation =
     viewMode === "tree" && filtersActive && !showRecentlyTouched;
   const showFlatSearchResults =
@@ -967,9 +997,25 @@ export function TokenList({
   );
 
   const hasStructuredFilters = structuredFilterChips.length > 0;
+  const visibleGroupPaths =
+    groupBy === "type" ? groupedDisplayedGroupPaths : allGroupPaths;
   const allGroupsExpanded =
-    allGroupPaths.length > 0 &&
-    allGroupPaths.every((path) => expandedPaths.has(path));
+    visibleGroupPaths.length > 0 &&
+    visibleGroupPaths.every((path) => expandedPaths.has(path));
+  const handleExpandAll = useCallback(() => {
+    if (groupBy === "type") {
+      setExpandedPaths(new Set(groupedDisplayedGroupPaths));
+      return;
+    }
+    handleExpandAllPath();
+  }, [groupBy, groupedDisplayedGroupPaths, handleExpandAllPath, setExpandedPaths]);
+  const handleCollapseAll = useCallback(() => {
+    if (groupBy === "type") {
+      setExpandedPaths(new Set());
+      return;
+    }
+    handleCollapseAllPath();
+  }, [groupBy, handleCollapseAllPath, setExpandedPaths]);
   const filterMenuActiveCount =
     activeFilterCount +
     (inspectMode ? 1 : 0) +
@@ -1017,11 +1063,13 @@ export function TokenList({
     if (searchExpansionRestoreRef.current === null) {
       searchExpansionRestoreRef.current = new Set(expandedPathsRef.current);
     }
-    if (displayedGroupPaths.length === 0) return;
+    const groupPaths =
+      groupBy === "type" ? groupedDisplayedGroupPaths : displayedGroupPaths;
+    if (groupPaths.length === 0) return;
     setExpandedPaths((prev) => {
       let changed = false;
       const next = new Set(prev);
-      for (const path of displayedGroupPaths) {
+      for (const path of groupPaths) {
         if (next.has(path)) continue;
         next.add(path);
         changed = true;
@@ -1031,6 +1079,8 @@ export function TokenList({
   }, [
     displayedGroupPaths,
     filtersActive,
+    groupedDisplayedGroupPaths,
+    groupBy,
     setExpandedPaths,
     showRecentlyTouched,
     viewMode,
@@ -1071,11 +1121,12 @@ export function TokenList({
     if (showFlatSearchResults) {
       return flatSearchRows;
     }
-    return flattenVisible(displayedTokens, expandedPaths);
+    return flattenVisible(groupedDisplayedTokens, expandedPaths);
   }, [
     displayedTokens,
     expandedPaths,
     flatSearchRows,
+    groupedDisplayedTokens,
     viewMode,
     showRecentlyTouched,
     showFlatSearchResults,
@@ -1084,7 +1135,7 @@ export function TokenList({
   ]);
 
   const tokenVirtualScroll = useTokenVirtualScroll({
-    displayedTokens,
+    displayedTokens: groupedDisplayedTokens,
     expandedPaths,
     expandedChains,
     rowHeight,
@@ -1776,7 +1827,10 @@ export function TokenList({
     if (showResolvedValues) setShowResolvedValues(false);
     if (showFlatSearchResults) setSearchResultPresentation("grouped");
     if (sortOrder !== "default") setSortOrder("default");
+    if (groupBy !== "path") setGroupBy("path");
   }, [
+    groupBy,
+    setGroupBy,
     setSearchResultPresentation,
     setSortOrder,
     setShowResolvedValues,
@@ -1962,6 +2016,7 @@ export function TokenList({
 
   const handleZoomIntoGroup = useCallback(
     (groupPath: string) => {
+      if (groupBy !== "path") return;
       setZoomRootPath(groupPath);
       // Ensure the zoom target's children are visible
       setExpandedPaths((prev) => {
@@ -1972,7 +2027,7 @@ export function TokenList({
       setVirtualScrollTop(0);
       if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
     },
-    [setExpandedPaths, setVirtualScrollTop, setZoomRootPath],
+    [groupBy, setExpandedPaths, setVirtualScrollTop, setZoomRootPath],
   );
 
   const handleZoomOut = useCallback(() => {
@@ -2166,7 +2221,7 @@ export function TokenList({
   }, [activeCollections, collectionId]);
 
   const tokenTreeGroupState = useTokenTreeGroupState({
-    collectionId, activeCollectionModeLabel, selectMode, expandedPaths, highlightedToken,
+    collectionId, groupBy, activeCollectionModeLabel, selectMode, expandedPaths, highlightedToken,
     searchHighlight, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     generatorsByTargetGroup, collectionCoverage,
     effectiveRovingPath,
@@ -2189,7 +2244,7 @@ export function TokenList({
   });
 
   const tokenTreeLeafState = useTokenTreeLeafState({
-    serverUrl, collectionId, collectionIds, selectionCapabilities, duplicateCounts,
+    serverUrl, collectionId, collectionIds, groupBy, selectionCapabilities, duplicateCounts,
     selectMode, highlightedToken, inspectMode, syncSnapshot, derivedTokenPaths,
     searchHighlight, selectedNodes, boundTokenPaths, dragOverReorder, selectedLeafNodes,
     showResolvedValues,
@@ -2407,6 +2462,10 @@ export function TokenList({
             hasTokens={tokens.length > 0}
             viewMode={viewMode}
             setViewMode={setViewMode}
+            groupBy={groupBy}
+            setGroupBy={setGroupBy}
+            showTypeFamilyFilters={showTypeFamilyFilters}
+            setShowTypeFamilyFilters={handleSetShowTypeFamilyFilters}
             onCreateNew={onCreateNew}
             openTableCreate={openTableCreate}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
@@ -2418,11 +2477,13 @@ export function TokenList({
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
             overflowMenuProps={tokens.length > 0 ? {
+              groupBy,
+              setGroupBy,
               sortOrder,
               onSortOrderChange: setSortOrder,
               onExpandAll: handleExpandAll,
               onCollapseAll: handleCollapseAll,
-              hasGroups: tokens.some((n) => n.isGroup),
+              hasGroups: groupBy === "type" ? groupedDisplayedTokens.length > 0 : tokens.some((n) => n.isGroup),
               allGroupsExpanded,
               hasCollections: collections.length > 0,
               canToggleSearchResultPresentation: canToggleSearchResultPresentation && !crossCollectionSearch,
@@ -2534,7 +2595,7 @@ export function TokenList({
               onRevert: handleJsonRevert,
             }}
             tokens={tokens}
-            displayedTokens={displayedTokens}
+            displayedTokens={groupedDisplayedTokens}
             flatItems={flatItems}
             virtualStartIdx={virtualStartIdx}
             virtualEndIdx={virtualEndIdx}

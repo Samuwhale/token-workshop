@@ -4,6 +4,7 @@ import { ALL_BINDABLE_PROPERTIES, tokenTypeBadgeClass } from '../../shared/types
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Spinner } from './Spinner';
 import { createTokenValueBody, upsertToken } from '../shared/tokenMutations';
+import { getScopeLabels } from '../shared/tokenMetadata';
 import { dispatchToast } from '../shared/toastBus';
 import { getErrorMessage, stableStringify, COLLECTION_NAME_RE } from '../shared/utils';
 import { getDefaultScopesForProperty } from './selectionInspectorUtils';
@@ -114,6 +115,15 @@ export function CanvasCreateTokenDialog({
     if (!selectedOption) return '';
     return stableStringify(selectedOption.tokenValue);
   }, [selectedOption]);
+  const defaultApplicabilitySummary = useMemo(() => {
+    if (!selectedOption || !isBindablePropertyName(selectedOption.property)) {
+      return null;
+    }
+    const defaultScopes = getDefaultScopesForProperty(selectedOption.property);
+    if (defaultScopes.length === 0) return null;
+    const labels = getScopeLabels(selectedOption.tokenType, defaultScopes);
+    return labels.length > 0 ? `${labels.join(', ')} (from property)` : null;
+  }, [selectedOption]);
 
   const handleCreate = async () => {
     if (!selectedOption || creating) return;
@@ -219,11 +229,19 @@ export function CanvasCreateTokenDialog({
                       {selectedOption.propertyLabel}
                     </span>
                     <span
-                      className={`${tokenTypeBadgeClass(selectedOption.tokenType)} inline-flex shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium uppercase tracking-wide`}
+                      className={`${tokenTypeBadgeClass(selectedOption.tokenType)} inline-flex shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium`}
                     >
                       {selectedOption.tokenType}
                     </span>
                   </div>
+                  {defaultApplicabilitySummary && (
+                    <div className={AUTHORING.summaryRow}>
+                      <span className={AUTHORING.summaryLabel}>Can apply to</span>
+                      <span className={AUTHORING.summaryValue}>
+                        {defaultApplicabilitySummary}
+                      </span>
+                    </div>
+                  )}
                   <div className={AUTHORING.summaryRow}>
                     <span className={AUTHORING.summaryLabel}>Preview</span>
                     <span className={AUTHORING.summaryMono}>

@@ -310,11 +310,11 @@ export function useReadinessChecks({
         },
         {
           id: 'type-incompatible-scopes',
-          label: 'Scopes invalid for token type',
+          label: 'Applicability invalid for token type',
           severity: 'advisory',
           affectedCount: typeIncompatibleScopes.length || undefined,
           detail: typeIncompatibleScopes.length > 0
-            ? "Some tokens carry Figma scopes that don't apply to their current type (usually a leftover from a type change). Select the tokens and use the Figma scopes batch action to clean them up."
+            ? "Some tokens carry applicability that doesn't fit their current type (usually a leftover from a type change). Select the tokens and use the \"Can apply to\" batch action to clean them up."
             : undefined,
         },
         {

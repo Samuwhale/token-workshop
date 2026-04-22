@@ -129,8 +129,8 @@ export function App() {
     pendingRepairPrefill,
   } = useNavigationContext();
   const {
-    editingToken,
-    setEditingToken,
+    tokenDetails,
+    setTokenDetails,
     editingGeneratedGroup,
     setEditingGeneratedGroup,
     inspectingCollection,
@@ -649,7 +649,7 @@ export function App() {
   // Open compare view within the Tokens tab in 'cross-collection' mode for a specific token
   const handleOpenCrossCollectionCompare = useCallback(
     (path: string) => {
-      setEditingToken(null);
+      setTokenDetails(null);
       setEditingGeneratedGroup(null);
       setTokensCompareMode("cross-collection");
       setTokensComparePath(path);
@@ -660,7 +660,7 @@ export function App() {
     [
       navigateTo,
       setEditingGeneratedGroup,
-      setEditingToken,
+      setTokenDetails,
       setShowTokensCompare,
       setTokensCompareMode,
       setTokensComparePath,
@@ -670,26 +670,27 @@ export function App() {
   // Navigate the editor to the next (+1) or previous (-1) sibling in the displayed list
   const handleEditorNavigate = useCallback(
     (direction: 1 | -1) => {
-      if (!editingToken) return;
+      if (!tokenDetails || tokenDetails.mode !== "edit") return;
       const nodes = displayedLeafNodesRef.current;
-      const idx = nodes.findIndex((n) => n.path === editingToken.path);
+      const idx = nodes.findIndex((n) => n.path === tokenDetails.path);
       if (idx === -1) return;
       const next = nodes[idx + direction];
       if (next) {
-        setEditingToken({
+        setTokenDetails({
           path: next.path,
           name: next.name,
-          currentCollectionId: editingToken.currentCollectionId,
+          currentCollectionId: tokenDetails.currentCollectionId,
+          mode: "edit",
         });
         setHighlightedToken(next.path);
       }
     },
-    [editingToken, setHighlightedToken, setEditingToken],
+    [tokenDetails, setHighlightedToken, setTokenDetails],
   );
   const handleEditorSave = useCallback(
     (savedPath: string) => {
       setHighlightedToken(savedPath);
-      setEditingToken(null);
+      setTokenDetails(null);
       const affectedGens = generatorsBySource.get(savedPath) ?? [];
       refreshAll();
       if (affectedGens.length > 0) {
@@ -728,7 +729,7 @@ export function App() {
     [
       refreshAll,
       setHighlightedToken,
-      setEditingToken,
+      setTokenDetails,
       generatorsBySource,
       pushActionToast,
       serverUrl,
@@ -744,14 +745,15 @@ export function App() {
       const segments = savedPath.split(".");
       const parentPrefix =
         segments.length > 1 ? segments.slice(0, -1).join(".") + "." : "";
-      setEditingToken({
+      setTokenDetails({
         path: parentPrefix,
         currentCollectionId,
+        mode: "edit",
         isCreate: true,
         initialType: savedType,
       });
     },
-    [refreshAll, setHighlightedToken, setEditingToken, currentCollectionId],
+    [refreshAll, setHighlightedToken, setTokenDetails, currentCollectionId],
   );
   const handleNavigateToCollection = useCallback(
     (targetCollectionId: string, tokenPath: string) => {
@@ -1064,7 +1066,7 @@ export function App() {
       e.preventDefault();
       dismissEphemeralOverlays();
       navigateTo("library", "tokens");
-      setEditingToken({ path: "", currentCollectionId, isCreate: true });
+      setTokenDetails({ path: "", currentCollectionId, mode: "edit", isCreate: true });
     }
     if (matchesShortcut(e, "GO_TO_DEFINE")) {
       e.preventDefault();
@@ -1138,7 +1140,7 @@ export function App() {
       (lintIssueIndexRef.current + 1) % lintViolations.length;
     const violation = lintViolations[lintIssueIndexRef.current];
     navigateTo("library", "tokens");
-    setEditingToken(null);
+    setTokenDetails(null);
     setHighlightedToken(violation.path);
     const n = lintIssueIndexRef.current + 1;
     const total = lintViolations.length;
@@ -1152,7 +1154,7 @@ export function App() {
   }, [
     lintViolations,
     navigateTo,
-    setEditingToken,
+    setTokenDetails,
     setHighlightedToken,
     setErrorToast,
     setSuccessToast,
@@ -1291,7 +1293,7 @@ export function App() {
     (path: string) => {
       const targetCollectionId = pathToCollectionId[path];
       navigateTo("library", "tokens");
-      setEditingToken(null);
+      setTokenDetails(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
         setCurrentCollectionId(targetCollectionId);
         setPendingHighlight(path);
@@ -1304,7 +1306,7 @@ export function App() {
       pathToCollectionId,
       currentCollectionId,
       navigateTo,
-      setEditingToken,
+      setTokenDetails,
       setCurrentCollectionId,
       setPendingHighlight,
       setHighlightedToken,
@@ -1316,7 +1318,7 @@ export function App() {
     (path: string) => {
       const targetCollectionId = pathToCollectionId[path];
       navigateTo("library", "tokens");
-      setEditingToken(null);
+      setTokenDetails(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
         setCurrentCollectionId(targetCollectionId);
         setPendingHighlight(path);
@@ -1329,7 +1331,7 @@ export function App() {
       pathToCollectionId,
       currentCollectionId,
       navigateTo,
-      setEditingToken,
+      setTokenDetails,
       setCurrentCollectionId,
       setPendingHighlight,
       setHighlightedToken,
@@ -2024,9 +2026,10 @@ export function App() {
           onAuthorFirstToken={() => {
             closeStartHere();
             navigateTo("library", "tokens");
-            setEditingToken({
+            setTokenDetails({
               path: "",
               currentCollectionId,
+              mode: "edit",
               isCreate: true,
             });
           }}

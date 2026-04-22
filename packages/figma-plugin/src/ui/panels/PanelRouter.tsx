@@ -15,9 +15,8 @@ import { LibraryPostSetupHint } from "../components/LibraryPostSetupHint";
 import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
-import { TokenEditor } from "../components/TokenEditor";
+import { TokenDetails } from "../components/TokenDetails";
 import { GeneratedGroupEditor } from "../components/GeneratedGroupEditor";
-import { TokenInspector } from "../components/TokenInspector";
 import { CollectionRail } from "../components/CollectionRail";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
 import { PublishPanel } from "../components/PublishPanel";
@@ -248,10 +247,8 @@ export function PanelRouter({
     pendingRepairPrefill,
   } = useNavigationContext();
   const {
-    editingToken,
-    setEditingToken,
-    inspectingToken,
-    setInspectingToken,
+    tokenDetails,
+    setTokenDetails,
     editingGeneratedGroup,
     setEditingGeneratedGroup,
     inspectingCollection,
@@ -364,16 +361,21 @@ export function PanelRouter({
     [currentCollectionId, navigateTo, setCurrentCollectionId],
   );
 
-  const openTokenInspector = useCallback(
-    (path: string, collectionId: string, name?: string) => {
+  const openTokenDetails = useCallback(
+    (
+      path: string,
+      collectionId: string,
+      mode: "inspect" | "edit",
+      name?: string,
+    ) => {
       guardEditorAction(() => {
         if (collectionId !== currentCollectionId) {
           setCurrentCollectionId(collectionId);
         }
         navigateTo("library", "tokens");
         switchContextualSurface({
-          surface: "token-inspector",
-          token: { path, name, currentCollectionId: collectionId },
+          surface: "token-details",
+          token: { path, name, currentCollectionId: collectionId, mode },
         });
         setHighlightedToken(path);
       });
@@ -417,7 +419,7 @@ export function PanelRouter({
   }, [editingGeneratedGroup, editingGeneratedGroupData, setEditingGeneratedGroup]);
 
   const tokenListHighlightedPath =
-    editingToken?.path || inspectingToken?.path || highlightedToken;
+    tokenDetails?.path || highlightedToken;
   const hasTokensLibrarySurface =
     tokens.length > 0 ||
     Boolean(currentCollectionId) ||
@@ -434,10 +436,11 @@ export function PanelRouter({
     }) => {
       const targetCollectionId = options?.currentCollectionId ?? currentCollectionId;
       switchContextualSurface({
-        surface: "token-editor",
+        surface: "token-details",
         token: {
           path: resolveCreateLauncherPath(options?.initialPath),
           currentCollectionId: targetCollectionId,
+          mode: "edit",
           isCreate: true,
           initialType: options?.initialType ?? readLastCreateType(),
           initialValue: options?.initialValue,
@@ -447,18 +450,19 @@ export function PanelRouter({
     [currentCollectionId, switchContextualSurface],
   );
 
-  const openTokenEditor = useCallback(
+  const openTokenDetailsEditor = useCallback(
     (options: { path: string; currentCollectionId: string; name?: string }) => {
       setHighlightedToken(options.path);
       if (options.currentCollectionId !== currentCollectionId) {
         setCurrentCollectionId(options.currentCollectionId);
       }
       switchContextualSurface({
-        surface: "token-editor",
+        surface: "token-details",
         token: {
           path: options.path,
           name: options.name,
           currentCollectionId: options.currentCollectionId,
+          mode: "edit",
         },
       });
     },
@@ -470,44 +474,22 @@ export function PanelRouter({
     ],
   );
 
-  const openLinkedTokenInEditor = useCallback(
+  const openLinkedTokenInDetails = useCallback(
     (options: {
       path: string;
       fromPath?: string;
+      mode: "inspect" | "edit";
     }) => {
       const targetCollectionId = pathToCollectionId[options.path];
       handleNavigateToAlias(options.path, options.fromPath);
       if (!targetCollectionId) return;
 
       switchContextualSurface({
-        surface: "token-editor",
+        surface: "token-details",
         token: {
           path: options.path,
           currentCollectionId: targetCollectionId,
-        },
-      });
-    },
-    [
-      handleNavigateToAlias,
-      pathToCollectionId,
-      switchContextualSurface,
-    ],
-  );
-
-  const openLinkedTokenInInspector = useCallback(
-    (options: {
-      path: string;
-      fromPath?: string;
-    }) => {
-      const targetCollectionId = pathToCollectionId[options.path];
-      handleNavigateToAlias(options.path, options.fromPath);
-      if (!targetCollectionId) return;
-
-      switchContextualSurface({
-        surface: "token-inspector",
-        token: {
-          path: options.path,
-          currentCollectionId: targetCollectionId,
+          mode: options.mode,
         },
       });
     },
@@ -576,43 +558,51 @@ export function PanelRouter({
     [openGeneratedTokens],
   );
 
-  const handleTokenEditorBack = useCallback(() => {
-    if (!editingToken?.isCreate && navHistoryLength > 0) {
+  const handleTokenDetailsBack = useCallback(() => {
+    if (tokenDetails?.mode === "edit" && !tokenDetails.isCreate && navHistoryLength > 0) {
       const previousEntry = consumeNavigateBack();
       if (previousEntry?.path) {
-        setEditingToken({
+        setTokenDetails({
           path: previousEntry.path,
           currentCollectionId: previousEntry.collectionId,
+          mode: "edit",
         });
         return;
       }
     }
-    if (editingToken?.isCreate) {
+    if (tokenDetails?.mode === "edit" && !tokenDetails.isCreate) {
+      setTokenDetails((current) =>
+        current ? { ...current, mode: "inspect" } : null,
+      );
+      refreshAll();
+      return;
+    }
+    if (tokenDetails?.isCreate) {
       setCreateFromEmpty(false);
     }
-    setEditingToken(null);
+    setTokenDetails(null);
     refreshAll();
   }, [
-    editingToken?.isCreate,
+    tokenDetails,
     navHistoryLength,
     consumeNavigateBack,
     setCreateFromEmpty,
-    setEditingToken,
+    setTokenDetails,
     refreshAll,
   ]);
 
-  const handleTokenEditorSaved = useCallback(
+  const handleTokenDetailsSaved = useCallback(
     (savedPath: string) => {
-      if (editingToken?.isCreate) {
+      if (tokenDetails?.isCreate) {
         persistLastCreateGroup(savedPath);
         setCreateFromEmpty(false);
       }
       handleEditorSave(savedPath);
     },
-    [editingToken?.isCreate, handleEditorSave, setCreateFromEmpty],
+    [tokenDetails?.isCreate, handleEditorSave, setCreateFromEmpty],
   );
 
-  const handleTokenEditorSaveAndCreateAnother = useCallback(
+  const handleTokenDetailsSaveAndCreateAnother = useCallback(
     (savedPath: string, savedType: string) => {
       persistLastCreateGroup(savedPath);
       persistLastCreateType(savedType);
@@ -622,18 +612,19 @@ export function PanelRouter({
       const segments = savedPath.split(".");
       const parentPrefix =
         segments.length > 1 ? `${segments.slice(0, -1).join(".")}.` : "";
-      setEditingToken({
+      setTokenDetails({
         path: parentPrefix,
-        currentCollectionId: editingToken?.currentCollectionId ?? currentCollectionId,
+        currentCollectionId: tokenDetails?.currentCollectionId ?? currentCollectionId,
+        mode: "edit",
         isCreate: true,
         initialType: savedType,
       });
     },
     [
       currentCollectionId,
-      editingToken?.currentCollectionId,
+      tokenDetails?.currentCollectionId,
       setCreateFromEmpty,
-      setEditingToken,
+      setTokenDetails,
       setHighlightedToken,
       refreshAll,
     ],
@@ -642,7 +633,7 @@ export function PanelRouter({
   useEffect(() => {
     if (
       !createFromEmpty ||
-      editingToken ||
+      tokenDetails ||
       editingGeneratedGroup ||
       showTokensCompare
     )
@@ -651,21 +642,19 @@ export function PanelRouter({
   }, [
     createFromEmpty,
     editingGeneratedGroup,
-    editingToken,
+    tokenDetails,
     openCreateLauncher,
     showTokensCompare,
   ]);
 
   // Build the common TokenList `actions` object once.
   const tokenListActions = {
-    // Row click / "open" action — lands in the read-only inspector. Users can
-    // escalate to the full editor via the inspector's Edit button, which opens
-    // the editor in the same side slot on top of the inspector.
+    // Row click / "open" action — lands in inspect mode first.
     onEdit: (path: string, name?: string) =>
       controller.guardEditorAction(() => {
         switchContextualSurface({
-          surface: "token-inspector",
-          token: { path, name, currentCollectionId },
+          surface: "token-details",
+          token: { path, name, currentCollectionId, mode: "inspect" },
         });
         setHighlightedToken(path);
       }),
@@ -701,7 +690,8 @@ export function PanelRouter({
       setHistoryFilterPath(path);
       navigateTo("library", "history");
     },
-    onOpenTokenIssues: openTokenInspector,
+    onOpenTokenIssues: (path: string, collectionId: string) =>
+      openTokenDetails(path, collectionId, "inspect"),
     onEditGeneratedGroup: (generatorId: string) =>
       controller.guardEditorAction(() => {
         openGeneratedGroupEditor({
@@ -781,44 +771,62 @@ export function PanelRouter({
     onOpenStartHere: controller.onOpenStartHere,
   };
 
-  // Common TokenEditor props
-  const tokenEditorProps = editingToken
+  const tokenDetailsProps = tokenDetails
     ? {
-        tokenPath: editingToken.path,
-        tokenName: editingToken.name,
-        currentCollectionId: editingToken.currentCollectionId,
+        tokenPath: tokenDetails.path,
+        tokenName: tokenDetails.name,
+        currentCollectionId: tokenDetails.currentCollectionId,
         collectionId:
-          pathToCollectionId[editingToken.path] ??
-          editingToken.currentCollectionId,
+          pathToCollectionId[tokenDetails.path] ??
+          tokenDetails.currentCollectionId,
         serverUrl,
-        onBack: handleTokenEditorBack,
+        mode: tokenDetails.mode,
+        onBack: handleTokenDetailsBack,
         allTokensFlat,
         pathToCollectionId,
         generators,
-        isCreateMode: editingToken.isCreate,
-        initialType: editingToken.initialType,
-        initialValue: editingToken.initialValue,
+        isCreateMode: tokenDetails.isCreate,
+        initialType: tokenDetails.initialType,
+        initialValue: tokenDetails.initialValue,
         editorSessionHost: {
           registerSession: controller.registerEditorSession,
           requestClose: controller.requestEditorClose,
         },
-        onSaved: handleTokenEditorSaved,
-        onSaveAndCreateAnother: handleTokenEditorSaveAndCreateAnother,
+        onSaved: handleTokenDetailsSaved,
+        onSaveAndCreateAnother: handleTokenDetailsSaveAndCreateAnother,
         collections,
         onRefresh: controller.refreshAll,
         availableFonts: controller.availableFonts,
         fontWeightsByFamily: controller.fontWeightsByFamily,
         derivedTokenPaths,
         onNavigateToToken: (path: string) =>
-          openLinkedTokenInEditor({
+          openLinkedTokenInDetails({
             path,
-            fromPath: editingToken.path,
+            fromPath: tokenDetails.path,
+            mode: tokenDetails.mode,
           }),
         onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
         onOpenGeneratedGroupEditor: openGeneratedGroupEditor,
         lintViolations: healthSignals.lintViolationsForCurrent,
         syncSnapshot:
           Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
+        onEnterEditMode: tokenDetails.isCreate
+          ? undefined
+          : () =>
+              openTokenDetails(
+                tokenDetails.path,
+                tokenDetails.currentCollectionId,
+                "edit",
+                tokenDetails.name,
+              ),
+        onDuplicate: tokenDetails.isCreate
+          ? undefined
+          : () => {
+              void controller.handlePaletteDuplicate(tokenDetails.path);
+            },
+        onOpenInHealth: tokenDetails.isCreate
+          ? undefined
+          : () => openCollectionIssues(tokenDetails.currentCollectionId),
       }
     : null;
 
@@ -840,7 +848,7 @@ export function PanelRouter({
       modeOptionsDefaultB={tokensCompareDefaultB}
       onEditToken={(collectionId, path) => {
         controller.guardEditorAction(() => {
-          openTokenEditor({ path, currentCollectionId: collectionId });
+          openTokenDetailsEditor({ path, currentCollectionId: collectionId });
         });
       }}
       onCreateToken={(path, collectionId, type, value) => {
@@ -1017,66 +1025,15 @@ export function PanelRouter({
         };
       }
 
-      if (
-        activeEditorSurface === "token-editor" &&
-        editingToken &&
-        tokenEditorProps
-      ) {
+      if (activeEditorSurface === "token-details" && tokenDetails && tokenDetailsProps) {
         return {
-          surface: "token-editor",
-          content: <TokenEditor {...tokenEditorProps} />,
-          onDismiss: controller.requestEditorClose,
-        };
-      }
-
-      if (activeEditorSurface === "token-inspector" && inspectingToken) {
-        return {
-          surface: "token-inspector",
+          surface: "token-details",
           content: (
             <div className="flex flex-col h-full bg-[var(--color-figma-bg)] overflow-hidden">
-              <TokenInspector
-                tokenPath={inspectingToken.path}
-                tokenName={inspectingToken.name}
-                storageCollectionId={inspectingToken.currentCollectionId}
-                allTokensFlat={allTokensFlat}
-                pathToCollectionId={pathToCollectionId}
-                collections={collections}
-                lintViolations={healthSignals.lintViolationsForCurrent.filter(
-                  (v) => v.path === inspectingToken.path,
-                )}
-                syncSnapshot={
-                  Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined
-                }
-                fixingKeys={issueActions.fixingKeys}
-                suppressedKeys={issueActions.suppressedKeys}
-                onFixIssue={issueActions.applyIssueFix}
-                onHideIssue={issueActions.handleSuppress}
-                onOpenInHealth={() => openCollectionIssues(inspectingToken.currentCollectionId)}
-                onEdit={() =>
-                  controller.guardEditorAction(() => {
-                    openTokenEditor({
-                      path: inspectingToken.path,
-                      name: inspectingToken.name,
-                      currentCollectionId: inspectingToken.currentCollectionId,
-                    });
-                  })
-                }
-                onDuplicate={() =>
-                  controller.guardEditorAction(() => {
-                    void controller.handlePaletteDuplicate(inspectingToken.path);
-                  })
-                }
-                onClose={() => setInspectingToken(null)}
-                onNavigateToToken={(path) =>
-                  openLinkedTokenInInspector({
-                    path,
-                    fromPath: inspectingToken.path,
-                  })
-                }
-              />
+              <TokenDetails {...tokenDetailsProps} />
             </div>
           ),
-          onDismiss: () => setInspectingToken(null),
+          onDismiss: controller.requestEditorClose,
         };
       }
 
@@ -1189,7 +1146,7 @@ export function PanelRouter({
         defaultCreateOpen={createFromEmpty}
         highlightedToken={tokenListHighlightedPath}
         showIssuesOnly={controller.showIssuesOnly}
-        editingTokenPath={editingToken?.path}
+        editingTokenPath={tokenDetails?.mode === "edit" ? tokenDetails.path : null}
         compareHandle={controller.tokenListCompareRef}
         collectionHealthSummary={healthSignals.currentCollection}
         onOpenHealth={() => navigateTo("library", "health")}
@@ -1514,7 +1471,7 @@ export function PanelRouter({
   /**
    * Shared scaffold for Library sections scoped to a single collection (Tokens,
    * Overview, Health). Renders CollectionRail + main body and pins the side
-   * editor/inspector whenever a token is open so authoring context survives
+   * token details whenever a token is open so authoring context survives
    * section switches.
    */
   function renderLibraryScaffold({ body }: { body: ReactNode }): ReactNode {
@@ -1523,8 +1480,7 @@ export function PanelRouter({
 
     const sideEditorState =
       editorSurfaceState &&
-      (editorSurfaceState.surface === "token-editor" ||
-        editorSurfaceState.surface === "token-inspector" ||
+      (editorSurfaceState.surface === "token-details" ||
         editorSurfaceState.surface === "collection-details")
         ? editorSurfaceState
         : null;
@@ -1604,7 +1560,7 @@ export function PanelRouter({
     const tokensEmpty =
       collections.length === 0 &&
       !createFromEmpty &&
-      !editingToken;
+      !tokenDetails;
 
     const inner = tokensEmpty ? (
       <FeedbackPlaceholder
@@ -1654,8 +1610,12 @@ export function PanelRouter({
                 pathToCollectionId[path] ?? currentCollectionId;
               controller.guardEditorAction(() => {
                 switchContextualSurface({
-                  surface: "token-inspector",
-                  token: { path, currentCollectionId: targetCollectionId },
+                  surface: "token-details",
+                  token: {
+                    path,
+                    currentCollectionId: targetCollectionId,
+                    mode: "inspect",
+                  },
                 });
               });
               setHighlightedToken(path);
@@ -1685,7 +1645,7 @@ export function PanelRouter({
             tokenUsageReady={hasTokenUsageScanResult}
             heatmapResult={heatmapResult}
             onNavigateToToken={(path, collectionId) => {
-              openTokenInspector(path, collectionId);
+              openTokenDetails(path, collectionId, "inspect");
             }}
             validationIssues={controller.validationIssues}
             validationLoading={controller.validationLoading}

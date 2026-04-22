@@ -44,6 +44,7 @@ export function useTokenTreeSharedData(deps: SharedDataDeps): TokenTreeSharedDat
 
 interface GroupStateDeps {
   collectionId: string;
+  groupBy: "path" | "type";
   activeCollectionModeLabel?: string | null;
   selectMode: boolean;
   expandedPaths: Set<string>;
@@ -64,6 +65,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
   return useMemo(
     () => ({
       collectionId: deps.collectionId,
+      groupBy: deps.groupBy,
       activeCollectionModeLabel: deps.activeCollectionModeLabel ?? null,
       selectMode: deps.selectMode,
       expandedPaths: deps.expandedPaths,
@@ -78,7 +80,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       rovingFocusPath: deps.effectiveRovingPath,
     }),
     [
-      deps.collectionId, deps.activeCollectionModeLabel, deps.selectMode, deps.expandedPaths,
+      deps.collectionId, deps.groupBy, deps.activeCollectionModeLabel, deps.selectMode, deps.expandedPaths,
       deps.highlightedToken, deps.searchHighlight, deps.dragOverGroup,
       deps.dragOverGroupIsInvalid, deps.dragSource, deps.generatorsByTargetGroup,
       deps.collectionCoverage, deps.effectiveRovingPath,
@@ -156,6 +158,7 @@ interface LeafStateDeps {
   serverUrl: string;
   collectionId: string;
   collectionIds: string[];
+  groupBy: "path" | "type";
   selectionCapabilities: NodeCapabilities | null;
   duplicateCounts: Map<string, number>;
   selectMode: boolean;
@@ -184,6 +187,7 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       serverUrl: deps.serverUrl,
       collectionId: deps.collectionId,
       collectionIds: deps.collectionIds,
+      groupBy: deps.groupBy,
       selectionCapabilities: deps.selectionCapabilities,
       duplicateCounts: deps.duplicateCounts,
       selectMode: deps.selectMode,

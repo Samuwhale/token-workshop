@@ -146,7 +146,7 @@ export function SuggestedTokens({
                       s.scopeHidden ? 'opacity-50' : ''
                     }`}
                     title={s.scopeHidden
-                      ? `This token's Figma scopes don't include ${PROPERTY_LABELS[s.bestProperty]}. Applying may fail.`
+                      ? `This token can't apply to ${PROPERTY_LABELS[s.bestProperty]}. Applying may fail.`
                       : undefined}
                   >
                     {/* Color swatch or type icon */}
@@ -243,11 +243,11 @@ export function SuggestedTokens({
                 lsSet(LS_SHOW_SCOPE_HIDDEN_KEY, 'true');
               }}
               className="w-full text-secondary text-[var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              title="These tokens would match, but their Figma scopes don't permit the target property."
+              title="These tokens would match, but their applicability excludes the target field."
             >
               {scopeHiddenCount === 1
-                ? '1 match hidden by Figma scopes'
-                : `${scopeHiddenCount} matches hidden by Figma scopes`}
+                ? '1 match restricted by applicability'
+                : `${scopeHiddenCount} matches restricted by applicability`}
             </button>
           )}
           {scopeHiddenCount > 0 && showScopeHidden && (

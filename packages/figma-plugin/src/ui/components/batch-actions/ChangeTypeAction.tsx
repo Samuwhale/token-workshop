@@ -6,8 +6,9 @@ import { AUTHORING } from '../../shared/editorClasses';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { EditorShell, AUTHORING_SURFACE_CLASSES } from '../EditorShell';
 import type { BatchActionProps } from './types';
-import { DTCG_TYPES, PREVIEW_MAX, rollbackOperation } from './transforms';
+import { PREVIEW_MAX, rollbackOperation } from './transforms';
 import { PreviewPath, ActionFeedback } from './BatchActionPreview';
+import { TypePicker } from '../TypePicker';
 
 const typeValidator = new TokenValidator();
 
@@ -94,10 +95,16 @@ export function ChangeTypeAction({
             <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
               <button
                 onClick={handleApply}
-                disabled={applying || !connected || !newType}
+                disabled={applying || !connected || !newType || hasIncompatible}
                 className={AUTHORING.footerBtnPrimary}
               >
-                {applying ? 'Applying…' : showConfirm ? (hasIncompatible ? 'Change anyway' : 'Confirm') : `Apply to ${selectedPaths.size}`}
+                {applying
+                  ? 'Applying…'
+                  : hasIncompatible
+                    ? `${typeChangeInfo?.incompatible.length ?? 0} incompatible`
+                    : showConfirm
+                      ? 'Confirm'
+                      : `Apply to ${selectedPaths.size}`}
               </button>
             </div>
           </div>
@@ -105,15 +112,13 @@ export function ChangeTypeAction({
       }
     >
       <div className={AUTHORING_SURFACE_CLASSES.bodyStack}>
-        <select
+        <TypePicker
           value={newType}
-          onChange={e => { setNewType(e.target.value); setShowConfirm(false); }}
-          aria-label="New token type"
+          onChange={v => { setNewType(v); setShowConfirm(false); }}
+          ariaLabel="New token type"
+          placeholder="Choose type…"
           className={AUTHORING.select}
-        >
-          <option value="">Choose type…</option>
-          {DTCG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
+        />
 
         {newType && typeChangeInfo && !showConfirm && typeChangeInfo.currentTypes.length > 0 && (
           <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
@@ -127,7 +132,7 @@ export function ChangeTypeAction({
           </div>
         )}
 
-        {showConfirm && typeChangeInfo && (
+        {(showConfirm || hasIncompatible) && typeChangeInfo && (
           <div className={`rounded border px-2 py-1.5 space-y-1 ${
             hasIncompatible
               ? 'border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/8'
@@ -158,7 +163,7 @@ export function ChangeTypeAction({
                   </button>
                 )}
                 <p className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
-                  This will produce invalid tokens. Update values afterward or cancel.
+                  Change is blocked until these values are updated or removed from selection.
                 </p>
               </div>
             ) : (

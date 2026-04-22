@@ -26,7 +26,7 @@ export function AppCommandPalette({
   const { allTokensFlat, pathToCollectionId } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useGeneratorContext();
   const { navigateTo } = useNavigationContext();
-  const { setEditingToken, setHighlightedToken, setPendingHighlight } =
+  const { setTokenDetails, setHighlightedToken, setPendingHighlight } =
     useEditorContext();
   const tokens = useTokensWorkspaceController();
   const { commands, currentCollectionPaletteTokens } = useCommandPaletteCommands();
@@ -106,7 +106,7 @@ export function AppCommandPalette({
       onGoToToken={(path) => {
         const targetCollectionId = pathToCollectionId[path];
         navigateTo("library");
-        setEditingToken(null);
+        setTokenDetails(null);
         if (targetCollectionId && targetCollectionId !== currentCollectionId) {
           setCurrentCollectionId(targetCollectionId);
           setPendingHighlight(path);
@@ -116,7 +116,7 @@ export function AppCommandPalette({
       }}
       onGoToGroup={(groupPath) => {
         navigateTo("library");
-        setEditingToken(null);
+        setTokenDetails(null);
         setHighlightedToken(groupPath);
       }}
       onCopyTokenPath={(path) => {

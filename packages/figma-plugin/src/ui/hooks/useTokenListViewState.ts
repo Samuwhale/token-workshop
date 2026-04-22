@@ -2,9 +2,11 @@ import { useState, useCallback, useEffect } from "react";
 import { STORAGE_KEY_BUILDERS, STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import { VIRTUAL_ITEM_HEIGHT } from "../components/tokenListTypes";
 import type { SortOrder } from "../components/tokenListUtils";
+import type { TokenGroupBy } from "../components/tokenListTypes";
 import type { TokenCollection } from "@tokenmanager/core";
 
 const VALID_SORT_ORDERS: SortOrder[] = ["default", "alpha-asc", "by-type"];
+const VALID_GROUP_BY: TokenGroupBy[] = ["path", "type"];
 
 function dispatchTokenListViewChanged(collectionId: string): void {
   window.dispatchEvent(
@@ -26,6 +28,7 @@ export function useTokenListViewState({
   const [inspectMode, setInspectMode] = useState(false);
 
   const [viewMode, setViewModeState] = useState<"tree" | "json">("tree");
+  const [groupBy, setGroupByState] = useState<TokenGroupBy>("path");
 
   useEffect(() => {
     const stored = lsGet(STORAGE_KEY_BUILDERS.tokenViewMode(collectionId));
@@ -36,6 +39,24 @@ export function useTokenListViewState({
     (mode: "tree" | "json") => {
       setViewModeState(mode);
       lsSet(STORAGE_KEY_BUILDERS.tokenViewMode(collectionId), mode);
+      dispatchTokenListViewChanged(collectionId);
+    },
+    [collectionId],
+  );
+
+  useEffect(() => {
+    const stored = lsGet(STORAGE_KEY_BUILDERS.tokenGroupBy(collectionId));
+    setGroupByState(
+      VALID_GROUP_BY.includes(stored as TokenGroupBy)
+        ? (stored as TokenGroupBy)
+        : "path",
+    );
+  }, [collectionId]);
+
+  const setGroupBy = useCallback(
+    (value: TokenGroupBy) => {
+      setGroupByState(value);
+      lsSet(STORAGE_KEY_BUILDERS.tokenGroupBy(collectionId), value);
       dispatchTokenListViewChanged(collectionId);
     },
     [collectionId],
@@ -120,6 +141,8 @@ export function useTokenListViewState({
     setInspectMode,
     viewMode,
     setViewMode,
+    groupBy,
+    setGroupBy,
     sortOrder,
     setSortOrder,
     showResolvedValues,

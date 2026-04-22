@@ -172,7 +172,7 @@ export function TokenSelectionToolbar({
               <div className={menuSeparator} />
               {hasScopableTypes && (
                 <button type="button" role="menuitem" onClick={() => openAction('figma-scopes', close)} className={menuItemClass}>
-                  Figma scopes
+                  Can apply to
                 </button>
               )}
               <button type="button" role="menuitem" onClick={() => openAction('set-extensions', close)} className={menuItemClass}>

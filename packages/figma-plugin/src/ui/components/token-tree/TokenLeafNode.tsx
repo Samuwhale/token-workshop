@@ -104,6 +104,7 @@ export const TokenLeafNode = memo(
     const {
       collectionId,
       selectionCapabilities,
+      groupBy,
       selectMode,
       duplicateCounts,
       highlightedToken,
@@ -157,6 +158,7 @@ export const TokenLeafNode = memo(
     } = useTokenTreeLeafActions();
 
     const isHighlighted = highlightedToken === node.path;
+    const structuralActionsEnabled = groupBy === "path";
     const isPreviewed = previewedPath === node.path;
     const [hovered, setHovered] = useState(false);
     const [hoverPreviewVisible, setHoverPreviewVisible] = useState(false);
@@ -230,11 +232,19 @@ export const TokenLeafNode = memo(
     // When this token is the pending rename target (e.g. after Cmd+D duplicate), activate inline rename
     useEffect(() => {
       if (pendingRenameToken === node.path) {
-        setRenameTokenVal(node.name);
-        setRenamingToken(true);
+        if (structuralActionsEnabled) {
+          setRenameTokenVal(node.name);
+          setRenamingToken(true);
+        }
         clearPendingRename();
       }
-    }, [pendingRenameToken, node.path, node.name, clearPendingRename]);
+    }, [
+      structuralActionsEnabled,
+      pendingRenameToken,
+      node.path,
+      node.name,
+      clearPendingRename,
+    ]);
 
     const closeTokenMenus = useCallback(() => {
       setContextMenuPos(null);
@@ -868,14 +878,14 @@ export const TokenLeafNode = memo(
         }
 
         // Cmd+D / Ctrl+D: duplicate token
-        if (matchesShortcut(e, "TOKEN_DUPLICATE")) {
+        if (structuralActionsEnabled && matchesShortcut(e, "TOKEN_DUPLICATE")) {
           e.preventDefault();
           onDuplicateToken?.(node.path);
           return;
         }
 
         // F2: rename token inline
-        if (matchesShortcut(e, "TOKEN_RENAME")) {
+        if (structuralActionsEnabled && matchesShortcut(e, "TOKEN_RENAME")) {
           e.preventDefault();
           setRenameTokenVal(node.name);
           setRenamingToken(true);
@@ -900,6 +910,7 @@ export const TokenLeafNode = memo(
         onDelete,
         onDuplicateToken,
         handleContextMenuApply,
+        structuralActionsEnabled,
       ],
     );
 
@@ -925,8 +936,9 @@ export const TokenLeafNode = memo(
           data-token-path={node.path}
           data-node-name={node.name}
           onFocus={() => onRovingFocus(node.path)}
-          draggable={!selectMode || isSelected}
+          draggable={structuralActionsEnabled && (!selectMode || isSelected)}
           onDragStart={(e) => {
+            if (!structuralActionsEnabled) return;
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("application/x-token-drag", "true");
             let dragPaths: string[];
@@ -954,8 +966,13 @@ export const TokenLeafNode = memo(
             }
             onDragStart?.(dragPaths, dragNames);
           }}
-          onDragEnd={() => onDragEnd?.()}
+          onDragEnd={() => {
+            if (structuralActionsEnabled) {
+              onDragEnd?.();
+            }
+          }}
           onDragOver={(e) => {
+            if (!structuralActionsEnabled) return;
             if (!e.dataTransfer.types.includes("application/x-token-drag"))
               return;
             e.preventDefault();
@@ -966,11 +983,13 @@ export const TokenLeafNode = memo(
             onDragOverToken?.(node.path, node.name, pos);
           }}
           onDragLeave={(e) => {
+            if (!structuralActionsEnabled) return;
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
               onDragLeaveToken?.();
             }
           }}
           onDrop={(e) => {
+            if (!structuralActionsEnabled) return;
             if (!e.dataTransfer.types.includes("application/x-token-drag"))
               return;
             e.preventDefault();
@@ -1277,19 +1296,21 @@ export const TokenLeafNode = memo(
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                     <span className="flex-1">Edit</span>
                   </button>
-                  <button
-                    role="menuitem"
-                    tabIndex={-1}
-                    data-accel="r"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { closeTokenMenus(); setRenameTokenVal(node.name); setRenamingToken(true); }}
-                    className={MENU_ITEM_CLASS}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
-                    <span className="flex-1">Rename</span>
-                    <span className={MENU_SHORTCUT_CLASS}>F2</span>
-                  </button>
-                  {onDuplicateToken && (
+                  {structuralActionsEnabled && (
+                    <button
+                      role="menuitem"
+                      tabIndex={-1}
+                      data-accel="r"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { closeTokenMenus(); setRenameTokenVal(node.name); setRenamingToken(true); }}
+                      className={MENU_ITEM_CLASS}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
+                      <span className="flex-1">Rename</span>
+                      <span className={MENU_SHORTCUT_CLASS}>F2</span>
+                    </button>
+                  )}
+                  {structuralActionsEnabled && onDuplicateToken && (
                     <button
                       role="menuitem"
                       tabIndex={-1}
@@ -1388,7 +1409,7 @@ export const TokenLeafNode = memo(
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M20 6L9 17l-5-5" /></svg>
                     <span className="flex-1">Copy value</span>
                   </button>
-                  {onRequestMoveToken && (
+                  {structuralActionsEnabled && onRequestMoveToken && (
                     <button
                       role="menuitem"
                       tabIndex={-1}
@@ -1402,7 +1423,7 @@ export const TokenLeafNode = memo(
                       <span className={MENU_SHORTCUT_CLASS}>M</span>
                     </button>
                   )}
-                  {onRequestCopyToken && (
+                  {structuralActionsEnabled && onRequestCopyToken && (
                     <button
                       role="menuitem"
                       tabIndex={-1}

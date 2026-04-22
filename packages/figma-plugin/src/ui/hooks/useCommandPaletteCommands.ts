@@ -57,7 +57,7 @@ export function useCommandPaletteCommands(): {
   const {
     highlightedToken,
     setHighlightedToken,
-    setEditingToken,
+    setTokenDetails,
     setShowTokensCompare,
     setTokensCompareMode,
     setTokensCompareModeKey,
@@ -90,7 +90,7 @@ export function useCommandPaletteCommands(): {
 
     const goToTokens = () => {
       navigateTo("library");
-      setEditingToken(null);
+      setTokenDetails(null);
     };
 
     const goToTokensAndRun = (
@@ -118,7 +118,12 @@ export function useCommandPaletteCommands(): {
         shortcut: adaptShortcut("⌘N"),
         handler: () => {
           navigateTo("library");
-          setEditingToken({ path: "", currentCollectionId, isCreate: true });
+          setTokenDetails({
+            path: "",
+            currentCollectionId,
+            mode: "edit",
+            isCreate: true,
+          });
         },
       },
       {
@@ -160,9 +165,10 @@ export function useCommandPaletteCommands(): {
             }
             const inferredType = inferTypeFromValue(trimmed) || "string";
             goToTokens();
-            setEditingToken({
+            setTokenDetails({
               path: "",
               currentCollectionId,
+              mode: "edit",
               isCreate: true,
               initialType: inferredType,
               initialValue: trimmed,
@@ -183,7 +189,7 @@ export function useCommandPaletteCommands(): {
         category: "Tokens",
         handler: () => {
           navigateTo("library");
-          setEditingToken(null);
+          setTokenDetails(null);
           setTimeout(() => {
             tokens.tokenListCompareRef.current?.showRecentlyTouched();
           }, 0);
@@ -341,7 +347,7 @@ export function useCommandPaletteCommands(): {
     selectionHealth.unboundWithValueCount,
     selectionHealth.staleBindingCount,
     selectionHealth.staleBindingEntries,
-    setEditingToken,
+    setTokenDetails,
     setPendingRepairPrefill,
     shell,
     switchContextualSurface,
@@ -353,7 +359,7 @@ export function useCommandPaletteCommands(): {
   const collectionCommands = useMemo<Command[]>(() => {
     const goToTokens = () => {
       navigateTo("library");
-      setEditingToken(null);
+      setTokenDetails(null);
     };
 
     return collectionIds.map((collectionId) => ({
@@ -366,11 +372,11 @@ export function useCommandPaletteCommands(): {
         goToTokens();
       },
     }));
-  }, [navigateTo, setCurrentCollectionId, setEditingToken, collectionTokenCounts, collectionIds]);
+  }, [navigateTo, setCurrentCollectionId, setTokenDetails, collectionTokenCounts, collectionIds]);
 
   const openCompareInTokens = useCallback(
     (mode: "mode-options" | "cross-collection", path?: string) => {
-      setEditingToken(null);
+      setTokenDetails(null);
       setTokensCompareMode(mode);
       setTokensComparePath(path ?? "");
       setTokensComparePaths(new Set());
@@ -378,7 +384,7 @@ export function useCommandPaletteCommands(): {
       setShowTokensCompare(true);
       navigateTo("library", "tokens");
     },
-    [navigateTo, setEditingToken, setShowTokensCompare, setTokensCompareMode, setTokensCompareModeKey, setTokensComparePath, setTokensComparePaths],
+    [navigateTo, setTokenDetails, setShowTokensCompare, setTokensCompareMode, setTokensCompareModeKey, setTokensComparePath, setTokensComparePaths],
   );
 
   const modeCompareCommands = useMemo<Command[]>(() => {

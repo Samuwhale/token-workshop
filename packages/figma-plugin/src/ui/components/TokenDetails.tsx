@@ -1,5 +1,5 @@
 import { adaptShortcut, stableStringify } from "../shared/utils";
-import { Network, Copy, Rows3, Check, ChevronDown, ChevronRight, Clock, Trash2, Link2, X, Plus } from "lucide-react";
+import { Network, Copy, Check, ChevronRight, Clock, Trash2, Link2, X, Plus } from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -12,17 +12,20 @@ import type { TokenCollection } from "@tokenmanager/core";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
-import { tokenTypeBadgeClass, ALL_TOKEN_TYPES } from "../../shared/types";
+import { tokenTypeBadgeClass } from "../../shared/types";
+import { TypePicker } from "./TypePicker";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
-import { AliasAutocomplete } from "./AliasAutocomplete";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
 import { MetadataEditor } from "./MetadataEditor";
 import { ScopeEditor } from "./ScopeEditor";
-import { FIGMA_SCOPE_OPTIONS } from "../shared/tokenMetadata";
-import { ModeValueEditor } from "./token-editor/ModeValueEditor";
+import {
+  FIGMA_SCOPE_OPTIONS,
+  getLifecycleLabel,
+  getScopeLabels,
+} from "../shared/tokenMetadata";
 import { useTokenEditorModeValue } from "../hooks/useTokenEditorModeValue";
 import { PathAutocomplete } from "./PathAutocomplete";
 import { Collapsible } from "./Collapsible";
@@ -51,19 +54,21 @@ import {
 import { sanitizeEditorCollectionModeValues } from "../shared/collectionModeUtils";
 import { omitTokenEditorReservedExtensions } from "../shared/tokenEditorTypes";
 
-import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS, buildTypographyPreviewStyle, getTypographyPreviewValue } from "./token-editor/tokenEditorHelpers";
+import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
 import { valueFormatHint } from "./tokenListHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
 import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
 import { TokenEditorLintBanner } from "./token-editor/TokenEditorLintBanner";
 import type { LintViolation } from "../hooks/useLint";
+import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
 
-interface TokenEditorProps {
+interface TokenDetailsProps {
   tokenPath: string;
   tokenName?: string;
   currentCollectionId: string;
   collectionId?: string;
   serverUrl: string;
+  mode?: "inspect" | "edit";
   onBack: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
@@ -89,15 +94,19 @@ interface TokenEditorProps {
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
+  onEnterEditMode?: () => void;
+  onDuplicate?: () => void;
+  onOpenInHealth?: () => void;
 }
 
 
-export function TokenEditor({
+export function TokenDetails({
   tokenPath,
   tokenName,
   currentCollectionId,
   collectionId: explicitCollectionId,
   serverUrl,
+  mode = "edit",
   onBack,
   allTokensFlat = {},
   pathToCollectionId = {},
@@ -119,7 +128,10 @@ export function TokenEditor({
   pushUndo,
   lintViolations = [],
   syncSnapshot,
-}: TokenEditorProps) {
+  onEnterEditMode,
+  onDuplicate,
+  onOpenInHealth,
+}: TokenDetailsProps) {
   const effectivePathToCollectionId = pathToCollectionId;
   const ownerCollectionId = useMemo(
     () =>
@@ -135,6 +147,9 @@ export function TokenEditor({
       tokenPath,
     ],
   );
+  const detailsMode = isCreateMode ? "edit" : mode;
+  const isInspectMode = detailsMode === "inspect";
+  const isEditMode = !isInspectMode;
   const uiState = useTokenEditorUIState({
     tokenPath,
   });
@@ -240,10 +255,10 @@ export function TokenEditor({
     setTokenType,
     value,
     setValue,
+    scopes,
     modeValues,
     setModeValues,
     setScopes,
-    setExtendsPath,
     extensionsJsonError,
     isCreateMode,
     editPath: tokenPath,
@@ -292,11 +307,6 @@ export function TokenEditor({
   const [addingEditorMode, setAddingEditorMode] = useState(false);
   const [editorNewModeName, setEditorNewModeName] = useState("");
   const [editorAddModeSaving, setEditorAddModeSaving] = useState(false);
-
-  const [perModeAlias, setPerModeAlias] = useState<Set<string>>(new Set());
-  const [perModeAliasQuery, setPerModeAliasQuery] = useState<Record<string, string>>({});
-  const [perModeAutocompleteOpen, setPerModeAutocompleteOpen] = useState<Set<string>>(new Set());
-  const previousLiteralModeValuesRef = useRef<Record<string, unknown>>({});
 
   const handleAddEditorMode = useCallback(async () => {
     const name = editorNewModeName.trim();
@@ -675,16 +685,24 @@ export function TokenEditor({
 
   useEffect(() => {
     editorSessionHost.registerSession({
-      isDirty,
+      isDirty: isEditMode ? isDirty : false,
       canSave:
+        isEditMode &&
         canSave &&
         !saving &&
         !duplicatePath &&
         (!isCreateMode || editPath.trim().length > 0),
-      save: async () => handleSaveRef.current(),
+      save: async () => {
+        if (isEditMode) {
+          return handleSaveRef.current();
+        }
+        return false;
+      },
       discard: async () => {
-        clearEditorDraft(ownerCollectionId, tokenPath);
-        setPendingDraft(null);
+        if (isEditMode) {
+          clearEditorDraft(ownerCollectionId, tokenPath);
+          setPendingDraft(null);
+        }
         onBack();
       },
       closeWhenClean: onBack,
@@ -700,6 +718,7 @@ export function TokenEditor({
     handleSaveRef,
     isCreateMode,
     isDirty,
+    isEditMode,
     onBack,
     saving,
     ownerCollectionId,
@@ -719,7 +738,7 @@ export function TokenEditor({
   }, [tokenPath]);
 
   useEffect(() => {
-    if (!isDirty || isCreateMode) return;
+    if (!isEditMode || !isDirty || isCreateMode) return;
     saveEditorDraft(ownerCollectionId, tokenPath, {
       tokenType,
       value,
@@ -733,6 +752,7 @@ export function TokenEditor({
     });
   }, [
     isDirty,
+    isEditMode,
     ownerCollectionId,
     tokenPath,
     isCreateMode,
@@ -813,23 +833,6 @@ export function TokenEditor({
   }, []);
   const [devMetadataOpen, setDevMetadataOpen] = useState(false);
   const [rawJsonOpen, setRawJsonOpen] = useState(false);
-
-  useEffect(() => {
-    if (loading) return;
-    const aliasSet = new Set<string>();
-    const queries: Record<string, string> = {};
-    for (const mode of modeValue.modes) {
-      if (typeof mode.value === "string" && isAlias(mode.value)) {
-        aliasSet.add(mode.name);
-        queries[mode.name] = extractAliasPath(mode.value) ?? "";
-      } else {
-        previousLiteralModeValuesRef.current[mode.name] = mode.value;
-      }
-    }
-    setPerModeAlias(aliasSet);
-    setPerModeAliasQuery(queries);
-    setPerModeAutocompleteOpen(new Set());
-  }, [loading, modeValue.modes]);
 
   const rawJsonPreview = useMemo(() => {
     const extensions: Record<string, unknown> = {};
@@ -958,7 +961,7 @@ export function TokenEditor({
             <span className="truncate font-mono text-body text-[var(--color-figma-text)]" title={tokenPath}>
               {tokenPath}
             </span>
-            {isDirty && (
+            {isEditMode && isDirty && (
               <span
                 className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
                 title="Unsaved changes"
@@ -977,22 +980,24 @@ export function TokenEditor({
             <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
               in {ownerCollectionId}
             </span>
-            <span className="relative inline-flex items-center shrink-0">
-              <select
-                value={tokenType}
-                onChange={(e) => handleTypeChange(e.target.value)}
-                title="Change token type"
-                className={`pr-4 pl-1.5 py-0.5 rounded text-secondary font-medium uppercase cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${tokenTypeBadgeClass(tokenType)}`}
-                style={{ backgroundImage: "none" }}
+            {isInspectMode ? (
+              <span
+                className={`px-1.5 py-0.5 rounded text-secondary font-medium uppercase ${tokenTypeBadgeClass(tokenType)}`}
               >
-                {ALL_TOKEN_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={8} strokeWidth={2} className="pointer-events-none absolute right-1 opacity-60" aria-hidden />
-            </span>
+                {tokenType}
+              </span>
+            ) : (
+              <span className="shrink-0">
+                <TypePicker
+                  value={tokenType}
+                  onChange={handleTypeChange}
+                  title="Change token type"
+                  withChevron
+                  className={`pr-4 pl-1.5 py-0.5 rounded text-secondary font-medium cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${tokenTypeBadgeClass(tokenType)}`}
+                  style={{ backgroundImage: "none" }}
+                />
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -1020,6 +1025,24 @@ export function TokenEditor({
           )}
         </button>
       )}
+      {!isCreateMode && isInspectMode && onDuplicate && (
+        <button
+          type="button"
+          onClick={onDuplicate}
+          className="px-2 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+        >
+          Duplicate
+        </button>
+      )}
+      {!isCreateMode && isInspectMode && onEnterEditMode && (
+        <button
+          type="button"
+          onClick={onEnterEditMode}
+          className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
+        >
+          Edit
+        </button>
+      )}
       {valueIsAlias &&
         tokenType === "color" &&
         (() => {
@@ -1042,7 +1065,7 @@ export function TokenEditor({
 
   const afterHeader = (
     <>
-      {pendingDraft && !isCreateMode && (
+      {isEditMode && pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-body">
           <Clock size={11} strokeWidth={2} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />
           <span className="flex-1 text-[var(--color-figma-warning)] truncate">
@@ -1070,7 +1093,7 @@ export function TokenEditor({
     </>
   );
 
-  const footer = (
+  const footer = isInspectMode ? null : (
     <div className={AUTHORING_SURFACE_CLASSES.footer}>
       {(footerNote || (isCreateMode && onSaveAndCreateAnother)) && (
         <div className={`${AUTHORING_SURFACE_CLASSES.footerMeta} flex items-center justify-between gap-2`}>
@@ -1177,17 +1200,19 @@ export function TokenEditor({
           >
             {extendsPath}
           </span>
-          <button
-            type="button"
-            onClick={() => setExtendsPath("")}
-            title="Remove base token"
-            aria-label="Remove base token"
-            className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
-          >
-            <X size={8} strokeWidth={2} aria-hidden />
-          </button>
+          {isEditMode && (
+            <button
+              type="button"
+              onClick={() => setExtendsPath("")}
+              title="Remove base token"
+              aria-label="Remove base token"
+              className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+            >
+              <X size={8} strokeWidth={2} aria-hidden />
+            </button>
+          )}
         </div>
-      ) : (
+      ) : isEditMode ? (
         <ExtendsTokenPicker
           tokenType={tokenType}
           allTokensFlat={allTokensFlat}
@@ -1195,6 +1220,10 @@ export function TokenEditor({
           currentPath={isCreateMode ? trimmedEditPath : tokenPath}
           onSelect={setExtendsPath}
         />
+      ) : (
+        <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          No base token
+        </p>
       )}
       {extendsPath &&
         (() => {
@@ -1214,6 +1243,10 @@ export function TokenEditor({
         })()}
     </div>
   ) : null;
+
+  const scopeLabels = getScopeLabels(tokenType, scopes);
+  const lifecycleLabel = getLifecycleLabel(lifecycle) ?? "Published";
+  const readOnlyExtensionsText = extensionsJsonText.trim() || "{}";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -1256,7 +1289,7 @@ export function TokenEditor({
         <TokenEditorLintBanner lintViolations={tokenLintViolations} />
 
         {/* Type-change confirmation — shown when a type switch would reset a non-default value */}
-        {pendingTypeChange && (
+        {isEditMode && pendingTypeChange && (
           <div className="px-2 py-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 text-secondary">
             <p className="text-[var(--color-figma-text)] mb-2">
               Switch to <strong>{pendingTypeChange}</strong>? This will reset
@@ -1358,18 +1391,12 @@ export function TokenEditor({
                 <label className="mb-1 block text-secondary font-medium text-[var(--color-figma-text-secondary)]">
                   Type
                 </label>
-                <select
+                <TypePicker
                   value={tokenType}
-                  onChange={(e) => handleTypeChange(e.target.value)}
+                  onChange={handleTypeChange}
                   title="Change token type"
-                  className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary font-medium uppercase text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                >
-                  {ALL_TOKEN_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                  className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                />
               </div>
             </div>
             <div className="relative" ref={pathInputWrapperRef}>
@@ -1449,7 +1476,11 @@ export function TokenEditor({
           </div>
         )}
 
-        <div className="flex flex-col gap-2" ref={valueEditorContainerRef} onPaste={handlePaste}>
+        <div
+          className="flex flex-col gap-2"
+          ref={valueEditorContainerRef}
+          onPaste={isEditMode ? handlePaste : undefined}
+        >
           <div
             className="divide-y divide-[var(--color-figma-border)]/50 rounded-md border border-[var(--color-figma-border)]/65"
             title={modeValue.modes.length >= 2 ? (valueFormatHint(tokenType) || undefined) : undefined}
@@ -1462,228 +1493,75 @@ export function TokenEditor({
                 : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[mode.name];
               const isModeModified = initialModeVal !== undefined
                 && stableStringify(modeVal ?? "") !== stableStringify(initialModeVal ?? "");
-              const modeColorSwatch = tokenType === "color" && typeof modeVal === "string"
-                ? (isAlias(modeVal)
-                    ? resolveRefValue(extractAliasPath(modeVal) ?? "", colorFlatMap) ?? null
-                    : modeVal)
-                : null;
-              const modeTypoPreview = tokenType === "typography"
-                ? getTypographyPreviewValue(modeVal ?? "")
-                : null;
-              const isModeEmpty = modeVal === undefined || modeVal === null || modeVal === "";
-              const isModeInAliasMode = perModeAlias.has(mode.name) || (typeof modeVal === "string" && isAlias(modeVal));
               const showModeLabel = modeValue.modes.length >= 2;
 
               return (
-                <div
+                <TokenDetailsModeRow
                   key={mode.name}
-                  data-token-editor-mode={mode.name}
-                  data-token-editor-alias={isModeInAliasMode ? "1" : "0"}
-                  className={`group/mode flex flex-col${isModeEmpty ? " bg-[var(--color-figma-warning,#f59e0b)]/5" : ""}`}
-                >
-                  <div className="flex items-center gap-2 px-2.5 py-1.5">
-                    <div className={`${showModeLabel ? "w-[92px]" : ""} shrink-0 flex items-center gap-1`}>
-                      {isModeModified && !isCreateMode && (
-                        <span
-                          className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
-                          title="Modified"
-                          aria-label="Modified"
-                        />
-                      )}
-                      {showModeLabel && (
-                        <span
-                          className="truncate text-body font-medium text-[var(--color-figma-text)]"
-                          title={mode.name}
-                        >
-                          {mode.name}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPerModeAlias((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(mode.name)) {
-                              next.delete(mode.name);
-                              if (typeof modeVal === "string" && isAlias(modeVal)) {
-                                const resolvedValue = resolveSyncComparableValue({
-                                  tokenPath,
-                                  allTokensFlat,
-                                  currentValue: modeVal,
-                                  currentType: tokenType,
-                                });
-                                mode.setValue(
-                                  resolvedValue ??
-                                    previousLiteralModeValuesRef.current[mode.name] ??
-                                    "",
-                                );
-                              }
-                            } else {
-                              previousLiteralModeValuesRef.current[mode.name] = modeVal;
-                              next.add(mode.name);
-                              setPerModeAliasQuery((prev) => ({
-                                ...prev,
-                                [mode.name]: typeof modeVal === "string" && isAlias(modeVal)
-                                  ? (extractAliasPath(modeVal) ?? "")
-                                  : "",
-                              }));
-                              setPerModeAutocompleteOpen((prev) => {
-                                const next = new Set(prev);
-                                next.add(mode.name);
-                                return next;
-                              });
-                            }
-                            return next;
+                  modeName={mode.name}
+                  tokenType={tokenType}
+                  value={modeVal}
+                  editable={isEditMode}
+                  onChange={isEditMode ? mode.setValue : undefined}
+                  allTokensFlat={allTokensFlat}
+                  pathToCollectionId={pathToCollectionId}
+                  showModeLabel={showModeLabel}
+                  autoFocus={modeIdx === 0 && !isCreateMode && isEditMode}
+                  baseValue={baseVal}
+                  availableFonts={availableFonts}
+                  fontWeightsByFamily={fontWeightsByFamily}
+                  fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
+                  fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
+                  modified={isModeModified && !isCreateMode}
+                  onNavigateToToken={(path) => onNavigateToToken?.(path, tokenPath)}
+                  allowCopyFromPrevious={isEditMode && modeValue.modes.length > 1}
+                  onCopyFromPrevious={
+                    isEditMode && modeValue.modes.length > 1
+                      ? () => {
+                          const sourceIdx =
+                            modeIdx === 0
+                              ? modeValue.modes.length - 1
+                              : modeIdx - 1;
+                          const sourceValue = modeValue.modes[sourceIdx].value;
+                          if (sourceValue !== "" && sourceValue != null) {
+                            mode.setValue(
+                              typeof sourceValue === "object"
+                                ? JSON.parse(JSON.stringify(sourceValue))
+                                : sourceValue,
+                            );
+                          }
+                        }
+                      : undefined
+                  }
+                  allowCopyToAll={
+                    isEditMode &&
+                    modeValue.modes.length > 1 &&
+                    modeVal !== "" &&
+                    modeVal != null
+                  }
+                  onCopyToAll={
+                    isEditMode &&
+                    modeValue.modes.length > 1 &&
+                    modeVal !== "" &&
+                    modeVal != null
+                      ? () => {
+                          const sourceValue = mode.value;
+                          if (sourceValue === "" || sourceValue == null) return;
+                          modeValue.modes.forEach((destMode, destIdx) => {
+                            if (destIdx === modeIdx) return;
+                            destMode.setValue(
+                              typeof sourceValue === "object"
+                                ? JSON.parse(JSON.stringify(sourceValue))
+                                : sourceValue,
+                            );
                           });
-                        }}
-                        className={`shrink-0 rounded p-0.5 transition-all ${isModeInAliasMode ? "text-[var(--color-figma-accent)]" : "opacity-30 group-hover/mode:opacity-100 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"} hover:bg-[var(--color-figma-bg-hover)]`}
-                        title={isModeInAliasMode ? "Switch to direct value" : "Switch to reference"}
-                        aria-label={isModeInAliasMode ? "Switch to direct value" : "Switch to reference"}
-                      >
-                        <Link2 size={10} strokeWidth={2} aria-hidden />
-                      </button>
-                      {modeValue.modes.length > 1 && !isModeInAliasMode && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const sourceIdx = modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1;
-                            const sourceValue = modeValue.modes[sourceIdx].value;
-                            if (sourceValue !== "" && sourceValue != null) {
-                              mode.setValue(
-                                typeof sourceValue === "object"
-                                  ? JSON.parse(JSON.stringify(sourceValue))
-                                  : sourceValue
-                              );
-                            }
-                          }}
-                          className="opacity-60 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
-                          title={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
-                          aria-label={`Copy from ${modeValue.modes[modeIdx === 0 ? modeValue.modes.length - 1 : modeIdx - 1].name}`}
-                        >
-                          <Copy size={10} strokeWidth={2} aria-hidden />
-                        </button>
-                      )}
-                      {modeValue.modes.length > 1 && !isModeInAliasMode && modeVal !== "" && modeVal != null && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const sourceValue = mode.value;
-                            if (sourceValue === "" || sourceValue == null) return;
-                            modeValue.modes.forEach((destMode, destIdx) => {
-                              if (destIdx === modeIdx) return;
-                              destMode.setValue(
-                                typeof sourceValue === "object"
-                                  ? JSON.parse(JSON.stringify(sourceValue))
-                                  : sourceValue
-                              );
-                            });
-                          }}
-                          className="opacity-60 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
-                          title="Copy to all other modes"
-                          aria-label="Copy to all other modes"
-                        >
-                          <Rows3 size={10} strokeWidth={2} aria-hidden />
-                        </button>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      {isModeInAliasMode ? (
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={perModeAliasQuery[mode.name] ?? (typeof modeVal === "string" && isAlias(modeVal) ? (extractAliasPath(modeVal) ?? "") : "")}
-                            onChange={(e) => {
-                              const q = e.target.value;
-                              setPerModeAliasQuery((prev) => ({ ...prev, [mode.name]: q }));
-                              setPerModeAutocompleteOpen((prev) => {
-                                const next = new Set(prev);
-                                next.add(mode.name);
-                                return next;
-                              });
-                            }}
-                            onFocus={() => {
-                              setPerModeAutocompleteOpen((prev) => {
-                                const next = new Set(prev);
-                                next.add(mode.name);
-                                return next;
-                              });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Escape") {
-                                setPerModeAutocompleteOpen((prev) => {
-                                  const next = new Set(prev);
-                                  next.delete(mode.name);
-                                  return next;
-                                });
-                              }
-                            }}
-                            autoFocus={modeIdx === 0 && !isCreateMode}
-                            placeholder="Search tokens…"
-                            className="w-full font-mono border border-[var(--color-figma-border)] rounded px-2 py-0.5 text-body bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
-                          />
-                          {perModeAutocompleteOpen.has(mode.name) && (
-                            <AliasAutocomplete
-                              query={perModeAliasQuery[mode.name] ?? ""}
-                              allTokensFlat={allTokensFlat}
-                              pathToCollectionId={pathToCollectionId}
-                              filterType={tokenType}
-                              onSelect={(path) => {
-                                mode.setValue(`{${path}}`);
-                                setPerModeAliasQuery((prev) => ({ ...prev, [mode.name]: path }));
-                                setPerModeAutocompleteOpen((prev) => {
-                                  const next = new Set(prev);
-                                  next.delete(mode.name);
-                                  return next;
-                                });
-                              }}
-                              onClose={() => {
-                                setPerModeAutocompleteOpen((prev) => {
-                                  const next = new Set(prev);
-                                  next.delete(mode.name);
-                                  return next;
-                                });
-                              }}
-                            />
-                          )}
-                        </div>
-                      ) : (
-                        <ModeValueEditor
-                          tokenType={tokenType}
-                          value={modeVal}
-                          onChange={mode.setValue}
-                          allTokensFlat={allTokensFlat}
-                          pathToCollectionId={pathToCollectionId}
-                          autoFocus={modeIdx === 0 && !isCreateMode}
-                          baseValue={baseVal}
-                          availableFonts={availableFonts}
-                          fontWeightsByFamily={fontWeightsByFamily}
-                          fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
-                          fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
-                        />
-                      )}
-                    </div>
-                    {modeColorSwatch && (
-                      <div
-                        className="shrink-0 w-4 h-4 rounded-sm border border-[var(--color-figma-border)]"
-                        style={{ backgroundColor: modeColorSwatch }}
-                        aria-label={`Color: ${modeColorSwatch}`}
-                      />
-                    )}
-                  </div>
-                  {modeTypoPreview && (
-                    <div className="px-2.5 pb-1.5">
-                      <span
-                        className="block truncate text-body text-[var(--color-figma-text-secondary)] leading-normal"
-                        style={buildTypographyPreviewStyle(modeTypoPreview)}
-                      >
-                        Aa Bb Cc
-                      </span>
-                    </div>
-                  )}
-                </div>
+                        }
+                      : undefined
+                  }
+                />
               );
             })}
-            {addingEditorMode ? (
+            {isEditMode && addingEditorMode ? (
               <div className="flex items-center gap-2 px-2.5 py-1.5">
                 <input
                   type="text"
@@ -1708,7 +1586,7 @@ export function TokenEditor({
                   className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
                 />
               </div>
-            ) : (
+            ) : isEditMode ? (
               <button
                 type="button"
                 onClick={() => setAddingEditorMode(true)}
@@ -1717,11 +1595,12 @@ export function TokenEditor({
                 <Plus size={10} strokeWidth={2} aria-hidden />
                 Add mode
               </button>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {tokenType === "color" &&
+        {isEditMode &&
+          tokenType === "color" &&
           (valueIsAlias || (typeof value === "string" && value.length > 0)) && (
             <ColorModifiersEditor
               reference={valueIsAlias ? (value as string) : undefined}
@@ -1733,6 +1612,16 @@ export function TokenEditor({
               onColorModifiersChange={setColorModifiers}
             />
           )}
+        {isInspectMode && colorModifiers.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+              Color modifiers
+            </label>
+            <pre className="max-h-32 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
+              {JSON.stringify(colorModifiers, null, 2)}
+            </pre>
+          </div>
+        )}
         {tokenType === "color" && !isCreateMode && (
           <ContrastChecker
             tokenPath={tokenPath}
@@ -1766,7 +1655,9 @@ export function TokenEditor({
                   <span className="font-medium text-[var(--color-figma-text)]">
                     {activeProducingGenerator.name}
                   </span>
-                  . Saving here will ask whether to edit the generator, keep a manual exception, or detach this token.
+                  {isInspectMode
+                    ? ". Edit the generator to change the source rules for this token."
+                    : ". Saving here will ask whether to edit the generator, keep a manual exception, or detach this token."}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -1788,17 +1679,68 @@ export function TokenEditor({
                     Edit generator
                   </button>
                 )}
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleDetachGeneratorOwnership();
+                    }}
+                    disabled={detachingGeneratorOwnership}
+                    className="text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                  >
+                    {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isCreateMode && dependents.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+                Dependent tokens
+              </label>
+              {isInspectMode && onOpenInHealth && (
                 <button
                   type="button"
-                  onClick={() => {
-                    void handleDetachGeneratorOwnership();
-                  }}
-                  disabled={detachingGeneratorOwnership}
-                  className="text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                  onClick={onOpenInHealth}
+                  className="text-secondary text-[var(--color-figma-accent)] hover:underline"
                 >
-                  {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
+                  Open in health
                 </button>
-              </div>
+              )}
+            </div>
+            <div className="flex max-h-28 flex-col gap-0.5 overflow-y-auto rounded-md border border-[var(--color-figma-border)]/65 px-2 py-2">
+              {dependents.slice(0, 20).map((dep) =>
+                onNavigateToToken ? (
+                  <button
+                    key={dep.path}
+                    type="button"
+                    onClick={() => onNavigateToToken(dep.path, tokenPath)}
+                    className="flex items-center gap-1 rounded px-1 py-0.5 text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                    title={`Open ${dep.path}`}
+                  >
+                    <Network size={8} strokeWidth={2} className="shrink-0 opacity-60" aria-hidden />
+                    <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
+                    {dep.collectionId !== ownerCollectionId && (
+                      <span className="ml-auto shrink-0 rounded px-1 py-0.5 text-[8px] text-[var(--color-figma-text-tertiary)] ring-1 ring-[var(--color-figma-border)]">
+                        {dep.collectionId}
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  <span key={dep.path} className="font-mono text-secondary text-[var(--color-figma-text)]">
+                    {dep.path}
+                  </span>
+                ),
+              )}
+              {dependents.length > 20 && (
+                <span className="px-1 py-0.5 text-secondary text-[var(--color-figma-text-tertiary)] italic">
+                  and {dependents.length - 20} more…
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -1807,33 +1749,59 @@ export function TokenEditor({
           <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
             Description
           </label>
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Optional description"
-            rows={2}
-            className="min-h-[48px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
-          />
+          {isInspectMode ? (
+            <p className="min-h-[48px] whitespace-pre-wrap rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)]">
+              {description || "No description"}
+            </p>
+          ) : (
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Optional description"
+              rows={2}
+              className="min-h-[48px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
+            />
+          )}
         </div>
 
         {FIGMA_SCOPE_OPTIONS[tokenType] && (
           <div className="flex flex-col gap-1">
             <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-              Figma scopes
+              Can apply to
             </label>
             <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              Limit where this token can be applied in Figma. Leave empty to allow all.
+              Pick the Figma fields this token is valid for. Leave empty to allow any compatible field.
             </p>
-            <ScopeEditor
-              tokenTypes={[tokenType]}
-              selectedScopes={scopes}
-              onChange={setScopes}
-              compact
-            />
+            {isInspectMode ? (
+              <div className="rounded-md border border-[var(--color-figma-border)]/65 px-2 py-2 text-body text-[var(--color-figma-text)]">
+                {scopeLabels.length > 0 ? scopeLabels.join(", ") : "All supported scopes"}
+              </div>
+            ) : (
+              <ScopeEditor
+                tokenTypes={[tokenType]}
+                selectedScopes={scopes}
+                onChange={setScopes}
+                compact
+              />
+            )}
           </div>
         )}
 
-        {lifecycle !== "published" ? (
+        {isInspectMode ? (
+          <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
+            <span
+              className={`shrink-0 w-1.5 h-1.5 rounded-full ${
+                lifecycle === "draft"
+                  ? "bg-[var(--color-figma-warning)]"
+                  : lifecycle === "deprecated"
+                    ? "bg-[var(--color-figma-text-tertiary)]"
+                    : "bg-[var(--color-figma-accent)]"
+              }`}
+              aria-hidden
+            />
+            <span>{lifecycleLabel}</span>
+          </div>
+        ) : lifecycle !== "published" ? (
           <div className="flex items-center gap-2">
             <span
               className={`shrink-0 w-1.5 h-1.5 rounded-full ${
@@ -1877,12 +1845,18 @@ export function TokenEditor({
               label="Developer metadata"
             >
               <div className="mt-2 pl-3">
-                <MetadataEditor
-                  extensionsJsonText={extensionsJsonText}
-                  onExtensionsJsonTextChange={setExtensionsJsonText}
-                  extensionsJsonError={extensionsJsonError}
-                  onExtensionsJsonErrorChange={setExtensionsJsonError}
-                />
+                {isInspectMode ? (
+                  <pre className="max-h-40 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
+                    {readOnlyExtensionsText}
+                  </pre>
+                ) : (
+                  <MetadataEditor
+                    extensionsJsonText={extensionsJsonText}
+                    onExtensionsJsonTextChange={setExtensionsJsonText}
+                    extensionsJsonError={extensionsJsonError}
+                    onExtensionsJsonErrorChange={setExtensionsJsonError}
+                  />
+                )}
               </div>
             </Collapsible>
 

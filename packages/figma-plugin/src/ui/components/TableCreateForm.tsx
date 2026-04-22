@@ -2,6 +2,7 @@ import type { TableRow } from "../hooks/useTableCreate";
 import { inferTypeFromValue } from "./tokenListHelpers";
 import { InlineBanner } from "./InlineBanner";
 import { NoticeFieldMessage } from "../shared/noticeSystem";
+import { TypePicker } from "./TypePicker";
 
 type TableRowField = keyof Omit<TableRow, "id">;
 
@@ -207,28 +208,12 @@ export function TableCreateForm({
                   autoFocus={idx === 0}
                   className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
                 />
-                <select
+                <TypePicker
                   value={row.type}
-                  onChange={(e) =>
-                    onUpdateRow(row.id, "type", e.target.value)
-                  }
-                  aria-label={`Token ${idx + 1} type`}
+                  onChange={(v) => onUpdateRow(row.id, "type", v)}
+                  ariaLabel={`Token ${idx + 1} type`}
                   className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
-                >
-                  <option value="color">Color</option>
-                  <option value="dimension">Dimension</option>
-                  <option value="number">Number</option>
-                  <option value="string">String</option>
-                  <option value="boolean">Boolean</option>
-                  <option value="duration">Duration</option>
-                  <option value="fontFamily">Font Family</option>
-                  <option value="fontWeight">Font Weight</option>
-                  <option value="typography">Typography</option>
-                  <option value="shadow">Shadow</option>
-                  <option value="border">Border</option>
-                  <option value="gradient">Gradient</option>
-                  <option value="strokeStyle">Stroke Style</option>
-                </select>
+                />
                 <input
                   type="text"
                   placeholder="value"

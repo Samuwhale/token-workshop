@@ -106,23 +106,30 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
   const [activeProp, setActiveProp] = useState<BindableProperty>(() => inferPrimaryProperty(eligibleProps, rootNodes) ?? 'fill');
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
+  const [ignoreScope, setIgnoreScope] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
-  useEffect(() => { setActiveIdx(0); }, [query, activeProp]);
+  useEffect(() => {
+    setActiveIdx(0);
+    setIgnoreScope(false);
+  }, [query, activeProp]);
 
   // Build scored candidates for the active property
   const currentBindingForProp = getBindingForProperty(rootNodes, activeProp);
-  const { candidates, totalCount } = useMemo(() => {
+  const { candidates, totalCount, hiddenByScope } = useMemo(() => {
     const compatTypes = getCompatibleTokenTypes(activeProp);
     const currentPropValue = getCurrentValue(rootNodes, activeProp);
     const siblingBindings = collectSiblingBindings(rootNodes, activeProp);
     const nodeBoundPrefixes = collectBoundPrefixes(rootNodes);
 
-    const all = Object.entries(tokenMap)
-      .filter(([, entry]) => compatTypes.includes(entry.$type))
-      .filter(([, entry]) => isTokenScopeCompatible(entry, activeProp))
+    const typeCompatible = Object.entries(tokenMap)
+      .filter(([, entry]) => compatTypes.includes(entry.$type));
+    const scopeCompatible = typeCompatible
+      .filter(([, entry]) => isTokenScopeCompatible(entry, activeProp));
+
+    const all = (ignoreScope ? typeCompatible : scopeCompatible)
       .map(([path, entry]) => {
         const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
         const score = scoreBindCandidate(path, entry, activeProp, currentPropValue, r.value, siblingBindings, nodeBoundPrefixes);
@@ -138,8 +145,12 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
           .sort((a, b) => b.fuzzy - a.fuzzy || b.score - a.score)
       : all.sort((a, b) => b.score - a.score);
 
-    return { candidates: filtered.slice(0, MAX_CANDIDATES), totalCount: filtered.length };
-  }, [tokenMap, activeProp, rootNodes, query, currentBindingForProp]);
+    return {
+      candidates: filtered.slice(0, MAX_CANDIDATES),
+      totalCount: filtered.length,
+      hiddenByScope: Math.max(0, typeCompatible.length - scopeCompatible.length),
+    };
+  }, [tokenMap, activeProp, rootNodes, query, currentBindingForProp, ignoreScope]);
 
   // Recently-used tokens: filter global recents to those present in the current candidate list
   const { recentCandidates, mainCandidates } = useMemo(() => {
@@ -450,6 +461,33 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             </>
           )}
         </div>
+        {hiddenByScope > 0 && (
+          <div className="border-t border-[var(--color-figma-border)] px-3 py-1 text-secondary text-[var(--color-figma-text-secondary)]">
+            {ignoreScope ? (
+              <>
+                Showing all{" "}
+                <button
+                  type="button"
+                  onClick={() => setIgnoreScope(false)}
+                  className="text-[var(--color-figma-accent)] hover:underline"
+                >
+                  Restrict
+                </button>
+              </>
+            ) : (
+              <>
+                {hiddenByScope} restricted by applicability{" "}
+                <button
+                  type="button"
+                  onClick={() => setIgnoreScope(true)}
+                  className="text-[var(--color-figma-accent)] hover:underline"
+                >
+                  Show all
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Footer hints */}
         <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex gap-3 text-secondary text-[var(--color-figma-text-secondary)]">

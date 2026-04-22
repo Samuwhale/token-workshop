@@ -1,5 +1,5 @@
 /**
- * EditorContext — owns token editing state (editingToken) and
+ * EditorContext — owns token details state (tokenDetails) and
  * the token-navigation state (highlightedToken, createFromEmpty, alias
  * navigation history). Extracted from App.tsx so PanelRouter and other
  * consumers can access this state without receiving it as props.
@@ -20,19 +20,14 @@ import type { TokensLibraryGeneratedGroupEditorTarget } from '../shared/navigati
 // Types
 // ---------------------------------------------------------------------------
 
-export type EditingToken = {
+export type TokenDetailsTarget = {
   path: string;
   name?: string;
   currentCollectionId: string;
+  mode: "inspect" | "edit";
   isCreate?: boolean;
   initialType?: string;
   initialValue?: string;
-};
-
-export type InspectingToken = {
-  path: string;
-  name?: string;
-  currentCollectionId: string;
 };
 
 export type EditingGeneratedGroup = TokensLibraryGeneratedGroupEditorTarget;
@@ -40,8 +35,7 @@ export type InspectingCollection = { collectionId: string };
 export type EditorContextualSurfaceTarget =
   | { surface: null }
   | { surface: "collection-details"; collection: InspectingCollection }
-  | { surface: 'token-inspector'; token: InspectingToken }
-  | { surface: 'token-editor'; token: EditingToken }
+  | { surface: "token-details"; token: TokenDetailsTarget }
   | { surface: 'generated-group-editor'; generatedGroup: EditingGeneratedGroup }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshCompareModeConfig?: boolean }
   | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean }
@@ -50,8 +44,7 @@ export type EditorContextualSurfaceTarget =
 
 export type TokensLibraryEditorSurface =
   | "collection-details"
-  | "token-inspector"
-  | "token-editor"
+  | "token-details"
   | "generated-group-editor";
 
 export type TokensLibraryMaintenanceSurface =
@@ -65,10 +58,8 @@ export interface TokensContextualSurfaceState {
 }
 
 export interface EditorContextValue {
-  editingToken: EditingToken | null;
-  setEditingToken: Dispatch<SetStateAction<EditingToken | null>>;
-  inspectingToken: InspectingToken | null;
-  setInspectingToken: Dispatch<SetStateAction<InspectingToken | null>>;
+  tokenDetails: TokenDetailsTarget | null;
+  setTokenDetails: Dispatch<SetStateAction<TokenDetailsTarget | null>>;
   editingGeneratedGroup: EditingGeneratedGroup | null;
   setEditingGeneratedGroup: Dispatch<SetStateAction<EditingGeneratedGroup | null>>;
   inspectingCollection: InspectingCollection | null;
@@ -108,7 +99,7 @@ export interface EditorContextValue {
   /**
    * Dismiss every contextual tool that does not survive a Library section change:
    * compare, color-analysis, import, generated-group editor, collection-details.
-   * The pinned token editor (`editingToken`) is preserved on purpose so authors
+   * The pinned token details surface (`tokenDetails`) is preserved on purpose so authors
    * keep context while moving between Tokens, Health, and History.
    */
   dismissContextualTools: () => void;
@@ -143,8 +134,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   } = useCollectionStateContext();
   const { pathToCollectionId } = useTokenFlatMapContext();
 
-  const [editingToken, setEditingToken] = useState<EditingToken | null>(null);
-  const [inspectingToken, setInspectingToken] = useState<InspectingToken | null>(null);
+  const [tokenDetails, setTokenDetails] = useState<TokenDetailsTarget | null>(null);
   const [editingGeneratedGroup, setEditingGeneratedGroup] = useState<EditingGeneratedGroup | null>(null);
   const [inspectingCollection, setInspectingCollection] = useState<InspectingCollection | null>(null);
   const [showTokensCompare, setShowTokensCompare] = useState(false);
@@ -189,8 +179,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   } = useTokenNavigation(pathToCollectionId, currentCollectionId, setCurrentCollectionId, tokens, handleAliasNotFound);
 
   const clearEditorFamily = useCallback(() => {
-    setEditingToken(null);
-    setInspectingToken(null);
+    setTokenDetails(null);
     setEditingGeneratedGroup(null);
     setInspectingCollection(null);
   }, []);
@@ -218,23 +207,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // The inspector is a pinned peek that lives beneath the editor in the same
-    // slot: opening the editor preserves the underlying inspector so back-from-
-    // editor reveals the inspector again. Every other editor surface clears it.
-    if (target.surface === 'token-editor') {
+    if (target.surface === "token-details") {
       clearMaintenanceFamily();
       setInspectingCollection(null);
       setEditingGeneratedGroup(null);
-      setEditingToken(target.token);
-      return;
-    }
-
-    if (target.surface === 'token-inspector') {
-      clearMaintenanceFamily();
-      setEditingToken(null);
-      setInspectingCollection(null);
-      setEditingGeneratedGroup(null);
-      setInspectingToken(target.token);
+      setTokenDetails(target.token);
       return;
     }
 
@@ -245,7 +222,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       clearEditorFamily();
     } else {
       clearMaintenanceFamily();
-      setInspectingToken(null);
+      setTokenDetails(null);
     }
 
     if (target.surface === "collection-details") {
@@ -294,11 +271,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   const editorSurface = useMemo<TokensLibraryEditorSurface | null>(() => {
     if (inspectingCollection) return "collection-details";
-    if (editingToken) return "token-editor";
-    if (inspectingToken) return "token-inspector";
+    if (tokenDetails) return "token-details";
     if (editingGeneratedGroup) return "generated-group-editor";
     return null;
-  }, [inspectingCollection, editingToken, inspectingToken, editingGeneratedGroup]);
+  }, [inspectingCollection, tokenDetails, editingGeneratedGroup]);
 
   const maintenanceSurface = useMemo<TokensLibraryMaintenanceSurface | null>(() => {
     if (showTokensCompare) return "compare";
@@ -313,10 +289,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }), [editorSurface, maintenanceSurface]);
 
   const value = useMemo<EditorContextValue>(() => ({
-    editingToken,
-    setEditingToken,
-    inspectingToken,
-    setInspectingToken,
+    tokenDetails,
+    setTokenDetails,
     editingGeneratedGroup,
     setEditingGeneratedGroup,
     inspectingCollection,
@@ -354,8 +328,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     dismissContextualTools,
     setAliasNotFoundHandler,
   }), [
-    editingToken,
-    inspectingToken,
+    tokenDetails,
     editingGeneratedGroup,
     inspectingCollection,
     highlightedToken,

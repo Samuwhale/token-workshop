@@ -1,10 +1,12 @@
 import { useCallback } from "react";
 import { Check, Eye, Filter } from "lucide-react";
-import type { SortOrder } from "./tokenListTypes";
+import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 
 export interface ViewMenuProps {
+  groupBy: TokenGroupBy;
+  setGroupBy: (value: TokenGroupBy) => void;
   sortOrder: SortOrder;
   onSortOrderChange: (order: SortOrder) => void;
   onExpandAll: () => void;
@@ -176,6 +178,14 @@ export function ViewMenu(
                         : "default";
                   props.onSortOrderChange(next);
                 })
+              }
+            />
+            <MenuItem
+              label={`Group by: ${props.groupBy}`}
+              onClick={() =>
+                runAndClose(() =>
+                  props.setGroupBy(props.groupBy === "path" ? "type" : "path"),
+                )
               }
             />
             {props.hasGroups && (

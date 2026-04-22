@@ -7,337 +7,288 @@ This document reviews TokenManager as a product experience inside Figma.
 It focuses on:
 
 - product clarity
-- day-to-day authoring confidence
+- authoring confidence
 - information architecture
 - workflow ranking
 - structural trust
 - usability for real design system work
 
-The question is not whether TokenManager is capable.
+The question is not whether the product is capable.
 
 It is.
 
-The question is whether the product makes the right work feel obvious, trustworthy, and well-ranked for the people who actually have to use it.
+The question is whether the product makes the right work feel obvious, calm, and trustworthy for the people who actually have to use it.
 
 ## Audience And Product Reality
 
-TokenManager serves two equally primary jobs inside Figma:
+TokenManager is primarily for Figma designers and design system maintainers.
 
-- helping designers apply and work with tokens in live design flows
-- helping design system maintainers author, govern, review, and deliver the token system
+That means the product must feel native to design work first.
 
-That distinction matters.
+It also needs to support governance, review, history, export, and delivery work without making the core design workflow feel administrative.
 
-This is not a product for generic "designers."
+Those jobs are all real.
 
-It is a product for people doing real token work at different levels of responsibility:
+But they are not all equally foregrounded at every moment.
 
-- applying tokens in interface work
-- authoring tokens and modes
-- maintaining naming and structure
-- reviewing health and change history
-- managing sync, export, and delivery confidence
+The product should feel like one coherent system with clearly ranked areas of work:
 
-The product succeeds only if one default experience can support both day-to-day design use and system maintenance without becoming bloated or hard to trust.
+- authoring and browsing tokens
+- applying and extracting tokens from canvas work
+- reviewing system quality and change history
+- delivering tokens outward with confidence
 
-Audit, history, sync, export, and versioning are not secondary in value.
-
-They are core parts of the product.
-
-The problem is not that they exist.
-
-The problem is when they appear with the wrong prominence, at the wrong time, or without enough relationship to the user's current task.
-
-TokenManager also lives inside Figma.
-
-That means it has to respect:
-
-- constrained space
-- fast scanning
-- established mental models
-- low tolerance for abstraction that does not clearly help the task
+The product should not feel like one blended control surface where every concern competes for equal attention.
 
 ## Core Product Judgment
 
-TokenManager is still stronger as a capability system than as a product.
+The product direction is stronger than this document previously gave it credit for.
 
-It contains meaningful depth.
+The overall structure is no longer the main problem.
 
-It supports serious work.
+The product has already moved toward a more disciplined shape, with clearer distinction between token authoring, canvas work, review, and delivery.
 
-But the overall experience still asks users to resolve too many questions too early.
+That is the right direction.
 
-Too often, the product does not make these basics obvious fast enough:
+The remaining weakness is more local and more important:
 
-- where am I working right now
-- what collection am I editing
-- which modes am I looking at
-- whether this value is authored or aliased
-- whether something is a real source value, a generated output, or only contextual guidance
-- what will happen if I merge, move, split, generate, or bulk edit
-- how to move from canvas context to the right token without losing confidence
+the primary work surfaces still carry too much density, too much state, and too many adjacent tools competing with the user’s immediate task.
 
-That is the central product problem.
+So the product is no longer mainly failing because everything is mixed together.
 
-The issue is not feature count by itself.
-
-The issue is that the product still gives too much surface area, too much framing, and too much decision weight to adjacent concerns before the core work feels stable and trustworthy.
+It is failing because the surfaces where people spend the most time still do not feel settled enough.
 
 ## What The Product Gets Right
 
-Several core product decisions are strong and should be protected.
+Several core decisions are strong and should be protected.
 
 ### 1. The canonical authoring model is correct
 
-The product is strongest when it stays firmly anchored to collections, modes, and authored tokens.
+The product is strongest when it stays anchored to collections, modes, and authored tokens.
 
 Collections are the primary container.
 
 Modes belong to collections.
 
-Tokens vary by the modes of their own collection.
+Tokens belong to collections and vary by the modes of their own collection.
 
-That model is aligned with how this product should think and how users should understand it.
+That is the right mental model.
 
 ### 2. Modes should remain visible together
 
-The product is right when it treats every token value as a mode value and keeps those mode values visible together.
+The product is right when it treats every token value as a mode value and keeps those values visible together.
 
 The UI should not drift back toward:
 
-- a base value plus overrides mental model
-- a single-mode picker that hides the rest
-- language that implies one mode is the real one and the others are secondary
+- a base value plus overrides model
+- a single-mode view that hides the rest
+- language that implies one mode is primary and the others are secondary
 
 That would make the product easier to explain only by making it less truthful.
 
-### 3. The token table is the right center of gravity
+### 3. The token table is still the right center of gravity
 
-A serious token tool should be scan-friendly.
+A serious token tool needs a scan-friendly center.
 
-Users need to move quickly across token names, structure, aliases, and values.
+Users need to move quickly across names, structure, aliases, and values.
 
-The answer to product complexity is not replacing that center with more ornamental or more guided surfaces.
+The answer to complexity is not replacing that center with a more decorative or more guided surface.
 
-The answer is to make the table easier to trust and easier to work from.
+The answer is to make that center quieter, clearer, and easier to trust.
 
-### 4. Canvas context is one of the product's strongest advantages
+### 4. Canvas context is one of the product’s strongest advantages
 
-The product becomes much more compelling when token work connects directly to design work.
+The product becomes much more compelling when token work connects directly to design work inside Figma.
 
 That includes:
 
-- applying tokens from the current design context
 - understanding what is already bound
-- finding likely token matches for existing values
-- extracting unbound values into a maintained system
-- repairing stale or broken references with confidence
+- identifying what is missing
+- creating or connecting the right token from current context
+- extracting existing design values into the system
+- repairing broken or stale token usage
 
-This is not peripheral product value.
-
-It is one of the clearest reasons for the product to exist inside Figma.
+This is one of the clearest reasons for the product to exist inside Figma rather than outside it.
 
 ### 5. Governance and delivery belong in the product
 
-Health, history, sync, export, and versions are legitimate parts of the same product.
+Health, history, sync, export, and versioning are legitimate parts of the same system.
 
-They should not be treated as awkward additions or hidden away as if they matter less.
+They should not be hidden or treated as second-class.
 
-They matter because maintainers need confidence that the token system is coherent, reviewable, and deliverable.
+But they do need stronger ranking than they currently have inside the working surfaces.
 
-The requirement is integration with clear ranking, not demotion.
+The requirement is not removal.
 
-## Where The Product Is Failing Users
+It is discipline.
 
-## 1. The default authoring experience is still not stable enough
+## Where The Product Is Still Failing Users
 
-This is the biggest problem.
+## 1. The Tokens workspace is still too dense
 
-The core Tokens experience still changes character too easily.
+This is the biggest current problem.
 
-It can feel like:
+The main token authoring surface still carries too many adjacent states and support layers around the core work.
 
-- a primary authoring surface
-- a review surface
-- a batch-editing surface
-- a contextual assistance surface
-- a maintenance surface
-- a search surface
-
-Each of those can be valid.
-
-The problem is that the product does not establish one steady default strongly enough before other concerns start competing for attention.
-
-Users need the center of the product to feel fixed:
-
-- one active collection
-- clear token structure
-- all modes visible together
-- obvious relationship between authored values and aliases
-- support UI that helps only when it is needed
-
-Without that stability, the product feels capable but not settled.
-
-## 2. Structural trust is still weaker than it needs to be
-
-This product asks users to make meaningful structural changes.
-
-That means trust is not optional.
-
-Right now, the product still does not make it obvious enough:
-
-- what exactly is being changed
-- where that change happens
-- what the current scope is
-- whether an action edits authored values, reorganizes structure, or creates derived output
-
-This matters most for actions such as:
-
-- merge
-- split
-- move
-- bulk edit
-- generate
-- save generated outputs into the system
-
-If users have to pause and mentally simulate consequences, the product is asking too much from them.
-
-## 3. The path from canvas context to token work is still not clear enough
-
-The product has strong canvas value, but the route from selected design work to the right token workflow still does not feel decisive enough.
-
-Users need to move from what they have selected in Figma to the correct next step without friction:
-
-- inspect what is bound
-- understand what is missing
-- create or connect the right token
-- return to design work without losing context
-
-If that handoff feels indirect, the product loses one of its strongest advantages.
-
-## 4. The product still surfaces too much support material too early
-
-There is still too much visible explanation, status, and framing competing with actual work.
-
-The issue is not any one banner, helper, summary, or support surface in isolation.
+The issue is not that each individual element is indefensible.
 
 The issue is accumulation.
 
-When too much supporting material is visible at once:
+When too many of these show up around the token table:
 
-- token values are no longer the visual center
-- the interface feels more operational than authorial
-- users spend attention parsing the product instead of doing the work
+- guidance
+- status
+- selection context
+- health nudges
+- generation nudges
+- search state
+- review controls
+- batch state
 
-The right standard is simple:
+the product stops feeling like a stable authoring surface and starts feeling like a command center.
 
-if a surface does not help the next decision, it should not compete with the current task.
+That is wrong for the target users.
 
-## 5. Product areas still do not feel ranked with enough discipline
+Designers need the token table to feel like the obvious place where token work happens.
 
-The product contains multiple valid areas of work:
+It should not feel surrounded by operational framing.
 
-- authoring
-- application in canvas context
-- review and health
-- version awareness
-- sync and export
+## 2. The Canvas workspace is valuable but still overloaded
 
-Those are all legitimate.
+Canvas should feel like the most natural bridge between design work and token work.
 
-The failure is not that the product includes them.
+It already has the right kinds of capabilities.
 
-The failure is that their relationship to one another is still not clear enough in everyday use.
+The problem is that the main selection workflow still tries to do too many things at once:
 
-Users should never have to wonder whether they are in:
+- inspect
+- bind
+- create
+- extract
+- suggest
+- repair
+- apply
+- deep inspect nested layers
 
-- the place where tokens are authored
-- the place where token usage is applied or repaired
-- the place where system integrity is reviewed
-- the place where changes are prepared for delivery
+Those are all valid tasks.
 
-The product should make those distinctions obvious while still feeling like one system.
+But they do not yet feel ranked tightly enough inside one working surface.
 
-## 6. The product still sounds too much like internal tooling in places
+The result is that the user has to parse the tool before confidently acting through it.
+
+That is exactly the kind of cognitive work the product should be removing.
+
+## 3. The product still has a support-material accumulation problem
+
+The product remains too willing to show helpful information at the same time as primary work.
+
+The standard should be much stricter:
+
+if something does not help the next decision, it should not compete with the current task.
+
+This matters especially in a Figma plugin, where space is constrained and scanning speed matters.
+
+Too much visible support material makes the product feel heavier and more process-oriented than the target users want.
+
+## 4. The distinction between primary and secondary actions is still too weak
+
+The product includes many valid actions:
+
+- create
+- import
+- extract
+- bulk edit
+- compare
+- generate
+- review issues
+- apply to Figma
+
+But the product still does not rank those actions firmly enough within the screens where they appear.
+
+Users should not have to decide, by inspection, which actions are primary for the moment and which are optional or advanced.
+
+That ranking should be obvious from the interface itself.
+
+## 5. The product still sounds too much like internal tooling in places
 
 The voice is disciplined, but it is not always grounded enough in design-system work inside Figma.
 
-When the language becomes too infrastructural or too process-oriented:
+When the language becomes too infrastructural or too operational:
 
 - design tasks feel heavier than they are
-- maintenance tasks feel more technical than necessary
-- the product starts sounding like it is organized around internal machinery instead of user intent
+- maintainers have to translate system language into task language
+- the product starts sounding organized around machinery instead of user intent
 
 This product should sound precise, calm, and design-literate.
 
-It should not sound like users are entering a workflow platform.
+It should not sound like users are operating an internal platform.
 
-## 7. The product does not yet recognize all valid ways users begin
+## 6. The beginning is recognized, but the landing is not strong enough
 
-The product should clearly support three legitimate starts:
+The product now recognizes the right ways people begin:
 
 - bring in an existing system
 - author a system directly
-- start from the current file or canvas context and build from what already exists
+- start from current file or canvas context
 
-If the product over-emphasizes only setup or only generation, it misses how people actually begin design-system work inside Figma.
+That is good.
+
+The remaining problem is what happens next.
+
+After a user chooses a start, the product should land them in a workflow that feels immediately clear and stable.
+
+Right now, the starts are more correct than the landings.
 
 ## Priority Product Direction
 
-## Priority 0: Strengthen authoring confidence and structural trust
+## Priority 0: Simplify the primary authoring surface
 
-The first job is not to add more explanation.
+The main Tokens workspace should become noticeably quieter.
 
-It is to make the core authoring experience trustworthy.
+The token table needs to dominate.
 
-The product should establish one stable collection-centered workflow where users can immediately understand:
+Everything around it should justify its presence against one standard:
 
-- what collection they are in
-- what tokens they are looking at
-- all mode values together
-- whether a value is literal, aliased, derived, or only contextually suggested
+does this help the next token decision right now?
 
-Structural actions should become much more consequence-explicit.
+If not, it should move, collapse, or become more contextual.
 
-Before users confirm an action, the product should make the scope and result of that action feel unmistakable.
+## Priority 1: Make Canvas feel like one decisive bridge
 
-## Priority 1: Make canvas-to-token workflows feel native and decisive
+Canvas should become a cleaner path from design context to token action.
 
-Canvas context should feel like a first-class entry into the product, not a side route.
+The product should make the next move obvious with minimal interpretation:
 
-Users should be able to move from current design selection to the right token action with minimal interpretation:
+- understand what is bound
+- see what is missing
+- create or connect the right token
+- extract when appropriate
+- repair when necessary
 
-- inspect
-- match
-- create
-- bind
-- repair
+This should feel direct rather than tool-heavy.
 
-This should feel like one clean bridge between design work and token work.
+## Priority 2: Strengthen action ranking inside each workspace
 
-## Priority 2: Re-rank the product without diminishing core governance work
+The product does not mainly need another structural reorganization.
 
-The default experience should keep authoring visible and steady without pretending that governance and delivery are less important.
+It needs stronger local discipline.
 
-The correct move is not to hide health, history, sync, export, or versions.
+Within each workspace, users should immediately understand:
 
-The correct move is to surface them in stronger relationship to the current job.
+- what this screen is primarily for
+- which actions are the main path
+- which actions are supportive
+- which actions are advanced
 
-They should feel integrated and trustworthy, not visually equal to every task at every moment.
+That is where the next UX gains are.
 
-## Priority 3: Clarify how the product begins
+## Priority 3: Sharpen the language
 
-The opening product posture should recognize three valid starts:
+The product should use language that matches how designers and design system maintainers think in Figma.
 
-- import an existing system
-- author manually
-- start from current file or canvas context
+It should be exact without sounding infrastructural.
 
-Generators should remain clearly positioned as optional acceleration layered on top of authored tokens.
-
-They should help users move faster when useful.
-
-They should not imply that authored work is secondary or that generation is the preferred expression of quality.
+It should feel calm, confident, and concrete.
 
 ## What Not To Do
 
@@ -345,30 +296,24 @@ The response to these problems should not be:
 
 - flattening the domain model to make the product seem simpler
 - reintroducing a base-value mental model for multi-mode tokens
-- hiding governance and delivery work as if it were secondary
-- treating Library and Canvas as the only legitimate core jobs
-- adding more support UI to explain existing clutter
-- replacing the token table with a more decorative but less trustworthy center
-- making generation feel like the proper way to create a serious system
-- solving ranking problems with more product framing instead of clearer task flow
+- replacing the token table with a more decorative center
+- hiding governance and delivery work as if they were unimportant
+- reorganizing the whole shell again before improving the core surfaces
+- adding more explanatory UI to compensate for overloaded workflows
+- making generators feel like the preferred way to create a serious system
 
 ## Final Decision
 
-TokenManager does not primarily need more breadth.
+TokenManager no longer mainly suffers from a lack of structure.
 
-It needs a stronger center.
+It suffers from insufficient restraint inside the places where the real work happens.
 
-The product should feel like one trustworthy system for two equally primary kinds of work:
+The next phase should focus on:
 
-- applying and using tokens in design
-- authoring, governing, and delivering the system behind them
+- making the Tokens workspace feel quieter and more authoritative
+- making Canvas feel more direct and decisive
+- reducing support-material accumulation
+- clarifying action ranking inside each screen
+- keeping the product rooted in Figma-native mental models
 
-The next phase should focus on making that center unmistakable:
-
-- a stable collection-based authoring workflow
-- equal visibility of modes
-- clearer distinction between authored, aliased, derived, and contextual states
-- more decisive canvas-to-token flows
-- governance and delivery surfaces that feel integrated without crowding the default experience
-
-Until that becomes true, the product will continue to feel more impressive in capability than confident in use.
+Until that becomes true, the product will continue to feel more capable than calm.

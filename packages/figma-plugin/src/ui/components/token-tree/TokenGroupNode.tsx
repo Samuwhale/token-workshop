@@ -66,6 +66,7 @@ export const TokenGroupNode = memo(
 
     const {
       collectionId,
+      groupBy,
       activeCollectionModeLabel,
       selectMode,
       expandedPaths,
@@ -202,7 +203,10 @@ export const TokenGroupNode = memo(
       };
     }, [closeGroupMenus, groupMenuPos]);
 
-    const isCategoryHeader = depth === 0;
+    const isSyntheticTypeGroup =
+      groupBy === "type" && node.path.startsWith("__type/");
+    const structuralActionsEnabled = !isSyntheticTypeGroup;
+    const isCategoryHeader = depth === 0 && !isSyntheticTypeGroup;
     const leafCount = countLeaves(node);
     const targetGenerator =
       generatorsByTargetGroup?.get(
@@ -316,7 +320,7 @@ export const TokenGroupNode = memo(
     if (groupScopeSummary) {
       groupMetadataSegments.push({
         label: groupScopeSummary,
-        title: `Figma scopes: ${groupPresentation.scopes.join(", ")}`,
+        title: `Can apply to: ${groupPresentation.scopes.join(", ")}`,
       });
     }
     const groupLifecycle = getLifecycleLabel(groupPresentation.lifecycle);
@@ -414,8 +418,13 @@ export const TokenGroupNode = memo(
             paddingLeft: `${computePaddingLeft(depth, 8)}px`,
           }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
-          onDoubleClick={() => !renamingGroup && onZoomIntoGroup?.(node.path)}
+          onDoubleClick={() => {
+            if (!renamingGroup && structuralActionsEnabled) {
+              onZoomIntoGroup?.(node.path);
+            }
+          }}
           onDragOver={(e) => {
+            if (!structuralActionsEnabled) return;
             if (!e.dataTransfer.types.includes("application/x-token-drag"))
               return;
             e.preventDefault();
@@ -433,11 +442,13 @@ export const TokenGroupNode = memo(
             onDragOverGroup?.(node.path, isInvalid);
           }}
           onDragLeave={(e) => {
+            if (!structuralActionsEnabled) return;
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
               onDragOverGroup?.(null);
             }
           }}
           onDrop={(e) => {
+            if (!structuralActionsEnabled) return;
             e.preventDefault();
             onDropOnGroup?.(node.path);
           }}
@@ -446,22 +457,43 @@ export const TokenGroupNode = memo(
               e.preventDefault();
               onToggleExpand(node.path);
             }
-            if (e.key === "z" && !renamingGroup && !selectMode) {
+            if (
+              e.key === "z" &&
+              !renamingGroup &&
+              !selectMode &&
+              structuralActionsEnabled
+            ) {
               e.preventDefault();
               e.stopPropagation();
               onZoomIntoGroup?.(node.path);
             }
-            if (e.key === "n" && !renamingGroup && !selectMode) {
+            if (
+              e.key === "n" &&
+              !renamingGroup &&
+              !selectMode &&
+              structuralActionsEnabled
+            ) {
               e.preventDefault();
               e.stopPropagation();
               onCreateSibling?.(node.path, inferGroupTokenType(node.children));
             }
-            if (e.key === "s" && !renamingGroup && !selectMode && onSetGroupScopes) {
+            if (
+              e.key === "s" &&
+              !renamingGroup &&
+              !selectMode &&
+              structuralActionsEnabled &&
+              onSetGroupScopes
+            ) {
               e.preventDefault();
               e.stopPropagation();
               onSetGroupScopes(node.path);
             }
-            if (e.key === "m" && !renamingGroup && !selectMode) {
+            if (
+              e.key === "m" &&
+              !renamingGroup &&
+              !selectMode &&
+              structuralActionsEnabled
+            ) {
               e.preventDefault();
               e.stopPropagation();
               const rect = (
@@ -473,6 +505,7 @@ export const TokenGroupNode = memo(
             }
           }}
           onContextMenu={(e) => {
+            if (!structuralActionsEnabled) return;
             e.preventDefault();
             setGroupMenuPos(clampMenuPosition(e.clientX, e.clientY, 192, 420));
           }}
@@ -587,7 +620,7 @@ export const TokenGroupNode = memo(
                 </button>
               )}
               <div
-                className={`flex items-center gap-0.5 shrink-0 ${selectMode ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"}`}
+                className={`flex items-center gap-0.5 shrink-0 ${selectMode || !structuralActionsEnabled ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"}`}
               >
                 {onZoomIntoGroup && (
                   <button
@@ -703,7 +736,7 @@ export const TokenGroupNode = memo(
                     className={MENU_ITEM_CLASS}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" /><path d="M9 12h6" /></svg>
-                    <span className="flex-1">Edit Figma scopes</span>
+                    <span className="flex-1">Edit applicability</span>
                     <span className={MENU_SHORTCUT_CLASS}>S</span>
                   </button>
                 )}

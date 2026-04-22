@@ -67,6 +67,7 @@ export const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the vi
 // ---------------------------------------------------------------------------
 
 export type SortOrder = "default" | "alpha-asc" | "by-type";
+export type TokenGroupBy = "path" | "type";
 
 export interface TokenListCtx {
   collectionId: string;
@@ -335,6 +336,7 @@ export interface TokenTreeSharedDataContextType {
 
 export interface TokenTreeGroupStateContextType {
   collectionId: string;
+  groupBy: TokenGroupBy;
   /** Active mode for the current collection in the Tokens view, when that collection has modes. */
   activeCollectionModeLabel?: string | null;
   selectMode: boolean;
@@ -403,6 +405,7 @@ export interface TokenTreeLeafStateContextType {
   serverUrl: string;
   collectionId: string;
   collectionIds: string[];
+  groupBy: TokenGroupBy;
   selectionCapabilities: NodeCapabilities | null;
   duplicateCounts: Map<string, number>;
   selectMode: boolean;

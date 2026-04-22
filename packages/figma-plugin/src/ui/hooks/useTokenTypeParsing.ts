@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias } from '../../shared/resolveAlias';
 import type { TokenEditorModeValues } from '../shared/tokenEditorTypes';
+import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
 import { stableStringify } from '../shared/utils';
 
 export const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
@@ -37,10 +38,10 @@ interface UseTokenTypeParsingParams {
   setTokenType: (v: string) => void;
   value: any;
   setValue: (v: any) => void;
+  scopes: string[];
   modeValues: TokenEditorModeValues;
   setModeValues: (v: TokenEditorModeValues) => void;
   setScopes: (v: string[]) => void;
-  setExtendsPath: (v: string) => void;
   extensionsJsonError: string | null;
   isCreateMode: boolean;
   editPath: string;
@@ -54,10 +55,10 @@ export function useTokenTypeParsing({
   setTokenType,
   value,
   setValue,
+  scopes,
   modeValues,
   setModeValues,
   setScopes,
-  setExtendsPath,
   extensionsJsonError,
   isCreateMode,
   editPath,
@@ -131,13 +132,19 @@ export function useTokenTypeParsing({
   }, [aliasCycleError, duplicatePath, extensionsJsonError, tokenType, value, valueIsAlias, isCreateMode, editPath]);
 
   const applyTypeChange = (newType: string) => {
+    const validScopes = new Set(
+      (FIGMA_SCOPE_OPTIONS[newType] ?? []).map((option) => option.value),
+    );
     setTokenType(newType);
     setValue(DEFAULT_VALUE_FOR_TYPE[newType] ?? '');
     setModeValues({});
-    setScopes([]);
+    setScopes(
+      validScopes.size === 0
+        ? []
+        : scopes.filter((scope) => validScopes.has(scope)),
+    );
     setPendingTypeChange(null);
     setShowPendingDependents(false);
-    setExtendsPath('');
   };
 
   const handleTypeChange = (newType: string) => {

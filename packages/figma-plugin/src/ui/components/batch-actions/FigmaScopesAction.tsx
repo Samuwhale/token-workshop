@@ -38,7 +38,7 @@ export function FigmaScopesAction({
       setFeedback({ ok: true, msg: `Updated ${result.updated} tokens` });
       if (onPushUndo && result.updated > 0) {
         onPushUndo({
-          description: `Set Figma scopes on ${result.updated} tokens`,
+          description: `Set applicability on ${result.updated} tokens`,
           restore: async () => {
             await rollbackOperation(serverUrl, result.operationId);
             onApply();
@@ -53,7 +53,7 @@ export function FigmaScopesAction({
 
   return (
     <EditorShell
-      title="Figma scopes"
+      title="Can apply to"
       surface="authoring"
       footer={
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
