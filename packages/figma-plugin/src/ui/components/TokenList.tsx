@@ -189,6 +189,7 @@ export function TokenList({
     onShowPasteModal,
     onOpenImportPanel,
     onOpenCreateCollection,
+    onOpenCollectionDetails,
     onOpenStartHere: _onOpenStartHere,
   },
   recentlyTouched,
@@ -2231,6 +2232,7 @@ export function TokenList({
     copyConflict, copyConflictAction, setCopyConflictAction,
     copyConflictNewPath, setCopyConflictNewPath,
     showMoveToGroup, moveToGroupTarget, moveToGroupError, selectedPaths,
+    pathToCollectionId,
     setShowMoveToGroup, setMoveToGroupTarget, setMoveToGroupError,
     handleBatchMoveToGroup,
     showBatchMoveToCollection, batchMoveToCollectionTarget, setBatchMoveToCollectionTarget,
@@ -2362,6 +2364,12 @@ export function TokenList({
             onNavigateBack={onNavigateBack}
             navHistoryLength={navHistoryLength}
             collectionId={collectionId}
+            modeCount={multiModeData?.collection.modes.length}
+            onOpenCollectionDetails={
+              onOpenCollectionDetails
+                ? () => onOpenCollectionDetails(collectionId)
+                : undefined
+            }
             zoomRootPath={zoomRootPath}
             searchRef={searchRef}
             searchQuery={searchQuery}

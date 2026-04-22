@@ -8,7 +8,7 @@ export interface HealthUnusedViewProps {
   unusedTokens: UnusedToken[];
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
-  onMutate: () => void;
+  onMutate: () => void | Promise<void>;
   onBack: () => void;
 }
 

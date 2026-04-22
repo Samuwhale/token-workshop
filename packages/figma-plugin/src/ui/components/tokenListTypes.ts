@@ -165,6 +165,8 @@ export interface TokenListActions {
   onOpenImportPanel?: () => void;
   /** Open the collection creation flow */
   onOpenCreateCollection?: () => void;
+  /** Open the details panel for the active collection (wired to toolbar anchor) */
+  onOpenCollectionDetails?: (collectionId: string) => void;
   /** Open the cross-collection "where is this token defined" overlay for the given path */
   onFindInAllCollections?: (path: string) => void;
   /** Open the unified start-here flow from token-level empty states */

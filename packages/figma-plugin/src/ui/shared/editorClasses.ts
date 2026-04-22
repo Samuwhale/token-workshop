@@ -1,5 +1,4 @@
 import { severityStyles } from './noticeSystem';
-import type { NoticeSeverity } from './noticeSystem';
 import { LONG_TEXT_CLASSES } from './longTextStyles';
 
 /**
@@ -103,14 +102,4 @@ export function fieldBorderClass(hasError?: boolean, hasWarning?: boolean): stri
   if (hasError) return severityStyles('error').fieldBorder;
   if (hasWarning) return severityStyles('warning').fieldBorder;
   return DEFAULT_FIELD_BORDER_CLASS;
-}
-
-/**
- * Same as `fieldBorderClass` but accepts a `NoticeSeverity` directly instead
- * of boolean flags, for callers that already know the active severity.
- */
-export function fieldBorderClassForSeverity(severity?: NoticeSeverity): string {
-  if (!severity) return DEFAULT_FIELD_BORDER_CLASS;
-  const border = severityStyles(severity).fieldBorder;
-  return border || DEFAULT_FIELD_BORDER_CLASS;
 }

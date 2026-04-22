@@ -200,6 +200,10 @@ export interface TokenListModalsState {
   moveToGroupTarget: string;
   moveToGroupError: string;
   selectedMoveCount: number;
+  /** Paths of the tokens currently selected for a move action — used to preview scope. */
+  selectedMovePaths: string[];
+  /** Maps token paths to their owning collection id — used to detect cross-collection conflicts. */
+  pathToCollectionId: Record<string, string>;
   onSetShowMoveToGroup: (value: boolean) => void;
   onSetMoveToGroupTarget: (value: string) => void;
   onSetMoveToGroupError: (value: string) => void;

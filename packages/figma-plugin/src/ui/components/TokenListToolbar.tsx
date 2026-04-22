@@ -26,6 +26,8 @@ export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
   navHistoryLength?: number;
   collectionId: string;
+  modeCount?: number;
+  onOpenCollectionDetails?: () => void;
   zoomRootPath?: string | null;
   searchRef: RefObject<HTMLInputElement | null>;
   searchQuery: string;
@@ -67,6 +69,8 @@ export function TokenListToolbar({
   onNavigateBack,
   navHistoryLength,
   collectionId,
+  modeCount,
+  onOpenCollectionDetails,
   zoomRootPath,
   searchRef,
   searchQuery,
@@ -151,15 +155,34 @@ export function TokenListToolbar({
                   <ArrowLeft size={10} strokeWidth={2} aria-hidden />
                 </button>
               )}
-              <span className="truncate px-1.5 text-heading font-semibold text-[var(--color-figma-text)]">
-                {collectionId}
-              </span>
+              {onOpenCollectionDetails ? (
+                <button
+                  type="button"
+                  onClick={onOpenCollectionDetails}
+                  className="truncate rounded px-1.5 py-px text-left text-heading font-semibold text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                  title={`Open ${collectionId} details`}
+                >
+                  {collectionId}
+                </button>
+              ) : (
+                <span className="truncate px-1.5 text-heading font-semibold text-[var(--color-figma-text)]">
+                  {collectionId}
+                </span>
+              )}
               {zoomRootPath && (
                 <span
                   className="truncate text-secondary text-[var(--color-figma-text-tertiary)]"
                   title={`Scoped to ${zoomRootPath}`}
                 >
-                  in {zoomRootPath}
+                  / {zoomRootPath}
+                </span>
+              )}
+              {modeCount !== undefined && modeCount > 1 && !zoomRootPath && (
+                <span
+                  className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]"
+                  title={`${modeCount} mode${modeCount === 1 ? "" : "s"}`}
+                >
+                  · {modeCount} modes
                 </span>
               )}
             </div>

@@ -26,6 +26,8 @@ export interface TokenPickerProps {
   pathToCollectionId?: Record<string, string>;
   /** Filter to only tokens of this type (e.g. 'color', 'dimension'). */
   filterType?: string;
+  /** When false, hide deprecated tokens from the result list. */
+  includeDeprecated?: boolean;
   /** Called when a token is selected. */
   onSelect: (path: string, resolvedValue: unknown, entry: TokenMapEntry) => void;
   /** Called when the picker is dismissed without selection. */
@@ -96,6 +98,7 @@ export function TokenPickerDropdown({
   allTokensFlat,
   pathToCollectionId = {},
   filterType,
+  includeDeprecated = true,
   onSelect,
   onClose,
   excludePaths,
@@ -136,7 +139,8 @@ export function TokenPickerDropdown({
 
     const resolve = (e: TokenMapEntry) => resolveEntry(e, allTokensFlat);
     const matchesFilter = (e: TokenMapEntry) =>
-      !filterType || e.$type === filterType;
+      (!filterType || e.$type === filterType) &&
+      (includeDeprecated || e.$lifecycle !== 'deprecated');
 
     if (!q) {
       // Show recent tokens first, then all tokens
@@ -176,7 +180,7 @@ export function TokenPickerDropdown({
       totalCount: scored.length,
       hasRecent: false,
     };
-  }, [allTokensFlat, query, filterType, excludeSet, pathToCollectionId]);
+  }, [allTokensFlat, query, filterType, includeDeprecated, excludeSet, pathToCollectionId]);
 
   useEffect(() => { setActiveIdx(0); }, [query]);
 
@@ -340,6 +344,7 @@ export function TokenPickerField({
   allTokensFlat,
   pathToCollectionId,
   filterType,
+  includeDeprecated,
   excludePaths,
   label,
   compact,
@@ -467,6 +472,7 @@ export function TokenPickerField({
               allTokensFlat={allTokensFlat}
               pathToCollectionId={pathToCollectionId}
               filterType={filterType}
+              includeDeprecated={includeDeprecated}
               excludePaths={excludePaths}
               onSelect={handleSelect}
               onClose={() => setOpen(false)}

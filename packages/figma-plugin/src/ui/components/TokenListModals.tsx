@@ -461,11 +461,93 @@ function CollapsibleSection({
   );
 }
 
+function shortName(path: string): string {
+  const idx = path.lastIndexOf(".");
+  return idx === -1 ? path : path.slice(idx + 1);
+}
+
+function sharedGroupPrefix(paths: string[]): string | null {
+  if (paths.length === 0) return null;
+  const first = paths[0];
+  const firstDot = first.lastIndexOf(".");
+  if (firstDot === -1) return null;
+  const prefix = first.slice(0, firstDot);
+  for (let i = 1; i < paths.length; i++) {
+    const dot = paths[i].lastIndexOf(".");
+    if (dot === -1 || paths[i].slice(0, dot) !== prefix) return null;
+  }
+  return prefix;
+}
+
+function MoveScopePreview({
+  fromCollection,
+  fromGroup,
+  paths,
+  toLabel,
+  conflictCount,
+}: {
+  fromCollection: string;
+  fromGroup: string | null;
+  paths: string[];
+  toLabel: string | null;
+  conflictCount: number;
+}) {
+  const sampleCount = 3;
+  const samples = paths.slice(0, sampleCount).map(shortName);
+  const remaining = Math.max(0, paths.length - sampleCount);
+  const rowClass = "grid grid-cols-[56px_1fr] items-baseline gap-x-2 gap-y-1";
+  const labelClass = "text-secondary text-[var(--color-figma-text-tertiary)]";
+  const valueClass = "text-body text-[var(--color-figma-text)] min-w-0";
+  return (
+    <div className="flex flex-col gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+      <div className={rowClass}>
+        <span className={labelClass}>From</span>
+        <span className={`${valueClass} truncate font-mono`} title={fromCollection}>
+          {fromCollection}
+          {fromGroup ? (
+            <>
+              <span className="text-[var(--color-figma-text-tertiary)]"> / </span>
+              {fromGroup}
+            </>
+          ) : null}
+        </span>
+        <span className={labelClass}>Moving</span>
+        <span className={`${valueClass} min-w-0`}>
+          <span className="truncate font-mono">
+            {samples.join(", ")}
+          </span>
+          {remaining > 0 && (
+            <span className="text-[var(--color-figma-text-tertiary)]">
+              {" "}and {remaining} more
+            </span>
+          )}
+        </span>
+        <span className={labelClass}>To</span>
+        <span className={`${valueClass} truncate font-mono`} title={toLabel ?? ""}>
+          {toLabel ? (
+            toLabel
+          ) : (
+            <span className="text-[var(--color-figma-text-tertiary)] italic font-sans">
+              Choose a target…
+            </span>
+          )}
+        </span>
+      </div>
+      {conflictCount > 0 && (
+        <div className="text-secondary text-[var(--color-figma-warning,#f59e0b)]">
+          {conflictCount} token{conflictCount === 1 ? "" : "s"} will overwrite existing values
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TokenListModals() {
   const {
     collectionId,
     collectionIds,
-    allTokensFlat: _allTokensFlat,
+    allTokensFlat,
+    pathToCollectionId,
     connected: _connected,
     deleteConfirm,
     modalProps,
@@ -499,6 +581,7 @@ export function TokenListModals() {
     moveToGroupTarget,
     moveToGroupError,
     selectedMoveCount,
+    selectedMovePaths,
     onSetShowMoveToGroup,
     onSetMoveToGroupTarget,
     onSetMoveToGroupError,
@@ -699,96 +782,135 @@ export function TokenListModals() {
       )}
 
       {/* Move selected tokens to group modal */}
-      {showMoveToGroup && (
-        <div
-          className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-          onMouseDown={e => { if (e.target === e.currentTarget) { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); } }}
-        >
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="tm-dialog-title">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to group</div>
-            <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Enter the target group path. Token names are preserved.
-            </div>
-            <input
-              type="text"
-              placeholder="e.g. colors.brand"
-              value={moveToGroupTarget}
-              onChange={e => { onSetMoveToGroupTarget(e.target.value); onSetMoveToGroupError(''); }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && moveToGroupTarget.trim()) handleBatchMoveToGroup();
-                if (e.key === 'Escape') { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }
-              }}
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)] ${moveToGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
-              aria-label="Target group path"
-              autoFocus
-            />
-            <FieldMessage error={moveToGroupError} />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }}
-                className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBatchMoveToGroup}
-                disabled={!moveToGroupTarget.trim()}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-              >
-                Move
-              </button>
+      {showMoveToGroup && (() => {
+        const fromGroup = sharedGroupPrefix(selectedMovePaths);
+        const trimmedTarget = moveToGroupTarget.trim();
+        const targetGroup = trimmedTarget.replace(/\.+$/, "");
+        const toLabel = trimmedTarget
+          ? `${collectionId}${targetGroup ? ` / ${targetGroup}` : ""}`
+          : null;
+        const conflictCount = trimmedTarget
+          ? selectedMovePaths.reduce((count, path) => {
+              const name = shortName(path);
+              const newPath = targetGroup ? `${targetGroup}.${name}` : name;
+              if (newPath === path) return count;
+              return allTokensFlat[newPath] &&
+                pathToCollectionId[newPath] === collectionId
+                ? count + 1
+                : count;
+            }, 0)
+          : 0;
+        return (
+          <div
+            className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
+            onMouseDown={e => { if (e.target === e.currentTarget) { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); } }}
+          >
+            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 p-4 flex flex-col gap-3">
+              <div className="tm-dialog-title">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to group</div>
+              <MoveScopePreview
+                fromCollection={collectionId}
+                fromGroup={fromGroup}
+                paths={selectedMovePaths}
+                toLabel={toLabel}
+                conflictCount={conflictCount}
+              />
+              <input
+                type="text"
+                placeholder="e.g. colors.brand"
+                value={moveToGroupTarget}
+                onChange={e => { onSetMoveToGroupTarget(e.target.value); onSetMoveToGroupError(''); }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && moveToGroupTarget.trim()) handleBatchMoveToGroup();
+                  if (e.key === 'Escape') { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }
+                }}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)] ${moveToGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                aria-label="Target group path"
+                autoFocus
+              />
+              <FieldMessage error={moveToGroupError} />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }}
+                  className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBatchMoveToGroup}
+                  disabled={!moveToGroupTarget.trim()}
+                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                >
+                  Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Batch move selected tokens to another collection */}
-      {showBatchMoveToCollection && (
-        <div
-          className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-          onMouseDown={e => {
-            if (e.target === e.currentTarget) {
-              onSetShowBatchMoveToCollection(false);
-            }
-          }}
-        >
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="tm-dialog-title">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
-            <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Tokens will be removed from <span className="font-mono text-[var(--color-figma-text)]">{collectionId}</span> and added to the target collection.
-            </div>
-            <select
-              value={batchMoveToCollectionTarget}
-              onChange={e => onSetBatchMoveToCollectionTarget(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Escape') onSetShowBatchMoveToCollection(false);
-              }}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
-              aria-label="Target collection"
-              autoFocus
-            >
-              {collectionIds.filter(s => s !== collectionId).map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => onSetShowBatchMoveToCollection(false)}
-                className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+      {showBatchMoveToCollection && (() => {
+        const fromGroup = sharedGroupPrefix(selectedMovePaths);
+        const conflictCount = batchMoveToCollectionTarget
+          ? selectedMovePaths.reduce((count, path) => (
+              allTokensFlat[path] &&
+              pathToCollectionId[path] === batchMoveToCollectionTarget
+                ? count + 1
+                : count
+            ), 0)
+          : 0;
+        return (
+          <div
+            className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
+            onMouseDown={e => {
+              if (e.target === e.currentTarget) {
+                onSetShowBatchMoveToCollection(false);
+              }
+            }}
+          >
+            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 p-4 flex flex-col gap-3">
+              <div className="tm-dialog-title">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
+              <MoveScopePreview
+                fromCollection={collectionId}
+                fromGroup={fromGroup}
+                paths={selectedMovePaths}
+                toLabel={batchMoveToCollectionTarget || null}
+                conflictCount={conflictCount}
+              />
+              <select
+                value={batchMoveToCollectionTarget}
+                onChange={e => onSetBatchMoveToCollectionTarget(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') onSetShowBatchMoveToCollection(false);
+                }}
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
+                aria-label="Target collection"
+                autoFocus
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleBatchMoveToCollection}
-                disabled={!batchMoveToCollectionTarget}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-              >
-                Move
-              </button>
+                <option value="">Choose a collection…</option>
+                {collectionIds.filter(s => s !== collectionId).map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => onSetShowBatchMoveToCollection(false)}
+                  className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBatchMoveToCollection}
+                  disabled={!batchMoveToCollectionTarget}
+                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                >
+                  Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Batch copy selected tokens to another collection */}
       {showBatchCopyToCollection && (

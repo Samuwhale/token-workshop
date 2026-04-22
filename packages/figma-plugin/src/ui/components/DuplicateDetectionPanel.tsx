@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createTokenBody, updateToken } from '../shared/tokenMutations';
 import type { DuplicateGroup } from '../hooks/useHealthData';
 import { useInlineConfirm } from '../hooks/useInlineConfirm';
@@ -11,8 +11,7 @@ interface DuplicateDetectionPanelProps {
   totalDuplicateAliases: number;
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
-  onMutate: () => void;
-  onRefreshValidation: () => void;
+  onMutate: () => Promise<void> | void;
   embedded?: boolean;
 }
 
@@ -40,7 +39,6 @@ export function DuplicateDetectionPanel({
   onNavigateToToken,
   onError,
   onMutate,
-  onRefreshValidation,
   embedded,
 }: DuplicateDetectionPanelProps) {
   const [showDuplicates, setShowDuplicates] = useState(embedded ?? false);
@@ -62,6 +60,27 @@ export function DuplicateDetectionPanel({
     }
     return map;
   }, [lintDuplicateGroups, selectedKeepKeys]);
+
+  useEffect(() => {
+    const validGroupIds = new Set(lintDuplicateGroups.map((group) => group.id));
+    setSelectedKeepKeys((currentKeys) => {
+      const nextKeys = Object.fromEntries(
+        Object.entries(currentKeys).filter(([groupId, keepKey]) => {
+          const group = lintDuplicateGroups.find((candidate) => candidate.id === groupId);
+          return group != null && group.tokens.some((token) => tokenKey(token) === keepKey);
+        }),
+      );
+      return Object.keys(nextKeys).length === Object.keys(currentKeys).length
+        ? currentKeys
+        : nextKeys;
+    });
+    setExpandedGroupId((currentGroupId) =>
+      currentGroupId && !validGroupIds.has(currentGroupId) ? null : currentGroupId,
+    );
+    setResolvingGroupId((currentGroupId) =>
+      currentGroupId && !validGroupIds.has(currentGroupId) ? null : currentGroupId,
+    );
+  }, [lintDuplicateGroups]);
 
   const configuredCount = keptTokens.size;
   const allConfigured = configuredCount === lintDuplicateGroups.length;
@@ -91,13 +110,15 @@ export function DuplicateDetectionPanel({
     try {
       mutated = (await resolveGroup(group, keep)) > 0;
       groupConfirm.reset();
-      onMutate();
-      onRefreshValidation();
+      if (mutated) {
+        await onMutate();
+      }
     } catch (err) {
       console.warn('[DuplicateDetectionPanel] resolve failed:', err);
       onError('Cleanup failed — refresh and review remaining tokens.');
-      if (mutated) onMutate();
-      onRefreshValidation();
+      if (mutated) {
+        await onMutate();
+      }
     } finally {
       setResolvingGroupId(null);
     }
@@ -114,15 +135,17 @@ export function DuplicateDetectionPanel({
         mutated = (await resolveGroup(group, keep)) > 0 || mutated;
       }
       bulkConfirm.reset();
-      onMutate();
-      onRefreshValidation();
+      if (mutated) {
+        await onMutate();
+      }
     } catch (err) {
       console.warn('[DuplicateDetectionPanel] bulk resolve failed:', err);
       onError(mutated
         ? 'Batch partially applied — validation refreshed.'
         : 'Select a token to keep for every group first.');
-      if (mutated) onMutate();
-      onRefreshValidation();
+      if (mutated) {
+        await onMutate();
+      }
     } finally {
       setResolvingGroupId(null);
       setBulkResolving(false);

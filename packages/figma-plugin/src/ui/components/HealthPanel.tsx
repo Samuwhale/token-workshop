@@ -51,7 +51,7 @@ export interface HealthPanelProps {
   validationError: string | null;
   validationLastRefreshed: Date | null;
   validationIsStale: boolean;
-  onRefreshValidation: () => void;
+  onRefreshValidation: () => Promise<unknown> | void;
   onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
   onNavigateToGenerators?: () => void;
@@ -92,11 +92,17 @@ export function HealthPanel({
   }, [requestedView, viewRequestNonce]);
 
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
+  const [deprecatedUsageReloadKey, setDeprecatedUsageReloadKey] = useState(0);
 
   const [deprecatedUsageEntries, setDeprecatedUsageEntries] = useState<DeprecatedUsageEntry[]>([]);
   const [deprecatedUsageLoading, setDeprecatedUsageLoading] = useState(false);
   const [deprecatedUsageError, setDeprecatedUsageError] = useState<string | null>(null);
+  const validationRefreshKey = validationLastRefreshed?.getTime() ?? 0;
+
+  const refreshHealthState = async () => {
+    setDeprecatedUsageReloadKey((currentKey) => currentKey + 1);
+    await onRefreshValidation();
+  };
 
   useEffect(() => {
     if (!connected || !serverUrl) {
@@ -121,7 +127,7 @@ export function HealthPanel({
       })
       .finally(() => { if (!cancelled) setDeprecatedUsageLoading(false); });
     return () => { cancelled = true; };
-  }, [connected, serverUrl, reloadKey, validationIssuesProp]);
+  }, [connected, serverUrl, deprecatedUsageReloadKey, validationRefreshKey]);
 
   const { allTokensUnified, lintDuplicateGroups, aliasOpportunityGroups, unusedTokens } = useHealthData({
     allTokensFlat,
@@ -230,7 +236,11 @@ export function HealthPanel({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deprecatedPath: entry.deprecatedPath, replacementPath }),
+          body: JSON.stringify({
+            collectionId: entry.collectionId,
+            deprecatedPath: entry.deprecatedPath,
+            replacementPath,
+          }),
         },
       );
       if (onPushUndo && result.operationId && result.updated > 0) {
@@ -239,13 +249,11 @@ export function HealthPanel({
           description: `Replace ${result.updated} deprecated reference${result.updated === 1 ? "" : "s"}`,
           restore: async () => {
             await apiFetch(`${serverUrl}/api/operations/${encodeURIComponent(opId)}/rollback`, { method: "POST" });
-            setReloadKey((k) => k + 1);
-            await onRefreshValidation();
+            await refreshHealthState();
           },
         });
       }
-      setReloadKey((k) => k + 1);
-      await onRefreshValidation();
+      await refreshHealthState();
       dispatchToast(
         `Replaced ${result.updated} reference${result.updated !== 1 ? "s" : ""}`,
         "success",
@@ -291,7 +299,7 @@ export function HealthPanel({
           unusedTokens={unusedTokens}
           onNavigateToToken={onNavigateToToken}
           onError={onError}
-          onMutate={() => setReloadKey((k) => k + 1)}
+          onMutate={refreshHealthState}
           onBack={goBack}
         />
       );
@@ -327,8 +335,7 @@ export function HealthPanel({
           totalDuplicateAliases={totalDuplicateAliases}
           onNavigateToToken={onNavigateToToken}
           onError={onError}
-          onMutate={() => setReloadKey((k) => k + 1)}
-          onRefreshValidation={onRefreshValidation}
+          onMutate={refreshHealthState}
           onBack={goBack}
         />
       );

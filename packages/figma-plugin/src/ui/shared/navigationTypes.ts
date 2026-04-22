@@ -207,12 +207,6 @@ export interface UtilityMenu {
   sections: UtilitySection[];
 }
 
-export interface AppShellNavigation {
-  workspaces: WorkspaceTab[];
-  secondarySurfaces: SecondarySurface[];
-  utilityMenu: UtilityMenu;
-}
-
 export interface ResolvedWorkspaceSummary {
   workspace: WorkspaceTab;
   section: WorkspaceSection | null;
@@ -584,27 +578,6 @@ export const UTILITY_MENU: UtilityMenu = {
     },
   ],
 };
-
-export const APP_SHELL_NAVIGATION: AppShellNavigation = {
-  workspaces: WORKSPACE_TABS,
-  secondarySurfaces: SECONDARY_SURFACES,
-  utilityMenu: UTILITY_MENU,
-};
-
-export function getSurfaceKindLabel(kind: SurfaceKind): string {
-  switch (kind) {
-    case "workspace-screen":
-      return "Workspace";
-    case "contextual-sub-screen":
-      return "Contextual screen";
-    case "secondary-takeover":
-      return "Secondary surface";
-    case "contextual-panel":
-      return "Contextual panel";
-    case "transient-overlay":
-      return "Overlay";
-  }
-}
 
 export const LARGE_INITIAL_IMPORT_TOKEN_THRESHOLD = 150;
 export const LARGE_INITIAL_IMPORT_COLLECTION_THRESHOLD = 4;

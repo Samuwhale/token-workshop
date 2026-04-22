@@ -127,6 +127,8 @@ function validateCollectionScopedModeValues(
   return null;
 }
 
+type TokenDefinitionEntry = { collectionId: string; token: Token };
+
 function findCollectionDefinition(
   collections: TokenCollection[],
   collectionId: string,
@@ -226,13 +228,23 @@ function groupSnapshotEntriesByCollection(
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
 
+  function getTokenDefinitionInCollection(
+    tokenPath: string,
+    collectionId: string,
+  ): TokenDefinitionEntry | undefined {
+    return fastify.tokenStore
+      .getTokenDefinitions(tokenPath)
+      .find((definition) => definition.collectionId === collectionId);
+  }
+
   function listActiveDependents(
     tokenPath: string,
   ): Array<{ path: string; collectionId: string }> {
     return fastify.tokenStore.getDependents(tokenPath).filter((dependent) => {
-      const dependentToken = fastify.tokenStore
-        .getTokenDefinitions(dependent.path)
-        .find(({ collectionId }) => collectionId === dependent.collectionId)?.token;
+      const dependentToken = getTokenDefinitionInCollection(
+        dependent.path,
+        dependent.collectionId,
+      )?.token;
       return dependentToken != null && getTokenLifecycle(dependentToken) !== 'deprecated';
     });
   }
@@ -1187,23 +1199,26 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/tokens/deprecated-usage', async (_request, reply) => {
     try {
       await fastify.collectionService.loadState();
-      const deprecatedByPath = new Map<string, { collectionId: string; type: string }>();
+      const deprecatedEntries = new Map<string, { deprecatedPath: string; collectionId: string; type: string }>();
       for (const { path: tokenPath, token, collectionId } of fastify.tokenStore.getAllFlatTokens()) {
-        if (getTokenLifecycle(token) !== 'deprecated' || deprecatedByPath.has(tokenPath)) {
+        if (getTokenLifecycle(token) !== 'deprecated') {
           continue;
         }
-        deprecatedByPath.set(tokenPath, {
+        const entryKey = `${collectionId}:${tokenPath}`;
+        if (deprecatedEntries.has(entryKey)) {
+          continue;
+        }
+        deprecatedEntries.set(entryKey, {
+          deprecatedPath: tokenPath,
           collectionId,
           type: token.$type ?? 'unknown',
         });
       }
 
-      const entries = [...deprecatedByPath.entries()]
-        .map(([deprecatedPath, meta]) => ({
-          deprecatedPath,
-          collectionId: meta.collectionId,
-          type: meta.type,
-          dependents: listActiveDependents(deprecatedPath)
+      const entries = [...deprecatedEntries.values()]
+        .map((entry) => ({
+          ...entry,
+          dependents: listActiveDependents(entry.deprecatedPath)
             .slice()
             .sort(
               (a, b) =>
@@ -1219,6 +1234,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         .sort(
           (a, b) =>
             b.activeReferenceCount - a.activeReferenceCount ||
+            a.collectionId.localeCompare(b.collectionId) ||
             a.deprecatedPath.localeCompare(b.deprecatedPath),
         );
 
@@ -1230,9 +1246,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/tokens/deprecated-usage/replace — replace all direct alias references to a deprecated token
   fastify.post<{
-    Body: { deprecatedPath?: string; replacementPath?: string };
+    Body: { collectionId?: string; deprecatedPath?: string; replacementPath?: string };
   }>('/tokens/deprecated-usage/replace', async (request, reply) => {
-    const { deprecatedPath, replacementPath } = request.body ?? {};
+    const { collectionId, deprecatedPath, replacementPath } = request.body ?? {};
+    if (!isValidCollectionId(collectionId)) {
+      return reply.status(400).send({ error: 'collectionId must be a valid non-empty collection id' });
+    }
     if (!isValidTokenPath(deprecatedPath) || !isValidTokenPath(replacementPath)) {
       return reply.status(400).send({ error: 'deprecatedPath and replacementPath must be valid non-empty token paths' });
     }
@@ -1244,18 +1263,30 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const beforeSnapshot: Record<string, SnapshotEntry> = {};
       try {
         await fastify.collectionService.loadState();
-        const deprecatedDefinitions = fastify.tokenStore.getTokenDefinitions(deprecatedPath);
-        const deprecatedDefinition = deprecatedDefinitions.find(
-          ({ token }) => getTokenLifecycle(token) === 'deprecated',
+        const deprecatedDefinition = getTokenDefinitionInCollection(
+          deprecatedPath,
+          collectionId,
         );
         if (!deprecatedDefinition) {
-          return reply.status(404).send({ error: `Deprecated token "${deprecatedPath}" not found` });
+          return reply.status(404).send({
+            error: `Deprecated token "${deprecatedPath}" not found in collection "${collectionId}"`,
+          });
+        }
+        if (getTokenLifecycle(deprecatedDefinition.token) !== 'deprecated') {
+          return reply.status(400).send({
+            error: `Token "${deprecatedPath}" in collection "${collectionId}" is not deprecated`,
+          });
         }
 
         const replacementDefinitions = fastify.tokenStore.getTokenDefinitions(replacementPath);
         const replacementToken = replacementDefinitions[0]?.token;
         if (!replacementToken) {
           return reply.status(404).send({ error: `Replacement token "${replacementPath}" not found` });
+        }
+        if (getTokenLifecycle(replacementToken) === 'deprecated') {
+          return reply.status(400).send({
+            error: `Replacement token "${replacementPath}" is deprecated`,
+          });
         }
 
         const deprecatedType = deprecatedDefinition.token.$type;

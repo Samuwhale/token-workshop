@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
 import { TokenPickerDropdown } from "../TokenPicker";
 import { Spinner } from "../Spinner";
@@ -30,6 +30,10 @@ function formatCount(count: number, singular: string, plural = `${singular}s`): 
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+function getEntryKey(entry: Pick<DeprecatedUsageEntry, "collectionId" | "deprecatedPath">): string {
+  return `${entry.collectionId}:${entry.deprecatedPath}`;
+}
+
 export function HealthDeprecatedView({
   entries,
   loading,
@@ -40,23 +44,46 @@ export function HealthDeprecatedView({
   onBack,
 }: HealthDeprecatedViewProps) {
   const [replacementPaths, setReplacementPaths] = useState<Record<string, string>>({});
-  const [openPickerPath, setOpenPickerPath] = useState<string | null>(null);
-  const [replacingPath, setReplacingPath] = useState<string | null>(null);
+  const [openPickerKey, setOpenPickerKey] = useState<string | null>(null);
+  const [replacingKey, setReplacingKey] = useState<string | null>(null);
+  const entryKeys = useMemo(
+    () => new Set(entries.map((entry) => getEntryKey(entry))),
+    [entries],
+  );
+
+  useEffect(() => {
+    setReplacementPaths((currentPaths) => {
+      const nextPaths = Object.fromEntries(
+        Object.entries(currentPaths).filter(([entryKey]) => entryKeys.has(entryKey)),
+      );
+      const changed =
+        Object.keys(nextPaths).length !== Object.keys(currentPaths).length ||
+        Object.keys(nextPaths).some((entryKey) => nextPaths[entryKey] !== currentPaths[entryKey]);
+      return changed ? nextPaths : currentPaths;
+    });
+    setOpenPickerKey((currentKey) =>
+      currentKey && !entryKeys.has(currentKey) ? null : currentKey,
+    );
+    setReplacingKey((currentKey) =>
+      currentKey && !entryKeys.has(currentKey) ? null : currentKey,
+    );
+  }, [entryKeys]);
 
   const handleReplace = async (entry: DeprecatedUsageEntry) => {
-    const replacement = replacementPaths[entry.deprecatedPath]?.trim();
+    const entryKey = getEntryKey(entry);
+    const replacement = replacementPaths[entryKey]?.trim();
     if (!replacement) return;
-    setReplacingPath(entry.deprecatedPath);
+    setReplacingKey(entryKey);
     try {
       await onReplace(entry, replacement);
       setReplacementPaths((prev) => {
         const next = { ...prev };
-        delete next[entry.deprecatedPath];
+        delete next[entryKey];
         return next;
       });
-      setOpenPickerPath(null);
+      setOpenPickerKey((currentKey) => currentKey === entryKey ? null : currentKey);
     } finally {
-      setReplacingPath(null);
+      setReplacingKey(null);
     }
   };
 
@@ -97,15 +124,16 @@ export function HealthDeprecatedView({
           </div>
         ) : (
           entries.map((entry) => {
-            const selectedReplacement = replacementPaths[entry.deprecatedPath];
-            const isPickerOpen = openPickerPath === entry.deprecatedPath;
-            const isReplacing = replacingPath === entry.deprecatedPath;
+            const entryKey = getEntryKey(entry);
+            const selectedReplacement = replacementPaths[entryKey];
+            const isPickerOpen = openPickerKey === entryKey;
+            const isReplacing = replacingKey === entryKey;
             const dependentPreview = entry.dependents.slice(0, 3);
             const remainingDependents = entry.dependents.length - dependentPreview.length;
 
             return (
               <div
-                key={entry.deprecatedPath}
+                key={entryKey}
                 className="flex items-start gap-3 py-2 border-b border-[var(--color-figma-border)] last:border-b-0"
               >
                 <div className="min-w-0 flex-1">
@@ -141,13 +169,14 @@ export function HealthDeprecatedView({
                         allTokensFlat={allTokensFlat}
                         pathToCollectionId={pathToCollectionId}
                         filterType={entry.type === "unknown" ? undefined : entry.type}
+                        includeDeprecated={false}
                         excludePaths={[entry.deprecatedPath]}
                         placeholder="Search replacement token…"
                         onSelect={(path) => {
-                          setReplacementPaths((prev) => ({ ...prev, [entry.deprecatedPath]: path }));
-                          setOpenPickerPath(null);
+                          setReplacementPaths((prev) => ({ ...prev, [entryKey]: path }));
+                          setOpenPickerKey(null);
                         }}
-                        onClose={() => setOpenPickerPath(null)}
+                        onClose={() => setOpenPickerKey(null)}
                       />
                     </div>
                   )}
@@ -156,7 +185,7 @@ export function HealthDeprecatedView({
                   {selectedReplacement ? (
                     <>
                       <button
-                        onClick={() => setOpenPickerPath(entry.deprecatedPath)}
+                        onClick={() => setOpenPickerKey(entryKey)}
                         disabled={isReplacing}
                         className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-40"
                       >
@@ -172,14 +201,14 @@ export function HealthDeprecatedView({
                     </>
                   ) : isPickerOpen ? (
                     <button
-                      onClick={() => setOpenPickerPath(null)}
+                      onClick={() => setOpenPickerKey(null)}
                       className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
                     >
                       Cancel
                     </button>
                   ) : (
                     <button
-                      onClick={() => setOpenPickerPath(entry.deprecatedPath)}
+                      onClick={() => setOpenPickerKey(entryKey)}
                       className="text-secondary text-[var(--color-figma-accent)] hover:underline"
                     >
                       Replace

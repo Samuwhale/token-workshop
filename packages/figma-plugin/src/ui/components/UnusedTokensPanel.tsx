@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { tokenPathToUrlSegment } from '../shared/utils';
 import type { UnusedToken } from '../hooks/useHealthData';
@@ -9,7 +9,7 @@ export interface UnusedTokensPanelProps {
   unusedTokens: UnusedToken[];
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
-  onMutate: () => void;
+  onMutate: () => void | Promise<void>;
   /** When true, skip the collapsible wrapper and render content directly */
   embedded?: boolean;
 }
@@ -52,6 +52,24 @@ export function UnusedTokensPanel({
       .sort((a, b) => b.tokens.length - a.tokens.length);
   }, [unusedTokens]);
 
+  useEffect(() => {
+    const validCollectionIds = new Set(groups.map((group) => group.collectionId));
+    setCollapsedCollections((currentCollections) => {
+      const nextCollections = new Set(
+        [...currentCollections].filter((collectionId) => validCollectionIds.has(collectionId)),
+      );
+      return nextCollections.size === currentCollections.size ? currentCollections : nextCollections;
+    });
+    setExpandedCounts((currentCounts) => {
+      const nextCounts = Object.fromEntries(
+        Object.entries(currentCounts).filter(([collectionId]) => validCollectionIds.has(collectionId)),
+      );
+      return Object.keys(nextCounts).length === Object.keys(currentCounts).length
+        ? currentCounts
+        : nextCounts;
+    });
+  }, [groups]);
+
   const executeAction = async (token: UnusedToken, action: CleanupAction) => {
     const endpoint = `${serverUrl}/api/tokens/${encodeURIComponent(token.collectionId)}/${tokenPathToUrlSegment(token.path)}`;
     if (action === 'delete') {
@@ -81,7 +99,9 @@ export function UnusedTokensPanel({
     if (failures.length > 0) {
       onError(`Failed to ${action} ${failures.length} token${failures.length === 1 ? '' : 's'}.`);
     }
-    if (failures.length < tokens.length) onMutate();
+    if (failures.length < tokens.length) {
+      await onMutate();
+    }
   };
 
   const toggleCollection = (id: string) => {

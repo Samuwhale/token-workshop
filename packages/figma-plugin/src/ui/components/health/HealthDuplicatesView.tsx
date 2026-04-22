@@ -7,8 +7,7 @@ export interface HealthDuplicatesViewProps {
   totalDuplicateAliases: number;
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
-  onMutate: () => void;
-  onRefreshValidation: () => void;
+  onMutate: () => Promise<void> | void;
   onBack: () => void;
 }
 
@@ -19,7 +18,6 @@ export function HealthDuplicatesView({
   onNavigateToToken,
   onError,
   onMutate,
-  onRefreshValidation,
   onBack,
 }: HealthDuplicatesViewProps) {
   return (
@@ -50,7 +48,6 @@ export function HealthDuplicatesView({
           onNavigateToToken={onNavigateToToken}
           onError={onError}
           onMutate={onMutate}
-          onRefreshValidation={onRefreshValidation}
           embedded
         />
       </div>

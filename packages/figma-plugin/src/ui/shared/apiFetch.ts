@@ -225,24 +225,6 @@ function getErrorMessageFromBody(body: unknown, status: number): string {
   return `Request failed (${status})`;
 }
 
-/**
- * Fetch a paginated list endpoint and return the standard envelope.
- * Builds the URL with `limit` and `offset` appended (or overriding existing ones).
- */
-export async function fetchPage<T>(
-  baseUrl: string,
-  limit: number,
-  offset: number,
-  options?: RequestInit,
-): Promise<PaginatedResponse<T>> {
-  const url = new URL(baseUrl, 'http://localhost');
-  url.searchParams.set('limit', String(limit));
-  url.searchParams.set('offset', String(offset));
-  // Re-build as a relative URL with the same path+query (strip the fake origin)
-  const fullUrl = baseUrl.includes('://') ? url.toString() : url.pathname + url.search;
-  return apiFetch<PaginatedResponse<T>>(fullUrl, options);
-}
-
 export async function apiFetch<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
   const body = await readResponseBody(res);

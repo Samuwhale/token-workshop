@@ -1,4 +1,4 @@
-import { isWideGamutColor, getSrgbFallback, swatchBgColor } from '../shared/colorUtils';
+import { isWideGamutColor, getSrgbFallback } from '../shared/colorUtils';
 
 /**
  * Gamut indicator badge — shows when a color exceeds sRGB.
@@ -22,42 +22,6 @@ export function GamutIndicator({ color, showFallback = false }: { color: string;
             title={`sRGB fallback: ${fallback}`}
           />
         </span>
-      )}
-    </span>
-  );
-}
-
-/**
- * Inline color swatch with gamut indicator.
- * Replaces raw `backgroundColor: hex.slice(0,7)` patterns with wide-gamut-aware rendering.
- */
-export function ColorSwatch({
-  color,
-  size = 'md',
-  className = '',
-  showGamut = true,
-  onClick,
-}: {
-  color: string;
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-  showGamut?: boolean;
-  onClick?: (e: React.MouseEvent) => void;
-}) {
-  const sizeClass = size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-8 h-8' : 'w-6 h-6';
-  const bgColor = swatchBgColor(color);
-  const wideGamut = showGamut && isWideGamutColor(color);
-
-  return (
-    <span className={`inline-flex items-center gap-1 shrink-0 ${className}`}>
-      <span
-        className={`${sizeClass} rounded border border-[var(--color-figma-border)] shrink-0 ${onClick ? 'cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]' : ''}`}
-        style={{ backgroundColor: bgColor }}
-        title={color}
-        onClick={onClick}
-      />
-      {wideGamut && (
-        <GamutIndicator color={color} />
       )}
     </span>
   );

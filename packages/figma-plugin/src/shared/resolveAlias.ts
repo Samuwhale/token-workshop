@@ -155,27 +155,39 @@ export function buildResolutionChain(
   return steps;
 }
 
-/** Resolve alias strings in the direct properties of a plain object. */
-function resolveObjectSubprops(
-  obj: Record<string, unknown>,
+function resolveCompositeAliases(
+  value: unknown,
   tokenMap: Record<string, TokenMapEntry>,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(obj)) {
-    if (typeof val === 'string' && isAlias(val)) {
-      const refPath = extractAliasPath(val)!;
-      const refEntry = tokenMap[refPath];
-      if (refEntry) {
-        const refResult = resolveTokenValue(refEntry.$value, refEntry.$type, tokenMap);
-        out[key] = refResult.value ?? val;
-      } else {
-        out[key] = val;
-      }
-    } else {
-      out[key] = val;
+): unknown {
+  if (typeof value === 'string' && isAlias(value)) {
+    const refPath = extractAliasPath(value);
+    if (!refPath) {
+      return value;
     }
+    const refEntry = tokenMap[refPath];
+    if (!refEntry) {
+      return value;
+    }
+    const resolved = resolveTokenValue(refEntry.$value, refEntry.$type, tokenMap);
+    return resolved.value === null
+      ? value
+      : resolveCompositeAliases(resolved.value, tokenMap);
   }
-  return out;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => resolveCompositeAliases(item, tokenMap));
+  }
+
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
+        key,
+        resolveCompositeAliases(nestedValue, tokenMap),
+      ]),
+    );
+  }
+
+  return value;
 }
 
 export function resolveAllAliases(
@@ -186,22 +198,10 @@ export function resolveAllAliases(
     const result = resolveTokenValue(entry.$value, entry.$type, tokenMap);
     let resolvedValue: TokenValue | TokenReference = result.value ?? entry.$value;
 
-    // Resolve alias references embedded in composite token sub-properties
-    // (typography, border, shadow, gradient, etc. where $value is an object
-    // or array of objects with individually aliased properties).
+    // Resolve alias references embedded anywhere inside composite token values
+    // (nested objects, nested arrays, gradient stop lists, composition payloads).
     if (resolvedValue !== null && typeof resolvedValue === 'object') {
-      if (Array.isArray(resolvedValue)) {
-        resolvedValue = resolvedValue.map((item: unknown) =>
-          item !== null && typeof item === 'object' && !Array.isArray(item)
-            ? resolveObjectSubprops(item as Record<string, unknown>, tokenMap)
-            : item,
-        ) as TokenValue;
-      } else {
-        resolvedValue = resolveObjectSubprops(
-          resolvedValue as Record<string, unknown>,
-          tokenMap,
-        ) as TokenValue;
-      }
+      resolvedValue = resolveCompositeAliases(resolvedValue, tokenMap) as TokenValue;
     }
 
     resolved[path] = {

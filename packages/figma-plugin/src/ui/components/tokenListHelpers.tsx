@@ -412,43 +412,6 @@ export function highlightMatch(text: string, terms: string[]): React.ReactNode {
 }
 
 // ---------------------------------------------------------------------------
-// Type-specific placeholder text for the token value input
-// ---------------------------------------------------------------------------
-
-const VALUE_PLACEHOLDERS: Record<string, string> = {
-  color: '#hex, rgb(), oklch(), color(display-p3 …)',
-  dimension: '16px, 1rem, 0.5em',
-  typography: '{"fontFamily":"Inter","fontSize":"16px","fontWeight":400}',
-  shadow: '{"offsetX":"0px","offsetY":"4px","blur":"8px","color":"#00000040"}',
-  border: '{"color":"#000","width":"1px","style":"solid"}',
-  gradient: 'linear-gradient(#000, #fff)',
-  duration: '200ms, 0.3s',
-  fontFamily: 'Inter, Arial, sans-serif',
-  fontWeight: '400, bold, semi-bold',
-  fontStyle: 'normal, italic, oblique',
-  lineHeight: '1.5, 24px, 150%',
-  letterSpacing: '0.01em, 1px',
-  textDecoration: 'none, underline, line-through',
-  textTransform: 'none, uppercase, lowercase, capitalize',
-  strokeStyle: 'solid, dashed, dotted',
-  number: '1.5, 4, 100',
-  percentage: '50, 100',
-  string: 'any text value',
-  boolean: 'true / false',
-  link: 'https://…',
-  asset: 'url(…) or base64 data URI',
-  cubicBezier: '[0.25, 0.1, 0.25, 1]',
-  transition: '{"duration":{"value":200,"unit":"ms"},"timingFunction":[0.25,0.1,0.25,1]}',
-  composition: '{"opacity":1,"borderRadius":"4px"}',
-  custom: 'any value',
-};
-
-export function valuePlaceholderForType(type: string): string {
-  const hint = VALUE_PLACEHOLDERS[type];
-  return hint ? `Value (optional) — ${hint}` : 'Value (optional)';
-}
-
-// ---------------------------------------------------------------------------
 // Per-type format hints shown below the value input for complex types
 // ---------------------------------------------------------------------------
 

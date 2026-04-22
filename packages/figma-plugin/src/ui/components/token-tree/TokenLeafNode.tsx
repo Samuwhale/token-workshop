@@ -1788,6 +1788,7 @@ export const TokenLeafNode = memo(
               targetCollectionId={mv.targetCollectionId}
               collectionId={mv.collectionId}
               optionName={mv.optionName}
+              derivedGeneratorName={producingGenerator?.name ?? null}
               onRequestQuickEdit={canQuickEdit ? (req: QuickEditRequest) => {
                 setQuickEditor(req);
                 setInlineNudgeVisible(false);

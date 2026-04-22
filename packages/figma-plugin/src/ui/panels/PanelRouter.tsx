@@ -704,6 +704,11 @@ export function PanelRouter({
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
     onOpenCreateCollection: controller.onOpenCollectionCreateDialog,
+    onOpenCollectionDetails: (collectionId: string) =>
+      switchContextualSurface({
+        surface: "collection-details",
+        collection: { collectionId },
+      }),
     onOpenStartHere: controller.onOpenStartHere,
   };
 
