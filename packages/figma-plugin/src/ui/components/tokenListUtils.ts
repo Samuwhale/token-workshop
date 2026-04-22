@@ -658,17 +658,29 @@ const TOKEN_TYPE_TO_GROUP = new Map(
   ),
 );
 
-function createTypeGroupPath(group: string): string {
+const ORDERED_TOKEN_TYPE_GROUPS = TOKEN_TYPE_CATEGORIES.map((category) => category.group);
+const FALLBACK_TOKEN_TYPE_GROUP =
+  ORDERED_TOKEN_TYPE_GROUPS.includes('Other')
+    ? 'Other'
+    : ORDERED_TOKEN_TYPE_GROUPS[ORDERED_TOKEN_TYPE_GROUPS.length - 1];
+
+export function getTokenTypeGroupName(tokenType: string | null | undefined): string {
+  return TOKEN_TYPE_TO_GROUP.get(tokenType ?? '') ?? FALLBACK_TOKEN_TYPE_GROUP;
+}
+
+export function createTypeGroupPath(group: string): string {
   return `__type/${group.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+export function getTypeGroupPathForTokenType(tokenType: string | null | undefined): string {
+  return createTypeGroupPath(getTokenTypeGroupName(tokenType));
 }
 
 export function groupTokenNodesByType(nodes: TokenNode[]): TokenNode[] {
   const grouped = new Map<string, TokenNode[]>();
-  const orderedGroups = TOKEN_TYPE_CATEGORIES.map((category) => category.group);
-  const fallbackGroup = orderedGroups.includes('Other') ? 'Other' : orderedGroups[orderedGroups.length - 1];
 
   for (const node of flattenLeafNodes(nodes)) {
-    const group = TOKEN_TYPE_TO_GROUP.get(node.$type ?? '') ?? fallbackGroup;
+    const group = getTokenTypeGroupName(node.$type);
     const bucket = grouped.get(group);
     if (bucket) {
       bucket.push(node);
@@ -678,7 +690,7 @@ export function groupTokenNodesByType(nodes: TokenNode[]): TokenNode[] {
   }
 
   const result: TokenNode[] = [];
-  for (const group of orderedGroups) {
+  for (const group of ORDERED_TOKEN_TYPE_GROUPS) {
     const children = grouped.get(group);
     if (!children || children.length === 0) continue;
     result.push({

@@ -16,8 +16,8 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
     description: "",
   },
   "start-new": {
-    title: "Author a token system",
-    description: "Create a collection, add modes, and author your first tokens.",
+    title: "Create a token system",
+    description: "Create a collection, add modes, and add your first tokens.",
   },
 };
 
@@ -144,8 +144,8 @@ export function WelcomePrompt({
   const renderRoot = () => (
     <div>
       <ActionRow
-        title="Author a token system"
-        description="Create a collection and your first tokens from scratch."
+        title="Create a token system"
+        description="Start a new collection and add your first tokens from scratch."
         onClick={() => setBranch("start-new")}
         icon={
           <svg

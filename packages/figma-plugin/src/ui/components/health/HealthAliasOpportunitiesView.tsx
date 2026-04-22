@@ -26,7 +26,7 @@ export function HealthAliasOpportunitiesView({
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <span className="text-body font-semibold text-[var(--color-figma-text)]">Alias opportunities</span>
+        <span className="text-body font-semibold text-[var(--color-figma-text)]">Suggested aliases</span>
         {aliasOpportunityGroups.length > 0 && (
           <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-auto">
             {aliasOpportunityGroups.length} group{aliasOpportunityGroups.length !== 1 ? "s" : ""}
@@ -38,7 +38,7 @@ export function HealthAliasOpportunitiesView({
         {aliasOpportunityGroups.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-body text-[var(--color-figma-text-secondary)]">
-              No alias opportunities found
+              No suggested aliases found
             </p>
           </div>
         ) : (

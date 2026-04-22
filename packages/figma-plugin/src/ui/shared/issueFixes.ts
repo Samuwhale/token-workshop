@@ -37,7 +37,7 @@ export function getUnsupportedIssueFixMessage(
     case "replace-deprecated-reference":
       return "Deprecated references need a replacement token. Use the Deprecated Health view to choose one.";
     case "promote-to-shared-alias":
-      return "Alias promotion needs a shared target path. Use the Alias opportunities Health view.";
+      return "Alias promotion needs a shared target path. Use the Suggested aliases Health view.";
     case undefined:
       return `Issue "${issue.rule}" does not provide an automatic fix.`;
     default:

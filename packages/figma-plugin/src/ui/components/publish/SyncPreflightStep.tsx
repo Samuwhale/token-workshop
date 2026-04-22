@@ -47,7 +47,7 @@ export function SyncPreflightStep({
         <div className="flex flex-col gap-3">
           {blockingClusters.length > 0 && (
             <ClusterGroup
-              title="Blockers"
+              title="Must fix"
               tone="danger"
               clusters={blockingClusters}
               actionHandlers={actionHandlers}
@@ -56,7 +56,7 @@ export function SyncPreflightStep({
           )}
           {advisoryClusters.length > 0 && (
             <ClusterGroup
-              title="Advisories"
+              title="Recommended"
               tone="warning"
               clusters={advisoryClusters}
               actionHandlers={actionHandlers}

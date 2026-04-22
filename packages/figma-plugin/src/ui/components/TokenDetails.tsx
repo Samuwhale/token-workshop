@@ -1774,7 +1774,7 @@ export function TokenDetails({
             </p>
             {isInspectMode ? (
               <div className="rounded-md border border-[var(--color-figma-border)]/65 px-2 py-2 text-body text-[var(--color-figma-text)]">
-                {scopeLabels.length > 0 ? scopeLabels.join(", ") : "All supported scopes"}
+                {scopeLabels.length > 0 ? scopeLabels.join(", ") : "Any compatible field"}
               </div>
             ) : (
               <ScopeEditor

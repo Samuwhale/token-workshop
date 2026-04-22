@@ -276,7 +276,7 @@ function StructuralPreflightSummary({
   if (loading) {
     return (
       <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
-        Loading dependency preflight…
+        Checking what this affects…
       </div>
     );
   }

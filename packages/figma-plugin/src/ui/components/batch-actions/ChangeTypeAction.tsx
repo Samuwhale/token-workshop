@@ -9,6 +9,7 @@ import type { BatchActionProps } from './types';
 import { PREVIEW_MAX, rollbackOperation } from './transforms';
 import { PreviewPath, ActionFeedback } from './BatchActionPreview';
 import { TypePicker } from '../TypePicker';
+import { getTokenTypeLabel } from '../../shared/tokenTypeCategories';
 
 const typeValidator = new TokenValidator();
 
@@ -41,6 +42,12 @@ export function ChangeTypeAction({
     return { currentTypes, count: selectedEntries.length, incompatible };
   }, [newType, selectedEntries]);
 
+  const currentTypeLabels = useMemo(
+    () => typeChangeInfo?.currentTypes.map(getTokenTypeLabel).join(', ') ?? '',
+    [typeChangeInfo],
+  );
+  const newTypeLabel = getTokenTypeLabel(newType);
+
   const handleApply = async () => {
     if (!connected || applying || !newType) return;
 
@@ -65,7 +72,7 @@ export function ChangeTypeAction({
       if (onPushUndo && result.updated > 0) {
         const opId = result.operationId;
         onPushUndo({
-          description: `Change type to ${newType} on ${result.updated} token${result.updated === 1 ? '' : 's'}`,
+          description: `Change type to ${newTypeLabel} on ${result.updated} token${result.updated === 1 ? '' : 's'}`,
           restore: async () => { await rollbackOperation(serverUrl, opId); onApply(); },
         });
       }
@@ -122,7 +129,7 @@ export function ChangeTypeAction({
 
         {newType && typeChangeInfo && !showConfirm && typeChangeInfo.currentTypes.length > 0 && (
           <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
-            {typeChangeInfo.currentTypes.join(', ')} → <span className="text-[var(--color-figma-text)] font-medium">{newType}</span>
+            {currentTypeLabels} → <span className="text-[var(--color-figma-text)] font-medium">{newTypeLabel}</span>
             {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
             {hasIncompatible && (
               <span className="text-[var(--color-figma-error)]">
@@ -141,8 +148,8 @@ export function ChangeTypeAction({
             <p className="text-secondary text-[var(--color-figma-text)] leading-snug">
               Change type of <strong>{typeChangeInfo.count}</strong> token{typeChangeInfo.count === 1 ? '' : 's'}
               {typeChangeInfo.currentTypes.length > 0 && (
-                <> from <strong>{typeChangeInfo.currentTypes.join(', ')}</strong></>
-              )} to <strong>{newType}</strong>?
+                <> from <strong>{currentTypeLabels}</strong></>
+              )} to <strong>{newTypeLabel}</strong>?
             </p>
             {hasIncompatible ? (
               <div className="space-y-0.5">

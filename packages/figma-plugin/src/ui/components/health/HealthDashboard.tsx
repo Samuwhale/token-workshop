@@ -135,7 +135,7 @@ export function HealthDashboard({
     },
     { id: "unused", label: "Unused", count: unusedCount, countLabel: unusedReady ? (unusedCount === 0 ? "All clear" : String(unusedCount)) : "Checking…", pending: !unusedReady, severity: unusedCount > 0 ? "warning" : "healthy", onOpen: openView("unused") },
     { id: "deprecated", label: "Deprecated", count: deprecatedCount, countLabel: deprecatedCount === 0 ? "All clear" : String(deprecatedCount), severity: deprecatedCount > 0 ? "warning" : "healthy", onOpen: openView("deprecated") },
-    { id: "alias-opportunities", label: "Alias opportunities", count: aliasOpportunitiesCount, countLabel: aliasOpportunitiesCount === 0 ? "All clear" : String(aliasOpportunitiesCount), severity: aliasOpportunitiesCount > 0 ? "warning" : "healthy", onOpen: openView("alias-opportunities") },
+    { id: "alias-opportunities", label: "Suggested aliases", count: aliasOpportunitiesCount, countLabel: aliasOpportunitiesCount === 0 ? "All clear" : String(aliasOpportunitiesCount), severity: aliasOpportunitiesCount > 0 ? "warning" : "healthy", onOpen: openView("alias-opportunities") },
     { id: "duplicates", label: "Duplicates", count: duplicateCount, countLabel: duplicateCount === 0 ? "All clear" : String(duplicateCount), severity: duplicateCount > 0 ? "warning" : "healthy", onOpen: openView("duplicates") },
   ];
 

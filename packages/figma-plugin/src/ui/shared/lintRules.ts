@@ -64,7 +64,7 @@ export const LINT_RULE_REGISTRY: LintRuleMeta[] = [
   },
   {
     id: 'alias-opportunity',
-    label: 'Alias opportunity',
+    label: 'Suggested alias',
     description: 'Detect raw-value groups that can be replaced by one shared primitive alias.',
     tip: 'Promote the group into one shared alias token',
   },

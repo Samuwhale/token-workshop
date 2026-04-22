@@ -261,7 +261,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
               </div>
               {filteredOperations.length === 0 && (
                 <p className="px-3 py-2 text-secondary text-[var(--color-figma-text-tertiary)] italic">
-                  No operations match the current filters.
+                  No changes match the current filters.
                 </p>
               )}
               {filteredOperations.map(op => (
@@ -337,7 +337,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                 </div>
               )}
               <p className="px-3 py-1 text-secondary text-[var(--color-figma-text-tertiary)] italic">
-                Server operations persist across sessions and can be rolled back.
+                Recent changes stay here across sessions. Roll back any time.
               </p>
             </div>
           )}

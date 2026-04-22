@@ -447,7 +447,7 @@ export function QuickStartWizard({
       <>
         {!embedded && (
           <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-            <div className="text-heading font-semibold text-[var(--color-figma-text)]">Author a token system</div>
+            <div className="text-heading font-semibold text-[var(--color-figma-text)]">Create a token system</div>
             <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
@@ -526,7 +526,7 @@ export function QuickStartWizard({
               </button>
             )}
               <div className="text-heading font-semibold text-[var(--color-figma-text)]">
-              {viewTitle ?? 'Author a token system'}
+              {viewTitle ?? 'Create a token system'}
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">

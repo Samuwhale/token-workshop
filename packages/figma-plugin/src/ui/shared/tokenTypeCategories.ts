@@ -75,13 +75,23 @@ export const TOKEN_TYPE_CATEGORIES: TokenTypeCategory[] = [
   },
 ];
 
+const TOKEN_TYPE_OPTIONS: TokenTypeOption[] = TOKEN_TYPE_CATEGORIES.flatMap(
+  (category) => category.options,
+);
+
 /** Flat list of all token type values in category order. */
-export const ALL_TOKEN_TYPES: string[] = TOKEN_TYPE_CATEGORIES.flatMap(c =>
-  c.options.map(o => o.value),
+export const ALL_TOKEN_TYPES: string[] = TOKEN_TYPE_OPTIONS.map((option) => option.value);
+
+const TOKEN_TYPE_LABELS = new Map(
+  TOKEN_TYPE_OPTIONS.map((option) => [option.value, option.label] as const),
 );
 
 export function isSupportedTokenType(value: string): boolean {
   return ALL_TOKEN_TYPES.includes(value);
+}
+
+export function getTokenTypeLabel(value: string): string {
+  return TOKEN_TYPE_LABELS.get(value) ?? value;
 }
 
 export function normalizeTokenType(

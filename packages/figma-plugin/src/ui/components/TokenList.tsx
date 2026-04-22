@@ -29,6 +29,7 @@ import {
   findGroupByPath,
   buildZoomBranchNavigation,
   groupTokenNodesByType,
+  getTypeGroupPathForTokenType,
 } from "./tokenListUtils";
 import type { LintViolation } from "../hooks/useLint";
 import type {
@@ -1971,6 +1972,17 @@ export function TokenList({
       setZoomRootPath(null);
       setExpandedPaths((prev) => {
         const next = new Set(prev);
+        if (groupBy === "type") {
+          if (path.startsWith("__type/")) {
+            next.add(path);
+            return next;
+          }
+          const entry = allTokensFlat[path];
+          if (entry) {
+            next.add(getTypeGroupPathForTokenType(entry.$type));
+            return next;
+          }
+        }
         const segments = path.split(".");
         for (let i = 1; i < segments.length; i += 1) {
           next.add(segments.slice(0, i).join("."));
@@ -1981,7 +1993,7 @@ export function TokenList({
         return next;
       });
     },
-    [setExpandedPaths, setViewMode, setZoomRootPath, tokens],
+    [allTokensFlat, groupBy, setExpandedPaths, setViewMode, setZoomRootPath, tokens],
   );
 
   useLayoutEffect(() => {
