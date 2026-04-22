@@ -100,7 +100,7 @@ export function ImportConflictResolver() {
               title={`${d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}${hasActiveFilter ? ' visible' : ' all'}`}
               className={`px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
                 d === 'accept'
-                  ? 'text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10'
+                  ? 'text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/10'
                   : d === 'merge'
                     ? 'text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10'
                     : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30'
@@ -200,7 +200,7 @@ export function ImportConflictResolver() {
                         } ${
                           decision === d
                             ? d === 'accept'
-                              ? 'bg-[var(--color-figma-success,#16a34a)]/15 text-[var(--color-figma-success,#16a34a)]'
+                              ? 'bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]'
                               : d === 'merge'
                                 ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
                                 : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
@@ -220,7 +220,7 @@ export function ImportConflictResolver() {
                     </span>
                   </div>
                   <div className={`flex items-center gap-1 min-w-0 px-1 py-0.5 ${
-                    decision === 'reject' ? 'opacity-40' : 'bg-[var(--color-figma-success,#16a34a)]/5'
+                    decision === 'reject' ? 'opacity-40' : 'bg-[var(--color-figma-success)]/5'
                   }`}>
                     <span className={`truncate flex items-center gap-1 ${
                       decision === 'reject' ? 'text-[var(--color-figma-text-secondary)] line-through' : 'text-[var(--color-figma-text)]'

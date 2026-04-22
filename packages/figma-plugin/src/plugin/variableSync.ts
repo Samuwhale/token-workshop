@@ -390,7 +390,11 @@ export async function readFigmaVariables(correlationId?: string) {
         if (!variable) continue;
         if (isGeneratedStyleBackingVariable(variable)) continue;
         const tokenType = inferVariableTokenType(variable.resolvedType, variable.scopes);
-        const modeValue = toReadModeValue(variable.valuesByMode[mode.modeId], variable.resolvedType, tokenType, variableNameById);
+        const modeValue = toReadModeValue(
+          variable.valuesByMode[mode.modeId],
+          tokenType,
+          variableNameById,
+        );
         tokens.push({
           path: variable.name.replace(/\//g, '.'),
           $type: tokenType,
@@ -412,7 +416,6 @@ export async function readFigmaVariables(correlationId?: string) {
 
 function toReadModeValue(
   rawValue: VariableValue,
-  resolvedType: VariableResolvedDataType,
   tokenType: string,
   variableNameById: Map<string, string>,
 ): { value: string | number | boolean | { value: number; unit: 'px' } | null; reference?: string; isAlias: boolean } {

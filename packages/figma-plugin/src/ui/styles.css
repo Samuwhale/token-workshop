@@ -39,6 +39,13 @@
   --color-figma-warning: #f2a20d;
   --color-figma-error: #f24822;
 
+  /* Derived/auto-generated token indicator — warm amber, distinct from warning. */
+  --color-figma-generator: #d8a472;
+
+  /* Compare/diff accent colors — two hues for side-by-side comparisons. */
+  --color-figma-diff-a: #5ba9e8;
+  --color-figma-diff-b: #a285d0;
+
   /* Token family badge colors — six semantic groups cover every token $type
      so the palette reads as a legend instead of a rainbow. */
   --token-badge-color-bg: #e74c3c26;
@@ -83,6 +90,11 @@ html.figma-light {
   --color-figma-success: #14ae5c;
   --color-figma-warning: #f2a20d;
   --color-figma-error: #f24822;
+
+  --color-figma-generator: #a86b1f;
+
+  --color-figma-diff-a: #1e7ac0;
+  --color-figma-diff-b: #6a4ba3;
 
   --token-badge-color-bg: #e74c3c14;
   --token-badge-color-text: #c0392b;

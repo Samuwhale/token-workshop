@@ -1302,9 +1302,9 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
               const fmtB = diff.valueB !== undefined ? formatTokenValueForDisplay(diff.type, diff.valueB) : null;
               const par = nodeParentPath(diff.path, diff.name);
               const statusColor = diff.status === 'only-a'
-                ? 'bg-blue-500/10 text-blue-400'
+                ? 'bg-[var(--color-figma-diff-a)]/10 text-[var(--color-figma-diff-a)]'
                 : diff.status === 'only-b'
-                ? 'bg-purple-500/10 text-purple-400'
+                ? 'bg-[var(--color-figma-diff-b)]/10 text-[var(--color-figma-diff-b)]'
                 : 'bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]';
               const statusLabel = diff.status === 'only-a' ? 'only A' : diff.status === 'only-b' ? 'only B' : 'changed';
               return (

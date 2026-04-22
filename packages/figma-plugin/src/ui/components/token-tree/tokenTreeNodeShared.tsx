@@ -343,7 +343,7 @@ function SummaryOverflowMenu({
         className="flex h-[24px] w-[24px] items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         aria-label="More actions"
       >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+        <svg width="12" height="12" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
           <circle cx="2" cy="5" r="1" />
           <circle cx="5" cy="5" r="1" />
           <circle cx="8" cy="5" r="1" />
@@ -540,12 +540,12 @@ export function TokenRowBrowseMetaBadge({
     <>
       {meta.kind === "alias" ? (
         <svg
-          width="8"
-          height="8"
+          width="10"
+          height="10"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.5"
+          strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
@@ -555,7 +555,7 @@ export function TokenRowBrowseMetaBadge({
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
       ) : (
-        <GeneratedGlyph size={8} className="shrink-0" />
+        <GeneratedGlyph size={10} className="shrink-0" />
       )}
       <span
         className={`truncate ${expanded ? "max-w-[140px]" : "max-w-[88px]"}`}

@@ -949,7 +949,7 @@ export function SettingsPanel({
                   </div>
                 ))}
               </div>
-              <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-warning,#f59e0b)]/10 px-2 py-2">
+              <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-warning)]/10 px-2 py-2">
                 <svg
                   width="12"
                   height="12"

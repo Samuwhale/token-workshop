@@ -57,9 +57,9 @@ const TONE_STYLES: Record<InlineBannerVariant, BannerTone> = {
     action: 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20',
   },
   warning: {
-    root: 'border-[var(--color-figma-warning,#f59e0b)]/20 bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-text-secondary)]',
-    icon: 'text-[var(--color-figma-warning,#f59e0b)]',
-    action: 'bg-[var(--color-figma-warning,#f59e0b)]/15 text-[var(--color-figma-warning,#b45309)] hover:bg-[var(--color-figma-warning,#f59e0b)]/25',
+    root: 'border-[var(--color-figma-warning)]/20 bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-text-secondary)]',
+    icon: 'text-[var(--color-figma-warning)]',
+    action: 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/25',
   },
   info: {
     root: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
@@ -67,9 +67,9 @@ const TONE_STYLES: Record<InlineBannerVariant, BannerTone> = {
     action: 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
   },
   success: {
-    root: 'border-[var(--color-figma-success,#18a058)]/20 bg-[var(--color-figma-success,#18a058)]/10 text-[var(--color-figma-success,#18a058)]',
-    icon: 'text-[var(--color-figma-success,#18a058)]',
-    action: 'bg-[var(--color-figma-success,#18a058)]/12 text-[var(--color-figma-success,#18a058)] hover:bg-[var(--color-figma-success,#18a058)]/20',
+    root: 'border-[var(--color-figma-success)]/20 bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]',
+    icon: 'text-[var(--color-figma-success)]',
+    action: 'bg-[var(--color-figma-success)]/12 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/20',
   },
 };
 
@@ -163,7 +163,7 @@ export function InlineBanner({
           disabled={action.disabled}
           title={action.title}
           className={joinClasses(
-            'shrink-0 rounded px-2 py-1 text-secondary font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+            'shrink-0 rounded px-2 py-1 text-secondary font-medium transition-colors disabled:opacity-50',
             tone.action,
             action.className,
           )}

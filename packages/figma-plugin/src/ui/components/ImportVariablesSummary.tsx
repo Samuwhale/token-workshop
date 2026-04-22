@@ -134,7 +134,7 @@ export function ImportVariablesSummary() {
               </div>
             )}
             {hasNameCollisions && destinationCounts.get(summary.destinationName)! > 1 && (
-              <div className="mt-1 text-secondary text-[var(--color-figma-error,#e53935)]">
+              <div className="mt-1 text-secondary text-[var(--color-figma-error)]">
                 Destination name conflicts with another collection — click to rename
               </div>
             )}
@@ -154,14 +154,14 @@ export function ImportVariablesSummary() {
         {!checkingVarConflicts && varConflictPreview !== null && (
           <div className="flex items-center gap-2 text-secondary">
             {varConflictPreview.newCount > 0 && (
-              <span className="text-[var(--color-figma-success,#16a34a)]">
+              <span className="text-[var(--color-figma-success)]">
                 {varConflictPreview.newCount} new
               </span>
             )}
             {varConflictPreview.overwriteCount > 0 && (
               <>
                 {varConflictPreview.newCount > 0 && <span className="text-[var(--color-figma-border)]">&middot;</span>}
-                <span className="text-[var(--color-figma-warning,#e8a100)]">
+                <span className="text-[var(--color-figma-warning)]">
                   {varConflictPreview.overwriteCount} conflict{varConflictPreview.overwriteCount !== 1 ? 's' : ''}
                 </span>
               </>
@@ -170,7 +170,7 @@ export function ImportVariablesSummary() {
         )}
 
         {hasBlockingCollisions && !importing && (
-          <div className="text-secondary text-[var(--color-figma-error,#e53935)]">
+          <div className="text-secondary text-[var(--color-figma-error)]">
             {ambiguousCollectionImportCount} duplicate destination path{ambiguousCollectionImportCount !== 1 ? 's' : ''} — rename a collection above.
           </div>
         )}

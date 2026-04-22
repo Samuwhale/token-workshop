@@ -66,7 +66,7 @@ const ACTION_BUTTON_TONE_CLASS = {
   primary:
     'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
   danger:
-    'border-[var(--color-figma-error,#f56565)]/25 bg-[var(--color-figma-error,#f56565)]/10 text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-error,#f56565)]/20',
+    'border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20',
 } as const;
 
 interface PropertyActionButtonProps {
@@ -147,7 +147,7 @@ export function PropertyRow({
   const rowStateClass = isThisPropActive
     ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5'
     : isBroken
-      ? 'border-[var(--color-figma-warning,#f5a623)]/30 bg-[var(--color-figma-warning,#f5a623)]/5 hover:bg-[var(--color-figma-warning,#f5a623)]/10'
+      ? 'border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 hover:bg-[var(--color-figma-warning)]/10'
       : isBound
         ? 'border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
         : 'border-transparent hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]';
@@ -156,13 +156,13 @@ export function PropertyRow({
     : creatingFromProp === prop
       ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
       : lastBoundProp === prop
-        ? 'bg-[var(--color-figma-success,#18a058)]/12 text-[var(--color-figma-success,#18a058)]'
+        ? 'bg-[var(--color-figma-success)]/12 text-[var(--color-figma-success)]'
         : isBroken
-          ? 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]'
+          ? 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]'
           : isBound
             ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
             : isMixed
-              ? 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]'
+              ? 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]'
               : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
   const statusLabel = bindingFromProp === prop
     ? 'Picking'
@@ -350,7 +350,7 @@ export function PropertyRow({
                     {resolvedDisplay ?? formatCurrentValue(prop, value)}
                   </span>
                 ) : isMixed ? (
-                  <span className="mt-0.5 text-secondary text-[var(--color-figma-warning,#f5a623)] block">
+                  <span className="mt-0.5 text-secondary text-[var(--color-figma-warning)] block">
                     Different bindings across {rootNodes.length} selected {rootNodes.length === 1 ? 'layer' : 'layers'}
                   </span>
                 ) : (
@@ -367,7 +367,7 @@ export function PropertyRow({
             </div>
             {isBound && (
               <div className="flex items-center gap-1 mt-1">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${isBroken ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-accent)]'}`} aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${isBroken ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-accent)]'}`} aria-hidden="true">
                   {isBroken ? (
                     <>
                       <circle cx="12" cy="12" r="10" />
@@ -390,7 +390,7 @@ export function PropertyRow({
                   </button>
                 ) : (
                   <span
-                    className={`text-secondary font-mono truncate ${isBroken ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-accent)]'}`}
+                    className={`text-secondary font-mono truncate ${isBroken ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-accent)]'}`}
                     title={isBroken ? `Missing token: ${binding as string}` : (binding as string)}
                   >
                     {binding as string}
@@ -497,7 +497,7 @@ export function PropertyRow({
         const mixedValues = getMixedBindingValues(rootNodes, prop);
         return (
           <div className="mx-2 mb-1 px-2">
-            <span className="text-secondary text-[var(--color-figma-warning,#f5a623)] font-medium block mb-1">
+            <span className="text-secondary text-[var(--color-figma-warning)] font-medium block mb-1">
               Distinct bindings across {rootNodes.length} layers
             </span>
             <div className="flex flex-col divide-y divide-[var(--color-figma-border)]/30">

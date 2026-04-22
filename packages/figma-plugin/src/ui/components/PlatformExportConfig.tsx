@@ -147,7 +147,7 @@ export function PlatformExportConfig({
             <button
               onClick={onSavePreset}
               disabled={!presetName.trim()}
-              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
             >
               Save
             </button>
@@ -736,7 +736,7 @@ export function PlatformExportConfig({
                   onClick={() => handleExport()}
                   disabled={selected.size === 0 || !connected || exporting}
                   title="Re-run export with current settings"
-                  className="flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-40"
                 >
                   {exporting ? (
                     <Spinner size="sm" />

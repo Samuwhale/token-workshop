@@ -170,14 +170,14 @@ export function UnusedTokensPanel({
                                 <button
                                   onClick={() => confirm.trigger(`${tokenKey}:deprecate`, () => runAction([token], 'deprecate'))}
                                   disabled={isBusy}
-                                  className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                                 >
                                   {confirm.isPending(`${tokenKey}:deprecate`) ? 'Confirm?' : 'Deprecate'}
                                 </button>
                                 <button
                                   onClick={() => confirm.trigger(`${tokenKey}:delete`, () => runAction([token], 'delete'))}
                                   disabled={isBusy}
-                                  className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
                                 >
                                   {confirm.isPending(`${tokenKey}:delete`) ? 'Confirm?' : 'Delete'}
                                 </button>

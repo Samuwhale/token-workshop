@@ -1,3 +1,4 @@
+import { AlertCircle, AlertTriangle, Check, Info } from "lucide-react";
 import type { HealthView } from "./types";
 import type { HealthStatus } from "../../hooks/useHealthSignals";
 
@@ -38,26 +39,12 @@ export interface HealthDashboardProps {
 
 function StatusIcon({ status }: { status: HealthStatus }) {
   if (status === "critical") {
-    return (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-    );
+    return <AlertCircle size={14} strokeWidth={2.5} aria-hidden="true" />;
   }
   if (status === "warning") {
-    return (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
-      </svg>
-    );
+    return <AlertTriangle size={14} strokeWidth={2.5} aria-hidden="true" />;
   }
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  );
+  return <Check size={14} strokeWidth={2.5} aria-hidden="true" />;
 }
 
 function statusColor(status: HealthStatus): string {
@@ -99,11 +86,7 @@ export function HealthDashboard({
   if (!connected) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-center px-4">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
+        <Info size={20} strokeWidth={1.5} className="text-[var(--color-figma-text-secondary)]" aria-hidden="true" />
         <p className="text-body text-[var(--color-figma-text-secondary)]">
           Connect to check health
         </p>

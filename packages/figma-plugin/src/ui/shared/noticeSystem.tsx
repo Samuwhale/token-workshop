@@ -264,13 +264,13 @@ export interface NoticeInlineAlertProps {
 
 export function NoticeInlineAlert({ severity, children, onDismiss, className }: NoticeInlineAlertProps) {
   const tone = severity === 'error'
-    ? 'bg-[var(--color-figma-error,#f56565)]/10 border-[var(--color-figma-error,#f56565)]/20'
+    ? 'bg-[var(--color-figma-error)]/10 border-[var(--color-figma-error)]/20'
     : severity === 'warning'
     ? 'bg-[var(--color-figma-warning)]/10 border-[var(--color-figma-warning)]/20'
     : 'bg-[var(--color-figma-bg-secondary)] border-[var(--color-figma-border)]';
 
   const textTone = severity === 'error'
-    ? 'text-[var(--color-figma-error,#f56565)]'
+    ? 'text-[var(--color-figma-error)]'
     : severity === 'warning'
     ? 'text-[var(--color-figma-warning)]'
     : 'text-[var(--color-figma-text-secondary)]';
@@ -285,7 +285,7 @@ export function NoticeInlineAlert({ severity, children, onDismiss, className }: 
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className={`p-0.5 rounded ${textTone} hover:bg-${severity === 'error' ? '[var(--color-figma-error,#f56565)]' : '[var(--color-figma-warning)]'}/20 transition-colors shrink-0`}
+          className={`p-0.5 rounded ${textTone} hover:bg-${severity === 'error' ? '[var(--color-figma-error)]' : '[var(--color-figma-warning)]'}/20 transition-colors shrink-0`}
           title="Dismiss"
           aria-label="Dismiss error"
         >

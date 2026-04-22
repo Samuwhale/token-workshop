@@ -3,7 +3,11 @@ import { TOKEN_EDITOR_RESERVED_EXTENSION_KEYS } from '../shared/tokenEditorTypes
 
 /* ── Structured key-value extensions editor ── */
 
-interface ExtEntry { key: string; value: string }
+interface ExtEntry { id: string; key: string; value: string }
+
+function newEntryId(): string {
+  return Math.random().toString(36).slice(2);
+}
 
 function findReservedExtensionKey(keys: Iterable<string>): string | null {
   for (const key of keys) {
@@ -21,6 +25,7 @@ function parseEntries(jsonText: string): ExtEntry[] | null {
     const parsed = JSON.parse(trimmed);
     if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) return null;
     return Object.entries(parsed).map(([k, v]) => ({
+      id: newEntryId(),
       key: k,
       value: typeof v === 'string' ? v : JSON.stringify(v, null, 2),
     }));
@@ -193,7 +198,7 @@ function ExtensionsEditor({
 
   const addEntry = useCallback(() => {
     setEntries(prev => {
-      const next = [...prev, { key: '', value: '' }];
+      const next = [...prev, { id: newEntryId(), key: '', value: '' }];
       // Don't sync yet — empty key won't produce JSON
       return next;
     });
@@ -258,7 +263,7 @@ function ExtensionsEditor({
               onClick={rawMode ? switchToStructured : switchToRaw}
               disabled={rawMode && !canSwitchToStructured}
               title={rawMode ? 'Switch to structured editor' : 'Switch to raw JSON'}
-              className="shrink-0 ml-2 px-1.5 py-0.5 rounded text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="shrink-0 ml-2 px-1.5 py-0.5 rounded text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] disabled:opacity-40"
             >
               {rawMode ? (
                 <span className="flex items-center gap-1">
@@ -314,7 +319,7 @@ function ExtensionsEditor({
               {entries.map((entry, idx) => {
                 const isObjectValue = entry.value.trim().startsWith('{') || entry.value.trim().startsWith('[');
                 return (
-                  <div key={idx} className="flex gap-1.5 items-start">
+                  <div key={entry.id} className="flex gap-1.5 items-start">
                     <input
                       type="text"
                       value={entry.key}

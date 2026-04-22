@@ -462,7 +462,7 @@ export function CollectionRail({
           role="menuitem"
           disabled={!canMerge}
           onClick={() => runMenuAction(collectionId, onMergeCollection)}
-          className={`${MENU_ITEM_CLASS} disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent`}
+          className={`${MENU_ITEM_CLASS} disabled:opacity-40 disabled:hover:bg-transparent`}
         >
           Merge into another collection…
         </button>

@@ -4,9 +4,18 @@ import { InlineBanner } from "./InlineBanner";
 import { RemapAutocompleteInput } from "./RemapAutocompleteInput";
 
 export interface RemapBindingsRow {
+  id: string;
   from: string;
   to: string;
   suggested?: boolean;
+}
+
+function newRemapRowId(): string {
+  return Math.random().toString(36).slice(2);
+}
+
+function createEmptyRemapRow(): RemapBindingsRow {
+  return { id: newRemapRowId(), from: "", to: "" };
 }
 
 export interface RemapBindingsPrefillEntry {
@@ -30,8 +39,6 @@ interface RemapResultState {
   nodesWithBindings: number;
 }
 
-const EMPTY_REMAP_ROW: RemapBindingsRow = { from: "", to: "" };
-
 export function buildRemapRowsFromEntries(
   entries?: readonly RemapBindingsPrefillEntry[],
 ): RemapBindingsRow[] {
@@ -42,9 +49,9 @@ export function buildRemapRowsFromEntries(
     if (!from || seen.has(from)) continue;
     seen.add(from);
     const to = entry.to?.trim() ?? "";
-    rows.push({ from, to, suggested: to.length > 0 });
+    rows.push({ id: newRemapRowId(), from, to, suggested: to.length > 0 });
   }
-  return rows.length > 0 ? rows : [{ ...EMPTY_REMAP_ROW }];
+  return rows.length > 0 ? rows : [createEmptyRemapRow()];
 }
 
 function describeRemapResult(
@@ -257,7 +264,7 @@ export function RemapBindingsPanel({
 
       <div className="mb-1.5 flex flex-col gap-1">
         {remapRows.map((row, idx) => (
-          <div key={idx} className="flex items-center gap-1">
+          <div key={row.id} className="flex items-center gap-1">
             <RemapAutocompleteInput
               value={row.from}
               onChange={(nextValue) =>
@@ -312,7 +319,7 @@ export function RemapBindingsPanel({
                 onClick={() =>
                   updateRows(remapRows.filter((_, rowIdx) => rowIdx !== idx))
                 }
-                className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-error,#f56565)]"
+                className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-error)]"
                 title="Remove row"
                 aria-label="Remove row"
               >
@@ -337,7 +344,7 @@ export function RemapBindingsPanel({
 
       <div className="flex items-center justify-between gap-2">
         <button
-          onClick={() => updateRows([...remapRows, { ...EMPTY_REMAP_ROW }])}
+          onClick={() => updateRows([...remapRows, createEmptyRemapRow()])}
           className="text-secondary text-[var(--color-figma-accent)] hover:underline"
         >
           + Add row

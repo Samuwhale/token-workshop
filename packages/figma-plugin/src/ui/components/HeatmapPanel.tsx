@@ -516,7 +516,7 @@ export function HeatmapPanel({
           <button
             disabled={!bindToken.trim()}
             onClick={handleApplyBind}
-            className="w-full text-secondary py-1.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full text-secondary py-1.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
           >
             Bind {quickBind.nodeIds.length} layer{quickBind.nodeIds.length !== 1 ? 's' : ''}
           </button>

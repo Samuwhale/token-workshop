@@ -66,7 +66,6 @@ export function useFigmaSync(
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
-  currentCollectionId: string,
 ) {
   const [publishPending, setPublishPending] = useState<PublishPending | null>(null);
   const [publishApplying, setPublishApplying] = useState(false);

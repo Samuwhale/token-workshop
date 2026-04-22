@@ -348,7 +348,7 @@ export function ExtractTokensPanel({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[var(--color-figma-warning,#f5a623)] shrink-0"
+              className="text-[var(--color-figma-warning)] shrink-0"
               aria-hidden="true"
             >
               <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -363,7 +363,7 @@ export function ExtractTokensPanel({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[var(--color-figma-success,#18a058)] shrink-0"
+              className="text-[var(--color-figma-success)] shrink-0"
               aria-hidden="true"
             >
               <path d="M20 6L9 17l-5-5" />
@@ -499,7 +499,7 @@ export function ExtractTokensPanel({
               {selectedCount}/{tokens.length} selected
             </label>
             {conflictCount > 0 && (
-              <span className="text-secondary text-[var(--color-figma-warning,#f5a623)]">
+              <span className="text-secondary text-[var(--color-figma-warning)]">
                 {conflictCount} will overwrite
               </span>
             )}
@@ -568,7 +568,7 @@ export function ExtractTokensPanel({
                       />
                       {isConflict && isSelected && (
                         <span
-                          className="text-[8px] text-[var(--color-figma-warning,#f5a623)] shrink-0"
+                          className="text-[8px] text-[var(--color-figma-warning)] shrink-0"
                           title="Token already exists — will overwrite"
                         >
                           overwrite

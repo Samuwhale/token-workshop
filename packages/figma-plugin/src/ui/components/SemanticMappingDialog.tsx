@@ -11,6 +11,22 @@ import { createTokenBody, upsertToken } from "../shared/tokenMutations";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { buildSemanticMappings, createEmptySemanticMapping } from "./semanticPlanning";
 
+interface DraftMapping extends SemanticTokenMapping {
+  id: string;
+}
+
+function newDraftId(): string {
+  return Math.random().toString(36).slice(2);
+}
+
+function toDraftMappings(mappings: SemanticTokenMapping[]): DraftMapping[] {
+  return mappings.map((mapping) => ({ ...mapping, id: newDraftId() }));
+}
+
+function stripDraftId(mapping: DraftMapping): SemanticTokenMapping {
+  return { semantic: mapping.semantic, step: mapping.step };
+}
+
 export interface SemanticMappingDialogProps {
   serverUrl: string;
   generatedTokens: GeneratedTokenResult[];
@@ -59,12 +75,12 @@ export function SemanticMappingDialog({
   const [semanticPrefix, setSemanticPrefix] = useState(
     initialPrefix ?? "semantic",
   );
-  const [mappings, setMappings] = useState<SemanticTokenMapping[]>(() => {
+  const [mappings, setMappings] = useState<DraftMapping[]>(() => {
     if (initialMappings?.length) {
-      return buildSemanticMappings(initialMappings, availableSteps);
+      return toDraftMappings(buildSemanticMappings(initialMappings, availableSteps));
     }
     if (!defaultPattern) return [];
-    return buildSemanticMappings(defaultPattern.mappings, availableSteps);
+    return toDraftMappings(buildSemanticMappings(defaultPattern.mappings, availableSteps));
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -89,18 +105,18 @@ export function SemanticMappingDialog({
     const pattern = SEMANTIC_PATTERNS.find((candidate) => candidate.id === patternId);
     if (!pattern) return;
     setSelectedPatternId(patternId);
-    setMappings(buildSemanticMappings(pattern.mappings, availableSteps));
+    setMappings(toDraftMappings(buildSemanticMappings(pattern.mappings, availableSteps)));
   };
 
   const handleAddRow = () => {
     setMappings((current) => [
       ...current,
-      createEmptySemanticMapping(availableSteps),
+      { ...createEmptySemanticMapping(availableSteps), id: newDraftId() },
     ]);
   };
 
-  const handleRemoveRow = (index: number) => {
-    setMappings((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  const handleRemoveRow = (id: string) => {
+    setMappings((current) => current.filter((mapping) => mapping.id !== id));
   };
 
   const handleCreateTokens = async () => {
@@ -153,7 +169,7 @@ export function SemanticMappingDialog({
     try {
       await onSaveLayer({
         prefix: semanticPrefix.trim(),
-        mappings: validMappings,
+        mappings: validMappings.map(stripDraftId),
         ...(selectedPatternId !== undefined ? { patternId: selectedPatternId } : {}),
       });
       setSaving(false);
@@ -234,15 +250,15 @@ export function SemanticMappingDialog({
           </button>
         </div>
         <div className="flex flex-col gap-1">
-          {mappings.map((mapping, index) => (
-            <div key={index} className="flex items-center gap-1.5">
+          {mappings.map((mapping) => (
+            <div key={mapping.id} className="flex items-center gap-1.5">
               <input
                 type="text"
                 value={mapping.semantic}
                 onChange={(event) =>
                   setMappings((current) =>
-                    current.map((candidate, candidateIndex) =>
-                      candidateIndex === index
+                    current.map((candidate) =>
+                      candidate.id === mapping.id
                         ? { ...candidate, semantic: event.target.value }
                         : candidate,
                     ),
@@ -267,8 +283,8 @@ export function SemanticMappingDialog({
                 value={mapping.step}
                 onChange={(event) =>
                   setMappings((current) =>
-                    current.map((candidate, candidateIndex) =>
-                      candidateIndex === index
+                    current.map((candidate) =>
+                      candidate.id === mapping.id
                         ? { ...candidate, step: event.target.value }
                         : candidate,
                     ),
@@ -283,7 +299,7 @@ export function SemanticMappingDialog({
                 ))}
               </select>
               <button
-                onClick={() => handleRemoveRow(index)}
+                onClick={() => handleRemoveRow(mapping.id)}
                 aria-label="Remove mapping"
                 className="shrink-0 p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
               >
@@ -314,9 +330,9 @@ export function SemanticMappingDialog({
             Will create
           </label>
           <div className="border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg-secondary)] flex flex-col gap-0.5">
-            {validMappings.map((mapping, index) => (
+            {validMappings.map((mapping) => (
               <div
-                key={index}
+                key={mapping.id}
                 className="text-secondary font-mono text-[var(--color-figma-text-secondary)]"
               >
                 <span className="text-[var(--color-figma-text)]">

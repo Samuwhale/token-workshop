@@ -34,10 +34,23 @@ const FORMAT_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  color: 'text-purple-600 bg-purple-50',
-  dimension: 'text-blue-600 bg-blue-50',
-  number: 'text-teal-600 bg-teal-50',
-  string: 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]',
+  color: 'bg-[var(--token-badge-color-bg)] text-[var(--token-badge-color-text)]',
+  dimension: 'bg-[var(--token-badge-size-bg)] text-[var(--token-badge-size-text)]',
+  size: 'bg-[var(--token-badge-size-bg)] text-[var(--token-badge-size-text)]',
+  number: 'bg-[var(--token-badge-size-bg)] text-[var(--token-badge-size-text)]',
+  typography: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
+  fontFamily: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
+  fontWeight: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
+  fontSize: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
+  lineHeight: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
+  letterSpacing: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
+  shadow: 'bg-[var(--token-badge-effect-bg)] text-[var(--token-badge-effect-text)]',
+  opacity: 'bg-[var(--token-badge-effect-bg)] text-[var(--token-badge-effect-text)]',
+  border: 'bg-[var(--token-badge-effect-bg)] text-[var(--token-badge-effect-text)]',
+  duration: 'bg-[var(--token-badge-motion-bg)] text-[var(--token-badge-motion-text)]',
+  cubicBezier: 'bg-[var(--token-badge-motion-bg)] text-[var(--token-badge-motion-text)]',
+  transition: 'bg-[var(--token-badge-motion-bg)] text-[var(--token-badge-motion-text)]',
+  string: 'bg-[var(--token-badge-other-bg)] text-[var(--token-badge-other-text)]',
 };
 
 interface RestorableTokenSnapshot {
@@ -424,7 +437,7 @@ export function PasteTokensModal({
                 aria-expanded={parsedSkippedExpanded}
               >
                 <span className="text-[var(--color-figma-text-secondary)]">
-                  <span className="text-[var(--color-figma-warning,#e8a100)] font-medium">{parsedSkipped.length}</span>
+                  <span className="text-[var(--color-figma-warning)] font-medium">{parsedSkipped.length}</span>
                   {' '}value{parsedSkipped.length !== 1 ? 's' : ''} skipped (unsupported)
                 </span>
                 <svg
@@ -474,7 +487,7 @@ export function PasteTokensModal({
                   <span className="text-[var(--color-figma-text-secondary)]">{skipped.length} skipped</span>
                 )}
                 {parsedSkipped.length > 0 && (
-                  <span className="text-[var(--color-figma-warning,#e8a100)]">{parsedSkipped.length} unsupported</span>
+                  <span className="text-[var(--color-figma-warning)]">{parsedSkipped.length} unsupported</span>
                 )}
               </div>
               {conflicts.length > 0 && (
@@ -505,7 +518,7 @@ export function PasteTokensModal({
                       <span className="text-secondary text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 rounded px-1 shrink-0">skip</span>
                     )}
                     {!row.validationError && row.conflict && row.overwrite && (
-                      <span className="text-secondary text-blue-600 bg-blue-50 border border-blue-200 rounded px-1 shrink-0">overwrite</span>
+                      <span className="text-secondary text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 border border-[var(--color-figma-accent)]/30 rounded px-1 shrink-0">overwrite</span>
                     )}
                   </div>
                   {row.validationError ? (

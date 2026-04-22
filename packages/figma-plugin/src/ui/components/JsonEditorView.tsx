@@ -94,7 +94,7 @@ export function JsonEditorView({
                 !connected ||
                 !jsonText.trim()
               }
-              className="px-2 py-0.5 rounded text-secondary transition-colors bg-[var(--color-figma-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+              className="px-2 py-0.5 rounded text-secondary transition-colors bg-[var(--color-figma-accent)] text-white disabled:opacity-40 hover:opacity-90"
             >
               {jsonSaving ? "Saving\u2026" : "Save"}
             </button>

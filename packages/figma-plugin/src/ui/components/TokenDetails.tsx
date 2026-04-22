@@ -1112,7 +1112,7 @@ export function TokenDetails({
               onClick={() => handleSave(false, true)}
               disabled={saving || !canSave || !trimmedEditPath || duplicatePath}
               title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-              className="shrink-0 text-secondary font-medium text-[var(--color-figma-accent)] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+              className="shrink-0 text-secondary font-medium text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
             >
               Create another{" "}
               <span className="opacity-60">

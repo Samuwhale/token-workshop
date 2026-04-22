@@ -22,7 +22,7 @@ export function ImportSuccessView() {
 
   const hasFailedWrites = failedImportPaths.length > 0;
   const statusColor = hasFailedWrites
-    ? "var(--color-figma-warning,#e8a100)"
+    ? "var(--color-figma-warning)"
     : "var(--color-figma-success)";
 
   const viewTokensRecommendation = importNextStepRecommendations.find(

@@ -695,7 +695,7 @@ export function CollectionDetailsPanel({
               type="button"
               onClick={() => onMerge?.(collection.id)}
               disabled={!canMerge}
-              className="w-full px-5 py-2 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="w-full px-5 py-2 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent"
             >
               Merge into another collection
             </button>

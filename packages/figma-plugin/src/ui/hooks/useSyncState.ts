@@ -28,7 +28,7 @@ export function useSyncState({
   perCollectionFlat,
   collectionMap,
   modeMap,
-  currentCollectionId,
+  currentCollectionId: _currentCollectionId,
   setErrorToast,
 }: UseSyncStateParams) {
   const figmaSync = useFigmaSync(
@@ -39,7 +39,6 @@ export function useSyncState({
     perCollectionFlat,
     collectionMap,
     modeMap,
-    currentCollectionId,
   );
 
   const [pendingPublishCount, setPendingPublishCount] = useState(0);

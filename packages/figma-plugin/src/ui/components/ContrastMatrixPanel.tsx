@@ -751,7 +751,7 @@ export function ContrastMatrixPanel({
                     <button
                       onClick={() => setContrastPage((p) => Math.max(0, p - 1))}
                       disabled={contrastPage === 0}
-                      className="px-1.5 py-0.5 text-secondary rounded border border-[var(--color-figma-border)] disabled:opacity-30 hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed"
+                      className="px-1.5 py-0.5 text-secondary rounded border border-[var(--color-figma-border)] disabled:opacity-30 hover:bg-[var(--color-figma-bg-hover)]"
                       aria-label="Previous page"
                     >
                       ‹
@@ -771,7 +771,7 @@ export function ContrastMatrixPanel({
                         setContrastPage((p) => Math.min(totalPages - 1, p + 1))
                       }
                       disabled={contrastPage === totalPages - 1}
-                      className="px-1.5 py-0.5 text-secondary rounded border border-[var(--color-figma-border)] disabled:opacity-30 hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed"
+                      className="px-1.5 py-0.5 text-secondary rounded border border-[var(--color-figma-border)] disabled:opacity-30 hover:bg-[var(--color-figma-bg-hover)]"
                       aria-label="Next page"
                     >
                       ›

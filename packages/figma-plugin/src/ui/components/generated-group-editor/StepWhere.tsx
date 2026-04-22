@@ -169,7 +169,7 @@ export function StepWhere({
                   className={`rounded border px-2.5 py-1 text-secondary font-medium transition-colors ${
                     keepUpdated && !keepUpdatedDisabled
                       ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                      : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:opacity-60"
+                      : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:hover:bg-transparent disabled:opacity-60"
                   }`}
                 >
                   {keepUpdatedDisabled

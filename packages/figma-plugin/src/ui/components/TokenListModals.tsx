@@ -346,7 +346,7 @@ function DeleteImpactDetails({
           </NoticePill>
         )}
         {modeImpactCount > 0 && (
-          <NoticePill severity="info" className="border-blue-500/30 bg-blue-500/10 text-blue-600">
+          <NoticePill severity="info" className="border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
             {modeImpactCount} mode value{modeImpactCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
@@ -536,7 +536,7 @@ function MoveScopePreview({
         </span>
       </div>
       {conflictCount > 0 && (
-        <div className="text-secondary text-[var(--color-figma-warning,#f59e0b)]">
+        <div className="text-secondary text-[var(--color-figma-warning)]">
           {conflictCount} token{conflictCount === 1 ? "" : "s"} will overwrite existing values
         </div>
       )}

@@ -136,8 +136,8 @@ function SuggestionCard({
               Create a token from the actual value for any layer below.
             </div>
           )}
-          {uniqueMatches.map((match: ConsistencyMatch, idx: number) => (
-            <div key={idx} className="flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]">
+          {uniqueMatches.map((match: ConsistencyMatch) => (
+            <div key={getMatchKey(match)} className="flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]">
               <span className="text-secondary text-[var(--color-figma-text-secondary)] w-10 shrink-0">
                 {NODE_TYPE_LABELS[match.nodeType] ?? match.nodeType}
               </span>
@@ -336,7 +336,7 @@ export function ConsistencyPanel({
           <button
             onClick={handleScan}
             disabled={!hasTokens}
-            className="ml-auto px-3 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+            className="ml-auto px-3 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
           >
             Scan
           </button>

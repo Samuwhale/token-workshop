@@ -90,7 +90,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const glyph = Math.round(size * 0.75);
     return (
       <div
-        className="shrink-0 flex items-center justify-center text-[var(--color-figma-warning,#f59e0b)]"
+        className="shrink-0 flex items-center justify-center text-[var(--color-figma-warning)]"
         style={squareStyle}
         title={`Unresolved reference: ${value}`}
       >

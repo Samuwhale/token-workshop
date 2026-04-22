@@ -283,7 +283,7 @@ function SwatchCell({
       )}
 
       {/* Edit hint on hover */}
-      <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover/swatch:opacity-100 transition-opacity ${isLight ? 'bg-[#1a1a1a]/5' : 'bg-white/10'}`} aria-hidden="true">
+      <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover/swatch:opacity-100 transition-opacity ${isLight ? 'bg-black/5' : 'bg-white/10'}`} aria-hidden="true">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)'} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8.5 1.5a1.414 1.414 0 0 1 2 2L3.5 10.5 1 11l.5-2.5Z" />
         </svg>

@@ -87,7 +87,7 @@ export function ImportSourceHome() {
           validationIsError
             ? 'bg-[var(--color-figma-error)]/8 text-[var(--color-figma-error)]'
             : fileImportValidation.status === 'partial'
-              ? 'bg-[var(--color-figma-warning,#e8a100)]/8 text-[var(--color-figma-warning,#e8a100)]'
+              ? 'bg-[var(--color-figma-warning)]/8 text-[var(--color-figma-warning)]'
               : 'bg-[var(--color-figma-success)]/8 text-[var(--color-figma-success)]'
         }`}>
           {fileImportValidation.summary}

@@ -44,10 +44,10 @@ export function useSelectionSyncStatus({
           ? syncResult.errors > 0
             ? "bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]"
             : syncResult.missingTokens.length > 0
-              ? "bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]"
+              ? "bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]"
               : "bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]"
           : freshSyncResult && freshSyncResult.missingTokens.length > 0
-            ? "bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]"
+            ? "bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]"
             : freshSyncResult && freshSyncResult.missingTokens.length === 0
             ? "bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]"
             : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]";

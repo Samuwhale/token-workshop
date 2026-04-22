@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { resolveRefValue, applyColorModifiers } from '@tokenmanager/core';
 import type { ColorModifierOp } from '@tokenmanager/core';
@@ -16,8 +16,41 @@ interface ColorModifiersEditorProps {
   onColorModifiersChange: (mods: ColorModifierOp[]) => void;
 }
 
+function newRowId(): string {
+  return Math.random().toString(36).slice(2);
+}
+
 export function ColorModifiersEditor({ reference, colorFlatMap, directColor, colorModifiers, onColorModifiersChange: setColorModifiers }: ColorModifiersEditorProps) {
   const [open, setOpen] = useState(false);
+  const [rowIds, setRowIds] = useState<string[]>(() => colorModifiers.map(() => newRowId()));
+  const rowIdsRef = useRef(rowIds);
+  rowIdsRef.current = rowIds;
+
+  useEffect(() => {
+    if (rowIdsRef.current.length !== colorModifiers.length) {
+      setRowIds((prev) => {
+        if (prev.length === colorModifiers.length) return prev;
+        if (colorModifiers.length > prev.length) {
+          return [...prev, ...Array.from({ length: colorModifiers.length - prev.length }, newRowId)];
+        }
+        return prev.slice(0, colorModifiers.length);
+      });
+    }
+  }, [colorModifiers.length]);
+
+  const updateAt = (i: number, updater: (m: ColorModifierOp) => ColorModifierOp) => {
+    setColorModifiers(colorModifiers.map((m, idx) => (idx === i ? updater(m) : m)));
+  };
+
+  const removeAt = (i: number) => {
+    setColorModifiers(colorModifiers.filter((_, idx) => idx !== i));
+    setRowIds((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
+  const addRow = () => {
+    setColorModifiers([...colorModifiers, { type: 'lighten', amount: 20 }]);
+    setRowIds((prev) => [...prev, newRowId()]);
+  };
 
   const isAliasRef = isAlias(reference);
   const refPath = extractAliasPath(reference) ?? '';
@@ -50,17 +83,16 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
           </p>
         )}
         {colorModifiers.map((mod, i) => (
-          <div key={i} className="flex items-center gap-1.5">
+          <div key={rowIds[i] ?? i} className="flex items-center gap-1.5">
             <select
               value={mod.type}
               onChange={e => {
                 const type = e.target.value as ColorModifierOp['type'];
-                setColorModifiers(colorModifiers.map((m, idx) => {
-                  if (idx !== i) return m;
+                updateAt(i, () => {
                   if (type === 'mix') return { type, color: 'var(--color-figma-text-tertiary)', ratio: 0.5 };
                   if (type === 'alpha') return { type, amount: 0.5 };
                   return { type, amount: 20 };
-                }));
+                });
               }}
               className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
             >
@@ -75,7 +107,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
                   type="range"
                   min={0} max={100} step={1}
                   value={mod.amount}
-                  onChange={e => setColorModifiers(colorModifiers.map((m, idx) => idx === i ? { ...m, amount: Number(e.target.value) } : m))}
+                  onChange={e => updateAt(i, m => ({ ...m, amount: Number(e.target.value) } as ColorModifierOp))}
                   aria-label={`${mod.type === 'lighten' ? 'Lighten' : 'Darken'} amount`}
                   className="flex-1"
                 />
@@ -88,7 +120,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
                   type="range"
                   min={0} max={1} step={0.01}
                   value={mod.amount}
-                  onChange={e => setColorModifiers(colorModifiers.map((m, idx) => idx === i ? { ...m, amount: Number(e.target.value) } : m))}
+                  onChange={e => updateAt(i, m => ({ ...m, amount: Number(e.target.value) } as ColorModifierOp))}
                   aria-label="Alpha amount"
                   className="flex-1"
                 />
@@ -99,14 +131,14 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
               <>
                 <ColorSwatchButton
                   color={mod.color}
-                  onChange={v => setColorModifiers(colorModifiers.map((m, idx) => idx === i ? { ...m, color: v } : m))}
+                  onChange={v => updateAt(i, m => ({ ...m, color: v } as ColorModifierOp))}
                   className="w-6 h-6"
                 />
                 <input
                   type="range"
                   min={0} max={1} step={0.01}
                   value={mod.ratio}
-                  onChange={e => setColorModifiers(colorModifiers.map((m, idx) => idx === i ? { ...m, ratio: Number(e.target.value) } : m))}
+                  onChange={e => updateAt(i, m => ({ ...m, ratio: Number(e.target.value) } as ColorModifierOp))}
                   aria-label="Mix ratio"
                   className="flex-1"
                 />
@@ -115,7 +147,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
             )}
             <button
               type="button"
-              onClick={() => setColorModifiers(colorModifiers.filter((_, idx) => idx !== i))}
+              onClick={() => removeAt(i)}
               className="shrink-0 p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
               aria-label="Remove modifier"
             >
@@ -125,7 +157,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, directColor, col
         ))}
         <button
           type="button"
-          onClick={() => setColorModifiers([...colorModifiers, { type: 'lighten', amount: 20 }])}
+          onClick={addRow}
           className="self-start flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:underline"
         >
           <Plus size={10} strokeWidth={2} aria-hidden />

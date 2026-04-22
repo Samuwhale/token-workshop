@@ -101,9 +101,9 @@ function defaultIcon(variant: FeedbackPlaceholderVariant): ReactNode {
 
 function actionButtonClass(tone: FeedbackPlaceholderActionTone): string {
   if (tone === 'primary') {
-    return 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed';
+    return 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40';
   }
-  return 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed';
+  return 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-40';
 }
 
 function FeedbackActionButton({

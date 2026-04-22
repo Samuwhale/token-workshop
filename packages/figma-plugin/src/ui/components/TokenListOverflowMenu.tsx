@@ -85,7 +85,7 @@ function MenuItem({
       role="menuitem"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary transition-colors disabled:opacity-40 ${
         danger
           ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
           : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"

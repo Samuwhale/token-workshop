@@ -576,7 +576,7 @@ function GitPreviewModal({
                 <>
                   <div className="flex items-center gap-3 mb-2 text-secondary">
                     {totalAdded > 0 && <span className="text-[var(--color-figma-success)]">+{totalAdded} added</span>}
-                    {totalModified > 0 && <span className="text-[var(--color-figma-warning,#e5a000)]">~{totalModified} modified</span>}
+                    {totalModified > 0 && <span className="text-[var(--color-figma-warning)]">~{totalModified} modified</span>}
                     {totalRemoved > 0 && <span className="text-[var(--color-figma-error)]">−{totalRemoved} removed</span>}
                     <span className="text-[var(--color-figma-text-secondary)] ml-auto">{bySet.length} collection{bySet.length !== 1 ? 's' : ''}</span>
                   </div>
@@ -591,7 +591,7 @@ function GitPreviewModal({
                             <span className="text-secondary font-medium text-[var(--color-figma-text)] flex-1 truncate">{collectionId}</span>
                             <span className="flex items-center gap-2 text-secondary font-mono shrink-0">
                               {added.length > 0 && <span className="text-[var(--color-figma-success)]">+{added.length}</span>}
-                              {modified.length > 0 && <span className="text-[var(--color-figma-warning,#e5a000)]">~{modified.length}</span>}
+                              {modified.length > 0 && <span className="text-[var(--color-figma-warning)]">~{modified.length}</span>}
                               {removed.length > 0 && <span className="text-[var(--color-figma-error)]">−{removed.length}</span>}
                             </span>
                           </button>

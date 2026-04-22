@@ -66,7 +66,7 @@ function ActionRow({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "w-full flex items-start gap-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "w-full flex items-start gap-3 text-left transition-colors disabled:opacity-50",
         emphasized
           ? "border-t-0 px-0 pb-2.5 pt-0"
           : "border-t border-[var(--color-figma-border)] px-0 py-2.5 first:border-t-0 first:pt-0 last:pb-0",
@@ -276,7 +276,7 @@ export function WelcomePrompt({
                     type="button"
                     onClick={onRetryConnection}
                     disabled={checking}
-                    className="shrink-0 rounded-full border border-current/20 px-2.5 py-1 text-secondary font-medium text-current transition-colors hover:bg-current/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="shrink-0 rounded-full border border-current/20 px-2.5 py-1 text-secondary font-medium text-current transition-colors hover:bg-current/10 disabled:opacity-60"
                   >
                     {checking ? "Checking…" : "Retry"}
                   </button>

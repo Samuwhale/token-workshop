@@ -103,13 +103,13 @@ const SIDEBAR_HOVER_CLASSES =
 
 const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
   accent: "bg-[var(--color-figma-accent)]",
-  warning: "bg-[var(--color-figma-warning,#f5a623)]",
+  warning: "bg-[var(--color-figma-warning)]",
   error: "bg-[var(--color-figma-error)]",
 };
 
 const SYNC_ADORNMENT_TEXT: Record<"accent" | "warning" | "error", string> = {
   accent: "text-[var(--color-figma-accent)]",
-  warning: "text-[var(--color-figma-warning,#f5a623)]",
+  warning: "text-[var(--color-figma-warning)]",
   error: "text-[var(--color-figma-error)]",
 };
 
@@ -1644,7 +1644,7 @@ export function App() {
                             aria-hidden
                             className={`absolute right-1 top-1 h-1 w-1 rounded-full ${
                               canvasHasBrokenBindings
-                                ? "bg-[var(--color-figma-warning,#f5a623)]"
+                                ? "bg-[var(--color-figma-warning)]"
                                 : "bg-[var(--color-figma-text-secondary)]"
                             }`}
                           />
@@ -1687,7 +1687,7 @@ export function App() {
                         <span
                           className={`ml-auto shrink-0 text-secondary ${
                             canvasHasBrokenBindings
-                              ? "text-[var(--color-figma-warning,#f5a623)]"
+                              ? "text-[var(--color-figma-warning)]"
                               : "text-[var(--color-figma-text-secondary)]"
                           }`}
                           title={

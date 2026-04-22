@@ -27,7 +27,7 @@ export function TokenListStaleGeneratedBanner({
           type="button"
           onClick={onRegenerateAll}
           disabled={runningStaleGenerators}
-          className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-amber-500/15 text-amber-700 font-medium hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded bg-[var(--color-figma-generator)]/15 text-[var(--color-figma-generator)] font-medium hover:bg-[var(--color-figma-generator)]/25 disabled:opacity-50 transition-colors"
         >
           {runningStaleGenerators && <Spinner size="xs" />}
           <span>
@@ -48,7 +48,7 @@ export function TokenListStaleGeneratedBanner({
               <button
                 type="button"
                 onClick={() => onNavigateToGeneratedGroup(generator.id)}
-                className="underline decoration-amber-500/40 hover:decoration-amber-600 hover:text-amber-800 transition-colors"
+                className="underline decoration-[var(--color-figma-generator)]/40 hover:decoration-[var(--color-figma-generator)] hover:text-[var(--color-figma-generator)] transition-colors"
               >
                 {generator.name}
               </button>

@@ -187,8 +187,8 @@ export function TokenListToolbar({
                 onClick={onOpenHealth}
                 className={`shrink-0 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-secondary transition-colors ${
                   collectionHealthSummary.severity === "error"
-                    ? "text-[var(--color-figma-error,#f24822)] hover:bg-[var(--color-figma-error,#f24822)]/10"
-                    : "text-[var(--color-figma-warning,#f5a623)] hover:bg-[var(--color-figma-warning,#f5a623)]/10"
+                    ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+                    : "text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/10"
                 }`}
                 title={`${collectionHealthSummary.errors} error${collectionHealthSummary.errors !== 1 ? "s" : ""}, ${collectionHealthSummary.warnings} warning${collectionHealthSummary.warnings !== 1 ? "s" : ""}`}
                 aria-label="Open Health"
@@ -205,7 +205,7 @@ export function TokenListToolbar({
                 disabled={!connected}
                 aria-expanded={createToolsMenuOpen}
                 aria-haspopup="menu"
-                className="inline-flex h-[24px] w-[24px] items-center justify-center rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-[24px] w-[24px] items-center justify-center rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-border)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                 title="Create token, group, or collection"
                 aria-label="Create token, group, or collection"
               >
@@ -222,7 +222,7 @@ export function TokenListToolbar({
                     role="menuitem"
                     onClick={() => runCreateToolsAction(() => onCreateNew?.())}
                     disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40"
                   >
                     New token
                   </button>
@@ -230,7 +230,7 @@ export function TokenListToolbar({
                     role="menuitem"
                     onClick={() => runCreateToolsAction(handleOpenNewGroupDialog)}
                     disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40"
                   >
                     New group
                   </button>
@@ -239,7 +239,7 @@ export function TokenListToolbar({
                       role="menuitem"
                       onClick={() => runCreateToolsAction(onCreateGeneratedGroup)}
                       disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40"
                     >
                       Generate group…
                     </button>
@@ -251,7 +251,7 @@ export function TokenListToolbar({
                         role="menuitem"
                         onClick={() => runCreateToolsAction(onOpenCreateCollection)}
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40"
                       >
                         New collection
                       </button>
@@ -272,7 +272,7 @@ export function TokenListToolbar({
                       role="menuitem"
                       onClick={() => runCreateToolsAction(() => onShowPasteModal())}
                       disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40"
                     >
                       Paste JSON
                     </button>
@@ -281,7 +281,7 @@ export function TokenListToolbar({
                     role="menuitem"
                     onClick={() => runCreateToolsAction(openTableCreate)}
                     disabled={!connected}
-                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40"
                   >
                     Token table
                   </button>
@@ -321,7 +321,7 @@ export function TokenListToolbar({
                     actionsMenuOpen
                       ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
                       : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                  } disabled:cursor-not-allowed disabled:opacity-40`}
+                  } disabled:opacity-40`}
                   title="Edit actions"
                 >
                   <MoreVertical size={12} strokeWidth={1.5} aria-hidden />
@@ -355,7 +355,7 @@ export function TokenListToolbar({
                         role="menuitem"
                         onClick={() => runActionsAction(onFindReplace)}
                         disabled={!connected}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40"
                       >
                         Find and replace
                       </button>

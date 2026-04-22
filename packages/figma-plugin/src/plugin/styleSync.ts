@@ -282,30 +282,6 @@ function variablePath(variable: Variable): string {
   return variable.getPluginData('tokenPath') || variable.name.replace(/\//g, '.');
 }
 
-function resolveVariableDefaultValue(
-  variable: Variable,
-  cache: Pick<StyleCache, 'variablesById' | 'collectionsById'>,
-  visited = new Set<string>(),
-): VariableValue | null {
-  if (visited.has(variable.id)) {
-    return null;
-  }
-  visited.add(variable.id);
-
-  const collection = cache.collectionsById.get(variable.variableCollectionId);
-  if (!collection) {
-    return null;
-  }
-
-  const rawValue = variable.valuesByMode[collection.defaultModeId];
-  if (rawValue && typeof rawValue === 'object' && 'type' in rawValue && rawValue.type === 'VARIABLE_ALIAS') {
-    const target = cache.variablesById.get(rawValue.id);
-    return target ? resolveVariableDefaultValue(target, cache, visited) : null;
-  }
-
-  return rawValue ?? null;
-}
-
 function readVariableAuthoredDefaultValue(
   variable: Variable,
   variablesById: Map<string, Variable>,

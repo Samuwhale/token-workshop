@@ -155,7 +155,7 @@ export function TokenDetailsModeRow({
       data-token-editor-mode={modeName}
       data-token-editor-alias={editable && aliasMode ? "1" : "0"}
       className={`group/mode flex flex-col${
-        isEmpty ? " bg-[var(--color-figma-warning,#f59e0b)]/5" : ""
+        isEmpty ? " bg-[var(--color-figma-warning)]/5" : ""
       }`}
     >
       <div className="flex items-center gap-2 px-2.5 py-1.5">
@@ -193,7 +193,7 @@ export function TokenDetailsModeRow({
                 aliasMode ? "Switch to direct value" : "Switch to reference"
               }
             >
-              <Link2 size={10} strokeWidth={2} aria-hidden />
+              <Link2 size={12} strokeWidth={1.5} aria-hidden />
             </button>
           )}
           {editable && allowCopyFromPrevious && onCopyFromPrevious && (
@@ -204,7 +204,7 @@ export function TokenDetailsModeRow({
               title="Copy from previous mode"
               aria-label="Copy from previous mode"
             >
-              <Copy size={10} strokeWidth={2} aria-hidden />
+              <Copy size={12} strokeWidth={1.5} aria-hidden />
             </button>
           )}
           {editable && allowCopyToAll && onCopyToAll && (
@@ -215,7 +215,7 @@ export function TokenDetailsModeRow({
               title="Copy to all other modes"
               aria-label="Copy to all other modes"
             >
-              <Rows3 size={10} strokeWidth={2} aria-hidden />
+              <Rows3 size={12} strokeWidth={1.5} aria-hidden />
             </button>
           )}
         </div>
@@ -285,7 +285,7 @@ export function TokenDetailsModeRow({
                       className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[var(--color-figma-accent)] hover:underline"
                       title={`Open ${readOnly.aliasTargetPath}`}
                     >
-                      <Link2 size={10} strokeWidth={2} aria-hidden />
+                      <Link2 size={10} strokeWidth={1.5} aria-hidden />
                       <span className="truncate">{readOnly.aliasTargetPath}</span>
                     </button>
                   ) : (

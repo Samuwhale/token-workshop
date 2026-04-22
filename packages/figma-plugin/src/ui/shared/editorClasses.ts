@@ -48,7 +48,7 @@ export const AUTHORING = {
   footerBtnSecondary:
     'px-3 py-1.5 rounded-md text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors',
   footerBtnPrimary:
-    'w-full px-3 py-1.5 rounded-md bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+    'w-full px-3 py-1.5 rounded-md bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors',
 
   // --- Feedback ---
   error: 'text-secondary text-[var(--color-figma-error)] break-words',

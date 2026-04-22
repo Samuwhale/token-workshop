@@ -186,7 +186,7 @@ export function SelectionInspectorBanners({
           variant="success"
           layout="strip"
           size="sm"
-          className="border-b-0 border-t bg-[var(--color-figma-success,#18a058)]/5"
+          className="border-b-0 border-t bg-[var(--color-figma-success)]/5"
           action={
             noMoreSiblings
               ? undefined

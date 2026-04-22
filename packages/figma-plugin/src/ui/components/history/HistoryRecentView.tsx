@@ -209,7 +209,7 @@ export function HistoryRecentView({
                 <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
                   <div className="mt-0.5 shrink-0"><OpIcon type={op.type} /></div>
                   <div className="flex-1 min-w-0">
-                    <span className={`text-secondary truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`}>
+                    <span className={`text-secondary truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text)]'}`}>
                       {op.description}
                     </span>
                     <div className="flex items-center gap-1.5 mt-0.5">
@@ -229,7 +229,7 @@ export function HistoryRecentView({
                   </div>
                   <div className="shrink-0 mt-0.5 flex items-center gap-1">
                     {isError ? (
-                      <span className="text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning,#f59e0b)_12%,transparent)] text-[var(--color-figma-warning,#f59e0b)]">Failed</span>
+                      <span className="text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning)_12%,transparent)] text-[var(--color-figma-warning)]">Failed</span>
                     ) : op.rolledBack ? (
                       <>
                         <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">Rolled back</span>

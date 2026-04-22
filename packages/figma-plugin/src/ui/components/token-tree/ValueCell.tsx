@@ -87,10 +87,10 @@ export function ValueCell({
   };
 
   const brokenAliasTint = isBrokenAlias
-    ? "bg-[var(--color-figma-warning,#f59e0b)]/5"
+    ? "bg-[var(--color-figma-warning)]/5"
     : "";
   const emptyUneditableTint = !value && !canCreate
-    ? "bg-[var(--color-figma-warning,#f59e0b)]/5"
+    ? "bg-[var(--color-figma-warning)]/5"
     : "";
   const wrapperClass = `min-w-0 shrink-0 px-1.5 flex items-center gap-1.5 border-l border-[var(--color-figma-border)] h-full ${brokenAliasTint} ${emptyUneditableTint}`;
 
@@ -194,7 +194,7 @@ export function ValueCell({
         <>
           {derivedMarker}
           <span
-            className="shrink-0 text-[var(--color-figma-warning,#f59e0b)]"
+            className="shrink-0 text-[var(--color-figma-warning)]"
             aria-label="Broken reference"
           >
             <AlertTriangle size={10} strokeWidth={2} aria-hidden />
@@ -202,8 +202,8 @@ export function ValueCell({
           {renderValueText(displayVal, "Reference not found", {
             primaryMonospace: true,
             primaryClassName:
-              "font-mono italic text-[var(--color-figma-warning,#f59e0b)]",
-            secondaryClassName: "text-[var(--color-figma-warning,#f59e0b)]/80",
+              "font-mono italic text-[var(--color-figma-warning)]",
+            secondaryClassName: "text-[var(--color-figma-warning)]/80",
           })}
         </>
       ) : isResolvedAlias ? (

@@ -91,7 +91,7 @@ export function WorkflowStageIndicators<StageId extends string>({
                 action.active
                   ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/8 text-[var(--color-figma-accent)]'
                   : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
-              } disabled:cursor-not-allowed disabled:opacity-50`}
+              } disabled:opacity-50`}
             >
               {action.label}
             </button>

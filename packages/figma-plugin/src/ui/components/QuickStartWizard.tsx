@@ -292,7 +292,7 @@ function CompactTemplatePicker({ templates, connected, onSelect }: {
           key={template.id}
           onClick={() => onSelect(template)}
           disabled={!connected}
-          className="w-full text-left px-4 py-2.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+          className="w-full text-left px-4 py-2.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 group"
         >
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
@@ -329,7 +329,7 @@ function TaskChecklist({ completedTasks, connected, onSelect }: {
             key={task.id}
             onClick={() => onSelect(task.id)}
             disabled={isDisabled && !isCompleted}
-            className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed group"
+            className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 group"
           >
             <div className="flex items-center gap-3">
               <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0 ${

@@ -76,7 +76,7 @@ export function ImportPreviewFooter() {
                 if (e.key === 'Escape') cancelNewCollection();
               }}
               placeholder="New collection name…"
-              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error,#e53935)]' : 'border-[var(--color-figma-accent)]'}`}
+              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-accent)]'}`}
             />
             <button
               onClick={commitNewCollection}
@@ -93,7 +93,7 @@ export function ImportPreviewFooter() {
             </button>
           </div>
           {newCollectionError && (
-            <p role="alert" className="text-secondary text-[var(--color-figma-error,#e53935)]">
+            <p role="alert" className="text-secondary text-[var(--color-figma-error)]">
               {newCollectionError}
             </p>
           )}
@@ -125,7 +125,7 @@ export function ImportPreviewFooter() {
       )}
 
       {collectionsError && (
-        <p className="text-secondary text-[var(--color-figma-error,#e53935)]">
+        <p className="text-secondary text-[var(--color-figma-error)]">
           Could not load collections.{' '}
           <button type="button" onClick={fetchCollections} className="underline hover:opacity-80">Retry</button>
         </p>
@@ -138,17 +138,17 @@ export function ImportPreviewFooter() {
             {existingPathsFetching ? (
               <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens...</span>
             ) : existingTokenMapError !== null ? (
-              <span className="text-[var(--color-figma-warning,#e8a100)]">Conflict detection unavailable</span>
+              <span className="text-[var(--color-figma-warning)]">Conflict detection unavailable</span>
             ) : previewNewCount !== null && previewOverwriteCount !== null && (
               <>
                 {previewNewCount > 0 && (
-                  <span className="text-[var(--color-figma-success,#16a34a)]">{previewNewCount} new</span>
+                  <span className="text-[var(--color-figma-success)]">{previewNewCount} new</span>
                 )}
                 {previewNewCount > 0 && previewOverwriteCount > 0 && (
                   <span className="text-[var(--color-figma-border)]">&middot;</span>
                 )}
                 {previewOverwriteCount > 0 && (
-                  <span className="text-[var(--color-figma-warning,#e8a100)]">
+                  <span className="text-[var(--color-figma-warning)]">
                     {previewOverwriteCount} existing
                   </span>
                 )}

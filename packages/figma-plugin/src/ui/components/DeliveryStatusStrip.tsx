@@ -26,14 +26,14 @@ interface Chip {
 const DOT_TONE: Record<Tone, string> = {
   neutral: "bg-[var(--color-figma-text-tertiary)]",
   accent: "bg-[var(--color-figma-accent)]",
-  warning: "bg-[var(--color-figma-warning,#f5a623)]",
+  warning: "bg-[var(--color-figma-warning)]",
   error: "bg-[var(--color-figma-error)]",
 };
 
 const LABEL_TONE: Record<Tone, string> = {
   neutral: "text-[var(--color-figma-text-secondary)]",
   accent: "text-[var(--color-figma-accent)]",
-  warning: "text-[var(--color-figma-warning,#b45309)]",
+  warning: "text-[var(--color-figma-warning)]",
   error: "text-[var(--color-figma-error)]",
 };
 

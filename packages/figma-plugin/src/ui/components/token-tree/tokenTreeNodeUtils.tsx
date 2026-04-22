@@ -20,7 +20,7 @@ function getRowMetadataToneClass(
     case "accent":
       return "text-[var(--color-figma-accent)]";
     case "warning":
-      return "text-amber-600";
+      return "text-[var(--color-figma-generator)]";
     case "danger":
       return "text-[var(--color-figma-error)]";
     default:

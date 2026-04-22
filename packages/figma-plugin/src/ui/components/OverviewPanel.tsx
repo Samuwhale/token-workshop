@@ -703,16 +703,18 @@ function TransitionRow({
         </div>
         <div className="relative flex-1 h-8 overflow-hidden rounded border border-[var(--color-figma-border)]">
           <div
-            className="absolute top-0 h-full w-6 rounded flex items-center justify-center bg-[var(--color-figma-accent)] text-white"
+            className="absolute inset-0"
             style={{
               transition: transitionValue,
-              left: hovered ? 'calc(100% - 24px)' : '0',
+              transform: hovered ? 'translateX(calc(100% - 24px))' : 'translateX(0)',
             }}
             aria-hidden
           >
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
+            <div className="h-full w-6 rounded flex items-center justify-center bg-[var(--color-figma-accent)] text-white">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
           </div>
         </div>
       </button>

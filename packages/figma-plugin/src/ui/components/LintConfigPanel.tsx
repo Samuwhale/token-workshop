@@ -7,7 +7,7 @@ const SEVERITIES: Severity[] = ['error', 'warning', 'info'];
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   error: 'var(--color-figma-error)',
-  warning: 'var(--color-figma-warning, #F5A623)',
+  warning: 'var(--color-figma-warning)',
   info: 'var(--color-figma-text-secondary)',
 };
 

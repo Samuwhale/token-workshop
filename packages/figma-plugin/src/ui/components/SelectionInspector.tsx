@@ -801,7 +801,7 @@ export function SelectionInspector({
             {totalBindings}/{workflowSummary.visiblePropertyCount} bound
           </span>
           {mixedBindings > 0 && (
-            <span className="text-secondary text-[var(--color-figma-warning,#f5a623)] shrink-0">
+            <span className="text-secondary text-[var(--color-figma-warning)] shrink-0">
               {mixedBindings} mixed
             </span>
           )}
@@ -839,7 +839,7 @@ export function SelectionInspector({
           {totalBindings > 0 && (
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
             >
               Clear
@@ -927,7 +927,7 @@ export function SelectionInspector({
               onClick={() => setPropFilterMode(propFilterMode === "mixed" ? "all" : "mixed")}
               className={`rounded px-1.5 py-0.5 text-secondary transition-colors ${
                 propFilterMode === "mixed"
-                  ? "bg-[var(--color-figma-warning,#f5a623)]/20 font-medium text-[var(--color-figma-warning,#f5a623)]"
+                  ? "bg-[var(--color-figma-warning)]/20 font-medium text-[var(--color-figma-warning)]"
                   : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
               }`}
             >
