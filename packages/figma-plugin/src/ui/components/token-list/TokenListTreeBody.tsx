@@ -103,7 +103,6 @@ interface TokenListTreeBodyProps {
   // Multi-mode
   multiModeData: MultiModeData | null;
   multiModeDimId: string | null;
-  multiModeDimensionName: string | null;
   collections: { id: string; modes: { name: string }[] }[];
   setMultiModeDimId: (v: string) => void;
   getMultiModeValues: (tokenPath: string) => MultiModeValue[];
@@ -183,7 +182,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     virtualBottomPad,
     multiModeData,
     multiModeDimId,
-    multiModeDimensionName,
     collections,
     setMultiModeDimId,
     getMultiModeValues,
@@ -319,7 +317,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           </select>
         ) : (
           <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-            {multiModeDimensionName ?? "Token"}
+            Token
           </span>
         )}
       </div>

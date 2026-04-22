@@ -5,4 +5,5 @@ export type FilterBuilderSection =
   | 'name'
   | 'value'
   | 'desc'
-  | 'generator';
+  | 'generator'
+  | 'scope';

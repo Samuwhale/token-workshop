@@ -1,6 +1,5 @@
 import type { HealthView } from "./types";
-
-type HealthStatus = "healthy" | "warning" | "critical";
+import type { HealthStatus } from "../../hooks/useHealthSignals";
 
 interface CategoryRow {
   id: string;

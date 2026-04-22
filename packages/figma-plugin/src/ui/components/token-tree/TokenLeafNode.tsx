@@ -41,7 +41,7 @@ import { InlineValuePopover } from "../InlineValuePopover";
 import type { QuickEditRequest } from "./ValueCell";
 import type { TokenMapEntry } from "../../../shared/types";
 import { PropertyPicker } from "../PropertyPicker";
-import { ValuePreview } from "../ValuePreview";
+import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
 import { getQuickBindTargets } from "../selectionInspectorUtils";
 import {
   useTokenTreeLeafActions,
@@ -58,9 +58,10 @@ import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import { matchesShortcut } from "../../shared/shortcutRegistry";
 import { ConfirmModal } from "../ConfirmModal";
 import {
-  compactTokenPath,
   getLifecycleLabel,
   readTokenPresentationMetadata,
+  scopeRestrictsType,
+  summarizeTokenScopes,
 } from "../../shared/tokenMetadata";
 import {
   BADGE_TEXT_CLASS,
@@ -347,9 +348,6 @@ export const TokenLeafNode = memo(
       ? (resolveResult.value ?? node.$value)
       : node.$value;
     const isBrokenAlias = isAlias(node.$value) && !!resolveResult?.error;
-    const aliasTargetPath = isAlias(node.$value)
-      ? String(node.$value).slice(1, -1)
-      : null;
     const isFavorite = starredPaths?.has(node.path) ?? false;
     const producingGenerator =
       derivedTokenPaths?.get(createGeneratorOwnershipKey(collectionId, node.path)) ??
@@ -628,19 +626,6 @@ export const TokenLeafNode = memo(
               })
           : undefined,
       });
-    } else if (aliasTargetPath) {
-      leafMetadataSegments.push({
-        label: `Alias of ${compactTokenPath(aliasTargetPath)}`,
-        title: isBrokenAlias
-          ? `Broken alias reference: ${resolveResult?.error ?? "Unknown error"}`
-          : `Alias reference to ${aliasTargetPath}\nClick to navigate`,
-        tone: isBrokenAlias ? "danger" : "accent",
-        priority: "identity" as const,
-        onClick:
-          !isBrokenAlias && onNavigateToAlias
-            ? () => onNavigateToAlias(aliasTargetPath, node.path)
-            : undefined,
-      });
     }
     if (incomingRefs.length > 0) {
       leafMetadataSegments.push({
@@ -660,6 +645,22 @@ export const TokenLeafNode = memo(
           presentationMetadata.lifecycle === "draft" ? "warning" : "default",
         priority: "status" as const,
       });
+    }
+    if (
+      node.$type &&
+      scopeRestrictsType(node.$type, presentationMetadata.scopes)
+    ) {
+      const scopeSummary = summarizeTokenScopes(
+        node.$type,
+        presentationMetadata.scopes,
+      );
+      if (scopeSummary) {
+        leafMetadataSegments.push({
+          label: scopeSummary,
+          title: `Restricted to ${scopeSummary.replace(/\s\+\d+$/, "")}. Won't appear for other fields.`,
+          priority: "detail" as const,
+        });
+      }
     }
 
     const applyWithProperty = useCallback(
@@ -1108,6 +1109,11 @@ export const TokenLeafNode = memo(
                 </div>
               ) : (
                 <>
+                  {node.$type && !previewIsValueBearing(node.$type) && (
+                    <span className="shrink-0" aria-hidden="true">
+                      <ValuePreview type={node.$type} value={displayValue} size={12} />
+                    </span>
+                  )}
                   {ancestorPathLabel && (
                     <span
                       className="shrink min-w-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]"
@@ -1788,12 +1794,14 @@ export const TokenLeafNode = memo(
               targetCollectionId={mv.targetCollectionId}
               collectionId={mv.collectionId}
               optionName={mv.optionName}
+              sourceTokenPath={node.path}
               derivedGeneratorName={producingGenerator?.name ?? null}
               onRequestQuickEdit={canQuickEdit ? (req: QuickEditRequest) => {
                 setQuickEditor(req);
                 setInlineNudgeVisible(false);
               } : undefined}
               onEdit={() => onEdit(node.path, node.name)}
+              onNavigateToAlias={onNavigateToAlias}
             />
           ))}
 

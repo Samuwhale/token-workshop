@@ -34,7 +34,7 @@ import {
   renameGroupCommand,
   renameTokenCommand,
 } from '../services/token-mutation-commands.js';
-import { normalizeLegacyFontFamilyToken } from '../services/token-tree-utils.js';
+import { normalizeScopedVariableToken } from '../services/token-tree-utils.js';
 import { stableStringify } from '../services/stable-stringify.js';
 
 interface TokenMutationRouteBody {
@@ -1107,7 +1107,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'tokens must be a non-empty array' });
     }
     const tokens = rawTokens.map((token) =>
-      normalizeLegacyFontFamilyToken(token),
+      normalizeScopedVariableToken(token),
     );
     if (strategy !== 'skip' && strategy !== 'overwrite' && strategy !== 'merge') {
       return reply.status(400).send({ error: 'strategy must be "skip", "overwrite", or "merge"' });
@@ -1692,7 +1692,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!validateTokenBody(rawBody)) {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
-      const body = normalizeLegacyFontFamilyToken(rawBody);
+      const body = normalizeScopedVariableToken(rawBody);
 
       // Type-aware value validation (can be done before acquiring the lock)
       if (body.$type) {
@@ -1768,7 +1768,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!validateTokenBody(rawBody)) {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
-      const body = normalizeLegacyFontFamilyToken(rawBody);
+      const body = normalizeScopedVariableToken(rawBody);
 
       return withLock(async () => {
         try {

@@ -13,14 +13,12 @@ interface SelectionSyncStatusPillProps {
   totalBindings: number;
   visibility?: SelectionSyncStatusVisibility;
   className?: string;
-  onRemapClick?: () => void;
 }
 
 interface SelectionSyncStatusState {
   label: string;
   toneClass: string;
   visible: boolean;
-  remapCount: number;
 }
 
 export function useSelectionSyncStatus({
@@ -87,7 +85,7 @@ export function useSelectionSyncStatus({
           Boolean(freshSyncResult) ||
           (connected && totalBindings > 0);
 
-    return { label, toneClass, visible, remapCount: activeMissingCount };
+    return { label, toneClass, visible };
   }, [
     connected,
     freshSyncResult,
@@ -102,29 +100,16 @@ export function useSelectionSyncStatus({
 
 export function SelectionSyncStatusPill({
   className = "",
-  onRemapClick,
   ...statusProps
 }: SelectionSyncStatusPillProps) {
   const status = useSelectionSyncStatus(statusProps);
   if (!status.visible) return null;
 
   return (
-    <div className={`shrink-0 flex items-center gap-1 ${className}`.trim()}>
-      <span
-        className={`rounded px-1.5 py-0.5 text-secondary font-medium ${status.toneClass}`.trim()}
-      >
-        {status.label}
-      </span>
-      {status.remapCount > 0 && onRemapClick ? (
-        <button
-          type="button"
-          onClick={onRemapClick}
-          className="rounded px-1.5 py-0.5 text-secondary font-medium text-[var(--color-figma-warning,#b45309)] transition-colors hover:bg-[var(--color-figma-warning,#f5a623)]/15"
-          title={`Open Remap with ${status.remapCount} missing token path${status.remapCount !== 1 ? "s" : ""}`}
-        >
-          Remap
-        </button>
-      ) : null}
-    </div>
+    <span
+      className={`shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium ${status.toneClass} ${className}`.trim()}
+    >
+      {status.label}
+    </span>
   );
 }

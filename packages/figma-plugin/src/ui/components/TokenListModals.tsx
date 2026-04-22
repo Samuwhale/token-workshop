@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
 import { ValuePreview } from './ValuePreview';
-import { isAlias } from '../../shared/resolveAlias';
+import { extractAliasPath, isAlias } from '../../shared/resolveAlias';
 import type { AffectedRef, GeneratorImpact, ModeImpact } from './tokenListTypes';
 import { useTokenListModals } from './TokenListModalsContext';
 import { FieldMessage } from '../shared/FieldMessage';
@@ -485,12 +485,14 @@ function MoveScopePreview({
   paths,
   toLabel,
   conflictCount,
+  outboundAliasNote,
 }: {
   fromCollection: string;
   fromGroup: string | null;
   paths: string[];
   toLabel: string | null;
   conflictCount: number;
+  outboundAliasNote?: string | null;
 }) {
   const sampleCount = 3;
   const samples = paths.slice(0, sampleCount).map(shortName);
@@ -538,16 +540,48 @@ function MoveScopePreview({
           {conflictCount} token{conflictCount === 1 ? "" : "s"} will overwrite existing values
         </div>
       )}
+      {outboundAliasNote && (
+        <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          {outboundAliasNote}
+        </div>
+      )}
     </div>
   );
+}
+
+function computeGroupScope(
+  groupPath: string,
+  sourceTokens: Record<string, { $value: unknown }>,
+): { paths: string[]; outboundAliasCount: number } {
+  const prefix = `${groupPath}.`;
+  const paths: string[] = [];
+  const inGroup = new Set<string>();
+  for (const path of Object.keys(sourceTokens)) {
+    if (path === groupPath || path.startsWith(prefix)) {
+      paths.push(path);
+      inGroup.add(path);
+    }
+  }
+  let outboundAliasCount = 0;
+  for (const path of paths) {
+    const entry = sourceTokens[path] as { $value: unknown } | undefined;
+    if (!entry) continue;
+    const aliasTarget = extractAliasPath(
+      entry.$value as Parameters<typeof extractAliasPath>[0],
+    );
+    if (aliasTarget && !inGroup.has(aliasTarget)) {
+      outboundAliasCount += 1;
+    }
+  }
+  return { paths, outboundAliasCount };
 }
 
 export function TokenListModals() {
   const {
     collectionId,
     collectionIds,
-    allTokensFlat,
-    pathToCollectionId,
+    allTokensFlat: _allTokensFlat,
+    perCollectionFlat,
     connected: _connected,
     deleteConfirm,
     modalProps,
@@ -704,82 +738,125 @@ export function TokenListModals() {
       {/* Long-lived review surfaces now render inline in TokenList to preserve library context. */}
 
       {/* Move group to collection modal */}
-      {movingGroup && (
-        <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
-            <div className="tm-dialog-title">Move group to collection</div>
-            <div className="text-secondary text-[var(--color-figma-text-secondary)] truncate">
-              <span className="font-mono text-[var(--color-figma-text)]">{movingGroup}</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-secondary text-[var(--color-figma-text-secondary)]">Destination collection</label>
+      {movingGroup && (() => {
+        const sourceTokens = perCollectionFlat[collectionId] ?? {};
+        const { paths, outboundAliasCount } = computeGroupScope(movingGroup, sourceTokens);
+        const targetTokens = moveTargetCollectionId
+          ? perCollectionFlat[moveTargetCollectionId] ?? {}
+          : null;
+        const conflictCount = targetTokens
+          ? paths.reduce((count, p) => (targetTokens[p] ? count + 1 : count), 0)
+          : 0;
+        const outboundAliasNote = outboundAliasCount > 0
+          ? `${outboundAliasCount} alias${outboundAliasCount === 1 ? "" : "es"} inside this group will become cross-collection references to ${collectionId}.`
+          : null;
+        return (
+          <div
+            className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
+            onMouseDown={e => { if (e.target === e.currentTarget) onSetMovingGroup(null); }}
+          >
+            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 p-4 flex flex-col gap-3">
+              <div className="tm-dialog-title">Move group to collection</div>
+              <MoveScopePreview
+                fromCollection={collectionId}
+                fromGroup={movingGroup}
+                paths={paths}
+                toLabel={moveTargetCollectionId || null}
+                conflictCount={conflictCount}
+                outboundAliasNote={outboundAliasNote}
+              />
               <select
                 value={moveTargetCollectionId}
                 onChange={e => onSetMoveTargetCollectionId(e.target.value)}
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
+                aria-label="Target collection"
+                autoFocus
               >
+                <option value="">Choose a collection…</option>
                 {collectionIds.filter(s => s !== collectionId).map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => onSetMovingGroup(null)}
-                className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmMoveGroup}
-                disabled={!moveTargetCollectionId}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-              >
-                Move
-              </button>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => onSetMovingGroup(null)}
+                  className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmMoveGroup}
+                  disabled={!moveTargetCollectionId}
+                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                >
+                  Move
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Copy group to collection modal */}
-      {copyingGroup && (
-        <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
-            <div className="tm-dialog-title">Copy group to collection</div>
-            <div className="text-secondary text-[var(--color-figma-text-secondary)] truncate">
-              <span className="font-mono text-[var(--color-figma-text)]">{copyingGroup}</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-secondary text-[var(--color-figma-text-secondary)]">Destination collection</label>
+      {copyingGroup && (() => {
+        const sourceTokens = perCollectionFlat[collectionId] ?? {};
+        const { paths, outboundAliasCount } = computeGroupScope(copyingGroup, sourceTokens);
+        const targetTokens = copyTargetCollectionId
+          ? perCollectionFlat[copyTargetCollectionId] ?? {}
+          : null;
+        const conflictCount = targetTokens
+          ? paths.reduce((count, p) => (targetTokens[p] ? count + 1 : count), 0)
+          : 0;
+        const aliasPart = outboundAliasCount > 0
+          ? ` ${outboundAliasCount} alias${outboundAliasCount === 1 ? "" : "es"} inside the copy will still reference ${collectionId}.`
+          : "";
+        const outboundAliasNote = `Originals stay in ${collectionId}.${aliasPart}`;
+        return (
+          <div
+            className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
+            onMouseDown={e => { if (e.target === e.currentTarget) onSetCopyingGroup(null); }}
+          >
+            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 p-4 flex flex-col gap-3">
+              <div className="tm-dialog-title">Copy group to collection</div>
+              <MoveScopePreview
+                fromCollection={collectionId}
+                fromGroup={copyingGroup}
+                paths={paths}
+                toLabel={copyTargetCollectionId || null}
+                conflictCount={conflictCount}
+                outboundAliasNote={outboundAliasNote}
+              />
               <select
                 value={copyTargetCollectionId}
                 onChange={e => onSetCopyTargetCollectionId(e.target.value)}
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
+                aria-label="Target collection"
+                autoFocus
               >
+                <option value="">Choose a collection…</option>
                 {collectionIds.filter(s => s !== collectionId).map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => onSetCopyingGroup(null)}
-                className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmCopyGroup}
-                disabled={!copyTargetCollectionId}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-              >
-                Copy
-              </button>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => onSetCopyingGroup(null)}
+                  className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmCopyGroup}
+                  disabled={!copyTargetCollectionId}
+                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                >
+                  Copy
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Move selected tokens to group modal */}
       {showMoveToGroup && (() => {
@@ -789,15 +866,13 @@ export function TokenListModals() {
         const toLabel = trimmedTarget
           ? `${collectionId}${targetGroup ? ` / ${targetGroup}` : ""}`
           : null;
+        const sourceTokens = perCollectionFlat[collectionId] ?? {};
         const conflictCount = trimmedTarget
           ? selectedMovePaths.reduce((count, path) => {
               const name = shortName(path);
               const newPath = targetGroup ? `${targetGroup}.${name}` : name;
               if (newPath === path) return count;
-              return allTokensFlat[newPath] &&
-                pathToCollectionId[newPath] === collectionId
-                ? count + 1
-                : count;
+              return sourceTokens[newPath] ? count + 1 : count;
             }, 0)
           : 0;
         return (
@@ -851,13 +926,14 @@ export function TokenListModals() {
       {/* Batch move selected tokens to another collection */}
       {showBatchMoveToCollection && (() => {
         const fromGroup = sharedGroupPrefix(selectedMovePaths);
-        const conflictCount = batchMoveToCollectionTarget
-          ? selectedMovePaths.reduce((count, path) => (
-              allTokensFlat[path] &&
-              pathToCollectionId[path] === batchMoveToCollectionTarget
-                ? count + 1
-                : count
-            ), 0)
+        const targetTokens = batchMoveToCollectionTarget
+          ? perCollectionFlat[batchMoveToCollectionTarget] ?? {}
+          : null;
+        const conflictCount = targetTokens
+          ? selectedMovePaths.reduce(
+              (count, path) => (targetTokens[path] ? count + 1 : count),
+              0,
+            )
           : 0;
         return (
           <div

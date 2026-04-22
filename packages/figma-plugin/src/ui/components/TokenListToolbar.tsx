@@ -2,7 +2,7 @@ import React, {
   useCallback,
   type RefObject,
 } from "react";
-import { ArrowLeft, Plus, MoreVertical, Search, X, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, MoreVertical, Search, X, AlertTriangle, Settings } from "lucide-react";
 import {
   ViewMenu,
   FilterMenu,
@@ -26,7 +26,7 @@ export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
   navHistoryLength?: number;
   collectionId: string;
-  modeCount?: number;
+  collectionDisplayName?: string;
   onOpenCollectionDetails?: () => void;
   zoomRootPath?: string | null;
   searchRef: RefObject<HTMLInputElement | null>;
@@ -69,7 +69,7 @@ export function TokenListToolbar({
   onNavigateBack,
   navHistoryLength,
   collectionId,
-  modeCount,
+  collectionDisplayName,
   onOpenCollectionDetails,
   zoomRootPath,
   searchRef,
@@ -155,20 +155,14 @@ export function TokenListToolbar({
                   <ArrowLeft size={10} strokeWidth={2} aria-hidden />
                 </button>
               )}
-              {onOpenCollectionDetails ? (
-                <button
-                  type="button"
-                  onClick={onOpenCollectionDetails}
-                  className="truncate rounded px-1.5 py-px text-left text-heading font-semibold text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                  title={`Open ${collectionId} details`}
-                >
-                  {collectionId}
-                </button>
-              ) : (
-                <span className="truncate px-1.5 text-heading font-semibold text-[var(--color-figma-text)]">
-                  {collectionId}
-                </span>
-              )}
+              {(() => {
+                const label = collectionDisplayName || collectionId;
+                return (
+                  <span className="truncate px-1.5 text-heading font-semibold text-[var(--color-figma-text)]">
+                    {label}
+                  </span>
+                );
+              })()}
               {zoomRootPath && (
                 <span
                   className="truncate text-secondary text-[var(--color-figma-text-tertiary)]"
@@ -177,13 +171,16 @@ export function TokenListToolbar({
                   / {zoomRootPath}
                 </span>
               )}
-              {modeCount !== undefined && modeCount > 1 && !zoomRootPath && (
-                <span
-                  className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]"
-                  title={`${modeCount} mode${modeCount === 1 ? "" : "s"}`}
+              {onOpenCollectionDetails && (
+                <button
+                  type="button"
+                  onClick={onOpenCollectionDetails}
+                  className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  title="Collection settings"
+                  aria-label="Collection settings"
                 >
-                  · {modeCount} modes
-                </span>
+                  <Settings size={10} strokeWidth={2} aria-hidden />
+                </button>
               )}
             </div>
           </div>

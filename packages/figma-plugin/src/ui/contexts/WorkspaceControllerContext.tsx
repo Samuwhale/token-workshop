@@ -34,6 +34,8 @@ export interface ShellWorkspaceController {
   openCollectionCreateDialog: () => void;
   openGeneratedPalette: () => void;
   toggleQuickApply: () => void;
+  triggerCreateFromSelection: () => void;
+  triggerExtractFromSelection: () => void;
   focusCollectionRail: () => void;
   collectionRailFocusRequestKey: number;
   openStartHere: (branch?: StartHereBranch) => void;
@@ -94,6 +96,7 @@ export interface TokensWorkspaceController {
 
 export interface ApplyWorkspaceController {
   triggerCreateToken: number;
+  triggerExtractToken: number;
 }
 
 export interface SyncWorkspaceController {
@@ -118,13 +121,11 @@ export interface SyncWorkspaceController {
   redoSlot: UndoSlot | null;
   executeRedo: () => void;
   setPublishPending: (value: PublishPending | null) => void;
-  setGroupScopesPath: (path: string | null) => void;
-  setGroupScopesSelected: Dispatch<SetStateAction<string[]>>;
-  setGroupScopesError: (error: string | null) => void;
   tokenChangeKey: number;
   publishPanelHandleRef: MutableRefObject<PublishPanelHandle | null>;
   publishPreflightState: PublishPreflightState;
   pendingPublishCount: number;
+  publishApplying: boolean;
 }
 
 export interface CollectionStructureWorkspaceController {

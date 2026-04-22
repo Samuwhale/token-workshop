@@ -18,7 +18,6 @@ import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Tooltip } from "./shared/Tooltip";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
-import { GroupScopesDialog } from "./components/GroupScopesDialog";
 import { PanelRouter } from "./panels/PanelRouter";
 import { useServerEvents } from "./hooks/useServerEvents";
 import type { CollectionSummary, TokenNode } from "./hooks/useTokens";
@@ -27,6 +26,7 @@ import { useLint } from "./hooks/useLint";
 import { useResizableBoundary } from "./hooks/useResizableBoundary";
 import { ResizeDivider } from "./components/ResizeDivider";
 import { useAvailableFonts } from "./hooks/useAvailableFonts";
+import { useSelectionHealth } from "./hooks/useSelectionHealth";
 import { useWindowExpand } from "./hooks/useWindowExpand";
 import { useWindowResize } from "./hooks/useWindowResize";
 import type {
@@ -41,7 +41,10 @@ import {
   resolveWorkspaceSummary,
 } from "./shared/navigationTypes";
 import type { SidebarItem, WorkspaceSection } from "./shared/navigationTypes";
-import { useConnectionContext } from "./contexts/ConnectionContext";
+import {
+  useConnectionContext,
+  useSyncContext,
+} from "./contexts/ConnectionContext";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
@@ -95,6 +98,21 @@ function formatCount(
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+const SIDEBAR_HOVER_CLASSES =
+  "hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]";
+
+const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
+  accent: "bg-[var(--color-figma-accent)]",
+  warning: "bg-[var(--color-figma-warning,#f5a623)]",
+  error: "bg-[var(--color-figma-error)]",
+};
+
+const SYNC_ADORNMENT_TEXT: Record<"accent" | "warning" | "error", string> = {
+  accent: "text-[var(--color-figma-accent)]",
+  warning: "text-[var(--color-figma-warning,#f5a623)]",
+  error: "text-[var(--color-figma-error)]",
+};
+
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
   const {
@@ -108,6 +126,7 @@ export function App() {
     notificationsOpen,
     toggleNotifications,
     closeNotifications,
+    pendingRepairPrefill,
   } = useNavigationContext();
   const {
     editingToken,
@@ -134,6 +153,7 @@ export function App() {
     markDisconnected,
     retryConnection,
   } = useConnectionContext();
+  const { syncing, syncResult, syncError } = useSyncContext();
   const {
     collections,
     currentCollectionId,
@@ -166,6 +186,7 @@ export function App() {
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
+  const selectionHealth = useSelectionHealth(selectedNodes, allTokensFlat);
   const { triggerUsageScan } = useUsageContext();
   const { families: availableFonts, weightsByFamily: fontWeightsByFamily } =
     useAvailableFonts();
@@ -392,6 +413,7 @@ export function App() {
   const onResizeHandleMouseDown = useWindowResize();
   useWindowExpand();
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
+  const [triggerExtractToken, setTriggerExtractToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, connected, lintKey);
   // Tracks the current position for "next issue" cycling — reset when set changes
@@ -786,22 +808,15 @@ export function App() {
     publishApplying,
     publishProgress,
     handlePublish,
-    groupScopesPath,
-    setGroupScopesPath,
-    groupScopesSelected,
-    setGroupScopesSelected,
-    groupScopesApplying,
-    groupScopesError,
-    setGroupScopesError,
-    groupScopesProgress,
-    handleApplyGroupScopes,
     pendingPublishCount,
     publishPreflightState,
     publishPanelHandleRef,
   } = useSyncState({
     serverUrl,
     connected,
+    collections,
     pathToCollectionId,
+    perCollectionFlat,
     collectionMap,
     modeMap,
     currentCollectionId,
@@ -1349,6 +1364,16 @@ export function App() {
         });
       },
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
+      triggerCreateFromSelection: () => {
+        dismissEphemeralOverlays();
+        navigateTo("canvas", "inspect");
+        setTriggerCreateToken((n) => n + 1);
+      },
+      triggerExtractFromSelection: () => {
+        dismissEphemeralOverlays();
+        navigateTo("canvas", "inspect");
+        setTriggerExtractToken((n) => n + 1);
+      },
       focusCollectionRail,
       collectionRailFocusRequestKey,
       openStartHere: (branch?: StartHereBranch) => openStartHere(branch),
@@ -1404,6 +1429,7 @@ export function App() {
     },
     apply: {
       triggerCreateToken,
+      triggerExtractToken,
     },
     sync: {
       validationIssues,
@@ -1427,13 +1453,11 @@ export function App() {
       redoSlot,
       executeRedo,
       setPublishPending,
-      setGroupScopesPath,
-      setGroupScopesSelected,
-      setGroupScopesError,
       tokenChangeKey,
       publishPanelHandleRef,
       publishPreflightState,
       pendingPublishCount,
+      publishApplying,
     },
     collectionStructure: {
       onCreateCollectionByName: createCollectionByName,
@@ -1543,24 +1567,92 @@ export function App() {
               {group.items.map((item) => {
                 const isWorkspaceActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
                 const workspace = WORKSPACE_TABS.find((w) => w.id === item.workspaceId);
-                const sections = workspace?.sections ?? [];
+                const allSections = workspace?.sections ?? [];
+                const canvasCanRepair =
+                  selectionHealth.staleBindingCount > 0 ||
+                  (pendingRepairPrefill?.length ?? 0) > 0 ||
+                  (syncResult?.missingTokens.length ?? 0) > 0 ||
+                  (activeTopTab === "canvas" && activeSubTab === "repair");
+                const sections =
+                  item.id === "canvas" && !canvasCanRepair
+                    ? allSections.filter((section) => section.id !== "repair")
+                    : allSections;
+                const showCanvasSelectionAdornment =
+                  item.id === "canvas" &&
+                  !isWorkspaceActive &&
+                  selectionHealth.hasSelection;
+                const canvasHasBrokenBindings =
+                  showCanvasSelectionAdornment &&
+                  selectionHealth.staleBindingCount > 0;
+                const syncAdornment: {
+                  tone: "accent" | "warning" | "error";
+                  count: number | null;
+                  label: string;
+                } | null = (() => {
+                  if (item.id !== "sync" || isWorkspaceActive) return null;
+                  if (syncError) return { tone: "error", count: null, label: `Apply failed: ${syncError}` };
+                  if (syncResult && syncResult.errors > 0) {
+                    return { tone: "error", count: null, label: `${syncResult.errors} sync error${syncResult.errors === 1 ? "" : "s"}` };
+                  }
+                  if (syncResult && syncResult.missingTokens.length > 0) {
+                    const n = syncResult.missingTokens.length;
+                    return { tone: "warning", count: null, label: `${n} missing token path${n === 1 ? "" : "s"}` };
+                  }
+                  if (publishApplying || syncing) {
+                    return { tone: "accent", count: null, label: "Applying to Figma…" };
+                  }
+                  if (pendingPublishCount > 0) {
+                    return { tone: "accent", count: pendingPublishCount, label: `${pendingPublishCount} ready to apply` };
+                  }
+                  return null;
+                })();
+                const deliveryIsIdle =
+                  group.id === "delivery" && !isWorkspaceActive && syncAdornment === null;
+                const inactiveTextClass = `${deliveryIsIdle ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"} ${SIDEBAR_HOVER_CLASSES}`;
 
                 if (sidebarCollapsed) {
+                  const tooltipLabel = showCanvasSelectionAdornment
+                    ? canvasHasBrokenBindings
+                      ? `${item.label} · ${selectionHealth.selectionCount} selected · ${selectionHealth.staleBindingCount} broken`
+                      : `${item.label} · ${selectionHealth.selectionCount} selected`
+                    : syncAdornment
+                      ? `${item.label} · ${syncAdornment.label}`
+                      : item.label;
                   return (
-                    <Tooltip key={item.id} label={item.label} position="right">
+                    <Tooltip
+                      key={item.id}
+                      label={tooltipLabel}
+                      position="right"
+                    >
                       <button
                         onClick={() => handleSidebarItemClick(item)}
                         aria-label={item.label}
                         className={`relative flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
                             ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-accent)]"
-                            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+                            : inactiveTextClass
                         }`}
                       >
                         {isWorkspaceActive && (
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-[var(--color-figma-accent)]" />
                         )}
                         {workspaceIcon(item.id)}
+                        {showCanvasSelectionAdornment && (
+                          <span
+                            aria-hidden
+                            className={`absolute right-1 top-1 h-1 w-1 rounded-full ${
+                              canvasHasBrokenBindings
+                                ? "bg-[var(--color-figma-warning,#f5a623)]"
+                                : "bg-[var(--color-figma-text-secondary)]"
+                            }`}
+                          />
+                        )}
+                        {syncAdornment && (
+                          <span
+                            aria-hidden
+                            className={`absolute right-1 top-1 h-1 w-1 rounded-full ${SYNC_ADORNMENT_DOT[syncAdornment.tone]}`}
+                          />
+                        )}
                       </button>
                     </Tooltip>
                   );
@@ -1573,7 +1665,7 @@ export function App() {
                       className={`relative flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
                         isWorkspaceActive
                           ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                          : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+                          : inactiveTextClass
                       }`}
                     >
                       {isWorkspaceActive && (
@@ -1589,6 +1681,38 @@ export function App() {
                       )}
                       <span className="shrink-0">{workspaceIcon(item.id)}</span>
                       <span className="truncate">{item.label}</span>
+                      {showCanvasSelectionAdornment && (
+                        <span
+                          className={`ml-auto shrink-0 text-secondary ${
+                            canvasHasBrokenBindings
+                              ? "text-[var(--color-figma-warning,#f5a623)]"
+                              : "text-[var(--color-figma-text-secondary)]"
+                          }`}
+                          title={
+                            canvasHasBrokenBindings
+                              ? `${selectionHealth.staleBindingCount} broken binding${selectionHealth.staleBindingCount === 1 ? "" : "s"}`
+                              : undefined
+                          }
+                        >
+                          {selectionHealth.selectionCount}
+                        </span>
+                      )}
+                      {syncAdornment && (
+                        syncAdornment.count !== null ? (
+                          <span
+                            className={`ml-auto shrink-0 text-secondary font-medium ${SYNC_ADORNMENT_TEXT[syncAdornment.tone]}`}
+                            title={syncAdornment.label}
+                          >
+                            {syncAdornment.count}
+                          </span>
+                        ) : (
+                          <span
+                            aria-hidden
+                            className={`ml-auto shrink-0 h-1.5 w-1.5 rounded-full ${SYNC_ADORNMENT_DOT[syncAdornment.tone]}`}
+                            title={syncAdornment.label}
+                          />
+                        )
+                      )}
                     </button>
                     {sections.length > 0 && (() => {
                       const isSectionExpanded = expandedWorkspaces.has(item.workspaceId);
@@ -1819,18 +1943,6 @@ export function App() {
           message="Publishing to Figma…"
           current={publishProgress?.current}
           total={publishProgress?.total}
-        />
-      )}
-
-      {groupScopesPath && (
-        <GroupScopesDialog
-          scopesSelected={groupScopesSelected}
-          setScopesSelected={setGroupScopesSelected}
-          applying={groupScopesApplying}
-          progress={groupScopesProgress}
-          error={groupScopesError}
-          onApply={handleApplyGroupScopes}
-          onClose={() => setGroupScopesPath(null)}
         />
       )}
 

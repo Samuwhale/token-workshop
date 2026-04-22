@@ -20,6 +20,8 @@ import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
 import { MetadataEditor } from "./MetadataEditor";
+import { ScopeEditor } from "./ScopeEditor";
+import { FIGMA_SCOPE_OPTIONS } from "../shared/tokenMetadata";
 import { ModeValueEditor } from "./token-editor/ModeValueEditor";
 import { useTokenEditorModeValue } from "../hooks/useTokenEditorModeValue";
 import { PathAutocomplete } from "./PathAutocomplete";
@@ -1814,6 +1816,23 @@ export function TokenEditor({
           />
         </div>
 
+        {FIGMA_SCOPE_OPTIONS[tokenType] && (
+          <div className="flex flex-col gap-1">
+            <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+              Figma scopes
+            </label>
+            <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+              Limit where this token can be applied in Figma. Leave empty to allow all.
+            </p>
+            <ScopeEditor
+              tokenTypes={[tokenType]}
+              selectedScopes={scopes}
+              onChange={setScopes}
+              compact
+            />
+          </div>
+        )}
+
         {lifecycle !== "published" ? (
           <div className="flex items-center gap-2">
             <span
@@ -1859,9 +1878,6 @@ export function TokenEditor({
             >
               <div className="mt-2 pl-3">
                 <MetadataEditor
-                  tokenType={tokenType}
-                  scopes={scopes}
-                  onScopesChange={setScopes}
                   extensionsJsonText={extensionsJsonText}
                   onExtensionsJsonTextChange={setExtensionsJsonText}
                   extensionsJsonError={extensionsJsonError}

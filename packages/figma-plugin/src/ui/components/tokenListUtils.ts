@@ -28,9 +28,33 @@ export interface ParsedQuery {
   names: string[];
   /** generated:<name> — filter by generated group that produced the token */
   generators: string[];
+  /** scope:<category> — tokens that can be applied to this Figma field category */
+  scopes: string[];
 }
 
-const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generated|gen):(\S+)/gi;
+/**
+ * Designer-friendly categories that map to the raw Figma VariableScope values.
+ * A token matches the category when its $scopes array contains any of the
+ * mapped values, or when its $scopes is empty (unrestricted).
+ */
+export const SCOPE_CATEGORIES: Record<string, string[]> = {
+  fill: ['FILL_COLOR'],
+  stroke: ['STROKE_COLOR'],
+  text: ['TEXT_FILL', 'FONT_FAMILY', 'FONT_STYLE', 'FONT_SIZE', 'LINE_HEIGHT', 'LETTER_SPACING', 'TEXT_CONTENT'],
+  radius: ['CORNER_RADIUS'],
+  spacing: ['GAP'],
+  gap: ['GAP'],
+  size: ['WIDTH_HEIGHT'],
+  'stroke-width': ['STROKE_FLOAT'],
+  opacity: ['OPACITY'],
+  typography: ['FONT_FAMILY', 'FONT_STYLE', 'FONT_SIZE', 'LINE_HEIGHT', 'LETTER_SPACING'],
+  effect: ['EFFECT_COLOR'],
+  visibility: ['SHOW_HIDE'],
+};
+
+export const SCOPE_CATEGORY_KEYS = Object.keys(SCOPE_CATEGORIES);
+
+const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generated|gen|scope):(\S+)/gi;
 const QUERY_TOKEN_RE = /\b([a-z]+):(\S+)/gi;
 
 /** Recognized values for has: qualifier */
@@ -58,6 +82,7 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
   const paths: string[] = [];
   const names: string[] = [];
   const generators: string[] = [];
+  const scopes: string[] = [];
 
   const text = raw.replace(QUALIFIER_RE, (_, key: string, val: string) => {
     const k = key.toLowerCase();
@@ -73,11 +98,14 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
       case 'gen':
         generators.push(v);
         break;
+      case 'scope':
+        if (SCOPE_CATEGORIES[v]) scopes.push(v);
+        break;
     }
     return ''; // remove qualifier from text portion
   }).trim();
 
-  return { text, types, has, values, descs, paths, names, generators };
+  return { text, types, has, values, descs, paths, names, generators, scopes };
 }
 
 /** Returns true when the raw query contains at least one recognized qualifier. */
@@ -91,7 +119,7 @@ export const HAS_CANONICAL = ['alias', 'direct', 'duplicate', 'description', 'ex
 export type HasQualifierValue = typeof HAS_CANONICAL[number];
 
 export interface QueryQualifierDefinition {
-  key: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group';
+  key: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope';
   qualifier: string;
   desc: string;
   example: string;
@@ -177,6 +205,10 @@ export function getQualifierCompletions(
       candidates = groups ? groups.map(g => g.path).sort() : [];
       break;
     }
+    case 'scope': {
+      candidates = [...SCOPE_CATEGORY_KEYS];
+      break;
+    }
     case 'value': {
       const freq = new Map<string, number>();
       for (const t of tokens) {
@@ -214,6 +246,7 @@ export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'path', qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand', valueHint: 'Enter a path segment like colors.brand or spacing.' },
   { key: 'name', qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500', valueHint: 'Enter the token leaf name, such as 500 or primary.' },
   { key: 'generator', qualifier: 'generated:', desc: 'Filter by generated group name', example: 'generated:brand-palette', valueHint: 'Enter the generated group that produced the token.' },
+  { key: 'scope', qualifier: 'scope:', desc: 'Can apply to a Figma field', example: 'scope:fill', valueHint: 'Pick where the token can be applied, e.g. fill, stroke, radius, spacing, typography.' },
   { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];
 
@@ -473,7 +506,7 @@ export function filterTokenNodes(
   const parsed = parseStructuredQuery(searchQuery);
   const hasQualifiers = parsed.types.length > 0 || parsed.has.length > 0 || parsed.values.length > 0
     || parsed.descs.length > 0 || parsed.paths.length > 0 || parsed.names.length > 0
-    || parsed.generators.length > 0;
+    || parsed.generators.length > 0 || parsed.scopes.length > 0;
 
   if (hasQualifiers) {
     return filterTokenNodesStructured(nodes, collectionId, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
@@ -578,6 +611,20 @@ function filterTokenNodesStructured(
         if (!gen) continue;
         const gn = gen.name.toLowerCase();
         if (!parsed.generators.some(g => gn === g || gn.includes(g))) continue;
+      }
+
+      // scope: qualifier — token permits application to the category's Figma field(s)
+      if (parsed.scopes.length > 0) {
+        const tokenScopes = node.$scopes ?? [];
+        // Empty scopes = unrestricted: matches every category
+        if (tokenScopes.length > 0) {
+          const scopeMatch = parsed.scopes.some(category => {
+            const allowed = SCOPE_CATEGORIES[category];
+            if (!allowed) return false;
+            return allowed.some(s => tokenScopes.includes(s));
+          });
+          if (!scopeMatch) continue;
+        }
       }
 
       result.push(node);

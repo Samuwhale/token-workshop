@@ -18,6 +18,7 @@ import type {
 } from '../shared/syncWorkflow';
 import type { ValidationSnapshot } from './useValidationCache';
 import type { OrphanConfirmState } from './useOrphanCleanup';
+import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
 
 const READINESS_TIMEOUT_MS = 15_000;
 const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
@@ -251,6 +252,14 @@ export function useReadinessChecks({
       );
       const missingDescriptions = Array.from(snapshot.figmaMap.values()).filter((token) => !token.description);
       const draftTokens = Array.from(snapshot.localTokens.values()).filter((token) => getTokenLifecycle(token) === 'draft');
+      const typeIncompatibleScopes = Array.from(snapshot.localTokens.values()).filter((token) => {
+        const scopes = (token.$extensions as Record<string, unknown> | undefined)?.['com.figma.scopes'];
+        if (!Array.isArray(scopes) || scopes.length === 0) return false;
+        const valid = FIGMA_SCOPE_OPTIONS[token.$type as string];
+        if (!valid) return true;
+        const validSet = new Set(valid.map((opt) => opt.value));
+        return scopes.some((s) => typeof s === 'string' && !validSet.has(s));
+      });
       const blockingValidationIssues = activeValidationIssues.filter((issue) => BLOCKING_VALIDATION_RULES.has(issue.rule));
 
       const drafts: ClusterDraft[] = [
@@ -298,6 +307,15 @@ export function useReadinessChecks({
             : undefined,
           recommendedActionLabel: missingScopes.length > 0 ? 'Review variable scopes' : undefined,
           recommendedActionId: missingScopes.length > 0 ? 'review-variable-scopes' : undefined,
+        },
+        {
+          id: 'type-incompatible-scopes',
+          label: 'Scopes invalid for token type',
+          severity: 'advisory',
+          affectedCount: typeIncompatibleScopes.length || undefined,
+          detail: typeIncompatibleScopes.length > 0
+            ? "Some tokens carry Figma scopes that don't apply to their current type (usually a leftover from a type change). Select the tokens and use the Figma scopes batch action to clean them up."
+            : undefined,
         },
         {
           id: 'descriptions',

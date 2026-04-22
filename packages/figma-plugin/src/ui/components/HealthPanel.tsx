@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { HeatmapResult } from "./HeatmapPanel";
 import type { TokenMapEntry } from "../../shared/types";
-import type { HealthSignalsResult } from "../hooks/useHealthSignals";
+import type { HealthSignalsResult, HealthStatus } from "../hooks/useHealthSignals";
+import { statusFromIssueSeverities } from "../hooks/useHealthSignals";
 import type { ValidationIssue } from "../hooks/useValidationCache";
 import type { UseIssueActionsResult } from "../hooks/useIssueActions";
 import { apiFetch } from "../shared/apiFetch";
@@ -20,20 +21,6 @@ import { HealthDeprecatedView } from "./health/HealthDeprecatedView";
 import type { DeprecatedUsageEntry } from "./health/HealthDeprecatedView";
 import { HealthAliasOpportunitiesView } from "./health/HealthAliasOpportunitiesView";
 import { HealthDuplicatesView } from "./health/HealthDuplicatesView";
-
-type HealthStatus = "healthy" | "warning" | "critical";
-
-function statusFromIssueSeverities(
-  severities: Array<"error" | "warning" | "info">,
-): HealthStatus {
-  if (severities.includes("error")) {
-    return "critical";
-  }
-  if (severities.length > 0) {
-    return "warning";
-  }
-  return "healthy";
-}
 
 export interface HealthPanelProps {
   serverUrl: string;

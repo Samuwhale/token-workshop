@@ -5,7 +5,6 @@ import {
   useCallback,
   useMemo,
 } from "react";
-import type { ReactNode } from "react";
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
@@ -44,16 +43,10 @@ import {
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { SelectionSyncStatusPill } from "./SelectionSyncStatusPill";
 import { DeepInspectSection } from "./DeepInspectSection";
-import {
-  RemapBindingsPanel,
-  buildRemapRowsFromPaths,
-  type RemapBindingsRow,
-} from "./RemapBindingsPanel";
 import { ExtractTokensPanel } from "./ExtractTokensPanel";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
-
-type CanvasView = "selection" | "usage";
+import { useSelectionHealth } from "../hooks/useSelectionHealth";
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -73,11 +66,10 @@ interface SelectionInspectorProps {
   onToast?: (message: string) => void;
   onGoToTokens?: () => void;
   triggerCreateToken?: number;
-  usageContent?: ReactNode;
-  triggerHeatmapScan?: () => void;
-  heatmapLoading?: boolean;
-  heatmapResult?: unknown;
-  heatmapError?: string | null;
+  triggerExtractToken?: number;
+  onOpenRepair?: (
+    prefillEntries?: readonly { from: string; to?: string }[],
+  ) => void;
 }
 
 const PROP_FILTER_MODES = ["bound", "unbound", "colors", "dimensions"] as const;
@@ -100,13 +92,9 @@ export function SelectionInspector({
   onToast,
   onGoToTokens,
   triggerCreateToken,
-  usageContent,
-  triggerHeatmapScan,
-  heatmapLoading,
-  heatmapResult,
-  heatmapError,
+  triggerExtractToken,
+  onOpenRepair,
 }: SelectionInspectorProps) {
-  const [canvasView, setCanvasView] = useState<CanvasView>("selection");
   const {
     deepInspect,
     toggleDeepInspect,
@@ -288,7 +276,11 @@ export function SelectionInspector({
     if (target) {
       setBindingFromProp(null);
       setCreatingFromProp(target);
-      setNewTokenName(SUGGESTED_NAMES[target] || "token.new-token");
+      const suggestedName =
+        nodes.length === 1
+          ? suggestTokenPath(target, nodes[0].name)
+          : SUGGESTED_NAMES[target] || "token.new-token";
+      setNewTokenName(suggestedName);
     }
   }, [
     triggerCreateToken,
@@ -328,7 +320,7 @@ export function SelectionInspector({
       setPropTypeSuggestion(null);
       setNoMoreSiblings(false);
       setDeepRemoveError(null);
-      setShowExtractPanel(false);
+      setExtractOpen(null);
       setShowClearConfirm(false);
     }
   }, [selectedNodes, rootNodes]);
@@ -683,28 +675,11 @@ export function SelectionInspector({
     }, 0);
   }, [hasSelection, rootNodes]);
 
-  const [showExtractPanel, setShowExtractPanel] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [extractFilterProperties, setExtractFilterProperties] = useState<
-    BindableProperty[]
-  >([]);
-  const [showRemapPanel, setShowRemapPanel] = useState(false);
-
-  const openExtractPanel = useCallback(() => {
-    const unboundProperties = ALL_BINDABLE_PROPERTIES.filter((prop) => {
-      const binding = getBindingForProperty(rootNodes, prop);
-      if (binding) return false;
-      const value = getCurrentValue(rootNodes, prop);
-      return value !== undefined && value !== null;
-    });
-    setExtractFilterProperties(unboundProperties);
-    setShowExtractPanel(true);
-    setShowRemapPanel(false);
-  }, [rootNodes]);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [remapDraftRows, setRemapDraftRows] = useState<RemapBindingsRow[]>(
-    () => buildRemapRowsFromPaths(undefined),
+  const [extractOpen, setExtractOpen] = useState<BindableProperty[] | null>(
+    null,
   );
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const remapMissingTokens = useMemo(() => {
     if (syncResult?.missingTokens.length) return syncResult.missingTokens;
@@ -713,39 +688,34 @@ export function SelectionInspector({
     return [];
   }, [freshSyncResult, syncResult]);
 
-  const staleBindingPaths = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          [
-            ...selectedNodes.flatMap((node) => Object.values(node.bindings)),
-            ...remapMissingTokens,
-          ].filter((path) => Boolean(path) && !tokenMap[path]),
-        ),
-      ),
-    [remapMissingTokens, selectedNodes, tokenMap],
-  );
+  const selectionHealth = useSelectionHealth(selectedNodes, tokenMap);
 
-  const openRemapPanel = useCallback(
-    (prefillPaths?: string[], replaceDraft = false) => {
-      setRemapDraftRows((currentRows) => {
-        const hasDraftInput = currentRows.some(
-          (row) => row.from.trim() || row.to.trim(),
-        );
-        if (prefillPaths && prefillPaths.length > 0) {
-          if (replaceDraft || !hasDraftInput) {
-            return buildRemapRowsFromPaths(prefillPaths);
-          }
-        }
-        return currentRows.length > 0
-          ? currentRows
-          : buildRemapRowsFromPaths(undefined);
-      });
-      setShowExtractPanel(false);
-      setShowRemapPanel(true);
-    },
-    [],
-  );
+  const staleBindingEntries = useMemo(() => {
+    const byFrom = new Map<string, { from: string; to?: string }>();
+    for (const entry of selectionHealth.staleBindingEntries) {
+      byFrom.set(entry.from, entry);
+    }
+    for (const path of remapMissingTokens) {
+      if (!path || tokenMap[path]) continue;
+      if (!byFrom.has(path)) byFrom.set(path, { from: path });
+    }
+    return Array.from(byFrom.values());
+  }, [remapMissingTokens, selectionHealth.staleBindingEntries, tokenMap]);
+
+  const openExtract = useCallback(() => {
+    const unboundProperties = ALL_BINDABLE_PROPERTIES.filter((prop) => {
+      const binding = getBindingForProperty(rootNodes, prop);
+      if (binding) return false;
+      const value = getCurrentValue(rootNodes, prop);
+      return value !== undefined && value !== null;
+    });
+    setExtractOpen(unboundProperties);
+  }, [rootNodes]);
+
+  useEffect(() => {
+    if (!triggerExtractToken || !hasSelection) return;
+    openExtract();
+  }, [triggerExtractToken, hasSelection, openExtract]);
 
 
   if (selectionLoading) {
@@ -832,7 +802,6 @@ export function SelectionInspector({
             freshSyncResult={freshSyncResult}
             connected={connected}
             totalBindings={totalBindings}
-            onRemapClick={() => openRemapPanel(remapMissingTokens, true)}
           />
           {totalBindings > 0 && connected && (
             <button
@@ -844,39 +813,29 @@ export function SelectionInspector({
               Apply
             </button>
           )}
+          {connected && (
+            <button
+              onClick={() => onSync("page")}
+              disabled={syncing}
+              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50"
+              title="Apply to page"
+            >
+              Page
+            </button>
+          )}
+          {totalBindings > 0 && (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
-      {usageContent && (
-        <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)]">
-          {(["selection", "usage"] as const).map((view) => (
-            <button
-              key={view}
-              onClick={() => {
-                setCanvasView(view);
-                if (view === "usage" && triggerHeatmapScan && !heatmapLoading && !heatmapResult && !heatmapError) {
-                  triggerHeatmapScan();
-                }
-              }}
-              className={`flex-1 text-center text-secondary font-medium py-1 rounded transition-colors ${
-                canvasView === view
-                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-              }`}
-            >
-              {view === "selection" ? "Selection" : "Usage"}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {canvasView === "usage" && usageContent ? (
-        <div className="flex-1 min-h-0 overflow-hidden">
-          {usageContent}
-        </div>
-      ) : (
-        <>
-        <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
+      <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
         <div className="relative min-w-0 flex-1">
           <svg
             width="9" height="9" viewBox="0 0 24 24" fill="none"
@@ -976,7 +935,7 @@ export function SelectionInspector({
       <div className="flex-1 flex overflow-hidden min-h-0">
         <div
           className="flex flex-col overflow-hidden min-w-0"
-          style={{ flex: suggestions.length > 0 ? '56 0 0%' : '1 0 0%' }}
+          style={{ flex: extractOpen || suggestions.length > 0 ? '56 0 0%' : '1 0 0%' }}
         >
           <div className="flex-1 overflow-y-auto">
 
@@ -1121,95 +1080,60 @@ export function SelectionInspector({
               </div>
             )}
 
-            {/* Secondary action bar */}
-            {(connected && currentCollectionId && (unboundWithValueCount > 0 || totalBindings > 0)) && (
-              <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--color-figma-border)] px-3 py-2">
-                {connected && currentCollectionId && unboundWithValueCount > 0 && (
-                  <button
-                    onClick={() => {
-                      if (showExtractPanel) {
-                        setShowExtractPanel(false);
-                        return;
-                      }
-                      openExtractPanel();
-                    }}
-                    className={`rounded px-2 py-1 text-secondary transition-colors ${
-                      showExtractPanel
-                        ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                        : "bg-[var(--color-figma-accent)] text-white hover:opacity-90"
-                    }`}
-                  >
-                    Extract {unboundWithValueCount} unbound
-                  </button>
-                )}
+            {connected && currentCollectionId && unboundWithValueCount > 0 && !extractOpen && (
+              <div className="flex items-center justify-end border-t border-[var(--color-figma-border)] px-3 py-1.5">
                 <button
-                  onClick={() => {
-                    if (showRemapPanel) {
-                      setShowRemapPanel(false);
-                    } else {
-                      openRemapPanel(remapMissingTokens);
-                    }
-                  }}
-                  className={`rounded px-2 py-1 text-secondary transition-colors ${
-                    showRemapPanel
-                      ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                      : "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-                  }`}
+                  onClick={openExtract}
+                  className="rounded px-2 py-0.5 text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                 >
-                  Remap
+                  Extract {unboundWithValueCount} unbound
                 </button>
-                {totalBindings > 0 && (
-                  <button
-                    onClick={() => setShowClearConfirm(true)}
-                    title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
-                    className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error,#f56565)]"
-                  >
-                    Clear all
-                  </button>
-                )}
-                {connected && (
-                  <button
-                    onClick={() => onSync("page")}
-                    disabled={syncing}
-                    className="rounded bg-[var(--color-figma-bg-hover)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
-                  >
-                    Apply to page
-                  </button>
-                )}
-              </div>
-            )}
-
-            {showExtractPanel && (
-              <div className="border-t border-[var(--color-figma-border)] p-3">
-                <ExtractTokensPanel
-                  connected={connected}
-                  currentCollectionId={currentCollectionId}
-                  serverUrl={serverUrl}
-                  tokenMap={tokenMap}
-                  onTokenCreated={onTokenCreated}
-                  onClose={() => setShowExtractPanel(false)}
-                  propertyFilter={extractFilterProperties}
-                  propertyFilterLabel="unbound"
-                  embedded
-                />
-              </div>
-            )}
-            {showRemapPanel && (
-              <div className="border-t border-[var(--color-figma-border)] p-3">
-                <RemapBindingsPanel
-                  tokenMap={tokenMap}
-                  rows={remapDraftRows}
-                  onRowsChange={setRemapDraftRows}
-                  fromSuggestions={staleBindingPaths}
-                  onClose={() => setShowRemapPanel(false)}
-                  embedded
-                />
               </div>
             )}
           </div>
         </div>
 
-        {suggestions.length > 0 && (
+        {extractOpen ? (
+          <div
+            className="flex flex-col border-l border-[var(--color-figma-border)] overflow-hidden"
+            style={{ flex: '44 0 0%', minWidth: 0 }}
+          >
+            <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center gap-1.5">
+              <span className="text-secondary font-semibold text-[var(--color-figma-text-secondary)] flex-1">Extract</span>
+              <button
+                onClick={() => setExtractOpen(null)}
+                className="rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                title="Close"
+                aria-label="Close"
+              >
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <ExtractTokensPanel
+                connected={connected}
+                currentCollectionId={currentCollectionId}
+                serverUrl={serverUrl}
+                tokenMap={tokenMap}
+                onTokenCreated={onTokenCreated}
+                onClose={() => setExtractOpen(null)}
+                propertyFilter={extractOpen}
+                propertyFilterLabel="unbound"
+                embedded
+              />
+            </div>
+          </div>
+        ) : suggestions.length > 0 ? (
           <div
             className="flex flex-col border-l border-[var(--color-figma-border)] overflow-hidden"
             style={{ flex: '44 0 0%', minWidth: 0 }}
@@ -1223,12 +1147,17 @@ export function SelectionInspector({
                 onApply={(tokenPath, property) =>
                   handleBindToken(property, tokenPath)
                 }
+                onApplyBatch={(items) => {
+                  for (const item of items) {
+                    handleBindToken(item.property, item.tokenPath);
+                  }
+                }}
                 onNavigateToToken={onNavigateToToken}
                 showHeader={false}
               />
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {showClearConfirm && (
@@ -1246,6 +1175,12 @@ export function SelectionInspector({
       )}
 
       <SelectionInspectorBanners
+        staleBindingCount={staleBindingEntries.length}
+        onOpenRepair={
+          onOpenRepair && staleBindingEntries.length > 0
+            ? () => onOpenRepair(staleBindingEntries)
+            : undefined
+        }
         peerSuggestion={peerSuggestion}
         onApplyPeerSuggestion={() => {
           if (!peerSuggestion) return;
@@ -1298,8 +1233,6 @@ export function SelectionInspector({
         onNavigateToToken={onNavigateToToken}
         onDismissCreatedToken={() => setCreatedTokenPath(null)}
       />
-        </>
-      )}
     </div>
   );
 }

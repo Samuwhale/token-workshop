@@ -1,19 +1,21 @@
-import { getErrorMessage, isAbortError } from '../shared/utils';
+import { getErrorMessage } from '../shared/utils';
 import { dispatchToast } from '../shared/toastBus';
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { apiFetch, createFetchSignal } from '../shared/apiFetch';
-import { createTokenBody, updateToken } from '../shared/tokenMutations';
+import { createFetchSignal } from '../shared/apiFetch';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { getPluginMessageFromEvent } from '../../shared/utils';
 import type {
   StylesAppliedMessage,
+  TokenMapEntry,
   VariablesAppliedMessage,
 } from '../../shared/types';
 import { useFigmaMessage } from './useFigmaMessage';
 import { extractSyncApplyResult } from './useTokenSyncBase';
 import { usePersistedJsonState } from './usePersistedState';
 import { STORAGE_KEYS } from '../shared/storage';
+import type { TokenCollection } from '@tokenmanager/core';
+import { buildStylePublishTokens } from '../shared/stylePublish';
 
 // Publish-time target. Variables carry every token type; Styles carry only the
 // four DTCG types Figma exposes as native styles. The user does not pick — we
@@ -25,6 +27,33 @@ type ApplyResult = {
   skipped: Array<{ path: string; $type: string }>;
 };
 
+function preserveTypographyReferences(
+  rawEntry: TokenMapEntry | undefined,
+  resolvedEntry: TokenMapEntry,
+): TokenMapEntry {
+  if (
+    resolvedEntry.$type !== 'typography' ||
+    !rawEntry ||
+    rawEntry.$type !== 'typography' ||
+    rawEntry.$value === null ||
+    typeof rawEntry.$value !== 'object' ||
+    Array.isArray(rawEntry.$value) ||
+    resolvedEntry.$value === null ||
+    typeof resolvedEntry.$value !== 'object' ||
+    Array.isArray(resolvedEntry.$value)
+  ) {
+    return resolvedEntry;
+  }
+
+  return {
+    ...resolvedEntry,
+    $value: {
+      ...(resolvedEntry.$value as Record<string, unknown>),
+      ...(rawEntry.$value as Record<string, unknown>),
+    } as TokenMapEntry['$value'],
+  };
+}
+
 export type PublishPending =
   | { scope: 'group'; groupPath: string; tokenCount: number }
   | { scope: 'collection'; collectionId: string; tokenCount: number };
@@ -32,7 +61,9 @@ export type PublishPending =
 export function useFigmaSync(
   serverUrl: string,
   connected: boolean,
+  collections: TokenCollection[],
   pathToCollectionId: Record<string, string>,
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
   currentCollectionId: string,
@@ -43,12 +74,6 @@ export function useFigmaSync(
   const [publishError, setPublishError] = useState<string | null>(null);
 
   const [createStyles] = usePersistedJsonState<boolean>(STORAGE_KEYS.PUBLISH_CREATE_STYLES, true);
-
-  const [groupScopesPath, setGroupScopesPath] = useState<string | null>(null);
-  const [groupScopesSelected, setGroupScopesSelected] = useState<string[]>([]);
-  const [groupScopesApplying, setGroupScopesApplying] = useState(false);
-  const [groupScopesError, setGroupScopesError] = useState<string | null>(null);
-  const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
 
   const abortRef = useRef(new AbortController());
   useEffect(() => {
@@ -126,16 +151,40 @@ export function useFigmaSync(
       const resolved = resolveAllAliases(rawMap);
       if (signal.aborted) return;
       const tokens: { path: string; $type: string; $value: any; collectionId?: string }[] = [];
+      const stylePaths: string[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
         if (matchPath(path)) {
-          tokens.push({ path, $type: entry.$type, $value: entry.$value, collectionId: pathToCollectionId[path] });
+          const styleAwareEntry = preserveTypographyReferences(rawMap[path], entry);
+          tokens.push({
+            path,
+            $type: styleAwareEntry.$type,
+            $value: styleAwareEntry.$value,
+            collectionId: pathToCollectionId[path],
+          });
+          if (
+            styleAwareEntry.$type === 'color' ||
+            styleAwareEntry.$type === 'gradient' ||
+            styleAwareEntry.$type === 'typography' ||
+            styleAwareEntry.$type === 'shadow'
+          ) {
+            stylePaths.push(path);
+          }
         }
       }
       if (signal.aborted) return;
 
       const varResult = await sendVarApply('apply-variables', { tokens, collectionMap, modeMap });
       const styleResult = createStyles
-        ? await sendStyleApply('apply-styles', { tokens })
+        ? await sendStyleApply('apply-styles', {
+            tokens: buildStylePublishTokens({
+              paths: stylePaths,
+              collections,
+              pathToCollectionId,
+              perCollectionFlat,
+              collectionMap,
+              modeMap,
+            }),
+          })
         : null;
 
       const allFailures = [
@@ -170,65 +219,15 @@ export function useFigmaSync(
     publishPending,
     connected,
     serverUrl,
+    collections,
     pathToCollectionId,
+    perCollectionFlat,
     collectionMap,
     modeMap,
     createStyles,
     sendVarApply,
     sendStyleApply,
   ]);
-
-  const handleApplyGroupScopes = useCallback(async () => {
-    if (!groupScopesPath || !connected) return;
-    const signal = createFetchSignal(abortRef.current.signal, 15_000);
-    setGroupScopesApplying(true);
-    setGroupScopesError(null);
-    try {
-      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}`, { signal });
-      const prefix = groupScopesPath + '.';
-      const tokenPaths: string[] = [];
-      const walk = (group: Record<string, any>, p: string) => {
-        for (const [key, val] of Object.entries(group)) {
-          if (key.startsWith('$')) continue;
-          const path = p ? `${p}.${key}` : key;
-          if (val && typeof val === 'object' && '$value' in val) {
-            if (path === groupScopesPath || path.startsWith(prefix)) {
-              tokenPaths.push(path);
-            }
-          } else if (val && typeof val === 'object') {
-            walk(val, path);
-          }
-        }
-      };
-      walk(data.tokens || {}, '');
-      if (signal.aborted) return;
-      const total = tokenPaths.length;
-      const BATCH_SIZE = 5;
-      let done = 0;
-      setGroupScopesProgress({ done: 0, total });
-      for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
-        const batch = tokenPaths.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(async path => {
-          await updateToken(serverUrl, currentCollectionId, path, createTokenBody({
-            $extensions: { 'com.figma.scopes': groupScopesSelected },
-          }), { signal });
-        }));
-        done += batch.length;
-        if (!signal.aborted) setGroupScopesProgress({ done, total });
-      }
-      setGroupScopesPath(null);
-      setGroupScopesSelected([]);
-    } catch (err) {
-      if (isAbortError(err)) return;
-      console.error('Failed to apply group scopes:', err);
-      setGroupScopesError(getErrorMessage(err, 'Failed to apply scopes'));
-    } finally {
-      if (!signal.aborted) {
-        setGroupScopesApplying(false);
-        setGroupScopesProgress(null);
-      }
-    }
-  }, [groupScopesPath, groupScopesSelected, connected, serverUrl, currentCollectionId]);
 
   return {
     publishPending,
@@ -237,14 +236,5 @@ export function useFigmaSync(
     publishProgress,
     publishError,
     handlePublish,
-    groupScopesPath,
-    setGroupScopesPath,
-    groupScopesSelected,
-    setGroupScopesSelected,
-    groupScopesApplying,
-    groupScopesError,
-    setGroupScopesError,
-    groupScopesProgress,
-    handleApplyGroupScopes,
   };
 }

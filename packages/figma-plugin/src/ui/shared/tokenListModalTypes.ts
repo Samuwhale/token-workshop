@@ -202,8 +202,12 @@ export interface TokenListModalsState {
   selectedMoveCount: number;
   /** Paths of the tokens currently selected for a move action — used to preview scope. */
   selectedMovePaths: string[];
-  /** Maps token paths to their owning collection id — used to detect cross-collection conflicts. */
-  pathToCollectionId: Record<string, string>;
+  /**
+   * Per-collection token maps — used to detect conflicts when moving tokens into
+   * a group or another collection. Shared paths across collections need the
+   * per-collection map, not the merged `allTokensFlat`, which is first-wins.
+   */
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onSetShowMoveToGroup: (value: boolean) => void;
   onSetMoveToGroupTarget: (value: string) => void;
   onSetMoveToGroupError: (value: string) => void;

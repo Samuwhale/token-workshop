@@ -19,6 +19,8 @@ export type LibrarySubTab = "tokens" | "overview" | "health" | "history";
 export type SubTab =
   | LibrarySubTab
   | "inspect"
+  | "coverage"
+  | "repair"
   | "figma-sync"
   | "export"
   | "versions";
@@ -99,7 +101,11 @@ export const TOP_TABS: {
   {
     id: "canvas",
     label: "Canvas",
-    subTabs: [{ id: "inspect", label: "Selection" }],
+    subTabs: [
+      { id: "inspect", label: "Selection" },
+      { id: "coverage", label: "Coverage" },
+      { id: "repair", label: "Repair" },
+    ],
   },
   {
     id: "sync",
@@ -405,18 +411,18 @@ export interface SidebarGroup {
 
 export const SIDEBAR_GROUPS: SidebarGroup[] = [
   {
-    id: "primary",
-    label: "Primary",
+    id: "work",
+    label: "Work",
     items: [
       { id: "library", label: "Library", railCode: "Li", topTab: "library", subTab: "tokens", workspaceId: "library" },
       { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "canvas", subTab: "inspect", workspaceId: "canvas" },
-      { id: "sync", label: "Sync", railCode: "Sy", topTab: "sync", subTab: "figma-sync", workspaceId: "sync" },
     ],
   },
   {
-    id: "secondary",
-    label: "Secondary",
+    id: "delivery",
+    label: "Delivery",
     items: [
+      { id: "sync", label: "Sync", railCode: "Sy", topTab: "sync", subTab: "figma-sync", workspaceId: "sync" },
       { id: "export", label: "Export", railCode: "Ex", topTab: "export", subTab: "export", workspaceId: "export" },
       { id: "versions", label: "Versions", railCode: "Ve", topTab: "versions", subTab: "versions", workspaceId: "versions" },
     ],
@@ -487,9 +493,45 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "canvas",
     subTab: "inspect",
     transition: workspaceTransition(
-      "Inspect the current selection and analyze token usage on the canvas.",
+      "Inspect, match, create, bind, and repair tokens on the current selection.",
     ),
-    matchRoutes: [route("canvas", "inspect")],
+    sections: [
+      {
+        id: "inspect",
+        label: "Selection",
+        topTab: "canvas",
+        subTab: "inspect",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Inspect, match, create, and bind tokens for the current selection.",
+        ),
+      },
+      {
+        id: "coverage",
+        label: "Coverage",
+        topTab: "canvas",
+        subTab: "coverage",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "See where tokens are and aren't used across the canvas.",
+        ),
+      },
+      {
+        id: "repair",
+        label: "Repair",
+        topTab: "canvas",
+        subTab: "repair",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Fix broken or stale token bindings.",
+        ),
+      },
+    ],
+    matchRoutes: [
+      route("canvas", "inspect"),
+      route("canvas", "coverage"),
+      route("canvas", "repair"),
+    ],
   },
   {
     id: "sync",

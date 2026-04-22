@@ -467,6 +467,7 @@ export function GeneratedGroupEditor({
               collectionModeLabel={activeModeLabel}
               selectedType={dialog.selectedType}
               isEditing={dialog.isEditing}
+              keepUpdated={dialog.keepUpdated}
               previewTokens={dialog.previewTokens}
               previewAnalysis={dialog.previewAnalysis}
               existingOverwritePathSet={dialog.existingOverwritePathSet}

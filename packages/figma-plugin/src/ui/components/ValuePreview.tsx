@@ -35,6 +35,22 @@ interface ValuePreviewProps {
 const WIDE_RATIO = 4 / 3;
 const BOX_CLS = 'rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]';
 
+/**
+ * Types whose preview encodes the value itself (color swatch, typography in
+ * the real font, dimension bar scaled to value, etc.) and is therefore worth
+ * repeating per mode. Types not in this set render a glyph that doesn't vary
+ * across modes — callers should show a single row-level indicator instead.
+ */
+const VALUE_BEARING_PREVIEW_TYPES = new Set([
+  'color', 'typography', 'fontFamily', 'fontWeight', 'shadow', 'gradient',
+  'border', 'asset', 'dimension', 'number', 'duration', 'percentage',
+  'cubicBezier', 'transition', 'boolean', 'strokeStyle',
+]);
+
+export function previewIsValueBearing(type?: string): boolean {
+  return !!type && VALUE_BEARING_PREVIEW_TYPES.has(type);
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function parseDimension(val: any): { num: number; unit: string } {

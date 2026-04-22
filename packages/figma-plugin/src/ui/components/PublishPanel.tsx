@@ -1,5 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import type { ResolverFile, ResolverFigmaModeMapping, ResolverInput } from '@tokenmanager/core';
+import type {
+  ResolverFile,
+  ResolverFigmaModeMapping,
+  ResolverInput,
+  TokenCollection,
+} from '@tokenmanager/core';
 import { dispatchToast } from '../shared/toastBus';
 import { describeError } from '../shared/utils';
 import { Spinner } from './Spinner';
@@ -27,6 +32,7 @@ import type {
   StyleSnapshot,
   StylesAppliedMessage,
   StylesReadMessage,
+  TokenMapEntry,
   VariablesAppliedMessage,
   VariablesReadMessage,
   VariableSyncToken,
@@ -46,6 +52,7 @@ import {
   type PublishPreflightActionId,
   type SyncWorkflowStage,
 } from '../shared/syncWorkflow';
+import { buildStylePublishTokens } from '../shared/stylePublish';
 
 // ── Static message configs (stable module-level refs required by useFigmaMessage) ──
 
@@ -210,8 +217,11 @@ interface PublishPanelProps {
   serverUrl: string;
   connected: boolean;
   currentCollectionId: string;
+  collections: TokenCollection[];
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
+  pathToCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   savePublishRouting: (
     collectionId: string,
     routing: PublishRoutingDraft,
@@ -234,8 +244,11 @@ export function PublishPanel({
   serverUrl,
   connected,
   currentCollectionId,
+  collections,
   collectionMap = {},
   modeMap = {},
+  pathToCollectionId,
+  perCollectionFlat,
   savePublishRouting,
   refreshValidation,
   tokenChangeKey,
@@ -574,7 +587,16 @@ export function PublishPanel({
     progressEventType: 'style-sync-progress',
     ...stylePublishDiffConfig,
     buildPullPayload: buildPublishPullPayload,
-    buildApplyPayload: (rows) => ({ tokens: rows.map(r => ({ path: r.path, $type: r.localType ?? 'string', $value: r.localRaw })) }),
+    buildApplyPayload: (rows) => ({
+      tokens: buildStylePublishTokens({
+        paths: rows.map((row) => row.path),
+        collections,
+        pathToCollectionId,
+        perCollectionFlat,
+        collectionMap,
+        modeMap,
+      }),
+    }),
     buildRevertPayload: (snapshot) => ({ styleSnapshot: snapshot }),
     successMessage: 'Styles synced', compareErrorLabel: 'Compare styles', applyErrorLabel: 'Sync styles',
     revertSuccessMessage: 'Styles reverted', revertErrorMessage: 'Failed to revert styles',

@@ -29,6 +29,7 @@ interface CollectionRailProps {
   onDeleteCollection: (collectionId: string) => void;
   onPublishCollection?: (collectionId: string, tokenCount: number) => void;
   onOpenCollectionIssues?: (collectionId: string) => void;
+  onOpenImportPanel?: () => void;
 }
 
 const MENU_WIDTH = 220;
@@ -108,6 +109,7 @@ export function CollectionRail({
   onDeleteCollection,
   onPublishCollection,
   onOpenCollectionIssues,
+  onOpenImportPanel,
 }: CollectionRailProps) {
   const [query, setQuery] = useState("");
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -508,23 +510,9 @@ export function CollectionRail({
       style={{ width: widthPx }}
     >
       <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
-              Collections
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setCreateOpen((open) => !open);
-              setCreateError("");
-            }}
-            className="rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-          >
-            New
-          </button>
-        </div>
+        <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
+          Collections
+        </h2>
         <div className="mt-3">
           <input
             ref={searchInputRef}
@@ -535,8 +523,50 @@ export function CollectionRail({
             className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           />
         </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+        {visibleGroups.length === 0 ? (
+          <div className="rounded-md border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-body text-[var(--color-figma-text-secondary)]">
+            {collections.length === 0
+              ? "Create a collection to start structuring your token system."
+              : "No collections match this search."}
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {visibleGroups.map((group) => {
+              if (typeof group === "string") {
+                return renderCollectionRow(group, false);
+              }
+
+              const isCollapsed = collapsedFolders.has(group.folder);
+              return (
+                <div key={group.folder} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleFolder(group.folder)}
+                    className="flex w-full items-center gap-1 rounded-md px-2 py-1 text-left text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                  >
+                    <ChevronRight size={8} strokeWidth={2} className={`transition-transform ${isCollapsed ? "" : "rotate-90"}`} aria-hidden />
+                    <span className="truncate">{group.folder}/</span>
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                      {group.collectionIds.length}
+                    </span>
+                  </button>
+                  {isCollapsed
+                    ? null
+                    : group.collectionIds.map((collectionId) =>
+                        renderCollectionRow(collectionId, true),
+                      )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <div className="border-t border-[var(--color-figma-border)] px-3 py-2">
         {createOpen ? (
-          <div className="mt-3 flex flex-col gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+          <div className="mb-2 flex flex-col gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
             <input
               ref={createInputRef}
               type="text"
@@ -579,46 +609,27 @@ export function CollectionRail({
             </div>
           </div>
         ) : null}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-        {visibleGroups.length === 0 ? (
-          <div className="rounded-md border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-body text-[var(--color-figma-text-secondary)]">
-            {collections.length === 0
-              ? "Create a collection to start structuring your token system."
-              : "No collections match this search."}
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {visibleGroups.map((group) => {
-              if (typeof group === "string") {
-                return renderCollectionRow(group, false);
-              }
-
-              const isCollapsed = collapsedFolders.has(group.folder);
-              return (
-                <div key={group.folder} className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => toggleFolder(group.folder)}
-                    className="flex w-full items-center gap-1 rounded-md px-2 py-1 text-left text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    <ChevronRight size={8} strokeWidth={2} className={`transition-transform ${isCollapsed ? "" : "rotate-90"}`} aria-hidden />
-                    <span className="truncate">{group.folder}/</span>
-                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-                      {group.collectionIds.length}
-                    </span>
-                  </button>
-                  {isCollapsed
-                    ? null
-                    : group.collectionIds.map((collectionId) =>
-                        renderCollectionRow(collectionId, true),
-                      )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {onOpenImportPanel ? (
+            <button
+              type="button"
+              onClick={onOpenImportPanel}
+              className="flex-1 rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              Import
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setCreateOpen((open) => !open);
+              setCreateError("");
+            }}
+            className="flex-1 rounded-md border border-[var(--color-figma-border)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          >
+            New
+          </button>
+        </div>
       </div>
       {renderMenu()}
     </aside>

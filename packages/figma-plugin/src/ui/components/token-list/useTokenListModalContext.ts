@@ -105,7 +105,7 @@ type TokenListModalContextDeps = {
   moveToGroupTarget: TokenListModalsState["moveToGroupTarget"];
   moveToGroupError: TokenListModalsState["moveToGroupError"];
   selectedPaths: Set<string>;
-  pathToCollectionId: Record<string, string>;
+  perCollectionFlat: TokenListModalsState["perCollectionFlat"];
   setShowMoveToGroup: TokenListModalsState["onSetShowMoveToGroup"];
   setMoveToGroupTarget: TokenListModalsState["onSetMoveToGroupTarget"];
   setMoveToGroupError: TokenListModalsState["onSetMoveToGroupError"];
@@ -248,7 +248,7 @@ export function useTokenListModalContext(
     moveToGroupError: deps.moveToGroupError,
     selectedMoveCount: deps.selectedPaths.size,
     selectedMovePaths: [...deps.selectedPaths],
-    pathToCollectionId: deps.pathToCollectionId,
+    perCollectionFlat: deps.perCollectionFlat,
     onSetShowMoveToGroup: deps.setShowMoveToGroup,
     onSetMoveToGroupTarget: deps.setMoveToGroupTarget,
     onSetMoveToGroupError: deps.setMoveToGroupError,

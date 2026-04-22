@@ -5,6 +5,7 @@ import type { TokenGenerator } from "./useGenerators";
 
 export type HealthSeverity = "error" | "warning" | "info";
 export type HealthSource = "validation" | "lint" | "generator";
+export type HealthStatus = "healthy" | "warning" | "critical";
 
 export interface HealthSignal {
   rule: string;
@@ -40,6 +41,26 @@ const EMPTY_SUMMARY: CollectionHealthSummary = {
   severity: null,
 };
 
+export function statusFromIssueSeverities(
+  severities: Array<HealthSeverity>,
+): HealthStatus {
+  if (severities.includes("error")) return "critical";
+  if (severities.length > 0) return "warning";
+  return "healthy";
+}
+
+export function statusFromSummary(summary: CollectionHealthSummary): HealthStatus {
+  if (summary.errors > 0) return "critical";
+  if (summary.warnings > 0 || summary.info > 0) return "warning";
+  return "healthy";
+}
+
+export interface HealthOverall {
+  status: HealthStatus;
+  issueCount: number;
+  actionableCount: number;
+}
+
 export interface HealthSignalsResult {
   signals: HealthSignal[];
   byCollection: Map<string, CollectionHealthSummary>;
@@ -47,6 +68,7 @@ export interface HealthSignalsResult {
   currentCollection: CollectionHealthSummary;
   lintViolationsForCurrent: LintViolation[];
   totals: CollectionHealthSummary;
+  overall: HealthOverall;
 }
 
 export function useHealthSignals(params: {
@@ -187,6 +209,12 @@ export function useHealthSignals(params: {
         suggestion: s.suggestion,
       }));
 
+    const overall: HealthOverall = {
+      status: statusFromSummary(totals),
+      issueCount: totals.errors + totals.warnings + totals.info,
+      actionableCount: totals.actionable,
+    };
+
     return {
       signals,
       byCollection,
@@ -194,6 +222,7 @@ export function useHealthSignals(params: {
       currentCollection,
       lintViolationsForCurrent,
       totals,
+      overall,
     };
   }, [validationIssues, lintViolations, generators, currentCollectionId]);
 }

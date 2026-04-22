@@ -6,6 +6,12 @@ import { RemapAutocompleteInput } from "./RemapAutocompleteInput";
 export interface RemapBindingsRow {
   from: string;
   to: string;
+  suggested?: boolean;
+}
+
+export interface RemapBindingsPrefillEntry {
+  from: string;
+  to?: string;
 }
 
 interface RemapBindingsPanelProps {
@@ -26,15 +32,19 @@ interface RemapResultState {
 
 const EMPTY_REMAP_ROW: RemapBindingsRow = { from: "", to: "" };
 
-export function buildRemapRowsFromPaths(
-  paths?: readonly string[],
+export function buildRemapRowsFromEntries(
+  entries?: readonly RemapBindingsPrefillEntry[],
 ): RemapBindingsRow[] {
-  const uniquePaths = Array.from(
-    new Set(paths?.map((path) => path.trim()).filter(Boolean) ?? []),
-  );
-  return uniquePaths.length > 0
-    ? uniquePaths.map((path) => ({ from: path, to: "" }))
-    : [{ ...EMPTY_REMAP_ROW }];
+  const seen = new Set<string>();
+  const rows: RemapBindingsRow[] = [];
+  for (const entry of entries ?? []) {
+    const from = entry.from.trim();
+    if (!from || seen.has(from)) continue;
+    seen.add(from);
+    const to = entry.to?.trim() ?? "";
+    rows.push({ from, to, suggested: to.length > 0 });
+  }
+  return rows.length > 0 ? rows : [{ ...EMPTY_REMAP_ROW }];
 }
 
 function describeRemapResult(
@@ -69,7 +79,7 @@ export function RemapBindingsPanel({
   embedded = false,
 }: RemapBindingsPanelProps) {
   const remapRows =
-    rows.length > 0 ? rows : buildRemapRowsFromPaths(undefined);
+    rows.length > 0 ? rows : buildRemapRowsFromEntries();
   const [remapScope, setRemapScope] = useState<"selection" | "page">("page");
   const [remapRunning, setRemapRunning] = useState(false);
   const [remapProgress, setRemapProgress] = useState<{
@@ -103,7 +113,7 @@ export function RemapBindingsPanel({
           setRemapResult(nextResult);
           setRemapError(null);
           if (nextResult.updatedBindings > 0) {
-            onRowsChange(buildRemapRowsFromPaths(undefined));
+            onRowsChange(buildRemapRowsFromEntries());
           }
         }
       }
@@ -280,13 +290,23 @@ export function RemapBindingsPanel({
               onChange={(nextValue) =>
                 updateRows(
                   remapRows.map((existingRow, rowIdx) =>
-                    rowIdx === idx ? { ...existingRow, to: nextValue } : existingRow,
+                    rowIdx === idx
+                      ? { ...existingRow, to: nextValue, suggested: false }
+                      : existingRow,
                   ),
                 )
               }
               placeholder="new.token.path"
               tokenMap={tokenMap}
             />
+            {row.suggested && row.to.trim().length > 0 && (
+              <span
+                className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]"
+                title="Suggested by value match — review before remapping"
+              >
+                Suggested
+              </span>
+            )}
             {remapRows.length > 1 && (
               <button
                 onClick={() =>

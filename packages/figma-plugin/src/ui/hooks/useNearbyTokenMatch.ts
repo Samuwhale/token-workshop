@@ -22,7 +22,7 @@ function extractUnit(val: any): string {
   return '';
 }
 
-function findNearbyTokens(
+export function findNearbyTokens(
   inputValue: any,
   tokenType: string,
   allTokensFlat: Record<string, TokenMapEntry>,

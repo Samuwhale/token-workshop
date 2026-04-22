@@ -25,6 +25,7 @@ export interface StepSaveProps {
   collectionModeLabel?: string | null;
   selectedType: GeneratorType;
   isEditing: boolean;
+  keepUpdated: boolean;
   previewTokens: GeneratedTokenResult[];
   previewAnalysis: GeneratorPreviewAnalysis | null;
   existingOverwritePathSet: Set<string>;
@@ -84,6 +85,7 @@ export function StepSave({
   targetCollection,
   collectionModeLabel = null,
   selectedType,
+  keepUpdated,
   previewTokens,
   previewAnalysis,
   overwritePendingPaths,
@@ -92,6 +94,9 @@ export function StepSave({
   saveError,
   previewReviewStale,
 }: StepSaveProps) {
+  const keepUpdatedNote = keepUpdated
+    ? "These tokens stay linked to the generator. Direct edits won't stick — the generator will overwrite them on its next run."
+    : "These tokens will be saved as authored values. The generator will no longer update them.";
   const createdPathSet = new Set(previewAnalysis?.diff.created.map((entry) => entry.path) ?? []);
   const updatedPathSet = new Set(previewAnalysis?.diff.updated.map((entry) => entry.path) ?? []);
   const unchangedPathSet = new Set(previewAnalysis?.diff.unchanged.map((entry) => entry.path) ?? []);
@@ -119,6 +124,10 @@ export function StepSave({
             <span className="text-[var(--color-figma-text-secondary)]">{collectionModeLabel}</span>
           </>
         )}
+      </div>
+
+      <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-relaxed">
+        {keepUpdatedNote}
       </div>
 
       {/* Condensed impact line */}

@@ -20,6 +20,7 @@ import {
 } from "../contexts/TokenDataContext";
 import { useSelectionContext } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
+import { useSelectionHealth } from "./useSelectionHealth";
 import { useEditorContext } from "../contexts/EditorContext";
 import {
   useShellWorkspaceController,
@@ -50,8 +51,9 @@ export function useCommandPaletteCommands(): {
   const collectionIds = collections.map((collection) => collection.id);
   const { allTokensFlat, pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useGeneratorContext();
-  const { navigateTo } = useNavigationContext();
+  const { navigateTo, setPendingRepairPrefill } = useNavigationContext();
   const { selectedNodes } = useSelectionContext();
+  const selectionHealth = useSelectionHealth(selectedNodes, allTokensFlat);
   const {
     highlightedToken,
     setHighlightedToken,
@@ -135,6 +137,13 @@ export function useCommandPaletteCommands(): {
         category: "Tokens",
         shortcut: adaptShortcut(SHORTCUT_KEYS.PASTE_TOKENS),
         handler: shell.openPasteModal,
+      },
+      {
+        id: "import-tokens",
+        label: "Import tokens…",
+        description: "Open the Import panel (Figma variables, styles, or files)",
+        category: "Tokens",
+        handler: shell.openImportPanel,
       },
       {
         id: "new-from-clipboard",
@@ -264,6 +273,41 @@ export function useCommandPaletteCommands(): {
               shortcut: adaptShortcut(SHORTCUT_KEYS.TOGGLE_QUICK_APPLY),
               handler: shell.toggleQuickApply,
             },
+            {
+              id: "create-from-selection",
+              label: "Create token from selection",
+              description: `Draft a token from the current selection (${selectedNodes.length} layer${selectedNodes.length !== 1 ? "s" : ""})`,
+              category: "Apply" as const,
+              shortcut: adaptShortcut(SHORTCUT_KEYS.CREATE_FROM_SELECTION),
+              handler: shell.triggerCreateFromSelection,
+            },
+            ...(selectionHealth.unboundWithValueCount > 0
+              ? [
+                  {
+                    id: "extract-unbound-from-selection",
+                    label: `Extract ${selectionHealth.unboundWithValueCount} unbound value${selectionHealth.unboundWithValueCount !== 1 ? "s" : ""}`,
+                    description:
+                      "Open the extract panel to turn unbound selection values into tokens",
+                    category: "Apply" as const,
+                    handler: shell.triggerExtractFromSelection,
+                  },
+                ]
+              : []),
+            ...(selectionHealth.staleBindingCount > 0
+              ? [
+                  {
+                    id: "repair-broken-bindings",
+                    label: `Repair ${selectionHealth.staleBindingCount} broken binding${selectionHealth.staleBindingCount !== 1 ? "s" : ""}`,
+                    description:
+                      "Open the repair panel pre-filled with stale paths on the current selection",
+                    category: "Apply" as const,
+                    handler: () => {
+                      setPendingRepairPrefill(selectionHealth.staleBindingEntries);
+                      navigateTo("canvas", "repair");
+                    },
+                  },
+                ]
+              : []),
           ]
         : []),
       ...(tokens.lintViolations.length > 0
@@ -294,7 +338,11 @@ export function useCommandPaletteCommands(): {
     collectionIds.length,
     navigateTo,
     selectedNodes.length,
+    selectionHealth.unboundWithValueCount,
+    selectionHealth.staleBindingCount,
+    selectionHealth.staleBindingEntries,
     setEditingToken,
+    setPendingRepairPrefill,
     shell,
     switchContextualSurface,
     tokens,

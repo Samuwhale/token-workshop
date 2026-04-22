@@ -7,7 +7,19 @@ import {
 import { BadRequestError } from '../errors.js';
 
 const MAX_REGEX_LENGTH = 200;
-const FONT_FAMILY_SCOPE = 'FONT_FAMILY';
+const STRING_SCOPE_TOKEN_TYPES: Record<string, string> = {
+  FONT_FAMILY: 'fontFamily',
+  FONT_STYLE: 'string',
+};
+
+const FLOAT_SCOPE_TOKEN_TYPES: Record<string, string> = {
+  FONT_WEIGHT: 'fontWeight',
+  FONT_SIZE: 'dimension',
+  LINE_HEIGHT: 'number',
+  LETTER_SPACING: 'number',
+  PARAGRAPH_SPACING: 'dimension',
+  PARAGRAPH_INDENT: 'dimension',
+};
 
 /**
  * A node in the DTCG token tree — either a group (with nested children)
@@ -15,29 +27,73 @@ const FONT_FAMILY_SCOPE = 'FONT_FAMILY';
  */
 type TokenTreeNode = TokenGroup[string]; // Token | TokenGroup | TokenType | string | undefined
 
-function hasFontFamilyScope(token: { $extensions?: Record<string, unknown> }): boolean {
+function getTokenScopes(token: { $extensions?: Record<string, unknown> }): string[] {
   const rawScopes = token.$extensions?.['com.figma.scopes'];
-  return Array.isArray(rawScopes) && rawScopes.includes(FONT_FAMILY_SCOPE);
+  return Array.isArray(rawScopes)
+    ? rawScopes.filter((scope): scope is string => typeof scope === 'string')
+    : [];
 }
 
-export function normalizeLegacyFontFamilyToken<
-  T extends { $type?: string; $extensions?: Record<string, unknown> },
->(token: T): T {
-  if (token.$type === 'string' && hasFontFamilyScope(token)) {
-    return { ...token, $type: 'fontFamily' };
+function normalizeScopedVariableTokenValue(value: unknown, nextType: string): unknown {
+  if (nextType === 'dimension') {
+    if (typeof value === 'number') {
+      return { value, unit: 'px' };
+    }
   }
+  return value;
+}
+
+function normalizeScopedVariableTokenShape<
+  T extends { $type?: string; $value?: unknown; $extensions?: Record<string, unknown> },
+>(token: T): T {
+  const scopes = getTokenScopes(token);
+  if (scopes.length === 0) {
+    return token;
+  }
+
+  if (token.$type === 'string') {
+    for (const scope of scopes) {
+      const nextType = STRING_SCOPE_TOKEN_TYPES[scope];
+      if (nextType) {
+        return { ...token, $type: nextType };
+      }
+    }
+  }
+
+  if (token.$type === 'number') {
+    for (const scope of scopes) {
+      const nextType = FLOAT_SCOPE_TOKEN_TYPES[scope];
+      if (nextType) {
+        return {
+          ...token,
+          $type: nextType,
+          ...(token.$value === undefined
+            ? {}
+            : { $value: normalizeScopedVariableTokenValue(token.$value, nextType) }),
+        };
+      }
+    }
+  }
+
   return token;
 }
 
-export function normalizeLegacyFontFamilyTokenGroup(tokens: TokenGroup): boolean {
+export function normalizeScopedVariableToken<
+  T extends { $type?: string; $value?: unknown; $extensions?: Record<string, unknown> },
+>(token: T): T {
+  return normalizeScopedVariableTokenShape(token);
+}
+
+export function normalizeScopedVariableTokenGroup(tokens: TokenGroup): boolean {
   let changed = false;
 
   const walk = (group: TokenGroup) => {
     for (const [key, value] of Object.entries(group)) {
       if (key.startsWith('$') || value === null || typeof value !== 'object') continue;
       if (isDTCGToken(value)) {
-        if (value.$type === 'string' && hasFontFamilyScope(value)) {
-          value.$type = 'fontFamily';
+        const normalized = normalizeScopedVariableTokenShape(value);
+        if (normalized !== value) {
+          Object.assign(value, normalized);
           changed = true;
         }
         continue;

@@ -8,10 +8,11 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
 import { LibraryPostSetupHint } from "../components/LibraryPostSetupHint";
+import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenEditor } from "../components/TokenEditor";
@@ -27,6 +28,8 @@ import { ImportPanel } from "../components/ImportPanel";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import { SelectionInspector } from "../components/SelectionInspector";
 import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
+import { CanvasRepairPanel } from "../components/CanvasRepairPanel";
+import { useSelectionHealth } from "../hooks/useSelectionHealth";
 import { ExportPanel } from "../components/ExportPanel";
 import { GitRepositoryPanel } from "../components/publish/GitRepositoryPanel";
 import { HistoryPanel } from "../components/HistoryPanel";
@@ -53,7 +56,10 @@ import {
   useHeatmapContext,
   useUsageContext,
 } from "../contexts/InspectContext";
-import { useNavigationContext } from "../contexts/NavigationContext";
+import {
+  useNavigationContext,
+  type RepairPrefillEntry,
+} from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
 import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import {
@@ -117,6 +123,51 @@ function resolveCreateLauncherPath(initialPath?: string): string {
   if (initialPath !== undefined) return initialPath;
   const lastGroup = readLastCreateGroup();
   return lastGroup ? `${lastGroup}.` : "";
+}
+
+// Auto-trigger the first heatmap scan per Coverage mount. The ref prevents
+// re-triggering if the user cancels a scan mid-flight, which would otherwise
+// leave all three state flags falsy and re-fire the effect.
+function CanvasCoverageGate({
+  triggerHeatmapScan,
+  heatmapLoading,
+  heatmapResult,
+  heatmapError,
+}: {
+  triggerHeatmapScan: () => void;
+  heatmapLoading: boolean;
+  heatmapResult: unknown;
+  heatmapError: string | null;
+}) {
+  const triggeredRef = useRef(false);
+  useEffect(() => {
+    if (triggeredRef.current) return;
+    if (heatmapLoading || heatmapResult || heatmapError) return;
+    triggeredRef.current = true;
+    triggerHeatmapScan();
+  }, [triggerHeatmapScan, heatmapLoading, heatmapResult, heatmapError]);
+  return null;
+}
+
+function CanvasRepairPanelMount({
+  tokenMap,
+  syncResult,
+  consumePendingRepairPrefill,
+}: {
+  tokenMap: Parameters<typeof CanvasRepairPanel>[0]["tokenMap"];
+  syncResult: Parameters<typeof CanvasRepairPanel>[0]["syncResult"];
+  consumePendingRepairPrefill: () => readonly RepairPrefillEntry[] | null;
+}) {
+  const [prefillEntries] = useState<readonly RepairPrefillEntry[] | null>(() =>
+    consumePendingRepairPrefill(),
+  );
+  return (
+    <CanvasRepairPanel
+      tokenMap={tokenMap}
+      syncResult={syncResult}
+      prefillEntries={prefillEntries}
+    />
+  );
 }
 
 
@@ -192,6 +243,9 @@ export function PanelRouter({
     closeSecondarySurface,
     notificationsOpen,
     closeNotifications,
+    setPendingRepairPrefill,
+    consumePendingRepairPrefill,
+    pendingRepairPrefill,
   } = useNavigationContext();
   const {
     editingToken,
@@ -264,6 +318,25 @@ export function PanelRouter({
     derivedTokenPaths,
   } = useGeneratorContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
+  const selectionHealth = useSelectionHealth(selectedNodes, allTokensFlat);
+
+  useEffect(() => {
+    if (activeTopTab !== "canvas" || activeSubTab !== "repair") return;
+    if (!selectionHealth.hasSelection) return;
+    const hasWork =
+      selectionHealth.staleBindingCount > 0 ||
+      (pendingRepairPrefill?.length ?? 0) > 0 ||
+      (syncResult?.missingTokens.length ?? 0) > 0;
+    if (!hasWork) navigateTo("canvas", "inspect");
+  }, [
+    activeTopTab,
+    activeSubTab,
+    selectionHealth.hasSelection,
+    selectionHealth.staleBindingCount,
+    pendingRepairPrefill,
+    syncResult,
+    navigateTo,
+  ]);
   const {
     heatmapResult,
     heatmapLoading,
@@ -612,11 +685,6 @@ export function PanelRouter({
     onClearHighlight: () => setHighlightedToken(null),
     onPublishGroup: (groupPath: string, tokenCount: number) =>
       controller.setPublishPending({ scope: 'group', groupPath, tokenCount }),
-    onSetGroupScopes: (groupPath: string) => {
-      controller.setGroupScopesPath(groupPath);
-      controller.setGroupScopesSelected([]);
-      controller.setGroupScopesError(null);
-    },
     onCreateGeneratedGroupFromGroup: (groupPath: string, _tokenType: string | null) => {
       openGeneratedGroupFromGroup(groupPath);
       navigateTo("library", "tokens");
@@ -1203,9 +1271,29 @@ export function PanelRouter({
     return secondaryRenderer ? secondaryRenderer() : null;
   }
 
+  function renderDeliveryStatusStrip(): ReactNode {
+    return (
+      <DeliveryStatusStrip
+        health={healthSignals.overall}
+        pendingPublishCount={controller.pendingPublishCount}
+        publishApplying={controller.publishApplying}
+        syncing={syncing}
+        syncError={syncError}
+        syncResult={syncResult}
+        onOpenHealth={() => navigateTo("library", "health")}
+        onOpenPublishCompare={() => {
+          navigateTo("sync", "figma-sync");
+          controller.publishPanelHandleRef.current?.focusStage("compare");
+        }}
+        onOpenSync={() => navigateTo("sync", "figma-sync")}
+      />
+    );
+  }
+
   function renderCanvasInspect(): ReactNode {
     return (
-      <div className="h-full min-h-0 overflow-hidden">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        {renderDeliveryStatusStrip()}
         <ErrorBoundary
           panelName="Canvas selection"
           onReset={() => navigateTo("library", "tokens")}
@@ -1231,57 +1319,89 @@ export function PanelRouter({
             onToast={controller.setSuccessToast}
             onGoToTokens={() => navigateTo("library", "tokens")}
             triggerCreateToken={controller.triggerCreateToken}
-            usageContent={renderCanvasAnalysisContent()}
-            triggerHeatmapScan={triggerHeatmapScan}
-            heatmapLoading={heatmapLoading}
-            heatmapResult={heatmapResult}
-            heatmapError={heatmapError}
+            triggerExtractToken={controller.triggerExtractToken}
+            onOpenRepair={(entries) => {
+              setPendingRepairPrefill(entries ?? null);
+              navigateTo("canvas", "repair");
+            }}
           />
         </ErrorBoundary>
       </div>
     );
   }
 
-  function renderCanvasAnalysisContent(): ReactNode {
+  function renderCanvasCoverage(): ReactNode {
     return (
-      <CanvasAnalysisPanel
-        availableTokens={allTokensFlat}
-        heatmapResult={heatmapResult}
-        heatmapLoading={heatmapLoading}
-        heatmapProgress={heatmapProgress}
-        heatmapError={heatmapError}
-        onSelectNodes={(ids) =>
-          parent.postMessage(
-            {
-              pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
-            },
-            "*",
-          )
-        }
-        onBatchBind={(nodeIds, tokenPath, property) => {
-          const entry = allTokensFlat[tokenPath];
-          if (!entry) return;
-          parent.postMessage(
-            {
-              pluginMessage: {
-                type: "batch-bind-heatmap-nodes",
-                nodeIds,
-                tokenPath,
-                tokenType: entry.$type,
-                targetProperty: property,
-                resolvedValue: entry.$value,
-              },
-            },
-            "*",
-          );
-        }}
-        onSelectNode={(nodeId) =>
-          parent.postMessage(
-            { pluginMessage: { type: "select-node", nodeId } },
-            "*",
-          )
-        }
-      />
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        {renderDeliveryStatusStrip()}
+        <ErrorBoundary
+          panelName="Canvas coverage"
+          onReset={() => navigateTo("canvas", "inspect")}
+        >
+          <CanvasCoverageGate
+            triggerHeatmapScan={triggerHeatmapScan}
+            heatmapLoading={heatmapLoading}
+            heatmapResult={heatmapResult}
+            heatmapError={heatmapError}
+          />
+          <CanvasAnalysisPanel
+            availableTokens={allTokensFlat}
+            heatmapResult={heatmapResult}
+            heatmapLoading={heatmapLoading}
+            heatmapProgress={heatmapProgress}
+            heatmapError={heatmapError}
+            onSelectNodes={(ids) =>
+              parent.postMessage(
+                {
+                  pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
+                },
+                "*",
+              )
+            }
+            onBatchBind={(nodeIds, tokenPath, property) => {
+              const entry = allTokensFlat[tokenPath];
+              if (!entry) return;
+              parent.postMessage(
+                {
+                  pluginMessage: {
+                    type: "batch-bind-heatmap-nodes",
+                    nodeIds,
+                    tokenPath,
+                    tokenType: entry.$type,
+                    targetProperty: property,
+                    resolvedValue: entry.$value,
+                  },
+                },
+                "*",
+              );
+            }}
+            onSelectNode={(nodeId) =>
+              parent.postMessage(
+                { pluginMessage: { type: "select-node", nodeId } },
+                "*",
+              )
+            }
+          />
+        </ErrorBoundary>
+      </div>
+    );
+  }
+
+  function renderCanvasRepair(): ReactNode {
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        {renderDeliveryStatusStrip()}
+        <ErrorBoundary
+          panelName="Canvas repair"
+          onReset={() => navigateTo("canvas", "inspect")}
+        >
+          <CanvasRepairPanelMount
+            tokenMap={allTokensFlat}
+            syncResult={syncResult}
+            consumePendingRepairPrefill={consumePendingRepairPrefill}
+          />
+        </ErrorBoundary>
+      </div>
     );
   }
 
@@ -1300,6 +1420,8 @@ export function PanelRouter({
     },
     canvas: {
       inspect: renderCanvasInspect,
+      coverage: renderCanvasCoverage,
+      repair: renderCanvasRepair,
     },
     sync: {
       "figma-sync": renderSyncFigmaSync,
@@ -1375,6 +1497,7 @@ export function PanelRouter({
             controller.setPublishPending({ scope: 'collection', collectionId, tokenCount })
           }
           onOpenCollectionIssues={openCollectionIssues}
+          onOpenImportPanel={controller.onShowImportPanel}
         />
         <ResizeDivider
           axis="x"
@@ -1509,6 +1632,7 @@ export function PanelRouter({
             onGoToCanvas={() => navigateTo("canvas", "inspect")}
             onGoToSync={() => navigateTo("sync", "figma-sync")}
           />
+          {renderDeliveryStatusStrip()}
           <div className="min-h-0 flex-1 overflow-hidden">{inner}</div>
         </div>
       ) : (
@@ -1639,8 +1763,11 @@ export function PanelRouter({
               serverUrl={serverUrl}
               connected={connected}
               currentCollectionId={currentCollectionId}
+              collections={collections}
               collectionMap={collectionMap}
               modeMap={modeMap}
+              pathToCollectionId={pathToCollectionId}
+              perCollectionFlat={perCollectionFlat}
               savePublishRouting={savePublishRouting}
               refreshValidation={controller.refreshValidation}
               tokenChangeKey={controller.tokenChangeKey}

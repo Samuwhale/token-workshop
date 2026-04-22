@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { BatchActionProps } from './types';
 import { apiFetch } from '../../shared/apiFetch';
 import { rollbackOperation } from './transforms';
 import { ActionFeedback } from './BatchActionPreview';
 import { AUTHORING } from '../../shared/editorClasses';
-import { FIGMA_SCOPE_OPTIONS } from '../../shared/tokenMetadata';
 import { EditorShell, AUTHORING_SURFACE_CLASSES } from '../EditorShell';
+import { ScopeEditor } from '../ScopeEditor';
 
 export function FigmaScopesAction({
   selectedPaths,
@@ -16,43 +16,20 @@ export function FigmaScopesAction({
   onApply,
   onPushUndo,
 }: BatchActionProps) {
-  const [selectedScopes, setSelectedScopes] = useState<Set<string>>(new Set());
+  const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  const availableScopes = useMemo(() => {
-    const types = new Set(selectedEntries.map(({ entry }) => entry.$type as string));
-    if (types.size === 0) return [];
-
-    let intersection: Array<{ label: string; value: string; description: string }> | null = null;
-    for (const type of types) {
-      const opts = FIGMA_SCOPE_OPTIONS[type];
-      if (!opts) return [];
-      if (!intersection) {
-        intersection = [...opts];
-      } else {
-        const values = new Set(opts.map((o) => o.value));
-        intersection = intersection.filter((s) => values.has(s.value));
-      }
-    }
-    return intersection ?? [];
-  }, [selectedEntries]);
-
-  function toggleScope(value: string) {
-    setSelectedScopes((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
-  }
+  const tokenTypes = useMemo(
+    () => Array.from(new Set(selectedEntries.map(({ entry }) => entry.$type as string))),
+    [selectedEntries],
+  );
 
   async function handleApply() {
     setFeedback(null);
     try {
-      const scopes = Array.from(selectedScopes);
       const patches = selectedEntries.map(({ path }) => ({
         path,
-        patch: { $extensions: { 'com.figma.scopes': scopes } },
+        patch: { $extensions: { 'com.figma.scopes': selectedScopes } },
       }));
       const result = await apiFetch<{ ok: boolean; updated: number; operationId: string }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-update`,
@@ -72,18 +49,6 @@ export function FigmaScopesAction({
     } catch (err) {
       setFeedback({ ok: false, msg: err instanceof Error ? err.message : 'Failed' });
     }
-  }
-
-  if (availableScopes.length === 0) {
-    return (
-      <EditorShell title="Figma scopes" surface="authoring">
-        <div className={AUTHORING_SURFACE_CLASSES.bodyStack}>
-          <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-            Selected token types don't support Figma scopes
-          </p>
-        </div>
-      </EditorShell>
-    );
   }
 
   return (
@@ -106,39 +71,11 @@ export function FigmaScopesAction({
       }
     >
       <div className={AUTHORING_SURFACE_CLASSES.bodyStack}>
-        <div className="flex items-center justify-between">
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-            Empty = all scopes
-          </span>
-          {selectedScopes.size > 0 && (
-            <button
-              type="button"
-              onClick={() => setSelectedScopes(new Set())}
-              className="text-secondary text-[var(--color-figma-accent)] hover:underline"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1">
-          {availableScopes.map((scope) => (
-            <label key={scope.value} className="flex items-start gap-2 py-1 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedScopes.has(scope.value)}
-                onChange={() => toggleScope(scope.value)}
-                className="mt-0.5 accent-[var(--color-figma-accent)]"
-              />
-              <div className="min-w-0">
-                <div className="text-body text-[var(--color-figma-text)]">{scope.label}</div>
-                <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
-                  {scope.description}
-                </div>
-              </div>
-            </label>
-          ))}
-        </div>
+        <ScopeEditor
+          tokenTypes={tokenTypes}
+          selectedScopes={selectedScopes}
+          onChange={setSelectedScopes}
+        />
       </div>
     </EditorShell>
   );

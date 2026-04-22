@@ -208,10 +208,18 @@ export function summarizeTokenScopes(
   return `${labels.slice(0, maxLabels).join(", ")} +${labels.length - maxLabels}`;
 }
 
-export function compactTokenPath(path: string, segments = 3): string {
-  const parts = path.split(".");
-  if (parts.length <= segments) return path;
-  return `…${parts.slice(-segments).join(".")}`;
+/**
+ * Returns true when the token's scopes actually narrow its applicability —
+ * i.e. scopes is non-empty and is a proper subset of the full scope set for
+ * the token's type. Empty scopes ("all scopes" in Figma) or a set equal to
+ * the full type set do not restrict.
+ */
+export function scopeRestrictsType(tokenType: string, scopes: string[]): boolean {
+  const full = FIGMA_SCOPE_OPTIONS[tokenType];
+  if (!full || full.length === 0) return false;
+  if (scopes.length === 0) return false;
+  if (scopes.length >= full.length) return false;
+  return true;
 }
 
 export function getLifecycleLabel(

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
 import { swatchBgColor } from '../shared/colorUtils';
-import { parseStructuredQuery, QUERY_QUALIFIERS, getQualifierCompletions } from './tokenListUtils';
+import { parseStructuredQuery, QUERY_QUALIFIERS, getQualifierCompletions, SCOPE_CATEGORIES } from './tokenListUtils';
 import type { ParsedQuery } from './tokenListUtils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 
@@ -46,6 +46,7 @@ export interface TokenEntry {
   isAlias?: boolean;
   description?: string;
   generatorName?: string;
+  scopes?: string[];
 }
 
 export interface GroupEntry {
@@ -98,7 +99,7 @@ function leafName(path: string): string {
 }
 
 // Matches the last qualifier:partial at the end of the query (no trailing space)
-const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|generated|gen|group):(\S*)$/i;
+const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|generated|gen|group|scope):(\S*)$/i;
 
 /** If the query ends with a qualifier:partial pattern, return it for autocomplete. */
 function detectActiveQualifier(q: string): { qualifier: string; partial: string } | null {
@@ -142,6 +143,18 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
       if (!t.generatorName) return false;
       const gn = t.generatorName.toLowerCase();
       if (!parsed.generators.some(g => gn === g || gn.includes(g))) return false;
+    }
+    // scope: qualifier — token permits application to the category's Figma field
+    if (parsed.scopes.length > 0) {
+      const tokenScopes = t.scopes ?? [];
+      if (tokenScopes.length > 0) {
+        const scopeMatch = parsed.scopes.some(category => {
+          const allowed = SCOPE_CATEGORIES[category];
+          if (!allowed) return false;
+          return allowed.some(s => tokenScopes.includes(s));
+        });
+        if (!scopeMatch) return false;
+      }
     }
     return true;
   });

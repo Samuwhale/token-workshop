@@ -55,6 +55,22 @@ export interface NavigationContextValue {
   openNotifications: () => void;
   closeNotifications: () => void;
   toggleNotifications: () => void;
+  /**
+   * One-shot prefill for the Canvas → Repair subtab. Selection emits stale
+   * binding entries (each with an optional suggested replacement) before
+   * navigating; CanvasRepairPanel reads and clears on mount. Mirrors the
+   * pendingHighlight pattern in EditorContext.
+   */
+  pendingRepairPrefill: readonly RepairPrefillEntry[] | null;
+  setPendingRepairPrefill: (
+    entries: readonly RepairPrefillEntry[] | null,
+  ) => void;
+  consumePendingRepairPrefill: () => readonly RepairPrefillEntry[] | null;
+}
+
+export interface RepairPrefillEntry {
+  from: string;
+  to?: string;
 }
 
 export interface NavigationHandoff {
@@ -162,6 +178,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [activeHandoff, setActiveHandoff] =
     useState<NavigationHandoff | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [pendingRepairPrefill, setPendingRepairPrefillState] = useState<
+    readonly RepairPrefillEntry[] | null
+  >(null);
 
   const [activeTopTab, setActiveTopTabState] = useState<TopTab>(() => {
     const stored = lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB);
@@ -244,6 +263,28 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setNotificationsOpen((prev) => !prev);
   }, []);
 
+  const setPendingRepairPrefill = useCallback(
+    (entries: readonly RepairPrefillEntry[] | null) => {
+      setPendingRepairPrefillState(
+        entries && entries.length > 0 ? entries : null,
+      );
+    },
+    [],
+  );
+
+  const pendingRepairPrefillRef = useRef(pendingRepairPrefill);
+  pendingRepairPrefillRef.current = pendingRepairPrefill;
+
+  const consumePendingRepairPrefill = useCallback<
+    () => readonly RepairPrefillEntry[] | null
+  >(() => {
+    const current = pendingRepairPrefillRef.current;
+    if (current) {
+      setPendingRepairPrefillState(null);
+    }
+    return current;
+  }, []);
+
   const clearHandoff = useCallback(() => {
     setActiveHandoff(null);
   }, []);
@@ -312,6 +353,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       openNotifications,
       closeNotifications,
       toggleNotifications,
+      pendingRepairPrefill,
+      setPendingRepairPrefill,
+      consumePendingRepairPrefill,
     }),
     [
       activeTopTab,
@@ -329,6 +373,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       returnFromHandoff,
       setSubTab,
       toggleNotifications,
+      pendingRepairPrefill,
+      setPendingRepairPrefill,
+      consumePendingRepairPrefill,
     ],
   );
 

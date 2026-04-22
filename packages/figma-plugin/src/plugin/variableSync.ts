@@ -1,5 +1,5 @@
 import { VARIABLE_COLLECTION_NAME } from './constants.js';
-import { mapTokenTypeToVariableType, mapVariableTypeToTokenType, convertToFigmaValue, convertFromFigmaValue, findVariableInList } from './variableUtils.js';
+import { mapTokenTypeToVariableType, inferVariableTokenType, convertToFigmaValue, convertFromFigmaValueForTokenType, findVariableInList } from './variableUtils.js';
 import { getErrorMessage } from '../shared/utils.js';
 import type {
   OrphanVariableDeleteTarget,
@@ -12,6 +12,10 @@ import type {
 
 function isTokenManagerManagedVariable(variable: Variable): boolean {
   return variable.getPluginData('tokenPath').trim().length > 0;
+}
+
+function isGeneratedStyleBackingVariable(variable: Variable): boolean {
+  return variable.getPluginData('tm.styleBacking') === '1';
 }
 
 export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, renames?: Array<{ oldPath: string; newPath: string }>, correlationId?: string) {
@@ -384,10 +388,12 @@ export async function readFigmaVariables(correlationId?: string) {
       for (const varId of collection.variableIds) {
         const variable = variableById.get(varId);
         if (!variable) continue;
-        const modeValue = toReadModeValue(variable.valuesByMode[mode.modeId], variable.resolvedType, variableNameById);
+        if (isGeneratedStyleBackingVariable(variable)) continue;
+        const tokenType = inferVariableTokenType(variable.resolvedType, variable.scopes);
+        const modeValue = toReadModeValue(variable.valuesByMode[mode.modeId], variable.resolvedType, tokenType, variableNameById);
         tokens.push({
           path: variable.name.replace(/\//g, '.'),
-          $type: mapVariableTypeToTokenType(variable.resolvedType),
+          $type: tokenType,
           $value: modeValue.value,
           $description: variable.description || '',
           $scopes: variable.scopes,
@@ -407,8 +413,9 @@ export async function readFigmaVariables(correlationId?: string) {
 function toReadModeValue(
   rawValue: VariableValue,
   resolvedType: VariableResolvedDataType,
+  tokenType: string,
   variableNameById: Map<string, string>,
-): { value: string | number | boolean | null; reference?: string; isAlias: boolean } {
+): { value: string | number | boolean | { value: number; unit: 'px' } | null; reference?: string; isAlias: boolean } {
   if (rawValue && typeof rawValue === 'object' && 'type' in rawValue && rawValue.type === 'VARIABLE_ALIAS') {
     const reference = variableNameById.get(rawValue.id)
       ? `{${variableNameById.get(rawValue.id)}}`
@@ -421,7 +428,7 @@ function toReadModeValue(
   }
 
   return {
-    value: convertFromFigmaValue(rawValue, resolvedType),
+    value: convertFromFigmaValueForTokenType(rawValue, tokenType),
     isAlias: false,
   };
 }
@@ -522,6 +529,10 @@ export async function deleteOrphanVariables(
         const variable = variableById.get(varId);
         if (!variable) continue;
         if (!isTokenManagerManagedVariable(variable)) continue;
+        // Style-generated backing variables are owned by style sync, not by the
+        // standalone variable token set. Variable orphan cleanup must never
+        // remove them here, or live bound styles will break.
+        if (isGeneratedStyleBackingVariable(variable)) continue;
         const path = getVariablePath(variable);
         if (!knownSet.has(path)) {
           toDelete.push(variable);

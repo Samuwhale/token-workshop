@@ -138,38 +138,46 @@ export function PropertyRow({
   const isBound = binding && binding !== 'mixed';
   const isMixed = binding === 'mixed';
   const isUnbound = !binding || isMixed;
+  const isBroken = Boolean(isBound && !tokenMap[binding as string]);
   const isThisPropActive = creatingFromProp === prop || bindingFromProp === prop;
   const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && currentCollectionId && !isThisPropActive;
   const canBind = !isBound && connected && hasAnyTokens && !isThisPropActive;
-  const canChangeBind = isBound && connected && hasAnyTokens && !isThisPropActive;
+  const canChangeBind = isBound && !isBroken && connected && hasAnyTokens && !isThisPropActive;
+  const canRepair = isBroken && connected && hasAnyTokens && !isThisPropActive;
   const rowStateClass = isThisPropActive
     ? 'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5'
-    : isBound
-      ? 'border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
-      : 'border-transparent hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]';
+    : isBroken
+      ? 'border-[var(--color-figma-warning,#f5a623)]/30 bg-[var(--color-figma-warning,#f5a623)]/5 hover:bg-[var(--color-figma-warning,#f5a623)]/10'
+      : isBound
+        ? 'border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
+        : 'border-transparent hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]';
   const statusBadgeClass = bindingFromProp === prop
     ? 'bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]'
     : creatingFromProp === prop
       ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
       : lastBoundProp === prop
         ? 'bg-[var(--color-figma-success,#18a058)]/12 text-[var(--color-figma-success,#18a058)]'
-        : isBound
-          ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-          : isMixed
-            ? 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]'
-            : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
+        : isBroken
+          ? 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]'
+          : isBound
+            ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+            : isMixed
+              ? 'bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)]'
+              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
   const statusLabel = bindingFromProp === prop
     ? 'Picking'
     : creatingFromProp === prop
       ? 'Creating'
       : lastBoundProp === prop
         ? 'Bound'
-        : isBound
-          ? 'Bound'
-          : isMixed
-            ? 'Mixed'
-            : '';
-  const showActionRail = canBind || canChangeBind || hasExtractableValue || isBound || isMixed;
+        : isBroken
+          ? 'Broken'
+          : isBound
+            ? 'Bound'
+            : isMixed
+              ? 'Mixed'
+              : '';
+  const showActionRail = canBind || canChangeBind || canRepair || hasExtractableValue || isBound || isMixed;
 
   // Resolve binding display
   const { resolvedDisplay, resolvedColor } = isBound
@@ -359,11 +367,20 @@ export function PropertyRow({
             </div>
             {isBound && (
               <div className="flex items-center gap-1 mt-1">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
-                  <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${isBroken ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-accent)]'}`} aria-hidden="true">
+                  {isBroken ? (
+                    <>
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v4M12 16h.01" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                    </>
+                  )}
                 </svg>
-                {onNavigateToToken ? (
+                {onNavigateToToken && !isBroken ? (
                   <button
                     onClick={() => onNavigateToToken(binding as string)}
                     className="text-secondary text-[var(--color-figma-accent)] font-mono truncate hover:underline text-left"
@@ -372,7 +389,10 @@ export function PropertyRow({
                     {binding as string}
                   </button>
                 ) : (
-                  <span className="text-secondary text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
+                  <span
+                    className={`text-secondary font-mono truncate ${isBroken ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-accent)]'}`}
+                    title={isBroken ? `Missing token: ${binding as string}` : (binding as string)}
+                  >
                     {binding as string}
                   </span>
                 )}
@@ -407,6 +427,20 @@ export function PropertyRow({
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                }
+              />
+            )}
+            {canRepair && (
+              <PropertyActionButton
+                label="Repair"
+                title={`Pick a replacement for the missing token "${binding as string}"`}
+                tone="primary"
+                onClick={() => onOpenBind(prop)}
+                icon={
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14.7 6.3a4 4 0 015.7 5.7l-1.4 1.4-5.7-5.7 1.4-1.4z" />
+                    <path d="M9 12l-5 5v3h3l5-5" />
                   </svg>
                 }
               />

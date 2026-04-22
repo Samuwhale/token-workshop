@@ -210,6 +210,9 @@ function validateVarSnapshot(v: unknown): string | null {
     if (typeof pd.tokenCollection !== 'string') {
       return `varSnapshot.records["${varId}"].pluginData.tokenCollection must be a string`;
     }
+    if (pd.styleBacking !== undefined && typeof pd.styleBacking !== 'string') {
+      return `varSnapshot.records["${varId}"].pluginData.styleBacking must be a string when present`;
+    }
   }
 
   if (!Array.isArray(snap.createdIds)) {
@@ -260,6 +263,23 @@ function validateStyleSnapshot(v: unknown): string | null {
   for (let i = 0; i < (snap.createdIds as unknown[]).length; i++) {
     if (typeof (snap.createdIds as unknown[])[i] !== 'string') {
       return `styleSnapshot.createdIds[${i}] must be a string`;
+    }
+  }
+
+  if (snap.backingVariables !== undefined) {
+    const backingVarError = validateVarSnapshot(snap.backingVariables);
+    if (backingVarError) {
+      return `styleSnapshot.backingVariables invalid: ${backingVarError}`;
+    }
+
+    const backing = snap.backingVariables as Record<string, unknown>;
+    if (!Array.isArray(backing.createdCollectionIds)) {
+      return 'styleSnapshot.backingVariables.createdCollectionIds must be an array';
+    }
+    for (let i = 0; i < (backing.createdCollectionIds as unknown[]).length; i++) {
+      if (typeof (backing.createdCollectionIds as unknown[])[i] !== 'string') {
+        return `styleSnapshot.backingVariables.createdCollectionIds[${i}] must be a string`;
+      }
     }
   }
 

@@ -31,8 +31,8 @@ import {
   updateBulkAliasRefs,
   previewBulkAliasChanges,
   previewGroupAliasChanges,
-  normalizeLegacyFontFamilyToken,
-  normalizeLegacyFontFamilyTokenGroup,
+  normalizeScopedVariableToken,
+  normalizeScopedVariableTokenGroup,
   type AliasChange,
 } from "./token-tree-utils.js";
 
@@ -156,7 +156,7 @@ export class TokenStore {
         `Collection "${collectionId}" could not be loaded from "${path.relative(this.dir, filePath)}".`,
       );
     }
-    const normalizationChanged = normalizeLegacyFontFamilyTokenGroup(tokens);
+    const normalizationChanged = normalizeScopedVariableTokenGroup(tokens);
     return { tokens, missing: false, filePath, normalizationChanged };
   }
 
@@ -840,7 +840,7 @@ export class TokenStore {
       );
     }
     validateTokenPath(tokenPath);
-    token = normalizeLegacyFontFamilyToken(token);
+    token = normalizeScopedVariableToken(token);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     token = this.enrichFormulaExtension(token);
     // Check for circular references before persisting
@@ -873,7 +873,7 @@ export class TokenStore {
       throw new NotFoundError(
         `Token "${tokenPath}" not found in collection "${collectionId}"`,
       );
-    token = normalizeLegacyFontFamilyToken(token);
+    token = normalizeScopedVariableToken(token);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     if ("$value" in token && token.$value !== undefined) {
       const enriched = this.enrichFormulaExtension({
@@ -944,7 +944,7 @@ export class TokenStore {
       try {
         for (const { path: tokenPath, token } of tokens) {
           const enriched = this.enrichFormulaExtension(
-            normalizeLegacyFontFamilyToken(token),
+            normalizeScopedVariableToken(token),
           );
           const existing = getTokenAtPath(collection.tokens, tokenPath);
           if (existing) {

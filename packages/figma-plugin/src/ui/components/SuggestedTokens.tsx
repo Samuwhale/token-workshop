@@ -8,6 +8,7 @@ import { groupSuggestionsByConfidence, CONFIDENCE_LABELS } from './selectionInsp
 
 const LS_KEY = 'suggested-tokens-collapsed';
 const LS_SHOW_ALL_KEY = 'suggested-tokens-show-all';
+const LS_SHOW_SCOPE_HIDDEN_KEY = 'suggested-tokens-show-scope-hidden';
 
 function formatValue(entry: TokenMapEntry, resolvedValue: any): string {
   if (entry.$type === 'color' && typeof resolvedValue === 'string') {
@@ -29,6 +30,7 @@ function formatValue(entry: TokenMapEntry, resolvedValue: any): string {
 interface SuggestedTokensProps {
   suggestions: SuggestedToken[];
   onApply: (tokenPath: string, property: BindableProperty) => void;
+  onApplyBatch?: (items: { tokenPath: string; property: BindableProperty }[]) => void;
   onNavigateToToken?: (tokenPath: string) => void;
   title?: string;
   showHeader?: boolean;
@@ -37,14 +39,23 @@ interface SuggestedTokensProps {
 export function SuggestedTokens({
   suggestions,
   onApply,
+  onApplyBatch,
   onNavigateToToken,
   title = 'Best matches',
   showHeader = true,
 }: SuggestedTokensProps) {
   const [collapsed, setCollapsed] = useState(() => lsGet(LS_KEY) === 'true');
   const [showAll, setShowAll] = useState(() => lsGet(LS_SHOW_ALL_KEY) === 'true');
+  const [showScopeHidden, setShowScopeHidden] = useState(
+    () => lsGet(LS_SHOW_SCOPE_HIDDEN_KEY) === 'true',
+  );
 
-  if (suggestions.length === 0) return null;
+  const scopeHiddenCount = suggestions.filter(s => s.scopeHidden).length;
+  const filteredSuggestions = showScopeHidden
+    ? suggestions
+    : suggestions.filter(s => !s.scopeHidden);
+
+  if (filteredSuggestions.length === 0 && scopeHiddenCount === 0) return null;
 
   const toggle = () => {
     setCollapsed(prev => {
@@ -53,11 +64,27 @@ export function SuggestedTokens({
     });
   };
 
-  const groups = groupSuggestionsByConfidence(suggestions);
+  const groups = groupSuggestionsByConfidence(filteredSuggestions);
   const hasWeakGroup = groups.some(g => g.confidence === 'weak');
   const credibleGroups = groups.filter(g => g.confidence !== 'weak');
   const weakGroup = groups.find(g => g.confidence === 'weak');
   const visibleGroups = showAll ? groups : credibleGroups;
+
+  // Batch apply: one strong suggestion per distinct property (already sorted by score).
+  // Never batch-apply scope-hidden tokens — Figma will reject the bind.
+  const strongBatch: { tokenPath: string; property: BindableProperty }[] = [];
+  const seenBatchProps = new Set<BindableProperty>();
+  for (const suggestion of filteredSuggestions) {
+    if (suggestion.scopeHidden) continue;
+    if (suggestion.confidence !== 'strong') continue;
+    if (seenBatchProps.has(suggestion.bestProperty)) continue;
+    seenBatchProps.add(suggestion.bestProperty);
+    strongBatch.push({
+      tokenPath: suggestion.path,
+      property: suggestion.bestProperty,
+    });
+  }
+  const showApplyAll = onApplyBatch !== undefined && strongBatch.length >= 2;
 
   return (
     <div className={showHeader ? 'border-b border-[var(--color-figma-border)]' : ''}>
@@ -78,13 +105,24 @@ export function SuggestedTokens({
             {title}
           </span>
           <span className="text-secondary bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
-            {suggestions.length}
+            {filteredSuggestions.length}
           </span>
         </button>
       )}
 
       {(!showHeader || !collapsed) && (
         <div className="px-1 pb-1.5">
+          {showApplyAll && (
+            <div className="flex items-center justify-end px-1.5 pt-1 pb-0.5">
+              <button
+                onClick={() => onApplyBatch?.(strongBatch)}
+                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+                title={`Apply ${strongBatch.length} best matches across properties`}
+              >
+                Apply all ({strongBatch.length})
+              </button>
+            </div>
+          )}
           {visibleGroups.map((group, groupIdx) => (
             <div key={group.confidence}>
               {/* Group header — only when multiple groups are visible */}
@@ -104,7 +142,12 @@ export function SuggestedTokens({
                 return (
                   <div
                     key={s.path}
-                    className="group relative flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    className={`group relative flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
+                      s.scopeHidden ? 'opacity-50' : ''
+                    }`}
+                    title={s.scopeHidden
+                      ? `This token's Figma scopes don't include ${PROPERTY_LABELS[s.bestProperty]}. Applying may fail.`
+                      : undefined}
                   >
                     {/* Color swatch or type icon */}
                     {isColor ? (
@@ -190,6 +233,32 @@ export function SuggestedTokens({
               className="w-full text-secondary text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Hide weak
+            </button>
+          )}
+
+          {scopeHiddenCount > 0 && !showScopeHidden && (
+            <button
+              onClick={() => {
+                setShowScopeHidden(true);
+                lsSet(LS_SHOW_SCOPE_HIDDEN_KEY, 'true');
+              }}
+              className="w-full text-secondary text-[var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              title="These tokens would match, but their Figma scopes don't permit the target property."
+            >
+              {scopeHiddenCount === 1
+                ? '1 match hidden by Figma scopes'
+                : `${scopeHiddenCount} matches hidden by Figma scopes`}
+            </button>
+          )}
+          {scopeHiddenCount > 0 && showScopeHidden && (
+            <button
+              onClick={() => {
+                setShowScopeHidden(false);
+                lsSet(LS_SHOW_SCOPE_HIDDEN_KEY, 'false');
+              }}
+              className="w-full text-secondary text-[var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Hide scope-restricted
             </button>
           )}
         </div>

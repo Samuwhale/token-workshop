@@ -162,7 +162,6 @@ export function TokenList({
     navHistoryLength,
     onClearHighlight,
     onPublishGroup,
-    onSetGroupScopes,
     onCreateGeneratedGroupFromGroup,
     onRefreshGeneratedGroups,
     onToggleIssuesOnly,
@@ -966,13 +965,6 @@ export function TokenList({
     [displayedLeafNodesWithAncestors],
   );
 
-  const multiModeDimensionName = useMemo(
-    () =>
-      activeCollections.find((collection) => collection.id === multiModeDimId)
-        ?.id ?? null,
-    [activeCollections, multiModeDimId],
-  );
-
   const hasStructuredFilters = structuredFilterChips.length > 0;
   const allGroupsExpanded =
     allGroupPaths.length > 0 &&
@@ -1247,6 +1239,26 @@ export function TokenList({
       setActiveBatchAction(null);
     }
   }, [selectedPaths.size]);
+
+  const handleSetGroupScopes = useCallback(
+    (groupPath: string) => {
+      const prefix = groupPath + '.';
+      const descendantPaths = new Set<string>();
+      for (const path of Object.keys(allTokensFlat)) {
+        if (path === groupPath || path.startsWith(prefix)) {
+          descendantPaths.add(path);
+        }
+      }
+      if (descendantPaths.size === 0) {
+        dispatchToast('No tokens in this group.', 'error');
+        return;
+      }
+      setSelectedPaths(descendantPaths);
+      setShowBatchEditor(true);
+      setActiveBatchAction('figma-scopes');
+    },
+    [allTokensFlat, setSelectedPaths, setShowBatchEditor],
+  );
 
   // Sync: keyboard handler toggles showBatchEditor (from useTokenSelection).
   // Map that to activeBatchAction so the E key opens/closes the panel.
@@ -1877,6 +1889,9 @@ export function TokenList({
     tokens,
     allTokensFlat,
     collectionId,
+    collections,
+    pathToCollectionId,
+    perCollectionFlat: perCollectionFlat ?? {},
     collectionMap,
     modeMap,
     varReadPendingRef,
@@ -2160,7 +2175,7 @@ export function TokenList({
     handleToggleExpand, requestDeleteGroup, handleOpenCreateSibling,
     setNewGroupDialogParent, handleRenameGroup, handleUpdateGroupMeta,
     handleRequestMoveGroup, handleRequestCopyGroup, handleDuplicateGroup,
-    onPublishGroup, onSetGroupScopes, onCreateGeneratedGroupFromGroup,
+    onPublishGroup, onSetGroupScopes: handleSetGroupScopes, onCreateGeneratedGroupFromGroup,
     handleZoomIntoGroup, handleDragOverGroup, handleDropOnGroup,
     onEditGeneratedGroup,
     onDuplicateGeneratedGroup: handleDuplicateGeneratedGroup,
@@ -2232,7 +2247,7 @@ export function TokenList({
     copyConflict, copyConflictAction, setCopyConflictAction,
     copyConflictNewPath, setCopyConflictNewPath,
     showMoveToGroup, moveToGroupTarget, moveToGroupError, selectedPaths,
-    pathToCollectionId,
+    perCollectionFlat: perCollectionFlat ?? {},
     setShowMoveToGroup, setMoveToGroupTarget, setMoveToGroupError,
     handleBatchMoveToGroup,
     showBatchMoveToCollection, batchMoveToCollectionTarget, setBatchMoveToCollectionTarget,
@@ -2364,7 +2379,7 @@ export function TokenList({
             onNavigateBack={onNavigateBack}
             navHistoryLength={navHistoryLength}
             collectionId={collectionId}
-            modeCount={multiModeData?.collection.modes.length}
+            collectionDisplayName={collectionMap[collectionId]}
             onOpenCollectionDetails={
               onOpenCollectionDetails
                 ? () => onOpenCollectionDetails(collectionId)
@@ -2526,7 +2541,6 @@ export function TokenList({
             virtualBottomPad={virtualBottomPad}
             multiModeData={multiModeData}
             multiModeDimId={multiModeDimId}
-            multiModeDimensionName={multiModeDimensionName}
             collections={activeCollections}
             setMultiModeDimId={setMultiModeDimId}
             getMultiModeValues={getMultiModeValues}

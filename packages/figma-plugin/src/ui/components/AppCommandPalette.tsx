@@ -45,6 +45,7 @@ export function AppCommandPalette({
       generatorName: derivedTokenPaths.get(
         createGeneratorOwnershipKey(pathToCollectionId[path] ?? "", path),
       )?.name,
+      scopes: entry.$scopes,
     }));
   }, [allTokensFlat, derivedTokenPaths, pathToCollectionId]);
 
@@ -64,6 +65,7 @@ export function AppCommandPalette({
               : JSON.stringify(entry.$value),
           set: collectionId,
           isAlias: isAlias(entry.$value),
+          scopes: entry.$scopes,
         };
       });
   }, [allTokensFlat, pathToCollectionId, starredTokens.tokens]);
@@ -88,6 +90,7 @@ export function AppCommandPalette({
               : JSON.stringify(entry.$value),
           set: pathToCollectionId[path],
           isAlias: isAlias(entry.$value),
+          scopes: entry.$scopes,
         };
       });
   }, [allTokensFlat, pathToCollectionId, tokens.recentlyTouched]);

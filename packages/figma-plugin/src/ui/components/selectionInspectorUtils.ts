@@ -456,6 +456,12 @@ export interface SuggestedToken {
   matchReason: 'value-match' | 'already-bound' | 'sibling-usage' | 'type-match';
   confidence: SuggestionConfidence;
   reason: string;
+  /**
+   * True when this token would have scored but is hidden because its $scopes
+   * don't permit binding to bestProperty. Callers should hide these by default
+   * and expose an opt-in reveal.
+   */
+  scopeHidden?: boolean;
 }
 
 /** Derive a confidence level and human-readable reason from a scored suggestion. */
@@ -647,6 +653,7 @@ export function rankTokensForSelection(
     let bestProp: BindableProperty = eligibleProps[0];
     let bestReason: SuggestedToken['matchReason'] = 'type-match';
     let bestResolved: any = null;
+    let bestScopeHidden = false;
 
     // Quick check: does this token type match ANY eligible property?
     const tokenType = entry.$type;
@@ -663,8 +670,7 @@ export function rankTokensForSelection(
       // Type compatibility check
       if (!ctx.compatibleTypes.has(tokenType)) continue;
 
-      // Scope compatibility check
-      if (!isTokenScopeCompatible(entry, prop)) continue;
+      const scopeOk = isTokenScopeCompatible(entry, prop);
 
       // Use existing scoring infrastructure
       const score = scoreBindCandidate(
@@ -686,11 +692,18 @@ export function rankTokensForSelection(
       }
 
       const total = score + bonus;
-      if (total > bestScore) {
+      // Prefer scope-compatible matches: a compatible property with any score
+      // outranks a scope-hidden one, regardless of raw score.
+      const currentIsBetter =
+        bestScore < 0 ||
+        (bestScopeHidden && scopeOk) ||
+        (bestScopeHidden === !scopeOk && total > bestScore);
+      if (currentIsBetter) {
         bestScore = total;
         bestProp = prop;
         bestReason = reason;
         bestResolved = resolvedValue;
+        bestScopeHidden = !scopeOk;
       }
     }
 
@@ -706,6 +719,7 @@ export function rankTokensForSelection(
         matchReason: bestReason,
         confidence,
         reason,
+        scopeHidden: bestScopeHidden || undefined,
       });
     }
   }

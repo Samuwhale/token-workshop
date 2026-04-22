@@ -299,7 +299,7 @@ export interface VariableSyncToken {
 export interface ReadVariableToken {
   path: string;
   $type: string;
-  $value: string | number | boolean | null;
+  $value: string | number | boolean | DimensionValue | null;
   $description: string;
   $scopes: string[];
   /** DTCG reference string e.g. "{colors.primary}", set when the value is an alias. */
@@ -328,6 +328,7 @@ export interface ReadColorStyleToken {
   $type: 'color';
   $value: string;
   _warning?: string;
+  $extensions?: Record<string, unknown>;
 }
 
 export interface ReadGradientStyleToken {
@@ -338,6 +339,7 @@ export interface ReadGradientStyleToken {
     stops: Array<{ color: string; position: number }>;
   };
   _warning?: string;
+  $extensions?: Record<string, unknown>;
 }
 
 export interface ReadTypographyStyleToken {
@@ -345,12 +347,15 @@ export interface ReadTypographyStyleToken {
   $type: 'typography';
   $value: {
     fontFamily: string;
-    fontSize: { value: number; unit: 'px' };
-    fontWeight: number;
-    lineHeight: { value: number; unit: 'px' } | number | 'auto';
-    letterSpacing: { value: number; unit: 'px' };
-    fontStyle: 'italic' | 'normal';
+    fontSize: string | { value: number; unit: 'px' };
+    fontWeight: string | number;
+    lineHeight: string | { value: number; unit: 'px' } | number | 'auto';
+    letterSpacing: string | { value: number; unit: 'px' | '%' };
+    fontStyle: string;
+    textDecoration?: string;
+    textTransform?: string;
   };
+  $extensions?: Record<string, unknown>;
 }
 
 export interface ReadShadowStyleToken {
@@ -358,12 +363,13 @@ export interface ReadShadowStyleToken {
   $type: 'shadow';
   $value: Array<{
     color: string;
-    offsetX: { value: number; unit: 'px' };
-    offsetY: { value: number; unit: 'px' };
-    blur: { value: number; unit: 'px' };
-    spread: { value: number; unit: 'px' };
+    offsetX: string | { value: number; unit: 'px' };
+    offsetY: string | { value: number; unit: 'px' };
+    blur: string | { value: number; unit: 'px' };
+    spread: string | { value: number; unit: 'px' };
     type: 'innerShadow' | 'dropShadow';
   }>;
+  $extensions?: Record<string, unknown>;
 }
 
 export type ReadStyleToken =
@@ -675,7 +681,11 @@ export interface VarSnapshotRecord {
   description: string;
   hiddenFromPublishing: boolean;
   scopes: string[];
-  pluginData: { tokenPath: string; tokenCollection: string };
+  pluginData: {
+    tokenPath: string;
+    tokenCollection: string;
+    styleBacking?: string;
+  };
 }
 
 /** Full variable snapshot sent from plugin → UI after a successful apply. */
@@ -696,6 +706,11 @@ export interface StyleSnapshotEntry {
 export interface StyleSnapshot {
   snapshots: StyleSnapshotEntry[];
   createdIds: string[];
+  backingVariables?: {
+    records: Record<string, VarSnapshotRecord>;
+    createdIds: string[];
+    createdCollectionIds: string[];
+  };
 }
 
 export interface RevertVariablesMessage {

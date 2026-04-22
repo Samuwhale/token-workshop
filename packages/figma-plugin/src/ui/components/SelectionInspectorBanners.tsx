@@ -18,6 +18,8 @@ interface PropTypeSuggestion {
 }
 
 interface SelectionInspectorBannersProps {
+  staleBindingCount: number;
+  onOpenRepair?: () => void;
   peerSuggestion: PeerSuggestion | null;
   onApplyPeerSuggestion: () => void;
   onDismissPeerSuggestion: () => void;
@@ -34,6 +36,8 @@ interface SelectionInspectorBannersProps {
 }
 
 export function SelectionInspectorBanners({
+  staleBindingCount,
+  onOpenRepair,
   peerSuggestion,
   onApplyPeerSuggestion,
   onDismissPeerSuggestion,
@@ -48,8 +52,27 @@ export function SelectionInspectorBanners({
   onNavigateToToken,
   onDismissCreatedToken,
 }: SelectionInspectorBannersProps) {
+  const showStaleBanner = staleBindingCount > 0 && Boolean(onOpenRepair);
+  const showPropTypeSuggestion = !showStaleBanner && Boolean(propTypeSuggestion);
   return (
     <>
+      {showStaleBanner && (
+        <InlineBanner
+          variant="warning"
+          layout="strip"
+          size="sm"
+          className="border-b-0 border-t"
+          action={{
+            label: `Repair ${staleBindingCount} →`,
+            onClick: () => onOpenRepair?.(),
+          }}
+        >
+          <span className="text-secondary font-medium text-[var(--color-figma-text)]">
+            {staleBindingCount} broken binding{staleBindingCount === 1 ? "" : "s"}
+          </span>
+        </InlineBanner>
+      )}
+
       {peerSuggestion && (
         <div className="flex items-center gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 px-3 py-2 shrink-0">
           <svg
@@ -100,7 +123,7 @@ export function SelectionInspectorBanners({
         </div>
       )}
 
-      {propTypeSuggestion && (
+      {showPropTypeSuggestion && propTypeSuggestion && (
         <div className="flex items-start gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-accent)]/5 px-3 py-2 shrink-0">
           <svg
             width="10"

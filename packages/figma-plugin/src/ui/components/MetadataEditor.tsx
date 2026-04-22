@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
 import { TOKEN_EDITOR_RESERVED_EXTENSION_KEYS } from '../shared/tokenEditorTypes';
 
 /* ── Structured key-value extensions editor ── */
@@ -374,18 +373,7 @@ function ExtensionsEditor({
   );
 }
 
-// ---------------------------------------------------------------------------
-// ModeValuesEditor — standalone section for per-mode token value overrides
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// MetadataEditor
-// ---------------------------------------------------------------------------
-
 interface MetadataEditorProps {
-  tokenType: string;
-  scopes: string[];
-  onScopesChange: (scopes: string[]) => void;
   extensionsJsonText: string;
   onExtensionsJsonTextChange: (text: string) => void;
   extensionsJsonError: string | null;
@@ -393,61 +381,12 @@ interface MetadataEditorProps {
 }
 
 export function MetadataEditor({
-  tokenType, scopes, onScopesChange,
   extensionsJsonText, onExtensionsJsonTextChange,
   extensionsJsonError, onExtensionsJsonErrorChange,
 }: MetadataEditorProps) {
-  const [showScopes, setShowScopes] = useState(false);
   const [showExtensions, setShowExtensions] = useState(false);
 
   return (
-    <>
-      {/* Figma Variable Scopes */}
-    {FIGMA_SCOPE_OPTIONS[tokenType] && (
-      <div className="border-t border-[var(--color-figma-border)]">
-        <button
-          type="button"
-          onClick={() => setShowScopes(v => !v)}
-          title="Scopes control which Figma properties this variable is offered for"
-          className="w-full px-3 py-2 flex flex-col items-start bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium"
-        >
-          <span className="flex w-full items-center justify-between">
-            <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : ''}</span>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-180' : ''}`}>
-              <path d="M2 3.5l3 3 3-3"/>
-            </svg>
-          </span>
-          <span className="mt-0.5 text-secondary font-normal text-[var(--color-text-secondary,var(--color-figma-text-tertiary))]">
-            Control where this token can be applied in Figma
-          </span>
-        </button>
-        {showScopes && (
-          <div className="px-3 py-2 flex flex-col gap-1.5">
-            <p className="text-secondary text-[var(--color-figma-text-secondary)] mb-1">
-              Controls where this variable appears in Figma's variable picker. Empty = All scopes.
-            </p>
-            {(FIGMA_SCOPE_OPTIONS[tokenType] ?? []).map(scope => (
-              <label key={scope.value} className="flex items-start gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={scopes.includes(scope.value)}
-                  onChange={e => onScopesChange(
-                    e.target.checked ? [...scopes, scope.value] : scopes.filter(s => s !== scope.value)
-                  )}
-                  className="w-3 h-3 rounded mt-0.5"
-                />
-                <span className="flex flex-col">
-                  <span className="text-body text-[var(--color-figma-text)]">{scope.label}</span>
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)] leading-tight">{scope.description}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-    )}
-
-    {/* Other extensions */}
     <ExtensionsEditor
       showExtensions={showExtensions}
       onToggleExtensions={() => setShowExtensions(v => !v)}
@@ -456,6 +395,5 @@ export function MetadataEditor({
       extensionsJsonError={extensionsJsonError}
       onExtensionsJsonErrorChange={onExtensionsJsonErrorChange}
     />
-    </>
   );
 }

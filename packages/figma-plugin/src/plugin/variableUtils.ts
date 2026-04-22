@@ -33,6 +33,79 @@ export function mapVariableTypeToTokenType(variableType: VariableResolvedDataTyp
   }
 }
 
+const STRING_SCOPE_TOKEN_TYPES: Record<string, string> = {
+  FONT_FAMILY: 'fontFamily',
+  FONT_STYLE: 'string',
+};
+
+const FLOAT_SCOPE_TOKEN_TYPES: Record<string, string> = {
+  FONT_WEIGHT: 'fontWeight',
+  FONT_SIZE: 'dimension',
+  LINE_HEIGHT: 'number',
+  LETTER_SPACING: 'number',
+  PARAGRAPH_SPACING: 'dimension',
+  PARAGRAPH_INDENT: 'dimension',
+};
+
+export function inferVariableTokenType(
+  variableType: VariableResolvedDataType,
+  scopes: readonly string[] = [],
+): string {
+  const defaultType = mapVariableTypeToTokenType(variableType);
+
+  if (variableType === 'STRING') {
+    for (const scope of scopes) {
+      const scopedType = STRING_SCOPE_TOKEN_TYPES[scope];
+      if (scopedType) {
+        return scopedType;
+      }
+    }
+  }
+
+  if (variableType === 'FLOAT') {
+    for (const scope of scopes) {
+      const scopedType = FLOAT_SCOPE_TOKEN_TYPES[scope];
+      if (scopedType) {
+        return scopedType;
+      }
+    }
+  }
+
+  return defaultType;
+}
+
+export function convertFromFigmaValueForTokenType(
+  value: VariableValue,
+  tokenType: string,
+): string | number | boolean | { value: number; unit: 'px' } | null {
+  if (tokenType === 'color') {
+    return convertFromFigmaValue(value, 'COLOR');
+  }
+
+  if (value == null) {
+    return null;
+  }
+
+  switch (tokenType) {
+    case 'dimension':
+    case 'letterSpacing':
+      return { value: Number(value), unit: 'px' };
+    case 'lineHeight':
+    case 'fontWeight':
+    case 'number':
+    case 'percentage':
+      return Number(value);
+    case 'fontFamily':
+    case 'fontStyle':
+    case 'string':
+      return String(value);
+    case 'boolean':
+      return coerceBooleanValue(value);
+    default:
+      return convertFromFigmaValue(value, mapTokenTypeToVariableType(tokenType) ?? 'STRING');
+  }
+}
+
 export function convertToFigmaValue(
   value: TokenValue | TokenReference | null,
   tokenType: string,

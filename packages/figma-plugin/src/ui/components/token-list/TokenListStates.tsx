@@ -263,6 +263,7 @@ export function TokenListFilteredEmptyState({
               value: "Value",
               desc: "Description",
               generator: "Generated",
+              scope: "Can apply to",
             };
             const matchingSections = new Map<FilterBuilderSection, string>();
             for (const qualifier of QUERY_QUALIFIERS) {

@@ -17,6 +17,7 @@ import {
   selectVariableCollectionTokens,
   summarizeVariableDiff,
 } from "../../shared/syncWorkflow";
+import { buildStylePublishTokens } from "../../shared/stylePublish";
 import { getErrorMessage } from "../../shared/utils";
 import { dispatchToast } from "../../shared/toastBus";
 import {
@@ -108,6 +109,9 @@ interface ApplyOperationsConfig {
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   collectionId: string;
+  collections: Array<{ id: string; modes: Array<{ name: string }> }>;
+  pathToCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
   varReadPendingRef: MutableRefObject<Map<string, PendingVariableRead>>;
@@ -118,7 +122,7 @@ interface ApplyOperationsConfig {
   closeLongLivedReviewSurfaces: () => void;
   sendStyleApply: (
     type: string,
-    payload: { tokens: VariablePreviewToken[] },
+    payload: { tokens: unknown[] },
   ) => Promise<{
     count: number;
     total: number;
@@ -132,6 +136,9 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     tokens,
     allTokensFlat,
     collectionId,
+    collections,
+    pathToCollectionId,
+    perCollectionFlat,
     collectionMap,
     modeMap,
     varReadPendingRef,
@@ -309,7 +316,23 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     setApplying(true);
     const flat = resolveFlat(flattenTokens(tokens, collectionId), allTokensFlat);
     try {
-      const result = await sendStyleApply("apply-styles", { tokens: flat });
+      const result = await sendStyleApply("apply-styles", {
+        tokens: buildStylePublishTokens({
+          paths: flat
+            .filter((token) =>
+              token.$type === "color" ||
+              token.$type === "gradient" ||
+              token.$type === "typography" ||
+              token.$type === "shadow",
+            )
+            .map((token) => token.path),
+          collections,
+          pathToCollectionId,
+          perCollectionFlat,
+          collectionMap,
+          modeMap,
+        }),
+      });
       dispatchToast(`Applied ${result.count} styles`, "success");
       if (result.failures.length > 0) {
         const failedPaths = result.failures.map((f) => f.path).join(", ");
@@ -322,7 +345,19 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     } finally {
       setApplying(false);
     }
-  }, [setApplying, tokens, collectionId, allTokensFlat, sendStyleApply, onError]);
+  }, [
+    setApplying,
+    tokens,
+    collectionId,
+    allTokensFlat,
+    collections,
+    pathToCollectionId,
+    perCollectionFlat,
+    collectionMap,
+    modeMap,
+    sendStyleApply,
+    onError,
+  ]);
 
   return {
     doApplyVariables,

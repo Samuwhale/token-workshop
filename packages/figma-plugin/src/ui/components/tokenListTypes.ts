@@ -112,7 +112,6 @@ export interface TokenListActions {
   navHistoryLength?: number;
   onClearHighlight?: () => void;
   onPublishGroup?: (groupPath: string, tokenCount: number) => void;
-  onSetGroupScopes?: (groupPath: string) => void;
   onCreateGeneratedGroupFromGroup?: (
     groupPath: string,
     tokenType: string | null,

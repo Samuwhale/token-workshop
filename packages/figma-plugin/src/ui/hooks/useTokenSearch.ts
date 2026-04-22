@@ -379,7 +379,7 @@ export function useTokenSearch({
   }, [parsedSearchQuery, searchQuery]);
 
   const toggleQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
     value: string,
   ) => {
     const currentValues = getQueryQualifierValues(searchQuery, qualifier);
@@ -390,7 +390,7 @@ export function useTokenSearch({
   }, [searchQuery, setSearchQuery]);
 
   const addQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
     value: string,
   ) => {
     const normalizedValue = value.trim().toLowerCase();
@@ -401,7 +401,7 @@ export function useTokenSearch({
   }, [searchQuery, setSearchQuery]);
 
   const removeQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
     value: string,
   ) => {
     const normalizedValue = value.trim().toLowerCase();
@@ -411,13 +411,13 @@ export function useTokenSearch({
   }, [searchQuery, setSearchQuery]);
 
   const clearQueryQualifier = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
   ) => {
     setSearchQuery(removeQueryQualifierValues(searchQuery, qualifier));
   }, [searchQuery, setSearchQuery]);
 
   const replaceActiveQueryWithQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
     value: string,
   ) => {
     const normalizedValue = value.trim().toLowerCase();
@@ -453,6 +453,12 @@ export function useTokenSearch({
       chips.push({
         token: `generated:${value}`,
         label: `generated:${value}`,
+      });
+    }
+    for (const value of parsedSearchQuery.scopes) {
+      chips.push({
+        token: `scope:${value}`,
+        label: `Can apply to ${value}`,
       });
     }
     return chips;

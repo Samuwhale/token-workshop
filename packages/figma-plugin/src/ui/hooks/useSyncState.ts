@@ -5,11 +5,15 @@ import {
   type PublishPreflightState,
 } from "../shared/syncWorkflow";
 import type { PublishPanelHandle } from "../components/PublishPanel";
+import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenMapEntry } from "../../shared/types";
 
 interface UseSyncStateParams {
   serverUrl: string;
   connected: boolean;
+  collections: TokenCollection[];
   pathToCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
   currentCollectionId: string;
@@ -19,7 +23,9 @@ interface UseSyncStateParams {
 export function useSyncState({
   serverUrl,
   connected,
+  collections,
   pathToCollectionId,
+  perCollectionFlat,
   collectionMap,
   modeMap,
   currentCollectionId,
@@ -28,7 +34,9 @@ export function useSyncState({
   const figmaSync = useFigmaSync(
     serverUrl,
     connected,
+    collections,
     pathToCollectionId,
+    perCollectionFlat,
     collectionMap,
     modeMap,
     currentCollectionId,

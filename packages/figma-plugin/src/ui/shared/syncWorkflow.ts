@@ -563,11 +563,25 @@ function normalizeVariableComparableValue(
     }
     case 'number':
     case 'fontWeight':
-    case 'lineHeight':
-    case 'letterSpacing':
     case 'percentage': {
       if (typeof value === 'number') {
         return value;
+      }
+      if (value !== null && typeof value === 'object' && 'value' in value) {
+        const raw = (value as { value: unknown }).value;
+        return typeof raw === 'number' ? raw : Number.parseFloat(String(raw));
+      }
+      const parsed = Number.parseFloat(String(value));
+      return Number.isNaN(parsed) ? value : parsed;
+    }
+    case 'lineHeight':
+    case 'letterSpacing': {
+      if (typeof value === 'number') {
+        return value;
+      }
+      if (value !== null && typeof value === 'object' && 'value' in value) {
+        const raw = (value as { value: unknown }).value;
+        return typeof raw === 'number' ? raw : Number.parseFloat(String(raw));
       }
       const parsed = Number.parseFloat(String(value));
       return Number.isNaN(parsed) ? value : parsed;
