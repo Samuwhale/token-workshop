@@ -126,9 +126,9 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
           type: "collection-mode-reorder",
           description: `Reorder modes in collection "${id}"`,
           resourceId: "$collections",
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
+          affectedPaths: mutation.affectedPaths,
+          beforeSnapshot: mutation.beforeSnapshot,
+          afterSnapshot: mutation.afterSnapshot,
           rollbackSteps: [
             {
               action: "restore-collection-state",
@@ -191,6 +191,11 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
 
     try {
       const normalizedId = slugifyName(id);
+      if (!normalizedId) {
+        return reply.status(400).send({
+          error: "View id must include at least one letter or number",
+        });
+      }
       const mutation = await fastify.collectionService.createView({
         id: normalizedId,
         name: name.trim(),

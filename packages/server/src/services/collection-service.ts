@@ -13,8 +13,10 @@ import {
   flattenTokenGroup,
   isDTCGToken,
   normalizeSelectedModes,
+  readTokenModeValuesForCollection,
   readTokenCollectionModeValues,
   writeTokenCollectionModeValues,
+  writeTokenModeValuesForCollection,
   type Token,
   type TokenModeValues,
 } from "@tokenmanager/core";
@@ -2308,6 +2310,48 @@ export class CollectionService {
     return patchesByCollection;
   }
 
+  private async collectCollectionModeStoragePatches(params: {
+    collectionBefore: TokenCollection;
+    collectionAfter: TokenCollection;
+    mutateValues?: (modeValues: Record<string, unknown>) => Record<string, unknown>;
+  }): Promise<TokenPatchesByCollection | undefined> {
+    const { collectionBefore, collectionAfter, mutateValues } = params;
+    const flatTokens =
+      await this.tokenStore.getFlatTokensForCollection(collectionBefore.id);
+    const patches: TokenPatch[] = [];
+
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      const nextToken = structuredClone(token);
+      const nextModeValues = mutateValues
+        ? mutateValues(readTokenModeValuesForCollection(token, collectionBefore))
+        : readTokenModeValuesForCollection(token, collectionBefore);
+
+      writeTokenModeValuesForCollection(nextToken, collectionAfter, nextModeValues);
+
+      if (
+        stableStringify(nextToken.$value) === stableStringify(token.$value) &&
+        stableStringify(nextToken.$extensions ?? null) ===
+          stableStringify(token.$extensions ?? null)
+      ) {
+        continue;
+      }
+
+      patches.push({
+        path: tokenPath,
+        patch: {
+          $value: nextToken.$value,
+          $extensions: nextToken.$extensions,
+        },
+      });
+    }
+
+    if (patches.length === 0) {
+      return undefined;
+    }
+
+    return new Map([[collectionBefore.id, patches]]);
+  }
+
   private async mutateCollectionState<T>(
     mutate: (
       state: CollectionState,
@@ -2528,8 +2572,8 @@ export class CollectionService {
   async reorderModes(
     collectionId: string,
     modeNames: string[],
-  ): Promise<CollectionStateMutationResult<TokenCollection>> {
-    return this.mutateCollectionState(async (state) => {
+  ): Promise<CollectionStateAndTokenMutationResult<TokenCollection>> {
+    return this.mutateCollectionStateAndTokens(async (state) => {
       const nextCollections = structuredClone(state.collections);
       const collectionIndex = nextCollections.findIndex(
         (collection) => collection.id === collectionId,
@@ -2558,13 +2602,24 @@ export class CollectionService {
         );
       }
 
+      const previousCollection = structuredClone(collection);
       collection.modes = modeNames.map((modeName) => byName.get(modeName)!);
+      const tokenPatchesByCollection =
+        stableStringify(collection.modes) ===
+        stableStringify(previousCollection.modes)
+          ? undefined
+          : await this.collectCollectionModeStoragePatches({
+              collectionBefore: previousCollection,
+              collectionAfter: collection,
+            });
+
       return {
         result: collection,
         state: {
           collections: nextCollections,
           views: state.views,
         },
+        tokenPatchesByCollection,
       };
     });
   }
@@ -2591,24 +2646,26 @@ export class CollectionService {
           `Mode "${modeName}" not found in collection "${collectionId}"`,
         );
       }
+      if (filteredModes.length === 0) {
+        throw new BadRequestError(
+          `Collection "${collectionId}" must keep at least one mode`,
+        );
+      }
 
-      const tokenPatchesByCollection = await this.collectModeMutationPatches(
-        (token) => {
-          const nextModes = readTokenCollectionModeValues(token);
-          const collectionModes = nextModes[collectionId];
-          if (!collectionModes || !(modeName in collectionModes)) {
-            return null;
-          }
-
-          delete collectionModes[modeName];
-          if (Object.keys(collectionModes).length === 0) {
-            delete nextModes[collectionId];
-          }
-          return nextModes;
-        },
-      );
+      const previousCollection = structuredClone(collection);
 
       collection.modes = filteredModes;
+      const tokenPatchesByCollection =
+        await this.collectCollectionModeStoragePatches({
+          collectionBefore: previousCollection,
+          collectionAfter: collection,
+          mutateValues: (modeValues) => {
+            const nextModeValues = { ...modeValues };
+            delete nextModeValues[modeName];
+            return nextModeValues;
+          },
+        });
+
       return {
         result: undefined,
         state: {

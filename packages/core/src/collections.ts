@@ -185,6 +185,64 @@ export function writeTokenCollectionModeValues(
   delete token.$extensions;
 }
 
+export function readTokenModeValuesForCollection(
+  token: Pick<Token, "$value" | "$extensions">,
+  collection: Pick<TokenCollection, "id" | "modes">,
+): Record<string, unknown> {
+  const primaryModeName = collection.modes[0]?.name;
+  if (!primaryModeName) {
+    return {};
+  }
+
+  const secondaryModes = readTokenCollectionModeValues(token)[collection.id] ?? {};
+  const values: Record<string, unknown> = {
+    [primaryModeName]: token.$value,
+  };
+
+  for (const mode of collection.modes.slice(1)) {
+    values[mode.name] =
+      mode.name in secondaryModes
+        ? secondaryModes[mode.name]
+        : token.$value;
+  }
+
+  return values;
+}
+
+export function writeTokenModeValuesForCollection(
+  token: Token,
+  collection: Pick<TokenCollection, "id" | "modes">,
+  modeValues: Record<string, unknown>,
+): void {
+  const primaryModeName = collection.modes[0]?.name;
+  if (!primaryModeName) {
+    throw new Error(`Collection "${collection.id}" must define at least one mode`);
+  }
+  if (!(primaryModeName in modeValues)) {
+    throw new Error(
+      `Missing value for primary mode "${primaryModeName}" in collection "${collection.id}"`,
+    );
+  }
+
+  token.$value = modeValues[primaryModeName] as Token["$value"];
+
+  const nextModes = readTokenCollectionModeValues(token);
+  const nextCollectionModes: Record<string, unknown> = {};
+  for (const mode of collection.modes.slice(1)) {
+    if (mode.name in modeValues) {
+      nextCollectionModes[mode.name] = modeValues[mode.name];
+    }
+  }
+
+  if (Object.keys(nextCollectionModes).length > 0) {
+    nextModes[collection.id] = nextCollectionModes;
+  } else {
+    delete nextModes[collection.id];
+  }
+
+  writeTokenCollectionModeValues(token, nextModes);
+}
+
 export function normalizeSelectedModes(
   collections: TokenCollection[],
   selections: SelectedModes,
