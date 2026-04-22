@@ -1931,8 +1931,8 @@ export function App() {
           }
           description={
             publishPending.scope === 'group'
-              ? `Create or update ${publishPending.tokenCount} token${publishPending.tokenCount !== 1 ? 's' : ''} in Figma.`
-              : `Create or update ${publishPending.tokenCount} token${publishPending.tokenCount !== 1 ? 's' : ''} from every token in this collection.`
+              ? `This will create or update ${publishPending.tokenCount} variable${publishPending.tokenCount !== 1 ? 's' : ''} in your Figma file from the "${publishPending.groupPath}" group.`
+              : `This will create or update ${publishPending.tokenCount} variable${publishPending.tokenCount !== 1 ? 's' : ''} in your Figma file.`
           }
           confirmLabel="Publish to Figma"
           onConfirm={handlePublish}

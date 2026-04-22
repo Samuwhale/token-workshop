@@ -1019,9 +1019,9 @@ export function TokenDetails({
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
         >
           {copied ? (
-            <Check size={12} strokeWidth={2} aria-hidden />
+            <Check size={12} strokeWidth={1.5} aria-hidden />
           ) : (
-            <Copy size={12} strokeWidth={2} aria-hidden />
+            <Copy size={12} strokeWidth={1.5} aria-hidden />
           )}
         </button>
       )}
@@ -1067,7 +1067,7 @@ export function TokenDetails({
     <>
       {isEditMode && pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-body">
-          <Clock size={11} strokeWidth={2} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />
+          <Clock size={12} strokeWidth={1.5} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />
           <span className="flex-1 text-[var(--color-figma-warning)] truncate">
             Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
           </span>
@@ -1132,7 +1132,7 @@ export function TokenDetails({
               aria-label="Delete token"
               className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
             >
-              <Trash2 size={12} strokeWidth={2} aria-hidden />
+              <Trash2 size={12} strokeWidth={1.5} aria-hidden />
             </button>
           )}
           <button type="button" onClick={requestClose} className={AUTHORING.footerBtnSecondary}>
@@ -1193,7 +1193,7 @@ export function TokenDetails({
       </label>
       {extendsPath ? (
         <div className="flex items-center gap-1.5">
-          <Link2 size={10} strokeWidth={2} className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden />
+          <Link2 size={12} strokeWidth={1.5} className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden />
           <span
             className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
             title={extendsPath}
@@ -1208,7 +1208,7 @@ export function TokenDetails({
               aria-label="Remove base token"
               className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
             >
-              <X size={8} strokeWidth={2} aria-hidden />
+              <X size={10} strokeWidth={1.5} aria-hidden />
             </button>
           )}
         </div>
@@ -1302,8 +1302,8 @@ export function TokenDetails({
                     className="flex items-center gap-1 text-[var(--color-figma-warning)] hover:text-[var(--color-figma-warning)] transition-colors"
                   >
                     <ChevronRight
-                      size={8}
-                      strokeWidth={2}
+                      size={10}
+                      strokeWidth={1.5}
                       className={`shrink-0 transition-transform ${showPendingDependents ? "rotate-90" : ""}`}
                       aria-hidden
                     />
@@ -1325,7 +1325,7 @@ export function TokenDetails({
                             className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-warning)]/20 hover:text-[var(--color-figma-warning)] transition-colors text-left w-full"
                             title={`Open ${dep.path}`}
                           >
-                            <Network size={8} strokeWidth={2} className="shrink-0 opacity-60" aria-hidden />
+                            <Network size={10} strokeWidth={1.5} className="shrink-0 opacity-60" aria-hidden />
                             <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                             {dep.collectionId !== ownerCollectionId && (
                               <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
@@ -1592,7 +1592,7 @@ export function TokenDetails({
                 onClick={() => setAddingEditorMode(true)}
                 className="flex w-full items-center gap-1 px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
               >
-                <Plus size={10} strokeWidth={2} aria-hidden />
+                <Plus size={12} strokeWidth={1.5} aria-hidden />
                 Add mode
               </button>
             ) : null}
@@ -1722,7 +1722,7 @@ export function TokenDetails({
                     className="flex items-center gap-1 rounded px-1 py-0.5 text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                     title={`Open ${dep.path}`}
                   >
-                    <Network size={8} strokeWidth={2} className="shrink-0 opacity-60" aria-hidden />
+                    <Network size={10} strokeWidth={1.5} className="shrink-0 opacity-60" aria-hidden />
                     <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
                     {dep.collectionId !== ownerCollectionId && (
                       <span className="ml-auto shrink-0 rounded px-1 py-0.5 text-[8px] text-[var(--color-figma-text-tertiary)] ring-1 ring-[var(--color-figma-border)]">

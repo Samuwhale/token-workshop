@@ -62,7 +62,7 @@ function ToolbarDropdown({
         } disabled:opacity-40 disabled:pointer-events-none`}
       >
         {label}
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
+        <svg width="10" height="10" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
           <path d="M1.5 3L4 5.5L6.5 3" />
         </svg>
       </button>
@@ -254,7 +254,7 @@ export function TokenSelectionToolbar({
         className="shrink-0 p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         aria-label="Clear selection"
       >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+        <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
           <path d="M2 2l6 6M8 2l-6 6" />
         </svg>
       </button>

@@ -3,6 +3,11 @@ import { Check, Eye, Filter } from "lucide-react";
 import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
 import type { FilterPreset } from "../hooks/useTokenSearch";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
+import { TOKEN_TYPE_CATEGORIES } from "../shared/tokenTypeCategories";
+import {
+  getQueryQualifierValues,
+  setQueryQualifierValues,
+} from "./tokenListUtils";
 
 export interface ViewMenuProps {
   groupBy: TokenGroupBy;
@@ -54,7 +59,7 @@ const MENU_SECTION_BORDER =
   "border-t border-[var(--color-figma-border)] mt-0.5 pt-0.5";
 
 function CheckIcon() {
-  return <Check size={10} strokeWidth={2.5} className="shrink-0" aria-hidden />;
+  return <Check size={10} strokeWidth={1.5} className="shrink-0" aria-hidden />;
 }
 
 function MenuItem({
@@ -143,7 +148,7 @@ export function ViewMenu(
         }`}
         title="View options"
       >
-        <Eye size={12} strokeWidth={2} aria-hidden />
+        <Eye size={12} strokeWidth={1.5} aria-hidden />
         <span>View</span>
       </button>
 
@@ -228,7 +233,12 @@ export function ViewMenu(
   );
 }
 
-export function FilterMenu(props: FilterMenuProps) {
+export function FilterMenu(
+  props: FilterMenuProps & {
+    searchQuery: string;
+    setSearchQuery: (q: string) => void;
+  },
+) {
   const { open, menuRef, triggerRef, toggle, close } = useDropdownMenu();
   const runAndClose = useCallback(
     (fn: () => void) => {
@@ -237,6 +247,14 @@ export function FilterMenu(props: FilterMenuProps) {
     },
     [close],
   );
+  const activeTypeValues = new Set(
+    getQueryQualifierValues(props.searchQuery, "type"),
+  );
+  const typeCategoryEntries = TOKEN_TYPE_CATEGORIES.map((category) => {
+    const values = category.options.map((option) => option.value.toLowerCase());
+    const checked = values.every((value) => activeTypeValues.has(value));
+    return { group: category.group, values, checked };
+  });
 
   return (
     <div className="relative shrink-0">
@@ -254,7 +272,7 @@ export function FilterMenu(props: FilterMenuProps) {
         }`}
         title="Filter options"
       >
-        <Filter size={12} strokeWidth={2} aria-hidden />
+        <Filter size={12} strokeWidth={1.5} aria-hidden />
         <span>Filter</span>
         {props.activeCount > 0 && <span>{props.activeCount}</span>}
       </button>
@@ -334,6 +352,32 @@ export function FilterMenu(props: FilterMenuProps) {
               checked={props.showDuplicates}
               onClick={() => runAndClose(props.onToggleDuplicates)}
             />
+
+            <div className={MENU_SECTION_BORDER}>
+              <MenuLabel>Filter by type</MenuLabel>
+            </div>
+            {typeCategoryEntries.map((entry) => (
+              <MenuItem
+                key={entry.group}
+                label={entry.group}
+                checked={entry.checked}
+                onClick={() => {
+                  const next = new Set(activeTypeValues);
+                  if (entry.checked) {
+                    entry.values.forEach((value) => next.delete(value));
+                  } else {
+                    entry.values.forEach((value) => next.add(value));
+                  }
+                  props.setSearchQuery(
+                    setQueryQualifierValues(
+                      props.searchQuery,
+                      "type",
+                      Array.from(next),
+                    ),
+                  );
+                }}
+              />
+            ))}
 
             {props.filterPresets.length > 0 && (
               <>

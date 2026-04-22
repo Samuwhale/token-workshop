@@ -70,7 +70,6 @@ import { WhereIsOverlay } from "./WhereIsOverlay";
 import {
   TokenListReviewOverlays,
 } from "./token-list/TokenListStates";
-import { TokenListStatsBar } from "./token-list/TokenListStatsBar";
 import { TokenListTreeBody } from "./token-list/TokenListTreeBody";
 import { useTokenListClipboard } from "./token-list/TokenListClipboard";
 import { useTokenListBatchOperations } from "./token-list/TokenListBatchOperations";
@@ -275,14 +274,11 @@ export function TokenList({
     setSortOrder,
     showResolvedValues,
     setShowResolvedValues,
-    statsBarOpen,
-    setStatsBarOpen,
     rowHeight,
     multiModeDimId,
     setMultiModeDimId,
   } = viewState;
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
-  const [showTypeFamilyFilters, setShowTypeFamilyFilters] = useState(false);
   const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] =
     useState<PendingBulkPresetLaunch | null>(null);
   const [pendingBatchEditorFocus, setPendingBatchEditorFocus] =
@@ -469,22 +465,6 @@ export function TokenList({
     });
     return paths.size > 0 ? paths : undefined;
   }, [tokenUsageCounts, tokenUsageReady, allTokensFlat]);
-
-  // Stats computed from allTokensFlat (cross-set) and perCollectionFlat for the stats bar
-  const statsByType = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const entry of Object.values(allTokensFlat)) {
-      const t = entry.$type || "unknown";
-      counts[t] = (counts[t] || 0) + 1;
-    }
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  }, [allTokensFlat]);
-
-  const statsTotalTokens = useMemo(
-    () => Object.keys(allTokensFlat).length,
-    [allTokensFlat],
-  );
-
 
   // Compute per-mode resolved token maps for the selected dimension. Always
   // produces at least one column — single-mode collections get one result,
@@ -676,23 +656,6 @@ export function TokenList({
 
   // --- Custom hooks for extracted state groups ---
   const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
-
-  useEffect(() => {
-    setShowTypeFamilyFilters(
-      lsGet(STORAGE_KEY_BUILDERS.tokenTypeFamilyFiltersOpen(collectionId)) === "1",
-    );
-  }, [collectionId]);
-
-  const handleSetShowTypeFamilyFilters = useCallback(
-    (value: boolean) => {
-      setShowTypeFamilyFilters(value);
-      lsSet(
-        STORAGE_KEY_BUILDERS.tokenTypeFamilyFiltersOpen(collectionId),
-        value ? "1" : "0",
-      );
-    },
-    [collectionId],
-  );
 
   const { handleOpenCreateSibling } = useTokenCreate({
     selectedNodes,
@@ -2166,9 +2129,6 @@ export function TokenList({
       toggleJsonView: () => {
         setViewMode(viewMode === "json" ? "tree" : "json");
       },
-      toggleStatsBar: () => {
-        setStatsBarOpen((v) => !v);
-      },
       toggleResolvedValues: () => {
         setViewMode("tree");
         setShowResolvedValues((v) => !v);
@@ -2196,7 +2156,6 @@ export function TokenList({
     setShowRecentlyTouched,
     viewMode,
     setViewMode,
-    setStatsBarOpen,
     setShowResolvedValues,
     setPendingRenameToken,
     handleRequestMoveTokenReview,
@@ -2467,17 +2426,12 @@ export function TokenList({
             qualifierHintsRef={qualifierHintsRef}
             structuredFilterChips={structuredFilterChips}
             toolbarStateChips={toolbarStateChips}
-            hasStructuredFilters={hasStructuredFilters}
-            clearFilters={clearFilters}
-            clearViewModes={clearViewModes}
             connected={connected}
             hasTokens={tokens.length > 0}
             viewMode={viewMode}
             setViewMode={setViewMode}
             groupBy={groupBy}
             setGroupBy={setGroupBy}
-            showTypeFamilyFilters={showTypeFamilyFilters}
-            setShowTypeFamilyFilters={handleSetShowTypeFamilyFilters}
             onCreateNew={onCreateNew}
             openTableCreate={openTableCreate}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
@@ -2539,14 +2493,6 @@ export function TokenList({
           onDismiss={handleDismissStaleGeneratorBanner}
           onRegenerateAll={handleRegenerateAllStaleGenerators}
           onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
-        />
-      )}
-      {/* Token stats bar — compact single row with type breakdown */}
-      {statsBarOpen && (
-        <TokenListStatsBar
-          statsTotalTokens={statsTotalTokens}
-          statsByType={statsByType}
-          onClose={() => setStatsBarOpen(false)}
         />
       )}
       {/* Operation loading indicator */}

@@ -448,7 +448,7 @@ function CollapsibleSection({
           onClick={onToggle}
           className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] mb-1"
         >
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true">
+          <svg width="10" height="10" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true">
             <path d="M2 1l4 3-4 3" />
           </svg>
           {label}

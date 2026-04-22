@@ -411,7 +411,7 @@ export function CollectionRail({
               : "opacity-60 group-hover:opacity-100"
           }`}
         >
-          <MoreHorizontal size={14} strokeWidth={1.8} aria-hidden />
+          <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
         </button>
       </div>
     );
@@ -547,7 +547,7 @@ export function CollectionRail({
                     onClick={() => toggleFolder(group.folder)}
                     className="flex w-full items-center gap-1 rounded-md px-2 py-1 text-left text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                   >
-                    <ChevronRight size={8} strokeWidth={2} className={`transition-transform ${isCollapsed ? "" : "rotate-90"}`} aria-hidden />
+                    <ChevronRight size={10} strokeWidth={1.5} className={`transition-transform ${isCollapsed ? "" : "rotate-90"}`} aria-hidden />
                     <span className="truncate">{group.folder}/</span>
                     <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
                       {group.collectionIds.length}

@@ -184,8 +184,6 @@ export interface TokenListImperativeHandle {
   showRecentlyTouched: () => void;
   /** Toggle between tree and JSON views */
   toggleJsonView: () => void;
-  /** Toggle the token stats bar */
-  toggleStatsBar: () => void;
   /** Toggle alias resolution in tree rows */
   toggleResolvedValues: () => void;
   /** Trigger inline rename mode for the given token path */

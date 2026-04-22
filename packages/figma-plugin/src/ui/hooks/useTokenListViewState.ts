@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { STORAGE_KEY_BUILDERS, STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
+import { STORAGE_KEY_BUILDERS, lsGet, lsSet } from "../shared/storage";
 import { VIRTUAL_ITEM_HEIGHT } from "../components/tokenListTypes";
 import type { SortOrder } from "../components/tokenListUtils";
 import type { TokenGroupBy } from "../components/tokenListTypes";
@@ -101,22 +101,6 @@ export function useTokenListViewState({
     [collectionId],
   );
 
-  const [statsBarOpen, setStatsBarOpenState] = useState(
-    () => lsGet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN) === "true",
-  );
-
-  const setStatsBarOpen = useCallback(
-    (value: boolean | ((current: boolean) => boolean)) => {
-      setStatsBarOpenState((current) => {
-        const next = typeof value === "function" ? value(current) : value;
-        lsSet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN, next ? "true" : "false");
-        dispatchTokenListViewChanged(collectionId);
-        return next;
-      });
-    },
-    [collectionId],
-  );
-
   const rowHeight = VIRTUAL_ITEM_HEIGHT;
 
   // Mode columns are always shown — one column per mode. For single-mode
@@ -147,8 +131,6 @@ export function useTokenListViewState({
     setSortOrder,
     showResolvedValues,
     setShowResolvedValues,
-    statsBarOpen,
-    setStatsBarOpen,
     rowHeight,
     multiModeDimId,
     setMultiModeDimId,

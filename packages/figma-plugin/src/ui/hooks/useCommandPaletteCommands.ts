@@ -107,7 +107,6 @@ export function useCommandPaletteCommands(): {
     const tokenJsonView = lsGet(STORAGE_KEY_BUILDERS.tokenViewMode(currentCollectionId)) === "json";
     const tokenResolvedValues =
       lsGet(STORAGE_KEY_BUILDERS.tokenShowResolvedValues(currentCollectionId)) === "1";
-    const tokenStatsBarOpen = lsGet(STORAGE_KEYS.TOKEN_STATS_BAR_OPEN) === "true";
 
     return [
       {
@@ -217,15 +216,6 @@ export function useCommandPaletteCommands(): {
         category: "Views",
         handler: () =>
           goToTokensAndRun((handle) => handle.toggleResolvedValues()),
-      },
-      {
-        id: "toggle-token-stats-bar",
-        label: tokenStatsBarOpen
-          ? "Hide token stats bar"
-          : "Show token stats bar",
-        description: "Toggle the token summary strip above the library",
-        category: "Views",
-        handler: () => goToTokensAndRun((handle) => handle.toggleStatsBar()),
       },
       {
         id: "validate",

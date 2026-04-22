@@ -10,14 +10,8 @@ import {
 } from "./TokenListOverflowMenu";
 import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
 import type { CollectionHealthSummary } from "../hooks/useHealthSignals";
-import {
-  getQueryQualifierValues,
-  replaceQueryToken,
-  setQueryQualifierValues,
-} from "./tokenListUtils";
+import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
-import { SearchQualifierMenu } from "./SearchQualifierMenu";
-import { TOKEN_TYPE_CATEGORIES } from "../shared/tokenTypeCategories";
 import type { TokenGroupBy } from "./tokenListTypes";
 
 interface QualifierHint {
@@ -48,17 +42,12 @@ export interface TokenListToolbarProps {
   qualifierHintsRef: RefObject<HTMLDivElement | null>;
   structuredFilterChips: Array<{ token: string; label: string }>;
   toolbarStateChips: ToolbarStateChip[];
-  hasStructuredFilters: boolean;
-  clearFilters: () => void;
-  clearViewModes: () => void;
   connected: boolean;
   hasTokens: boolean;
   viewMode: "tree" | "json";
   setViewMode: (mode: "tree" | "json") => void;
   groupBy: TokenGroupBy;
   setGroupBy: (value: TokenGroupBy) => void;
-  showTypeFamilyFilters: boolean;
-  setShowTypeFamilyFilters: (value: boolean) => void;
   onCreateNew?: () => void;
   openTableCreate: () => void;
   handleOpenNewGroupDialog: () => void;
@@ -95,17 +84,12 @@ export function TokenListToolbar({
   qualifierHintsRef,
   structuredFilterChips,
   toolbarStateChips,
-  hasStructuredFilters,
-  clearFilters,
-  clearViewModes,
   connected,
   hasTokens,
   viewMode,
   setViewMode,
   groupBy,
   setGroupBy,
-  showTypeFamilyFilters,
-  setShowTypeFamilyFilters,
   onCreateNew,
   openTableCreate,
   handleOpenNewGroupDialog,
@@ -147,32 +131,7 @@ export function TokenListToolbar({
     closeActionsMenu({ restoreFocus: false });
   }, [closeActionsMenu]);
 
-  const filterItems = toolbarStateChips.filter((chip) => chip.tone === "filter");
-  const viewItems = toolbarStateChips.filter((chip) => chip.tone === "view");
-  const canClearFilters = hasStructuredFilters || filterItems.length > 0;
-  const canClearView = viewItems.length > 0 || groupBy !== "path";
-  const activeTypeFilters = new Set(getQueryQualifierValues(searchQuery, "type"));
-  const typeCategoryChips = TOKEN_TYPE_CATEGORIES.map((category) => {
-    const values = category.options.map((option) => option.value.toLowerCase());
-    const active = values.every((value) => activeTypeFilters.has(value));
-    return {
-      key: category.group,
-      label: category.group,
-      active,
-      onClick: () => {
-        const nextValues = new Set(activeTypeFilters);
-        if (active) {
-          values.forEach((value) => nextValues.delete(value));
-        } else {
-          values.forEach((value) => nextValues.add(value));
-        }
-        setSearchQuery(
-          setQueryQualifierValues(searchQuery, "type", Array.from(nextValues)),
-        );
-        setHintIndex(0);
-      },
-    };
-  });
+  const filterPills = toolbarStateChips.filter((chip) => chip.tone === "filter");
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -188,7 +147,7 @@ export function TokenListToolbar({
                   title="Back (Alt+←)"
                   aria-label="Back"
                 >
-                  <ArrowLeft size={10} strokeWidth={2} aria-hidden />
+                  <ArrowLeft size={12} strokeWidth={1.5} aria-hidden />
                 </button>
               )}
               {(() => {
@@ -215,7 +174,7 @@ export function TokenListToolbar({
                   title="Collection settings"
                   aria-label="Collection settings"
                 >
-                  <Settings size={10} strokeWidth={2} aria-hidden />
+                  <Settings size={12} strokeWidth={1.5} aria-hidden />
                 </button>
               )}
             </div>
@@ -234,7 +193,7 @@ export function TokenListToolbar({
                 title={`${collectionHealthSummary.errors} error${collectionHealthSummary.errors !== 1 ? "s" : ""}, ${collectionHealthSummary.warnings} warning${collectionHealthSummary.warnings !== 1 ? "s" : ""}`}
                 aria-label="Open Health"
               >
-                <AlertTriangle size={10} strokeWidth={2} aria-hidden />
+                <AlertTriangle size={12} strokeWidth={1.5} aria-hidden />
                 <span>{collectionHealthSummary.actionable}</span>
               </button>
             )}
@@ -250,7 +209,7 @@ export function TokenListToolbar({
                 title="Create token, group, or collection"
                 aria-label="Create token, group, or collection"
               >
-                <Plus size={10} strokeWidth={2.5} aria-hidden />
+                <Plus size={12} strokeWidth={1.5} aria-hidden />
               </button>
 
               {createToolsMenuOpen && (
@@ -341,7 +300,11 @@ export function TokenListToolbar({
             )}
 
             {overflowMenuProps && (
-              <FilterMenu {...overflowMenuProps} />
+              <FilterMenu
+                {...overflowMenuProps}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+              />
             )}
 
             {(onSelectTokens || onBulkEdit || onFindReplace) && (
@@ -361,7 +324,7 @@ export function TokenListToolbar({
                   } disabled:cursor-not-allowed disabled:opacity-40`}
                   title="Edit actions"
                 >
-                  <MoreVertical size={12} strokeWidth={2} aria-hidden />
+                  <MoreVertical size={12} strokeWidth={1.5} aria-hidden />
                 </button>
                 {actionsMenuOpen && (
                   <div
@@ -408,13 +371,30 @@ export function TokenListToolbar({
           <div className="flex items-center gap-1.5">
             <div className="relative min-w-0 flex-1">
               <div
-                className={`flex items-center gap-0.5 rounded border bg-[var(--color-figma-bg)] ${
-                  structuredFilterChips.length > 0
+                className={`flex items-center gap-1 rounded border bg-[var(--color-figma-bg)] px-1.5 ${
+                  filterPills.length > 0
                     ? "border-[var(--color-figma-accent)]"
                     : "border-[var(--color-figma-border)] focus-within:border-[var(--color-figma-accent)]"
                 }`}
               >
-                <Search size={10} strokeWidth={1.5} className="pointer-events-none ml-1.5 shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden />
+                <Search size={12} strokeWidth={1.5} className="pointer-events-none shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden />
+                {filterPills.length > 0 && (
+                  <div className="flex max-w-[60%] items-center gap-1 overflow-x-auto py-1 scrollbar-thin">
+                    {filterPills.map((pill) => (
+                      <button
+                        key={pill.key}
+                        type="button"
+                        onClick={pill.onRemove}
+                        disabled={!pill.onRemove}
+                        className="inline-flex shrink-0 items-center gap-1 rounded bg-[var(--color-figma-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:cursor-default"
+                        title={pill.onRemove ? `Remove ${pill.label}` : pill.label}
+                      >
+                        <span className="truncate">{pill.label}</span>
+                        {pill.onRemove && <X size={10} strokeWidth={1.5} aria-hidden />}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <input
                   ref={searchRef as React.RefObject<HTMLInputElement>}
                   type="text"
@@ -486,8 +466,8 @@ export function TokenListToolbar({
                   }}
                   placeholder="Search…"
                   title={searchTooltip}
-                  className={`flex-1 min-w-[40px] bg-transparent py-1 pl-1 text-secondary text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${
-                    searchQuery ? "pr-5" : "pr-2"
+                  className={`flex-1 min-w-[40px] bg-transparent py-1 text-secondary text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${
+                    searchQuery ? "pr-1" : ""
                   }`}
                 />
                 {searchQuery && (
@@ -498,40 +478,13 @@ export function TokenListToolbar({
                       setHintIndex(0);
                       searchRef.current?.focus();
                     }}
-                    className="mr-1 flex min-h-[20px] min-w-[20px] shrink-0 items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                    className="flex min-h-[20px] min-w-[20px] shrink-0 items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
                     title="Clear search"
                     aria-label="Clear search"
                   >
-                    <X size={8} strokeWidth={2.5} aria-hidden />
+                    <X size={10} strokeWidth={1.5} aria-hidden />
                   </button>
                 )}
-                <SearchQualifierMenu
-                  onSelect={(qualifier) => {
-                    const prefix = searchQuery ? `${searchQuery} ` : "";
-                    setSearchQuery(`${prefix}${qualifier}`);
-                    setHintIndex(0);
-                    searchRef.current?.focus();
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowTypeFamilyFilters(!showTypeFamilyFilters)}
-                  aria-pressed={showTypeFamilyFilters}
-                  className={`mr-1 flex h-[18px] w-[18px] items-center justify-center rounded transition-colors ${
-                    showTypeFamilyFilters
-                      ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                      : "text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-                  }`}
-                  title="Filter by type"
-                  aria-label="Filter by type"
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <rect x="3" y="4" width="7" height="7" rx="1" />
-                    <rect x="14" y="4" width="7" height="7" rx="1" />
-                    <rect x="3" y="14" width="7" height="7" rx="1" />
-                    <rect x="14" y="14" width="7" height="7" rx="1" />
-                  </svg>
-                </button>
               </div>
 
               {showQualifierHints &&
@@ -582,66 +535,6 @@ export function TokenListToolbar({
                   </div>
                 )}
             </div>
-
-          </div>
-        )}
-
-        {hasTokens && showTypeFamilyFilters && (
-          <div className="flex items-center gap-1 overflow-x-auto">
-            {typeCategoryChips.map((chip) => (
-              <button
-                key={chip.key}
-                type="button"
-                onClick={chip.onClick}
-                className={`shrink-0 rounded-full px-2 py-0.5 text-secondary transition-colors ${
-                  chip.active
-                    ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {(filterItems.length > 0 || viewItems.length > 0) && (
-          <div className="flex items-center gap-1.5">
-            <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-x-1 overflow-x-auto whitespace-nowrap text-secondary leading-tight scrollbar-thin">
-              {filterItems.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={item.onRemove}
-                  disabled={!item.onRemove}
-                  className="shrink-0 text-[var(--color-figma-accent)] hover:text-[var(--color-figma-text)] disabled:cursor-default"
-                  title={item.onRemove ? `Remove ${item.label}` : item.label}
-                >
-                  {item.label}
-                </button>
-              ))}
-              {viewItems.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={item.onRemove}
-                  disabled={!item.onRemove}
-                  className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:cursor-default"
-                  title={item.onRemove ? `Remove ${item.label}` : item.label}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            {(canClearFilters || canClearView) && (
-              <button
-                type="button"
-                onClick={() => { clearFilters(); clearViewModes(); }}
-                className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
-              >
-                Clear
-              </button>
-            )}
           </div>
         )}
       </div>
