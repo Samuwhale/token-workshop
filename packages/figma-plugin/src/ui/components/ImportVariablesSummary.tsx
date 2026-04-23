@@ -12,6 +12,7 @@ type Strategy = 'merge' | 'overwrite' | 'skip';
 export function ImportVariablesSummary() {
   const { collectionData, handleBack } = useImportSourceContext();
   const {
+    collectionIds,
     modeEnabled,
     modeCollectionNames,
     totalEnabledCollections,
@@ -19,6 +20,8 @@ export function ImportVariablesSummary() {
     hasInvalidModeCollectionNames,
     hasAmbiguousCollectionImport,
     ambiguousCollectionImportCount,
+    hasUnresolvedModeDestinations,
+    unresolvedModeDestinationCount,
     setModeCollectionNames,
   } = useImportDestinationContext();
   const {
@@ -40,6 +43,7 @@ export function ImportVariablesSummary() {
     totalEnabledCollections > 0 &&
     !hasInvalidModeCollectionNames &&
     !hasBlockingCollisions &&
+    !hasUnresolvedModeDestinations &&
     !importing;
 
   const importTokenCount = strategy === 'skip' && varConflictPreview
@@ -53,18 +57,41 @@ export function ImportVariablesSummary() {
       return modeEnabled[key] ?? true;
     });
     const tokenCount = enabledModes.reduce((sum, m) => sum + m.tokens.length, 0);
-    const destinationName = modeCollectionNames[modeKey(col.name, col.modes[0]?.modeId ?? '')] ??
-      defaultCollectionName(col.name, col.modes[0]?.modeName ?? '', col.modes.length);
+    const firstModeKey = modeKey(col.name, col.modes[0]?.modeId ?? '');
+    const suggestedDestination = defaultCollectionName(
+      col.name,
+      col.modes[0]?.modeName ?? '',
+      col.modes.length,
+    );
+    const explicitDestination = modeCollectionNames[firstModeKey]?.trim() ?? '';
+    const exactMatchDestination =
+      collectionIds.includes(col.name)
+        ? col.name
+        : collectionIds.includes(suggestedDestination)
+          ? suggestedDestination
+          : '';
+    const destinationName = explicitDestination || exactMatchDestination || suggestedDestination;
     const modeNames = enabledModes.map(m => m.modeName);
+    const requiresExplicitDestination = enabledModes.some((mode) => {
+      const key = modeKey(col.name, mode.modeId);
+      const explicitName = modeCollectionNames[key]?.trim() ?? '';
+      if (explicitName) {
+        return false;
+      }
+      const suggestedName = defaultCollectionName(col.name, mode.modeName, col.modes.length);
+      return !collectionIds.includes(col.name) && !collectionIds.includes(suggestedName);
+    });
 
     return {
       name: col.name,
       destinationName: destinationName.trim(),
+      suggestedDestination,
       modeCount: col.modes.length,
       enabledModeCount: enabledModes.length,
       tokenCount,
       modeNames,
-      firstModeKey: modeKey(col.name, col.modes[0]?.modeId ?? ''),
+      firstModeKey,
+      requiresExplicitDestination,
     };
   }).filter(s => s.enabledModeCount > 0);
 
@@ -116,11 +143,32 @@ export function ImportVariablesSummary() {
                   />
                 ) : (
                   <span
-                    className="text-body font-medium text-[var(--color-figma-text)] truncate cursor-pointer hover:text-[var(--color-figma-accent)]"
-                    onClick={() => setEditingCollection(summary.name)}
-                    title="Click to rename"
+                    className={`truncate cursor-pointer text-body hover:text-[var(--color-figma-accent)] ${
+                      summary.requiresExplicitDestination
+                        ? 'text-[var(--color-figma-text-secondary)]'
+                        : 'font-medium text-[var(--color-figma-text)]'
+                    }`}
+                    onClick={() => {
+                      if (summary.requiresExplicitDestination) {
+                        const sourceCollection = collectionData.find(
+                          (collection) => collection.name === summary.name,
+                        );
+                        if (sourceCollection) {
+                          const nextNames = { ...modeCollectionNames };
+                          for (const mode of sourceCollection.modes) {
+                            nextNames[modeKey(summary.name, mode.modeId)] = summary.suggestedDestination;
+                          }
+                          setModeCollectionNames((previous) => ({
+                            ...previous,
+                            ...nextNames,
+                          }));
+                        }
+                      }
+                      setEditingCollection(summary.name);
+                    }}
+                    title={summary.requiresExplicitDestination ? 'Choose a destination collection' : 'Click to rename'}
                   >
-                    {summary.destinationName}
+                    {summary.requiresExplicitDestination ? 'Choose destination' : summary.destinationName}
                   </span>
                 )}
               </div>
@@ -131,6 +179,11 @@ export function ImportVariablesSummary() {
             {summary.modeCount > 1 && (
               <div className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
                 {summary.modeNames.join(', ')}
+              </div>
+            )}
+            {summary.requiresExplicitDestination && (
+              <div className="mt-1 text-secondary text-[var(--color-figma-warning)]">
+                Choose an existing collection or create "{summary.suggestedDestination}" to continue.
               </div>
             )}
             {hasNameCollisions && destinationCounts.get(summary.destinationName)! > 1 && (
@@ -172,6 +225,12 @@ export function ImportVariablesSummary() {
         {hasBlockingCollisions && !importing && (
           <div className="text-secondary text-[var(--color-figma-error)]">
             {ambiguousCollectionImportCount} duplicate destination path{ambiguousCollectionImportCount !== 1 ? 's' : ''} — rename a collection above.
+          </div>
+        )}
+
+        {hasUnresolvedModeDestinations && !importing && (
+          <div className="text-secondary text-[var(--color-figma-error)]">
+            {unresolvedModeDestinationCount} destination{unresolvedModeDestinationCount !== 1 ? 's' : ''} still need an explicit collection mapping.
           </div>
         )}
 

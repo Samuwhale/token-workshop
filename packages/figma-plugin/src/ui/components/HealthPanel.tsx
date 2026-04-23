@@ -12,7 +12,7 @@ import { promoteTokensToSharedAlias } from "../hooks/useExtractToAlias";
 import { useHealthData } from "../hooks/useHealthData";
 import type { AliasOpportunityGroup } from "../hooks/useHealthData";
 import { parseSuppressKey } from "../shared/ruleLabels";
-import type { HealthScopeMode, HealthView, HealthViewRequest } from "./health/types";
+import type { HealthScope, HealthView } from "./health/types";
 import { HealthDashboard } from "./health/HealthDashboard";
 import { HealthIssuesView } from "./health/HealthIssuesView";
 import { HealthHiddenView } from "./health/HealthHiddenView";
@@ -25,7 +25,8 @@ import { HealthDuplicatesView } from "./health/HealthDuplicatesView";
 export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
-  currentCollectionId: string;
+  workingCollectionId: string;
+  collectionIds: string[];
   healthSignals: HealthSignalsResult;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
@@ -43,15 +44,16 @@ export interface HealthPanelProps {
   onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
   onNavigateToGenerators?: () => void;
-  onOpenCollectionScope?: (collectionId: string) => void;
-  viewRequest?: HealthViewRequest | null;
+  scope: HealthScope;
+  onScopeChange: (scope: HealthScope) => void;
   issueActions: UseIssueActionsResult;
 }
 
 export function HealthPanel({
   serverUrl,
   connected,
-  currentCollectionId,
+  workingCollectionId,
+  collectionIds,
   healthSignals,
   allTokensFlat,
   pathToCollectionId,
@@ -69,30 +71,14 @@ export function HealthPanel({
   onPushUndo,
   onError,
   onNavigateToGenerators,
-  onOpenCollectionScope,
-  viewRequest,
+  scope,
+  onScopeChange,
   issueActions,
 }: HealthPanelProps) {
   const { suppressedKeys, suppressingKey, fixingKeys, applyIssueFix, handleSuppress, handleUnsuppress } = issueActions;
-  const requestedScopeMode = viewRequest?.scopeMode ?? "rollup";
-  const requestedCollectionId = viewRequest?.collectionId ?? currentCollectionId;
-  const requestedTokenPath = viewRequest?.tokenPath ?? null;
-  const requestedView = viewRequest?.view ?? "dashboard";
-  const viewRequestNonce = viewRequest?.nonce;
-  const [activeScopeMode, setActiveScopeMode] =
-    useState<HealthScopeMode>(requestedScopeMode);
-  const [activeCollectionId, setActiveCollectionId] = useState(requestedCollectionId);
-  const [activeIssueTokenPath, setActiveIssueTokenPath] = useState<string | null>(requestedTokenPath);
-  const [activeView, setActiveView] = useState<HealthView>(requestedView);
-
-  const scopedCollectionId = activeCollectionId || currentCollectionId;
-
-  useEffect(() => {
-    setActiveScopeMode(requestedScopeMode);
-    setActiveCollectionId(requestedCollectionId);
-    setActiveIssueTokenPath(requestedTokenPath);
-    setActiveView(requestedView);
-  }, [requestedCollectionId, requestedScopeMode, requestedTokenPath, requestedView, viewRequestNonce]);
+  const activeView = scope.view ?? "dashboard";
+  const activeIssueTokenPath = scope.tokenPath;
+  const scopedCollectionId = scope.collectionId || workingCollectionId;
 
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
   const [deprecatedUsageReloadKey, setDeprecatedUsageReloadKey] = useState(0);
@@ -276,41 +262,57 @@ export function HealthPanel({
   };
 
   const openCollectionScope = (collectionId: string, nextView: HealthView = "dashboard") => {
-    setActiveCollectionId(collectionId);
-    setActiveScopeMode("collection");
-    setActiveIssueTokenPath(null);
-    setActiveView(nextView);
-    onOpenCollectionScope?.(collectionId);
+    onScopeChange({
+      ...scope,
+      mode: "current",
+      collectionId,
+      tokenPath: null,
+      view: nextView,
+      nonce: Date.now(),
+    });
   };
 
   const goBack = () => {
-    setActiveIssueTokenPath(null);
-    setActiveView("dashboard");
+    onScopeChange({
+      ...scope,
+      tokenPath: null,
+      view: "dashboard",
+      nonce: Date.now(),
+    });
   };
 
-  if (activeScopeMode === "rollup") {
-    const collectionSummaries = [...healthSignals.byCollection.entries()]
-      .sort((left, right) => {
-        const severityRank = { error: 0, warning: 1, info: 2, null: 3 } as const;
-        const leftRank = severityRank[left[1].severity ?? "null"];
-        const rightRank = severityRank[right[1].severity ?? "null"];
-        if (leftRank !== rightRank) {
-          return leftRank - rightRank;
-        }
-        if (left[1].actionable !== right[1].actionable) {
-          return right[1].actionable - left[1].actionable;
-        }
-        return left[0].localeCompare(right[0]);
-      });
+  const collectionSummaries =
+    scope.mode === "all"
+      ? [...healthSignals.byCollection.entries()].sort((left, right) => {
+          const severityRank = { error: 0, warning: 1, info: 2, null: 3 } as const;
+          const leftRank = severityRank[left[1].severity ?? "null"];
+          const rightRank = severityRank[right[1].severity ?? "null"];
+          if (leftRank !== rightRank) {
+            return leftRank - rightRank;
+          }
+          if (left[1].actionable !== right[1].actionable) {
+            return right[1].actionable - left[1].actionable;
+          }
+          return left[0].localeCompare(right[0]);
+        })
+      : [];
 
-    return (
-      <div className="flex h-full flex-col overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "thin" }}>
+  let content: JSX.Element;
+  if (scope.mode === "all") {
+    content = (
+      <div
+        className="flex h-full flex-col overflow-y-auto px-3 py-3"
+        style={{ scrollbarWidth: "thin" }}
+      >
         <div className="mb-4">
           <div className="text-body font-semibold text-[var(--color-figma-text)]">
             All collections
           </div>
           <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
-            {healthSignals.overall.issueCount} issue{healthSignals.overall.issueCount === 1 ? "" : "s"} across {Math.max(collectionSummaries.length, 1)} collection{collectionSummaries.length === 1 ? "" : "s"}
+            {healthSignals.overall.issueCount} issue
+            {healthSignals.overall.issueCount === 1 ? "" : "s"} across{" "}
+            {Math.max(collectionSummaries.length, 1)} collection
+            {collectionSummaries.length === 1 ? "" : "s"}
           </div>
         </div>
 
@@ -344,112 +346,181 @@ export function HealthPanel({
         </div>
       </div>
     );
+  } else {
+    switch (activeView) {
+      case "issues":
+        content = (
+          <HealthIssuesView
+            validationIssues={unifiedIssuesForView}
+            validationLastRefreshed={validationLastRefreshed}
+            suppressedKeys={suppressedKeysForCurrent}
+            fixingKeys={fixingKeys}
+            onFix={applyIssueFix}
+            onIgnore={handleSuppress}
+            onNavigateToToken={onNavigateToToken}
+            initialTokenPath={activeIssueTokenPath}
+            requestNonce={scope.nonce}
+            onBack={goBack}
+          />
+        );
+        break;
+
+      case "hidden":
+        content = (
+          <HealthHiddenView
+            suppressedKeys={suppressedKeysForCurrent}
+            suppressingKey={suppressingKey}
+            onUnsuppress={handleUnsuppress}
+            onBack={goBack}
+          />
+        );
+        break;
+
+      case "unused":
+        content = (
+          <HealthUnusedView
+            serverUrl={serverUrl}
+            loading={!tokenUsageReady}
+            unusedTokens={unusedTokens}
+            onNavigateToToken={onNavigateToToken}
+            onError={onError}
+            onMutate={refreshHealthState}
+            onBack={goBack}
+          />
+        );
+        break;
+
+      case "deprecated":
+        content = (
+          <HealthDeprecatedView
+            entries={deprecatedUsageEntriesForCurrent}
+            loading={deprecatedUsageLoading}
+            error={deprecatedUsageError}
+            allTokensFlat={allTokensFlat}
+            pathToCollectionId={pathToCollectionId}
+            onReplace={handleReplaceDeprecated}
+            onBack={goBack}
+          />
+        );
+        break;
+
+      case "alias-opportunities":
+        content = (
+          <HealthAliasOpportunitiesView
+            aliasOpportunityGroups={aliasOpportunityGroups}
+            promotingGroupId={promotingAliasGroupId}
+            onPromote={handlePromote}
+            onBack={goBack}
+          />
+        );
+        break;
+
+      case "duplicates":
+        content = (
+          <HealthDuplicatesView
+            serverUrl={serverUrl}
+            lintDuplicateGroups={lintDuplicateGroups}
+            totalDuplicateAliases={totalDuplicateAliases}
+            onNavigateToToken={onNavigateToToken}
+            onError={onError}
+            onMutate={refreshHealthState}
+            onBack={goBack}
+          />
+        );
+        break;
+
+      default:
+        content = (
+          <HealthDashboard
+            connected={connected}
+            overallStatus={overallStatus}
+            totalIssueCount={totalIssueCount}
+            validationLoading={validationLoading}
+            validationLastRefreshed={validationLastRefreshed}
+            validationIsStale={validationIsStale}
+            validationError={validationError}
+            issueCount={issueCount}
+            issueStatus={issueStatus}
+            generatorIssueCount={generatorIssueCount}
+            generatorStatus={generatorStatus}
+            unusedReady={tokenUsageReady}
+            unusedCount={unusedCount}
+            deprecatedCount={deprecatedCount}
+            aliasOpportunitiesCount={aliasOpportunitiesCount}
+            duplicateCount={duplicateCount}
+            hiddenCount={suppressedKeysForCurrent.size}
+            onNavigateToView={(view) =>
+              onScopeChange({
+                ...scope,
+                view,
+                tokenPath: null,
+                nonce: Date.now(),
+              })
+            }
+            onNavigateToGenerators={onNavigateToGenerators}
+            scopeLabel={scopedCollectionId}
+          />
+        );
+        break;
+    }
   }
 
-  switch (activeView) {
-    case "issues":
-      return (
-        <HealthIssuesView
-          validationIssues={unifiedIssuesForView}
-          validationLastRefreshed={validationLastRefreshed}
-          suppressedKeys={suppressedKeysForCurrent}
-          fixingKeys={fixingKeys}
-          onFix={applyIssueFix}
-          onIgnore={handleSuppress}
-          onNavigateToToken={onNavigateToToken}
-          initialTokenPath={activeIssueTokenPath}
-          requestNonce={viewRequestNonce}
-          onBack={goBack}
-        />
-      );
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="shrink-0 flex items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-2">
+        <div className="inline-flex rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-0.5">
+          {([
+            { value: "current", label: "Current collection" },
+            { value: "all", label: "All collections" },
+          ] as const).map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() =>
+                onScopeChange({
+                  ...scope,
+                  mode: option.value,
+                  collectionId:
+                    option.value === "current"
+                      ? scope.collectionId ?? workingCollectionId
+                      : null,
+                  view: "dashboard",
+                  tokenPath: null,
+                  nonce: Date.now(),
+                })
+              }
+              className={`rounded px-2 py-1 text-secondary transition-colors ${
+                scope.mode === option.value
+                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {scope.mode === "current" ? (
+          <select
+            value={scopedCollectionId}
+            onChange={(event) => openCollectionScope(event.target.value, activeView)}
+            className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)]"
+          >
+            {collectionIds.map((collectionId) => (
+              <option key={collectionId} value={collectionId}>
+                {collectionId}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="min-w-0 flex-1 text-secondary text-[var(--color-figma-text-secondary)]">
+            Library-wide issue review
+          </div>
+        )}
+      </div>
 
-    case "hidden":
-      return (
-        <HealthHiddenView
-          suppressedKeys={suppressedKeysForCurrent}
-          suppressingKey={suppressingKey}
-          onUnsuppress={handleUnsuppress}
-          onBack={goBack}
-        />
-      );
-
-    case "unused":
-      return (
-        <HealthUnusedView
-          serverUrl={serverUrl}
-          loading={!tokenUsageReady}
-          unusedTokens={unusedTokens}
-          onNavigateToToken={onNavigateToToken}
-          onError={onError}
-          onMutate={refreshHealthState}
-          onBack={goBack}
-        />
-      );
-
-    case "deprecated":
-      return (
-        <HealthDeprecatedView
-          entries={deprecatedUsageEntriesForCurrent}
-          loading={deprecatedUsageLoading}
-          error={deprecatedUsageError}
-          allTokensFlat={allTokensFlat}
-          pathToCollectionId={pathToCollectionId}
-          onReplace={handleReplaceDeprecated}
-          onBack={goBack}
-        />
-      );
-
-    case "alias-opportunities":
-      return (
-        <HealthAliasOpportunitiesView
-          aliasOpportunityGroups={aliasOpportunityGroups}
-          promotingGroupId={promotingAliasGroupId}
-          onPromote={handlePromote}
-          onBack={goBack}
-        />
-      );
-
-    case "duplicates":
-      return (
-        <HealthDuplicatesView
-          serverUrl={serverUrl}
-          lintDuplicateGroups={lintDuplicateGroups}
-          totalDuplicateAliases={totalDuplicateAliases}
-          onNavigateToToken={onNavigateToToken}
-          onError={onError}
-          onMutate={refreshHealthState}
-          onBack={goBack}
-        />
-      );
-
-    default:
-      return (
-        <HealthDashboard
-          connected={connected}
-          overallStatus={overallStatus}
-          totalIssueCount={totalIssueCount}
-          validationLoading={validationLoading}
-          validationLastRefreshed={validationLastRefreshed}
-          validationIsStale={validationIsStale}
-          validationError={validationError}
-          issueCount={issueCount}
-          issueStatus={issueStatus}
-          generatorIssueCount={generatorIssueCount}
-          generatorStatus={generatorStatus}
-          unusedReady={tokenUsageReady}
-          unusedCount={unusedCount}
-          deprecatedCount={deprecatedCount}
-          aliasOpportunitiesCount={aliasOpportunitiesCount}
-          duplicateCount={duplicateCount}
-          hiddenCount={suppressedKeysForCurrent.size}
-          onNavigateToView={setActiveView}
-          onNavigateToGenerators={onNavigateToGenerators}
-          scopeLabel={scopedCollectionId}
-          onBackToRollup={() => {
-            setActiveScopeMode("rollup");
-            setActiveView("dashboard");
-          }}
-        />
-      );
-  }
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {content}
+      </div>
+    </div>
+  );
 }

@@ -154,8 +154,8 @@ export function App() {
   const { syncing, syncResult, syncError } = useSyncContext();
   const {
     collections,
-    libraryBrowseCollectionId: currentCollectionId,
-    setLibraryBrowseCollectionId: setCurrentCollectionId,
+    workingCollectionId: currentCollectionId,
+    setWorkingCollectionId: setCurrentCollectionId,
     collectionDescriptions,
     refreshCollections: refreshTokens,
     syncCollectionSummariesToState,
@@ -702,7 +702,7 @@ export function App() {
         setTokenDetails({
           path: next.path,
           name: next.name,
-          currentCollectionId: tokenDetails.currentCollectionId,
+          collectionId: tokenDetails.collectionId,
           mode: "edit",
         });
         setHighlightedToken(next.path);
@@ -770,7 +770,7 @@ export function App() {
         segments.length > 1 ? segments.slice(0, -1).join(".") + "." : "";
       setTokenDetails({
         path: parentPrefix,
-        currentCollectionId,
+        collectionId: currentCollectionId,
         mode: "edit",
         isCreate: true,
         initialType: savedType,
@@ -1088,7 +1088,7 @@ export function App() {
       e.preventDefault();
       dismissEphemeralOverlays();
       navigateTo("library", "tokens");
-      setTokenDetails({ path: "", currentCollectionId, mode: "edit", isCreate: true });
+      setTokenDetails({ path: "", collectionId: currentCollectionId, mode: "edit", isCreate: true });
     }
     if (matchesShortcut(e, "GO_TO_DEFINE")) {
       e.preventDefault();
@@ -2101,7 +2101,7 @@ export function App() {
             navigateTo("library", "tokens");
             setTokenDetails({
               path: "",
-              currentCollectionId,
+              collectionId: currentCollectionId,
               mode: "edit",
               isCreate: true,
             });

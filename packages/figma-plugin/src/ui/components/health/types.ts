@@ -7,12 +7,12 @@ export type HealthView =
   | "duplicates"
   | "hidden";
 
-export type HealthScopeMode = "rollup" | "collection";
+export type HealthScopeMode = "current" | "all";
 
-export interface HealthViewRequest {
-  scopeMode: HealthScopeMode;
-  collectionId?: string;
-  tokenPath?: string;
+export interface HealthScope {
+  mode: HealthScopeMode;
+  collectionId: string | null;
+  tokenPath: string | null;
   view?: HealthView;
   nonce: number;
 }

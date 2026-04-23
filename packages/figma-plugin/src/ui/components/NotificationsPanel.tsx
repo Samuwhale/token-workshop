@@ -4,7 +4,6 @@ import type { NotificationDestination } from "../shared/toastBus";
 import { dispatchToast } from "../shared/toastBus";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
-import { useCollectionStateContext } from "../contexts/TokenDataContext";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { SegmentedControl } from "./SegmentedControl";
 
@@ -14,6 +13,7 @@ type InboxSeverity = "blocker" | "attention" | "success";
 interface NotificationsPanelProps {
   history: NotificationEntry[];
   onClear: () => void;
+  onOpenToken: (path: string, collectionId: string) => void;
 }
 
 interface InboxItem {
@@ -140,16 +140,12 @@ function filterMatches(filter: InboxFilter, item: InboxItem): boolean {
 export function NotificationsPanel({
   history,
   onClear,
+  onOpenToken,
 }: NotificationsPanelProps) {
   const [filter, setFilter] = useState<InboxFilter>("all");
   const { navigateTo, openSecondarySurface, beginHandoff, openNotifications } =
     useNavigationContext();
-  const { setLibraryBrowseCollectionId } =
-    useCollectionStateContext();
-  const {
-    setPendingHighlightForCollection,
-    switchContextualSurface,
-  } = useEditorContext();
+  const { switchContextualSurface } = useEditorContext();
 
   const inbox = useMemo(() => {
     const deduped = new Map<string, InboxItem>();
@@ -207,13 +203,7 @@ export function NotificationsPanel({
         );
         return;
       }
-      beginHandoff({ reason: handoffReason, ...handoffOpts });
-      navigateTo("library", "tokens", { preserveHandoff: true });
-      setPendingHighlightForCollection(
-        destination.tokenPath,
-        targetCollectionId,
-      );
-      setLibraryBrowseCollectionId(targetCollectionId);
+      onOpenToken(destination.tokenPath, targetCollectionId);
       return;
     }
     if (destination.kind === "surface") {

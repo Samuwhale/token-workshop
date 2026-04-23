@@ -36,6 +36,7 @@ import {
 export interface ImportPanelProps {
   serverUrl: string;
   connected: boolean;
+  workingCollectionId: string;
   onImported: () => void;
   onImportComplete: (result: ImportCompletionResult) => void;
   onOpenImportNextStep: (
@@ -189,6 +190,8 @@ export interface ImportDestinationContextValue {
   >;
   hasAmbiguousCollectionImport: boolean;
   ambiguousCollectionImportCount: number;
+  hasUnresolvedModeDestinations: boolean;
+  unresolvedModeDestinationCount: number;
   totalEnabledCollections: number;
   totalEnabledTokens: number;
   usesCollectionDestination: boolean;
@@ -640,6 +643,7 @@ export function useImportResultContext(): ImportResultContextValue {
 export function ImportPanelProvider({
   serverUrl,
   connected,
+  workingCollectionId,
   onImported,
   onImportComplete,
   onOpenImportNextStep,
@@ -757,6 +761,7 @@ export function ImportPanelProvider({
   const collectionsHook = useImportCollections({
     serverUrl,
     connected,
+    workingCollectionId,
     onClearConflictState: clearConflictState,
   });
 
@@ -798,6 +803,43 @@ export function ImportPanelProvider({
     [collectionImportPlans],
   );
   const hasAmbiguousCollectionImport = ambiguousCollectionImportCount > 0;
+  const unresolvedModeDestinationCount = useMemo(
+    () =>
+      src.collectionData.reduce((count, collection) => {
+        return (
+          count +
+          collection.modes.reduce((modeCount, mode) => {
+            const key = modeKey(collection.name, mode.modeId);
+            if (!(src.modeEnabled[key] ?? true)) {
+              return modeCount;
+            }
+
+            const explicitDestination = src.modeCollectionNames[key]?.trim() ?? "";
+            if (explicitDestination) {
+              return modeCount;
+            }
+
+            const suggestedDestination = defaultCollectionName(
+              collection.name,
+              mode.modeName,
+              collection.modes.length,
+            );
+            const exactMatchAvailable =
+              collectionsHook.collectionIds.includes(collection.name) ||
+              collectionsHook.collectionIds.includes(suggestedDestination);
+
+            return exactMatchAvailable ? modeCount : modeCount + 1;
+          }, 0)
+        );
+      }, 0),
+    [
+      collectionsHook.collectionIds,
+      src.collectionData,
+      src.modeCollectionNames,
+      src.modeEnabled,
+    ],
+  );
+  const hasUnresolvedModeDestinations = unresolvedModeDestinationCount > 0;
 
   const previewNewCount = useMemo(
     () =>
@@ -992,6 +1034,45 @@ export function ImportPanelProvider({
       }
     })();
   }, [collectionImportPlans, fetchCollectionTokenMap, collectionsHook.collectionIds]);
+
+  useEffect(() => {
+    if (src.collectionData.length === 0 || collectionsHook.collectionIds.length === 0) {
+      return;
+    }
+
+    src.setModeCollectionNames((previousNames) => {
+      const nextNames = { ...previousNames };
+      let changed = false;
+
+      for (const collection of src.collectionData) {
+        for (const mode of collection.modes) {
+          const key = modeKey(collection.name, mode.modeId);
+          const defaultName = defaultCollectionName(
+            collection.name,
+            mode.modeName,
+            collection.modes.length,
+          );
+          const currentName = previousNames[key]?.trim() ?? "";
+          const exactMatch =
+            collectionsHook.collectionIds.includes(collection.name)
+              ? collection.name
+              : collectionsHook.collectionIds.includes(defaultName)
+                ? defaultName
+                : null;
+
+          if (!exactMatch) {
+            continue;
+          }
+          if (!currentName || currentName === defaultName) {
+            nextNames[key] = exactMatch;
+            changed = true;
+          }
+        }
+      }
+
+      return changed ? nextNames : previousNames;
+    });
+  }, [collectionsHook.collectionIds, src.collectionData, src.setModeCollectionNames]);
 
   const importPayloadBatch = useCallback(
     async (
@@ -1691,7 +1772,8 @@ export function ImportPanelProvider({
   const destinationReady = usesCollectionDestination
     ? totalEnabledCollections > 0 &&
       !hasInvalidModeCollectionNames &&
-      !hasAmbiguousCollectionImport
+      !hasAmbiguousCollectionImport &&
+      !hasUnresolvedModeDestinations
     : hasValidSingleSetDestination;
 
   const canContinueToPreview =
@@ -1799,6 +1881,8 @@ export function ImportPanelProvider({
       collectionModeDestinationStatus,
       hasAmbiguousCollectionImport,
       ambiguousCollectionImportCount,
+      hasUnresolvedModeDestinations,
+      unresolvedModeDestinationCount,
       totalEnabledCollections,
       totalEnabledTokens,
       usesCollectionDestination,
@@ -1823,6 +1907,8 @@ export function ImportPanelProvider({
       destinationReady,
       hasAmbiguousCollectionImport,
       hasInvalidModeCollectionNames,
+      hasUnresolvedModeDestinations,
+      unresolvedModeDestinationCount,
       collectionsHook.cancelNewCollection,
       collectionsHook.collectionIds,
       collectionsHook.collectionsError,

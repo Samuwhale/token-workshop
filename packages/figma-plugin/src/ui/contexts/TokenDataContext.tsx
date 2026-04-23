@@ -27,8 +27,8 @@ import type { TokenMapEntry } from '../../shared/types';
 export interface CollectionStateContextValue {
   collections: TokenCollection[];
   setCollections: React.Dispatch<React.SetStateAction<TokenCollection[]>>;
-  libraryBrowseCollectionId: string;
-  setLibraryBrowseCollectionId: (collectionId: string) => void;
+  workingCollectionId: string;
+  setWorkingCollectionId: (collectionId: string) => void;
   currentCollectionTokens: TokenNode[];
   collectionRevision: number;
   collectionTokenCounts: Record<string, number>;
@@ -111,8 +111,8 @@ function CollectionStateProvider({
     () => ({
       collections: collectionState.collections,
       setCollections: collectionState.setCollections,
-      libraryBrowseCollectionId: collectionState.libraryBrowseCollectionId,
-      setLibraryBrowseCollectionId: collectionState.setLibraryBrowseCollectionId,
+      workingCollectionId: collectionState.workingCollectionId,
+      setWorkingCollectionId: collectionState.setWorkingCollectionId,
       currentCollectionTokens: collectionState.currentCollectionTokens,
       collectionRevision: collectionState.collectionRevision,
       collectionTokenCounts: collectionState.collectionTokenCounts,
@@ -129,8 +129,8 @@ function CollectionStateProvider({
     [
       collectionState.collections,
       collectionState.setCollections,
-      collectionState.libraryBrowseCollectionId,
-      collectionState.setLibraryBrowseCollectionId,
+      collectionState.workingCollectionId,
+      collectionState.setWorkingCollectionId,
       collectionState.currentCollectionTokens,
       collectionState.collectionRevision,
       collectionState.collectionTokenCounts,

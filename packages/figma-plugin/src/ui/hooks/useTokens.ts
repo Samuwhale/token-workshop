@@ -93,13 +93,13 @@ export function useCollectionState(
   getDisconnectSignal?: () => AbortSignal,
 ) {
   const [collections, setCollections] = useState<TokenCollection[]>([]);
-  const [libraryBrowseCollectionId, setLibraryBrowseCollectionIdState] = useState<string>(() =>
-    lsGet(STORAGE_KEYS.LIBRARY_BROWSE_COLLECTION_ID, ''),
+  const [workingCollectionId, setWorkingCollectionIdState] = useState<string>(() =>
+    lsGet(STORAGE_KEYS.WORKING_COLLECTION_ID, ''),
   );
-  const setLibraryBrowseCollectionId = useCallback((collectionId: string) => {
-    if (collectionId) lsSet(STORAGE_KEYS.LIBRARY_BROWSE_COLLECTION_ID, collectionId);
-    else lsRemove(STORAGE_KEYS.LIBRARY_BROWSE_COLLECTION_ID);
-    setLibraryBrowseCollectionIdState(collectionId);
+  const setWorkingCollectionId = useCallback((collectionId: string) => {
+    if (collectionId) lsSet(STORAGE_KEYS.WORKING_COLLECTION_ID, collectionId);
+    else lsRemove(STORAGE_KEYS.WORKING_COLLECTION_ID);
+    setWorkingCollectionIdState(collectionId);
   }, []);
   const [currentCollectionTokens, setCurrentCollectionTokens] = useState<TokenNode[]>([]);
   const [collectionRevision, setCollectionRevision] = useState(0);
@@ -107,8 +107,8 @@ export function useCollectionState(
   const [collectionTokenCounts, setCollectionTokenCounts] = useState<Record<string, number>>({});
   const [collectionDescriptions, setCollectionDescriptions] = useState<Record<string, string>>({});
   const fetchGenRef = useRef(0);
-  const libraryBrowseCollectionIdRef = useRef(libraryBrowseCollectionId);
-  libraryBrowseCollectionIdRef.current = libraryBrowseCollectionId;
+  const workingCollectionIdRef = useRef(workingCollectionId);
+  workingCollectionIdRef.current = workingCollectionId;
   const internalCollectionChangeRef = useRef(false);
   const mountedRef = useRef(false);
   const unmountControllerRef = useRef(new AbortController());
@@ -213,22 +213,22 @@ export function useCollectionState(
       setCollectionsError(null);
 
       if (nextCollections.length === 0) {
-        if (libraryBrowseCollectionIdRef.current) {
+        if (workingCollectionIdRef.current) {
           internalCollectionChangeRef.current = true;
-          setLibraryBrowseCollectionId('');
+          setWorkingCollectionId('');
         }
         setCurrentCollectionTokens([]);
         setCollectionRevision((revision) => revision + 1);
         return;
       }
 
-      const nextCurrentCollectionId = nextCollections.some((collection) => collection.id === libraryBrowseCollectionIdRef.current)
-        ? libraryBrowseCollectionIdRef.current
+      const nextCurrentCollectionId = nextCollections.some((collection) => collection.id === workingCollectionIdRef.current)
+        ? workingCollectionIdRef.current
         : nextCollections[0]!.id;
 
-      if (nextCurrentCollectionId !== libraryBrowseCollectionIdRef.current) {
+      if (nextCurrentCollectionId !== workingCollectionIdRef.current) {
         internalCollectionChangeRef.current = true;
-        setLibraryBrowseCollectionId(nextCurrentCollectionId);
+        setWorkingCollectionId(nextCurrentCollectionId);
       }
 
       const tokensData = await apiFetch<{ tokens: DTCGGroup }>(
@@ -251,7 +251,7 @@ export function useCollectionState(
     getDisconnectSignal,
     onNetworkError,
     serverUrl,
-    setLibraryBrowseCollectionId,
+    setWorkingCollectionId,
     applyCollectionStateSnapshot,
   ]);
 
@@ -268,8 +268,8 @@ export function useCollectionState(
       internalCollectionChangeRef.current = false;
       return;
     }
-    void fetchTokensForCollection(libraryBrowseCollectionId);
-  }, [libraryBrowseCollectionId, fetchTokensForCollection]);
+    void fetchTokensForCollection(workingCollectionId);
+  }, [workingCollectionId, fetchTokensForCollection]);
 
   const addCollectionToState = useCallback(async (collectionId: string) => {
     if (!collectionId.trim()) {
@@ -332,8 +332,8 @@ export function useCollectionState(
   return {
     collections,
     setCollections,
-    libraryBrowseCollectionId,
-    setLibraryBrowseCollectionId,
+    workingCollectionId,
+    setWorkingCollectionId,
     currentCollectionTokens,
     collectionRevision,
     collectionTokenCounts,

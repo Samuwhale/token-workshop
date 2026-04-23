@@ -48,8 +48,8 @@ export function useCommandPaletteCommands(): {
 } {
   const {
     collections,
-    libraryBrowseCollectionId: currentCollectionId,
-    setLibraryBrowseCollectionId: setCurrentCollectionId,
+    workingCollectionId: currentCollectionId,
+    setWorkingCollectionId: setCurrentCollectionId,
     collectionTokenCounts,
   } = useCollectionStateContext();
   const collectionIds = collections.map((collection) => collection.id);
@@ -125,7 +125,7 @@ export function useCommandPaletteCommands(): {
           navigateTo("library");
           setTokenDetails({
             path: "",
-            currentCollectionId,
+            collectionId: currentCollectionId,
             mode: "edit",
             isCreate: true,
           });
@@ -138,6 +138,19 @@ export function useCommandPaletteCommands(): {
         category: "Collections",
         shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION),
         handler: shell.openCollectionPicker,
+      },
+      {
+        id: "open-collection-details",
+        label: "Open collection details",
+        description: `Manage modes and metadata for "${currentCollectionId}"`,
+        category: "Collections",
+        handler: () => {
+          navigateTo("library");
+          switchContextualSurface({
+            surface: "collection-details",
+            collection: { collectionId: currentCollectionId },
+          });
+        },
       },
       {
         id: "paste-tokens",
@@ -172,7 +185,7 @@ export function useCommandPaletteCommands(): {
             goToTokens();
             setTokenDetails({
               path: "",
-              currentCollectionId,
+              collectionId: currentCollectionId,
               mode: "edit",
               isCreate: true,
               initialType: inferredType,

@@ -101,7 +101,7 @@ export function CanvasAnalysisPanel({
   onSelectNode,
   initialTab = 'usage',
 }: CanvasAnalysisPanelProps) {
-  const { libraryBrowseCollectionId: currentCollectionId } =
+  const { workingCollectionId: currentCollectionId } =
     useCollectionStateContext();
   const [activeTab, setActiveTab] = useState<CanvasTab>(
     () => (lsGet(STORAGE_KEYS.CANVAS_SCAN_TAB) as CanvasTab | null) ?? initialTab,

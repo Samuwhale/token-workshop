@@ -32,6 +32,7 @@ export interface HistoryRecentViewProps {
   serverUrl: string;
   collectionFilter?: string | null;
   filterTokenPath?: string | null;
+  scopeMode?: 'all' | 'current';
   onClearFilter?: () => void;
   recentOperations?: OperationEntry[];
   totalOperations?: number;
@@ -48,6 +49,7 @@ export function HistoryRecentView({
   serverUrl,
   collectionFilter,
   filterTokenPath,
+  scopeMode = 'all',
   onClearFilter,
   recentOperations,
   totalOperations,
@@ -148,6 +150,9 @@ export function HistoryRecentView({
         >
           <span className="block text-secondary text-[var(--color-figma-text-secondary)]">
             Filtering:
+            <span className="ml-1 text-[var(--color-figma-text-secondary)]">
+              {scopeMode === 'current' ? 'current collection' : 'all collections'}
+            </span>
             {collectionFilter ? (
               <span className="ml-1 font-mono text-[var(--color-figma-text)]">
                 {collectionFilter}

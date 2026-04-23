@@ -21,7 +21,7 @@ export function ExtendsTokenPicker({
   currentPath: string;
   onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
 }) {
-  const { libraryBrowseCollectionId } = useCollectionStateContext();
+  const { workingCollectionId } = useCollectionStateContext();
   const { perCollectionFlat } = useTokenFlatMapContext();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -40,10 +40,10 @@ export function ExtendsTokenPicker({
         candidate.entry.$type === tokenType &&
         !(
           candidate.path === currentPath &&
-          candidate.collectionId === libraryBrowseCollectionId
+          candidate.collectionId === workingCollectionId
         ),
     );
-  }, [scopedCandidates, tokenType, currentPath, libraryBrowseCollectionId]);
+  }, [scopedCandidates, tokenType, currentPath, workingCollectionId]);
   const filteredAll = useMemo(() => {
     if (!search) return candidates;
     const q = search.toLowerCase();

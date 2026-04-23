@@ -36,7 +36,6 @@ export interface HealthDashboardProps {
   onNavigateToView: (view: HealthView) => void;
   onNavigateToGenerators?: () => void;
   scopeLabel?: string;
-  onBackToRollup?: () => void;
 }
 
 function StatusIcon({ status }: { status: HealthStatus }) {
@@ -89,7 +88,6 @@ export function HealthDashboard({
   onNavigateToView,
   onNavigateToGenerators,
   scopeLabel,
-  onBackToRollup,
 }: HealthDashboardProps) {
   if (!connected) {
     return (
@@ -139,11 +137,11 @@ export function HealthDashboard({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "thin" }}>
-      {(scopeLabel || onBackToRollup) && (
+      {scopeLabel && (
         <div className="mb-3 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              Working collection
+              Collection
             </div>
             {scopeLabel ? (
               <div className="truncate text-body font-medium text-[var(--color-figma-text)]">
@@ -151,15 +149,6 @@ export function HealthDashboard({
               </div>
             ) : null}
           </div>
-          {onBackToRollup ? (
-            <button
-              type="button"
-              onClick={onBackToRollup}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              All collections
-            </button>
-          ) : null}
         </div>
       )}
       <div className="flex items-center gap-2.5 mb-4">

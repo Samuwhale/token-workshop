@@ -4,15 +4,19 @@ import { apiFetch } from '../shared/apiFetch';
 export interface UseImportCollectionsParams {
   serverUrl: string;
   connected: boolean;
+  workingCollectionId: string;
   onClearConflictState: () => void;
 }
 
 export function useImportCollections({
   serverUrl,
   connected,
+  workingCollectionId,
   onClearConflictState,
 }: UseImportCollectionsParams) {
-  const [targetCollectionId, setTargetCollectionId] = useState('imported');
+  const [targetCollectionId, setTargetCollectionId] = useState(
+    () => workingCollectionId || 'imported',
+  );
   const [collectionIds, setCollectionIds] = useState<string[]>([]);
   const [collectionsError, setCollectionsError] = useState<string | null>(null);
   const [newCollectionInputVisible, setNewCollectionInputVisible] =
@@ -41,6 +45,9 @@ export function useImportCollections({
         if (fetchedCollectionIds.includes(previousCollectionId)) {
           return previousCollectionId;
         }
+        if (workingCollectionId && fetchedCollectionIds.includes(workingCollectionId)) {
+          return workingCollectionId;
+        }
         return fetchedCollectionIds[0] ?? previousCollectionId;
       });
     } catch (err) {
@@ -48,7 +55,7 @@ export function useImportCollections({
         err instanceof Error ? err.message : 'Failed to load collections',
       );
     }
-  }, [serverUrl, connected]);
+  }, [serverUrl, connected, workingCollectionId]);
 
   useEffect(() => {
     fetchCollections();

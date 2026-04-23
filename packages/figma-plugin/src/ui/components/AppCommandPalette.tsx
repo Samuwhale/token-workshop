@@ -20,8 +20,8 @@ export function AppCommandPalette({
   onClose: () => void;
 }) {
   const {
-    libraryBrowseCollectionId: currentCollectionId,
-    setLibraryBrowseCollectionId: setCurrentCollectionId,
+    workingCollectionId: currentCollectionId,
+    setWorkingCollectionId: setCurrentCollectionId,
   } = useCollectionStateContext();
   const { perCollectionFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useGeneratorContext();

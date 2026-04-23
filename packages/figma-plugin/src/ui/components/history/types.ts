@@ -72,15 +72,25 @@ export interface OperationEntry {
   };
 }
 
+export type HistoryView = 'recent' | 'saved';
+export type HistoryScopeMode = 'all' | 'current';
+
+export interface HistoryScope {
+  mode: HistoryScopeMode;
+  collectionId: string | null;
+  tokenPath: string | null;
+  view: HistoryView;
+}
+
 export interface HistoryPanelProps {
   serverUrl: string;
   connected: boolean;
   collectionIds?: string[];
+  workingCollectionId: string;
+  scope: HistoryScope;
+  onScopeChange: (scope: HistoryScope) => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
-  /** When set, filter history to only entries that touched this token path */
-  filterTokenPath?: string | null;
-  onClearFilter?: () => void;
   /** Server operation log entries */
   recentOperations?: OperationEntry[];
   /** Total number of server operations (may exceed loaded count) */

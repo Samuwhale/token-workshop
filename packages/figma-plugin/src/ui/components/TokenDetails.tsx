@@ -70,6 +70,7 @@ interface TokenDetailsProps {
   serverUrl: string;
   mode?: "inspect" | "edit";
   onBack: () => void;
+  backLabel?: string;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
   generators?: TokenGenerator[];
@@ -118,6 +119,7 @@ export function TokenDetails({
   serverUrl,
   mode = "edit",
   onBack,
+  backLabel,
   allTokensFlat = {},
   pathToCollectionId = {},
   generators = [],
@@ -160,6 +162,7 @@ export function TokenDetails({
   const detailsMode = isCreateMode ? "edit" : mode;
   const isInspectMode = detailsMode === "inspect";
   const isEditMode = !isInspectMode;
+  const showingExternalCollection = ownerCollectionId !== currentCollectionId;
   const uiState = useTokenEditorUIState({
     tokenPath,
   });
@@ -989,7 +992,9 @@ export function TokenDetails({
             New token
           </div>
           <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-            {ownerCollectionId}
+            {showingExternalCollection
+              ? `${ownerCollectionId} · Working collection: ${currentCollectionId}`
+              : ownerCollectionId}
           </div>
         </div>
       ) : (
@@ -1028,7 +1033,9 @@ export function TokenDetails({
           </div>
           <div className="min-w-0">
             <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
-              in {ownerCollectionId}
+              {showingExternalCollection
+                ? `Viewing ${ownerCollectionId} · Working collection: ${currentCollectionId}`
+                : `in ${ownerCollectionId}`}
             </span>
           </div>
         </div>
@@ -1320,6 +1327,8 @@ export function TokenDetails({
       <EditorShell
         surface="authoring"
         onBack={requestClose}
+        backAriaLabel={backLabel ?? "Back"}
+        backTitle={backLabel}
         title={headerTitle}
         headerActions={headerActions}
         afterHeader={afterHeader}

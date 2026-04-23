@@ -560,7 +560,7 @@ export function CollectionDetailsPanel({
               type="button"
               onClick={onClose}
               className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              aria-label="Close collection setup"
+              aria-label="Close collection details"
             >
               <X size={12} strokeWidth={2} aria-hidden />
             </button>

@@ -24,11 +24,13 @@ import type { CollectionPathResolutionReason } from '../shared/collectionPathLoo
 export type TokenDetailsTarget = {
   path: string;
   name?: string;
-  currentCollectionId: string;
+  collectionId: string;
   mode: "inspect" | "edit";
   isCreate?: boolean;
   initialType?: string;
   initialValue?: string;
+  backLabel?: string;
+  onBackToOrigin?: (() => void) | null;
 };
 
 export type EditingGeneratedGroup = TokensLibraryGeneratedGroupEditorTarget;
@@ -89,9 +91,6 @@ export interface EditorContextValue {
   tokensCompareDefaultB: string;
   showImport: boolean;
   setShowImport: Dispatch<SetStateAction<boolean>>;
-  /** Filter path carried into the Library > History section when opened for a specific token. */
-  historyFilterPath: string | null;
-  setHistoryFilterPath: Dispatch<SetStateAction<string | null>>;
   tokensContextualSurfaceState: TokensContextualSurfaceState;
   switchContextualSurface: (target: EditorContextualSurfaceTarget) => void;
   /** Close only the maintenance surface (compare, color-analysis, import). Leaves the pinned editor intact. */
@@ -133,8 +132,8 @@ export function useEditorContext(): EditorContextValue {
 
 export function EditorProvider({ children }: { children: ReactNode }) {
   const {
-    libraryBrowseCollectionId: currentCollectionId,
-    setLibraryBrowseCollectionId: setCurrentCollectionId,
+    workingCollectionId: currentCollectionId,
+    setWorkingCollectionId: setCurrentCollectionId,
     currentCollectionTokens: tokens,
   } = useCollectionStateContext();
   const { pathToCollectionId, collectionIdsByPath } = useTokenFlatMapContext();
@@ -145,7 +144,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [showTokensCompare, setShowTokensCompare] = useState(false);
   const [showColorAnalysis, setShowColorAnalysis] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [historyFilterPath, setHistoryFilterPath] = useState<string | null>(null);
   const {
     compareMode: tokensCompareMode,
     setCompareMode: setTokensCompareMode,
@@ -340,8 +338,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     tokensCompareDefaultB,
     showImport,
     setShowImport,
-    historyFilterPath,
-    setHistoryFilterPath,
     tokensContextualSurfaceState,
     switchContextualSurface,
     closeMaintenanceSurface,
@@ -374,7 +370,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     tokensCompareDefaultA,
     tokensCompareDefaultB,
     showImport,
-    historyFilterPath,
     tokensContextualSurfaceState,
     switchContextualSurface,
     closeMaintenanceSurface,

@@ -237,7 +237,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'GO_TO_DEFINE',          group: 'Navigation',      description: 'Go to Library',                  mac: SHORTCUT_KEYS.GO_TO_DEFINE },
   { id: 'GO_TO_APPLY',           group: 'Navigation',      description: 'Go to Canvas workspace',         mac: SHORTCUT_KEYS.GO_TO_APPLY },
   { id: 'GO_TO_SYNC',            group: 'Navigation',      description: 'Go to Sync',                     mac: SHORTCUT_KEYS.GO_TO_SYNC },
-  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open collection setup',          mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
+  { id: 'GO_TO_RESOLVER',        group: 'Navigation',      description: 'Open collection details',        mac: SHORTCUT_KEYS.GO_TO_RESOLVER },
   { id: 'QUICK_SWITCH_COLLECTION', group: 'Navigation',      description: 'Switch working collection',      mac: SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION },
 
   // ── Command Palette ──────────────────────────────────────────────────────
