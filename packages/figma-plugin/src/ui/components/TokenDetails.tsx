@@ -91,7 +91,6 @@ interface TokenDetailsProps {
   derivedTokenPaths?: Map<string, TokenGenerator>;
   onNavigateToToken?: (
     path: string,
-    fromPath?: string,
     collectionId?: string,
   ) => void;
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
@@ -1383,7 +1382,6 @@ export function TokenDetails({
           dependents={dependents}
           showPendingDependents={showPendingDependents}
           ownerCollectionId={ownerCollectionId}
-          tokenPath={tokenPath}
           onDismissTypeChange={() => {
             setPendingTypeChange(null);
             setShowPendingDependents(false);
@@ -1542,7 +1540,7 @@ export function TokenDetails({
                       fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
                       fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
                       modified={isModeModified && !isCreateMode}
-                      onNavigateToToken={(path) => onNavigateToToken?.(path, tokenPath)}
+                      onNavigateToToken={(path) => onNavigateToToken?.(path)}
                       allowCopyFromPrevious={isEditMode && modeValue.modes.length > 1}
                       onCopyFromPrevious={
                         isEditMode && modeValue.modes.length > 1
@@ -1812,7 +1810,7 @@ export function TokenDetails({
                       onClick={onOpenInHealth}
                       className="tm-token-details__text-button"
                     >
-                      Open in health
+                      Open in review
                     </button>
                   ) : null}
                 </div>
@@ -1822,9 +1820,7 @@ export function TokenDetails({
                       <button
                         key={dep.path}
                         type="button"
-                        onClick={() =>
-                          onNavigateToToken(dep.path, tokenPath, dep.collectionId)
-                        }
+                        onClick={() => onNavigateToToken(dep.path, dep.collectionId)}
                         className="tm-token-details__list-row"
                         title={`Open ${dep.path}`}
                       >

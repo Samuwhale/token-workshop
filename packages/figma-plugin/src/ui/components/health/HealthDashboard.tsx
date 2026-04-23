@@ -2,14 +2,15 @@ import { AlertCircle, AlertTriangle, Check, Info } from "lucide-react";
 import type { HealthView } from "./types";
 import type { HealthStatus } from "../../hooks/useHealthSignals";
 
-interface CategoryRow {
+interface ReviewRow {
   id: string;
   label: string;
+  description: string;
   count: number;
-  countLabel: string;
+  severity: HealthStatus;
+  actionLabel: string;
   pending?: boolean;
   disabled?: boolean;
-  severity: HealthStatus;
   onOpen: () => void;
 }
 
@@ -21,7 +22,6 @@ export interface HealthDashboardProps {
   validationLastRefreshed: Date | null;
   validationIsStale: boolean;
   validationError: string | null;
-
   issueCount: number;
   issueStatus: HealthStatus;
   generatorIssueCount: number;
@@ -32,7 +32,6 @@ export interface HealthDashboardProps {
   aliasOpportunitiesCount: number;
   duplicateCount: number;
   hiddenCount: number;
-
   onNavigateToView: (view: HealthView) => void;
   onNavigateToGenerators?: () => void;
   scopeLabel?: string;
@@ -40,12 +39,12 @@ export interface HealthDashboardProps {
 
 function StatusIcon({ status }: { status: HealthStatus }) {
   if (status === "critical") {
-    return <AlertCircle size={14} strokeWidth={2.5} aria-hidden="true" />;
+    return <AlertCircle size={14} strokeWidth={2.25} aria-hidden />;
   }
   if (status === "warning") {
-    return <AlertTriangle size={14} strokeWidth={2.5} aria-hidden="true" />;
+    return <AlertTriangle size={14} strokeWidth={2.25} aria-hidden />;
   }
-  return <Check size={14} strokeWidth={2.5} aria-hidden="true" />;
+  return <Check size={14} strokeWidth={2.25} aria-hidden />;
 }
 
 function statusColor(status: HealthStatus): string {
@@ -57,14 +56,86 @@ function statusColor(status: HealthStatus): string {
 function formatCheckedAt(date: Date): string {
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin === 1) return "1 min ago";
-  if (diffMin < 60) return `${diffMin} min ago`;
-  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (diffMin < 1) return "Checked just now";
+  if (diffMin === 1) return "Checked 1 min ago";
+  if (diffMin < 60) return `Checked ${diffMin} min ago`;
+  return `Checked ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 }
 
-function pluralize(count: number, singular: string, plural = `${singular}s`): string {
-  return count === 1 ? singular : plural;
+function ReviewSection({
+  title,
+  description,
+  rows,
+  emptyLabel,
+}: {
+  title: string;
+  description: string;
+  rows: ReviewRow[];
+  emptyLabel: string;
+}) {
+  return (
+    <section>
+      <div className="mb-2 px-1">
+        <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+          {title}
+        </h3>
+        <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          {description}
+        </p>
+      </div>
+      <div className="rounded-xl bg-[var(--color-figma-bg-secondary)] p-1.5">
+        {rows.length === 0 ? (
+          <div className="rounded-lg px-3 py-4 text-secondary text-[var(--color-figma-text-secondary)]">
+            {emptyLabel}
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {rows.map((row) => {
+              const toneClass =
+                row.severity === "critical"
+                  ? "text-[var(--color-figma-error)]"
+                  : row.severity === "warning"
+                    ? "text-[var(--color-figma-warning)]"
+                    : "text-[var(--color-figma-success)]";
+              return (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={row.onOpen}
+                  disabled={row.disabled}
+                  className={`flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+                    row.disabled
+                      ? "cursor-default opacity-60"
+                      : "hover:bg-[var(--color-figma-bg)]"
+                  }`}
+                >
+                  <span className={`mt-0.5 shrink-0 ${toneClass}`}>
+                    <StatusIcon status={row.severity} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="text-body font-medium text-[var(--color-figma-text)]">
+                        {row.label}
+                      </span>
+                      <span className={`text-secondary ${toneClass}`}>
+                        {row.pending ? "Checking…" : `${row.count}`}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-secondary leading-[1.45] text-[var(--color-figma-text-secondary)]">
+                      {row.description}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
+                    {row.actionLabel}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 export function HealthDashboard({
@@ -91,126 +162,166 @@ export function HealthDashboard({
 }: HealthDashboardProps) {
   if (!connected) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-12 text-center px-4">
-        <Info size={20} strokeWidth={1.5} className="text-[var(--color-figma-text-secondary)]" aria-hidden="true" />
+      <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
+        <Info size={20} strokeWidth={1.5} className="text-[var(--color-figma-text-secondary)]" aria-hidden />
         <p className="text-body text-[var(--color-figma-text-secondary)]">
-          Connect to check health
+          Connect to check review items.
         </p>
       </div>
     );
   }
 
   const openView = (view: HealthView) => () => onNavigateToView(view);
-  const otherAttentionCount = Math.max(totalIssueCount - issueCount, 0);
-  const summaryTitle =
-    validationError
-      ? "Health check failed"
-      : validationLoading && !validationLastRefreshed
-        ? "Checking health"
-        : !unusedReady && totalIssueCount === 0
-      ? "Checking usage"
-      : totalIssueCount === 0
-        ? "All clear"
-        : otherAttentionCount > 0
-          ? `${totalIssueCount} ${pluralize(totalIssueCount, "item")} to review`
-          : `${issueCount} ${pluralize(issueCount, "issue")}`;
-  const categories: CategoryRow[] = [
-    { id: "issues", label: "Issues", count: issueCount, countLabel: issueCount === 0 ? "All clear" : String(issueCount), severity: issueStatus, onOpen: openView("issues") },
+  const fixNextRows: ReviewRow[] = [
+    {
+      id: "issues",
+      label: "Validation issues",
+      description:
+        issueCount > 0
+          ? "Broken aliases, invalid values, and structure problems that block reliable authoring."
+          : "No active validation issues in this scope.",
+      count: issueCount,
+      severity: issueStatus,
+      actionLabel: issueCount > 0 ? "Review" : "All clear",
+      onOpen: openView("issues"),
+    },
     {
       id: "generators",
-      label: "Generators",
+      label: "Generated groups",
+      description:
+        generatorIssueCount > 0
+          ? "Generated groups need reruns or configuration cleanup."
+          : "Generated groups are aligned with their sources.",
       count: generatorIssueCount,
-      countLabel: generatorIssueCount === 0 ? "All clear" : String(generatorIssueCount),
-      disabled: !onNavigateToGenerators,
       severity: generatorStatus,
-      onOpen: () => onNavigateToGenerators?.(),
+      actionLabel: generatorIssueCount > 0 ? "Review" : "All clear",
+      disabled: !onNavigateToGenerators,
+      onOpen: () => {
+        onNavigateToGenerators?.();
+      },
     },
-    { id: "unused", label: "Unused", count: unusedCount, countLabel: unusedReady ? (unusedCount === 0 ? "All clear" : String(unusedCount)) : "Checking…", pending: !unusedReady, severity: unusedCount > 0 ? "warning" : "healthy", onOpen: openView("unused") },
-    { id: "deprecated", label: "Deprecated", count: deprecatedCount, countLabel: deprecatedCount === 0 ? "All clear" : String(deprecatedCount), severity: deprecatedCount > 0 ? "warning" : "healthy", onOpen: openView("deprecated") },
-    { id: "alias-opportunities", label: "Suggested aliases", count: aliasOpportunitiesCount, countLabel: aliasOpportunitiesCount === 0 ? "All clear" : String(aliasOpportunitiesCount), severity: aliasOpportunitiesCount > 0 ? "warning" : "healthy", onOpen: openView("alias-opportunities") },
-    { id: "duplicates", label: "Duplicates", count: duplicateCount, countLabel: duplicateCount === 0 ? "All clear" : String(duplicateCount), severity: duplicateCount > 0 ? "warning" : "healthy", onOpen: openView("duplicates") },
+    {
+      id: "deprecated",
+      label: "Deprecated references",
+      description:
+        deprecatedCount > 0
+          ? "Some tokens still point at values that should be replaced before handoff."
+          : "No deprecated references found.",
+      count: deprecatedCount,
+      severity: deprecatedCount > 0 ? ("warning" as HealthStatus) : ("healthy" as HealthStatus),
+      actionLabel: deprecatedCount > 0 ? "Replace" : "All clear",
+      onOpen: openView("deprecated"),
+    },
+  ].filter((row) => row.count > 0 || row.id === "issues");
+
+  const cleanupRows: ReviewRow[] = [
+    {
+      id: "unused",
+      label: "Unused tokens",
+      description:
+        unusedCount > 0
+          ? "Candidates for pruning or reusing elsewhere in the system."
+          : "No unused tokens detected.",
+      count: unusedCount,
+      severity: unusedCount > 0 ? ("warning" as HealthStatus) : ("healthy" as HealthStatus),
+      actionLabel: unusedCount > 0 ? "Clean up" : "All clear",
+      pending: !unusedReady,
+      onOpen: openView("unused"),
+    },
+    {
+      id: "alias-opportunities",
+      label: "Suggested aliases",
+      description:
+        aliasOpportunitiesCount > 0
+          ? "Repeated literal values can be promoted into shared primitives."
+          : "No alias opportunities found.",
+      count: aliasOpportunitiesCount,
+      severity: aliasOpportunitiesCount > 0 ? ("warning" as HealthStatus) : ("healthy" as HealthStatus),
+      actionLabel: aliasOpportunitiesCount > 0 ? "Promote" : "All clear",
+      onOpen: openView("alias-opportunities"),
+    },
+    {
+      id: "duplicates",
+      label: "Duplicates",
+      description:
+        duplicateCount > 0
+          ? "Multiple tokens appear to describe the same underlying value."
+          : "No duplicate values in this scope.",
+      count: duplicateCount,
+      severity: duplicateCount > 0 ? ("warning" as HealthStatus) : ("healthy" as HealthStatus),
+      actionLabel: duplicateCount > 0 ? "Review" : "All clear",
+      onOpen: openView("duplicates"),
+    },
   ];
 
   if (hiddenCount > 0) {
-    categories.push({ id: "hidden", label: "Hidden", count: hiddenCount, countLabel: String(hiddenCount), severity: "healthy", onOpen: openView("hidden") });
+    cleanupRows.push({
+      id: "hidden",
+      label: "Suppressed items",
+      description: "Review ignored findings before they disappear from routine maintenance.",
+      count: hiddenCount,
+      severity: "healthy",
+      actionLabel: "Open",
+      onOpen: openView("hidden"),
+    });
   }
 
+  const statusLabel =
+    validationError
+      ? "Review check failed"
+      : validationLoading && !validationLastRefreshed
+        ? "Checking review items"
+        : totalIssueCount === 0
+          ? "All clear"
+          : `${totalIssueCount} item${totalIssueCount === 1 ? "" : "s"} need attention`;
+
   return (
-    <div className="flex flex-col h-full overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "thin" }}>
-      {scopeLabel && (
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              Collection
-            </div>
-            {scopeLabel ? (
-              <div className="truncate text-body font-medium text-[var(--color-figma-text)]">
-                {scopeLabel}
-              </div>
-            ) : null}
-          </div>
+    <div className="flex h-full flex-col overflow-y-auto px-4 py-4" style={{ scrollbarWidth: "thin" }}>
+      {scopeLabel ? (
+        <div className="mb-3 text-secondary text-[var(--color-figma-text-tertiary)]">
+          Reviewing {scopeLabel}
         </div>
-      )}
-      <div className="flex items-center gap-2.5 mb-4">
-        <span className={statusColor(overallStatus)}>
-          <StatusIcon status={overallStatus} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <span className="text-subheading font-semibold text-[var(--color-figma-text)]">
-            {summaryTitle}
+      ) : null}
+
+      <div className="mb-5 rounded-xl bg-[var(--color-figma-bg-secondary)] px-4 py-4">
+        <div className="flex items-start gap-3">
+          <span className={`mt-0.5 shrink-0 ${statusColor(overallStatus)}`}>
+            <StatusIcon status={overallStatus} />
           </span>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {validationLoading && (
-              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Checking…</span>
-            )}
-            {validationError && !validationLoading && (
-              <span className="text-secondary text-[var(--color-figma-error)]">Health check failed</span>
-            )}
-            {validationIsStale && !validationLoading && !validationError && (
-              <span className="text-secondary text-[var(--color-figma-warning)]">Outdated</span>
-            )}
-            {validationLastRefreshed && !validationLoading && !validationError && (
-              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-                Checked {formatCheckedAt(validationLastRefreshed)}
-              </span>
-            )}
-            {!validationLoading && !validationError && totalIssueCount > 0 && otherAttentionCount > 0 && (
-              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-                {issueCount} {pluralize(issueCount, "issue")} · {otherAttentionCount} other {pluralize(otherAttentionCount, "item")}
-              </span>
-            )}
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[15px] font-semibold leading-[1.2] text-[var(--color-figma-text)]">
+              {statusLabel}
+            </h3>
+            <p className="mt-1 text-secondary leading-[1.45] text-[var(--color-figma-text-secondary)]">
+              {validationError
+                ? "The review pass could not complete. Try checking again."
+                : totalIssueCount === 0
+                  ? "Nothing urgent is blocking this collection right now."
+                  : "Start with the highest-risk issues first, then clean up duplicates and unused tokens."}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[var(--color-figma-text-tertiary)]">
+              {validationLastRefreshed ? <span>{formatCheckedAt(validationLastRefreshed)}</span> : null}
+              {validationLoading ? <span>Checking…</span> : null}
+              {validationIsStale && !validationLoading && !validationError ? <span>Outdated</span> : null}
+              {!validationLoading && !validationError ? <span>{fixNextRows.reduce((sum, row) => sum + row.count, 0)} fix next</span> : null}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-0.5">
-        {categories.map((cat) => {
-          const isZero = !cat.pending && cat.count === 0;
-          return (
-            <button
-              key={cat.id}
-              onClick={cat.onOpen}
-              disabled={cat.disabled}
-              className={`flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors ${
-                cat.disabled
-                  ? "cursor-default opacity-60"
-                  : "hover:bg-[var(--color-figma-bg-hover)]"
-              }`}
-            >
-              <span className={`shrink-0 ${isZero ? "text-[var(--color-figma-text-tertiary)]" : statusColor(cat.severity)}`}>
-                <svg width="7" height="7" viewBox="0 0 8 8" aria-hidden="true">
-                  <circle cx="4" cy="4" r="4" fill="currentColor" />
-                </svg>
-              </span>
-              <span className={`flex-1 text-body ${isZero ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text)] font-medium"}`}>
-                {cat.label}
-              </span>
-              <span className={`text-body tabular-nums ${isZero ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"}`}>
-                {cat.countLabel}
-              </span>
-            </button>
-          );
-        })}
+      <div className="flex flex-col gap-5">
+        <ReviewSection
+          title="Fix next"
+          description="Resolve the issues most likely to break authoring, handoff, or trust."
+          rows={fixNextRows}
+          emptyLabel="No urgent issues are blocking this collection."
+        />
+        <ReviewSection
+          title="Clean up"
+          description="Improve clarity and maintainability after the blocking work is clear."
+          rows={cleanupRows}
+          emptyLabel="No cleanup opportunities were found."
+        />
       </div>
     </div>
   );

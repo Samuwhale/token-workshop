@@ -95,7 +95,7 @@ export function DeliveryStatusStrip({
       label: `${health.actionableCount} issue${health.actionableCount === 1 ? "" : "s"}`,
       tone: healthTone(health.status),
       onClick: onOpenHealth,
-      title: "Review issues in Health",
+      title: "Review issues in Review",
     });
   }
 

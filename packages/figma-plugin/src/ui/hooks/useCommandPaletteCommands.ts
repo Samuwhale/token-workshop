@@ -238,10 +238,10 @@ export function useCommandPaletteCommands(): {
       },
       {
         id: "validate",
-        label: "Check health now",
+        label: "Check review now",
         description:
-          "Open the all-collections Health rollup and refresh validation",
-        category: "Health",
+          "Open the library review workspace and refresh validation",
+        category: "Review",
         handler: () => {
           navigateTo("library", "health");
           void sync.refreshValidation();
@@ -251,7 +251,7 @@ export function useCommandPaletteCommands(): {
         id: "color-analysis",
         label: "Color analysis",
         description: "Contrast matrix and lightness scale inspector",
-        category: "Health",
+        category: "Review",
         handler: () => {
           navigateTo("library", "tokens");
           switchContextualSurface({ surface: "color-analysis" });
@@ -344,7 +344,7 @@ export function useCommandPaletteCommands(): {
               id: "analytics",
               label: "Toggle issue-only filter",
               description: `Focus the ${tokens.lintViolations.length} token${tokens.lintViolations.length === 1 ? "" : "s"} with validation issues`,
-              category: "Health" as const,
+              category: "Review" as const,
               handler: () => {
                 tokens.setShowIssuesOnly((visible) => !visible);
                 navigateTo("library", "tokens");
@@ -354,7 +354,7 @@ export function useCommandPaletteCommands(): {
               id: "next-issue",
               label: "Jump to next issue",
               description: `Cycle through ${tokens.lintViolations.length} validation issue${tokens.lintViolations.length === 1 ? "" : "s"} in the current collection`,
-              category: "Health" as const,
+              category: "Review" as const,
               shortcut: SHORTCUT_KEYS.NEXT_LINT_ISSUE,
               handler: tokens.jumpToNextIssue,
             },

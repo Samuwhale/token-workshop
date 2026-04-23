@@ -1,0 +1,3284 @@
+{
+  "_IDS": {
+    "-2-": {
+      "application-background": {
+        "path": "_IDS.-2-.application-background",
+        "$type": "color",
+        "$value": "{_IDS.-2-.containers.surface.groundfloor}",
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "source": "figma-variables"
+          }
+        }
+      },
+      "focus-outline": {
+        "path": "_IDS.-2-.focus-outline",
+        "$type": "color",
+        "$value": "{_IDS.-1-.focus.outer-glow}",
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "source": "figma-variables"
+          }
+        }
+      },
+      "containers": {
+        "border": {
+          "thin": {
+            "path": "_IDS.-2-.containers.border.thin",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "light": {
+            "path": "_IDS.-2-.containers.border.light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "regular": {
+            "path": "_IDS.-2-.containers.border.regular",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "medium": {
+            "path": "_IDS.-2-.containers.border.medium",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "bold": {
+            "path": "_IDS.-2-.containers.border.bold",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "surface": {
+          "neutral": {
+            "path": "_IDS.-2-.containers.surface.neutral",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "raised-3": {
+            "path": "_IDS.-2-.containers.surface.raised-3",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "raised-2": {
+            "path": "_IDS.-2-.containers.surface.raised-2",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "raised-1": {
+            "path": "_IDS.-2-.containers.surface.raised-1",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D20}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "groundfloor": {
+            "path": "_IDS.-2-.containers.surface.groundfloor",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D30}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "lowered-1": {
+            "path": "_IDS.-2-.containers.surface.lowered-1",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "lowered-2": {
+            "path": "_IDS.-2-.containers.surface.lowered-2",
+            "$type": "color",
+            "$value": "{_IDS.-1-.neutral.D50}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        }
+      },
+      "states": {
+        "generic": {
+          "hover": {
+            "fill": {
+              "path": "_IDS.-2-.states.generic.hover.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D40}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.generic.hover.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D40}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.generic.hover.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "focus": {
+            "fill": {
+              "path": "_IDS.-2-.states.generic.focus.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.generic.focus.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.generic.focus.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "working-selection": {
+            "fill": {
+              "path": "_IDS.-2-.states.generic.working-selection.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.working-selection.fill}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.generic.working-selection.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.working-selection.fill}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.generic.working-selection.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.working-selection.text}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "selected": {
+            "fill": {
+              "path": "_IDS.-2-.states.generic.selected.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.generic.selected.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.generic.selected.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.generic.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L40}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.generic.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L40}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.generic.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "primary": {
+          "enabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.primary.enabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.primary.enabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.primary.enabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "hover": {
+            "fill": {
+              "path": "_IDS.-2-.states.primary.hover.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.primary.hover.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.primary.hover.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "focus": {
+            "fill": {
+              "path": "_IDS.-2-.states.primary.focus.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.primary.focus.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.primary.focus.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "selected": {
+            "fill": {
+              "path": "_IDS.-2-.states.primary.selected.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.primary.selected.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.primary.selected.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.primary.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.primary.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.primary.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "secondary": {
+          "enabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.secondary.enabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.secondary.enabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.secondary.enabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-secondary.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "hover": {
+            "fill": {
+              "path": "_IDS.-2-.states.secondary.hover.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.secondary.hover.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.secondary.hover.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-secondary.on-L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "focus": {
+            "fill": {
+              "path": "_IDS.-2-.states.secondary.focus.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.secondary.focus.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.secondary.focus.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-secondary.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "selected": {
+            "fill": {
+              "path": "_IDS.-2-.states.secondary.selected.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.D20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.secondary.selected.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.D20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.secondary.selected.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-secondary.on-D20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.secondary.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.L40}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.secondary.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.secondary.L40}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.secondary.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-secondary.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "low-key": {
+          "enabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.low-key.enabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.neutral.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.low-key.enabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.low-key.enabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-neutral.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "hover": {
+            "fill": {
+              "path": "_IDS.-2-.states.low-key.hover.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.neutral.D20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.low-key.hover.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.low-key.hover.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-neutral.on-D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "focus": {
+            "fill": {
+              "path": "_IDS.-2-.states.low-key.focus.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.low-key.focus.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.low-key.focus.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "selected": {
+            "fill": {
+              "path": "_IDS.-2-.states.low-key.selected.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.neutral.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.low-key.selected.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.low-key.selected.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-neutral.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.low-key.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.neutral.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.low-key.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L30}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.low-key.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "danger": {
+          "enabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.danger.enabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.danger.enabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.danger.enabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-danger.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "hover": {
+            "fill": {
+              "path": "_IDS.-2-.states.danger.hover.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.danger.hover.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.danger.hover.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-danger.on-L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "focus": {
+            "fill": {
+              "path": "_IDS.-2-.states.danger.focus.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.danger.focus.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.danger.focus.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-danger.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "selected": {
+            "fill": {
+              "path": "_IDS.-2-.states.danger.selected.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.danger.selected.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.danger.selected.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-danger.on-D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.danger.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.danger.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.danger.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.danger.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-danger.on-L40}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "suggested": {
+          "enabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.suggested.enabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.suggested.enabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.suggested.enabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "hover": {
+            "fill": {
+              "path": "_IDS.-2-.states.suggested.hover.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.suggested.hover.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.suggested.hover.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-L10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "focus": {
+            "fill": {
+              "path": "_IDS.-2-.states.suggested.focus.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.suggested.focus.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.suggested.focus.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "selected": {
+            "fill": {
+              "path": "_IDS.-2-.states.suggested.selected.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.suggested.selected.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.suggested.selected.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-D10}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.states.suggested.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.states.suggested.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.primary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.states.suggested.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.on-primary.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        }
+      },
+      "indicator": {
+        "alert": {
+          "fill": {
+            "path": "_IDS.-2-.indicator.alert.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.alert.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.indicator.alert.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.alert.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.indicator.alert.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-alert.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.indicator.alert.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-alert.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.indicator.alert.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.alert.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.indicator.alert.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-alert.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.indicator.alert.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-alert.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "warning": {
+          "fill": {
+            "path": "_IDS.-2-.indicator.warning.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.warning.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.indicator.warning.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.warning.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.indicator.warning.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-warning.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.indicator.warning.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-warning.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.indicator.warning.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.warning.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.indicator.warning.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-warning.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.indicator.warning.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-warning.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "notify": {
+          "fill": {
+            "path": "_IDS.-2-.indicator.notify.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.notify.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.indicator.notify.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.notify.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.indicator.notify.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.notify.L20}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.indicator.notify.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-notify.L20}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.indicator.notify.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.notify.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.indicator.notify.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.notify.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.indicator.notify.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-notify.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "success": {
+          "fill": {
+            "path": "_IDS.-2-.indicator.success.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.success.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.indicator.success.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.success.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.indicator.success.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-success.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.indicator.success.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-success.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.indicator.success.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.success.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.indicator.success.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-success.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.indicator.success.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-success.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "info": {
+          "fill": {
+            "path": "_IDS.-2-.indicator.info.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.info.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.indicator.info.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.info.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.indicator.info.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-info.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.indicator.info.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.signal.on-info.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.indicator.info.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.info.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.indicator.info.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-info.0}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.indicator.info.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.signal.on-info.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        }
+      },
+      "category": {
+        "primary": {
+          "fill": {
+            "path": "_IDS.-2-.category.primary.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.primary.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.primary.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.primary.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.primary.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.primary.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.primary.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-primary.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.primary.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.primary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.primary.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.primary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.primary.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-primary.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "secondary": {
+          "fill": {
+            "path": "_IDS.-2-.category.secondary.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.secondary.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.secondary.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.secondary.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.secondary.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.secondary.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.secondary.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-secondary.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.secondary.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.secondary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.secondary.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.secondary.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.secondary.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-secondary.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "red": {
+          "fill": {
+            "path": "_IDS.-2-.category.red.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.red.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.red.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.red.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.red.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.red.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.red.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-red.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.red.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.red.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.red.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.red.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.red.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-red.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "orange": {
+          "fill": {
+            "path": "_IDS.-2-.category.orange.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.orange.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.orange.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.orange.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.orange.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.orange.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.orange.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-orange.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.orange.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.orange.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.orange.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.orange.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.orange.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-orange.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "yellow": {
+          "fill": {
+            "path": "_IDS.-2-.category.yellow.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.yellow.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.yellow.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.yellow.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.yellow.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.yellow.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.yellow.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-yellow.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.yellow.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.yellow.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.yellow.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.yellow.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.yellow.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-yellow.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "green": {
+          "fill": {
+            "path": "_IDS.-2-.category.green.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.green.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.green.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.green.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.green.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.green.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.green.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-green.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.green.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.green.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.green.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.green.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.green.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-green.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "teal": {
+          "fill": {
+            "path": "_IDS.-2-.category.teal.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.teal.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.teal.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.teal.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.teal.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.teal.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.teal.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-teal.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.teal.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.teal.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.teal.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.teal.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.teal.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-teal.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "blue": {
+          "fill": {
+            "path": "_IDS.-2-.category.blue.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.blue.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.blue.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.blue.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.blue.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.blue.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.blue.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-blue.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.blue.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.blue.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.blue.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.blue.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.blue.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-blue.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "purple": {
+          "fill": {
+            "path": "_IDS.-2-.category.purple.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.purple.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.purple.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.purple.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.purple.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.purple.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.purple.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-purple.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.purple.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.purple.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.purple.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.purple.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.purple.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-purple.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        },
+        "pink": {
+          "fill": {
+            "path": "_IDS.-2-.category.pink.fill",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.pink.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "fill-light": {
+            "path": "_IDS.-2-.category.pink.fill-light",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.pink.L10}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "border": {
+            "path": "_IDS.-2-.category.pink.border",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.pink.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "text": {
+            "path": "_IDS.-2-.category.pink.text",
+            "$type": "color",
+            "$value": "{_IDS.-1-.category.on-pink.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "disabled": {
+            "fill": {
+              "path": "_IDS.-2-.category.pink.disabled.fill",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.pink.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "border": {
+              "path": "_IDS.-2-.category.pink.disabled.border",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.pink.L20}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            },
+            "text": {
+              "path": "_IDS.-2-.category.pink.disabled.text",
+              "$type": "color",
+              "$value": "{_IDS.-1-.category.on-pink.on-disabled}",
+              "$scopes": [
+                "ALL_SCOPES"
+              ],
+              "$extensions": {
+                "tokenmanager": {
+                  "source": "figma-variables"
+                }
+              }
+            }
+          }
+        }
+      },
+      "text": {
+        "on-neutral": {
+          "display": {
+            "path": "_IDS.-2-.text.on-neutral.display",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark-accent-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "heading": {
+            "path": "_IDS.-2-.text.on-neutral.heading",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark-accent}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "heading-disabled": {
+            "path": "_IDS.-2-.text.on-neutral.heading-disabled",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark-accent-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "label": {
+            "path": "_IDS.-2-.text.on-neutral.label",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "label-disabled": {
+            "path": "_IDS.-2-.text.on-neutral.label-disabled",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "body": {
+            "path": "_IDS.-2-.text.on-neutral.body",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "body-disabled": {
+            "path": "_IDS.-2-.text.on-neutral.body-disabled",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "value": {
+            "path": "_IDS.-2-.text.on-neutral.value",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "value-placeholder": {
+            "path": "_IDS.-2-.text.on-neutral.value-placeholder",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "value-disabled": {
+            "path": "_IDS.-2-.text.on-neutral.value-disabled",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "value-emphasised": {
+            "path": "_IDS.-2-.text.on-neutral.value-emphasised",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-dark-accent}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "on-primary": {
+          "display": {
+            "path": "_IDS.-2-.text.on-primary.display",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "heading": {
+            "path": "_IDS.-2-.text.on-primary.heading",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "heading-disabled": {
+            "path": "_IDS.-2-.text.on-primary.heading-disabled",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "label": {
+            "path": "_IDS.-2-.text.on-primary.label",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "label-disabled": {
+            "path": "_IDS.-2-.text.on-primary.label-disabled",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "body": {
+            "path": "_IDS.-2-.text.on-primary.body",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "body-disabled": {
+            "path": "_IDS.-2-.text.on-primary.body-disabled",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "value": {
+            "path": "_IDS.-2-.text.on-primary.value",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "value-disabled": {
+            "path": "_IDS.-2-.text.on-primary.value-disabled",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light-disabled}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "value-emphasised": {
+            "path": "_IDS.-2-.text.on-primary.value-emphasised",
+            "$type": "color",
+            "$value": "{_IDS.-1-.text.text-light}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        }
+      },
+      "transparent": {
+        "path": "_IDS.-2-.transparent",
+        "$type": "color",
+        "$value": "{_IDS.-1-.transparent}",
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "source": "figma-variables"
+          }
+        }
+      },
+      "icon-default": {
+        "path": "_IDS.-2-.icon-default",
+        "$type": "color",
+        "$value": "{_IDS.-1-.icon-default}",
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "source": "figma-variables"
+          }
+        }
+      },
+      "mobile": {
+        "bg": {
+          "path": "_IDS.-2-.mobile.bg",
+          "$type": "color",
+          "$value": "{_IDS.-1-.mobile.doc-medium-bg}",
+          "$scopes": [
+            "ALL_SCOPES"
+          ],
+          "$extensions": {
+            "tokenmanager": {
+              "source": "figma-variables"
+            }
+          }
+        },
+        "overlay-bars-text": {
+          "path": "_IDS.-2-.mobile.overlay-bars-text",
+          "$type": "color",
+          "$value": "{_IDS.-1-.mobile.overlay-bars-text}",
+          "$scopes": [
+            "ALL_SCOPES"
+          ],
+          "$extensions": {
+            "tokenmanager": {
+              "source": "figma-variables"
+            }
+          }
+        }
+      },
+      "lines": {
+        "on-neutral": {
+          "subtle": {
+            "path": "_IDS.-2-.lines.on-neutral.subtle",
+            "$type": "color",
+            "$value": "{_IDS.-1-.lines.L40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "normal": {
+            "path": "_IDS.-2-.lines.on-neutral.normal",
+            "$type": "color",
+            "$value": "{_IDS.-1-.lines.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "strong": {
+            "path": "_IDS.-2-.lines.on-neutral.strong",
+            "$type": "color",
+            "$value": "{_IDS.-1-.lines.D40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "on-primary": {
+          "subtle": {
+            "path": "_IDS.-2-.lines.on-primary.subtle",
+            "$type": "color",
+            "$value": "{_IDS.-1-.lines.D40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "normal": {
+            "path": "_IDS.-2-.lines.on-primary.normal",
+            "$type": "color",
+            "$value": "{_IDS.-1-.lines.0}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "strong": {
+            "path": "_IDS.-2-.lines.on-primary.strong",
+            "$type": "color",
+            "$value": "{_IDS.-1-.lines.L40}",
+            "$scopes": [
+              "ALL_SCOPES"
+            ],
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -9,28 +9,23 @@ import type { TokenCollection } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 
 interface UseSyncStateParams {
-  serverUrl: string;
   connected: boolean;
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
-  currentCollectionId: string;
   setErrorToast: (msg: string) => void;
 }
 
 export function useSyncState({
-  serverUrl,
   connected,
   collections,
   perCollectionFlat,
   collectionMap,
   modeMap,
-  currentCollectionId: _currentCollectionId,
   setErrorToast,
 }: UseSyncStateParams) {
   const figmaSync = useFigmaSync(
-    serverUrl,
     connected,
     collections,
     perCollectionFlat,

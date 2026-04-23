@@ -39,10 +39,9 @@
 
   <script>
     const frame = document.getElementById('plugin-frame');
-    const serverUrl = new URLSearchParams(window.location.search).get('serverUrl');
-    if (serverUrl) {
-      frame.src = `/dist/ui.html?serverUrl=${encodeURIComponent(serverUrl)}`;
-    }
+    const requestedServerUrl = new URLSearchParams(window.location.search).get('serverUrl');
+    const resolvedServerUrl = requestedServerUrl || window.location.origin;
+    frame.src = `/dist/ui.html?serverUrl=${encodeURIComponent(resolvedServerUrl)}`;
     const logEl = document.getElementById('log');
     const statusEl = document.getElementById('status');
     const countEl = document.getElementById('msg-count');

@@ -15,8 +15,7 @@ export type TopTab =
   | "sync"
   | "export"
   | "versions";
-export type LibrarySubTab = "tokens" | "overview" | "health" | "history";
-export type LibraryScreenScope = "single" | "hybrid" | "cross";
+export type LibrarySubTab = "tokens" | "health" | "history";
 export type SubTab =
   | LibrarySubTab
   | "inspect"
@@ -111,8 +110,7 @@ export const TOP_TABS: {
     label: "Library",
     subTabs: [
       { id: "tokens", label: "Tokens" },
-      { id: "overview", label: "Overview" },
-      { id: "health", label: "Health" },
+      { id: "health", label: "Review" },
       { id: "history", label: "History" },
     ],
   },
@@ -148,16 +146,6 @@ export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   sync: "figma-sync",
   export: "export",
   versions: "versions",
-};
-
-export const LIBRARY_SCREEN_SCOPES: Record<
-  LibrarySubTab,
-  LibraryScreenScope
-> = {
-  tokens: "single",
-  overview: "single",
-  health: "hybrid",
-  history: "cross",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
@@ -473,23 +461,13 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         ),
       },
       {
-        id: "overview",
-        label: "Overview",
-        topTab: "library",
-        subTab: "overview",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Scan the token system at a glance.",
-        ),
-      },
-      {
         id: "health",
-        label: "Health",
+        label: "Review",
         topTab: "library",
         subTab: "health",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Review issues, dependencies, and token quality.",
+          "Review issues, cleanup opportunities, and token quality.",
         ),
       },
       {
@@ -505,7 +483,6 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     ],
     matchRoutes: [
       route("library", "tokens"),
-      route("library", "overview"),
       route("library", "health"),
       route("library", "history"),
     ],

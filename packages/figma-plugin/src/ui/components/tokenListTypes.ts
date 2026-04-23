@@ -8,7 +8,6 @@ import type {
 import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
-import type { CollectionHealthSummary } from "../hooks/useHealthSignals";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigationTypes";
 import type { TokenCollection } from "@tokenmanager/core";
@@ -121,7 +120,6 @@ export interface TokenListActions {
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
-  onSelectCollection?: (collectionId: string) => void;
   onTokenTouched?: (path: string) => void;
   onToggleStar?: (path: string) => void;
   /** Pre-filtered starred token paths for the current collection */
@@ -164,10 +162,6 @@ export interface TokenListActions {
   onOpenImportPanel?: () => void;
   /** Jump to Canvas → Selection and open the extract-tokens surface */
   onExtractFromSelection?: () => void;
-  /** Open the collection creation flow */
-  onOpenCreateCollection?: () => void;
-  /** Open the details panel for the active collection (wired to toolbar anchor) */
-  onOpenCollectionDetails?: (collectionId: string) => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */
@@ -204,9 +198,6 @@ export interface TokenListProps {
   editingTokenPath?: string | null;
   /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */
   compareHandle?: React.MutableRefObject<TokenListImperativeHandle | null>;
-  collectionHealth?: Map<string, CollectionHealthSummary>;
-  collectionPickerFocusRequestKey?: number;
-  onOpenHealth?: () => void;
 }
 
 export interface AffectedRef {

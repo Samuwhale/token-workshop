@@ -57,7 +57,6 @@ export type PublishPending =
   | { scope: 'collection'; collectionId: string; tokenCount: number };
 
 export function useFigmaSync(
-  serverUrl: string,
   connected: boolean,
   collections: TokenCollection[],
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,

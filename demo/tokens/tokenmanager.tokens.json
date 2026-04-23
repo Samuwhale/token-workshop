@@ -1,0 +1,147 @@
+{
+  "colors": {
+    "50": {
+      "path": "colors.50",
+      "$type": "color",
+      "$value": "#444444",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "100": {
+      "path": "colors.100",
+      "$type": "color",
+      "$value": "#fec5c4",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "200": {
+      "path": "colors.200",
+      "$type": "color",
+      "$value": "#f89f9f",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "300": {
+      "path": "colors.300",
+      "$type": "color",
+      "$value": "#3a2222",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "400": {
+      "path": "colors.400",
+      "$type": "color",
+      "$value": "#c36f70",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "500": {
+      "path": "colors.500",
+      "$type": "color",
+      "$value": "#aa595b",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "600": {
+      "path": "colors.600",
+      "$type": "color",
+      "$value": "#934548",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "700": {
+      "path": "colors.700",
+      "$type": "color",
+      "$value": "#7c3136",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "800": {
+      "path": "colors.800",
+      "$type": "color",
+      "$value": "#671e25",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "900": {
+      "path": "colors.900",
+      "$type": "color",
+      "$value": "#431a1c",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    },
+    "950": {
+      "path": "colors.950",
+      "$type": "color",
+      "$value": "#181818",
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "source": "figma-variables"
+        }
+      }
+    }
+  }
+}

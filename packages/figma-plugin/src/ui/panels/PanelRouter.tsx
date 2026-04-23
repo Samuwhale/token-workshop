@@ -18,7 +18,6 @@ import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenDetails } from "../components/TokenDetails";
 import { GeneratedGroupEditor } from "../components/GeneratedGroupEditor";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
-import { LibraryCollectionPicker } from "../components/LibraryCollectionPicker";
 import { PublishPanel } from "../components/PublishPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 import { useResizableBoundary } from "../hooks/useResizableBoundary";
@@ -36,13 +35,14 @@ import { HealthPanel } from "../components/HealthPanel";
 import type { HealthScope } from "../components/health/types";
 import type { HistoryScope } from "../components/history/types";
 import { ColorAnalysisPanel } from "../components/ColorAnalysisPanel";
-import { OverviewPanel } from "../components/OverviewPanel";
 import { FeedbackPlaceholder } from "../components/FeedbackPlaceholder";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { NotificationsPanel } from "../components/NotificationsPanel";
 import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { PanelContentHeader } from "../components/PanelContentHeader";
+import { LibraryCollectionsRail } from "../components/library/LibraryCollectionsRail";
+import { LibraryWorkspaceHeader } from "../components/library/LibraryWorkspaceHeader";
 import {
   useConnectionContext,
   useSyncContext,
@@ -91,7 +91,6 @@ import type {
 } from "../shared/navigationTypes";
 import {
   getMostRelevantImportDestinationCollection,
-  LIBRARY_SCREEN_SCOPES,
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
 import {
@@ -610,48 +609,51 @@ export function PanelRouter({
         return;
       }
 
-      setTokenDetails((current) => {
-        const nextHistory: TokenContextNavigationHistoryEntry[] = current
-          ? [
-              ...(current.navigationHistory ?? []),
-              {
-                path: current.path,
-                collectionId: current.collectionId,
-                mode: current.mode,
-                name: current.name ?? current.path.split(".").pop() ?? current.path,
-              },
-            ]
-          : [];
-        const nextMode =
-          targetCollectionId === currentCollectionId ? options.mode : "inspect";
-        return buildTokenContextTarget({
-          request: {
-            path: options.path,
-            collectionId: targetCollectionId,
-            mode: options.mode,
-            origin: current?.origin ?? "token-details",
-            returnLabel: current?.backLabel,
-            navigationHistory: nextHistory,
-          },
-          mode: nextMode,
-          currentCollectionId,
-          preserveHandoff: Boolean(current?.backLabel),
-          navigateTo,
-          switchContextualSurface,
-          setCurrentCollectionId,
-          setHighlightedToken,
-          returnFromHandoff,
+      guardEditorAction(() => {
+        setTokenDetails((current) => {
+          const nextHistory: TokenContextNavigationHistoryEntry[] = current
+            ? [
+                ...(current.navigationHistory ?? []),
+                {
+                  path: current.path,
+                  collectionId: current.collectionId,
+                  mode: current.mode,
+                  name: current.name ?? current.path.split(".").pop() ?? current.path,
+                },
+              ]
+            : [];
+          const nextMode =
+            targetCollectionId === currentCollectionId ? options.mode : "inspect";
+          return buildTokenContextTarget({
+            request: {
+              path: options.path,
+              collectionId: targetCollectionId,
+              mode: options.mode,
+              origin: current?.origin ?? "token-details",
+              returnLabel: current?.backLabel,
+              navigationHistory: nextHistory,
+            },
+            mode: nextMode,
+            currentCollectionId,
+            preserveHandoff: Boolean(current?.backLabel),
+            navigateTo,
+            switchContextualSurface,
+            setCurrentCollectionId,
+            setHighlightedToken,
+            returnFromHandoff,
+          });
         });
+        if (targetCollectionId === currentCollectionId) {
+          setHighlightedToken(options.path);
+        } else {
+          setHighlightedToken(null);
+        }
       });
-      if (targetCollectionId === currentCollectionId) {
-        setHighlightedToken(options.path);
-      } else {
-        setHighlightedToken(null);
-      }
     },
     [
       collectionIdsByPath,
       currentCollectionId,
+      guardEditorAction,
       navigateTo,
       pathToCollectionId,
       returnFromHandoff,
@@ -974,17 +976,6 @@ export function PanelRouter({
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
     onExtractFromSelection: controller.triggerExtractFromSelection,
-    onOpenCreateCollection: controller.onOpenCollectionCreateDialog,
-    onSelectCollection: (collectionId: string) => {
-      if (collectionId !== currentCollectionId) {
-        setCurrentCollectionId(collectionId);
-      }
-    },
-    onOpenCollectionDetails: (collectionId: string) =>
-      switchContextualSurface({
-        surface: "collection-details",
-        collection: { collectionId },
-      }),
   };
 
   const tokenDetailsProps = tokenDetails
@@ -1016,7 +1007,6 @@ export function PanelRouter({
         derivedTokenPaths,
         onNavigateToToken: (
           path: string,
-          fromPath?: string,
           collectionId?: string,
         ) =>
           openLinkedTokenInDetails({
@@ -1381,9 +1371,6 @@ export function PanelRouter({
         showIssuesOnly={controller.showIssuesOnly}
         editingTokenPath={tokenDetails?.mode === "edit" ? tokenDetails.path : null}
         compareHandle={controller.tokenListCompareRef}
-        collectionHealth={healthSignals.byCollection}
-        collectionPickerFocusRequestKey={shell.collectionPickerFocusRequestKey}
-        onOpenHealth={() => openCollectionIssues(currentCollectionId)}
       />
     </div>
   );
@@ -1624,7 +1611,6 @@ export function PanelRouter({
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     library: {
       tokens: renderLibraryTokens,
-      overview: renderLibraryOverview,
       health: renderLibraryHealth,
       history: renderLibraryHistory,
     },
@@ -1681,49 +1667,61 @@ export function PanelRouter({
   // Panel render functions — each closes over context + props
   // ---------------------------------------------------------------------------
 
-  function renderCollectionPicker(
-    triggerClassName: string,
-    focusRequestKey = 0,
-  ): ReactNode {
+  function handleLibraryCollectionSelect(collectionId: string): void {
+    if (collectionId !== currentCollectionId) {
+      setCurrentCollectionId(collectionId);
+    }
+
+    if (activeTopTab !== "library") {
+      return;
+    }
+
+    if (activeSubTab === "health") {
+      setHealthScope({
+        ...healthScope,
+        mode: "current",
+        collectionId,
+        tokenPath: null,
+        view: "dashboard",
+        nonce: Date.now(),
+      });
+      return;
+    }
+
+    if (activeSubTab === "history") {
+      setHistoryScope({
+        ...historyScope,
+        mode: "current",
+        collectionId,
+        tokenPath: null,
+      });
+    }
+  }
+
+  function renderLibraryCollectionsRail(): ReactNode {
     return (
-      <LibraryCollectionPicker
+      <LibraryCollectionsRail
         collections={collections}
         currentCollectionId={currentCollectionId}
         collectionDisplayNames={collectionMap}
         collectionTokenCounts={collectionTokenCounts}
         collectionHealth={healthSignals.byCollection}
-        focusRequestKey={focusRequestKey}
-        onSelectCollection={(collectionId) => {
-          if (collectionId !== currentCollectionId) {
-            setCurrentCollectionId(collectionId);
-          }
-        }}
+        focusRequestKey={shell.collectionPickerFocusRequestKey}
+        onSelectCollection={handleLibraryCollectionSelect}
         onOpenCreateCollection={controller.onOpenCollectionCreateDialog}
+        onOpenImport={controller.onShowImportPanel}
         onManageCollection={(collectionId) =>
           switchContextualSurface({
             surface: "collection-details",
             collection: { collectionId },
           })
         }
-        triggerClassName={triggerClassName}
       />
     );
   }
 
-  function renderLibraryCollectionHeader(): ReactNode {
-    return (
-      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
-        {renderCollectionPicker(
-          "inline-flex min-w-0 max-w-full items-center gap-1 rounded px-1.5 py-1 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]",
-          shell.collectionPickerFocusRequestKey,
-        )}
-      </div>
-    );
-  }
-
   /**
-   * Shared scaffold for Library sections scoped to a single collection (Tokens,
-   * Overview). Keeps token editing as the same canonical surface, but
+   * Shared scaffold for Library sections. Keeps token editing as the same canonical surface, but
    * changes presentation based on section and available width.
    */
   function renderLibraryScaffold({
@@ -1732,10 +1730,9 @@ export function PanelRouter({
     header,
   }: {
     body: ReactNode;
-    section: "tokens" | "overview";
+    section: "tokens" | "health" | "history";
     header?: ReactNode;
   }): ReactNode {
-    const sectionScope = LIBRARY_SCREEN_SCOPES[section];
     const editorSurfaceState = getEditorSurfaceRenderState();
     const maintenanceSurfaceState = getMaintenanceSurfaceRenderState();
 
@@ -1762,21 +1759,16 @@ export function PanelRouter({
       collectionDetailsState ??
       (tokenEditorState && !canSplitTokenEditor ? tokenEditorState : null);
     const hideBodyForTakeover = !!takeoverSurfaceState;
-    const visibleHeader = takeoverSurfaceState
-      ? sectionScope !== "cross" &&
-        section === "tokens" &&
-        tokenEditorState &&
-        !canSplitTokenEditor
-        ? renderLibraryCollectionHeader()
-        : null
-      : header;
+    const visibleHeader = takeoverSurfaceState ? null : header;
 
     return (
       <div
         ref={libraryScaffoldWidth.ref}
         className="flex h-full min-h-0 overflow-hidden"
       >
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {renderLibraryCollectionsRail()}
+        <div className="flex min-h-0 min-w-0 flex-1 bg-[var(--color-figma-bg)]">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           {(fetchError || tokensError) && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 shrink-0">
               <AlertCircle size={10} strokeWidth={2} className="text-[var(--color-figma-error)] shrink-0" aria-hidden />
@@ -1843,6 +1835,69 @@ export function PanelRouter({
             body
           )}
         </div>
+        </div>
+      </div>
+    );
+  }
+
+  function getCollectionHeadline(collectionId: string): {
+    title: string;
+    summary: string;
+    meta: ReactNode;
+  } {
+    const collection = collections.find((item) => item.id === collectionId) ?? null;
+    const collectionName = (collectionMap[collectionId] ?? collectionId) || "Library";
+    const description = collectionDescriptions[collectionId]?.trim();
+    const tokenCount = collectionTokenCounts[collectionId] ?? 0;
+    const modeCount = collection?.modes.length ?? 0;
+    const healthSummary = healthSignals.byCollection.get(collectionId);
+    const reviewStatus =
+      healthSummary?.actionable
+        ? `${healthSummary.actionable} item${healthSummary.actionable === 1 ? "" : "s"} need attention`
+        : "Ready for review";
+
+    const summary =
+      description ||
+      (modeCount > 1
+        ? `Author tokens for ${collectionName} across all ${modeCount} modes without hiding values.`
+        : `Author and review the ${collectionName} collection in one calm workspace.`);
+
+    return {
+      title: collectionName,
+      summary,
+      meta: (
+        <>
+          <span>{tokenCount} token{tokenCount === 1 ? "" : "s"}</span>
+          <span>{Math.max(modeCount, 1)} mode{modeCount === 1 ? "" : "s"}</span>
+          <span>{reviewStatus}</span>
+        </>
+      ),
+    };
+  }
+
+  function renderScopeToggle<T extends "current" | "all">(
+    value: T,
+    onChange: (next: T) => void,
+  ): ReactNode {
+    return (
+      <div className="inline-flex rounded-md bg-[var(--color-figma-bg-secondary)] p-0.5">
+        {([
+          { value: "current" as const, label: "Current collection" },
+          { value: "all" as const, label: "Library wide" },
+        ]).map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value as T)}
+            className={`rounded px-2.5 py-1 text-secondary transition-colors ${
+              value === option.value
+                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
     );
   }
@@ -1852,6 +1907,10 @@ export function PanelRouter({
       collections.length === 0 &&
       !createFromEmpty &&
       !tokenDetails;
+    const collectionHeadline =
+      currentCollectionId && collections.length > 0
+        ? getCollectionHeadline(currentCollectionId)
+        : null;
 
     const inner = tokensEmpty ? (
       <FeedbackPlaceholder
@@ -1872,6 +1931,31 @@ export function PanelRouter({
     const body =
       collections.length > 0 ? (
         <div className="flex h-full min-h-0 flex-col">
+          {collectionHeadline ? (
+            <LibraryWorkspaceHeader
+              title={collectionHeadline.title}
+              summary={collectionHeadline.summary}
+              meta={collectionHeadline.meta}
+              actions={
+                <>
+                  <button
+                    type="button"
+                    onClick={controller.onShowImportPanel}
+                    className="rounded-md px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
+                  >
+                    Import
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openCreateLauncher({ currentCollectionId })}
+                    className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+                  >
+                    New token
+                  </button>
+                </>
+              }
+            />
+          ) : null}
           <LibraryPostSetupHint
             onGoToCanvas={() => navigateTo("canvas", "inspect")}
             onGoToSync={() => navigateTo("sync", "figma-sync")}
@@ -1886,90 +1970,118 @@ export function PanelRouter({
     return renderLibraryScaffold({ body, section: "tokens" });
   }
 
-  function renderLibraryOverview(): ReactNode {
-    const collectionTokens = perCollectionFlat[currentCollectionId] ?? {};
-    const body = (
-      <div className="h-full min-h-0 overflow-hidden">
-        <ErrorBoundary
-          panelName="Overview"
-          onReset={() => navigateTo("library", "tokens")}
-        >
-          <OverviewPanel
-            tokens={collectionTokens}
-            onNavigateToToken={(path) => {
-              controller.guardEditorAction(() => {
-                switchContextualSurface({
-                  surface: "token-details",
-                  token: {
-                    path,
-                    collectionId: currentCollectionId,
-                    mode: "inspect",
-                  },
-                });
-              });
-              setHighlightedToken(path);
-            }}
-          />
-        </ErrorBoundary>
-      </div>
-    );
-    return renderLibraryScaffold({
-      body,
-      section: "overview",
-      header: renderLibraryCollectionHeader(),
-    });
-  }
-
   function renderLibraryHealth(): ReactNode {
+    const scopedCollectionId =
+      healthScope.mode === "current"
+        ? healthScope.collectionId ?? currentCollectionId
+        : currentCollectionId;
+    const scopedCollectionHeadline =
+      scopedCollectionId && collections.some((collection) => collection.id === scopedCollectionId)
+        ? getCollectionHeadline(scopedCollectionId)
+        : null;
+    const reviewSummary =
+      healthScope.mode === "all"
+        ? `${healthSignals.overall.issueCount} issue${healthSignals.overall.issueCount === 1 ? "" : "s"} across the library. Prioritize fixes collection by collection.`
+        : scopedCollectionHeadline
+          ? `${healthSignals.byCollection.get(scopedCollectionId)?.actionable ?? 0} review item${(healthSignals.byCollection.get(scopedCollectionId)?.actionable ?? 0) === 1 ? "" : "s"} in ${scopedCollectionHeadline.title}.`
+          : "Review issues, duplicates, aliases, and cleanup opportunities.";
     const body = (
       <div className="h-full min-h-0 overflow-hidden">
         <ErrorBoundary
-          panelName="Health"
+          panelName="Review"
           onReset={() => navigateTo("library", "tokens")}
         >
-            <HealthPanel
-              serverUrl={serverUrl}
-              connected={connected}
-              workingCollectionId={currentCollectionId}
-              collectionIds={collectionIds}
-              healthSignals={healthSignals}
-              allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToCollectionId}
+          <HealthPanel
+            serverUrl={serverUrl}
+            connected={connected}
+            workingCollectionId={currentCollectionId}
+            collectionIds={collectionIds}
+            healthSignals={healthSignals}
+            allTokensFlat={allTokensFlat}
+            pathToCollectionId={pathToCollectionId}
             perCollectionFlat={perCollectionFlat}
             tokenUsageCounts={tokenUsageCounts}
-              tokenUsageReady={hasTokenUsageScanResult}
-              heatmapResult={heatmapResult}
-              onNavigateToToken={(path, collectionId) => {
-                openTokenInContext({
-                  path,
-                  collectionId,
-                  mode: "inspect",
-                  origin: "health",
-                  returnLabel: "Back to Health",
-                });
-              }}
+            tokenUsageReady={hasTokenUsageScanResult}
+            heatmapResult={heatmapResult}
+            onNavigateToToken={(path, collectionId) => {
+              openTokenInContext({
+                path,
+                collectionId,
+                mode: "inspect",
+                origin: "health",
+                returnLabel: "Back to Review",
+              });
+            }}
             validationIssues={controller.validationIssues}
             validationLoading={controller.validationLoading}
             validationError={controller.validationError}
             validationLastRefreshed={controller.validationLastRefreshed}
             validationIsStale={controller.validationIsStale}
             onRefreshValidation={controller.refreshValidation}
-              onPushUndo={controller.pushUndo}
-              onError={controller.setErrorToast}
-              onNavigateToGenerators={() => navigateTo("library", "tokens")}
-              scope={healthScope}
-              onScopeChange={setHealthScope}
-              issueActions={issueActions}
-            />
+            onPushUndo={controller.pushUndo}
+            onError={controller.setErrorToast}
+            onNavigateToGenerators={() => navigateTo("library", "tokens")}
+            scope={healthScope}
+            onScopeChange={setHealthScope}
+            issueActions={issueActions}
+          />
         </ErrorBoundary>
       </div>
     );
 
-    return body;
+    return renderLibraryScaffold({
+      body,
+      section: "health",
+      header: (
+        <LibraryWorkspaceHeader
+          title={healthScope.mode === "all" ? "Library review" : `${scopedCollectionHeadline?.title ?? "Collection"} review`}
+          summary={reviewSummary}
+          meta={
+            healthScope.mode === "all"
+              ? (
+                  <>
+                    <span>{healthSignals.overall.issueCount} issues</span>
+                    <span>{healthSignals.byCollection.size} collections</span>
+                    <span>Fix next, then clean up</span>
+                  </>
+                )
+              : scopedCollectionHeadline?.meta
+          }
+          controls={renderScopeToggle(healthScope.mode, (nextMode) => {
+            setHealthScope({
+              ...healthScope,
+              mode: nextMode,
+              collectionId:
+                nextMode === "current" ? scopedCollectionId || currentCollectionId || null : null,
+              view: "dashboard",
+              tokenPath: null,
+              nonce: Date.now(),
+            });
+          })}
+          actions={
+            <button
+              type="button"
+              onClick={() => void controller.refreshValidation()}
+              className="rounded-md px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
+            >
+              Check now
+            </button>
+          }
+        />
+      ),
+    });
   }
 
   function renderLibraryHistory(): ReactNode {
-    return (
+    const scopedCollectionId =
+      historyScope.mode === "current"
+        ? historyScope.collectionId ?? currentCollectionId
+        : currentCollectionId;
+    const scopedCollectionHeadline =
+      scopedCollectionId && collections.some((collection) => collection.id === scopedCollectionId)
+        ? getCollectionHeadline(scopedCollectionId)
+        : null;
+    const body = (
       <div className="h-full min-h-0 overflow-hidden">
         <ErrorBoundary
           panelName="Changes"
@@ -1993,11 +2105,44 @@ export function PanelRouter({
             redoableOpIds={controller.redoableOpIds}
             onServerRedo={controller.handleServerRedo}
             executeUndo={controller.executeUndo}
-            canUndo={controller.canUndo}
           />
         </ErrorBoundary>
       </div>
     );
+
+    return renderLibraryScaffold({
+      body,
+      section: "history",
+      header: (
+        <LibraryWorkspaceHeader
+          title={historyScope.view === "saved" ? "Checkpoints" : "History"}
+          summary={
+            historyScope.mode === "all"
+              ? "Review recent edits and saved checkpoints across the entire library without wading through filter-heavy chrome."
+              : `Review ${historyScope.view === "saved" ? "checkpoints" : "recent changes"} for ${scopedCollectionHeadline?.title ?? "the current collection"}.`
+          }
+          meta={
+            historyScope.mode === "all"
+              ? (
+                  <>
+                    <span>Library wide</span>
+                    <span>{controller.totalOperations ?? 0} recorded changes</span>
+                  </>
+                )
+              : scopedCollectionHeadline?.meta
+          }
+          controls={renderScopeToggle(historyScope.mode, (nextMode) => {
+            setHistoryScope({
+              ...historyScope,
+              mode: nextMode,
+              collectionId:
+                nextMode === "current" ? scopedCollectionId || currentCollectionId || null : null,
+              tokenPath: null,
+            });
+          })}
+        />
+      ),
+    });
   }
   function renderSyncFigmaSync(): ReactNode {
     const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;

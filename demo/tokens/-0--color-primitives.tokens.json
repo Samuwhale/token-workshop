@@ -1,0 +1,1042 @@
+{
+  "_IDS": {
+    "-0-": {
+      "brand": {
+        "petrol": {
+          "D60": {
+            "path": "_IDS.-0-.brand.petrol.D60",
+            "$type": "color",
+            "$value": "#06242c",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.brand.petrol.D40",
+            "$type": "color",
+            "$value": "#093542",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D20": {
+            "path": "_IDS.-0-.brand.petrol.D20",
+            "$type": "color",
+            "$value": "#0c4758",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "0-100b": {
+            "path": "_IDS.-0-.brand.petrol.0-100b",
+            "$type": "color",
+            "$value": "#0f596e",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L20-80b": {
+            "path": "_IDS.-0-.brand.petrol.L20-80b",
+            "$type": "color",
+            "$value": "#3f7a8b",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40-60b": {
+            "path": "_IDS.-0-.brand.petrol.L40-60b",
+            "$type": "color",
+            "$value": "#6f9ba8",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L60": {
+            "path": "_IDS.-0-.brand.petrol.L60",
+            "$type": "color",
+            "$value": "#9fbdc5",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L70-30b": {
+            "path": "_IDS.-0-.brand.petrol.L70-30b",
+            "$type": "color",
+            "$value": "#b7cdd3",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.brand.petrol.L80",
+            "$type": "color",
+            "$value": "#cfdee2",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L90": {
+            "path": "_IDS.-0-.brand.petrol.L90",
+            "$type": "color",
+            "$value": "#e7eef0",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L95": {
+            "path": "_IDS.-0-.brand.petrol.L95",
+            "$type": "color",
+            "$value": "#f3f7f8",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "secundair-licht-petrol": {
+          "D60": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.D60",
+            "$type": "color",
+            "$value": "#003c47",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.D40",
+            "$type": "color",
+            "$value": "#005b6a",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D20": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.D20",
+            "$type": "color",
+            "$value": "#00798e",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "0-100b": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.0-100b",
+            "$type": "color",
+            "$value": "#0097b1",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L20-80b": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.L20-80b",
+            "$type": "color",
+            "$value": "#33acc1",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40-60b": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.L40-60b",
+            "$type": "color",
+            "$value": "#66c1d0",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L60": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.L60",
+            "$type": "color",
+            "$value": "#99d5e0",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L70-30b": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.L70-30b",
+            "$type": "color",
+            "$value": "#b2e0e8",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.L80",
+            "$type": "color",
+            "$value": "#cceaef",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L90": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.L90",
+            "$type": "color",
+            "$value": "#e5f5f7",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L95": {
+            "path": "_IDS.-0-.brand.secundair-licht-petrol.L95",
+            "$type": "color",
+            "$value": "#f2fafb",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "oranje": {
+          "D60": {
+            "path": "_IDS.-0-.brand.oranje.D60",
+            "$type": "color",
+            "$value": "#5e2607",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.brand.oranje.D40",
+            "$type": "color",
+            "$value": "#8d3a0b",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D20": {
+            "path": "_IDS.-0-.brand.oranje.D20",
+            "$type": "color",
+            "$value": "#bc4d0e",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "0-100b": {
+            "path": "_IDS.-0-.brand.oranje.0-100b",
+            "$type": "color",
+            "$value": "#eb6012",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L20-80b": {
+            "path": "_IDS.-0-.brand.oranje.L20-80b",
+            "$type": "color",
+            "$value": "#ef8041",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40-60b": {
+            "path": "_IDS.-0-.brand.oranje.L40-60b",
+            "$type": "color",
+            "$value": "#f3a071",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L60": {
+            "path": "_IDS.-0-.brand.oranje.L60",
+            "$type": "color",
+            "$value": "#f7bfa0",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L70-30b": {
+            "path": "_IDS.-0-.brand.oranje.L70-30b",
+            "$type": "color",
+            "$value": "#f9d0b8",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.brand.oranje.L80",
+            "$type": "color",
+            "$value": "#fbdfd0",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L90": {
+            "path": "_IDS.-0-.brand.oranje.L90",
+            "$type": "color",
+            "$value": "#fdefe7",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L95": {
+            "path": "_IDS.-0-.brand.oranje.L95",
+            "$type": "color",
+            "$value": "#fef7f3",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "transparent-10": {
+            "path": "_IDS.-0-.brand.oranje.transparent-10",
+            "$type": "color",
+            "$value": "{_IDS.-0-.generic._obsolete}",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "grijs": {
+          "D60": {
+            "path": "_IDS.-0-.brand.grijs.D60",
+            "$type": "color",
+            "$value": "#272726",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.brand.grijs.D40",
+            "$type": "color",
+            "$value": "#3a3a3a",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D20": {
+            "path": "_IDS.-0-.brand.grijs.D20",
+            "$type": "color",
+            "$value": "#4e4e4d",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "0-100b": {
+            "path": "_IDS.-0-.brand.grijs.0-100b",
+            "$type": "color",
+            "$value": "#616160",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L20-80b": {
+            "path": "_IDS.-0-.brand.grijs.L20-80b",
+            "$type": "color",
+            "$value": "#818180",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40-60b": {
+            "path": "_IDS.-0-.brand.grijs.L40-60b",
+            "$type": "color",
+            "$value": "#a0a0a0",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L60": {
+            "path": "_IDS.-0-.brand.grijs.L60",
+            "$type": "color",
+            "$value": "#c0c0bf",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L70-30b": {
+            "path": "_IDS.-0-.brand.grijs.L70-30b",
+            "$type": "color",
+            "$value": "#d0d0cf",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.brand.grijs.L80",
+            "$type": "color",
+            "$value": "#dfdfdf",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L90": {
+            "path": "_IDS.-0-.brand.grijs.L90",
+            "$type": "color",
+            "$value": "#efefef",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L95": {
+            "path": "_IDS.-0-.brand.grijs.L95",
+            "$type": "color",
+            "$value": "#f7f7f7",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        }
+      },
+      "additional": {
+        "neutral": {
+          "0": {
+            "path": "_IDS.-0-.additional.neutral.0",
+            "$type": "color",
+            "$value": "#ffffff",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D100": {
+            "path": "_IDS.-0-.additional.neutral.D100",
+            "$type": "color",
+            "$value": "#cceaef",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D80": {
+            "path": "_IDS.-0-.additional.neutral.D80",
+            "$type": "color",
+            "$value": "#d6eef2",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D60": {
+            "path": "_IDS.-0-.additional.neutral.D60",
+            "$type": "color",
+            "$value": "#e0f2f5",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.additional.neutral.D40",
+            "$type": "color",
+            "$value": "#ebf7f9",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D30": {
+            "path": "_IDS.-0-.additional.neutral.D30",
+            "$type": "color",
+            "$value": "#f0f9fb",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D20": {
+            "path": "_IDS.-0-.additional.neutral.D20",
+            "$type": "color",
+            "$value": "#f5fbfc",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D10": {
+            "path": "_IDS.-0-.additional.neutral.D10",
+            "$type": "color",
+            "$value": "#fafdfe",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "neutral dark": {
+          "0": {
+            "path": "_IDS.-0-.additional.neutral dark.0",
+            "$type": "color",
+            "$value": "#000000",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L100": {
+            "path": "_IDS.-0-.additional.neutral dark.L100",
+            "$type": "color",
+            "$value": "#003c47",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.additional.neutral dark.L80",
+            "$type": "color",
+            "$value": "#003039",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L60": {
+            "path": "_IDS.-0-.additional.neutral dark.L60",
+            "$type": "color",
+            "$value": "#00242b",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.additional.neutral dark.L40",
+            "$type": "color",
+            "$value": "#00181c",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L30": {
+            "path": "_IDS.-0-.additional.neutral dark.L30",
+            "$type": "color",
+            "$value": "#001215",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L20": {
+            "path": "_IDS.-0-.additional.neutral dark.L20",
+            "$type": "color",
+            "$value": "#000c0e",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L10": {
+            "path": "_IDS.-0-.additional.neutral dark.L10",
+            "$type": "color",
+            "$value": "#000607",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        }
+      },
+      "rainbow": {
+        "red": {
+          "0": {
+            "path": "_IDS.-0-.rainbow.red.0",
+            "$type": "color",
+            "$value": "#b71c1c",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.rainbow.red.L80",
+            "$type": "color",
+            "$value": "#f7caca",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.rainbow.red.L40",
+            "$type": "color",
+            "$value": "#e76464",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.rainbow.red.D40",
+            "$type": "color",
+            "$value": "#6f1111",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "orange": {
+          "0": {
+            "path": "_IDS.-0-.rainbow.orange.0",
+            "$type": "color",
+            "$value": "#e78622",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.rainbow.orange.L80",
+            "$type": "color",
+            "$value": "#fae6d1",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.rainbow.orange.L40",
+            "$type": "color",
+            "$value": "#f1b67a",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.rainbow.orange.D40",
+            "$type": "color",
+            "$value": "#aa4c09",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "yellow": {
+          "0": {
+            "path": "_IDS.-0-.rainbow.yellow.0",
+            "$type": "color",
+            "$value": "#fed710",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.rainbow.yellow.L80",
+            "$type": "color",
+            "$value": "#fff7d1",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.rainbow.yellow.L40",
+            "$type": "color",
+            "$value": "#feeb8b",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D20": {
+            "path": "_IDS.-0-.rainbow.yellow.D20",
+            "$type": "color",
+            "$value": "#dab601",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.rainbow.yellow.D40",
+            "$type": "color",
+            "$value": "#b27700",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "green": {
+          "0": {
+            "path": "_IDS.-0-.rainbow.green.0",
+            "$type": "color",
+            "$value": "#2e7d43",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.rainbow.green.L80",
+            "$type": "color",
+            "$value": "#cfedd7",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.rainbow.green.L40",
+            "$type": "color",
+            "$value": "#6ac883",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.rainbow.green.D40",
+            "$type": "color",
+            "$value": "#1b4b29",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "teal": {
+          "0": {
+            "path": "_IDS.-0-.rainbow.teal.0",
+            "$type": "color",
+            "$value": "#228989",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.rainbow.teal.L80",
+            "$type": "color",
+            "$value": "#caf2f2",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.rainbow.teal.L40",
+            "$type": "color",
+            "$value": "#5cd6d6",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.rainbow.teal.D40",
+            "$type": "color",
+            "$value": "#145252",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "blue": {
+          "0": {
+            "path": "_IDS.-0-.rainbow.blue.0",
+            "$type": "color",
+            "$value": "#1957d2",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.rainbow.blue.L80",
+            "$type": "color",
+            "$value": "#cddcf9",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.rainbow.blue.L40",
+            "$type": "color",
+            "$value": "#6d98ee",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.rainbow.blue.D40",
+            "$type": "color",
+            "$value": "#0f3580",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "purple": {
+          "0": {
+            "path": "_IDS.-0-.rainbow.purple.0",
+            "$type": "color",
+            "$value": "#8519d2",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.rainbow.purple.L80",
+            "$type": "color",
+            "$value": "#e7cdf9",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.rainbow.purple.L40",
+            "$type": "color",
+            "$value": "#b86dee",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.rainbow.purple.D40",
+            "$type": "color",
+            "$value": "#510f80",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        },
+        "pink": {
+          "0": {
+            "path": "_IDS.-0-.rainbow.pink.0",
+            "$type": "color",
+            "$value": "#e50cc1",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L80": {
+            "path": "_IDS.-0-.rainbow.pink.L80",
+            "$type": "color",
+            "$value": "#fccaf4",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "L40": {
+            "path": "_IDS.-0-.rainbow.pink.L40",
+            "$type": "color",
+            "$value": "#f764de",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          },
+          "D40": {
+            "path": "_IDS.-0-.rainbow.pink.D40",
+            "$type": "color",
+            "$value": "#880772",
+            "$extensions": {
+              "tokenmanager": {
+                "source": "figma-variables"
+              }
+            }
+          }
+        }
+      },
+      "generic": {
+        "_pure-white": {
+          "path": "_IDS.-0-.generic._pure-white",
+          "$type": "color",
+          "$value": "#ffffff",
+          "$extensions": {
+            "tokenmanager": {
+              "source": "figma-variables"
+            }
+          }
+        },
+        "_pure-black": {
+          "path": "_IDS.-0-.generic._pure-black",
+          "$type": "color",
+          "$value": "#000000",
+          "$extensions": {
+            "tokenmanager": {
+              "source": "figma-variables"
+            }
+          }
+        },
+        "_pure-transparent": {
+          "path": "_IDS.-0-.generic._pure-transparent",
+          "$type": "color",
+          "$value": "#ffffff00",
+          "$extensions": {
+            "tokenmanager": {
+              "source": "figma-variables"
+            }
+          }
+        },
+        "_obsolete": {
+          "path": "_IDS.-0-.generic._obsolete",
+          "$type": "color",
+          "$value": "#ff5bb0",
+          "$extensions": {
+            "tokenmanager": {
+              "source": "figma-variables"
+            }
+          }
+        },
+        "_not-connected": {
+          "path": "_IDS.-0-.generic._not-connected",
+          "$type": "color",
+          "$value": "#dd53ff",
+          "$extensions": {
+            "tokenmanager": {
+              "source": "figma-variables"
+            }
+          }
+        },
+        "_todo": {
+          "path": "_IDS.-0-.generic._todo",
+          "$type": "color",
+          "$value": "#9203b6",
+          "$extensions": {
+            "tokenmanager": {
+              "source": "figma-variables"
+            }
+          }
+        }
+      }
+    }
+  }
+}

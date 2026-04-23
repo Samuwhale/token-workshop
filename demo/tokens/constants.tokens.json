@@ -1,0 +1,1804 @@
+{
+  "breakpoint": {
+    "media-breakpoint": {
+      "path": "breakpoint.media-breakpoint",
+      "$type": "number",
+      "$value": 1440,
+      "$scopes": [
+        "ALL_SCOPES"
+      ],
+      "$extensions": {
+        "tokenmanager": {
+          "modes": {
+            "constants": {
+              "Tablet": 1440,
+              "Mobile": 1440
+            }
+          },
+          "source": "figma-variables"
+        }
+      }
+    }
+  },
+  "text": {
+    "font-family": {
+      "display": {
+        "path": "text.font-family.display",
+        "$type": "fontFamily",
+        "$value": "Prompt",
+        "$description": "Use for large marketing like headings",
+        "$scopes": [
+          "FONT_FAMILY"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "Prompt",
+                "Mobile": "Bruno Ace"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "header": {
+        "path": "text.font-family.header",
+        "$type": "fontFamily",
+        "$value": "Inter",
+        "$description": "Use for titles of sections on a screen",
+        "$scopes": [
+          "FONT_FAMILY"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "Inter",
+                "Mobile": "Inter"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "body": {
+        "path": "text.font-family.body",
+        "$type": "fontFamily",
+        "$value": "Inter",
+        "$description": "Use for displaying paragraphs of text.",
+        "$scopes": [
+          "FONT_FAMILY"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "Inter",
+                "Mobile": "Inter"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "label": {
+        "path": "text.font-family.label",
+        "$type": "fontFamily",
+        "$value": "Inter",
+        "$description": "Use for displaying titles of UI elements",
+        "$scopes": [
+          "FONT_FAMILY"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "Inter",
+                "Mobile": "Inter"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "value": {
+        "path": "text.font-family.value",
+        "$type": "fontFamily",
+        "$value": "Avenir Next",
+        "$description": "Use for displaying data values",
+        "$scopes": [
+          "FONT_FAMILY"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "Avenir Next",
+                "Mobile": "Avenir Next"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "value-mono": {
+        "path": "text.font-family.value-mono",
+        "$type": "fontFamily",
+        "$value": "Fira mono",
+        "$description": "Use for values that need a mono spaced font to display properly",
+        "$scopes": [
+          "FONT_FAMILY"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "Fira mono",
+                "Mobile": "Fira mono"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "value-condensed": {
+        "path": "text.font-family.value-condensed",
+        "$type": "fontFamily",
+        "$value": "Avenir Next Condensed",
+        "$description": "Use for wide values to you want to fit as much as possible on a row.",
+        "$scopes": [
+          "FONT_FAMILY"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "Avenir Next Condensed",
+                "Mobile": "Avenir Next Condensed"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "font-weight": {
+      "Black": {
+        "path": "text.font-weight.Black",
+        "$type": "string",
+        "$value": "Black",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "900",
+                "Mobile": "900"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Extra Bold": {
+        "path": "text.font-weight.Extra Bold",
+        "$type": "string",
+        "$value": "Extra Bold",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "800",
+                "Mobile": "800"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Bold": {
+        "path": "text.font-weight.Bold",
+        "$type": "string",
+        "$value": "Bold",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "700",
+                "Mobile": "700"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Bold Italic": {
+        "path": "text.font-weight.Bold Italic",
+        "$type": "string",
+        "$value": "Bold Italic",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "bold italic",
+                "Mobile": "bold italic"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Semi Bold": {
+        "path": "text.font-weight.Semi Bold",
+        "$type": "string",
+        "$value": "Semi Bold",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "600",
+                "Mobile": "600"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Semi Bold Italic": {
+        "path": "text.font-weight.Semi Bold Italic",
+        "$type": "string",
+        "$value": "Semi Bold Italic",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "semibold italic",
+                "Mobile": "semibold italic"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Medium": {
+        "path": "text.font-weight.Medium",
+        "$type": "string",
+        "$value": "Medium",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "500",
+                "Mobile": "500"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Medium Italic": {
+        "path": "text.font-weight.Medium Italic",
+        "$type": "string",
+        "$value": "Medium Italic",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "500",
+                "Mobile": "500"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Regular": {
+        "path": "text.font-weight.Regular",
+        "$type": "string",
+        "$value": "Regular",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "400",
+                "Mobile": "400"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Regular Italic": {
+        "path": "text.font-weight.Regular Italic",
+        "$type": "string",
+        "$value": "Regular Italic",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "regular italic",
+                "Mobile": "regular italic"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Light": {
+        "path": "text.font-weight.Light",
+        "$type": "string",
+        "$value": "Light",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "300",
+                "Mobile": "300"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Light Italic": {
+        "path": "text.font-weight.Light Italic",
+        "$type": "string",
+        "$value": "Light Italic",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "light italic",
+                "Mobile": "light italic"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Extra Light": {
+        "path": "text.font-weight.Extra Light",
+        "$type": "string",
+        "$value": "Extra Light",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "200",
+                "Mobile": "200"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "Thin": {
+        "path": "text.font-weight.Thin",
+        "$type": "string",
+        "$value": "Thin",
+        "$scopes": [
+          "FONT_STYLE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": "100",
+                "Mobile": "100"
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "font-size": {
+      "title-5xl": {
+        "path": "text.font-size.title-5xl",
+        "$type": "dimension",
+        "$value": {
+          "value": 80,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 80,
+                "Mobile": 80
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-4xl": {
+        "path": "text.font-size.title-4xl",
+        "$type": "dimension",
+        "$value": {
+          "value": 64,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 64,
+                "Mobile": 64
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-3xl": {
+        "path": "text.font-size.title-3xl",
+        "$type": "dimension",
+        "$value": {
+          "value": 48,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 48,
+                "Mobile": 48
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-2xl": {
+        "path": "text.font-size.title-2xl",
+        "$type": "dimension",
+        "$value": {
+          "value": 42,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 42,
+                "Mobile": 42
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-xl": {
+        "path": "text.font-size.title-xl",
+        "$type": "dimension",
+        "$value": {
+          "value": 36,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 36,
+                "Mobile": 36
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-l": {
+        "path": "text.font-size.title-l",
+        "$type": "dimension",
+        "$value": {
+          "value": 32,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 32,
+                "Mobile": 32
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-m": {
+        "path": "text.font-size.title-m",
+        "$type": "dimension",
+        "$value": {
+          "value": 24,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 24,
+                "Mobile": 24
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-s": {
+        "path": "text.font-size.title-s",
+        "$type": "dimension",
+        "$value": {
+          "value": 20,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 20,
+                "Mobile": 20
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "l": {
+        "path": "text.font-size.l",
+        "$type": "dimension",
+        "$value": {
+          "value": 16,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 16,
+                "Mobile": 16
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "m": {
+        "path": "text.font-size.m",
+        "$type": "dimension",
+        "$value": {
+          "value": 14,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 14,
+                "Mobile": 14
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "s": {
+        "path": "text.font-size.s",
+        "$type": "dimension",
+        "$value": {
+          "value": 12,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 12,
+                "Mobile": 12
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "xs": {
+        "path": "text.font-size.xs",
+        "$type": "dimension",
+        "$value": {
+          "value": 12,
+          "unit": "px"
+        },
+        "$scopes": [
+          "FONT_SIZE"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 12,
+                "Mobile": 12
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "line-height": {
+      "title-5xl": {
+        "path": "text.line-height.title-5xl",
+        "$type": "number",
+        "$value": 96,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 96,
+                "Mobile": 96
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-4xl": {
+        "path": "text.line-height.title-4xl",
+        "$type": "number",
+        "$value": 72,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 72,
+                "Mobile": 72
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-3xl": {
+        "path": "text.line-height.title-3xl",
+        "$type": "number",
+        "$value": 56,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 56,
+                "Mobile": 56
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-2xl": {
+        "path": "text.line-height.title-2xl",
+        "$type": "number",
+        "$value": 56,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 56,
+                "Mobile": 56
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-xl": {
+        "path": "text.line-height.title-xl",
+        "$type": "number",
+        "$value": 48,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 48,
+                "Mobile": 48
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-l": {
+        "path": "text.line-height.title-l",
+        "$type": "number",
+        "$value": 40,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 40,
+                "Mobile": 40
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-m": {
+        "path": "text.line-height.title-m",
+        "$type": "number",
+        "$value": 32,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 32,
+                "Mobile": 32
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "title-s": {
+        "path": "text.line-height.title-s",
+        "$type": "number",
+        "$value": 28,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 28,
+                "Mobile": 28
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "l": {
+        "path": "text.line-height.l",
+        "$type": "number",
+        "$value": 24,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 24,
+                "Mobile": 24
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "m": {
+        "path": "text.line-height.m",
+        "$type": "number",
+        "$value": 20,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 20,
+                "Mobile": 20
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "s": {
+        "path": "text.line-height.s",
+        "$type": "number",
+        "$value": 16,
+        "$scopes": [
+          "LINE_HEIGHT"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 16,
+                "Mobile": 16
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    }
+  },
+  "sizes": {
+    "distances": {
+      "none": {
+        "path": "sizes.distances.none",
+        "$type": "number",
+        "$value": 0,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 0,
+                "Mobile": 0
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "line1": {
+        "path": "sizes.distances.line1",
+        "$type": "number",
+        "$value": 1,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 1,
+                "Mobile": 1
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "close2": {
+        "path": "sizes.distances.close2",
+        "$type": "number",
+        "$value": 2,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 2,
+                "Mobile": 2
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "near4": {
+        "path": "sizes.distances.near4",
+        "$type": "number",
+        "$value": 4,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 4,
+                "Mobile": 4
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "in-between8": {
+        "path": "sizes.distances.in-between8",
+        "$type": "number",
+        "$value": 8,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 8,
+                "Mobile": 8
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "devided12": {
+        "path": "sizes.distances.devided12",
+        "$type": "number",
+        "$value": 12,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 12,
+                "Mobile": 12
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "separate20": {
+        "path": "sizes.distances.separate20",
+        "$type": "number",
+        "$value": 20,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 20,
+                "Mobile": 20
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "breathing30": {
+        "path": "sizes.distances.breathing30",
+        "$type": "number",
+        "$value": 30,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 30,
+                "Mobile": 30
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "spacious50": {
+        "path": "sizes.distances.spacious50",
+        "$type": "number",
+        "$value": 45,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 45,
+                "Mobile": 45
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "independent75": {
+        "path": "sizes.distances.independent75",
+        "$type": "number",
+        "$value": 75,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 75,
+                "Mobile": 75
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "corner-radius": {
+      "none": {
+        "path": "sizes.corner-radius.none",
+        "$type": "number",
+        "$value": 0,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 0,
+                "Mobile": 0
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "s": {
+        "path": "sizes.corner-radius.s",
+        "$type": "number",
+        "$value": 4,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 4,
+                "Mobile": 4
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "m": {
+        "path": "sizes.corner-radius.m",
+        "$type": "number",
+        "$value": 8,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 8,
+                "Mobile": 8
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "l": {
+        "path": "sizes.corner-radius.l",
+        "$type": "number",
+        "$value": 16,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 16,
+                "Mobile": 16
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "xl": {
+        "path": "sizes.corner-radius.xl",
+        "$type": "number",
+        "$value": 32,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 32,
+                "Mobile": 32
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "round": {
+        "path": "sizes.corner-radius.round",
+        "$type": "number",
+        "$value": 888,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 888,
+                "Mobile": 888
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "component-height": {
+      "xs": {
+        "path": "sizes.component-height.xs",
+        "$type": "number",
+        "$value": 12,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 14,
+                "Mobile": 16
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "s": {
+        "path": "sizes.component-height.s",
+        "$type": "number",
+        "$value": 16,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 20,
+                "Mobile": 24
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "m": {
+        "path": "sizes.component-height.m",
+        "$type": "number",
+        "$value": 24,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 28,
+                "Mobile": 32
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "l": {
+        "path": "sizes.component-height.l",
+        "$type": "number",
+        "$value": 32,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 36,
+                "Mobile": 40
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "xl": {
+        "path": "sizes.component-height.xl",
+        "$type": "number",
+        "$value": 40,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 44,
+                "Mobile": 48
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "2xl": {
+        "path": "sizes.component-height.2xl",
+        "$type": "number",
+        "$value": 56,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 56,
+                "Mobile": 64
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "grid": {
+      "nrcolumns": {
+        "path": "sizes.grid.nrcolumns",
+        "$type": "number",
+        "$value": 12,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 12,
+                "Mobile": 12
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "margins": {
+        "path": "sizes.grid.margins",
+        "$type": "number",
+        "$value": 48,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 48,
+                "Mobile": 48
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "gutter": {
+        "path": "sizes.grid.gutter",
+        "$type": "number",
+        "$value": 24,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 24,
+                "Mobile": 24
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "icon-height": {
+      "s": {
+        "path": "sizes.icon-height.s",
+        "$type": "number",
+        "$value": 16,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 16,
+                "Mobile": 16
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "m": {
+        "path": "sizes.icon-height.m",
+        "$type": "number",
+        "$value": 24,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 24,
+                "Mobile": 24
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "l": {
+        "path": "sizes.icon-height.l",
+        "$type": "number",
+        "$value": 32,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 32,
+                "Mobile": 32
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "icon-stroke-width": {
+      "s": {
+        "path": "sizes.icon-stroke-width.s",
+        "$type": "number",
+        "$value": 1.3300000429153442,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 1.3300000429153442,
+                "Mobile": 1.3300000429153442
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "m": {
+        "path": "sizes.icon-stroke-width.m",
+        "$type": "number",
+        "$value": 2,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 2,
+                "Mobile": 2
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "l": {
+        "path": "sizes.icon-stroke-width.l",
+        "$type": "number",
+        "$value": 2.6600000858306885,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 2.6600000858306885,
+                "Mobile": 2.6600000858306885
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "xl": {
+        "path": "sizes.icon-stroke-width.xl",
+        "$type": "number",
+        "$value": 4,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 4,
+                "Mobile": 4
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "line-stroke-width": {
+      "xs": {
+        "path": "sizes.line-stroke-width.xs",
+        "$type": "number",
+        "$value": 0.5,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 0.6000000238418579,
+                "Mobile": 0.699999988079071
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "s": {
+        "path": "sizes.line-stroke-width.s",
+        "$type": "number",
+        "$value": 1,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 1,
+                "Mobile": 1
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "m": {
+        "path": "sizes.line-stroke-width.m",
+        "$type": "number",
+        "$value": 2,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 2,
+                "Mobile": 2
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "l": {
+        "path": "sizes.line-stroke-width.l",
+        "$type": "number",
+        "$value": 3,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 3,
+                "Mobile": 3
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "xl": {
+        "path": "sizes.line-stroke-width.xl",
+        "$type": "number",
+        "$value": 6,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 6,
+                "Mobile": 6
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    },
+    "spacing": {
+      "none": {
+        "path": "sizes.spacing.none",
+        "$type": "number",
+        "$value": 0,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 0,
+                "Mobile": 0
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "2xs": {
+        "path": "sizes.spacing.2xs",
+        "$type": "number",
+        "$value": 4,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 4,
+                "Mobile": 4
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "xs": {
+        "path": "sizes.spacing.xs",
+        "$type": "number",
+        "$value": 8,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 8,
+                "Mobile": 8
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "s": {
+        "path": "sizes.spacing.s",
+        "$type": "number",
+        "$value": 12,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 12,
+                "Mobile": 12
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "m": {
+        "path": "sizes.spacing.m",
+        "$type": "number",
+        "$value": 16,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 16,
+                "Mobile": 16
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "l": {
+        "path": "sizes.spacing.l",
+        "$type": "number",
+        "$value": 24,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 24,
+                "Mobile": 24
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "xl": {
+        "path": "sizes.spacing.xl",
+        "$type": "number",
+        "$value": 32,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 32,
+                "Mobile": 32
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "2xl": {
+        "path": "sizes.spacing.2xl",
+        "$type": "number",
+        "$value": 40,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 40,
+                "Mobile": 40
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      },
+      "3xl": {
+        "path": "sizes.spacing.3xl",
+        "$type": "number",
+        "$value": 64,
+        "$scopes": [
+          "ALL_SCOPES"
+        ],
+        "$extensions": {
+          "tokenmanager": {
+            "modes": {
+              "constants": {
+                "Tablet": 64,
+                "Mobile": 64
+              }
+            },
+            "source": "figma-variables"
+          }
+        }
+      }
+    }
+  }
+}

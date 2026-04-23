@@ -1,14 +1,69 @@
 {
   "$collections": [
     {
-      "id": "primitives",
-      "name": "primitives",
-      "options": []
+      "id": "-0--color-primitives",
+      "modes": [
+        {
+          "name": "IDS"
+        }
+      ]
     },
     {
-      "id": "semantic",
-      "name": "semantic",
-      "options": []
+      "id": "-1--color-semantic-modes",
+      "modes": [
+        {
+          "name": "IDS Light"
+        },
+        {
+          "name": "IDS Dark"
+        }
+      ]
+    },
+    {
+      "id": "-2--color-semantic",
+      "modes": [
+        {
+          "name": "IDS"
+        }
+      ]
+    },
+    {
+      "id": "color-component",
+      "modes": [
+        {
+          "name": "IDS"
+        }
+      ]
+    },
+    {
+      "id": "constants",
+      "modes": [
+        {
+          "name": "Web"
+        },
+        {
+          "name": "Tablet"
+        },
+        {
+          "name": "Mobile"
+        }
+      ]
+    },
+    {
+      "id": "layout-component",
+      "modes": [
+        {
+          "name": "IDS"
+        }
+      ]
+    },
+    {
+      "id": "tokenmanager",
+      "modes": [
+        {
+          "name": "Mode 1"
+        }
+      ]
     }
   ]
 }

@@ -11,8 +11,9 @@
  *   node packages/figma-plugin/standalone/serve.mjs [--port 3200]
  *
  * The harness intercepts Figma postMessage calls and returns canned responses
- * so the UI can boot without a real Figma context. The plugin UI still talks
- * to the configured local TokenManager server for token data.
+ * so the UI can boot without a real Figma context. When no `serverUrl` query
+ * param is provided it serves a checked-in API snapshot captured from a live
+ * local TokenManager server, so the browser preview is populated out of the box.
  */
 
 import { startHarnessServer } from './harness-server.mjs';
@@ -36,7 +37,8 @@ try {
   console.log(`\n  Standalone UI harness: ${origin}`);
   console.log(`  Plugin UI (direct):   ${origin}/dist/ui.html`);
   console.log(`\n  The harness mocks Figma postMessage so the UI can boot.`);
-  console.log(`  Make sure the configured local TokenManager server is running for token data.\n`);
+  console.log(`  Captured snapshot data is served automatically.`);
+  console.log(`  Add ?serverUrl=http://localhost:9400 to point the UI at a live TokenManager server.\n`);
 } catch (error) {
   console.error(`\n  Failed to start standalone UI harness — ${error instanceof Error ? error.message : 'unknown error'}\n`);
   process.exit(1);

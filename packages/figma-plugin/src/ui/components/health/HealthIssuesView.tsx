@@ -93,7 +93,7 @@ export function HealthIssuesView({
 
   const copyMarkdown = () => {
     const lines: string[] = [
-      `# Health Report — ${exportIssues.length} issue${exportIssues.length !== 1 ? "s" : ""}\n`,
+      `# Review Report — ${exportIssues.length} issue${exportIssues.length !== 1 ? "s" : ""}\n`,
     ];
     for (const sev of ["error", "warning", "info"] as const) {
       const group = exportIssues.filter((i) => i.severity === sev);
@@ -123,7 +123,7 @@ export function HealthIssuesView({
     };
     downloadBlob(
       new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
-      "health-report.json",
+      "review-report.json",
     );
     dispatchToast("Exported JSON", "success");
     exportMenu.close();
@@ -137,7 +137,7 @@ export function HealthIssuesView({
     );
     downloadBlob(
       new Blob([[header, ...rows].join("\n")], { type: "text/csv" }),
-      "health-report.csv",
+      "review-report.csv",
     );
     dispatchToast("Exported CSV", "success");
     exportMenu.close();

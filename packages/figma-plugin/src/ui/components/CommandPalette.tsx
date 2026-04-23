@@ -17,7 +17,7 @@ import { fuzzyScore } from '../shared/fuzzyMatch';
 // ---------------------------------------------------------------------------
 
 const RECENT_MAX = 5;
-const COMMAND_SECTION_ORDER = ['Tokens', 'Collections', 'Views', 'Apply', 'Modes', 'Health', 'History', 'Export', 'Help'] as const;
+const COMMAND_SECTION_ORDER = ['Tokens', 'Collections', 'Views', 'Apply', 'Modes', 'Review', 'History', 'Export', 'Help'] as const;
 
 interface RecentEntry { id: string; label: string }
 

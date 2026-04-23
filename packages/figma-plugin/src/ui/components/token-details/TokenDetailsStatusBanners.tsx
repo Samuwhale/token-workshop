@@ -20,13 +20,11 @@ interface TokenDetailsStatusBannersProps {
   dependents: DependentToken[];
   showPendingDependents: boolean;
   ownerCollectionId: string;
-  tokenPath: string;
   onDismissTypeChange: () => void;
   onApplyTypeChange: () => void;
   onTogglePendingDependents: () => void;
   onNavigateToToken?: (
     path: string,
-    fromPath?: string,
     collectionId?: string,
   ) => void;
 }
@@ -43,7 +41,6 @@ export function TokenDetailsStatusBanners({
   dependents,
   showPendingDependents,
   ownerCollectionId,
-  tokenPath,
   onDismissTypeChange,
   onApplyTypeChange,
   onTogglePendingDependents,
@@ -118,13 +115,7 @@ export function TokenDetailsStatusBanners({
                         <button
                           key={dep.path}
                           type="button"
-                          onClick={() =>
-                            onNavigateToToken(
-                              dep.path,
-                              tokenPath,
-                              dep.collectionId,
-                            )
-                          }
+                          onClick={() => onNavigateToToken(dep.path, dep.collectionId)}
                           className="tm-token-details__list-row"
                           title={`Open ${dep.path}`}
                         >

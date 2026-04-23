@@ -36,7 +36,7 @@ export function LibrarySelectionStrip({
           onClick={onToggleInspectMode}
           className="shrink-0 text-[var(--color-figma-accent)] hover:underline focus-visible:underline outline-none"
         >
-          {inspectMode ? "Show all tokens" : "Show bound"}
+          {inspectMode ? "Show all tokens" : "Show tokens used here"}
         </button>
       )}
     </div>

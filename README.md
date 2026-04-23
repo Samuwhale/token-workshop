@@ -32,6 +32,7 @@ The harness includes a `Mock Selection` button so the UI can exercise selection-
 
 ```bash
 pnpm preview
+pnpm preview:capture
 pnpm preview -- --dir ./tokens
 pnpm preview -- --server-port 9410 --ui-port 3205
 pnpm preview:validate
@@ -67,7 +68,8 @@ pnpm backlog:doctor
 - Broad `planned` tasks are now refined automatically by a planner pass that supersedes vague parents into runnable child tasks instead of leaving them blocked forever.
 - The runner now injects compact digests of patterns, recent progress, and backlog state instead of dumping the full journals into every agent run.
 
-- `pnpm preview` uses the checked-in demo data.
+- `pnpm preview` uses the checked-in captured snapshot data.
+- `pnpm preview:capture` refreshes the standalone snapshot and demo token files from the live local server at `http://localhost:9400`.
 - `pnpm preview -- --dir ./tokens` points the local server at a real token workspace.
 - `pnpm preview -- --server-port 9410 --ui-port 3205` is useful when your normal dev ports are already occupied.
 - `pnpm preview:validate` runs a connected headless preview check against the demo token workspace.

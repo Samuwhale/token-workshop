@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { Check, Eye, Filter } from "lucide-react";
-import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
+import { Check, Filter } from "lucide-react";
+import type { SortOrder } from "./tokenListTypes";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { TOKEN_TYPE_CATEGORIES } from "../shared/tokenTypeCategories";
 import {
@@ -9,8 +9,6 @@ import {
 } from "./tokenListUtils";
 
 export interface ViewMenuProps {
-  groupBy: TokenGroupBy;
-  setGroupBy: (value: TokenGroupBy) => void;
   sortOrder: SortOrder;
   onSortOrderChange: (order: SortOrder) => void;
   onExpandAll: () => void;
@@ -112,122 +110,6 @@ function MenuLabel({ children }: { children: string }) {
   );
 }
 
-export function ViewMenu(
-  props: ViewMenuProps & {
-    viewMode: "tree" | "json";
-    setViewMode: (mode: "tree" | "json") => void;
-  },
-) {
-  const { open, menuRef, triggerRef, toggle, close } = useDropdownMenu();
-  const runAndClose = useCallback(
-    (fn: () => void) => {
-      fn();
-      close({ restoreFocus: false });
-    },
-    [close],
-  );
-
-  return (
-    <div className="relative shrink-0">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={toggle}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label="View options"
-        className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
-          open
-            ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-        }`}
-        title="View options"
-      >
-        <Eye size={12} strokeWidth={1.5} aria-hidden />
-        <span>View</span>
-      </button>
-
-      {open && (
-        <div
-          ref={menuRef}
-          className="absolute right-0 top-full z-50 mt-1 w-[224px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
-          role="menu"
-        >
-          <div className="max-h-[420px] overflow-y-auto">
-            <MenuItem
-              label="JSON editor"
-              checked={props.viewMode === "json"}
-              onClick={() => runAndClose(() => props.setViewMode(props.viewMode === "json" ? "tree" : "json"))}
-            />
-            <div className={MENU_SECTION_BORDER} />
-            <MenuItem
-              label={
-                props.sortOrder === "default"
-                  ? "Sort: default order"
-                  : props.sortOrder === "alpha-asc"
-                    ? "Sort: A to Z"
-                    : "Sort: by type"
-              }
-              onClick={() =>
-                runAndClose(() => {
-                  const next: SortOrder =
-                    props.sortOrder === "default"
-                      ? "alpha-asc"
-                      : props.sortOrder === "alpha-asc"
-                        ? "by-type"
-                        : "default";
-                  props.onSortOrderChange(next);
-                })
-              }
-            />
-            <MenuItem
-              label={`Group by: ${props.groupBy}`}
-              onClick={() =>
-                runAndClose(() =>
-                  props.setGroupBy(props.groupBy === "path" ? "type" : "path"),
-                )
-              }
-            />
-            {props.hasGroups && (
-              <MenuItem
-                label={props.allGroupsExpanded ? "Collapse groups" : "Expand groups"}
-                onClick={() =>
-                  runAndClose(() => {
-                    if (props.allGroupsExpanded) {
-                      props.onCollapseAll();
-                    } else {
-                      props.onExpandAll();
-                    }
-                  })
-                }
-              />
-            )}
-            {props.canToggleSearchResultPresentation && (
-              <MenuItem
-                label={
-                  props.searchResultPresentation === "grouped"
-                    ? "Grouped"
-                    : "Flat"
-                }
-                checked={props.searchResultPresentation === "flat"}
-                onClick={() =>
-                  runAndClose(() =>
-                    props.onSearchResultPresentationChange(
-                      props.searchResultPresentation === "grouped"
-                        ? "flat"
-                        : "grouped",
-                    ),
-                  )
-                }
-              />
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function FilterMenu(
   props: FilterMenuProps & {
     searchQuery: string;
@@ -250,6 +132,14 @@ export function FilterMenu(
     const checked = values.every((value) => activeTypeValues.has(value));
     return { group: category.group, values, checked };
   });
+  const referenceOptions: Array<{
+    key: "all" | "aliases" | "direct";
+    label: string;
+  }> = [
+    { key: "all", label: "All values" },
+    { key: "aliases", label: "Alias references" },
+    { key: "direct", label: "Literal values" },
+  ];
 
   return (
     <div className="relative shrink-0">
@@ -268,7 +158,7 @@ export function FilterMenu(
         title="Filter options"
       >
         <Filter size={12} strokeWidth={1.5} aria-hidden />
-        <span>Filter</span>
+        <span>Filters</span>
         {props.activeCount > 0 && <span>{props.activeCount}</span>}
       </button>
 
@@ -279,9 +169,10 @@ export function FilterMenu(
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">
+            <MenuLabel>Show</MenuLabel>
             {props.lintCount > 0 && (
               <MenuItem
-                label="Only tokens with issues"
+                label="Tokens with issues"
                 checked={props.showIssuesOnly}
                 suffix={`${props.lintCount}`}
                 onClick={() =>
@@ -301,52 +192,38 @@ export function FilterMenu(
             )}
             {props.starredCount > 0 && (
               <MenuItem
-                label="Only starred"
+                label="Starred"
                 checked={props.showStarredOnly}
                 suffix={`${props.starredCount}`}
                 onClick={() => runAndClose(props.onToggleStarredOnly)}
               />
             )}
             <MenuItem
-              label="Related to selection"
+              label="Used on selection"
               checked={props.inspectMode}
               onClick={() => runAndClose(props.onToggleInspectMode)}
             />
-            {props.hasMultipleCollections && (
-              <MenuItem
-                label="Search across all collections"
-                checked={props.crossCollectionSearch}
-                onClick={() => runAndClose(props.onToggleCrossCollectionSearch)}
-              />
-            )}
             <MenuItem
-              label={
-                props.refFilter === "all"
-                  ? "Reference mode: all tokens"
-                  : props.refFilter === "aliases"
-                    ? "Reference mode: alias tokens"
-                    : "Reference mode: direct values"
-              }
-              onClick={() =>
-                runAndClose(() => {
-                  const next =
-                    props.refFilter === "all"
-                      ? "aliases"
-                      : props.refFilter === "aliases"
-                        ? "direct"
-                        : "all";
-                  props.onRefFilterChange(
-                    next as "all" | "aliases" | "direct",
-                  );
-                })
-              }
-              checked={props.refFilter !== "all"}
-            />
-            <MenuItem
-              label="Duplicate values only"
+              label="Shared values"
               checked={props.showDuplicates}
               onClick={() => runAndClose(props.onToggleDuplicates)}
             />
+
+            <div className={MENU_SECTION_BORDER}>
+              <MenuLabel>Value Source</MenuLabel>
+            </div>
+            {referenceOptions.map((option) => (
+              <MenuItem
+                key={option.key}
+                label={option.label}
+                checked={props.refFilter === option.key}
+                onClick={() =>
+                  runAndClose(() => {
+                    props.onRefFilterChange(option.key);
+                  })
+                }
+              />
+            ))}
 
             <div className={MENU_SECTION_BORDER}>
               <MenuLabel>Filter by type</MenuLabel>

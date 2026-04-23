@@ -867,7 +867,7 @@ export function PublishPanel({
       if (actionId === 'review-health-findings') {
         beginHandoff({
           reason:
-            'Review the health findings behind these blockers, then return to Sync.',
+            'Review the validation findings behind these blockers, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
         navigateTo('library', 'health', { preserveHandoff: true });

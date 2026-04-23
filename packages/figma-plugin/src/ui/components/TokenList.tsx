@@ -142,7 +142,7 @@ export function TokenList({
     tokenUsageReady = false,
     perCollectionFlat,
     collectionMap = {},
-    collectionTokenCounts = {},
+    collectionTokenCounts: _collectionTokenCounts = {},
     modeMap = {},
     collections = [],
     unresolvedAllTokensFlat,
@@ -164,7 +164,6 @@ export function TokenList({
     onToggleIssuesOnly,
     onFilteredCountChange,
     onNavigateToCollection,
-    onSelectCollection,
     onTokenTouched,
     onToggleStar,
     starredPaths,
@@ -185,17 +184,12 @@ export function TokenList({
     onShowPasteModal,
     onOpenImportPanel,
     onExtractFromSelection,
-    onOpenCreateCollection,
-    onOpenCollectionDetails,
   },
   recentlyTouched,
   highlightedToken,
   showIssuesOnly,
   editingTokenPath,
   compareHandle,
-  collectionHealth,
-  collectionPickerFocusRequestKey,
-  onOpenHealth,
 }: TokenListProps) {
   const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
@@ -839,32 +833,6 @@ export function TokenList({
     return map;
   }, [lintViolations]);
 
-  const issueSummary = useMemo(() => {
-    const summary = {
-      count: lintViolations.length,
-      errors: 0,
-      warnings: 0,
-      severity: null as "error" | "warning" | "info" | null,
-    };
-
-    for (const violation of lintViolations) {
-      if (violation.severity === "error") {
-        summary.errors += 1;
-        summary.severity = "error";
-        continue;
-      }
-
-      if (violation.severity === "warning") {
-        summary.warnings += 1;
-        if (summary.severity !== "error") {
-          summary.severity = "warning";
-        }
-      }
-    }
-
-    return summary;
-  }, [lintViolations]);
-
   // Token search state (depends on expansion and virtual-scroll bridge refs)
   const tokenSearch = useTokenSearch({
     collectionId,
@@ -976,22 +944,17 @@ export function TokenList({
     }
     handleCollapseAllPath();
   }, [groupBy, handleCollapseAllPath, setExpandedPaths]);
-  const filterMenuActiveCount =
-    activeFilterCount +
-    (inspectMode ? 1 : 0) +
-    (crossCollectionSearch ? 1 : 0);
+  const filterMenuActiveCount = activeFilterCount + (inspectMode ? 1 : 0);
 
   const {
     toolbarStateChips,
   } = useToolbarStateChips({
-    structuredFilterChips, removeQueryToken, sortOrder, setSortOrder,
+    structuredFilterChips, removeQueryToken,
     refFilter, setRefFilter, showDuplicates, setShowDuplicates,
     showIssuesOnly, onToggleIssuesOnly, lintViolationsLength: lintViolations.length,
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     showStarredOnly, setShowStarredOnly,
-    inspectMode, setInspectMode, crossCollectionSearch, setCrossCollectionSearch,
-    showFlatSearchResults,
-    setSearchResultPresentation,
+    inspectMode, setInspectMode,
   });
 
   const insertSearchQualifier = useCallback(
@@ -2355,23 +2318,11 @@ export function TokenList({
           />
         )}
 
-        {/* Toolbar — row 1: [set name] [create] [tools] [view] [filter], row 2: [search] */}
+        {/* Toolbar — search is primary, while arrangement and filters stay secondary. */}
         {!selectMode && (
           <TokenListToolbar
             onNavigateBack={onNavigateBack}
             navHistoryLength={navHistoryLength}
-            collectionId={collectionId}
-            collections={collections}
-            collectionDisplayNames={collectionMap}
-            collectionTokenCounts={collectionTokenCounts}
-            collectionHealth={collectionHealth}
-            collectionPickerFocusRequestKey={collectionPickerFocusRequestKey}
-            onSelectCollection={onSelectCollection ?? (() => {})}
-            onOpenCollectionDetails={
-              onOpenCollectionDetails
-                ? () => onOpenCollectionDetails(collectionId)
-                : undefined
-            }
             zoomRootPath={zoomRootPath}
             searchRef={searchRef}
             searchQuery={searchQuery}
@@ -2395,14 +2346,11 @@ export function TokenList({
             openTableCreate={openTableCreate}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
-            onOpenCreateCollection={onOpenCreateCollection}
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
             onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
             overflowMenuProps={tokens.length > 0 ? {
-              groupBy,
-              setGroupBy,
               sortOrder,
               onSortOrderChange: setSortOrder,
               onExpandAll: handleExpandAll,
@@ -2432,8 +2380,6 @@ export function TokenList({
               onToggleDuplicates: () => setShowDuplicates(!showDuplicates),
               activeCount: filterMenuActiveCount,
             } : null}
-            issueSummary={issueSummary}
-            onOpenHealth={onOpenHealth}
           />
         )}
       </div>

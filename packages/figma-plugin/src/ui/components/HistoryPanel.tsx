@@ -4,7 +4,6 @@ import { dispatchToast } from '../shared/toastBus';
 import type { HistoryPanelProps, HistoryView } from './history/types';
 import { defaultSnapshotLabel } from './history/types';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
-import { PanelContentHeader } from './PanelContentHeader';
 import { HistoryRecentView } from './history/HistoryRecentView';
 import { HistorySavedView } from './history/HistorySavedView';
 
@@ -32,13 +31,13 @@ export function HistoryPanel({
   const [saving, setSaving] = useState(false);
   const validWorkingCollectionId = collectionIds.includes(workingCollectionId)
     ? workingCollectionId
-    : collectionIds[0] ?? '';
+    : collectionIds[0] ?? null;
   const activeCollectionFilter =
     scope.mode === 'current'
       ? scope.collectionId && collectionIds.includes(scope.collectionId)
         ? scope.collectionId
         : validWorkingCollectionId
-      : '';
+      : null;
 
   useEffect(() => {
     if (scope.mode !== 'current') {
@@ -97,19 +96,105 @@ export function HistoryPanel({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PanelContentHeader
-        primaryAction={showSaveInput ? null : {
-          label: 'Save checkpoint',
-          onClick: () => {
-            const lastOp = recentOperations?.[0];
-            setSaveLabel(defaultSnapshotLabel(lastOp?.description));
-            setShowSaveInput(true);
-          },
-        }}
-      />
+      <div className="shrink-0 px-4 pb-3 pt-1">
+        <div className="flex items-center justify-between gap-3">
+          <div
+            role="tablist"
+            aria-label="History views"
+            className="inline-flex items-center rounded-md bg-[var(--color-figma-bg-secondary)] p-0.5"
+            onKeyDown={(e) => {
+              const views: HistoryView[] = ['recent', 'saved'];
+              const currentIndex = views.indexOf(scope.view);
+              if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                const next = views[(currentIndex + 1) % views.length];
+                onScopeChange({ ...scope, view: next });
+                document.getElementById(`history-tab-${next}`)?.focus();
+              } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const next = views[(currentIndex - 1 + views.length) % views.length];
+                onScopeChange({ ...scope, view: next });
+                document.getElementById(`history-tab-${next}`)?.focus();
+              }
+            }}
+          >
+            {(['recent', 'saved'] as const).map((view) => (
+              <button
+                key={view}
+                role="tab"
+                id={`history-tab-${view}`}
+                aria-selected={scope.view === view}
+                aria-controls={`history-tabpanel-${view}`}
+                tabIndex={scope.view === view ? 0 : -1}
+                onClick={() => onScopeChange({ ...scope, view })}
+                className={`rounded px-3 py-1.5 text-secondary font-medium transition-colors ${
+                  scope.view === view
+                    ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]'
+                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+                }`}
+              >
+                {view === 'recent' ? 'Recent activity' : 'Checkpoints'}
+              </button>
+            ))}
+          </div>
+
+          {!showSaveInput ? (
+            <button
+              type="button"
+              onClick={() => {
+                const lastOp = recentOperations?.[0];
+                setSaveLabel(defaultSnapshotLabel(lastOp?.description));
+                setShowSaveInput(true);
+              }}
+              className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+            >
+              Save checkpoint
+            </button>
+          ) : null}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <div className="inline-flex rounded-md bg-[var(--color-figma-bg-secondary)] p-0.5">
+            {([
+              { value: 'current', label: 'Current collection' },
+              { value: 'all', label: 'Library wide' },
+            ] as const).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  onScopeChange({
+                    ...scope,
+                    mode: option.value,
+                    collectionId:
+                      option.value === 'current'
+                        ? activeCollectionFilter || null
+                        : null,
+                    tokenPath: null,
+                  })
+                }
+                className={`rounded px-2.5 py-1 text-secondary transition-colors ${
+                  scope.mode === option.value
+                    ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]'
+                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="min-w-0 text-secondary text-[var(--color-figma-text-tertiary)]">
+            {scope.tokenPath
+              ? `Showing ${scope.tokenPath}`
+              : scope.mode === 'current' && activeCollectionFilter
+                ? `Showing ${activeCollectionFilter}`
+                : 'Showing the full library timeline'}
+          </div>
+        </div>
+      </div>
 
       {showSaveInput && (
-        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        <div className="shrink-0 flex items-center gap-1.5 px-4 pb-3">
           <input
             className="flex-1 min-w-0 px-2 py-1 text-secondary rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)]"
             placeholder="Checkpoint label"
@@ -132,122 +217,6 @@ export function HistoryPanel({
           >
             Cancel
           </button>
-        </div>
-      )}
-
-      <div
-        role="tablist"
-        aria-label="History views"
-        className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)]"
-        onKeyDown={(e) => {
-          const views: HistoryView[] = ['recent', 'saved'];
-          const currentIndex = views.indexOf(scope.view);
-          if (e.key === 'ArrowRight') {
-            e.preventDefault();
-            const next = views[(currentIndex + 1) % views.length];
-            onScopeChange({ ...scope, view: next });
-            document.getElementById(`history-tab-${next}`)?.focus();
-          } else if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            const next = views[(currentIndex - 1 + views.length) % views.length];
-            onScopeChange({ ...scope, view: next });
-            document.getElementById(`history-tab-${next}`)?.focus();
-          } else if (e.key === 'Home') {
-            e.preventDefault();
-            onScopeChange({ ...scope, view: views[0] });
-            document.getElementById(`history-tab-${views[0]}`)?.focus();
-          } else if (e.key === 'End') {
-            e.preventDefault();
-            const last = views[views.length - 1];
-            onScopeChange({ ...scope, view: last });
-            document.getElementById(`history-tab-${last}`)?.focus();
-          }
-        }}
-      >
-        {(['recent', 'saved'] as const).map((view) => (
-          <button
-            key={view}
-            role="tab"
-            id={`history-tab-${view}`}
-            aria-selected={scope.view === view}
-            aria-controls={`history-tabpanel-${view}`}
-            tabIndex={scope.view === view ? 0 : -1}
-            onClick={() => onScopeChange({ ...scope, view })}
-            className={`flex-1 text-center text-secondary font-medium py-1 rounded transition-colors ${
-              scope.view === view
-                ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-            }`}
-          >
-            {view === 'recent' ? 'Recent' : 'Saved'}
-          </button>
-        ))}
-      </div>
-
-      <div className="shrink-0 flex items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-2">
-        <div className="inline-flex rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-0.5">
-          {([
-            { value: 'all', label: 'All collections' },
-            { value: 'current', label: 'Current collection' },
-          ] as const).map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() =>
-                onScopeChange({
-                  ...scope,
-                  mode: option.value,
-                  collectionId:
-                    option.value === 'current'
-                      ? activeCollectionFilter || null
-                      : null,
-                })
-              }
-              className={`rounded px-2 py-1 text-secondary transition-colors ${
-                scope.mode === option.value
-                  ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]'
-                  : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        {scope.mode === 'current' ? (
-          <select
-            id="history-collection-filter"
-            value={activeCollectionFilter}
-            onChange={(event) =>
-              onScopeChange({
-                ...scope,
-                mode: 'current',
-                collectionId: event.target.value,
-              })
-            }
-            className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)]"
-          >
-            {collectionIds.map((collectionId) => (
-              <option key={collectionId} value={collectionId}>
-                {collectionId}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <div className="min-w-0 flex-1 text-secondary text-[var(--color-figma-text-secondary)]">
-            Library-wide history
-          </div>
-        )}
-      </div>
-
-      {(scope.tokenPath || activeCollectionFilter) && (
-        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
-          {scope.tokenPath
-            ? scope.mode === 'current' && activeCollectionFilter
-              ? `Showing ${scope.tokenPath} in ${activeCollectionFilter}`
-              : `Showing ${scope.tokenPath} across all collections`
-            : scope.mode === 'current' && activeCollectionFilter
-              ? `Showing history for ${activeCollectionFilter}`
-              : 'Showing library-wide history'}
         </div>
       )}
 
@@ -281,7 +250,7 @@ export function HistoryPanel({
             connected={connected}
             onPushUndo={onPushUndo}
             onRefreshTokens={onRefreshTokens}
-            collectionFilter={activeCollectionFilter || undefined}
+            collectionFilter={activeCollectionFilter ?? undefined}
             filterTokenPath={scope.tokenPath ?? undefined}
           />
         )}

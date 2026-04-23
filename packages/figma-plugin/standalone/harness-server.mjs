@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { handleMockApiRequest } from './mock-api.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.resolve(__dirname, '..');
@@ -58,16 +59,10 @@ function isReadableFile(filePath) {
 }
 
 function createHarnessServer(host, port) {
-  return http.createServer((req, res) => {
+  return http.createServer(async (req, res) => {
     if (!req.url) {
       res.writeHead(400);
       res.end('Bad request');
-      return;
-    }
-
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      res.writeHead(405, { Allow: 'GET, HEAD' });
-      res.end('Method not allowed');
       return;
     }
 
@@ -84,6 +79,31 @@ function createHarnessServer(host, port) {
     if (pathname === '/favicon.ico') {
       res.writeHead(204);
       res.end();
+      return;
+    }
+
+    if (pathname === '/help' || pathname.startsWith('/api/')) {
+      const handled = await handleMockApiRequest(req, res, url);
+      if (handled) {
+        return;
+      }
+    }
+
+    if (
+      pathname === '/dist/ui.html' &&
+      !url.searchParams.has('serverUrl') &&
+      (req.method === 'GET' || req.method === 'HEAD')
+    ) {
+      const redirectUrl = new URL(req.url, `http://${host}:${port}`);
+      redirectUrl.searchParams.set('serverUrl', `http://${host}:${port}`);
+      res.writeHead(302, { Location: redirectUrl.toString() });
+      res.end();
+      return;
+    }
+
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      res.writeHead(405, { Allow: 'GET, HEAD' });
+      res.end('Method not allowed');
       return;
     }
 

@@ -323,9 +323,7 @@ export function App() {
     }
     if (
       activeTopTab === "library" &&
-      (activeSubTab === "tokens" ||
-        activeSubTab === "overview" ||
-        activeSubTab === "health")
+      (activeSubTab === "tokens" || activeSubTab === "health")
     ) {
       navigateTo("library", activeSubTab);
     } else {
@@ -835,13 +833,11 @@ export function App() {
     publishPreflightState,
     publishPanelHandleRef,
   } = useSyncState({
-    serverUrl,
     connected,
     collections,
     perCollectionFlat,
     collectionMap,
     modeMap,
-    currentCollectionId,
     setErrorToast,
   });
 
@@ -1001,7 +997,7 @@ export function App() {
 
   // Moving between Library sections dismisses contextual tools (compare,
   // color-analysis, import, generated-group editor, collection-details) so they
-  // don't leak into Tokens/Health/History. Only fires when both the previous
+  // don't leak into Tokens/Review/History. Only fires when both the previous
   // and next routes are inside the Library workspace — entering Library from
   // another workspace must not clobber a tool that was just opened alongside
   // the navigation (e.g. command palette "Color analysis"). The pinned token

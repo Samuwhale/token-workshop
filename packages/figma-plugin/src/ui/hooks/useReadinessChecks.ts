@@ -334,20 +334,20 @@ export function useReadinessChecks({
           severity: 'blocking',
           affectedCount: blockingValidationIssues.length || undefined,
           detail: blockingValidationIssues.length > 0
-            ? `${summarizeValidationIssues(blockingValidationIssues)} would publish invalid Figma variable references. Fix these Health findings before compare/apply unlocks.`
+            ? `${summarizeValidationIssues(blockingValidationIssues)} would publish invalid Figma variable references. Fix these review findings before compare/apply unlocks.`
             : undefined,
-          recommendedActionLabel: blockingValidationIssues.length > 0 ? 'Review in Health' : undefined,
+          recommendedActionLabel: blockingValidationIssues.length > 0 ? 'Open Review' : undefined,
           recommendedActionId: blockingValidationIssues.length > 0 ? 'review-health-findings' : undefined,
         },
         {
           id: 'lint-errors',
-          label: 'Active health errors',
+          label: 'Active review errors',
           severity: 'advisory',
           affectedCount: activeValidationIssues.length || undefined,
           detail: activeValidationIssues.length > 0
-            ? `${summarizeValidationIssues(activeValidationIssues)} still need review in Health before shipping this library.`
+            ? `${summarizeValidationIssues(activeValidationIssues)} still need review before shipping this library.`
             : undefined,
-          recommendedActionLabel: activeValidationIssues.length > 0 ? 'Review in Health' : undefined,
+          recommendedActionLabel: activeValidationIssues.length > 0 ? 'Open Review' : undefined,
           recommendedActionId: activeValidationIssues.length > 0 ? 'review-health-findings' : undefined,
         },
         {
